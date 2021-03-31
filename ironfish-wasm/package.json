@@ -1,0 +1,10 @@
+{
+  "name": "ironfish-wasm",
+  "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
+  "license": "MPL-2.0",
+  "scripts": {
+    "build:node": "node build.js --node",
+    "build:web": "node build.js --web",
+    "build": "node build.js"
+  }
+}

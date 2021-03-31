@@ -1,0 +1,32 @@
+{
+  "header": {
+    "sequence": "94",
+    "previousBlockHash": "3F4B4473BD42DFC4B632F15457E5611F4B03A31FF284EF31560C349A5EB3848A",
+    "noteCommitment": {
+      "commitment": {
+        "type": "Buffer",
+        "data": "base64:z5jc550b19Sj3q2DH8PtOwIox012IMyN6AJC0T7z3U0="
+      },
+      "size": 96
+    },
+    "nullifierCommitment": {
+      "commitment": "38D9A6BDEC6F35135626166DF2149CA3E3B61E2D8D62F9226ACAE0FDAD29DE3D",
+      "size": 1
+    },
+    "target": "880842937844725196442695540779332307793253899902937591585455087694081134",
+    "randomness": 0,
+    "timestamp": 1617063931018,
+    "minersFee": "-5",
+    "isValid": false,
+    "work": "0",
+    "graphId": 0,
+    "count": 0,
+    "hash": "F1A0E3519F627878133F024B025B6D9B9564DCC3EF17847E5F93927FA16123CD"
+  },
+  "transactions": [
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAPv/////////hNcXuG6Me9qtOC47ux1n7o0RAcu/FtStThzdQJJncdreCouaqqor5AY3pKbSway8hbxm/46mj92r1xzwwyYxeiZH6+54xijm+AVr0znIRa4DbISy0e5pvf7UkUdMLGqFBJ9coD0Lfp8ByJb2arYxFP+AGlokptqhFNpGy+NoWu5oPnd0+mEEKfB7JBRjq1ALtNUmRmaY/pRKexrkSjWSthbwAfcDO+K11T9BWv8SLc41kdXRrWNt9st3jpKpJbnolIJG8xFWogwHCioiM37GFcKzyIuvH75faig3aLem50qUu1epS7NZUqMrkCL3RvEdKJeU/Ia9zOEBWXW9hbDtC3bDVZOhUUXku0Lj198o2x5shDck5RWbgaACCYpi8RJqkqap2LI7+FJimer0J2Hcl26B1ipj2q1u8faHxKFSTMrHfuMlXqb/ThnXJEAX/vNVyYb6HLNGdM1RDe4e7GJzyT2Sl3VTzLtGzC0yvXJCzV8S0f/C9mRfzN6YmXGoQyyiFdT6QmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDD582jrATiaBnMksFD5FJY9+pruRK1KYllhiJgXToVZLwj1ZW9j7m/b+kDId+UuTdXw8wKir0jirFMqzT72bAME"
+    }
+  ]
+}

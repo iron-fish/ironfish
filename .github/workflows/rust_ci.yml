@@ -1,0 +1,119 @@
+on: 
+  push:
+    paths:
+    - 'ironfish-rust/**'
+    - 'ironfish-wasm/**'
+    - 'rust-toolchain'
+
+name: Rust CI
+
+jobs:
+  ironfish_rust:
+    name: ironfish-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+      - name: Cache Cargo registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo build
+        uses: actions/cache@v1
+        with:
+          path: ironfish-rust/target
+          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check for license headers
+        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
+
+      # Build & Run test & Collect Code coverage
+      - name: Run cargo-tarpaulin on ironfish-rust
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.15.0'
+          args: --manifest-path ironfish-rust/Cargo.toml --release --all-features -- --test-threads 1
+
+      # Upload code coverage to Codecov
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          flags: ironfish-rust
+
+      # fmt
+      - uses: actions-rs/cargo@v1
+        name: "`cargo fmt` check on ironfish-rust"
+        with:
+          command: fmt
+          args: --manifest-path ironfish-rust/Cargo.toml --all -- --check
+
+      # clippy
+      - uses: actions-rs/cargo@v1
+        name: "Clippy check on ironfish-rust"
+        with:
+          command: clippy
+          args: --manifest-path ironfish-rust/Cargo.toml -- -D warnings
+
+  ironfish_wasm:
+    name: ironfish-wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+      - name: Cache Cargo registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache Cargo build
+        uses: actions/cache@v1
+        with:
+          path: ironfish-wasm/target
+          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check for license headers
+        run: ./ci/lintHeaders.sh ./ironfish-wasm/src *.rs
+
+      # Build & Run test & Collect Code coverage
+      - name: Run cargo-tarpaulin on ironfish-wasm
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.15.0'
+          args: --manifest-path ironfish-wasm/Cargo.toml --release --all-features -- --test-threads 1
+
+      # upload code coverage to Codecov
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          flags: ironfish-wasm
+
+      # fmt
+      - uses: actions-rs/cargo@v1
+        name: "`cargo fmt` check on ironfish-wasm"
+        with:
+          command: fmt
+          args: --manifest-path ironfish-wasm/Cargo.toml --all -- --check
+
+      # clippy
+      - uses: actions-rs/cargo@v1
+        name: "Clippy check on ironfish-wasm"
+        with:
+          command: clippy
+          args: --manifest-path ironfish-wasm/Cargo.toml -- -D warnings

@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Iron Fish API
+  description: Backend API for Faucet and Block explorer
+  license:
+    name: MPL 2.0
+    url: https://www.mozilla.org/en-US/MPL/2.0/
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Iron Fish
+  url: https://ironfish.network
+servers:
+- url: /api/v1
+
+tags:
+  - name: Faucet
+    description: Faucet APIs
+  - name: Analytics
+    description: Analytics APIs for the Block Explorer
+  - name: Telemetry
+    description: Telemetry APIs for metrics collection
+
+paths:
+  /getFunds:
+    post:
+      description: Send coins to the caller address
+      tags:
+        - Faucet
+      operationId: getFunds
+      parameters:
+      - name: email
+        required: false
+        in: query
+        allowEmptyValue: true
+        description: The email of the user
+        schema:
+          type: string
+      - name: publicKey
+        required: true
+        in: query
+        description: The public key of the user's account
+        schema:
+          type: string
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFundsResponse'
+
+  /writeTelemetry:
+    post:
+      description: Write a list of time-series metrics to the database
+      tags:
+        - Telemetry
+      operationId: writeTelemetry
+      requestBody:
+        description: List of metrics to record
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WriteTelemetryRequest'
+      responses:
+        200:
+          description: Telemetry successfully received
+
+
+components:
+  schemas:
+    GetFundsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    WriteTelemetryRequest:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+         - name
+         - timestamp
+         - fields
+        properties:
+          name:
+            type: string
+            description: Identifier for the metric
+            pattern: '^[a-zA-Z][a-zA-Z0-9]+$'
+          timestamp:
+            description: Time when the metric was recorded
+            type: string
+            format: date-time
+          tags:
+            type: object
+            description: Optional collection of properties to identify the metric
+            additionalProperties:
+              type: string
+          fields:
+            description: List of values associated with a specific recording of that metric
+            minItems: 1
+            type: array
+            items:
+              description:
+                Name and a strongly typed value for the type of
+                data being recorded. Only one typed value
+                can be specified per field.
+              type: object
+              additionalProperties: false
+              required:
+                - name
+              maxProperties: 2
+              minProperties: 2
+              properties:
+                name:
+                  description: The name of the field being recorded.
+                  type: string
+                string:
+                  type: string
+                boolean:
+                  type: boolean
+                float:
+                  type: number
+                integer:
+                  type: integer

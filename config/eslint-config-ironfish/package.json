@@ -1,0 +1,24 @@
+{
+  "name": "eslint-config-ironfish",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
+  "license": "MPL-2.0",
+  "files": [
+    "index.js",
+    "prettierrc"
+  ],
+  "peerDependencies": {
+    "@typescript-eslint/eslint-plugin": "4.9.0",
+    "@typescript-eslint/parser": "4.9.0",
+    "eslint": "7.12.0",
+    "eslint-config-prettier": "6.11.0",
+    "eslint-plugin-jest": "24.0.1",
+    "eslint-plugin-prettier": "3.1.4",
+    "prettier": "2.1.2"
+  },
+  "resolutions": {
+    "node-forge": "0.10.0",
+    "object-path": "^0.11.4"
+  }
+}

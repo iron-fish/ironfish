@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Adds an element to an EvictingSet 1`] = `
+EvictingSet {
+  "items": Set {
+    "a",
+  },
+  "max_size": 5,
+}
+`;
+
+exports[`Constructs an EvictingSet with no elements 1`] = `
+EvictingSet {
+  "items": Set {},
+  "max_size": 5,
+}
+`;
+
+exports[`Removes an element once max size is reached 1`] = `
+EvictingSet {
+  "items": Set {
+    "g",
+    "h",
+    "i",
+    "j",
+    "k",
+  },
+  "max_size": 5,
+}
+`;

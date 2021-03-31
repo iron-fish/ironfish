@@ -1,0 +1,71 @@
+ignore:
+  - config/*
+  - ironfish-wasm/*
+  - ironfish/src/aaptain/testUtilities/*
+comment: false
+github_checks:
+  annotations: false
+coverage:
+  fixes:
+    - "/home/runner/work/ironfish/ironfish/::/"
+  status:
+    patch:
+      default:
+        target: auto
+        threshold: 50%
+    project:
+      default:
+        target: 63%
+      ironfish-rust:
+        target: 53%
+        flags:
+          - ironfish-rust
+      ironfish-cli:
+        target: 50%
+        flags:
+          - ironfish-cli
+      ironfish:
+        target: 60%
+        flags:
+          - ironfish
+      ironfish-http-api:
+        target: 70%
+        flags:
+          - ironfish-http-api
+      ironfish-rosetta-api:
+        target: 75%
+        flags:
+          - ironfish-rosetta-api
+      event:
+        target: 84%
+        flags:
+          - event
+      logger:
+        target: 90%
+        flags:
+          - logger
+      serde:
+        target: 90%
+        flags:
+          - serde
+flags:
+  ironfish-rust:
+    paths:
+      - ironfish-rust
+    carryforward: true
+  ironfish-cli:
+    paths:
+      - ironfish-cli
+    carryforward: true
+  ironfish:
+    paths:
+      - ironfish
+    carryforward: true
+  ironfish-http-api:
+    paths:
+      - ironfish-http-api
+    carryforward: true
+  ironfish-rosetta-api:
+    paths:
+      - ironfish-rosetta-api
+    carryforward: true

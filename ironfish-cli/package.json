@@ -1,0 +1,108 @@
+{
+  "name": "ironfish-cli",
+  "version": "0.0.0",
+  "description": "Command line Iron Fish node",
+  "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
+  "engines": {
+    "node": "14.x"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1",
+    "@oclif/test": "^1",
+    "@types/blessed": "0.1.17",
+    "@types/ws": "^7.2.6",
+    "chai": "4.2.0",
+    "eslint-config-ironfish": "*",
+    "jest": "~26.6.3",
+    "oclif": "1.16.1",
+    "tsc-watch": "4.2.9",
+    "typescript": "4.1.2",
+    "yarn": "^1.22.10"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
+    "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
+    "start": "node start",
+    "start:once": "yarn build && yarn start:js",
+    "start:js": "OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node bin/run",
+    "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
+    "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
+    "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
+    "postpack": "rm -f oclif.manifest.json",
+    "clean": "rm -rf build",
+    "pack": "oclif-dev pack",
+    "prepack": "yarn clean && yarn build && oclif-dev manifest && oclif-dev readme",
+    "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
+    "oclif:test": "echo NO TESTS",
+    "oclif:version": "oclif-dev readme && git add README.md"
+  },
+  "license": "MPL-2.0",
+  "dependencies": {
+    "@oclif/command": "^1",
+    "@oclif/config": "^1",
+    "@oclif/plugin-help": "3",
+    "@oclif/plugin-not-found": "1.2.4",
+    "blessed": "0.1.81",
+    "cli-ux": "^5.5.0",
+    "ironfish": "*",
+    "ironfish-wasm-nodejs": "*",
+    "json-colorizer": "2.2.2",
+    "segfault-handler": "1.3.0",
+    "tweetnacl": "1.0.3",
+    "wrtc": "^0.4.6",
+    "ws": "^7.3.1"
+  },
+  "resolutions": {
+    "node-forge": "0.10.0",
+    "object-path": "^0.11.4"
+  },
+  "oclif": {
+    "macos": {
+      "identifier": "network.ironfish.cli"
+    },
+    "commands": "./build/commands",
+    "bin": "ironfish",
+    "plugins": [
+      "@oclif/plugin-help",
+      "@oclif/plugin-not-found"
+    ],
+    "topics": {
+      "accounts": {
+        "description": "Create and delete accounts"
+      },
+      "chain": {
+        "description": "Manage the blockchain"
+      },
+      "config": {
+        "description": "Show and edit the node configuration"
+      },
+      "faucet": {
+        "description": "Get coins to start using Iron Fish"
+      },
+      "miners": {
+        "description": "Manage an Iron Fish miner"
+      },
+      "peers": {
+        "description": "Manage the peers connected to this node"
+      }
+    }
+  },
+  "bin": {
+    "ironfish": "./bin/run"
+  },
+  "bugs": "https://github.com/iron-fish/ironfish/issues",
+  "files": [
+    "/bin",
+    "/lib",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "homepage": "https://github.com/iron-fish/ironfish",
+  "keywords": [
+    "oclif"
+  ],
+  "main": "build/index.js",
+  "repository": "iron-fish/ironfish",
+  "types": "build/index.d.ts"
+}

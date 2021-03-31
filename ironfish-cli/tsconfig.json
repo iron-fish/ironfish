@@ -1,0 +1,12 @@
+{
+  "extends": "../config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "build",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../ironfish" },
+  ]
+}

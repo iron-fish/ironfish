@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "config/eslint-config-ironfish-react",
+    "config/eslint-config-ironfish",
+    "config/monorepo-template-library",
+    "ironfish-cli",
+    "ironfish-http-api",
+    "ironfish-rosetta-api",
+    "ironfish",
+    "ironfish-wasm/nodejs",
+    "ironfish-wasm/web"
+  ],
+  "version": "independent",
+  "npmClient": "yarn",
+  "useWorkspaces": true
+}

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "jsx": "react",
+    "declarationMap": true
+  }
+}

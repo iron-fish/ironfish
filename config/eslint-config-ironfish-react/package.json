@@ -1,0 +1,20 @@
+{
+  "name": "eslint-config-ironfish-react",
+  "version": "0.1.0",
+  "private": true,
+  "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
+  "license": "MPL-2.0",
+  "files": [
+    "index.js",
+    "prettierrc.js"
+  ],
+  "peerDependencies": {
+    "eslint-config-ironfish": "*",
+    "eslint-plugin-react": "7.20.6",
+    "eslint-plugin-react-hooks": "4.1.2"
+  },
+  "resolutions": {
+    "node-forge": "0.10.0",
+    "object-path": "^0.11.4"
+  }
+}
