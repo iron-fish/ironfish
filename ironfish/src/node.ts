@@ -125,13 +125,7 @@ export class IronfishNode {
       config.setOverride('databaseName', databaseName)
     }
 
-    const chainDatabasePath = files.join(
-      config.storage.dataDir,
-      'databases',
-      config.get('databaseName'),
-    )
-
-    const chainDatabase = await makeDatabase(chainDatabasePath)
+    const chainDatabase = await makeDatabase(config.chainDatabasePath)
 
     strategyClass = strategyClass || IronfishStrategy
     const strategy = new strategyClass(verifierClass)
@@ -139,13 +133,7 @@ export class IronfishNode {
     const captain = await Captain.new(chainDatabase, strategy, undefined, undefined, metrics)
     const memPool = new MemPool(captain, logger)
 
-    const accountDatabasePath = files.join(
-      config.storage.dataDir,
-      'accounts',
-      config.get('accountName'),
-    )
-
-    const accountDatabase = await makeDatabase(accountDatabasePath)
+    const accountDatabase = await makeDatabase(config.accountDatabasePath)
     const accountDB = new AccountsDB({ database: accountDatabase })
     const accounts = new Accounts({ database: accountDB })
 

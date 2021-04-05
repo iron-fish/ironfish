@@ -101,6 +101,14 @@ export class Config extends KeyStore<ConfigOptions> {
     )
   }
 
+  get chainDatabasePath(): string {
+    return this.files.join(this.storage.dataDir, 'databases', this.get('databaseName'))
+  }
+
+  get accountDatabasePath(): string {
+    return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       broadcastWorkers: true,
