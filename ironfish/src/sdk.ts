@@ -21,7 +21,7 @@ import { IronfishStrategy, IronfishVerifier } from './strategy'
 
 type MakeDatabase = (path: string) => Promise<IDatabase>
 
-const VERSION = '14'
+const VERSION = '1'
 const VERSION_PRODUCT = 'ironfish-sdk'
 const VERSION_CODE = GIT_VERSION
 
