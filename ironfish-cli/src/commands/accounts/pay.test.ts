@@ -43,7 +43,7 @@ describe('accounts:pay command', () => {
       'with every flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON  2 ($ORE 200,000,000) to  ${to} from the account  ${from}`,
+          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
         )
         expectCli(ctx.stdout).include(`Transaction Hash`)
         expect(sendTransaction).toBeCalledTimes(1)
@@ -121,7 +121,7 @@ describe('accounts:pay command', () => {
       .exit(2)
       .it('show the right error message and call sendTransaction', (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON  2 ($ORE 200,000,000) to  ${to} from the account  ${from}`,
+          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
         )
         expect(sendTransaction).toBeCalledTimes(1)
         expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)
