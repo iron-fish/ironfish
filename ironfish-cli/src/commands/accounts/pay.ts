@@ -134,7 +134,13 @@ export class Pay extends IronfishCommand {
     if (!flags.confirm) {
       this.logger.log(`
 You are about to send:
-${displayIronAmountWithCurrency(amount, true)} to ${to} from the account ${from}
+${displayIronAmountWithCurrency(
+  amount,
+  true,
+)} plus a transaction fee of ${displayIronAmountWithCurrency(
+        fee,
+        true,
+      )} to ${to} from the account ${from}
 
 * This action is NOT reversible *
 `)
