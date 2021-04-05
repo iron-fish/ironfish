@@ -8,6 +8,8 @@ import { PartialRecursive, YupUtils } from '../utils'
 import * as yup from 'yup'
 
 export class KeyStore<TSchema extends Record<string, unknown>> {
+  dataDir: string
+  files: FileSystem
   storage: FileStore<TSchema>
   config: Readonly<TSchema>
   defaults: TSchema
@@ -27,8 +29,10 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     dataDir?: string,
     schema?: yup.ObjectSchema<TSchema | Partial<TSchema>>,
   ) {
+    this.files = files
     this.storage = new FileStore<TSchema>(files, configName, dataDir)
     this.schema = schema
+    this.dataDir = this.storage.dataDir
 
     const loaded = Object.setPrototypeOf({}, defaults) as TSchema
     const overrides = Object.setPrototypeOf({}, loaded) as TSchema
