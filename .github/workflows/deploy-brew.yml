@@ -59,5 +59,7 @@ jobs:
       - name: Deploy Ironfish CLI Brew
         run: ./ironfish-cli/scripts/deploy-brew.sh
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BREW_GITHUB_USERNAME: ${{ secrets.BREW_GITHUB_USERNAME }}
           BREW_GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
