@@ -1,4 +1,4 @@
-name: Deploy Node Image
+name: Deploy Node Image to AWS
 on: workflow_dispatch
 
 jobs:
@@ -33,4 +33,4 @@ jobs:
       - name: Deploy Node Image
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
-          AWS_REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}
+          REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}

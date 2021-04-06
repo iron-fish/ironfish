@@ -1,0 +1,29 @@
+name: Deploy Node Image to Github
+on: workflow_dispatch
+
+jobs:
+  Deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.16.0'
+
+      - name: Login to Github Registry
+        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin docker.pkg.github.com
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Node Image
+        run: ./ironfish-cli/scripts/build-docker.sh
+
+      - name: Deploy Node Image to Github
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: docker.pkg.github.com/iron-fish/ironfish
