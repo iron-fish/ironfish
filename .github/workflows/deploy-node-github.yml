@@ -26,4 +26,4 @@ jobs:
       - name: Deploy Node Image to Github
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
-          REGISTRY_URL: ghcr.io/iron-fish/ironfish
+          REGISTRY_URL: ghcr.io/iron-fish
