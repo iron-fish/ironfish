@@ -16,7 +16,7 @@ jobs:
           node-version: '14.16.0'
 
       - name: Login to Github Registry
-        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin docker.pkg.github.com
+        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin ghcr.io
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -26,4 +26,4 @@ jobs:
       - name: Deploy Node Image to Github
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
-          REGISTRY_URL: docker.pkg.github.com/iron-fish/ironfish
+          REGISTRY_URL: ghcr.io/iron-fish/ironfish
