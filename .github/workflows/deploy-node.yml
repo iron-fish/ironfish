@@ -1,4 +1,4 @@
-name: Deploy Bootstrap Image
+name: Deploy Node Image
 on: workflow_dispatch
 
 jobs:
@@ -27,10 +27,10 @@ jobs:
         env:
           AWS_REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}
 
-      - name: Build Bootstrap Image
+      - name: Build Node Image
         run: ./ironfish-cli/scripts/build-docker.sh
 
-      - name: Deploy Bootstrap Image
+      - name: Deploy Node Image
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           AWS_REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}
