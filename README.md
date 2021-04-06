@@ -1,3 +1,6 @@
+![Iron Fish](https://user-images.githubusercontent.com/767083/113650890-d8414c80-9645-11eb-8f4d-2427fc322ce4.png)
+
+
 # Iron Fish
 
 The monorepo for all Iron Fish TypeScript & Rust code.
