@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { displayIronAmountWithCurrency, oreToIron } from '../../../../ironfish'
+import { displayIronAmountWithCurrency, oreToIron } from 'ironfish'
 
 export class BalanceCommand extends IronfishCommand {
   static description = `Display the account balance`
