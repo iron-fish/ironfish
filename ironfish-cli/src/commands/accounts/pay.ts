@@ -12,7 +12,7 @@ import {
   oreToIron,
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
-} from '../../../../ironfish'
+} from 'ironfish'
 
 interface ProgressBar {
   progress: VoidFunction
