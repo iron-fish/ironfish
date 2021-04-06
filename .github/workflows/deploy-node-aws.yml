@@ -20,12 +20,12 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: us-east-1
 
       - name: Login to AWS Registry
         run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_REGISTRY_URL
         env:
-          AWS_REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}
+          AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
 
       - name: Build Node Image
         run: ./ironfish-cli/scripts/build-docker.sh
@@ -33,4 +33,4 @@ jobs:
       - name: Deploy Node Image
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
-          REGISTRY_URL: ${{ secrets.AWS_REGISTRY_URL }}
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
