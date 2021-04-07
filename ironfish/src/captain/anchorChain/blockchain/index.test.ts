@@ -284,35 +284,101 @@ describe('Blockchain', () => {
     expect(isLinear6).toBe(false)
   })
 
-  it('should add notes to trees linearly', async () => {
-    const { node, chain } = nodeTest
-    await nodeTest.node.seed()
+  it('should notes to trees', async () => {
+    /**
+     * This test will check that notes are added linearly, and also the trees
+     * are reorganized for a heavier fork when a heavier fork appears
+     *
+     * G -> A1
+     *   -> B1 -> B2
+     */
+    const { node: nodeA } = nodeTest
+    const { node: nodeB } = await nodeTest.createSetup()
+    await Promise.all([nodeA.seed(), nodeB.seed()])
 
-    const genesisNotes = await chain.notes.size()
-    const genesisNullifiers = await chain.nullifiers.size()
+    const notes = await nodeA.captain.chain.notes.size()
+    const nullifiers = await nodeB.captain.chain.nullifiers.size()
 
-    const account = await useAccountFixture(node.accounts, 'account')
+    const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
+    const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
 
-    const block = await useBlockFixture(node.captain, async () =>
-      chain.newBlock(
+    const blockA1 = await useBlockFixture(nodeA.captain, async () =>
+      nodeA.captain.chain.newBlock(
         [],
-        await chain.strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey),
+        await nodeA.captain.chain.strategy.createMinersFee(
+          BigInt(0),
+          BigInt(2),
+          accountA.spendingKey,
+        ),
       ),
     )
 
-    expect(block.transactions.length).toBe(1)
-    const minersFee = block.transactions[0]
+    const blockB1 = await useBlockFixture(nodeB.captain, async () =>
+      nodeB.captain.chain.newBlock(
+        [],
+        await nodeB.captain.chain.strategy.createMinersFee(
+          BigInt(0),
+          BigInt(2),
+          accountB.spendingKey,
+        ),
+      ),
+    )
 
-    await chain.addBlock(block)
-    expect(await chain.notes.size()).toBe(genesisNotes + 1)
-    expect(await chain.nullifiers.size()).toBe(genesisNullifiers)
+    await nodeA.captain.chain.addBlock(blockA1)
+    await nodeB.captain.chain.addBlock(blockB1)
 
-    const treeLeaf = await chain.notes.getLeaf(genesisNotes)
-    const treeNote = treeLeaf.element
+    const blockB2 = await useBlockFixture(nodeB.captain, async () =>
+      nodeB.captain.chain.newBlock(
+        [],
+        await nodeB.captain.chain.strategy.createMinersFee(
+          BigInt(0),
+          BigInt(3),
+          accountB.spendingKey,
+        ),
+      ),
+    )
 
-    minersFee.withReference(() => {
-      const minersFeeNote = minersFee.getNote(0)
-      expect(minersFeeNote.serialize().equals(treeNote.serialize())).toBe(true)
-    })
-  }, 10000)
+    expect(blockA1.transactions.length).toBe(1)
+    expect(blockB1.transactions.length).toBe(1)
+    expect(blockB2.transactions.length).toBe(1)
+    const minersFeeA1 = blockA1.transactions[0]
+    const minersFeeB1 = blockB1.transactions[0]
+    const minersFeeB2 = blockB2.transactions[0]
+    expect(minersFeeA1.notesLength()).toBe(1)
+    expect(minersFeeB1.notesLength()).toBe(1)
+    expect(minersFeeB2.notesLength()).toBe(1)
+
+    // Check nodeA's chain has notes from blockA1
+    expect(await nodeA.captain.chain.notes.size()).toBe(notes + 1)
+    expect(await nodeA.captain.chain.nullifiers.size()).toBe(nullifiers)
+    const addedNoteA1 = (await nodeA.captain.chain.notes.getLeaf(notes)).element
+    expect(minersFeeA1.getNote(0).serialize().equals(addedNoteA1.serialize())).toBe(true)
+
+    // Check nodeB's chain has notes from blockB1
+    expect(await nodeB.captain.chain.notes.size()).toBe(notes + 1)
+    expect(await nodeB.captain.chain.nullifiers.size()).toBe(nullifiers)
+    let addedNoteB1 = (await nodeB.captain.chain.notes.getLeaf(notes)).element
+    expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
+
+    // Now add blockB2 to nodeB
+    await nodeB.captain.chain.addBlock(blockB2)
+
+    // Check nodeB's chain has notes from blockB2
+    expect(await nodeB.captain.chain.notes.size()).toBe(notes + 2)
+    expect(await nodeB.captain.chain.nullifiers.size()).toBe(nullifiers)
+    let addedNoteB2 = (await nodeB.captain.chain.notes.getLeaf(notes + 1)).element
+    expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
+
+    // Now cause reorg on nodeA
+    await nodeA.captain.chain.addBlock(blockB1)
+    await nodeA.captain.chain.addBlock(blockB2)
+
+    // Check nodeA's chain has removed blockA1 notes and added blockB1 + blockB2 note
+    expect(await nodeA.captain.chain.notes.size()).toBe(notes + 2)
+    expect(await nodeA.captain.chain.nullifiers.size()).toBe(nullifiers)
+    addedNoteB1 = (await nodeA.captain.chain.notes.getLeaf(notes)).element
+    addedNoteB2 = (await nodeA.captain.chain.notes.getLeaf(notes + 1)).element
+    expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
+    expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
+  }, 20000)
 })
