@@ -66,11 +66,11 @@ export class PeerConnectionManager {
     for (const peer of this.peerManager.peers) {
       this.maintainOneConnectionPerPeer(peer)
 
+      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) continue
       if (this.connectToEligiblePeers(peer)) connectAttempts++
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) break
 
+      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) continue
       if (this.attemptToEstablishWebRtcConnectionsToWSPeer(peer)) connectAttempts++
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) break
     }
 
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
