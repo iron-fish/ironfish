@@ -1,6 +1,16 @@
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=PCSVEVEW5V&flag=ironfish-cli)](https://codecov.io/gh/iron-fish/ironfish)
 
-The main entry point for an ironfish CLI that is capable of mining blocks and spending notes. It's created using the [oclif CLI framework](https://oclif.io)
+The main entry point for an Iron Fish CLI that is capable of mining blocks and spending notes. It's created using the [oclif CLI framework](https://oclif.io)
+
+## Starting the CLI
+
+Build, run, and restart when the code changes:
+
+- `yarn start`
+
+Build, then run the CLI without watching for changes:
+
+- `yarn start:once`
 
 ## Use Scenarios
 
