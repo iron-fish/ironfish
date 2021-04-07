@@ -134,7 +134,7 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
       rpcRetryConnect: false,
-      maxPeers: 10000,
+      maxPeers: 50,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
