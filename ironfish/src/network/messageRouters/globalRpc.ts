@@ -133,11 +133,9 @@ export class GlobalRpcRouter {
   private selectPeer(type: MessageType, peerIdentity?: Identity): Peer | null {
     if (peerIdentity) {
       const peer = this.rpcRouter.peerManager.getPeer(peerIdentity)
-      if (peer) {
-        console.log(`Specifically asking for peer ${peerIdentity}`)
+      if (peer && peer.state.type == 'CONNECTED') {
         return peer
       }
-      console.log(`Asked for peer ${peerIdentity}, but getting someone else`)
     }
     let peers = this.rpcRouter.peerManager.getConnectedPeers().filter((p) => !p.isSaturated)
 
