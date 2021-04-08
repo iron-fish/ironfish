@@ -16,6 +16,8 @@ EXPOSE 9033:9033
 VOLUME /root/.ironfish
 ENV NODE_ENV production
 
+RUN apt-get update && apt-get install curl -y
+
 WORKDIR /usr/src
 COPY --from=build /ironfish-cli/build.cli/ironfish-cli ./app
 
