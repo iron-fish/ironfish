@@ -350,6 +350,7 @@ export class PeerNetwork {
     message: Message<MessageType, Record<string, unknown>>,
   ): Promise<IncomingPeerMessage<LooseMessage>> {
     const style = this.routingStyles.get(message.type)
+
     if (style !== RoutingStyle.globalRPC) {
       throw new Error(`${message.type} type not meant to be global RPC`)
     }

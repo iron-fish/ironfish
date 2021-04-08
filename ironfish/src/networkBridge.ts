@@ -101,43 +101,46 @@ export class NetworkBridge {
       })
     })
 
-    this.node.captain.onRequestBlocks.on((hash: BlockHash, nextBlockDirection: boolean) => {
-      Assert.isNotNull(this.node)
-      Assert.isNotNull(this.node.captain)
-      Assert.isNotNull(this.peerNetwork)
-      Assert.isNotNull(this.node)
+    this.node.captain.onRequestBlocks.on(
+      (hash: BlockHash, nextBlockDirection: boolean, peer?: string) => {
+        Assert.isNotNull(this.node)
+        Assert.isNotNull(this.node.captain)
+        Assert.isNotNull(this.peerNetwork)
+        Assert.isNotNull(this.node)
 
-      const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
+        const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
 
-      const request: BlockRequest = {
-        type: NodeMessageType.Blocks,
-        payload: {
-          hash: serializedHash,
-          nextBlockDirection: nextBlockDirection,
-        },
-      }
+        const request: BlockRequest = {
+          type: MessageType.Blocks,
+          payload: {
+            hash: serializedHash,
+            nextBlockDirection: nextBlockDirection,
+          },
+          peer: peer,
+        }
 
-      this.peerNetwork
-        .request(request)
-        .then((c) => {
-          if (
-            !c ||
-            !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
-          ) {
-            throw new Error('Invalid format')
-          }
-          this.onBlockResponses(
-            {
-              ...c,
-              message: c.message,
-            },
-            request,
-          )
-        })
-        .catch((err) => {
-          this.node?.captain?.blockSyncer.handleBlockRequestError(request, err)
-        })
-    })
+        this.peerNetwork
+          .request(request)
+          .then((c) => {
+            if (
+              !c ||
+              !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
+            ) {
+              throw new Error('Invalid format')
+            }
+            this.onBlockResponses(
+              {
+                ...c,
+                message: c.message,
+              },
+              request,
+            )
+          })
+          .catch((err) => {
+            this.node?.captain?.blockSyncer.handleBlockRequestError(request, err)
+          })
+      },
+    )
   }
 
   /** Attach to the events of a WebWorker and forward them to/from an IronfishNode */
@@ -169,7 +172,8 @@ export class NetworkBridge {
     Assert.isNotNull(this.node)
     Assert.isNotNull(this.node.captain)
     const block = message.message.payload.block
-    return this.node.captain.blockSyncer.addBlockToProcess(block, NetworkBlockType.GOSSIP)
+    const peer = message.peerIdentity
+    return this.node.captain.blockSyncer.addBlockToProcess(block, peer, NetworkBlockType.GOSSIP)
   }
 
   private async onNewTransaction(

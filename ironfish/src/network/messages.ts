@@ -43,7 +43,7 @@ export type LooseMessage = Message<MessageType, PayloadType>
 export type Message<
   T extends MessageType,
   P extends PayloadType = undefined
-> = P extends undefined ? { type: T } : { type: T; payload: P }
+> = P extends undefined ? { type: T } : { type: T; payload: P; peer?: Identity }
 
 export type MessagePayload<M> = M extends Message<infer _T, infer P> ? P : never
 

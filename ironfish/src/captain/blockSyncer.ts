@@ -44,6 +44,7 @@ export type BlockSyncerChainStatus = {
 
 export type Request = {
   hash: BlockHash
+  fromPeer?: string
   nextBlockDirection?: boolean
 }
 
@@ -61,6 +62,7 @@ export type BlockToProcess<
   ST
 > = {
   block: Block<E, H, T, SE, SH, ST>
+  fromPeer: string
   type: NetworkBlockType
 }
 
@@ -176,7 +178,7 @@ export class BlockSyncer<
   private blockRequests = new Map<
     string,
     {
-      resolve: (message: BlocksResponse<SH, ST>) => void
+      resolve: (message: IncomingPeerMessage<BlocksResponse<SH, ST>>) => void
       reject: (error?: unknown) => void
     }
   >()
@@ -259,15 +261,19 @@ export class BlockSyncer<
     }
   }
 
-  addBlockToProcess(block: Block<E, H, T, SE, SH, ST>, type: NetworkBlockType): void {
+  addBlockToProcess(
+    block: Block<E, H, T, SE, SH, ST>,
+    fromPeer: string,
+    type: NetworkBlockType,
+  ): void {
     if (
       this.blocksForProcessing &&
       this.blocksForProcessing[0] &&
       block.header.sequence <= this.blocksForProcessing[0].block.header.sequence
     ) {
-      this.blocksForProcessing.unshift({ block, type })
+      this.blocksForProcessing.unshift({ block, fromPeer, type })
     } else {
-      this.blocksForProcessing.push({ block, type })
+      this.blocksForProcessing.push({ block, fromPeer, type })
     }
 
     this.getNextBlockToSync()
@@ -390,7 +396,7 @@ export class BlockSyncer<
   ): void {
     const request = this.blockRequests.get(this.getCacheKey(null, originalRequest.payload.hash))
 
-    request?.resolve(message.message)
+    request?.resolve(message)
   }
 
   /** Handler for when an error occurs when trying to
@@ -461,6 +467,7 @@ export class BlockSyncer<
       } else {
         // we just added an island, so we want to request the previous block of the tail
         // for the resolved graph (until it's no longer an island and connects to genesis)
+        // make sure you are asking the same peer who gave you this block
         const tailHeader = await this.chain.getBlockHeader(
           addBlockResult.resolvedGraph.tailHash,
         )
@@ -478,6 +485,7 @@ export class BlockSyncer<
 
         request = {
           hash: tailHeader.previousBlockHash,
+          fromPeer: blockToProcess.fromPeer,
           nextBlockDirection: false,
         }
       }
@@ -492,10 +500,12 @@ export class BlockSyncer<
    * through handleBlockResponse rejected if the request times
    * out, or errors.
    */
-  async requestBlocks(originalRequest: Request): Promise<BlocksResponse<SH, ST> | null> {
+  async requestBlocks(
+    originalRequest: Request,
+  ): Promise<IncomingPeerMessage<BlocksResponse<SH, ST>> | null> {
     const key = this.getCacheKey(null, originalRequest.hash)
 
-    return new Promise<BlocksResponse<SH, ST>>((resolve, reject) => {
+    return new Promise<IncomingPeerMessage<BlocksResponse<SH, ST>>>((resolve, reject) => {
       const timeout = setTimeout(
         () => reject(`Request block timeout exceeded ${RPC_TIMEOUT_MILLIS}`),
         RPC_TIMEOUT_MILLIS,
@@ -515,7 +525,11 @@ export class BlockSyncer<
       }
 
       this.blockRequests.set(key, request)
-      this.captain.requestBlocks(originalRequest.hash, !!originalRequest.nextBlockDirection)
+      this.captain.requestBlocks(
+        originalRequest.hash,
+        !!originalRequest.nextBlockDirection,
+        originalRequest.fromPeer,
+      )
     })
   }
 
@@ -579,7 +593,7 @@ export class BlockSyncer<
 
       let block
       try {
-        const blocks = response.payload.blocks
+        const blocks = response.message.payload.blocks
         for (const serializedBlock of blocks) {
           block = this.blockSerde.deserialize(serializedBlock)
 
@@ -588,7 +602,7 @@ export class BlockSyncer<
           block.header.work = BigInt(0)
           block.header.graphId = -1
 
-          this.addBlockToProcess(block, NetworkBlockType.SYNCING)
+          this.addBlockToProcess(block, response.peerIdentity, NetworkBlockType.SYNCING)
         }
       } catch {
         this.logger.debug(`Couldn't deserialize incoming block`)

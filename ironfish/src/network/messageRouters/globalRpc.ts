@@ -83,7 +83,7 @@ export class GlobalRpcRouter {
     message: Message<MessageType, Record<string, unknown>>,
   ): Promise<IncomingRpcPeerMessage> {
     for (let i = 0; i < RETRIES; i++) {
-      const peer = this.selectPeer(message.type)
+      const peer = this.selectPeer(message.type, message.peer)
 
       if (peer === null) {
         throw new CannotSatisfyRequestError(
@@ -130,7 +130,15 @@ export class GlobalRpcRouter {
    *
    * Returns null if we were not able to find a valid candidate
    */
-  private selectPeer(type: MessageType): Peer | null {
+  private selectPeer(type: MessageType, peerIdentity?: Identity): Peer | null {
+    if (peerIdentity) {
+      const peer = this.rpcRouter.peerManager.getPeer(peerIdentity)
+      if (peer) {
+        console.log(`Specifically asking for peer ${peerIdentity}`)
+        return peer
+      }
+      console.log(`Asked for peer ${peerIdentity}, but getting someone else`)
+    }
     let peers = this.rpcRouter.peerManager.getConnectedPeers().filter((p) => !p.isSaturated)
 
     // Shuffle peers so we get different peers as a tie breaker for sorting
