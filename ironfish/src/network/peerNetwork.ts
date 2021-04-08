@@ -113,7 +113,7 @@ export class PeerNetwork {
     this.metrics = metrics || new MetricsMonitor(this.logger)
 
     this.localPeer = new LocalPeer(localIdentity, localVersion, webSocket, webRtc)
-    this.localPeer.port = options.port || null
+    this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
     this.localPeer.isWorker = options.isWorker || false
     this.localPeer.simulateLatency = options.simulateLatency || 0
@@ -173,6 +173,10 @@ export class PeerNetwork {
         let address: string | null = null
 
         if (this.peerManager.shouldRejectDisconnectedPeers()) {
+          this.logger.debug(
+            'Disconnecting inbound websocket connection because the node has max peers',
+          )
+
           const disconnect: DisconnectingMessage = {
             type: InternalMessageType.disconnecting,
             payload: {
@@ -182,10 +186,7 @@ export class PeerNetwork {
               disconnectUntil: Date.now() + 1000 * 60 * 5,
             },
           }
-          connection.send(disconnect)
-          this.logger.debug(
-            'Disconnecting inbound websocket connection because the node has max peers',
-          )
+          connection.send(JSON.stringify(disconnect))
           connection.close()
           return
         }
