@@ -256,6 +256,7 @@ export class PeerManager {
 
     if (address) {
       const url = parseUrl(address)
+
       if (url.hostname) {
         hostname = url.hostname
         port = url.port
