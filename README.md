@@ -14,6 +14,11 @@ See https://ironfish.network
 ### Initial setup
 
 1. Install [Node.js 14.x](https://nodejs.org/en/download/)
+1. (Windows) Install [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019), including the C++ Build Tools and the Windows 10 SDK, for Rust.
+1. (Windows) Rust builds also require installing [MinGW-w64 via win-builds](http://win-builds.org/doku.php/download_and_installation_from_windows).
+    * Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
+    * On the next screen, click `Process`.
+    * Once it finishes, add the `bin` folder containing `cc` to your path.
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Run `cargo install wasm-pack` to install the WebAssembly wrapper generator.
