@@ -19,11 +19,11 @@ import Captain, {
   Validity,
   VerificationResult,
   MerkleHasher,
-  Verifier,
   Witness,
   BlockHeader,
   SerializedBlock,
 } from '../captain'
+import { Verifier } from '../consensus'
 import Blockchain from '../captain/anchorChain/blockchain'
 import Serde from '../serde'
 

@@ -2,20 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { default as Block, BlockSerde, SerializedBlock } from './anchorChain/blockchain/Block'
-import Strategy from './anchorChain/strategies'
-import Transaction from './anchorChain/strategies/Transaction'
+import {
+  default as Block,
+  BlockSerde,
+  SerializedBlock,
+} from '../captain/anchorChain/blockchain/Block'
+import Strategy from '../captain/anchorChain/strategies'
+import Transaction from '../captain/anchorChain/strategies/Transaction'
 import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
-import BlockHeader from './anchorChain/blockchain/BlockHeader'
-import { Spend } from './anchorChain/strategies/Transaction'
-import Blockchain, { Target } from './anchorChain/blockchain'
+import BlockHeader from '../captain/anchorChain/blockchain/BlockHeader'
+import { Spend } from '../captain/anchorChain/strategies/Transaction'
+import Blockchain, { Target } from '../captain/anchorChain/blockchain'
 import { PayloadType } from '../network'
 import Serde, { BufferSerde, JsonSerializable } from '../serde'
 import {
   Validity,
   VerificationResult,
   VerificationResultReason,
-} from './anchorChain/blockchain/VerificationResult'
+} from '../captain/anchorChain/blockchain/VerificationResult'
 import { IDatabaseTransaction } from '../storage'
 
 export const ALLOWED_BLOCK_FUTURE_SECONDS = 15

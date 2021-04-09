@@ -35,7 +35,7 @@ import {
   StringEncoding,
 } from '../../../storage'
 import { Logger } from '../../../logger'
-import { Verifier } from '../..'
+import { Verifier } from '../../../consensus'
 import Serde from '../../../serde'
 
 export { default as Block, BlockSerde, SerializedBlock } from './Block'

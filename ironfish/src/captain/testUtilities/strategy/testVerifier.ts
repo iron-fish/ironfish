@@ -4,7 +4,7 @@
 
 import { TestTransaction } from './TestTransaction'
 import { SerializedTestTransaction } from './SerializedTypes'
-import Verifier from '../../Verifier'
+import Verifier from '../../../consensus/verifier'
 import { Validity, VerificationResult } from '../../anchorChain/blockchain'
 import { VerificationResultReason } from '../../anchorChain/blockchain/VerificationResult'
 import { TestBlock, TestBlockHeader } from '../helpers'
