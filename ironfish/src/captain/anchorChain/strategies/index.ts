@@ -7,7 +7,7 @@ import { NullifierHash, Nullifier } from '../nullifiers'
 import { BlockHash } from '../blockchain/BlockHeader'
 import Transaction from './Transaction'
 import Serde, { JsonSerializable } from '../../../serde'
-import Verifier from '../../Verifier'
+import Verifier from '../../../consensus/verifier'
 import Blockchain from '../blockchain'
 
 export { default as Transaction, Spend } from './Transaction'

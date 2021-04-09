@@ -13,7 +13,6 @@ import { JsonSerializable } from '../serde'
 
 import { BlockSyncer, BlockSyncerChainStatus } from './blockSyncer'
 import { IDatabase } from '../storage'
-import Verifier from './Verifier'
 import Blockchain from './anchorChain/blockchain'
 import { Identity } from '../network'
 
@@ -47,7 +46,7 @@ export {
 } from './anchorChain/merkleTree/Witness'
 
 // Exports used in testUtilities
-export { BlockSyncer, BlockSyncerChainStatus, BlocksResponse, Verifier }
+export { BlockSyncer, BlockSyncerChainStatus, BlocksResponse }
 
 /**
  * Captain ensures that the chain is kept in sync with the latest version
