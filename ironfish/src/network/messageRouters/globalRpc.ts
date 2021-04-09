@@ -81,10 +81,10 @@ export class GlobalRpcRouter {
    */
   async request(
     message: Message<MessageType, Record<string, unknown>>,
-    recipientPeer?: Identity,
+    toPeer?: Identity,
   ): Promise<IncomingRpcPeerMessage> {
     for (let i = 0; i < RETRIES; i++) {
-      const peer = this.selectPeer(message.type, recipientPeer)
+      const peer = this.selectPeer(message.type, toPeer)
 
       if (peer === null) {
         throw new CannotSatisfyRequestError(
