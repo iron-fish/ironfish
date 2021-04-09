@@ -3,20 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  MessageType,
-  BlockRequest,
-  isBlockRequestPayload,
-  isBlocksResponse,
-} from './captain/messages'
-import { Assert } from './assert'
-import { IncomingPeerMessage, PeerNetwork, RoutingStyle } from './network'
-import { IronfishNode } from './node'
-import {
   BlockRequestMessage,
   BlocksResponseMessage,
   NewBlockMessage,
   NewTransactionMessage,
-} from './messages'
+  NodeMessageType,
+  BlockRequest,
+  isBlockRequestPayload,
+  isBlocksResponse,
+  IncomingPeerMessage,
+} from './network/messages'
+import { Assert } from './assert'
+import { PeerNetwork, RoutingStyle } from './network'
+import { IronfishNode } from './node'
 import { SerializedTransaction, SerializedWasmNoteEncrypted } from './strategy'
 import { BlockHash } from './captain'
 import { NetworkBlockType } from './captain/blockSyncer'
@@ -31,14 +30,14 @@ export class NetworkBridge {
     this.peerNetwork = peerNetwork
 
     peerNetwork.registerHandler(
-      MessageType.Blocks,
+      NodeMessageType.Blocks,
       RoutingStyle.globalRPC,
       (p) => (isBlockRequestPayload(p) ? Promise.resolve(p) : Promise.reject('Invalid format')),
       (message) => this.onBlockRequest(message),
     )
 
     peerNetwork.registerHandler(
-      MessageType.NewBlock,
+      NodeMessageType.NewBlock,
       RoutingStyle.gossip,
       (p) => {
         Assert.isNotNull(this.node, 'No attached node')
@@ -50,7 +49,7 @@ export class NetworkBridge {
     )
 
     peerNetwork.registerHandler(
-      MessageType.NewTransaction,
+      NodeMessageType.NewTransaction,
       RoutingStyle.gossip,
       (p) => {
         Assert.isNotNull(this.node, 'No attached node')
@@ -79,7 +78,7 @@ export class NetworkBridge {
       const serializedBlock = this.node.captain.blockSerde.serialize(block)
 
       this.peerNetwork.gossip({
-        type: MessageType.NewBlock,
+        type: NodeMessageType.NewBlock,
         payload: {
           block: serializedBlock,
         },
@@ -97,7 +96,7 @@ export class NetworkBridge {
         .serialize(transaction)
 
       this.peerNetwork.gossip({
-        type: MessageType.NewTransaction,
+        type: NodeMessageType.NewTransaction,
         payload: { transaction: serializedTransaction },
       })
     })
@@ -111,7 +110,7 @@ export class NetworkBridge {
       const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
 
       const request: BlockRequest = {
-        type: MessageType.Blocks,
+        type: NodeMessageType.Blocks,
         payload: {
           hash: serializedHash,
           nextBlockDirection: nextBlockDirection,

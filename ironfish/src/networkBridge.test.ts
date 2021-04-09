@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { MessageType } from './captain/messages'
+import { NodeMessageType } from './network/messages'
 import { CannotSatisfyRequestError, Gossip, IncomingPeerMessage, PeerNetwork } from './network'
 import { IronfishSdk } from './sdk'
 import { makeDbName } from './captain/testUtilities'
@@ -28,7 +28,7 @@ describe('Node requests a block from other nodes', () => {
       return Promise.resolve({
         peerIdentity: peer.getIdentityOrThrow(),
         message: {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           payload: { block: { this_is: 'NOT A BLOCK' } },
         },
       })
@@ -97,11 +97,11 @@ describe('Node receives a proposed transaction from another node', () => {
     node.networkBridge.attachPeerNetwork(peerNetwork)
 
     const message: IncomingPeerMessage<
-      Gossip<MessageType.NewTransaction, { transaction: Buffer }>
+      Gossip<NodeMessageType.NewTransaction, { transaction: Buffer }>
     > = {
       peerIdentity: peer.getIdentityOrThrow(),
       message: {
-        type: MessageType.NewTransaction,
+        type: NodeMessageType.NewTransaction,
         nonce: 'asdf',
         payload: {
           transaction: Buffer.from([]),
@@ -144,11 +144,11 @@ describe('Node receives a proposed transaction from another node', () => {
     node.networkBridge.attachPeerNetwork(peerNetwork)
 
     const message: IncomingPeerMessage<
-      Gossip<MessageType.NewTransaction, { transaction: Buffer }>
+      Gossip<NodeMessageType.NewTransaction, { transaction: Buffer }>
     > = {
       peerIdentity: peer.getIdentityOrThrow(),
       message: {
-        type: MessageType.NewTransaction,
+        type: NodeMessageType.NewTransaction,
         nonce: 'asdf',
         payload: {
           transaction: Buffer.from([]),
@@ -185,10 +185,10 @@ describe('Node receives a new block from another node', () => {
     const verifyNewBlock = jest.spyOn(node.captain.chain.verifier, 'verifyNewBlock')
     node.networkBridge.attachPeerNetwork(peerNetwork)
 
-    const message: IncomingPeerMessage<Gossip<MessageType.NewBlock, { block: Buffer }>> = {
+    const message: IncomingPeerMessage<Gossip<NodeMessageType.NewBlock, { block: Buffer }>> = {
       peerIdentity: peer.getIdentityOrThrow(),
       message: {
-        type: MessageType.NewBlock,
+        type: NodeMessageType.NewBlock,
         nonce: 'asdf',
         payload: {
           block: Buffer.from([]),
@@ -227,10 +227,10 @@ describe('Node receives a new block from another node', () => {
       })
     node.networkBridge.attachPeerNetwork(peerNetwork)
 
-    const message: IncomingPeerMessage<Gossip<MessageType.NewBlock, { block: Buffer }>> = {
+    const message: IncomingPeerMessage<Gossip<NodeMessageType.NewBlock, { block: Buffer }>> = {
       peerIdentity: peer.getIdentityOrThrow(),
       message: {
-        type: MessageType.NewBlock,
+        type: NodeMessageType.NewBlock,
         nonce: 'asdf',
         payload: {
           block: Buffer.from([]),

@@ -4,7 +4,7 @@
 
 import { RangeHasher } from './anchorChain/merkleTree'
 import { makeCaptain, TestCaptain, TestStrategy } from './testUtilities'
-import { MessageType } from './messages'
+import { NodeMessageType } from '../network/messages'
 
 describe('Captain', () => {
   const strategy = new TestStrategy(new RangeHasher())
@@ -15,7 +15,7 @@ describe('Captain', () => {
 
     captain.onRequestBlocks.on((hash, nextBlockDirection) => {
       captain.blockSyncer.handleBlockRequestError({
-        type: MessageType.Blocks,
+        type: NodeMessageType.Blocks,
         payload: {
           hash: hash?.toString(),
           nextBlockDirection: nextBlockDirection,

@@ -5,7 +5,7 @@
 import { default as Block, BlockSerde, SerializedBlock } from './anchorChain/blockchain/Block'
 import Strategy from './anchorChain/strategies'
 import Transaction from './anchorChain/strategies/Transaction'
-import { isNewBlockPayload, isNewTransactionPayload } from './messages'
+import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
 import BlockHeader from './anchorChain/blockchain/BlockHeader'
 import { Spend } from './anchorChain/strategies/Transaction'
 import Blockchain, { Target } from './anchorChain/blockchain'

@@ -6,7 +6,7 @@ import { Direction, IncomingPeerMessage, MessagePayload } from '../../../network
 import { default as Block } from '../../anchorChain/blockchain/Block'
 import BlockHeader from '../../anchorChain/blockchain/BlockHeader'
 import Captain, { BlockSyncer, BlocksResponse } from '../..'
-import { BlockRequest, MessageType } from '../../messages'
+import { BlockRequest, NodeMessageType } from '../../../network/messages'
 
 import {
   blockHash,
@@ -157,7 +157,7 @@ export function response(
     peerIdentity: 'somebody',
     message: {
       rpcId: 1,
-      type: MessageType.Blocks,
+      type: NodeMessageType.Blocks,
       direction: Direction.response,
       payload: payload,
     },
@@ -173,7 +173,7 @@ export function request(
   return {
     peerIdentity: 'somebody',
     message: {
-      type: MessageType.Blocks,
+      type: NodeMessageType.Blocks,
       payload: payload,
     },
   }

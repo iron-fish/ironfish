@@ -5,7 +5,7 @@
 import { default as Block, BlockSerde } from './anchorChain/blockchain/Block'
 import Strategy from './anchorChain/strategies'
 import Transaction from './anchorChain/strategies/Transaction'
-import { BlocksResponse } from './messages'
+import { BlocksResponse } from '../network/messages'
 import { Event } from '../event'
 import { MetricsMonitor } from '../metrics'
 import { createRootLogger, Logger } from '../logger'

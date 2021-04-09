@@ -25,7 +25,7 @@ import {
 } from './testUtilities'
 import { StringUtils } from '../utils'
 
-import { BlockRequest, BlocksResponse, MessageType } from './messages'
+import { BlockRequest, BlocksResponse, NodeMessageType } from '../network/messages'
 import { createRootLogger } from '../logger'
 import { NetworkBlockType } from './blockSyncer'
 
@@ -58,7 +58,7 @@ describe('BlockSyncer', () => {
       const request: IncomingPeerMessage<BlockRequest> = {
         peerIdentity: 'somebody',
         message: {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           payload: {
             hash: Buffer.from(StringUtils.hash('blockyoudonthave')).toString('hex'),
             nextBlockDirection: true,
@@ -74,7 +74,7 @@ describe('BlockSyncer', () => {
       const request: IncomingPeerMessage<BlockRequest> = {
         peerIdentity: 'somebody',
         message: {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           payload: {
             hash: serializedBlockHash(6),
             nextBlockDirection: false,
@@ -120,7 +120,7 @@ describe('BlockSyncer', () => {
       > = {
         peerIdentity: 'somebody',
         message: {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           direction: Direction.response,
           rpcId: 1,
           payload: { blocks: [serializedBlock] },
@@ -132,7 +132,7 @@ describe('BlockSyncer', () => {
       expect(onRequestBlockSpy).toHaveBeenCalledWith(heaviestHead.hash, true)
 
       const request: BlockRequest = {
-        type: MessageType.Blocks,
+        type: NodeMessageType.Blocks,
         payload: {
           hash: heaviestHead.hash.toString('hex'),
           nextBlockDirection: true,
@@ -152,7 +152,7 @@ describe('BlockSyncer', () => {
       > = {
         peerIdentity: 'somebody',
         message: {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           direction: Direction.response,
           rpcId: 1,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -164,7 +164,7 @@ describe('BlockSyncer', () => {
       expect(onRequestBlockSpy).toHaveBeenCalledWith(hash, false)
 
       const request: BlockRequest = {
-        type: MessageType.Blocks,
+        type: NodeMessageType.Blocks,
         payload: {
           hash: hash.toString('hex'),
           nextBlockDirection: true,
@@ -204,7 +204,7 @@ describe('BlockSyncer', () => {
 
       captain.onRequestBlocks.on(async (hash, nextBlockDirection) => {
         const message: BlockRequest = {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           payload: {
             hash: hash?.toString('hex'),
             nextBlockDirection: nextBlockDirection,
