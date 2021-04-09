@@ -112,7 +112,7 @@ export class NetworkBridge {
         const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
 
         const request: BlockRequest = {
-          type: MessageType.Blocks,
+          type: NodeMessageType.Blocks,
           payload: {
             hash: serializedHash,
             nextBlockDirection: nextBlockDirection,

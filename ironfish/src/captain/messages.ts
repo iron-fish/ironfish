@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Identity, LooseMessage, Message, MessagePayload, PayloadType, Rpc } from '../network'
+import { LooseMessage, Message, MessagePayload, PayloadType, Rpc } from '../network'
 
 import { SerializedBlock } from './anchorChain/blockchain/Block'
 

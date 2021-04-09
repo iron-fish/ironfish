@@ -356,7 +356,7 @@ export class PeerNetwork {
     if (style !== RoutingStyle.globalRPC) {
       throw new Error(`${message.type} type not meant to be global RPC`)
     }
-    return await this.globalRpcRouter.request(message)
+    return await this.globalRpcRouter.request(message, peer)
   }
 
   private async handleMessage(
