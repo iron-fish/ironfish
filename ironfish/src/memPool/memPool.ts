@@ -22,7 +22,7 @@ export class MemPool<
 
   constructor(captain: Captain<E, H, T, SE, SH, ST>, logger: Logger = createRootLogger()) {
     this.captain = captain
-    this.logger = logger.withTag('transactionpool')
+    this.logger = logger.withTag('mempool')
   }
 
   size(): number {
