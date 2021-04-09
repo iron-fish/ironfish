@@ -6,7 +6,7 @@ import Blockchain, { AddBlockResult } from './anchorChain/blockchain'
 import Block, { BlockSerde, SerializedBlock } from './anchorChain/blockchain/Block'
 import { BlockHash } from './anchorChain/blockchain/BlockHeader'
 import Transaction from './anchorChain/strategies/Transaction'
-import { BlockRequest } from './messages'
+import { BlockRequest } from '../network/messages'
 import {
   CannotSatisfyRequestError,
   IncomingPeerMessage,

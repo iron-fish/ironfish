@@ -4,6 +4,14 @@
 
 import { Identity, isIdentity } from './identity'
 import { IJSON } from '../serde'
+import { SerializedBlock } from '../captain/anchorChain/blockchain/Block'
+import { Gossip, Rpc } from './messageRouters'
+import { UnwrapPromise } from '../utils'
+import {
+  IronfishVerifier,
+  SerializedTransaction,
+  SerializedWasmNoteEncrypted,
+} from '../strategy'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -213,3 +221,221 @@ export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>
   peerIdentity: Identity
   message: M
 }
+
+/**
+ * The type of a Iron Fish message. This is an exhaustive list of
+ * the messages that are sent from Captain. Other messages may
+ * be sent by peerNetwork's internal mechanisms (for example, a peer list).
+ *
+ * Note: A Response to a Request must have the same MessageType
+ */
+export enum NodeMessageType {
+  Note = 'Note',
+  Nullifier = 'Nullifier',
+  Blocks = 'Blocks',
+  NewBlock = 'NewBlock',
+  NewTransaction = 'NewTransaction',
+}
+
+/**
+ * A request for a note by its position in the notes merkle tree.
+ *
+ * Handler is in `TreeSyncer`
+ */
+export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
+
+/**
+ * Type narrowing to confirm a `NoteRequest` has the requisite type and position field.
+ */
+export function isNoteRequestPayload(obj: PayloadType): obj is MessagePayload<NoteRequest> {
+  return obj != null && 'position' in obj && typeof obj.position === 'number'
+}
+
+/**
+ * A response to a note request, returned by the handler in TreeSyncer
+ *
+ * The note is a serialized note entity.
+ */
+export type NoteResponse<SE> = Rpc<NodeMessageType.Note, { note: SE; position: number }>
+
+/**
+ * Type narrowing to confirm a `NoteResponse` has the requisite type and
+ * a note payload. Does not try to deserialize the note or verify it in any way.
+ */
+export function isNoteResponsePayload<SE>(
+  obj: PayloadType,
+): obj is MessagePayload<NoteResponse<SE>> {
+  return obj != null && 'note' in obj && 'position' in obj && typeof obj.position === 'number'
+}
+
+/**
+ * Type narrowing to confirm a `NoteResponse` has the requisite type and
+ * a note payload. Does not try to deserialize the note or verify it in any way.
+ */
+export function isNoteResponse<SE>(obj: LooseMessage): obj is NoteResponse<SE> {
+  return (
+    obj.type === NodeMessageType.Note && 'payload' in obj && isNoteResponsePayload(obj.payload)
+  )
+}
+
+/**
+ * A request for a nullifier by its position in the notes merkle tree.
+ */
+export type NullifierRequest = Message<NodeMessageType.Nullifier, { position: number }>
+
+/**
+ * Type narrowing to confirm a `'nullifierRequest` has the requisite type and position
+ */
+export function isNullifierRequestPayload(
+  obj: PayloadType,
+): obj is MessagePayload<NullifierRequest> {
+  return obj != null && 'position' in obj && typeof obj.position === 'number'
+}
+
+/**
+ * A response to a request for a nullifier
+ */
+export type NullifierResponse = Rpc<
+  NodeMessageType.Nullifier,
+  { nullifier: string; position: number }
+>
+
+/**
+ * Type narrowing to confirm a `NullifierResponse` has the requisite type and
+ * a nullifier payload. Does not try to deserialize the nullifier or verify it in any way.
+ */
+export function isNullifierResponse(obj: LooseMessage): obj is NullifierResponse {
+  return (
+    obj.type === NodeMessageType.Nullifier &&
+    'payload' in obj &&
+    isNullifierRequestPayload(obj.payload)
+  )
+}
+
+export function isNullifierResponsePayload(
+  obj: PayloadType,
+): obj is MessagePayload<NullifierResponse> {
+  return obj != null && 'nullifier' in obj && typeof obj.nullifier === 'string'
+}
+
+/**
+ * A request for a block.
+ *
+ * A response to this request should be for the block before the given hash
+ * with the given sequence
+ *
+ * If the given hash is undefined, return the head block of the heaviest chain
+ */
+export type BlockRequest = Message<
+  NodeMessageType.Blocks,
+  {
+    /**
+     * The hash that the block request is relative to.
+     */
+    hash: string
+    /**
+     * To either respond with the next block in the forwards direction
+     * from given hash or not
+     */
+    nextBlockDirection: boolean
+  }
+>
+
+/**
+ * Type narrowing to verify that the block has the hash and sequence parameters
+ * and that they are either undefined or strings.
+ */
+export function isBlockRequestPayload(obj: PayloadType): obj is BlockRequest['payload'] {
+  return obj != null && 'hash' in obj && (typeof obj.hash === 'string' || obj.hash === null)
+}
+
+/**
+ * A response to a request for a block. A valid message contains an array of serialized block.
+ */
+export type BlocksResponse<SH, ST> = Rpc<
+  NodeMessageType.Blocks,
+  { blocks: SerializedBlock<SH, ST>[] }
+>
+
+/**
+ * Type narrowing to confirm the message payload contains a `block` object
+ * that represents a serialized block.
+ * Does not do anything to confirm whether that object is a legitimate block.
+ */
+export function isBlocksResponse<SH, ST>(obj: LooseMessage): obj is BlocksResponse<SH, ST> {
+  const ret = obj.type === NodeMessageType.Blocks && 'payload' in obj && 'blocks' in obj.payload
+  return ret
+}
+
+/**
+ * A newly mined block gossipped on the P2P network
+ */
+export type NewBlock<SH, ST> = Message<'NewBlock', { block: SerializedBlock<SH, ST> }>
+
+/**
+ * Type narrowing to confirm the message payload contains a `block` object.
+ * Does not try to confirm whether it is a correct block.
+ */
+export function isNewBlockPayload<SH, ST>(
+  obj: PayloadType,
+): obj is NewBlock<SH, ST>['payload'] {
+  return obj != null && 'block' in obj && typeof obj.block === 'object' && obj.block != null
+}
+
+/**
+ * A newly spent transaction that a client would like to have mined
+ */
+export type NewTransaction<ST> = Message<
+  'NewTransaction',
+  {
+    transaction: ST
+  }
+>
+
+/**
+ * Type narrowing to confirm the message payload contains a `transaction`
+ * object. Does not try to validate the transaction.
+ */
+export function isNewTransactionPayload<ST>(
+  obj: PayloadType,
+): obj is NewTransaction<ST>['payload'] {
+  return (
+    obj != null &&
+    'transaction' in obj &&
+    typeof obj.transaction === 'object' &&
+    obj.transaction != null
+  )
+}
+
+export type NewBlockMessage = Gossip<
+  NodeMessageType.NewBlock,
+  UnwrapPromise<ReturnType<IronfishVerifier['verifyNewBlock']>>
+>
+
+export type NewTransactionMessage = Gossip<
+  NodeMessageType.NewTransaction,
+  UnwrapPromise<ReturnType<IronfishVerifier['verifyNewTransaction']>>
+>
+
+export type BlockRequestMessage = Rpc<NodeMessageType.Blocks, MessagePayload<BlockRequest>>
+
+export type BlocksResponseMessage = Rpc<
+  NodeMessageType.Blocks,
+  MessagePayload<BlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>>
+>
+
+export type NoteRequestMessage = Rpc<NodeMessageType.Note, MessagePayload<NoteRequest>>
+
+export type NoteResponseMessage = Rpc<
+  NodeMessageType.Note,
+  MessagePayload<NoteResponse<SerializedWasmNoteEncrypted>>
+>
+
+export type NullifierRequestMessage = Rpc<
+  NodeMessageType.Nullifier,
+  MessagePayload<NullifierRequest>
+>
+export type NullifierResponseMessage = Rpc<
+  NodeMessageType.Nullifier,
+  MessagePayload<NullifierResponse>
+>
