@@ -350,7 +350,6 @@ export default class Blockchain<
       async (tx) => {
         const hash = block.header.hash
         Assert.isNotNull(hash, 'Header hash should be set before header is saved')
-        this.logger.debug(`Setting block ${hash.toString('hex')} ${block.header.sequence}`)
 
         await this.headers.put(hash, this.blockHeaderSerde.serialize(block.header), tx)
 
@@ -825,12 +824,6 @@ export default class Blockchain<
             block.header,
             nextBlockHeaders,
             tx,
-          )
-
-          this.logger.debug(
-            `Adding a disjoint block ${block.header.hash.toString('hex')} ${
-              block.header.sequence
-            }`,
           )
 
           await this.setBlock(block, tx)

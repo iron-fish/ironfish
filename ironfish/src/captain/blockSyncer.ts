@@ -425,7 +425,11 @@ export class BlockSyncer<
       const latestBlock = blockToProcess.block
       const addBlockResult: AddBlockResult = await this.chain.addBlock(latestBlock)
       const timeToAddBlock = Date.now() - time
-      this.logger.debug(`Adding block took ${timeToAddBlock} ms`)
+      this.logger.debug(
+        `Adding block ${blockToProcess.block.header.hash.toString('hex')} ${
+          blockToProcess.block.header.sequence
+        } took ${timeToAddBlock} ms`,
+      )
 
       // Metrics status update
       this.status.speed.add(1)
@@ -461,9 +465,7 @@ export class BlockSyncer<
           nextBlockDirection: true,
         }
         this.logger.debug(
-          `Requesting NEXT block from ${addBlockResult.resolvedGraph.heaviestHash.toString(
-            'hex',
-          )}`,
+          `Requesting ${addBlockResult.resolvedGraph.heaviestHash.toString('hex')} NEXT`,
         )
       } else {
         // we just added an island, so we want to request the previous block of the tail
@@ -474,9 +476,9 @@ export class BlockSyncer<
         )
         Assert.isNotNull(tailHeader)
         this.logger.debug(
-          `Requesting BACKWARDS block ${tailHeader.previousBlockHash.toString(
-            'hex',
-          )} from resolved tail of an island block`,
+          `Requesting ${tailHeader.previousBlockHash.toString('hex')} BACKWARDS from ${
+            blockToProcess.fromPeer
+          }`,
         )
 
         // this should never happen
