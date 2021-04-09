@@ -129,7 +129,7 @@ describe('BlockSyncer', () => {
       const heaviestHead = await syncer.chain.getHeaviestHead()
       Assert.isNotNull(heaviestHead)
       syncer.requestOneBlock({ hash: heaviestHead.hash, nextBlockDirection: true })
-      expect(onRequestBlockSpy).toHaveBeenCalledWith(heaviestHead.hash, true)
+      expect(onRequestBlockSpy).toHaveBeenCalledWith(heaviestHead.hash, true, undefined)
 
       const request: BlockRequest = {
         type: NodeMessageType.Blocks,
@@ -142,7 +142,7 @@ describe('BlockSyncer', () => {
       syncer.handleBlockResponse(blocksResponse, request)
       await syncer.blockRequestPromise
 
-      expect(spyQueue).toHaveBeenCalledWith(block, NetworkBlockType.SYNCING)
+      expect(spyQueue).toHaveBeenCalledWith(block, 'somebody', NetworkBlockType.SYNCING)
       await syncer.shutdown()
     })
 
@@ -161,7 +161,7 @@ describe('BlockSyncer', () => {
       }
       const hash = Buffer.from('')
       syncer.requestOneBlock({ hash, nextBlockDirection: false })
-      expect(onRequestBlockSpy).toHaveBeenCalledWith(hash, false)
+      expect(onRequestBlockSpy).toHaveBeenCalledWith(hash, false, undefined)
 
       const request: BlockRequest = {
         type: NodeMessageType.Blocks,

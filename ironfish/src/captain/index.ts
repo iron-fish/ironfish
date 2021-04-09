@@ -15,6 +15,7 @@ import { BlockSyncer, BlockSyncerChainStatus } from './blockSyncer'
 import { IDatabase } from '../storage'
 import Verifier from './Verifier'
 import Blockchain from './anchorChain/blockchain'
+import { Identity } from '../network'
 
 export { Assert } from '../assert'
 export {
@@ -118,7 +119,7 @@ export default class Captain<
    */
   onNewBlock = new Event<[Block<E, H, T, SE, SH, ST>]>()
   /** Emitted when a block is being requested by header hash or sequence */
-  onRequestBlocks = new Event<[hash: Buffer, nextBlockDirection: boolean]>()
+  onRequestBlocks = new Event<[hash: Buffer, nextBlockDirection: boolean, peer?: Identity]>()
   /** Emitted when a note is being requested by index */
   onRequestNote = new Event<[position: number]>()
   /** Emitted when a nullifier is being requested by index */
@@ -218,8 +219,8 @@ export default class Captain<
   }
 
   /** Used to request a block by header hash or sequence */
-  requestBlocks(hash: Buffer, nextBlockDirection: boolean): void {
-    this.onRequestBlocks.emit(hash, nextBlockDirection)
+  requestBlocks(hash: Buffer, nextBlockDirection: boolean, peer?: Identity): void {
+    this.onRequestBlocks.emit(hash, nextBlockDirection, peer)
   }
 
   /**

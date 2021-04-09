@@ -19,6 +19,7 @@ import { IronfishNode } from './node'
 import { SerializedTransaction, SerializedWasmNoteEncrypted } from './strategy'
 import { BlockHash } from './captain'
 import { NetworkBlockType } from './captain/blockSyncer'
+import { Identity } from './network/identity'
 
 export class NetworkBridge {
   node: IronfishNode | null = null
@@ -101,43 +102,45 @@ export class NetworkBridge {
       })
     })
 
-    this.node.captain.onRequestBlocks.on((hash: BlockHash, nextBlockDirection: boolean) => {
-      Assert.isNotNull(this.node)
-      Assert.isNotNull(this.node.captain)
-      Assert.isNotNull(this.peerNetwork)
-      Assert.isNotNull(this.node)
+    this.node.captain.onRequestBlocks.on(
+      (hash: BlockHash, nextBlockDirection: boolean, peer?: Identity) => {
+        Assert.isNotNull(this.node)
+        Assert.isNotNull(this.node.captain)
+        Assert.isNotNull(this.peerNetwork)
+        Assert.isNotNull(this.node)
 
-      const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
+        const serializedHash = this.node.captain.chain.blockHashSerde.serialize(hash)
 
-      const request: BlockRequest = {
-        type: NodeMessageType.Blocks,
-        payload: {
-          hash: serializedHash,
-          nextBlockDirection: nextBlockDirection,
-        },
-      }
+        const request: BlockRequest = {
+          type: NodeMessageType.Blocks,
+          payload: {
+            hash: serializedHash,
+            nextBlockDirection: nextBlockDirection,
+          },
+        }
 
-      this.peerNetwork
-        .request(request)
-        .then((c) => {
-          if (
-            !c ||
-            !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
-          ) {
-            throw new Error('Invalid format')
-          }
-          this.onBlockResponses(
-            {
-              ...c,
-              message: c.message,
-            },
-            request,
-          )
-        })
-        .catch((err) => {
-          this.node?.captain?.blockSyncer.handleBlockRequestError(request, err)
-        })
-    })
+        this.peerNetwork
+          .request(request, peer)
+          .then((c) => {
+            if (
+              !c ||
+              !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
+            ) {
+              throw new Error('Invalid format')
+            }
+            this.onBlockResponses(
+              {
+                ...c,
+                message: c.message,
+              },
+              request,
+            )
+          })
+          .catch((err) => {
+            this.node?.captain?.blockSyncer.handleBlockRequestError(request, err)
+          })
+      },
+    )
   }
 
   /** Attach to the events of a WebWorker and forward them to/from an IronfishNode */
@@ -169,7 +172,8 @@ export class NetworkBridge {
     Assert.isNotNull(this.node)
     Assert.isNotNull(this.node.captain)
     const block = message.message.payload.block
-    return this.node.captain.blockSyncer.addBlockToProcess(block, NetworkBlockType.GOSSIP)
+    const peer = message.peerIdentity
+    return this.node.captain.blockSyncer.addBlockToProcess(block, peer, NetworkBlockType.GOSSIP)
   }
 
   private async onNewTransaction(

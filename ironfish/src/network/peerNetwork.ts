@@ -33,6 +33,7 @@ import {
 } from './messageRouters'
 import { Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
+import { Identity } from './identity'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -348,12 +349,14 @@ export class PeerNetwork {
    */
   async request(
     message: Message<MessageType, Record<string, unknown>>,
+    peer?: Identity,
   ): Promise<IncomingPeerMessage<LooseMessage>> {
     const style = this.routingStyles.get(message.type)
+
     if (style !== RoutingStyle.globalRPC) {
       throw new Error(`${message.type} type not meant to be global RPC`)
     }
-    return await this.globalRpcRouter.request(message)
+    return await this.globalRpcRouter.request(message, peer)
   }
 
   private async handleMessage(
