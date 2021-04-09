@@ -19,6 +19,7 @@ import { IronfishNode } from './node'
 import { SerializedTransaction, SerializedWasmNoteEncrypted } from './strategy'
 import { BlockHash } from './captain'
 import { NetworkBlockType } from './captain/blockSyncer'
+import { Identity } from './network/identity'
 
 export class NetworkBridge {
   node: IronfishNode | null = null
@@ -102,7 +103,7 @@ export class NetworkBridge {
     })
 
     this.node.captain.onRequestBlocks.on(
-      (hash: BlockHash, nextBlockDirection: boolean, peer?: string) => {
+      (hash: BlockHash, nextBlockDirection: boolean, peer?: Identity) => {
         Assert.isNotNull(this.node)
         Assert.isNotNull(this.node.captain)
         Assert.isNotNull(this.peerNetwork)

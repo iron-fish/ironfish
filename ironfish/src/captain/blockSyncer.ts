@@ -9,6 +9,7 @@ import Transaction from './anchorChain/strategies/Transaction'
 import { BlockRequest } from '../network/messages'
 import {
   CannotSatisfyRequestError,
+  Identity,
   IncomingPeerMessage,
   MessagePayload,
   RPC_TIMEOUT_MILLIS,
@@ -44,7 +45,7 @@ export type BlockSyncerChainStatus = {
 
 export type Request = {
   hash: BlockHash
-  fromPeer?: string
+  fromPeer?: Identity
   nextBlockDirection?: boolean
 }
 
@@ -62,7 +63,7 @@ export type BlockToProcess<
   ST
 > = {
   block: Block<E, H, T, SE, SH, ST>
-  fromPeer: string
+  fromPeer: Identity
   type: NetworkBlockType
 }
 
@@ -263,7 +264,7 @@ export class BlockSyncer<
 
   addBlockToProcess(
     block: Block<E, H, T, SE, SH, ST>,
-    fromPeer: string,
+    fromPeer: Identity,
     type: NetworkBlockType,
   ): void {
     if (
