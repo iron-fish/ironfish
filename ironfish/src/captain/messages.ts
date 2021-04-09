@@ -120,10 +120,6 @@ export type BlockRequest = Message<
      * from given hash or not
      */
     nextBlockDirection: boolean
-    /**
-     * To which peer send the request to (optional)
-     */
-    peer?: Identity
   }
 >
 

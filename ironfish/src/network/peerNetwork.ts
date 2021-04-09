@@ -33,6 +33,7 @@ import {
 } from './messageRouters'
 import { Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
+import { Identity } from './identity'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -348,6 +349,7 @@ export class PeerNetwork {
    */
   async request(
     message: Message<MessageType, Record<string, unknown>>,
+    peer?: Identity,
   ): Promise<IncomingPeerMessage<LooseMessage>> {
     const style = this.routingStyles.get(message.type)
 

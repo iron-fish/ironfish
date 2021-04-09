@@ -117,11 +117,10 @@ export class NetworkBridge {
             hash: serializedHash,
             nextBlockDirection: nextBlockDirection,
           },
-          peer: peer,
         }
 
         this.peerNetwork
-          .request(request)
+          .request(request, peer)
           .then((c) => {
             if (
               !c ||
