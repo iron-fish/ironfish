@@ -5,7 +5,7 @@ jest.mock('ws')
 
 import ws from 'ws'
 import { createRouteTest } from '../test'
-import { RangeHasher } from '../../../captain/anchorChain/merkleTree'
+import { RangeHasher } from '../../../merkletree'
 
 import { blockHash, makeFakeBlock, TestStrategy } from '../../../captain/testUtilities'
 import { ResponseError } from '../../adapters'

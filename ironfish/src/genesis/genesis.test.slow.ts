@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import Captain, { SerializedBlock, Target } from '../captain'
+import { SerializedBlock, Target } from '../blockchain'
+import { Captain } from '../captain'
 import { makeDb, fakeMaxTarget } from '../captain/testUtilities'
 import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'

@@ -13,7 +13,8 @@ import {
   IronfishVerifier,
 } from './strategy'
 import { NetworkBridge } from './networkBridge'
-import Captain, { SerializedBlock } from './captain'
+import { Captain } from './captain'
+import { SerializedBlock } from './blockchain'
 import { createRootLogger, Logger } from './logger'
 import { genesisBlockData } from './genesis'
 import { RpcServer } from './rpc/server'

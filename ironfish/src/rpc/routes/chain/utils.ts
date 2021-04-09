@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
-import Blockchain, { Block, GRAPH_ID_NULL } from '../../../captain/anchorChain/blockchain'
-import { Graph } from '../../../captain/anchorChain/blockchain/Graph'
-import { Transaction } from '../../../captain/anchorChain/strategies'
+import Blockchain, { Block, GRAPH_ID_NULL } from '../../../blockchain'
+import { Graph } from '../../../blockchain/graph'
+import { Transaction } from '../../../strategy/strategy'
 import { JsonSerializable } from '../../../serde'
 import { HashUtils } from '../../../utils'
 

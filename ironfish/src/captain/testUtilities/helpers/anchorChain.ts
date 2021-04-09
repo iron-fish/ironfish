@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Blockchain, { GENESIS_BLOCK_PREVIOUS, Target } from '../../anchorChain/blockchain'
-import Block from '../../anchorChain/blockchain/Block'
-import BlockHeader from '../../anchorChain/blockchain/BlockHeader'
-import Strategy from '../../anchorChain/strategies'
-import { Spend } from '../../anchorChain/strategies/Transaction'
-import { RangeHasher } from '../../anchorChain/merkleTree'
+import Blockchain, { Target } from '../../../blockchain'
+import { GENESIS_BLOCK_PREVIOUS } from '../../../consensus'
+import Block from '../../../blockchain/block'
+import BlockHeader from '../../../blockchain/blockheader'
+import Strategy from '../../../strategy/strategy'
+import { Spend } from '../../../strategy/transaction'
+import { RangeHasher } from '../../../merkletree'
 import { IDatabase } from '../../../storage'
 import { makeNullifier } from './blockchain'
 import { SerializedTestTransaction, TestStrategy, TestTransaction } from '../strategy'

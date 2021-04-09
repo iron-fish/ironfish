@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRouteTest } from '../test'
-import { RangeHasher } from '../../../captain/anchorChain/merkleTree'
+import { RangeHasher } from '../../../merkletree'
 
 import { blockHash, makeFakeBlock, TestStrategy } from '../../../captain/testUtilities'
 import { GetChainInfoResponse } from './getChainInfo'

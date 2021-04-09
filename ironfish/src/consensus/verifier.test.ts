@@ -5,7 +5,7 @@
 jest.mock('ws')
 jest.mock('../network')
 
-import { RangeHasher } from '../captain/anchorChain/merkleTree'
+import { RangeHasher } from '../merkletree'
 import {
   TestStrategy,
   makeCaptain,
@@ -15,13 +15,8 @@ import {
   TestBlockHeader,
   fakeMaxTarget,
 } from '../captain/testUtilities'
-
-import Target from '../captain/anchorChain/blockchain/Target'
-import {
-  Validity,
-  VerificationResultReason,
-} from '../captain/anchorChain/blockchain/VerificationResult'
-import { BlockHeader } from '../captain/anchorChain/blockchain'
+import { Validity, VerificationResultReason } from './verifier'
+import { BlockHeader, Target } from '../blockchain'
 
 describe('Verifier', () => {
   describe('Transactions', () => {

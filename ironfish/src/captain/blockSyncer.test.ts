@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockSerde } from './anchorChain/blockchain/Block'
-import Target from './anchorChain/blockchain/Target'
-import { BlockSyncer, Validity } from '.'
-import { RangeHasher } from './anchorChain/merkleTree'
+import { Target, BlockSerde } from '../blockchain'
+import { BlockSyncer } from './blockSyncer'
+import { RangeHasher } from '../merkletree'
 import { Assert } from '../assert'
 import { Direction, IncomingPeerMessage } from '../network'
 import { BufferSerde } from '../serde'
@@ -28,6 +27,7 @@ import { StringUtils } from '../utils'
 import { BlockRequest, BlocksResponse, NodeMessageType } from '../network/messages'
 import { createRootLogger } from '../logger'
 import { NetworkBlockType } from './blockSyncer'
+import { Validity } from '../consensus/verifier'
 
 const serializedBlockHash = (position: number): string => {
   const hash = blockHash(position)

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHash } from '../../anchorChain/blockchain/BlockHeader'
-import { NullifierHasher } from '../../anchorChain/nullifiers'
-import Strategy from '../../anchorChain/strategies'
-import { ConcatHasher } from '../../anchorChain/merkleTree'
+import { BlockHash } from '../../../blockchain/blockheader'
+import { NullifierHasher } from '../../../blockchain/nullifiers'
+import Strategy from '../../../strategy/strategy'
+import { ConcatHasher } from '../../../merkletree'
 
 import { TestTransaction } from './TestTransaction'
 import { TestTransactionSerde } from './TestTransactionSerde'

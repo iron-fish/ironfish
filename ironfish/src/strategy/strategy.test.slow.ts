@@ -11,7 +11,7 @@ import {
   WasmTransactionPosted,
   Key,
 } from 'ironfish-wasm-nodejs'
-import { MerkleTree } from '../captain'
+import { MerkleTree } from '../merkletree'
 import { IDatabase } from '../storage'
 import {
   IronfishNote,
