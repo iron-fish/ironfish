@@ -58,7 +58,7 @@ export function getConnectingPeer(
     throw new Error('WebSocket connection should be defined')
   }
 
-  jest.spyOn(peer.state.connections.webSocket, 'send').mockImplementation()
+  jest.spyOn(peer.state.connections.webSocket, 'send').mockImplementation(() => true)
 
   return { peer, connection: peer.state.connections.webSocket }
 }

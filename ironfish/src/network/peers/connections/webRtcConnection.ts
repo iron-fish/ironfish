@@ -127,18 +127,29 @@ export class WebRtcConnection extends Connection {
   /**
    * Encode the message to json and send it to the peer
    */
-  send = (message: LooseMessage): void => {
+  send = (message: LooseMessage): boolean => {
     if (this.shouldLogMessageType(message.type)) {
       this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${message.type}`)
     }
 
     const data = JSON.stringify(message)
-    this.peer.send(data)
+    try {
+      this.peer.send(data)
+    } catch (e) {
+      this.logger.debug(
+        `Error occurred while sending ${message.type} message in state ${this.state.type}`,
+        e,
+      )
+      this.close(e)
+      return false
+    }
 
     // TODO: Switch network traffic to binary
     const byteCount = Buffer.from(data).byteLength
     this.metrics?.p2p_OutboundTraffic.add(byteCount)
     this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
+
+    return true
   }
 
   /**
