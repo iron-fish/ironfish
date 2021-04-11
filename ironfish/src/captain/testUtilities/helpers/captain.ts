@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Direction, IncomingPeerMessage, MessagePayload } from '../../../network'
-import { default as Block } from '../../anchorChain/blockchain/Block'
-import BlockHeader from '../../anchorChain/blockchain/BlockHeader'
-import Captain, { BlockSyncer, BlocksResponse } from '../..'
+import { default as Block } from '../../../blockchain/block'
+import BlockHeader from '../../../blockchain/blockheader'
+import { BlockSyncer } from '../../blockSyncer'
+import { BlocksResponse } from '../../../network/messages'
+import { Captain } from '../../captain'
 import { BlockRequest, NodeMessageType } from '../../../network/messages'
 
 import {

@@ -18,7 +18,7 @@ import { createRootLogger, Logger } from '../logger'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { IronfishNode } from '../node'
 import { ValidationError } from '../rpc/adapters/errors'
-import { GENESIS_BLOCK_SEQUENCE } from '../captain'
+import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { IDatabaseTransaction } from '../storage'
 import { BufferMap } from 'buffer-map'
 

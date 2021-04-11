@@ -2,27 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  default as Block,
-  BlockSerde,
-  SerializedBlock,
-} from '../captain/anchorChain/blockchain/Block'
-import Strategy from '../captain/anchorChain/strategies'
-import Transaction from '../captain/anchorChain/strategies/Transaction'
+import { default as Block, BlockSerde, SerializedBlock } from '../blockchain/block'
+import Strategy from '../strategy/strategy'
+import { Transaction, Spend } from '../strategy/transaction'
 import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
-import BlockHeader from '../captain/anchorChain/blockchain/BlockHeader'
-import { Spend } from '../captain/anchorChain/strategies/Transaction'
-import Blockchain, { Target } from '../captain/anchorChain/blockchain'
+import BlockHeader from '../blockchain/blockheader'
+import Blockchain, { Target } from '../blockchain'
 import { PayloadType } from '../network'
 import Serde, { BufferSerde, JsonSerializable } from '../serde'
-import {
-  Validity,
-  VerificationResult,
-  VerificationResultReason,
-} from '../captain/anchorChain/blockchain/VerificationResult'
 import { IDatabaseTransaction } from '../storage'
 
-export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
 /**
  * Verifier transctions and blocks
  *
@@ -39,7 +28,7 @@ export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
  *               The serialized format of a `T`. Conversion between the two happens
  *               via the `strategy`.
  */
-export default class Verifier<
+export class Verifier<
   E,
   H,
   T extends Transaction<E, H>,
@@ -430,3 +419,43 @@ export default class Verifier<
     )
   }
 }
+
+import { BlockHash } from '../blockchain'
+import { ALLOWED_BLOCK_FUTURE_SECONDS } from './consensus'
+
+/**
+ * Indicator of whether or not an entity is valid. Note that No maps to zero,
+ * so a truthy test will work, but beware of Unknown responses
+ */
+export enum Validity {
+  No,
+  Yes,
+  Unknown,
+}
+
+export enum VerificationResultReason {
+  BLOCK_TOO_OLD = 'Block timestamp is in past',
+  ERROR = 'error',
+  HASH_NOT_MEET_TARGET = 'hash does not meet target',
+  INVALID_MINERS_FEE = "Miner's fee is incorrect",
+  INVALID_TARGET = 'Invalid target',
+  INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
+  NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
+  NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
+  SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
+  TOO_FAR_IN_FUTURE = 'timestamp is in future',
+  GRAFFITI = 'Graffiti field is not 32 bytes in length',
+  INVALID_SPEND = 'Invalid spend',
+}
+
+/**
+ * Indicate whether some entity is valid, and if not, provide a reason and
+ * hash.
+ */
+export interface VerificationResult {
+  valid: Validity
+  reason?: VerificationResultReason
+  hash?: BlockHash
+}
+
+export default Verifier

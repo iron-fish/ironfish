@@ -4,7 +4,7 @@
 
 import { WasmNote, WasmTransaction, WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { parentPort, MessagePort } from 'worker_threads'
-import { Witness, WitnessSide } from '../captain'
+import { Witness, WitnessSide } from '../merkletree'
 import { NoteHasher } from '.'
 
 type ReceiveRequest = {

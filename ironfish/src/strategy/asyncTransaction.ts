@@ -14,7 +14,7 @@ import {
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '.'
-import { Witness } from '../captain'
+import { Witness } from '../merkletree'
 
 // Messages that the asyncTransactionWorker knows how to handle
 type Request =

@@ -4,16 +4,17 @@
 
 import diff from 'jest-diff'
 
-import MerkleTree, { NodeValue, Side, Witness } from '../../anchorChain/merkleTree'
+import { MerkleTree, WitnessSide, Witness } from '../../../merkletree'
+import { NodeValue } from '../../../merkletree/schema'
 import makeError from './makeError'
 
 declare global {
   namespace jest {
     interface Matchers<R> {
       toHaveLeaves(characters: string, parents: number[]): Promise<R>
-      toHaveNodes(nodeSpecs: [number, Side, number, string][]): Promise<R>
+      toHaveNodes(nodeSpecs: [number, WitnessSide, number, string][]): Promise<R>
       toMatchTree(other: MerkleTree<string, string, string, string>): Promise<R>
-      toMatchWitness(treeSize: number, rootHash: string, authPath: [Side, string][]): R
+      toMatchWitness(treeSize: number, rootHash: string, authPath: [WitnessSide, string][]): R
     }
   }
 }
@@ -55,7 +56,7 @@ expect.extend({
   },
   async toHaveNodes(
     tree: MerkleTree<string, string, string, string>,
-    nodeSpecs: [number, Side, number, string][],
+    nodeSpecs: [number, WitnessSide, number, string][],
   ): Promise<jest.CustomMatcherResult> {
     let error: string | null = null
 
@@ -87,7 +88,7 @@ expect.extend({
       }
 
       let expected
-      if (side === Side.Left) {
+      if (side === WitnessSide.Left) {
         const { leftIndex: _leftIndex, ...expectedValue } = nodeValue
         expected = expectedValue
       } else {
@@ -154,7 +155,7 @@ expect.extend({
     witness: Witness<string, string, string, string>,
     treeSize: number,
     rootHash: string,
-    authenticationPath: [Side, string][],
+    authenticationPath: [WitnessSide, string][],
   ): jest.CustomMatcherResult {
     let error: string | null = null
 

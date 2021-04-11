@@ -10,7 +10,7 @@ import {
   Key,
 } from 'ironfish-wasm-nodejs'
 import AsyncTransaction from './asyncTransaction'
-import { MerkleTree } from '../captain'
+import { MerkleTree } from '../merkletree'
 import { IDatabase } from '../storage'
 import {
   IronfishNote,

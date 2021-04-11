@@ -4,9 +4,12 @@
 
 import { TestTransaction } from './TestTransaction'
 import { SerializedTestTransaction } from './SerializedTypes'
-import Verifier from '../../../consensus/verifier'
-import { Validity, VerificationResult } from '../../anchorChain/blockchain'
-import { VerificationResultReason } from '../../anchorChain/blockchain/VerificationResult'
+import {
+  Verifier,
+  Validity,
+  VerificationResult,
+  VerificationResultReason,
+} from '../../../consensus'
 import { TestBlock, TestBlockHeader } from '../helpers'
 
 export class TestVerifier extends Verifier<

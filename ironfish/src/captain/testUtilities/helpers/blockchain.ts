@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { SerializedTestTransaction, TestStrategy, TestTransaction } from '../strategy'
-import Blockchain from '../../anchorChain/blockchain'
-import Block from '../../anchorChain/blockchain/Block'
-import BlockHeader, { BlockHash } from '../../anchorChain/blockchain/BlockHeader'
-import Target from '../../anchorChain/blockchain/Target'
+import Blockchain from '../../../blockchain'
+import Block from '../../../blockchain/block'
+import BlockHeader, { BlockHash } from '../../../blockchain/blockheader'
+import { Target } from '../../../blockchain/target'
 import { makeDb, makeDbName } from './storage'
-import { RangeHasher } from '../../anchorChain/merkleTree'
+import { RangeHasher } from '../../../merkletree/hasher'
 import { createRootLogger } from '../../../logger'
 
 /**

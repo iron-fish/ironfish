@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Blockchain, { AddBlockResult } from './anchorChain/blockchain'
-import Block, { BlockSerde, SerializedBlock } from './anchorChain/blockchain/Block'
-import { BlockHash } from './anchorChain/blockchain/BlockHeader'
-import Transaction from './anchorChain/strategies/Transaction'
+import Blockchain, { AddBlockResult } from '../blockchain'
+import Block, { BlockSerde, SerializedBlock } from '../blockchain/block'
+import { BlockHash } from '../blockchain/blockheader'
+import { Transaction } from '../strategy/transaction'
 import { BlockRequest } from '../network/messages'
 import {
   CannotSatisfyRequestError,
@@ -16,8 +16,8 @@ import {
 } from '../network'
 import Serde, { BufferSerde, JsonSerializable } from '../serde'
 import { MetricsMonitor, Meter } from '../metrics'
-import Captain from '.'
-import { BlocksResponse } from '.'
+import { Captain } from './captain'
+import { BlocksResponse } from '../network/messages'
 import { Logger } from '../logger'
 import LeastRecentlyUsed from 'lru-cache'
 import { ErrorUtils } from '../utils'

@@ -4,9 +4,9 @@
 import {
   VerificationResult,
   VerificationResultReason,
-} from '../../anchorChain/blockchain/VerificationResult'
-import { Validity } from '../../anchorChain/blockchain/VerificationResult'
-import { Spend, default as Transaction } from '../../anchorChain/strategies/Transaction'
+  Validity,
+} from '../../../consensus/verifier'
+import { Spend, default as Transaction } from '../../../strategy/transaction'
 import { StringUtils } from '../../../utils'
 
 export class TestTransaction<H = string> implements Transaction<string, H> {

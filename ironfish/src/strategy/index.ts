@@ -8,31 +8,33 @@ import {
   WasmNoteEncrypted,
   WasmTransactionPosted,
 } from 'ironfish-wasm-nodejs'
-import Captain, {
+import { Captain } from '../captain'
+import {
   Block,
   BlockHash,
   BlockSerde,
-  NullifierHasher,
-  Spend,
-  Strategy,
-  Transaction as TransactionInterface,
-  Validity,
-  VerificationResult,
-  MerkleHasher,
-  Witness,
   BlockHeader,
+  NullifierHasher,
   SerializedBlock,
-} from '../captain'
-import { Verifier } from '../consensus'
-import Blockchain from '../captain/anchorChain/blockchain'
+  Blockchain,
+} from '../blockchain'
+import { MerkleHasher, Witness } from '../merkletree'
+import { Transaction, Spend } from './transaction'
 import Serde from '../serde'
-
 import { MiningDirector } from '../mining'
 import hashBlockHeader from '../mining/miningAlgorithm'
 import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
 import { MemPool } from '../memPool'
-import { VerificationResultReason } from '../captain/anchorChain/blockchain/VerificationResult'
+import {
+  Validity,
+  VerificationResult,
+  Verifier,
+  VerificationResultReason,
+} from '../consensus/verifier'
 
+export { Transaction, Spend } from './transaction'
+export { default as Strategy } from './strategy'
+import Strategy from './strategy'
 /**
  * Implementation of the IronFish strategy that calls into sapling via Wasm
  * to encode notes in zero-knowledge proofs.
@@ -246,7 +248,7 @@ export class IronfishNoteEncrypted {
  * a given transaction.
  */
 export class IronfishTransaction
-  implements TransactionInterface<IronfishNoteEncrypted, WasmNoteEncryptedHash> {
+  implements Transaction<IronfishNoteEncrypted, WasmNoteEncryptedHash> {
   private readonly wasmTransactionPostedSerialized: Buffer
   private wasmTransactionPosted: WasmTransactionPosted | null = null
   private referenceCount = 0

@@ -4,7 +4,7 @@
 
 import { Identity, isIdentity } from './identity'
 import { IJSON } from '../serde'
-import { SerializedBlock } from '../captain/anchorChain/blockchain/Block'
+import { SerializedBlock } from '../blockchain/block'
 import { Gossip, Rpc } from './messageRouters'
 import { UnwrapPromise } from '../utils'
 import {

@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import MerkleTree, { StructureHasher } from '../../anchorChain/merkleTree'
+import { MerkleTree } from '../../../merkletree'
+import { StructureHasher } from '../../../merkletree/hasher'
 import { IDatabase } from '../../../storage'
 import { makeDb, makeDbName } from './storage'
 

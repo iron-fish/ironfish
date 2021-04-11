@@ -17,7 +17,7 @@ import { Assert } from './assert'
 import { PeerNetwork, RoutingStyle } from './network'
 import { IronfishNode } from './node'
 import { SerializedTransaction, SerializedWasmNoteEncrypted } from './strategy'
-import { BlockHash } from './captain'
+import { BlockHash } from './blockchain'
 import { NetworkBlockType } from './captain/blockSyncer'
 import { Identity } from './network/identity'
 

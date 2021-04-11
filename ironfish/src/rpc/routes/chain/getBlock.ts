@@ -5,7 +5,7 @@ import * as yup from 'yup'
 
 import { ApiNamespace, router } from '../router'
 import { ValidationError } from '../../adapters'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../captain'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 
 export type GetBlockRequest = { index?: number; hash?: string }
 

@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from 'ironfish-wasm-nodejs'
-import Captain, { Nullifier, RangeHasher, SerializedBlockHeader, Target } from '../captain'
+import { SerializedBlockHeader, Target, Nullifier } from '../blockchain'
+import { Captain } from '../captain'
+import { RangeHasher } from '../merkletree'
 import { MiningDirector } from './director'
 import { waitForEmit } from '../event'
 import { Account } from '../account'
-
-import { Validity } from '../captain'
+import { Validity } from '../consensus/verifier'
 
 import {
   TestStrategy,
