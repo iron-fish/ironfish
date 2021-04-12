@@ -14,12 +14,15 @@ The API uses a queuing system (graphile-worker) to get the different faucet requ
 Run dev environment and access `http://localhost:8000/docs/`
 
 ## Installation
+
 ```sh
 yarn
 ```
 
 ## Database
+
 Depends on Postgres
+
 ```sh
 brew install postgresql
 brew services start postgresql
@@ -33,18 +36,22 @@ ALTER SCHEMA public OWNER to faucet;
 ```
 
 ## Development
+
 To start the api:
+
 ```sh
 yarn
 yarn dev
 ```
 
 Start an Iron Fish node with
+
 ```sh
-ironfish start --rpc.tcp --rpc.tpc-port=8021
+ironfish start --rpc.tcp --rpc.tcp.port=8021
 ```
 
 To start processing the queue:
+
 ```sh
 yarn start:worker
 ```
@@ -93,4 +100,3 @@ When updating or adding a new endpoint:
   |> filter(fn: (r) => r["_measurement"] == "minedBlock")
   |> filter(fn: (r) => r["_field"] == "difficulty")
   ```
-

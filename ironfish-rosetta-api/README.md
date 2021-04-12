@@ -12,29 +12,32 @@ Database <- Syncer -> Iron Fish node
 Other instance
 API -> Database
 
-
 The block explorer client connects to the API. It allows scaling the API and the database, while still needing only one Iron Fish node and one Syncer.
 
 ## Installation
+
 ```sh
 yarn
 ```
 
 ## Database
+
 Depends on Postgres
+
 ```sh
 brew install postgresql
 brew services start postgresql
 
 createdb rosetta;
 
-psql
+psql rosetta
 CREATE USER postgres;
 grant all privileges on database rosetta to postgres;
 ALTER SCHEMA public OWNER to postgres;
 ```
 
 ### Run migration
+
 ```sh
 # Create a migration
 yarn run migrate create my migration
@@ -45,16 +48,20 @@ yarn run migrate down
 ```
 
 ## Documentation
+
 Run dev environment and access `http://localhost:8000/docs/`
 
 ## Development
+
 ```
 brew services start postgresql
 yarn dev
 ```
 
 ## Production
+
 Starting the API:
+
 ```
 yarn
 yarn build
@@ -62,6 +69,7 @@ yarn start
 ```
 
 Starting the Syncer:
+
 ```
 yarn
 yarn build
@@ -69,11 +77,13 @@ yarn start:syncer
 ```
 
 Start an Iron Fish node with
+
 ```sh
-ironfish start --rpc.tcp --rpc.tpc-port=8021
+ironfish start --rpc.tcp --rpc.tcp.port=8021
 ```
 
 # Updating or creating a new API endpoint
+
 The repository is using OpenAPI 3.0 from the Coinbase Rosetta specs. Find the latest version [here](https://github.com/coinbase/rosetta-specifications)
 
 Copy the specs in the root
@@ -82,11 +92,14 @@ Copy the specs in the root
 Run `make gen` in `./rosetta-specifications`
 
 Update the type file:
+
 - run `yarn api:types`
 
 # Testing the Rosetta integration
+
 Install Rosetta CLI https://github.com/coinbase/rosetta-cli
 
 Run:
+
 - `rosetta-cli view:networks` to see the networks
-...
+  ...
