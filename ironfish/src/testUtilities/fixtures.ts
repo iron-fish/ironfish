@@ -7,6 +7,7 @@ import { IronfishBlock, IronfishCaptain, SerializedIronfishBlock } from '../stra
 import fs from 'fs'
 import path from 'path'
 import { getCurrentTestPath } from './utils'
+import { generateKey } from 'ironfish-wasm-nodejs'
 
 type FixtureGenerate<T> = () => Promise<T> | T
 type FixtureRestore<T> = (fixture: T) => Promise<void> | void
@@ -116,6 +117,10 @@ export async function restoreBlockFixtureToAccounts(
   }
 }
 
+/**
+ * Executes a generator function which creates a block and
+ * caches that in the fixtures folder next to the current test
+ */
 export async function useBlockFixture(
   captain: IronfishCaptain,
   generate: FixtureGenerate<IronfishBlock>,
@@ -134,4 +139,26 @@ export async function useBlockFixture(
       return captain.blockSerde.deserialize(serialized)
     },
   })
+}
+
+/**
+ * Generates a block with a miners fee transaction on the current chain state
+ */
+export async function useMinerBlockFixture(
+  captain: IronfishCaptain,
+  sequence: bigint,
+  account?: Account,
+  addTransactionsTo?: Accounts,
+): Promise<IronfishBlock> {
+  const spendingKey = account ? account.spendingKey : generateKey().spending_key
+
+  return await useBlockFixture(
+    captain,
+    async () =>
+      captain.chain.newBlock(
+        [],
+        await captain.chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
+      ),
+    addTransactionsTo,
+  )
 }
