@@ -5,7 +5,7 @@
 import Strategy from '../strategy/strategy'
 import { Transaction } from '../strategy/transaction'
 import Block from './block'
-import Verifier, { Validity } from '../consensus/verifier'
+import Verifier, { Validity, VerificationResultReason } from '../consensus/verifier'
 import BlockHeader, { BlockHeaderSerde, BlockHash } from './blockheader'
 import Serde, { BufferSerde, JsonSerializable } from '../serde'
 import { Target } from './target'
@@ -55,6 +55,7 @@ export interface AddBlockResult {
   connectedToGenesis?: boolean
   isHeadChanged: boolean
   resolvedGraph?: Graph
+  reason?: VerificationResultReason
 }
 
 export class Blockchain<
@@ -788,6 +789,7 @@ export class Blockchain<
           return {
             isHeadChanged: false,
             isAdded: false,
+            reason: verification.reason,
           }
 
         // Check if by adding this block we can validate next blocks pointing to it.
