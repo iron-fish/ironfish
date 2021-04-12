@@ -62,7 +62,7 @@ export class MemPool<
     this.logger.debug('fee: ', fee)
 
     this.transactions.set(hash, transaction)
-    this.logger.info(`Accepted tx ${hash}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
   }
 
   /**
