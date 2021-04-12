@@ -93,7 +93,7 @@ export abstract class Connection {
   /**
    * Send a message into this connection.
    */
-  abstract send: (object: LooseMessage) => void
+  abstract send: (object: LooseMessage) => boolean
 
   /**
    * Shutdown the connection, if possible
@@ -177,6 +177,9 @@ export abstract class Connection {
           originalSend(toSend)
         }
       }, latency)
+
+      // TODO: Not currently possible to propagate connection errors from sending
+      return true
     }
 
     this.send = wrapper

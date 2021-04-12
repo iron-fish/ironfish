@@ -174,6 +174,57 @@ it('Times out WebRTC handshake', () => {
   expect(peer.state.type).toEqual('CONNECTED')
 })
 
+describe('Handles WebRTC message send failure', () => {
+  it('Handles failure if WebRTC is only connection', () => {
+    const connection = new WebRtcConnection(false, wrtc, createRootLogger())
+    expect(connection.state.type).toEqual('CONNECTING')
+
+    const peer = new Peer(null)
+
+    // Time out requesting signaling
+    connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    peer.setWebRtcConnection(connection)
+    jest.spyOn(connection['peer'], 'send').mockImplementation(() => {
+      throw new Error('Error')
+    })
+
+    expect(peer.state.type).toEqual('CONNECTED')
+    const result = peer.send({ type: 'test', payload: {} })
+    expect(result).toBeNull()
+    expect(peer.state.type).toEqual('DISCONNECTED')
+  })
+
+  it('Falls back to WebSockets if available and WebRTC send fails', () => {
+    const wrtcConnection = new WebRtcConnection(false, wrtc, createRootLogger())
+    const wsConnection = new WebSocketConnection(
+      new ws(''),
+      ConnectionDirection.Outbound,
+      createRootLogger(),
+    )
+
+    const peer = new Peer(null)
+
+    // Time out requesting signaling
+    wsConnection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    wrtcConnection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    peer.setWebRtcConnection(wrtcConnection)
+    peer.setWebSocketConnection(wsConnection)
+
+    jest.spyOn(wrtcConnection['peer'], 'send').mockImplementation(() => {
+      throw new Error('Error')
+    })
+
+    const wsSendSpy = jest.spyOn(wsConnection, 'send')
+    const message = { type: 'test', payload: {} }
+
+    expect(peer.state.type).toEqual('CONNECTED')
+    const result = peer.send(message)
+    expect(result).toBe(wsConnection)
+    expect(peer.state.type).toEqual('CONNECTED')
+    expect(wsSendSpy).toBeCalledWith(message)
+  })
+})
+
 it('Transitions to DISCONNECTED when all connections disconnect', () => {
   const peer = new Peer(null)
   const connection = new WebSocketConnection(

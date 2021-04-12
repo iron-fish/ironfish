@@ -361,26 +361,36 @@ export class Peer {
    * @param message The message to send.
    */
   send(message: LooseMessage): Connection | null {
-    if (this.state.type === 'CONNECTED') {
-      if (this.state.connections.webRtc?.state.type === 'CONNECTED') {
-        this.state.connections.webRtc.send(message)
-        return this.state.connections.webRtc
-      }
-
-      if (this.state.connections.webSocket?.state.type === 'CONNECTED') {
-        this.state.connections.webSocket.send(message)
-        return this.state.connections.webSocket
-      }
-
+    // Return early if peer is not in state CONNECTED
+    if (this.state.type !== 'CONNECTED') {
       this.logger.warn(
-        `${this.displayName} is in CONNECTED state but has no active connections, dropping message of type ${message.type}`,
+        `Attempted to send a ${message.type} message to ${this.displayName} in state ${this.state.type}`,
       )
-
       return null
     }
 
+    if (
+      this.state.type === 'CONNECTED' &&
+      this.state.connections.webRtc?.state.type === 'CONNECTED'
+    ) {
+      if (this.state.connections.webRtc.send(message)) {
+        return this.state.connections.webRtc
+      }
+    }
+
+    // If a WebRTC message fails to send and we don't have a WebSocket connection,
+    // the peer's state will now be DISCONNECTED, so recheck the state here
+    if (
+      this.state.type === 'CONNECTED' &&
+      this.state.connections.webSocket?.state.type === 'CONNECTED'
+    ) {
+      if (this.state.connections.webSocket.send(message)) {
+        return this.state.connections.webSocket
+      }
+    }
+
     this.logger.debug(
-      `Tried to send a message ${message.type} to ${this.displayName} in state ${this.state.type}`,
+      `Sending ${message.type} message to ${this.displayName} failed, dropping message`,
     )
 
     return null
