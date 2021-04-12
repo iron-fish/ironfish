@@ -73,10 +73,23 @@ export function setUnknownConfigValue(
   config.set(sourceKey, value as any)
 }
 
+// Expects string in CSV format with no brackets
+function stringToStringArray(value: string): string[] | null {
+  if (value === '') return []
+
+  // Strip the brackets and split on commas
+  const parsedValue = value.split(',')
+
+  // Trim whitespace, trim leading/trailing quotes if necessary
+  return parsedValue.map((v) => v.trim())
+}
+
 function convertValue(sourceValue: unknown, targetValue: unknown): unknown {
   if (typeof sourceValue !== 'string') {
     throw new ValidationError(
-      `Could not convert ${JSON.stringify(sourceValue)} to ${String(typeof targetValue)}`,
+      `Could not convert ${JSON.stringify(sourceValue)} from ${typeof sourceValue} to ${String(
+        typeof targetValue,
+      )}`,
     )
   }
 
@@ -96,10 +109,16 @@ function convertValue(sourceValue: unknown, targetValue: unknown): unknown {
   } else if (typeof targetValue === 'string') {
     return sourceValue
   } else if (Array.isArray(targetValue)) {
+    const result = stringToStringArray(sourceValue.trim())
+    if (result !== null) {
+      return result
+    }
     targetType = 'array'
   }
 
   throw new ValidationError(
-    `Could not convert ${JSON.stringify(sourceValue)} to ${String(targetType)}`,
+    `Could not convert ${JSON.stringify(sourceValue)} from ${typeof sourceValue} to ${String(
+      targetType,
+    )}`,
   )
 }
