@@ -83,6 +83,7 @@ export class NodeTest {
  */
 export function createNodeTest(preserveState = false): NodeTest {
   const nodeTest = new NodeTest()
+
   if (preserveState) {
     beforeAll(() => nodeTest.setup())
     afterEach(() => nodeTest.teardownEach())

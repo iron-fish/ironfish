@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { createRouteTest } from '../test'
+import { createRouteTest } from '../../../testUtilities/routeTest'
 import { v4 as uuid } from 'uuid'
 import { Account } from '../../../account'
 import * as wasm from 'ironfish-wasm-nodejs'
