@@ -113,13 +113,20 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
   async (request, node): Promise<void> => {
-    let hashBuffer = null,
-      sequence = null
-    if (request.data.hash)
-      hashBuffer = node.captain.chain.blockHashSerde.deserialize(request.data.hash)
-    if (request.data.index) sequence = BigInt(request.data.index)
+    let hashBuffer = null
+    let sequence = null
 
-    if (!hashBuffer && !sequence) throw new ValidationError(`Missing hash or sequence`)
+    if (request.data.hash) {
+      hashBuffer = node.captain.chain.blockHashSerde.deserialize(request.data.hash)
+    }
+
+    if (request.data.index) {
+      sequence = BigInt(request.data.index)
+    }
+
+    if (!hashBuffer && !sequence) {
+      throw new ValidationError(`Missing hash or sequence`)
+    }
 
     // Get a block hash for the specific sequence
     // You must assume that the block returned will not be idempotent
