@@ -3,50 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RangeHasher } from '../../../merkletree'
-import { makeFakeBlock, TestStrategy, TestTransaction } from '../../../captain/testUtilities'
+import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import { GetBlockResponse } from './getBlock'
 
 describe('Route chain.getBlock', () => {
-  const genesisHashBuffer = Buffer.alloc(32, 'genesis')
-  const parentHashBuffer = Buffer.alloc(32, 'parent')
-  const currentHashBuffer = Buffer.alloc(32, 'current')
   const routeTest = createRouteTest()
-  const mock = jest.fn()
-  const strategy = new TestStrategy(new RangeHasher())
-  const blockParent = makeFakeBlock(strategy, genesisHashBuffer, parentHashBuffer, 1, 1, 2)
-  const block = makeFakeBlock(strategy, parentHashBuffer, currentHashBuffer, 2, 3, 5)
-
-  block.transactions = [
-    new TestTransaction(true, [], 5, [
-      { nullifier: Buffer.alloc(32), commitment: 'One', size: 1 },
-    ]),
-  ]
-
-  beforeAll(() => {
-    mock.mockImplementation((hash: Buffer) => {
-      if (hash.equals(currentHashBuffer)) {
-        return block
-      }
-      if (hash.equals(parentHashBuffer)) {
-        return blockParent
-      }
-    })
-
-    routeTest.node.captain.strategy.transactionSerde = jest.fn().mockReturnValue({
-      serialize: jest.fn(() => 'transactionSerialized'),
-    })
-    routeTest.node.captain.chain.getBlock = mock
-    routeTest.node.captain.chain.getAtSequence = jest
-      .fn()
-      .mockImplementation((sequence: BigInt) =>
-        sequence === BigInt(2) ? [currentHashBuffer] : [],
-      )
-    routeTest.node.captain.blockSerde.serialize = jest.fn().mockReturnValue('block')
-    routeTest.node.captain.chain.blockHashSerde.serialize = jest.fn((value) => value.toString())
-    routeTest.node.captain.chain.blockHashSerde.deserialize = jest.fn((value) =>
-      Buffer.from(value),
-    )
-  })
 
   it('should fail if no sequence or hash provided', async () => {
     await expect(routeTest.adapter.request('chain/getBlock', {})).rejects.toThrow(
@@ -55,9 +17,13 @@ describe('Route chain.getBlock', () => {
   })
 
   it(`should fail if block can't be found with hash`, async () => {
-    await expect(
-      routeTest.adapter.request('chain/getBlock', { hash: 'blockHashNotFound' }),
-    ).rejects.toThrow('No block found')
+    const hash = routeTest.node.captain.chain.blockHashSerde.serialize(
+      Buffer.alloc(32, 'blockhashnotfound'),
+    )
+
+    await expect(routeTest.adapter.request('chain/getBlock', { hash })).rejects.toThrow(
+      'No block found',
+    )
   })
 
   it(`should fail if block can't be found with sequence`, async () => {
@@ -66,20 +32,42 @@ describe('Route chain.getBlock', () => {
     )
   })
 
-  it('returns the right object with hash', async () => {
-    const response = await routeTest.adapter.request('chain/getBlock', {
-      hash: currentHashBuffer.toString(),
+  it('responds with a block', async () => {
+    const node = routeTest.node
+    const captain = routeTest.node.captain
+    const chain = routeTest.node.captain.chain
+
+    await node.seed()
+
+    const block = await useMinerBlockFixture(captain, BigInt(2))
+    const addResult = await chain.addBlock(block)
+    expect(addResult).toMatchObject({ isAdded: true })
+
+    // by hash first
+    const hash = routeTest.node.captain.chain.blockHashSerde.serialize(block.header.hash)
+    let response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { hash })
+
+    expect(response.content).toMatchObject({
+      timestamp: block.header.timestamp.valueOf(),
+      blockIdentifier: {
+        index: Number(block.header.sequence).toString(),
+        hash: block.header.hash.toString('hex').toUpperCase(),
+      },
+      parentBlockIdentifier: {
+        index: Number(GENESIS_BLOCK_SEQUENCE).toString(),
+        hash: block.header.previousBlockHash.toString('hex').toUpperCase(),
+      },
+      metadata: {
+        size: expect.any(Number),
+        difficulty: Number(block.header.target.toDifficulty()),
+      },
     })
-    // called the node for the current block
-    expect(mock).toHaveBeenCalledWith(currentHashBuffer)
-    // called the node for the parent block
-    expect(mock).toHaveBeenCalledWith(parentHashBuffer)
+    expect(response.content.transactions).toHaveLength(1)
 
-    expect(response.content).toMatchSnapshot()
-  })
-
-  it('returns the right object with sequence', async () => {
-    const response = await routeTest.adapter.request('chain/getBlock', { index: 2 })
-    expect(response.content).toMatchSnapshot()
-  })
+    // now by sequence
+    response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { index: 2 })
+    expect(response.content.blockIdentifier.hash).toEqual(
+      block.header.hash.toString('hex').toUpperCase(),
+    )
+  }, 10000)
 })
