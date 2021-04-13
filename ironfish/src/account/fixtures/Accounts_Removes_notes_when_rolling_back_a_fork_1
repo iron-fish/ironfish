@@ -1,8 +1,0 @@
-{
-  "name": "testA",
-  "spendingKey": "cf4ab576ae306fcce9f5bcd00bbf89601d8ded26442eb8e5c451f0a83e3f4e2e",
-  "incomingViewKey": "265a50344bd8c001050cd80dc115118aab06fb539ac98fb6c7ccb62c4eed1303",
-  "outgoingViewKey": "fd2153ec498aa3c4445644f9586c0928da1561b22db1302367cf6b09be1ba50c",
-  "publicAddress": "30736dfe8b8eef82f79427175dc818d12a90ba8eacfd7fd4eb25cdf27f2fa781b7d196a988006cc254599d",
-  "rescan": null
-}

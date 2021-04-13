@@ -9,12 +9,20 @@ import path from 'path'
 import { getCurrentTestPath } from './utils'
 import { generateKey } from 'ironfish-wasm-nodejs'
 
+const FIXTURE_FOLDER = '__fixtures__'
+
 type FixtureGenerate<T> = () => Promise<T> | T
 type FixtureRestore<T> = (fixture: T) => Promise<void> | void
 type FitxureDeserialize<T, TSerialized> = (data: TSerialized) => Promise<T> | T
 type FixtureSerialize<T, TSerialized> = (fixture: T) => Promise<TSerialized> | TSerialized
 
 const fixtureIds = new Map<string, { id: number; disabled: boolean }>()
+const fixtureCache = new Map<string, Map<string, unknown[]>>()
+
+export function shouldUpateFixtures(): boolean {
+  // Use the same parameters as jest snapshots for usability
+  return process.argv.indexOf('--updateSnapshot') !== -1 || process.argv.indexOf('-u') !== -1
+}
 
 export function disableFixtures(): void {
   const testName = expect.getState().currentTestName.replace(/ /g, '_')
@@ -30,49 +38,70 @@ export async function useFixture<TFixture, TSerialized = unknown>(
     process?: FixtureRestore<TFixture>
     deserialize?: FitxureDeserialize<TFixture, TSerialized>
     serialize?: FixtureSerialize<TFixture, TSerialized>
-  },
+  } = {},
 ): Promise<TFixture> {
-  const testName = expect.getState().currentTestName.replace(/ /g, '_')
-  const testDir = path.dirname(getCurrentTestPath())
+  const testPath = getCurrentTestPath()
+  const testName = expect.getState().currentTestName
+  const testDir = path.dirname(testPath)
+  const testFile = path.basename(testPath)
 
-  const fixtureInfo = fixtureIds.get(testName) || { id: 0, disabled: false }
+  const fixtureInfo = fixtureIds.get(testName) || { id: -1, disabled: false }
   const fixtureId = (fixtureInfo.id += 1)
-  const fixtureName = `${testName}_${fixtureId}`
-
   fixtureIds.set(testName, fixtureInfo)
 
-  const fixtureDir = path.join(testDir, 'fixtures')
+  const fixtureDir = path.join(testDir, FIXTURE_FOLDER)
+  const fixtureName = `${testFile}.fixture`
   const fixturePath = path.join(fixtureDir, fixtureName)
 
-  // Use the same parameters as jest snapshots for usability
-  const updateFixtures =
-    process.argv.indexOf('--updateSnapshot') !== -1 || process.argv.indexOf('-u') !== -1
+  const updateFixtures = shouldUpateFixtures()
+
+  let fixtures = fixtureCache.get(testPath)
+
+  // Load serialized fixtures in if they are not loaded
+  if (!fixtures) {
+    fixtures = new Map<string, TSerialized[]>()
+
+    if (fs.existsSync(fixturePath)) {
+      const buffer = await fs.promises.readFile(fixturePath)
+      const data = IJSON.parse(buffer.toString('utf8')) as Record<string, TSerialized[]>
+
+      for (const test in data) {
+        fixtures.set(test, data[test])
+      }
+    }
+
+    fixtureCache.set(testPath, fixtures)
+  }
 
   let fixture: TFixture | null = null
 
-  if (!updateFixtures && !fixtureInfo.disabled && fs.existsSync(fixturePath)) {
-    const buffer = await fs.promises.readFile(fixturePath)
-    const data = IJSON.parse(buffer.toString('utf8')) as TSerialized
+  const serializedAll = fixtures.get(testName) || []
+  fixtures.set(testName, serializedAll)
 
+  if (!updateFixtures && !fixtureInfo.disabled && serializedAll[fixtureId]) {
+    // deserialize existing fixture
     if (options.deserialize) {
-      fixture = await options.deserialize(data)
+      const serialized = serializedAll[fixtureId] as TSerialized
+      fixture = await options.deserialize(serialized)
     } else {
-      fixture = (data as unknown) as TFixture
+      fixture = serializedAll[fixtureId] as TFixture
     }
 
     if (options.restore) {
       await options.restore(fixture)
     }
   } else {
+    // generate the fixture
     fixture = await generate()
-
     const serialized = options.serialize ? await options?.serialize(fixture) : fixture
-    const data = IJSON.stringify(serialized, '  ')
+    serializedAll[fixtureId] = serialized
 
     if (!fs.existsSync(fixtureDir)) {
       await fs.promises.mkdir(fixtureDir)
     }
 
+    const result = Object.fromEntries(fixtures.entries())
+    const data = IJSON.stringify(result, '  ')
     await fs.promises.writeFile(fixturePath, data)
   }
 
