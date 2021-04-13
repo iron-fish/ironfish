@@ -11,6 +11,7 @@ import {
   IronfishStrategy,
   IronfishMemPool,
   IronfishVerifier,
+  IronfishBlock,
 } from './strategy'
 import { NetworkBridge } from './networkBridge'
 import { Captain } from './captain'
@@ -24,6 +25,7 @@ import { MetricsMonitor } from './metrics'
 import { AsyncTransactionWorkerPool } from './strategy/asyncTransactionWorkerPool'
 import { Accounts, Account, AccountsDB } from './account'
 import { MemPool } from './memPool'
+import { Assert } from './assert'
 
 export class IronfishNode {
   database: IDatabase
@@ -234,11 +236,12 @@ export class IronfishNode {
     if (this.shutdownResolve) this.shutdownResolve()
   }
 
-  async seed(): Promise<boolean> {
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = this.strategy._blockSerde.deserialize(result)
-    const blockAddedResult = await this.captain.chain.addBlock(block)
-    return blockAddedResult.isAdded
+  async seed(): Promise<IronfishBlock> {
+    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
+    const block = this.strategy._blockSerde.deserialize(serialized)
+    const result = await this.captain.chain.addBlock(block)
+    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+    return block
   }
 
   onPeerNetworkReady(): void {
