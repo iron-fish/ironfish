@@ -16,7 +16,10 @@ import { makeDb } from './storage'
 import { fakeMaxTarget } from './blockchain'
 import { createRootLogger } from '../../../logger'
 import { Assert } from '../../../assert'
+import { Account } from '../../../account'
 import { IronfishBlock, IronfishBlockchain, IronfishBlockHeader } from '../../../strategy'
+import { IronfishNode } from '../../../node'
+import { useBlockFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 
 /**
  * Type of a test anchorchain, encompassing the various generic parameters.
@@ -323,6 +326,56 @@ export function makeBlockAfter(
 
   Assert.isTrue(chain.verifier.verifyBlock(block).valid === 1)
   return block
+}
+
+/**
+ * Adds a block to the chain that gives {@link from} a
+ * miners fee, then a transaction on a new block that
+ * gives that miners fee to {@link to}, as well as another
+ * miners fee for {@link from}.
+ *
+ * Returned block has 1 spend, 3 notes
+ */
+export async function makeBlockWithTransaction(
+  node: IronfishNode,
+  from: Account,
+  to: Account,
+): Promise<IronfishBlock> {
+  const head = await node.captain.chain.getHeaviestHead()
+  Assert.isNotNull(head, 'No genesis block. Call node.seed() first')
+  const sequence = head.sequence
+
+  const block1 = await useMinerBlockFixture(
+    node.captain,
+    sequence + BigInt(1),
+    from,
+    node.accounts,
+  )
+
+  await node.captain.chain.addBlock(block1)
+  await node.accounts.updateHead(node)
+
+  const block2 = await useBlockFixture(node.captain, async () => {
+    const transaction = await node.accounts.createTransaction(
+      node.captain,
+      from,
+      BigInt(1),
+      BigInt(0),
+      '',
+      to.publicAddress,
+    )
+
+    return node.captain.chain.newBlock(
+      [transaction],
+      await node.captain.chain.strategy.createMinersFee(
+        transaction.transactionFee(),
+        sequence + BigInt(2),
+        from.spendingKey,
+      ),
+    )
+  })
+
+  return block2
 }
 
 /**
