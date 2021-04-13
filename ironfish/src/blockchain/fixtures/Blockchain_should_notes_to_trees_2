@@ -1,8 +1,0 @@
-{
-  "name": "accountB",
-  "spendingKey": "10b91a63bc735c56e37dc3db9ea1233d3a8db55ebc40ba5f84e83851090107f8",
-  "incomingViewKey": "7cf81ae18c4ec53d082cb2e05a2543e9b245c063f7751fa1d85b3189acb9e801",
-  "outgoingViewKey": "5fefbe969013dafaa8c99d68de8d2237b2c14e99e74763b2123ad223c9e5c837",
-  "publicAddress": "8b618e579a3a8e5636e7c21a8dc65da6d57ba4b0f05cc9c09174d07d0e7707cbec141a0173f6219e4ad980",
-  "rescan": null
-}
