@@ -3,15 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
-import ws from 'ws'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RangeHasher } from '../../../merkletree'
-
 import { blockHash, makeFakeBlock, TestStrategy } from '../../../captain/testUtilities'
 import { ResponseError } from '../../adapters'
-import { PeerNetwork } from '../../../network'
-
-import { mockPrivateIdentity } from '../../../network/testUtilities'
 
 describe('Transactions sendTransaction', () => {
   const routeTest = createRouteTest()
@@ -56,13 +51,9 @@ describe('Transactions sendTransaction', () => {
   })
 
   describe('Connected to the network', () => {
-    beforeAll(() => {
-      const peerNetwork = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
-      routeTest.node.networkBridge.attachPeerNetwork(peerNetwork)
-      peerNetwork['_isReady'] = true
-    })
-
     it('throws if the chain is outdated', async () => {
+      routeTest.node.peerNetwork['_isReady'] = true
+
       try {
         await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
       } catch (e: unknown) {
@@ -74,6 +65,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     it('throws if not enough funds', async () => {
+      routeTest.node.peerNetwork['_isReady'] = true
       heaviestHeader.timestamp = new Date()
 
       try {
@@ -85,6 +77,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     it('throws if the confirmed balance is too low', async () => {
+      routeTest.node.peerNetwork['_isReady'] = true
       heaviestHeader.timestamp = new Date()
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
         unconfirmedBalance: BigInt(11),
@@ -102,6 +95,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     it('calls the pay method on the node', async () => {
+      routeTest.node.peerNetwork['_isReady'] = true
       heaviestHeader.timestamp = new Date()
       routeTest.node.accounts.pay = jest.fn()
       const paySpy = jest.spyOn(routeTest.node.accounts, 'pay')

@@ -12,18 +12,33 @@ import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockPrivateIdentity } from './testUtilities'
 import { Assert } from '../assert'
 import { DisconnectingMessage } from './messages'
+import { mockNode, mockCaptain } from '../testUtilities/mocks'
 
 jest.useFakeTimers()
 
 it('Closes the PeerManager when close is called', () => {
-  const peerNetwork = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+  const peerNetwork = new PeerNetwork({
+    identity: mockPrivateIdentity('local'),
+    agent: 'sdk/1/cli',
+    webSocket: ws,
+    node: mockNode(),
+    captain: mockCaptain(),
+  })
+
   const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
   peerNetwork.stop()
   expect(stopSpy).toBeCalled()
 })
 
 it('Registers a handler', () => {
-  const peerNetwork = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+  const peerNetwork = new PeerNetwork({
+    identity: mockPrivateIdentity('local'),
+    agent: 'sdk/1/cli',
+    webSocket: ws,
+    node: mockNode(),
+    captain: mockCaptain(),
+  })
+
   peerNetwork.registerHandler(
     'hello',
     RoutingStyle.gossip,
@@ -35,7 +50,14 @@ it('Registers a handler', () => {
 })
 
 it('ignores a message if validation fails', async () => {
-  const peerNetwork = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+  const peerNetwork = new PeerNetwork({
+    identity: mockPrivateIdentity('local'),
+    agent: 'sdk/1/cli',
+    webSocket: ws,
+    node: mockNode(),
+    captain: mockCaptain(),
+  })
+
   const handlerMock = jest.fn(() => {})
   peerNetwork.registerHandler(
     'hello',
@@ -52,15 +74,14 @@ it('ignores a message if validation fails', async () => {
 })
 
 it('changes isReady when peers connect', () => {
-  const peerNetwork = new PeerNetwork(
-    mockPrivateIdentity('local'),
-    'sdk/1/cli',
-    ws,
-    undefined,
-    {
-      minPeersReady: 1,
-    },
-  )
+  const peerNetwork = new PeerNetwork({
+    identity: mockPrivateIdentity('local'),
+    agent: 'sdk/1/cli',
+    webSocket: ws,
+    node: mockNode(),
+    captain: mockCaptain(),
+    minPeers: 1,
+  })
 
   expect(peerNetwork.isReady).toBe(false)
 
@@ -87,18 +108,17 @@ it('changes isReady when peers connect', () => {
 it('rejects websocket connections when at max peers', () => {
   const wsActual = jest.requireActual<typeof WSWebSocket>('ws')
 
-  const peerNetwork = new PeerNetwork(
-    mockPrivateIdentity('local'),
-    'sdk/1/cli',
-    wsActual,
-    undefined,
-    {
-      enableListen: true,
-      port: 0,
-      minPeersReady: 1,
-      maxPeers: 0,
-    },
-  )
+  const peerNetwork = new PeerNetwork({
+    identity: mockPrivateIdentity('local'),
+    agent: 'sdk/1/cli',
+    webSocket: wsActual,
+    node: mockNode(),
+    captain: mockCaptain(),
+    listen: true,
+    port: 0,
+    minPeers: 1,
+    maxPeers: 0,
+  })
 
   const rejectSpy = jest
     .spyOn(peerNetwork.peerManager, 'shouldRejectDisconnectedPeers')

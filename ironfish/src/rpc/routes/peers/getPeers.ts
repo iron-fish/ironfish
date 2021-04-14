@@ -70,7 +70,7 @@ router.register<typeof GetPeersRequestSchema, GetPeersResponse>(
   `${ApiNamespace.peer}/getPeers`,
   GetPeersRequestSchema,
   (request, node): void => {
-    const peerNetwork = node.networkBridge.peerNetwork
+    const peerNetwork = node.peerNetwork
 
     if (!peerNetwork) {
       request.end({ peers: [] })

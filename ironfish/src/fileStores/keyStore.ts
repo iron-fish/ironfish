@@ -117,4 +117,18 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
   get<T extends keyof TSchema>(key: T): TSchema[T] {
     return this.config[key]
   }
+
+  getArray<T extends keyof TSchema>(key: T): TSchema[T] {
+    const value = this.get(key)
+
+    if (Array.isArray(value)) {
+      return value
+    }
+
+    if (typeof value !== 'string') {
+      throw new Error(`${String(key)} must be array or string`)
+    }
+
+    return value.split(',').filter(Boolean) as TSchema[T]
+  }
 }

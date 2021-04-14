@@ -73,7 +73,7 @@ describe('Blockchain', () => {
     expect(graphGenesis.tailHash?.equals(genesis.hash)).toBe(true)
     expect(graphGenesis.latestHash?.equals(headerB3.hash)).toBe(true)
     expect(graphGenesis.heaviestHash?.equals(headerB3.hash)).toBe(true)
-  })
+  }, 10000)
 
   it('iterateToBlock', async () => {
     const { strategy, chain } = nodeTest
