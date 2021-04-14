@@ -163,7 +163,7 @@ export class IronfishSdk {
 
   async node({ databaseName }: { databaseName?: string } = {}): Promise<IronfishNode> {
     const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
-    const webRTC = (await require('wrtc')) as IsomorphicWebRtc | undefined
+    const webRtc = (await require('wrtc')) as IsomorphicWebRtc | undefined
 
     const node = await IronfishNode.init({
       agent: this.getVersion('cli'),
@@ -176,7 +176,7 @@ export class IronfishSdk {
       metrics: this.metrics,
       verifierClass: this.verifierClass,
       strategyClass: this.strategyClass,
-      webRTC: webRTC,
+      webRtc: webRtc,
       webSocket: webSocket,
     })
 
@@ -237,7 +237,9 @@ export class IronfishSdk {
   }
 }
 
-/** Get the current platform or null if it cannot detect the platform */
+/**
+ * Get the current javascript runtime
+ */
 function getRuntime(): JSRuntime {
   if (
     typeof process === 'object' &&

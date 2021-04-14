@@ -59,7 +59,7 @@ export class IronfishNode {
     miningDirector,
     memPool,
     logger,
-    webRTC,
+    webRtc,
     webSocket,
   }: {
     agent: string
@@ -74,7 +74,7 @@ export class IronfishNode {
     miningDirector: IronfishMiningDirector
     memPool: IronfishMemPool
     logger: Logger
-    webRTC?: IsomorphicWebRtc
+    webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
   }) {
     this.database = database
@@ -103,7 +103,7 @@ export class IronfishNode {
       simulateLatency: config.get('p2pSimulateLatency'),
       bootstrapNodes: config.getArray('bootstrapNodes'),
       webSocket: webSocket,
-      webRtc: webRTC,
+      webRtc: webRtc,
       node: this,
       captain: captain,
     })
@@ -124,7 +124,7 @@ export class IronfishNode {
     files,
     verifierClass,
     strategyClass,
-    webRTC,
+    webRtc,
     webSocket,
   }: {
     agent: string
@@ -138,7 +138,7 @@ export class IronfishNode {
     files: FileSystem
     verifierClass: typeof IronfishVerifier | null
     strategyClass: typeof IronfishStrategy | null
-    webRTC?: IsomorphicWebRtc
+    webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
@@ -189,7 +189,7 @@ export class IronfishNode {
       miningDirector: mining,
       memPool,
       logger,
-      webRTC,
+      webRtc,
       webSocket,
     })
   }

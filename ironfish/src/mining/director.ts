@@ -132,6 +132,7 @@ export class MiningDirector<
     logger: Logger = createRootLogger(),
     options: {
       graffiti?: string
+      account?: Account
     } = {},
   ) {
     this.captain = captain
@@ -153,6 +154,10 @@ export class MiningDirector<
 
     if (options.graffiti) {
       this.setBlockGraffiti(options.graffiti)
+    }
+
+    if (options.account) {
+      this.setMinerAccount(options.account)
     }
   }
 
