@@ -12,6 +12,7 @@ import {
   StringEncoding,
 } from '../storage'
 import { IronfishTransaction } from '../strategy'
+import { WorkerPool } from '../workerPool'
 
 export type Account = {
   name: string
@@ -43,6 +44,7 @@ export type AccountsDBMeta = {
 
 export class AccountsDB {
   database: IDatabase
+  workerPool: WorkerPool
 
   accounts: IDatabaseStore<{ key: string; value: Account }>
 
@@ -68,8 +70,9 @@ export class AccountsDB {
     }
   }>
 
-  constructor({ database }: { database: IDatabase }) {
+  constructor({ database, workerPool }: { database: IDatabase; workerPool: WorkerPool }) {
     this.database = database
+    this.workerPool = workerPool
 
     this.meta = database.addStore<{
       key: keyof AccountsDBMeta
@@ -206,7 +209,7 @@ export class AccountsDB {
     for await (const value of this.transactions.getAllValuesIter()) {
       const deserialized = {
         ...value,
-        transaction: new IronfishTransaction(value.transaction),
+        transaction: new IronfishTransaction(value.transaction, this.workerPool),
       }
 
       map.set(deserialized.transaction.transactionHash(), deserialized)

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import os from 'os'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { IDatabase } from './storage'
@@ -27,6 +28,7 @@ import { MemPool } from './memPool'
 import { Assert } from './assert'
 import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
+import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
   database: IDatabase
@@ -39,6 +41,7 @@ export class IronfishNode {
   miningDirector: IronfishMiningDirector
   metrics: MetricsMonitor
   memPool: IronfishMemPool
+  workerPool: WorkerPool
   files: FileSystem
   rpc: RpcServer
   peerNetwork: PeerNetwork
@@ -58,6 +61,7 @@ export class IronfishNode {
     metrics,
     miningDirector,
     memPool,
+    workerPool,
     logger,
     webRtc,
     webSocket,
@@ -73,6 +77,7 @@ export class IronfishNode {
     metrics: MetricsMonitor
     miningDirector: IronfishMiningDirector
     memPool: IronfishMemPool
+    workerPool: WorkerPool
     logger: Logger
     webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
@@ -87,6 +92,7 @@ export class IronfishNode {
     this.metrics = metrics
     this.miningDirector = miningDirector
     this.memPool = memPool
+    this.workerPool = workerPool
     this.rpc = new RpcServer(this)
     this.logger = logger
 
@@ -158,14 +164,16 @@ export class IronfishNode {
       config.setOverride('databaseName', databaseName)
     }
 
+    const workerPool = new WorkerPool()
+
     strategyClass = strategyClass || IronfishStrategy
-    const strategy = new strategyClass(verifierClass)
+    const strategy = new strategyClass(workerPool, verifierClass)
 
     const chaindb = await makeDatabase(config.chainDatabasePath)
     const accountdb = await makeDatabase(config.accountDatabasePath)
-    const accountDB = new AccountsDB({ database: accountdb })
+    const accountDB = new AccountsDB({ database: accountdb, workerPool })
     const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
-    const captain = await Captain.new(chaindb, strategy, chain, undefined, metrics)
+    const captain = await Captain.new(chaindb, workerPool, strategy, chain, undefined, metrics)
     const memPool = new MemPool(captain, logger)
     const accounts = new Accounts({ database: accountDB })
 
@@ -188,6 +196,7 @@ export class IronfishNode {
       metrics,
       miningDirector: mining,
       memPool,
+      workerPool,
       logger,
       webRtc,
       webSocket,
@@ -221,6 +230,8 @@ export class IronfishNode {
     // Work in the transaction pool happens concurrently,
     // so we should start it as soon as possible
     AsyncTransactionWorkerPool.start()
+
+    this.workerPool.start(os.cpus().length)
 
     if (this.config.get('enableTelemetry')) {
       startCollecting(this.config.get('telemetryApi'))
@@ -267,6 +278,7 @@ export class IronfishNode {
       stopCollecting(),
       this.metrics.stop(),
       AsyncTransactionWorkerPool.stop(),
+      this.workerPool.stop(),
       this.miningDirector.shutdown(),
     ])
 

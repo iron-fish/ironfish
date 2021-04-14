@@ -27,11 +27,11 @@ export class TestTransaction<H = string> implements Transaction<string, H> {
     this.isValid = isValid
   }
 
-  verify(): VerificationResult {
-    return {
+  verify(): Promise<VerificationResult> {
+    return Promise.resolve({
       valid: this.isValid ? Validity.Yes : Validity.No,
       reason: this.isValid ? undefined : VerificationResultReason.INVALID_TRANSACTION_PROOF,
-    }
+    })
   }
 
   takeReference(): boolean {
@@ -62,8 +62,8 @@ export class TestTransaction<H = string> implements Transaction<string, H> {
     yield* this._spends
   }
 
-  transactionFee(): bigint {
-    return this.totalFees
+  transactionFee(): Promise<bigint> {
+    return Promise.resolve(this.totalFees)
   }
 
   transactionSignature(): Buffer {

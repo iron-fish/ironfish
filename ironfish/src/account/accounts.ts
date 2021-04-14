@@ -681,8 +681,11 @@ export class Accounts {
     // Post the transaction and we're done!
     const transactionPosted = new IronfishTransaction(
       Buffer.from(
-        (await transaction.post(sender.spendingKey, null, transactionFee)).serialize(),
+        (
+          await transaction.post(sender.spendingKey, null, transactionFee, captain.workerPool)
+        ).serialize(),
       ),
+      captain.workerPool,
     )
 
     return transactionPosted

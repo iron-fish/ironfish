@@ -286,10 +286,10 @@ export async function makeChain(
  * @param chain the chain is not used, only the verifier and strategy from the chain
  * @param after the block the created block should be after
  */
-export function makeBlockAfter(
+export async function makeBlockAfter(
   chain: IronfishBlockchain,
   after: IronfishBlockHeader | IronfishBlock,
-): IronfishBlock {
+): Promise<IronfishBlock> {
   if (after instanceof Block) {
     after = after.header
   }
@@ -324,7 +324,7 @@ export function makeBlockAfter(
 
   const block = new Block(header, [])
 
-  Assert.isTrue(chain.verifier.verifyBlock(block).valid === 1)
+  Assert.isTrue((await chain.verifier.verifyBlock(block)).valid === 1)
   return block
 }
 
@@ -368,7 +368,7 @@ export async function makeBlockWithTransaction(
     return node.captain.chain.newBlock(
       [transaction],
       await node.captain.chain.strategy.createMinersFee(
-        transaction.transactionFee(),
+        await transaction.transactionFee(),
         sequence + BigInt(2),
         from.spendingKey,
       ),

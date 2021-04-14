@@ -22,6 +22,7 @@ import {
 } from '.'
 import { makeDb, makeDbName } from '../captain/testUtilities'
 import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
+import { WorkerPool } from '../workerPool'
 
 async function makeWasmStrategyTree({
   depth,
@@ -142,7 +143,7 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new IronfishStrategy()
+      const strategy = new IronfishStrategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(
         BigInt(0),
         BigInt(0),
@@ -151,13 +152,13 @@ describe('Demonstrate the Sapling API', () => {
       await AsyncTransactionWorkerPool.stop()
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
-      expect(minersFee.verify()).toEqual({ valid: 1 })
+      expect(await minersFee.verify()).toEqual({ valid: 1 })
       expect(minersFee['wasmTransactionPosted']).toBeNull()
     }, 60000)
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new IronfishStrategy()
+      const strategy = new IronfishStrategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(
         BigInt(0),
         BigInt(0),
@@ -168,7 +169,7 @@ describe('Demonstrate the Sapling API', () => {
       minersFee.withReference(() => {
         expect(minersFee['wasmTransactionPosted']).not.toBeNull()
 
-        expect(minersFee.verify()).toEqual({ valid: 1 })
+        expect(minersFee.notesLength()).toEqual(1)
         expect(minersFee['wasmTransactionPosted']).not.toBeNull()
       })
 
@@ -178,7 +179,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
       const key = generateKey()
-      const strategy = new IronfishStrategy()
+      const strategy = new IronfishStrategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), BigInt(0), key.spending_key)
       await AsyncTransactionWorkerPool.stop()
 

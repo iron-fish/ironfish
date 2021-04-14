@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IronfishStrategy } from './'
+import { WorkerPool } from '../workerPool'
 describe('Miners reward', () => {
   let strategy: IronfishStrategy
   beforeAll(() => {
-    strategy = new IronfishStrategy()
+    strategy = new IronfishStrategy(new WorkerPool())
   })
 
   // see https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule

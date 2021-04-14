@@ -21,10 +21,10 @@ describe('Blockchain', () => {
     // G -> A1 -> A2
     //         -> B2 -> B3
 
-    const blockA1 = makeBlockAfter(chain, genesis)
-    const blockA2 = makeBlockAfter(chain, blockA1)
-    const blockB2 = makeBlockAfter(chain, blockA1)
-    const blockB3 = makeBlockAfter(chain, blockB2)
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockB2 = await makeBlockAfter(chain, blockA1)
+    const blockB3 = await makeBlockAfter(chain, blockB2)
 
     // Added in a specific order for the test below
     // so that Genesis, A1, A2, have the same graph,
@@ -88,13 +88,13 @@ describe('Blockchain', () => {
     //               -> C3 -> C4
     //                     -> D4
 
-    const blockA1 = makeBlockAfter(chain, genesis)
-    const blockA2 = makeBlockAfter(chain, blockA1)
-    const blockB2 = makeBlockAfter(chain, blockA1)
-    const blockB3 = makeBlockAfter(chain, blockB2)
-    const blockC3 = makeBlockAfter(chain, blockB2)
-    const blockC4 = makeBlockAfter(chain, blockC3)
-    const blockD4 = makeBlockAfter(chain, blockC3)
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockB2 = await makeBlockAfter(chain, blockA1)
+    const blockB3 = await makeBlockAfter(chain, blockB2)
+    const blockC3 = await makeBlockAfter(chain, blockB2)
+    const blockC4 = await makeBlockAfter(chain, blockC3)
+    const blockD4 = await makeBlockAfter(chain, blockC3)
 
     const { isAdded: isAddedB3 } = await chain.addBlock(blockB3)
     const { isAdded: isAddedA2 } = await chain.addBlock(blockA2)
@@ -154,10 +154,10 @@ describe('Blockchain', () => {
     // G -> A1 -> A2
     //   -> B1 -> B2
 
-    const blockA1 = makeBlockAfter(chain, genesis)
-    const blockA2 = makeBlockAfter(chain, blockA1)
-    const blockB1 = makeBlockAfter(chain, genesis)
-    const blockB2 = makeBlockAfter(chain, blockB1)
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockB1 = await makeBlockAfter(chain, genesis)
+    const blockB2 = await makeBlockAfter(chain, blockB1)
 
     const { isAdded: isAddedA1 } = await chain.addBlock(blockA1)
     const { isAdded: isAddedA2 } = await chain.addBlock(blockA2)
@@ -218,7 +218,7 @@ describe('Blockchain', () => {
     expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
 
     // Add another block
-    const block = makeBlockAfter(chain, genesis)
+    const block = await makeBlockAfter(chain, genesis)
     await chain.addBlock(block)
 
     // iterate from genesis -> block
@@ -241,13 +241,13 @@ describe('Blockchain', () => {
     //               -> C3 -> C4
     //                     -> D4
 
-    const blockA1 = makeBlockAfter(chain, genesis)
-    const blockA2 = makeBlockAfter(chain, blockA1)
-    const blockB2 = makeBlockAfter(chain, blockA1)
-    const blockB3 = makeBlockAfter(chain, blockB2)
-    const blockC3 = makeBlockAfter(chain, blockB2)
-    const blockC4 = makeBlockAfter(chain, blockC3)
-    const blockD4 = makeBlockAfter(chain, blockC3)
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockB2 = await makeBlockAfter(chain, blockA1)
+    const blockB3 = await makeBlockAfter(chain, blockB2)
+    const blockC3 = await makeBlockAfter(chain, blockB2)
+    const blockC4 = await makeBlockAfter(chain, blockC3)
+    const blockD4 = await makeBlockAfter(chain, blockC3)
 
     await addBlocksShuffle(chain, [
       blockA1,

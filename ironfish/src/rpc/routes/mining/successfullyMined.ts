@@ -22,7 +22,7 @@ router.register<typeof SuccessfullyMinedRequestSchema, SuccessfullyMinedResponse
   SuccessfullyMinedRequestSchema,
   async (request, node): Promise<void> => {
     if (node.miningDirector) {
-      node.miningDirector.successfullyMined(
+      await node.miningDirector.successfullyMined(
         request.data.randomness,
         request.data.miningRequestId,
       )

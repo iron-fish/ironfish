@@ -13,9 +13,9 @@ export interface Spend<H> {
 
 export interface Transaction<E, H> {
   /**
-   * Verify whether or not all the transactions in the list are valid proofs.
+   * Verify whether the transaction has valid proofs.
    */
-  verify(): VerificationResult
+  verify(): Promise<VerificationResult>
 
   /**
    * The number of notes in the transaction.
@@ -68,7 +68,7 @@ export interface Transaction<E, H> {
    * The transaction fee is the difference between outputs and spends on the
    * transaction.
    */
-  transactionFee(): bigint
+  transactionFee(): Promise<bigint>
 
   /**
    * Get transaction signature for this transaction.

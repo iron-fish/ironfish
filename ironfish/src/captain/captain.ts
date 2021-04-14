@@ -15,6 +15,7 @@ import { BlockSyncer, BlockSyncerChainStatus } from './blockSyncer'
 import { IDatabase } from '../storage'
 import Blockchain from '../blockchain'
 import { Identity } from '../network'
+import { WorkerPool } from '../workerPool'
 
 // Exports used in testUtilities
 export { BlockSyncer, BlockSyncerChainStatus, BlocksResponse }
@@ -75,6 +76,10 @@ export class Captain<
    */
   blockSerde: BlockSerde<E, H, T, SE, SH, ST>
   /**
+   * Pool for threaded operations
+   */
+  workerPool: WorkerPool
+  /**
    * Logger instance used in place of console logs
    */
   logger: Logger
@@ -105,6 +110,7 @@ export class Captain<
    */
   private constructor(
     chain: Blockchain<E, H, T, SE, SH, ST>,
+    workerPool: WorkerPool,
     logger: Logger,
     metrics: MetricsMonitor,
   ) {
@@ -113,6 +119,7 @@ export class Captain<
     this.chain = chain
     this.blockSyncer = new BlockSyncer(this, logger)
     this.blockSerde = new BlockSerde(chain.strategy)
+    this.workerPool = workerPool
     this.logger = logger
   }
 
@@ -139,6 +146,7 @@ export class Captain<
     ST
   >(
     db: IDatabase,
+    workerPool: WorkerPool,
     strategy: Strategy<E, H, T, SE, SH, ST>,
     chain?: Blockchain<E, H, T, SE, SH, ST>,
     logger: Logger = createRootLogger(),
@@ -147,7 +155,7 @@ export class Captain<
     logger = logger.withTag('captain')
     metrics = metrics || new MetricsMonitor(logger)
     chain = chain || (await Blockchain.new(db, strategy, logger, metrics))
-    return new Captain(chain, logger, metrics)
+    return new Captain(chain, workerPool, logger, metrics)
   }
 
   /**

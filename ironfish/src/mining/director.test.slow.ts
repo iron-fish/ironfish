@@ -27,6 +27,7 @@ import {
   TestMemPool,
 } from '../captain/testUtilities'
 import { MemPool } from '../memPool'
+import { WorkerPool } from '../workerPool'
 
 // Number of notes and nullifiers on the initial chain created by makeCaptain
 const TEST_CHAIN_NUM_NOTES = 40
@@ -64,7 +65,7 @@ describe('Mining director', () => {
   beforeEach(async () => {
     const db = makeDb(makeDbName())
     const chain = await makeChainGenesis(strategy, db)
-    captain = await Captain.new(db, strategy, chain)
+    captain = await Captain.new(db, new WorkerPool(), strategy, chain)
     isAddBlockValidSpy = jest
       .spyOn(captain.chain.verifier, 'isAddBlockValid')
       .mockResolvedValue({
@@ -281,32 +282,32 @@ describe('successfullyMined', () => {
     director.shutdown()
   })
 
-  it('emits nothing on mining if the block id is not known', () => {
+  it('emits nothing on mining if the block id is not known', async () => {
     const mockSubmit = jest.fn()
     captain.emitBlock = mockSubmit
 
-    director.successfullyMined(5, 0)
+    await director.successfullyMined(5, 0)
     expect(captain.emitBlock).not.toBeCalled()
   })
 
-  it('submits nothing if the block invalid', () => {
+  it('submits nothing if the block invalid', async () => {
     const mockSubmit = jest.fn()
     captain.emitBlock = mockSubmit
 
     const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
     block.transactions[0].isValid = false
     director.recentBlocks.set(1, block)
-    director.successfullyMined(5, 1)
+    await director.successfullyMined(5, 1)
     expect(captain.emitBlock).not.toBeCalled()
   })
 
-  it('submits a validly mined block', () => {
+  it('submits a validly mined block', async () => {
     const mockSubmit = jest.fn()
     captain.emitBlock = mockSubmit
 
     const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
     director.recentBlocks.set(2, block)
-    director.successfullyMined(5, 2)
+    await director.successfullyMined(5, 2)
     expect(captain.emitBlock).toBeCalled()
   })
 })

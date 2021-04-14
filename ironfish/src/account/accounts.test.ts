@@ -20,7 +20,7 @@ describe('Accounts', () => {
     Assert.isNotNull(genesis)
 
     // G -> A1
-    const blockA1 = makeBlockAfter(chain, genesis)
+    const blockA1 = await makeBlockAfter(chain, genesis)
     await chain.addBlock(blockA1)
 
     await node.accounts.updateHead(node)
@@ -28,7 +28,7 @@ describe('Accounts', () => {
     expect(getTransactionsSpy).toBeCalledTimes(2)
 
     // G -> A1 -> A2
-    const blockA2 = makeBlockAfter(chain, blockA1)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
     await chain.addBlock(blockA2)
 
     await node.accounts.updateHead(node)
@@ -38,9 +38,9 @@ describe('Accounts', () => {
     // Add 3 more on a heavier fork. Chain A should be removed first, then chain B added
     // G -> A1 -> A2
     //   -> B1 -> B2 -> B3
-    const blockB1 = makeBlockAfter(chain, genesis)
-    const blockB2 = makeBlockAfter(chain, blockB1)
-    const blockB3 = makeBlockAfter(chain, blockB2)
+    const blockB1 = await makeBlockAfter(chain, genesis)
+    const blockB2 = await makeBlockAfter(chain, blockB1)
+    const blockB3 = await makeBlockAfter(chain, blockB2)
     await chain.addBlock(blockB1)
     await chain.addBlock(blockB2)
     await chain.addBlock(blockB3)
