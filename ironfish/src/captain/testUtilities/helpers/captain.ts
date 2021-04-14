@@ -5,7 +5,7 @@
 import { Direction, IncomingPeerMessage, MessagePayload } from '../../../network'
 import { default as Block } from '../../../blockchain/block'
 import BlockHeader from '../../../blockchain/blockheader'
-import { BlockSyncer } from '../../blockSyncer'
+import { BlockSyncer } from '../../../blockSyncer'
 import { BlocksResponse } from '../../../network/messages'
 import { Captain } from '../../captain'
 import { BlockRequest, NodeMessageType } from '../../../network/messages'

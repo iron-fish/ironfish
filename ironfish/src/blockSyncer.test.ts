@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target, BlockSerde } from '../blockchain'
+import { Target, BlockSerde } from './blockchain'
 import { BlockSyncer } from './blockSyncer'
-import { RangeHasher } from '../merkletree'
-import { Assert } from '../assert'
-import { Direction, IncomingPeerMessage } from '../network'
-import { BufferSerde } from '../serde'
+import { RangeHasher } from './merkletree'
+import { Assert } from './assert'
+import { Direction, IncomingPeerMessage } from './network'
+import { BufferSerde } from './serde'
 import {
   makeCaptainSyncable,
   makeCaptain,
@@ -21,13 +21,13 @@ import {
   TestStrategy,
   TestCaptain,
   TestBlockchain,
-} from './testUtilities'
-import { StringUtils } from '../utils'
-
-import { BlockRequest, BlocksResponse, NodeMessageType } from '../network/messages'
-import { createRootLogger } from '../logger'
+} from './captain/testUtilities'
+import { StringUtils } from './utils'
+import { BlockRequest, BlocksResponse, NodeMessageType } from './network/messages'
+import { createRootLogger } from './logger'
 import { NetworkBlockType } from './blockSyncer'
-import { Validity } from '../consensus/verifier'
+import { Validity } from './consensus/verifier'
+import { mockPeerNetwork } from './testUtilities/mocks'
 
 const serializedBlockHash = (position: number): string => {
   const hash = blockHash(position)
@@ -43,7 +43,14 @@ describe('BlockSyncer', () => {
     beforeEach(async () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
       const captain = await makeCaptain(strategy)
-      syncer = new BlockSyncer(captain, createRootLogger())
+
+      syncer = new BlockSyncer({
+        logger: createRootLogger(),
+        chain: captain.chain,
+        strategy: captain.strategy,
+        metrics: captain.metrics,
+        peerNetwork: mockPeerNetwork(),
+      })
     })
 
     afterAll(() => {
@@ -99,9 +106,17 @@ describe('BlockSyncer', () => {
     beforeEach(async () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
       const captain = await makeCaptainSyncable(strategy)
-      syncer = new BlockSyncer(captain, createRootLogger())
+
+      syncer = new BlockSyncer({
+        logger: createRootLogger(),
+        chain: captain.chain,
+        strategy: captain.strategy,
+        metrics: captain.metrics,
+        peerNetwork: mockPeerNetwork(),
+      })
+
       spyQueue = jest.spyOn(syncer, 'addBlockToProcess')
-      onRequestBlockSpy = jest.spyOn(syncer.captain.onRequestBlocks, 'emit')
+      onRequestBlockSpy = jest.spyOn(syncer.peerNetwork, 'requestBlocks')
       spyQueue.mockReset()
       onRequestBlockSpy.mockReset()
     })
@@ -194,6 +209,7 @@ describe('BlockSyncer', () => {
     const createCaptain = async (synced: 'SYNCED' | 'EMPTY' | 'OUT OF SYNC') => {
       databasePrefix = `optimistic_sync_test_db_${dbnum++}`
       fullChain = await makeChain(strategy, `${databasePrefix}-fullchain`)
+
       if (synced === 'SYNCED') {
         captain = await makeCaptain(strategy, databasePrefix)
       } else if (synced === 'EMPTY') {
@@ -202,26 +218,36 @@ describe('BlockSyncer', () => {
         captain = await makeCaptainSyncable(strategy, databasePrefix, true)
       }
 
-      captain.onRequestBlocks.on(async (hash, nextBlockDirection) => {
-        const message: BlockRequest = {
-          type: NodeMessageType.Blocks,
-          payload: {
-            hash: hash?.toString('hex'),
-            nextBlockDirection: nextBlockDirection,
-          },
-        }
-
-        const formattedResponse = await syncedSyncer.handleBlockRequest(
-          request(message.payload),
-        )
-        syncer.handleBlockResponse(response(formattedResponse), message)
+      syncer = new BlockSyncer({
+        logger: createRootLogger(),
+        chain: captain.chain,
+        strategy: captain.strategy,
+        metrics: captain.metrics,
+        peerNetwork: mockPeerNetwork(),
       })
 
-      syncer = new BlockSyncer(captain, createRootLogger())
       jest.spyOn(syncer.chain.verifier, 'isAddBlockValid').mockResolvedValue({
         valid: Validity.Yes,
       })
-      requestBlockSpy = jest.spyOn(captain, 'requestBlocks')
+
+      requestBlockSpy = jest.spyOn(syncer.peerNetwork, 'requestBlocks').mockImplementation(
+        (hash: Buffer, nextBlockDirection: boolean): void =>
+          void (async (hash: Buffer, nextBlockDirection: boolean) => {
+            const message: BlockRequest = {
+              type: NodeMessageType.Blocks,
+              payload: {
+                hash: hash?.toString('hex'),
+                nextBlockDirection: nextBlockDirection,
+              },
+            }
+
+            const formattedResponse = await syncedSyncer.handleBlockRequest(
+              request(message.payload),
+            )
+
+            syncer.handleBlockResponse(response(formattedResponse), message)
+          })(hash, nextBlockDirection),
+      )
     }
 
     const areChainHeadsEqual = async (
@@ -241,11 +267,15 @@ describe('BlockSyncer', () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
 
       syncedSyncerDBPrefix = `synced_syncer_test_db_${dbnum++}`
+      const captain = await makeCaptain(strategy, syncedSyncerDBPrefix)
 
-      syncedSyncer = new BlockSyncer(
-        await makeCaptain(strategy, syncedSyncerDBPrefix),
-        createRootLogger(),
-      )
+      syncedSyncer = new BlockSyncer({
+        logger: createRootLogger(),
+        chain: captain.chain,
+        strategy: captain.strategy,
+        metrics: captain.metrics,
+        peerNetwork: mockPeerNetwork(),
+      })
     })
 
     afterEach(async () => {

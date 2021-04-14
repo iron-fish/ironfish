@@ -13,6 +13,8 @@ import {
   IronfishMemPool,
   IronfishVerifier,
   IronfishBlock,
+  IronfishBlockchain,
+  IronfishBlockSyncer,
 } from './strategy'
 import { Captain } from './captain'
 import Blockchain, { SerializedBlock } from './blockchain'
@@ -29,9 +31,11 @@ import { Assert } from './assert'
 import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { WorkerPool } from './workerPool'
+import { BlockSyncer } from './blockSyncer'
 
 export class IronfishNode {
   database: IDatabase
+  chain: IronfishBlockchain
   captain: IronfishCaptain
   strategy: IronfishStrategy
   config: Config
@@ -45,12 +49,14 @@ export class IronfishNode {
   files: FileSystem
   rpc: RpcServer
   peerNetwork: PeerNetwork
+  syncer: IronfishBlockSyncer
 
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
   private constructor({
     agent,
+    chain,
     database,
     files,
     config,
@@ -72,6 +78,7 @@ export class IronfishNode {
     config: Config
     internal: InternalStore
     accounts: Accounts
+    chain: IronfishBlockchain
     captain: IronfishCaptain
     strategy: IronfishStrategy
     metrics: MetricsMonitor
@@ -87,6 +94,7 @@ export class IronfishNode {
     this.config = config
     this.internal = internal
     this.accounts = accounts
+    this.chain = chain
     this.captain = captain
     this.strategy = strategy
     this.metrics = metrics
@@ -112,6 +120,14 @@ export class IronfishNode {
       webRtc: webRtc,
       node: this,
       captain: captain,
+    })
+
+    this.syncer = new BlockSyncer({
+      chain: chain,
+      metrics: metrics,
+      logger: logger,
+      strategy: strategy,
+      peerNetwork: this.peerNetwork,
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
@@ -187,6 +203,7 @@ export class IronfishNode {
     return new IronfishNode({
       agent,
       database: chaindb,
+      chain,
       captain,
       strategy,
       files,
@@ -242,27 +259,16 @@ export class IronfishNode {
     }
 
     this.accounts.start(this)
-
-    const promises = [this.captain.start(), this.peerNetwork.start()]
+    this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
-      promises.push(this.rpc.start())
+      await this.rpc.start()
     }
-
-    await Promise.all(promises)
 
     submitMetric({
       name: 'started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
     })
-
-    // this.captain.blockSyncer.onTreesSynced.on((treesSynced) => {
-    //   if (treesSynced) {
-    //     this.onTreesSynced()
-    //   } else {
-    //     this.onTreesOutOfSync()
-    //   }
-    // })
   }
 
   async waitForShutdown(): Promise<void> {
@@ -272,7 +278,7 @@ export class IronfishNode {
   async shutdown(): Promise<void> {
     await Promise.all([
       this.accounts.stop(),
-      this.captain.shutdown(),
+      this.syncer.shutdown(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
       stopCollecting(),
@@ -294,7 +300,7 @@ export class IronfishNode {
   }
 
   onPeerNetworkReady(): void {
-    this.captain.onPeerNetworkReady()
+    void this.syncer.start()
 
     // this.captain.blockSyncer.treesSynced &&
     if (this.config.get('enableMiningDirector')) {
@@ -303,7 +309,7 @@ export class IronfishNode {
   }
 
   onPeerNetworkNotReady(): void {
-    this.captain.onPeerNetworkNotReady()
+    void this.syncer.shutdown()
 
     if (this.config.get('enableMiningDirector')) {
       this.miningDirector.shutdown()

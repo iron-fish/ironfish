@@ -2,7 +2,4 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockSyncer } from './blockSyncer'
-import Captain from './captain'
-
-export { Captain, BlockSyncer }
+export { Captain } from './captain'

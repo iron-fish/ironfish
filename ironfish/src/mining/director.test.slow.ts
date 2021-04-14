@@ -103,8 +103,7 @@ describe('Mining director', () => {
     await director.start()
   })
 
-  afterEach(async () => {
-    await captain.shutdown()
+  afterEach(() => {
     director.shutdown()
   })
 
@@ -200,10 +199,6 @@ describe('isValidTransaction', () => {
     memPool = new MemPool(captain)
   })
 
-  afterEach(async () => {
-    await captain.shutdown()
-  })
-
   it('is not valid if the spend was seen in other transactions in this block', async () => {
     const transaction = new TestTransaction(true, ['abc', 'def'], 50, [
       { nullifier: makeNullifier(8), commitment: '0-3', size: 4 },
@@ -277,8 +272,7 @@ describe('successfullyMined', () => {
     director.setMinerAccount(generateAccount())
   })
 
-  afterEach(async () => {
-    await captain.shutdown()
+  afterEach(() => {
     director.shutdown()
   })
 
@@ -347,9 +341,8 @@ describe('Recalculating target', () => {
     await director.start()
   })
 
-  afterAll(async () => {
+  afterAll(() => {
     jest.useRealTimers()
-    await captain.shutdown()
     director.shutdown()
   })
 
