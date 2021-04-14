@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Captain } from '../captain'
-import { Block, BlockHash, BlockHeaderSerde, Target } from '../blockchain'
+import Blockchain, { Block, BlockHash, BlockHeaderSerde, Target } from '../blockchain'
 import { Strategy, Transaction } from '../strategy'
 import { JsonSerializable } from '../serde'
 import { Event } from '../event'
@@ -30,7 +29,7 @@ type DirectorState = { type: 'STARTED' } | { type: 'STOPPED' }
  * @typeParam E Note element stored in transactions and the notes Merkle Tree
  * @typeParam H the hash of an `E`. Used for the internal nodes and root hash
  *              of the notes Merkle Tree
- * @typeParam T Type of a transaction stored on Captain's chain.
+ * @typeParam T Type of a transaction stored on the Blockchain
  * @typeParam ST The serialized format of a `T`. Conversion between the two happens
  *               via the `strategy`.
  */
@@ -42,9 +41,8 @@ export class MiningDirector<
   SH extends JsonSerializable,
   ST
 > {
-  readonly captain: Captain<E, H, T, SE, SH, ST>
-
-  memPool: MemPool<E, H, T, SE, SH, ST>
+  readonly chain: Blockchain<E, H, T, SE, SH, ST>
+  readonly memPool: MemPool<E, H, T, SE, SH, ST>
 
   /**
    * The event creates a block header with loose transactions that have been
@@ -53,6 +51,11 @@ export class MiningDirector<
    * gossiped, and added to the local tree.
    */
   onBlockToMine = new Event<[{ miningRequestId: number; bytes: Buffer; target: Target }]>()
+
+  /**
+   * Emitted when a new block has been mined
+   */
+  onNewBlock = new Event<[Block<E, H, T, SE, SH, ST>]>()
 
   /**
    * The chain strategy used to calculate miner's fees.
@@ -126,31 +129,27 @@ export class MiningDirector<
    */
   private miningRequestId: number
 
-  constructor(
-    captain: Captain<E, H, T, SE, SH, ST>,
-    memPool: MemPool<E, H, T, SE, SH, ST>,
-    logger: Logger = createRootLogger(),
-    options: {
-      graffiti?: string
-      account?: Account
-    } = {},
-  ) {
-    this.captain = captain
-    this.memPool = memPool
+  constructor(options: {
+    chain: Blockchain<E, H, T, SE, SH, ST>
+    memPool: MemPool<E, H, T, SE, SH, ST>
+    strategy: Strategy<E, H, T, SE, SH, ST>
+    logger?: Logger
+    graffiti?: string
+    account?: Account
+  }) {
+    const logger = options.logger || createRootLogger()
+
+    this.chain = options.chain
+    this.memPool = options.memPool
+    this.strategy = options.strategy
+    this.logger = logger.withTag('director')
+
     this._blockGraffiti = ''
     this._minerAccount = null
-    this.strategy = captain.strategy
-    this.blockHeaderSerde = new BlockHeaderSerde(captain.strategy)
-    this.logger = logger.withTag('director')
+    this.blockHeaderSerde = new BlockHeaderSerde(options.strategy)
     this.miningDifficultyChangeTimeout = null
     this.miningRequestId = 0
     this.recentBlocks = new LeastRecentlyUsed(50)
-
-    this.captain.chain.onChainHeadChange.on((newChainHead: BlockHash) => {
-      void this.onChainHeadChange(newChainHead).catch((err) => {
-        this.logger.error(err)
-      })
-    })
 
     if (options.graffiti) {
       this.setBlockGraffiti(options.graffiti)
@@ -159,13 +158,19 @@ export class MiningDirector<
     if (options.account) {
       this.setMinerAccount(options.account)
     }
+
+    this.chain.onChainHeadChange.on((newChainHead: BlockHash) => {
+      void this.onChainHeadChange(newChainHead).catch((err) => {
+        this.logger.error(err)
+      })
+    })
   }
 
   async start(): Promise<void> {
     this.setState({ type: 'STARTED' })
     this.logger.debug('Mining director is running')
 
-    const heaviestHead = await this.captain.chain.getHeaviestHead()
+    const heaviestHead = await this.chain.getHeaviestHead()
     if (heaviestHead) {
       await this.generateBlockToMine(heaviestHead.hash)
     }
@@ -286,7 +291,7 @@ export class MiningDirector<
       totalTransactionFees += transactionFee
     }
 
-    const blockHeader = await this.captain.chain.getBlockHeader(newChainHead)
+    const blockHeader = await this.chain.getBlockHeader(newChainHead)
     if (!blockHeader) {
       // Chain normally has a header for a heaviestHead. Block could be removed
       // if a predecessor is proven invalid while this task is running. (unlikely but possible)
@@ -319,7 +324,7 @@ export class MiningDirector<
       const graffiti = Buffer.alloc(32)
       graffiti.write(this.blockGraffiti)
 
-      newBlock = await this.captain.chain.newBlock(blockTransactions, minersFee, graffiti)
+      newBlock = await this.chain.newBlock(blockTransactions, minersFee, graffiti)
     } catch (e: unknown) {
       const message = (e as { message?: string }).message
       throw Error(`newBlock produced an invalid block: ${message || ''}`)
@@ -369,7 +374,7 @@ export class MiningDirector<
     }
 
     block.header.randomness = randomness
-    const validation = await this.captain.chain.verifier.verifyBlock(block)
+    const validation = await this.chain.verifier.verifyBlock(block)
     if (!validation.valid) {
       this.logger.warn('Discarding invalid block', validation.reason)
       return
@@ -391,8 +396,8 @@ export class MiningDirector<
       ],
     })
 
-    void this.captain.chain.addBlock(block)
-    this.captain.emitBlock(block)
+    void this.chain.addBlock(block)
+    this.onNewBlock.emit(block)
   }
 
   /**

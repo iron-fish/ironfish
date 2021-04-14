@@ -18,17 +18,22 @@ export function mockAccounts(): any {
 export function mockNode(): any {
   return {
     accounts: mockAccounts(),
+    miningDirector: mockDirector(),
   }
 }
 
 export function mockCaptain(): any {
-  return {
-    onNewBlock: mockEvent(),
-  }
+  return {}
 }
 
 export function mockPeerNetwork(): any {
   return {
     requestBlocks: jest.fn(),
+  }
+}
+
+export function mockDirector(): any {
+  return {
+    onNewBlock: mockEvent(),
   }
 }

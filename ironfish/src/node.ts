@@ -193,7 +193,11 @@ export class IronfishNode {
     const memPool = new MemPool(captain, logger)
     const accounts = new Accounts({ database: accountDB })
 
-    const mining = new MiningDirector(captain, memPool, logger, {
+    const mining = new MiningDirector({
+      chain: chain,
+      strategy: strategy,
+      memPool: memPool,
+      logger: logger,
       graffiti: config.get('blockGraffiti'),
     })
 

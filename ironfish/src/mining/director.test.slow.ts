@@ -28,6 +28,7 @@ import {
 } from '../captain/testUtilities'
 import { MemPool } from '../memPool'
 import { WorkerPool } from '../workerPool'
+import { Assert } from '../assert'
 
 // Number of notes and nullifiers on the initial chain created by makeCaptain
 const TEST_CHAIN_NUM_NOTES = 40
@@ -66,11 +67,13 @@ describe('Mining director', () => {
     const db = makeDb(makeDbName())
     const chain = await makeChainGenesis(strategy, db)
     captain = await Captain.new(db, new WorkerPool(), strategy, chain)
+
     isAddBlockValidSpy = jest
       .spyOn(captain.chain.verifier, 'isAddBlockValid')
       .mockResolvedValue({
         valid: Validity.Yes,
       })
+
     for (let i = 1; i < 8 * 5; i++) {
       await chain.notes.add(`${i}`)
 
@@ -84,17 +87,13 @@ describe('Mining director', () => {
     }
 
     memPool = new MemPool(captain)
-    director = new MiningDirector(
-      (captain as unknown) as Captain<
-        string,
-        string,
-        TestTransaction<string>,
-        string,
-        string,
-        SerializedTestTransaction<string>
-      >,
-      memPool,
-    )
+
+    director = new MiningDirector({
+      chain: captain.chain,
+      memPool: memPool,
+      strategy: captain.strategy,
+    })
+
     director.setMinerAccount(generateAccount())
 
     targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
@@ -258,17 +257,13 @@ describe('successfullyMined', () => {
   beforeEach(async () => {
     captain = await makeCaptain(strategy)
     memPool = new MemPool(captain)
-    director = new MiningDirector(
-      (captain as unknown) as Captain<
-        string,
-        string,
-        TestTransaction<string>,
-        string,
-        string,
-        SerializedTestTransaction<string>
-      >,
-      memPool,
-    )
+
+    director = new MiningDirector({
+      chain: captain.chain,
+      memPool: memPool,
+      strategy: captain.strategy,
+    })
+
     director.setMinerAccount(generateAccount())
   })
 
@@ -277,32 +272,32 @@ describe('successfullyMined', () => {
   })
 
   it('emits nothing on mining if the block id is not known', async () => {
-    const mockSubmit = jest.fn()
-    captain.emitBlock = mockSubmit
+    const onNewBlockSpy = jest.spyOn(director.onNewBlock, 'emit')
 
     await director.successfullyMined(5, 0)
-    expect(captain.emitBlock).not.toBeCalled()
+
+    expect(onNewBlockSpy).not.toBeCalled()
   })
 
   it('submits nothing if the block invalid', async () => {
-    const mockSubmit = jest.fn()
-    captain.emitBlock = mockSubmit
+    const onNewBlockSpy = jest.spyOn(director.onNewBlock, 'emit')
 
     const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
     block.transactions[0].isValid = false
     director.recentBlocks.set(1, block)
     await director.successfullyMined(5, 1)
-    expect(captain.emitBlock).not.toBeCalled()
+
+    expect(onNewBlockSpy).not.toBeCalled()
   })
 
   it('submits a validly mined block', async () => {
-    const mockSubmit = jest.fn()
-    captain.emitBlock = mockSubmit
+    const onNewBlockSpy = jest.spyOn(director.onNewBlock, 'emit')
 
     const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
     director.recentBlocks.set(2, block)
     await director.successfullyMined(5, 2)
-    expect(captain.emitBlock).toBeCalled()
+
+    expect(onNewBlockSpy).toBeCalled()
   })
 })
 
@@ -324,19 +319,16 @@ describe('Recalculating target', () => {
   beforeEach(async () => {
     jest.useFakeTimers()
     jest.setTimeout(15000000)
+
     captain = await makeCaptain(strategy)
     memPool = new MemPool(captain)
-    director = new MiningDirector(
-      (captain as unknown) as Captain<
-        string,
-        string,
-        TestTransaction<string>,
-        string,
-        string,
-        SerializedTestTransaction<string>
-      >,
-      memPool,
-    )
+
+    director = new MiningDirector({
+      chain: captain.chain,
+      memPool: memPool,
+      strategy: captain.strategy,
+    })
+
     director.setMinerAccount(generateAccount())
     await director.start()
   })
@@ -350,11 +342,12 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty + BigInt(10000000000))
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.captain.chain.getHeaviestHead()
+    const heaviestHeader = await director.chain.getHeaviestHead()
+    Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await director.onChainHeadChange(heaviestHeader!.recomputeHash())
+
+    await director.onChainHeadChange(heaviestHeader.recomputeHash())
 
     jest.advanceTimersByTime(11000)
     expect(spy).toBeCalledTimes(2)
@@ -364,11 +357,11 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty)
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.captain.chain.getHeaviestHead()
+    const heaviestHeader = await director.chain.getHeaviestHead()
+    Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await director.onChainHeadChange(heaviestHeader!.recomputeHash())
+    await director.onChainHeadChange(heaviestHeader.recomputeHash())
 
     jest.advanceTimersByTime(11000)
     expect(spy).toBeCalledTimes(1)

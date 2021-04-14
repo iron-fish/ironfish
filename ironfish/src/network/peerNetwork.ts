@@ -205,7 +205,7 @@ export class PeerNetwork {
       async (message) => await this.onNewTransaction(message),
     )
 
-    this.captain.onNewBlock.on((block) => {
+    this.node.miningDirector.onNewBlock.on((block) => {
       const serializedBlock = this.captain.blockSerde.serialize(block)
 
       this.gossip({
