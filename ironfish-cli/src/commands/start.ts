@@ -54,7 +54,7 @@ export default class Start extends IronfishCommand {
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
     bootstrap: flags.string({
       char: 'b',
-      description: 'the address of a bootstrap node to connect to',
+      description: 'comma-separated addresses of bootstrap nodes to connect to',
       multiple: true,
     }),
     port: flags.integer({
@@ -224,7 +224,9 @@ export default class Start extends IronfishCommand {
     for (const node of bootstrapNodes) {
       const url = parseUrl(node)
       if (!url.hostname)
-        throw new Error(`bootstrapNode flag value ${node} must specify a hostname`)
+        throw new Error(
+          `Could not determine a hostname for bootstrap node "${node}". Is it formatted correctly?`,
+        )
 
       // If the user has not specified a port, we can guess that
       // it's running on the default ironfish websocket port
