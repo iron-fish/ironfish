@@ -3,21 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IronfishCommand, SIGNALS } from '../command'
-import {
-  DatabaseIsLockedError,
-  DEFAULT_WEBSOCKET_PORT,
-  IronfishNode,
-  parseUrl,
-  Peer,
-  PeerNetwork,
-  privateIdentityToIdentity,
-  PromiseUtils,
-  setDefaultTags,
-} from 'ironfish'
+import { DatabaseIsLockedError, IronfishNode, PromiseUtils } from 'ironfish'
 import cli from 'cli-ux'
-import tweetnacl from 'tweetnacl'
-import wrtc from 'wrtc'
-import WSWebSocket from 'ws'
 import {
   ConfigFlag,
   ConfigFlagKey,
@@ -36,7 +23,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
-import { ONE_FISH_IMAGE } from '../images'
+import { ONE_FISH_IMAGE, TELEMETRY_BANNER } from '../images'
 
 const DEFAULT_ACCOUNT_NAME = 'default'
 
@@ -81,8 +68,6 @@ export default class Start extends IronfishCommand {
 
   node: IronfishNode | null = null
 
-  peerNetwork: PeerNetwork | null = null
-
   /**
    * This promise is used to wait until start is finished beforer closeFromSignal continues
    * because you can cause errors if you attempt to shutdown while the node is still starting
@@ -113,130 +98,37 @@ export default class Start extends IronfishCommand {
       this.sdk.config.setOverride('isWorker', flags.worker)
     }
 
-    const peerPort = this.sdk.config.get('peerPort')
-    // Allow comma-separated nodes and remove empty strings
-    const bootstrapNodes = (this.sdk.config.get('bootstrapNodes') || [])
-      .flatMap((i) => i.split(','))
-      .filter(Boolean)
+    const node = await this.sdk.node()
 
-    // Start peer networking
-    const identity = tweetnacl.box.keyPair()
     const version = this.sdk.getVersion('cli')
-    const anonymousTelemetryId = Math.random().toString().substring(2)
-    setDefaultTags({ version, sessionId: anonymousTelemetryId })
-
-    const nodeName = this.sdk.config.get('nodeName').trim() || null
+    const name = this.sdk.config.get('nodeName').trim() || null
+    const port = this.sdk.config.get('peerPort')
+    const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.logger.log(`\n${ONE_FISH_IMAGE}`)
-    this.logger.log(`Peer Identity                 ${privateIdentityToIdentity(identity)}`)
-    this.logger.log(`Peer Version                  ${version}`)
-    this.logger.log(`Port                          ${peerPort}`)
-    this.logger.log(`Bootstrap                     ${bootstrapNodes.join(',') || 'NONE'}`)
-
-    if (nodeName) {
-      this.logger.log(`Node Name                     ${nodeName}`)
-    }
+    this.logger.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
+    this.logger.log(`Peer Version  ${version}`)
+    this.logger.log(`Port          ${port}`)
+    this.logger.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    this.logger.log(`Node Name     ${name || 'NONE'}`)
     this.logger.log(` `)
 
-    const peerNetwork = new PeerNetwork(
-      identity,
-      version,
-      WSWebSocket,
-      wrtc,
-      {
-        port: peerPort,
-        name: nodeName,
-        maxPeers: this.sdk.config.get('maxPeers'),
-        enableListen: this.sdk.config.get('enableListenP2P'),
-        targetPeers: this.sdk.config.get('targetPeers'),
-        isWorker: this.sdk.config.get('isWorker'),
-        broadcastWorkers: this.sdk.config.get('broadcastWorkers'),
-        simulateLatency: this.sdk.config.get('p2pSimulateLatency'),
-      },
-      this.logger,
-      this.sdk.metrics,
-    )
-
-    peerNetwork.peerManager.onConnect.on((peer: Peer) => {
-      this.logger.debug(`Connected to ${peer.getIdentityOrThrow()}`)
-    })
-
-    peerNetwork.peerManager.onDisconnect.on((peer: Peer) => {
-      this.logger.debug(`Disconnected from ${String(peer.state.identity)}`)
-    })
-
-    peerNetwork.onIsReadyChanged.on((isReady: boolean) => {
-      if (isReady) this.logger.info(`Connected to the Iron Fish network`)
-      else this.logger.info(`Not connected to the Iron Fish network`)
-    })
-
-    const node = await this.sdk.node()
     await this.waitForOpenDatabase(node)
-    if (this.closing) return startDoneResolve()
 
-    // Information displayed the first time a node is running
-    if (node.internal.get('isFirstRun')) {
-      if (!node.config.get('enableTelemetry'))
-        this.logger.log(`
-#################################################################
-#    Thank you for installing the Iron Fish Node.               #
-#    To help improve Ironfish, opt in to collecting telemetry   #
-#    by setting telemetry=true in your configuration file       #
-#################################################################
-`)
-
-      // Create a default account on startup
-      if (!node.accounts.getDefaultAccount()) {
-        if (node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
-          await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
-          this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}\n`)
-        } else {
-          await this.sdk.clientMemory.connect(node)
-          const result = await this.sdk.clientMemory.createAccount({
-            name: DEFAULT_ACCOUNT_NAME,
-          })
-          this.log(
-            `New default account created: ${DEFAULT_ACCOUNT_NAME} \nAccount's public address: ${result?.content.publicAddress}\n`,
-          )
-        }
-      }
-
-      node.internal.set('isFirstRun', false)
-      await node.internal.save()
+    if (this.closing) {
+      return startDoneResolve()
     }
 
     if (!(await node.captain.chain.hasGenesisBlock())) {
-      cli.action.start('Initializing the blockchain', 'Creating the genesis block', {
-        stdout: true,
-      })
-      const result = await node.seed()
-      if (!result) {
-        cli.action.stop('Failed to seed the database with the genesis block.')
-      }
-      cli.action.stop('Genesis block created successfully')
+      await this.addGenesisBlock(node)
     }
 
-    node.networkBridge.attachPeerNetwork(peerNetwork)
+    if (node.internal.get('isFirstRun')) {
+      await this.firstRun(node)
+    }
 
     await node.start()
-
-    peerNetwork.start()
-    for (const node of bootstrapNodes) {
-      const url = parseUrl(node)
-      if (!url.hostname)
-        throw new Error(
-          `Could not determine a hostname for bootstrap node "${node}". Is it formatted correctly?`,
-        )
-
-      // If the user has not specified a port, we can guess that
-      // it's running on the default ironfish websocket port
-      const port = url.port ? url.port : DEFAULT_WEBSOCKET_PORT
-      const address = url.hostname + `:${port}`
-      peerNetwork.peerManager.connectToWebSocketAddress(address, true)
-    }
-
     this.node = node
-    this.peerNetwork = peerNetwork
 
     startDoneResolve()
     this.listenForSignals()
@@ -246,11 +138,13 @@ export default class Start extends IronfishCommand {
   async closeFromSignal(signal: SIGNALS): Promise<void> {
     this.log(`Shutting down node after ${signal}`)
     await this.startDonePromise
-    this.peerNetwork?.stop()
     await this.node?.shutdown()
     await this.node?.closeDB()
   }
 
+  /**
+   * Wait for when we can open connections to the databases because another node can be using it
+   */
   async waitForOpenDatabase(node: IronfishNode): Promise<void> {
     let warnDatabaseInUse = false
     const OPEN_DB_RETRY_TIME = 500
@@ -273,5 +167,52 @@ export default class Start extends IronfishCommand {
         throw e
       }
     }
+  }
+
+  /**
+   * Insert the genesis block into the node
+   */
+  async addGenesisBlock(node: IronfishNode): Promise<void> {
+    cli.action.start('Initializing the blockchain', 'Creating the genesis block', {
+      stdout: true,
+    })
+
+    const result = await node.seed()
+    if (!result) {
+      cli.action.stop('Failed to seed the database with the genesis block.')
+    }
+
+    cli.action.stop('Genesis block created successfully')
+  }
+
+  /**
+   * Information displayed the first time a node is running
+   */
+  async firstRun(node: IronfishNode): Promise<void> {
+    // Try to get the user to display telementry
+    if (!node.config.get('enableTelemetry')) {
+      this.logger.log(TELEMETRY_BANNER)
+    }
+
+    // Create a default account on startup
+    if (!node.accounts.getDefaultAccount()) {
+      if (node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
+        await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
+        this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}\n`)
+      } else {
+        await this.sdk.clientMemory.connect(node)
+
+        const result = await this.sdk.clientMemory.createAccount({
+          name: DEFAULT_ACCOUNT_NAME,
+        })
+
+        this.log(
+          `New default account created: ${DEFAULT_ACCOUNT_NAME} \nAccount's public address: ${result?.content.publicAddress}\n`,
+        )
+      }
+    }
+
+    node.internal.set('isFirstRun', false)
+    await node.internal.save()
   }
 }

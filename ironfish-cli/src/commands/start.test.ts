@@ -43,6 +43,7 @@ describe('start command', () => {
       enableTelemetry: false,
       nodeName: '',
       isWorker: false,
+      bootstrapNodes: [],
     }
 
     const internalOptions = {
@@ -53,6 +54,9 @@ describe('start command', () => {
       save: jest.fn(),
       set: setConfig,
       get: jest.fn().mockImplementation((config: 'enableTelemetry') => configOptions[config]),
+      getArray: jest
+        .fn()
+        .mockImplementation((config: 'enableTelemetry') => configOptions[config]),
     }
 
     const internal = {
@@ -66,6 +70,12 @@ describe('start command', () => {
       getDefaultAccount: jest.fn(),
     }
 
+    const peerNetwork = {
+      localPeer: {
+        publicIdentity: 'identity',
+      },
+    }
+
     const node = {
       start,
       networkBridge: { attachPeerNetwork: jest.fn() },
@@ -73,6 +83,7 @@ describe('start command', () => {
       openDB: jest.fn(),
       closeDB: jest.fn(),
       accounts: accounts,
+      peerNetwork: peerNetwork,
       seed: seed,
       config: config,
       internal: internal,

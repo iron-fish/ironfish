@@ -115,11 +115,9 @@ async function getStatus(node: IronfishNode): Promise<GetStatusResponse> {
     },
   }
 
-  if (node.networkBridge.peerNetwork) {
-    status.peerNetwork.isReady = node.networkBridge.peerNetwork.isReady
-    status.peerNetwork.inboundTraffic = node.metrics.p2p_InboundTraffic.rate5s
-    status.peerNetwork.outboundTraffic = node.metrics.p2p_OutboundTraffic.rate5s
-  }
+  status.peerNetwork.isReady = node.peerNetwork.isReady
+  status.peerNetwork.inboundTraffic = node.metrics.p2p_InboundTraffic.rate5s
+  status.peerNetwork.outboundTraffic = node.metrics.p2p_OutboundTraffic.rate5s
 
   status.blockSyncer.syncing = {
     blockSpeed: MathUtils.round(node.captain.blockSyncer.status.blockAddingSpeed.avg, 2),

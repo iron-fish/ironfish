@@ -130,6 +130,9 @@ export class MiningDirector<
     captain: Captain<E, H, T, SE, SH, ST>,
     memPool: MemPool<E, H, T, SE, SH, ST>,
     logger: Logger = createRootLogger(),
+    options: {
+      graffiti?: string
+    } = {},
   ) {
     this.captain = captain
     this.memPool = memPool
@@ -147,6 +150,10 @@ export class MiningDirector<
         this.logger.error(err)
       })
     })
+
+    if (options.graffiti) {
+      this.setBlockGraffiti(options.graffiti)
+    }
   }
 
   async start(): Promise<void> {

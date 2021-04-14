@@ -76,6 +76,7 @@ export type ConfigOptions = {
    * new connections will be rejected.
    */
   maxPeers: number
+  minPeers: number
   /**
    * The ideal number of peers we'd like to be connected to. The node will attempt to
    * establish new connections when below this number.
@@ -135,6 +136,7 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpPort: 8020,
       rpcRetryConnect: false,
       maxPeers: 50,
+      minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,

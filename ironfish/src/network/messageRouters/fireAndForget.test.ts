@@ -5,6 +5,7 @@
 jest.mock('ws')
 
 import ws from 'ws'
+import { mockCaptain, mockNode } from '../../testUtilities/mocks'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { PeerManager } from '../peers/peerManager'
 import { mockPrivateIdentity, mockLocalPeer, getConnectedPeer } from '../testUtilities'
@@ -45,7 +46,14 @@ describe('FireAndForget Router', () => {
   })
 
   it('routes a fire and forget message as fire and forget', async () => {
-    const network = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+    const network = new PeerNetwork({
+      identity: mockPrivateIdentity('local'),
+      agent: 'sdk/1/cli',
+      webSocket: ws,
+      node: mockNode(),
+      captain: mockCaptain(),
+    })
+
     const fireAndForgetMock = jest.fn(async () => {})
     network['fireAndForgetRouter'].handle = fireAndForgetMock
 

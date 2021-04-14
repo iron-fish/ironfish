@@ -13,19 +13,20 @@ import {
   IronfishVerifier,
   IronfishBlock,
 } from './strategy'
-import { NetworkBridge } from './networkBridge'
 import { Captain } from './captain'
-import { SerializedBlock } from './blockchain'
+import Blockchain, { SerializedBlock } from './blockchain'
 import { createRootLogger, Logger } from './logger'
 import { genesisBlockData } from './genesis'
 import { RpcServer } from './rpc/server'
 import { MiningDirector } from './mining'
-import { submitMetric, startCollecting, stopCollecting } from './telemetry'
+import { submitMetric, startCollecting, stopCollecting, setDefaultTags } from './telemetry'
 import { MetricsMonitor } from './metrics'
 import { AsyncTransactionWorkerPool } from './strategy/asyncTransactionWorkerPool'
 import { Accounts, Account, AccountsDB } from './account'
 import { MemPool } from './memPool'
 import { Assert } from './assert'
+import { PeerNetwork } from './network'
+import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 
 export class IronfishNode {
   database: IDatabase
@@ -33,18 +34,20 @@ export class IronfishNode {
   strategy: IronfishStrategy
   config: Config
   internal: InternalStore
-  networkBridge: NetworkBridge
   accounts: Accounts
   logger: Logger
   miningDirector: IronfishMiningDirector
   metrics: MetricsMonitor
   memPool: IronfishMemPool
-  shutdownPromise: Promise<void> | null = null
-  shutdownResolve: (() => void) | null = null
   files: FileSystem
   rpc: RpcServer
+  peerNetwork: PeerNetwork
+
+  shutdownPromise: Promise<void> | null = null
+  shutdownResolve: (() => void) | null = null
 
   private constructor({
+    agent,
     database,
     files,
     config,
@@ -56,7 +59,10 @@ export class IronfishNode {
     miningDirector,
     memPool,
     logger,
+    webRTC,
+    webSocket,
   }: {
+    agent: string
     database: IDatabase
     files: FileSystem
     config: Config
@@ -68,13 +74,14 @@ export class IronfishNode {
     miningDirector: IronfishMiningDirector
     memPool: IronfishMemPool
     logger: Logger
+    webRTC?: IsomorphicWebRtc
+    webSocket: IsomorphicWebSocketConstructor
   }) {
     this.database = database
     this.files = files
     this.config = config
     this.internal = internal
     this.accounts = accounts
-    this.networkBridge = new NetworkBridge()
     this.captain = captain
     this.strategy = strategy
     this.metrics = metrics
@@ -83,12 +90,30 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
 
-    this.networkBridge.attachNode(this)
+    this.peerNetwork = new PeerNetwork({
+      agent: agent,
+      port: config.get('peerPort'),
+      name: config.get('nodeName'),
+      maxPeers: config.get('maxPeers'),
+      minPeers: config.get('minPeers'),
+      listen: config.get('enableListenP2P'),
+      targetPeers: config.get('targetPeers'),
+      isWorker: config.get('isWorker'),
+      broadcastWorkers: config.get('broadcastWorkers'),
+      simulateLatency: config.get('p2pSimulateLatency'),
+      bootstrapNodes: config.getArray('bootstrapNodes'),
+      webSocket: webSocket,
+      webRtc: webRTC,
+      node: this,
+      captain: captain,
+    })
+
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
     this.accounts.onDefaultAccountChange.on(this.onDefaultAccountChange)
   }
 
   static async init({
+    agent,
     databaseName,
     dataDir,
     config,
@@ -99,7 +124,10 @@ export class IronfishNode {
     files,
     verifierClass,
     strategyClass,
+    webRTC,
+    webSocket,
   }: {
+    agent: string
     dataDir?: string
     config?: Config
     internal?: InternalStore
@@ -110,6 +138,8 @@ export class IronfishNode {
     files: FileSystem
     verifierClass: typeof IronfishVerifier | null
     strategyClass: typeof IronfishStrategy | null
+    webRTC?: IsomorphicWebRtc
+    webSocket: IsomorphicWebSocketConstructor
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
     metrics = metrics || new MetricsMonitor(logger)
@@ -128,23 +158,27 @@ export class IronfishNode {
       config.setOverride('databaseName', databaseName)
     }
 
-    const chainDatabase = await makeDatabase(config.chainDatabasePath)
-
     strategyClass = strategyClass || IronfishStrategy
     const strategy = new strategyClass(verifierClass)
 
-    const captain = await Captain.new(chainDatabase, strategy, undefined, undefined, metrics)
+    const chaindb = await makeDatabase(config.chainDatabasePath)
+    const accountdb = await makeDatabase(config.accountDatabasePath)
+    const accountDB = new AccountsDB({ database: accountdb })
+    const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
+    const captain = await Captain.new(chaindb, strategy, chain, undefined, metrics)
     const memPool = new MemPool(captain, logger)
-
-    const accountDatabase = await makeDatabase(config.accountDatabasePath)
-    const accountDB = new AccountsDB({ database: accountDatabase })
     const accounts = new Accounts({ database: accountDB })
 
-    const miningDirector = new MiningDirector(captain, memPool, logger)
-    miningDirector.setBlockGraffiti(config.get('blockGraffiti'))
+    const mining = new MiningDirector(captain, memPool, logger, {
+      graffiti: config.get('blockGraffiti'),
+    })
+
+    const anonymousTelemetryId = Math.random().toString().substring(2)
+    setDefaultTags({ version: agent, sessionId: anonymousTelemetryId })
 
     return new IronfishNode({
-      database: chainDatabase,
+      agent,
+      database: chaindb,
       captain,
       strategy,
       files,
@@ -152,9 +186,11 @@ export class IronfishNode {
       internal,
       accounts,
       metrics,
-      miningDirector,
+      miningDirector: mining,
       memPool,
       logger,
+      webRTC,
+      webSocket,
     })
   }
 
@@ -196,7 +232,7 @@ export class IronfishNode {
 
     this.accounts.start(this)
 
-    const promises = [this.captain.start()]
+    const promises = [this.captain.start(), this.peerNetwork.start()]
 
     if (this.config.get('enableRpc')) {
       promises.push(this.rpc.start())
@@ -226,6 +262,7 @@ export class IronfishNode {
     await Promise.all([
       this.accounts.stop(),
       this.captain.shutdown(),
+      this.peerNetwork.stop(),
       this.rpc.stop(),
       stopCollecting(),
       this.metrics.stop(),
@@ -290,9 +327,11 @@ export class IronfishNode {
         break
       }
       case 'enableMiningDirector': {
-        if (newValue && this.networkBridge.peerNetwork?.isReady)
+        if (newValue && this.peerNetwork.isReady) {
           void this.miningDirector.start()
-        else this.miningDirector.shutdown()
+        } else {
+          this.miningDirector.shutdown()
+        }
         break
       }
     }

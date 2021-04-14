@@ -11,7 +11,8 @@ import ws from 'ws'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { GossipRouter } from './gossip'
 import { PeerManager } from '../peers/peerManager'
-import { mockLocalPeer, mockPrivateIdentity, getConnectedPeer } from '../testUtilities'
+import { mockLocalPeer, getConnectedPeer } from '../testUtilities'
+import { mockCaptain, mockNode } from '../../testUtilities/mocks'
 
 jest.useFakeTimers()
 
@@ -104,7 +105,13 @@ describe('Gossip Router', () => {
   })
 
   it('routes a gossip message as gossip', async () => {
-    const network = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+    const network = new PeerNetwork({
+      agent: 'sdk/1/cli',
+      webSocket: ws,
+      node: mockNode(),
+      captain: mockCaptain(),
+    })
+
     const gossipMock = jest.fn(async () => {})
     network['gossipRouter'].handle = gossipMock
     network.registerHandler(
@@ -113,7 +120,6 @@ describe('Gossip Router', () => {
       () => Promise.resolve({ name: '' }),
       () => {},
     )
-
     const pm = new PeerManager(mockLocalPeer())
     const { peer } = getConnectedPeer(pm)
     const message = { type: 'hello', nonce: 'test_handler1', payload: { test: 'payload' } }
@@ -123,7 +129,12 @@ describe('Gossip Router', () => {
   })
 
   it('does not handle a poorly formatted gossip message as gossip', async () => {
-    const network = new PeerNetwork(mockPrivateIdentity('local'), 'sdk/1/cli', ws)
+    const network = new PeerNetwork({
+      agent: 'sdk/1/cli',
+      webSocket: ws,
+      node: mockNode(),
+      captain: mockCaptain(),
+    })
 
     const gossipMock = jest.fn(async () => {})
     network['gossipRouter'].handle = gossipMock

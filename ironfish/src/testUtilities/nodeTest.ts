@@ -9,6 +9,10 @@ import path from 'path'
 import { IronfishBlockchain, IronfishCaptain } from '../strategy'
 import { IronfishTestVerifier } from './verifier'
 import { IronfishTestStrategy } from './strategy'
+import { ConfigOptions } from '../fileStores/config'
+import { PeerNetwork } from '../network'
+
+export type NodeTestOptions = { config?: Partial<ConfigOptions> } | undefined
 
 /**
  * Used as an easy wrapper for testing the node, and blockchain. Use
@@ -16,11 +20,14 @@ import { IronfishTestStrategy } from './strategy'
  * test lifecycle methods on the NodeTest
  */
 export class NodeTest {
+  options: NodeTestOptions
+
   sdk!: IronfishSdk
   node!: IronfishNode
   strategy!: IronfishTestStrategy
   captain!: IronfishCaptain
   chain!: IronfishBlockchain
+  peerNetwork!: PeerNetwork
 
   setups = new Array<{
     sdk: IronfishSdk
@@ -28,15 +35,25 @@ export class NodeTest {
     captain: IronfishCaptain
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
+    peerNetwork: PeerNetwork
   }>()
 
-  async createSetup(): Promise<{
+  constructor(options: NodeTestOptions = {}) {
+    this.options = options
+  }
+
+  async createSetup(
+    options?: NodeTestOptions,
+  ): Promise<{
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy
     captain: IronfishCaptain
     chain: IronfishBlockchain
+    peerNetwork: PeerNetwork
   }> {
+    if (!options) options = this.options
+
     const dataDir = path.join(os.tmpdir(), uuid())
     const verifierClass = IronfishTestVerifier
     const strategyClass = IronfishTestStrategy
@@ -46,11 +63,23 @@ export class NodeTest {
     const strategy = node.strategy as IronfishTestStrategy
     const captain = node.captain
     const chain = node.captain.chain
+    const peerNetwork = node.peerNetwork
 
     sdk.config.setOverride('bootstrapNodes', [''])
+
+    // Allow tests to override default settings
+    if (options?.config) {
+      for (const key in options.config) {
+        const configKey = key as keyof ConfigOptions
+        const configValue = options.config[configKey]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sdk.config.setOverride(key as keyof ConfigOptions, configValue as any)
+      }
+    }
+
     await node.openDB()
 
-    const setup = { sdk, node, captain, strategy, chain }
+    const setup = { sdk, node, captain, strategy, chain, peerNetwork }
     this.setups.push(setup)
     return setup
   }
@@ -81,8 +110,8 @@ export class NodeTest {
 /** Call this to create a {@link NodeTest} and ensure its test lifecycle
  * methods are called properly like beforeEach, beforeAll, etc
  */
-export function createNodeTest(preserveState = false): NodeTest {
-  const nodeTest = new NodeTest()
+export function createNodeTest(preserveState = false, options: NodeTestOptions = {}): NodeTest {
+  const nodeTest = new NodeTest(options)
 
   if (preserveState) {
     beforeAll(() => nodeTest.setup())

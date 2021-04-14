@@ -18,6 +18,7 @@ import { InternalStore } from './fileStores'
 import GIT_VERSION from './gitHash'
 import { renderVersion } from './network/version'
 import { IronfishStrategy, IronfishVerifier } from './strategy'
+import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 
 type MakeDatabase = (path: string) => Promise<IDatabase>
 
@@ -26,6 +27,7 @@ const VERSION_PRODUCT = 'ironfish-sdk'
 const VERSION_CODE = GIT_VERSION
 
 export class IronfishSdk {
+  runtime: JSRuntime
   client: IronfishIpcClient
   clientMemory: IronfishMemoryClient
   config: Config
@@ -38,6 +40,7 @@ export class IronfishSdk {
   strategyClass: typeof IronfishStrategy | null
 
   private constructor(
+    runtime: JSRuntime,
     client: IronfishIpcClient,
     clientMemory: IronfishMemoryClient,
     config: Config,
@@ -49,6 +52,7 @@ export class IronfishSdk {
     verifierClass: typeof IronfishVerifier | null = null,
     strategyClass: typeof IronfishStrategy | null = null,
   ) {
+    this.runtime = runtime
     this.client = client
     this.clientMemory = clientMemory
     this.config = config
@@ -82,19 +86,19 @@ export class IronfishSdk {
     verifierClass?: typeof IronfishVerifier
     strategyClass?: typeof IronfishStrategy
   } = {}): Promise<IronfishSdk> {
-    const platform = getPlatform()
+    const runtime = getRuntime()
 
     if (!fileSystem) {
-      if (platform === 'node') {
+      if (runtime === 'node') {
         fileSystem = new NodeFileProvider()
         await fileSystem.init()
-      } else throw new Error(`No default fileSystem for ${String(platform)}`)
+      } else throw new Error(`No default fileSystem for ${String(runtime)}`)
     }
 
     if (!makeDatabase) {
-      if (platform === 'node') {
+      if (runtime === 'node') {
         makeDatabase = makeLevelupDatabaseNode
-      } else throw new Error(`No default makeDatabase for ${String(platform)}`)
+      } else throw new Error(`No default makeDatabase for ${String(runtime)}`)
     }
 
     logger = logger.withTag('ironfishsdk')
@@ -143,6 +147,7 @@ export class IronfishSdk {
     const clientMemory = new IronfishMemoryClient(logger)
 
     return new IronfishSdk(
+      runtime,
       client,
       clientMemory,
       config,
@@ -157,7 +162,11 @@ export class IronfishSdk {
   }
 
   async node({ databaseName }: { databaseName?: string } = {}): Promise<IronfishNode> {
+    const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
+    const webRTC = (await require('wrtc')) as IsomorphicWebRtc | undefined
+
     const node = await IronfishNode.init({
+      agent: this.getVersion('cli'),
       config: this.config,
       internal: this.internal,
       files: this.fileSystem,
@@ -167,6 +176,8 @@ export class IronfishSdk {
       metrics: this.metrics,
       verifierClass: this.verifierClass,
       strategyClass: this.strategyClass,
+      webRTC: webRTC,
+      webSocket: webSocket,
     })
 
     const namespaces = [
@@ -227,7 +238,7 @@ export class IronfishSdk {
 }
 
 /** Get the current platform or null if it cannot detect the platform */
-function getPlatform(): 'node' | 'browser' | null {
+function getRuntime(): JSRuntime {
   if (
     typeof process === 'object' &&
     process &&
@@ -238,5 +249,7 @@ function getPlatform(): 'node' | 'browser' | null {
     return 'node'
   }
 
-  return null
+  return 'unknown'
 }
+
+export type JSRuntime = 'node' | 'browser' | 'unknown'

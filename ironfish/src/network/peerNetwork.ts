@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import tweetnacl from 'tweetnacl'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -18,6 +19,14 @@ import {
   InternalMessageType,
   DisconnectingMessage,
   DisconnectingReason,
+  BlockRequestMessage,
+  BlocksResponseMessage,
+  BlockRequest,
+  NewBlockMessage,
+  NodeMessageType,
+  isBlockRequestPayload,
+  isBlocksResponse,
+  NewTransactionMessage,
 } from './messages'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './types'
 import {
@@ -34,6 +43,16 @@ import {
 import { Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
 import { Identity } from './identity'
+import { parseUrl } from './utils/parseUrl'
+import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
+import {
+  IronfishCaptain,
+  SerializedTransaction,
+  SerializedWasmNoteEncrypted,
+} from '../strategy'
+import { IronfishNode } from '../node'
+import { NetworkBlockType } from '../captain/blockSyncer'
+import { BlockHash } from '../blockchain'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -72,8 +91,9 @@ export class PeerNetwork {
   readonly onIsReadyChanged = new Event<[boolean]>()
 
   private started = false
-  private readonly enableListen: boolean
-  private readonly minPeersReady: number
+  private readonly minPeers: number
+  private readonly bootstrapNodes: string[]
+  private readonly listen: boolean
   private readonly peerConnectionManager: PeerConnectionManager
   private readonly routingStyles: Map<MessageType, RoutingStyle>
   private readonly gossipRouter: GossipRouter
@@ -82,6 +102,8 @@ export class PeerNetwork {
   private readonly globalRpcRouter: GlobalRpcRouter
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
+  private readonly node: IronfishNode
+  private readonly captain: IronfishCaptain
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -91,29 +113,35 @@ export class PeerNetwork {
     return this._isReady
   }
 
-  constructor(
-    localIdentity: PrivateIdentity,
-    localVersion: string,
-    webSocket: IsomorphicWebSocketConstructor,
-    webRtc?: IsomorphicWebRtc,
-    options: {
-      enableListen?: boolean
-      port?: number
-      minPeersReady?: number
-      name?: string | null
-      maxPeers?: number
-      targetPeers?: number
-      isWorker?: boolean
-      broadcastWorkers?: boolean
-      simulateLatency?: number
-    } = {},
-    logger: Logger = createRootLogger(),
-    metrics?: MetricsMonitor,
-  ) {
-    this.logger = logger.withTag('peernetwork')
-    this.metrics = metrics || new MetricsMonitor(this.logger)
+  constructor(options: {
+    identity?: PrivateIdentity
+    agent: string
+    webSocket: IsomorphicWebSocketConstructor
+    webRtc?: IsomorphicWebRtc
+    listen?: boolean
+    port?: number
+    bootstrapNodes?: string[]
+    name?: string | null
+    maxPeers?: number
+    minPeers?: number
+    targetPeers?: number
+    isWorker?: boolean
+    broadcastWorkers?: boolean
+    simulateLatency?: number
+    logger?: Logger
+    metrics?: MetricsMonitor
+    node: IronfishNode
+    captain: IronfishCaptain
+  }) {
+    const identity = options.identity || tweetnacl.box.keyPair()
 
-    this.localPeer = new LocalPeer(localIdentity, localVersion, webSocket, webRtc)
+    this.node = options.node
+    this.captain = options.captain
+    this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
+    this.metrics = options.metrics || new MetricsMonitor(this.logger)
+    this.bootstrapNodes = options.bootstrapNodes || []
+
+    this.localPeer = new LocalPeer(identity, options.agent, options.webSocket, options.webRtc)
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
     this.localPeer.isWorker = options.isWorker || false
@@ -123,15 +151,17 @@ export class PeerNetwork {
 
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50
+
     this.peerManager = new PeerManager(
       this.localPeer,
       this.logger,
-      metrics,
+      this.metrics,
       maxPeers,
       targetPeers,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => this.updateIsReady())
+
     this.peerConnectionManager = new PeerConnectionManager(this.peerManager, this.logger, {
       maxPeers,
     })
@@ -142,12 +172,95 @@ export class PeerNetwork {
     this.directRpcRouter = new RpcRouter(this.peerManager)
     this.globalRpcRouter = new GlobalRpcRouter(this.directRpcRouter)
 
-    this.minPeersReady = options.minPeersReady || 1
-    this.enableListen = options.enableListen === undefined ? true : options.enableListen
+    this.minPeers = options.minPeers || 1
+    this.listen = options.listen === undefined ? true : options.listen
 
     if (options.name && options.name.length > 32) {
       options.name = options.name.slice(32)
     }
+
+    this.registerHandler(
+      NodeMessageType.Blocks,
+      RoutingStyle.globalRPC,
+      (p) => {
+        return isBlockRequestPayload(p) ? Promise.resolve(p) : Promise.reject('Invalid format')
+      },
+      (message) => this.onBlockRequest(message),
+    )
+
+    this.registerHandler(
+      NodeMessageType.NewBlock,
+      RoutingStyle.gossip,
+      (p) => {
+        return this.captain.chain.verifier.verifyNewBlock(p)
+      },
+      (message) => this.onNewBlock(message),
+    )
+
+    this.registerHandler(
+      NodeMessageType.NewTransaction,
+      RoutingStyle.gossip,
+      (p) => {
+        return this.captain.chain.verifier.verifyNewTransaction(p)
+      },
+      async (message) => await this.onNewTransaction(message),
+    )
+
+    this.captain.onNewBlock.on((block) => {
+      const serializedBlock = this.captain.blockSerde.serialize(block)
+
+      this.gossip({
+        type: NodeMessageType.NewBlock,
+        payload: {
+          block: serializedBlock,
+        },
+      })
+    })
+
+    this.node.accounts.onBroadcastTransaction.on((transaction) => {
+      const serializedTransaction = this.captain.strategy
+        .transactionSerde()
+        .serialize(transaction)
+
+      this.gossip({
+        type: NodeMessageType.NewTransaction,
+        payload: { transaction: serializedTransaction },
+      })
+    })
+
+    this.captain.onRequestBlocks.on(
+      (hash: BlockHash, nextBlockDirection: boolean, peer?: Identity) => {
+        const serializedHash = this.captain.chain.blockHashSerde.serialize(hash)
+
+        const request: BlockRequest = {
+          type: NodeMessageType.Blocks,
+          payload: {
+            hash: serializedHash,
+            nextBlockDirection: nextBlockDirection,
+          },
+        }
+
+        this.request(request, peer)
+          .then((c) => {
+            if (
+              !c ||
+              !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
+            ) {
+              throw new Error('Invalid format')
+            }
+            this.onBlockResponses(
+              {
+                ...c,
+                message: c.message,
+              },
+              request,
+            )
+          })
+          .catch((err) => {
+            this.captain.blockSyncer.handleBlockRequestError(request, err)
+          })
+      },
+    )
   }
 
   start(): void {
@@ -155,21 +268,19 @@ export class PeerNetwork {
     this.started = true
 
     // Start the WebSocket server if possible
-    if (
-      this.enableListen &&
-      'Server' in this.localPeer.webSocket &&
-      this.localPeer.port != null
-    ) {
+    if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port != null) {
       this.webSocketServer = new WebSocketServer(
         this.localPeer.webSocket.Server,
         this.localPeer.port,
       )
+
       this.webSocketServer.onStart(() => {
         const address = this.webSocketServer?.server.address()
         const addressStr =
           typeof address === 'object' ? `${address.address}:${address.port}` : String(address)
         this.logger.info(`WebSocket server started at ${addressStr}`)
       })
+
       this.webSocketServer.onConnection((connection, req) => {
         let address: string | null = null
 
@@ -206,6 +317,24 @@ export class PeerNetwork {
 
         this.peerManager.createPeerFromInboundWebSocketConnection(connection, address)
       })
+
+      this.peerManager.onConnect.on((peer: Peer) => {
+        this.logger.debug(`Connected to ${peer.getIdentityOrThrow()}`)
+      })
+
+      this.peerManager.onDisconnect.on((peer: Peer) => {
+        this.logger.debug(`Disconnected from ${String(peer.state.identity)}`)
+      })
+
+      this.onIsReadyChanged.on((isReady: boolean) => {
+        if (isReady) {
+          this.logger.info(`Connected to the Iron Fish network`)
+          this.node.onPeerNetworkReady()
+        } else {
+          this.logger.info(`Not connected to the Iron Fish network`)
+          this.node.onPeerNetworkNotReady()
+        }
+      })
     }
 
     // Start up the PeerManager
@@ -215,6 +344,22 @@ export class PeerNetwork {
     this.peerConnectionManager.start()
 
     this.updateIsReady()
+
+    for (const node of this.bootstrapNodes) {
+      const url = parseUrl(node)
+
+      if (!url.hostname) {
+        throw new Error(
+          `Could not determine a hostname for bootstrap node "${node}". Is it formatted correctly?`,
+        )
+      }
+
+      // If the user has not specified a port, we can guess that
+      // it's running on the default ironfish websocket port
+      const port = url.port ? url.port : DEFAULT_WEBSOCKET_PORT
+      const address = url.hostname + `:${port}`
+      this.peerManager.connectToWebSocketAddress(address, true)
+    }
   }
 
   /**
@@ -404,11 +549,39 @@ export class PeerNetwork {
 
   private updateIsReady(): void {
     const prevIsReady = this._isReady
-    this._isReady =
-      this.started && this.peerManager.getConnectedPeers().length >= this.minPeersReady
+    this._isReady = this.started && this.peerManager.getConnectedPeers().length >= this.minPeers
 
     if (this._isReady !== prevIsReady) {
       this.onIsReadyChanged.emit(this._isReady)
     }
+  }
+
+  private onBlockRequest(message: IncomingPeerMessage<BlockRequestMessage>) {
+    return this.captain.blockSyncer.handleBlockRequest(message)
+  }
+
+  private onBlockResponses(
+    message: IncomingPeerMessage<BlocksResponseMessage>,
+    originalRequest: BlockRequest,
+  ) {
+    return this.captain.blockSyncer.handleBlockResponse(message, originalRequest)
+  }
+
+  private onNewBlock(message: IncomingPeerMessage<NewBlockMessage>) {
+    const block = message.message.payload.block
+    const peer = message.peerIdentity
+    return this.captain.blockSyncer.addBlockToProcess(block, peer, NetworkBlockType.GOSSIP)
+  }
+
+  private async onNewTransaction(
+    message: IncomingPeerMessage<NewTransactionMessage>,
+  ): Promise<void> {
+    const transaction = message.message.payload.transaction
+
+    if (this.node.memPool.acceptTransaction(transaction)) {
+      await this.node.accounts.syncTransaction(transaction, {})
+    }
+
+    await Promise.resolve()
   }
 }

@@ -8,6 +8,7 @@ import { IronfishMemoryClient } from '../rpc/clients'
 import { NodeTest } from './nodeTest'
 import { IronfishBlockchain, IronfishCaptain } from '../strategy'
 import { IronfishTestStrategy } from './strategy'
+import { PeerNetwork } from '../network/peerNetwork'
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
  * to create one to make sure you call the proper test lifecycle methods on
@@ -23,6 +24,7 @@ export class RouteTest extends NodeTest {
     strategy: IronfishTestStrategy
     captain: IronfishCaptain
     chain: IronfishBlockchain
+    peerNetwork: PeerNetwork
     adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
