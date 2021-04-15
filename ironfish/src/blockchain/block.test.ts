@@ -40,7 +40,7 @@ describe('Block', () => {
     nodeTest.strategy.disableMiningReward()
 
     const genesis = await nodeTest.node.seed()
-    const block = makeBlockAfter(nodeTest.captain.chain, genesis)
+    const block = await makeBlockAfter(nodeTest.captain.chain, genesis)
 
     const serialized = nodeTest.captain.blockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })

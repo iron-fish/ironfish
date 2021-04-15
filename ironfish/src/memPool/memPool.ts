@@ -127,7 +127,7 @@ export class MemPool<
         return false
       }
     }
-    const validity = transaction.verify()
+    const validity = await transaction.verify()
     if (!validity.valid) {
       return false
     }

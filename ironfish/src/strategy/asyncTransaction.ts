@@ -15,6 +15,7 @@ import {
   WasmNoteEncryptedHash,
 } from '.'
 import { Witness } from '../merkletree'
+import { WorkerPool } from '../workerPool'
 
 // Messages that the asyncTransactionWorker knows how to handle
 type Request =
@@ -119,7 +120,7 @@ export default class AsyncTransaction {
    *
    * @returns a promise with the posted transaction
    */
-  async postMinersFee(): Promise<IronfishTransaction> {
+  async postMinersFee(workerPool: WorkerPool): Promise<IronfishTransaction> {
     const serializedPosted = await this.promisifyRequest({
       type: 'postMinersFee',
     })
@@ -127,7 +128,7 @@ export default class AsyncTransaction {
       throw new Error('Unable to post transaction')
     }
     this.isPosted = true
-    return new IronfishTransaction(serializedPosted.posted)
+    return new IronfishTransaction(serializedPosted.posted, workerPool)
   }
 
   /**
@@ -139,6 +140,7 @@ export default class AsyncTransaction {
     spenderKey: string,
     changeGoesTo: string | null,
     intendedTransactionFee: bigint,
+    workerPool: WorkerPool,
   ): Promise<IronfishTransaction> {
     const serializedPosted = await this.promisifyRequest({
       type: 'post',
@@ -150,7 +152,7 @@ export default class AsyncTransaction {
       throw new Error('Unable to post transaction')
     }
     this.isPosted = true
-    return new IronfishTransaction(serializedPosted.posted)
+    return new IronfishTransaction(serializedPosted.posted, workerPool)
   }
 
   /**

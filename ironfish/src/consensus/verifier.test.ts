@@ -129,36 +129,37 @@ describe('Verifier', () => {
       )
     })
 
-    it('validates a valid block', () => {
+    it('validates a valid block', async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
-      expect(captain.chain.verifier.verifyBlock(block).valid).toBe(Validity.Yes)
+      const verification = await captain.chain.verifier.verifyBlock(block)
+      expect(verification.valid).toBe(Validity.Yes)
     })
 
-    it("doesn't validate a block with an invalid header", () => {
+    it("doesn't validate a block with an invalid header", async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.header.target = new Target(0)
 
-      expect(captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
         valid: 0,
       })
     })
 
-    it("doesn't validate a block with an invalid transaction", () => {
+    it("doesn't validate a block with an invalid transaction", async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.transactions[1].isValid = false
 
-      expect(captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_PROOF,
         valid: 0,
       })
     })
 
-    it("doesn't validate a block with incorrect transaction fee", () => {
+    it("doesn't validate a block with incorrect transaction fee", async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.header.minersFee = BigInt(-1)
 
-      expect(captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
         valid: 0,
       })

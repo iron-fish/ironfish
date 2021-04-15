@@ -63,7 +63,7 @@ export class Verifier<
    * the promise if the block is not valid so the gossip router knows not to
    * forward it to other peers.
    */
-  verifyNewBlock(
+  async verifyNewBlock(
     payload: PayloadType,
   ): Promise<{ block: Block<E, H, T, SE, SH, ST>; serializedBlock: SerializedBlock<SH, ST> }> {
     if (!isNewBlockPayload<SH, ST>(payload)) {
@@ -76,7 +76,7 @@ export class Verifier<
       return Promise.reject('Could not deserialize block')
     }
 
-    const validationResult = this.verifyBlock(block)
+    const validationResult = await this.verifyBlock(block)
     if (!validationResult.valid) {
       return Promise.reject('Block is invalid')
     }
@@ -89,31 +89,33 @@ export class Verifier<
    *  *  Header is valid
    *  *  Miner's fee is transaction list fees + miner's reward
    */
-  verifyBlock(
+  async verifyBlock(
     block: Block<E, H, T, SE, SH, ST>,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
-  ): VerificationResult {
+  ): Promise<VerificationResult> {
+    // Verify the block header
     const blockHeaderValid = this.verifyBlockHeader(block.header, options)
     if (!blockHeaderValid.valid) {
       return blockHeaderValid
     }
 
+    // Verify the transactions
+    const verificationResults = await Promise.all(block.transactions.map((t) => t.verify()))
+
+    const invalidResult = verificationResults.find((f) => !f.valid)
+    if (invalidResult !== undefined) {
+      return invalidResult
+    }
+
+    // Sum the totalTransactionFees and minersFee
     let totalTransactionFees = BigInt(0)
     let minersFee = BigInt(0)
 
-    for (const transaction of block.transactions) {
-      const transactionValid = transaction.withReference(() => {
-        const transactionValid = transaction.verify()
-        if (!transactionValid.valid) {
-          return transactionValid
-        }
+    const transactionFees = await Promise.all(block.transactions.map((t) => t.transactionFee()))
 
-        const transactionFee = transaction.transactionFee()
-        if (transactionFee > 0) totalTransactionFees += transactionFee
-        if (transactionFee < 0) minersFee += transactionFee
-      })
-
-      if (transactionValid && !transactionValid.valid) return transactionValid
+    for (const transactionFee of transactionFees) {
+      if (transactionFee > 0) totalTransactionFees += transactionFee
+      if (transactionFee < 0) minersFee += transactionFee
     }
 
     // minersFee should match the block header
@@ -168,7 +170,7 @@ export class Verifier<
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  verifyNewTransaction(
+  async verifyNewTransaction(
     payload: PayloadType,
   ): Promise<{ transaction: T; serializedTransaction: ST }> {
     if (!isNewTransactionPayload<ST>(payload)) {
@@ -181,7 +183,7 @@ export class Verifier<
     } catch {
       return Promise.reject('Could not deserialize transaction')
     }
-    if (!transaction.verify().valid) {
+    if (!(await transaction.verify()).valid) {
       return Promise.reject('Transaction is invalid')
     }
     return Promise.resolve({ transaction, serializedTransaction: payload.transaction })
@@ -316,7 +318,7 @@ export class Verifier<
         return verification
       }
 
-      verification = this.verifyBlock(block)
+      verification = await this.verifyBlock(block)
       if (verification.valid == Validity.No) {
         return verification
       }

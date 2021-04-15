@@ -20,6 +20,7 @@ import {
   WasmNoteEncryptedHash,
 } from '.'
 import { makeDb, makeDbName } from '../captain/testUtilities'
+import { WorkerPool } from '../workerPool'
 
 async function makeWasmStrategyTree({
   depth,
@@ -75,7 +76,7 @@ describe('Demonstrates async transaction', () => {
           new IronfishNote(Buffer.from(minerNote.serialize())),
         ),
       ).toBe('')
-      minerTransaction = await transaction.postMinersFee()
+      minerTransaction = await transaction.postMinersFee(new WorkerPool())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
     })
@@ -122,7 +123,12 @@ describe('Demonstrates async transaction', () => {
     })
 
     it('Can post the transaction', async () => {
-      publicTransaction = await simpleTransaction.post(spenderKey.spending_key, null, BigInt(2))
+      publicTransaction = await simpleTransaction.post(
+        spenderKey.spending_key,
+        null,
+        BigInt(2),
+        new WorkerPool(),
+      )
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -201,6 +207,7 @@ describe('Demonstrates async transaction', () => {
         receiverKey.spending_key,
         null,
         BigInt(1),
+        new WorkerPool(),
       )
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()

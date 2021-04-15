@@ -35,6 +35,7 @@ import {
 export { Transaction, Spend } from './transaction'
 export { default as Strategy } from './strategy'
 import Strategy from './strategy'
+import { WorkerPool } from '../workerPool'
 /**
  * Implementation of the IronFish strategy that calls into sapling via Wasm
  * to encode notes in zero-knowledge proofs.
@@ -250,11 +251,14 @@ export class IronfishNoteEncrypted {
 export class IronfishTransaction
   implements Transaction<IronfishNoteEncrypted, WasmNoteEncryptedHash> {
   private readonly wasmTransactionPostedSerialized: Buffer
+  private readonly workerPool: WorkerPool
+
   private wasmTransactionPosted: WasmTransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(wasmTransactionPostedSerialized: Buffer) {
+  constructor(wasmTransactionPostedSerialized: Buffer, workerPool: WorkerPool) {
     this.wasmTransactionPostedSerialized = wasmTransactionPostedSerialized
+    this.workerPool = workerPool
   }
 
   serialize(): Buffer {
@@ -289,13 +293,11 @@ export class IronfishTransaction
     }
   }
 
-  verify(): VerificationResult {
-    return this.withReference((t) => {
-      const result = t.verify()
-      return result
-        ? { valid: Validity.Yes }
-        : { valid: Validity.No, reason: VerificationResultReason.ERROR }
-    })
+  async verify(): Promise<VerificationResult> {
+    const result = await this.workerPool.verify(this)
+    return result
+      ? { valid: Validity.Yes }
+      : { valid: Validity.No, reason: VerificationResultReason.ERROR }
   }
 
   notesLength(): number {
@@ -340,8 +342,8 @@ export class IronfishTransaction
     }
   }
 
-  transactionFee(): bigint {
-    return this.withReference((t) => BigInt(t.transactionFee))
+  transactionFee(): Promise<bigint> {
+    return this.workerPool.transactionFee(this)
   }
 
   transactionSignature(): Buffer {
@@ -367,6 +369,8 @@ export type SerializedIronfishBlock = SerializedBlock<
  * Serializer and equality checker for Transaction wrappers.
  */
 export class TransactionSerde implements Serde<IronfishTransaction, SerializedTransaction> {
+  constructor(private readonly workerPool: WorkerPool) {}
+
   equals(): boolean {
     throw new Error(`Not implemented`)
   }
@@ -376,7 +380,7 @@ export class TransactionSerde implements Serde<IronfishTransaction, SerializedTr
   }
 
   deserialize(data: SerializedTransaction): IronfishTransaction {
-    return new IronfishTransaction(data)
+    return new IronfishTransaction(data, this.workerPool)
   }
 }
 
@@ -407,13 +411,15 @@ export class IronfishStrategy
   >
   private _verifierClass: typeof IronfishVerifier
   private miningRewardCachedByYear: Map<number, number>
+  private readonly workerPool: WorkerPool
 
-  constructor(verifierClass: typeof IronfishVerifier | null = null) {
+  constructor(workerPool: WorkerPool, verifierClass: typeof IronfishVerifier | null = null) {
     this._noteHasher = new NoteHasher()
     this._nullifierHasher = new NullifierHasher()
     this._blockSerde = new BlockSerde(this)
     this._verifierClass = verifierClass || Verifier
     this.miningRewardCachedByYear = new Map<number, number>()
+    this.workerPool = workerPool
   }
 
   noteHasher(): NoteHasher {
@@ -425,7 +431,7 @@ export class IronfishStrategy
   }
 
   transactionSerde(): TransactionSerde {
-    return new TransactionSerde()
+    return new TransactionSerde(this.workerPool)
   }
 
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
@@ -487,7 +493,10 @@ export class IronfishStrategy
 
     await transaction.receive(minerKey, new IronfishNote(serializedNote))
 
-    return new IronfishTransaction(Buffer.from((await transaction.postMinersFee()).serialize()))
+    return new IronfishTransaction(
+      Buffer.from((await transaction.postMinersFee(this.workerPool)).serialize()),
+      this.workerPool,
+    )
   }
 }
 

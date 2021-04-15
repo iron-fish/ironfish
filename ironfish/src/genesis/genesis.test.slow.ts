@@ -8,6 +8,7 @@ import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'
 import { makeGenesisBlock } from './makeGenesisBlock'
 import { IronfishStrategy } from '../strategy'
+import { WorkerPool } from '../workerPool'
 import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { createNodeTest } from '../testUtilities'
@@ -30,8 +31,9 @@ describe('Genesis block test', () => {
 
   it('Can start a chain with the existing genesis block', async () => {
     const db = makeDb()
-    const strategy = new IronfishStrategy()
-    const captain = await Captain.new(db, strategy)
+    const workerPool = new WorkerPool()
+    const strategy = new IronfishStrategy(workerPool)
+    const captain = await Captain.new(db, workerPool, strategy)
     await db.open()
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>

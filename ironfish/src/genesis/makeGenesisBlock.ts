@@ -59,6 +59,7 @@ export async function makeGenesisBlock(
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new IronfishTransaction(
     Buffer.from(initialTransaction.post_miners_fee().serialize()),
+    captain.workerPool,
   )
   transactionList.push(postedInitialTransaction)
 
@@ -103,6 +104,7 @@ export async function makeGenesisBlock(
   logger.info('  Posting the transaction...')
   const postedTransaction = new IronfishTransaction(
     Buffer.from(transaction.post(genesisKey.spending_key, undefined, BigInt(0)).serialize()),
+    captain.workerPool,
   )
   transactionList.push(postedTransaction)
 
@@ -125,6 +127,7 @@ export async function makeGenesisBlock(
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new IronfishTransaction(
     Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
+    captain.workerPool,
   )
 
   // Create the block. We expect this to add notes and nullifiers on the block

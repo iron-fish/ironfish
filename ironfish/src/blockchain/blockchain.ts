@@ -1496,7 +1496,7 @@ export class Blockchain<
           target,
           0,
           timestamp,
-          minersFee.transactionFee(),
+          await minersFee.transactionFee(),
           graffiti,
         )
 
@@ -1504,7 +1504,7 @@ export class Blockchain<
         if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
           // since we're creating a block that hasn't been mined yet, don't
           // verify target because it'll always fail target check here
-          const verification = this.verifier.verifyBlock(block, { verifyTarget: false })
+          const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
 
           if (verification.valid !== Validity.Yes) {
             throw new Error(verification.reason)

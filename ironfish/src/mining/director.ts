@@ -270,14 +270,20 @@ export class MiningDirector<
     }
 
     const blockTransactions = []
-    let totalTransactionFees = BigInt(0)
 
+    // Fetch all transactions for the block
     for await (const transaction of this.memPool.get()) {
       if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) break
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockTransactions.push(transaction)
-      totalTransactionFees += transaction.transactionFee()
+    }
+
+    // Sum the transaction fees
+    let totalTransactionFees = BigInt(0)
+    const transactionFees = await Promise.all(blockTransactions.map((t) => t.transactionFee()))
+    for (const transactionFee of transactionFees) {
+      totalTransactionFees += transactionFee
     }
 
     const blockHeader = await this.captain.chain.getBlockHeader(newChainHead)
@@ -353,7 +359,7 @@ export class MiningDirector<
    *
    * @param randomness The randomness to be set for the new block
    */
-  successfullyMined(randomness: number, miningRequestId: number): void {
+  async successfullyMined(randomness: number, miningRequestId: number): Promise<void> {
     const block = this.recentBlocks.get(miningRequestId)
     if (!block) {
       this.logger.debug(
@@ -363,7 +369,7 @@ export class MiningDirector<
     }
 
     block.header.randomness = randomness
-    const validation = this.captain.chain.verifier.verifyBlock(block)
+    const validation = await this.captain.chain.verifier.verifyBlock(block)
     if (!validation.valid) {
       this.logger.warn('Discarding invalid block', validation.reason)
       return
