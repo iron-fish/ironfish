@@ -2,26 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Blockchain, { AddBlockResult } from '../blockchain'
-import Block, { BlockSerde, SerializedBlock } from '../blockchain/block'
-import { BlockHash } from '../blockchain/blockheader'
-import { Transaction } from '../strategy/transaction'
-import { BlockRequest } from '../network/messages'
+import Blockchain, { AddBlockResult } from './blockchain'
+import Block, { BlockSerde, SerializedBlock } from './blockchain/block'
+import { BlockHash } from './blockchain/blockheader'
+import { Transaction } from './strategy/transaction'
+import { BlockRequest } from './network/messages'
 import {
   CannotSatisfyRequestError,
   Identity,
   IncomingPeerMessage,
   MessagePayload,
+  PeerNetwork,
   RPC_TIMEOUT_MILLIS,
-} from '../network'
-import Serde, { BufferSerde, JsonSerializable } from '../serde'
-import { MetricsMonitor, Meter } from '../metrics'
-import { Captain } from './captain'
-import { BlocksResponse } from '../network/messages'
-import { Logger } from '../logger'
+} from './network'
+import Serde, { BufferSerde, JsonSerializable } from './serde'
+import { MetricsMonitor, Meter } from './metrics'
+import { BlocksResponse } from './network/messages'
+import { Logger } from './logger'
 import LeastRecentlyUsed from 'lru-cache'
-import { ErrorUtils } from '../utils'
-import { Assert } from './../assert'
+import { ErrorUtils } from './utils'
+import { Assert } from './assert'
+import { Strategy } from './strategy'
 
 export const MAX_MESSAGE_SIZE = 500000 // 0.5 MB
 export const MAX_BLOCKS_PER_MESSAGE = 1
@@ -187,21 +188,25 @@ export class BlockSyncer<
   blocksForProcessing: BlockToProcess<E, H, T, SE, SH, ST>[]
 
   logger: Logger
+  peerNetwork: PeerNetwork
 
-  /**
-   * construct a new BlockSyncer
-   *
-   * @param captain Reference to the Captain object, which holds
-   * the AnchorChain that lets us interact with the local chain.
-   */
-  constructor(readonly captain: Captain<E, H, T, SE, SH, ST>, logger: Logger) {
+  constructor(options: {
+    logger: Logger
+    metrics: MetricsMonitor
+    chain: Blockchain<E, H, T, SE, SH, ST>
+    strategy: Strategy<E, H, T, SE, SH, ST>
+    peerNetwork: PeerNetwork
+  }) {
+    this.metrics = options.metrics
+    this.chain = options.chain
+    this.logger = options.logger
+    this.peerNetwork = options.peerNetwork
+
     this.hashSerde = new BufferSerde(32)
-    this.blockSerde = new BlockSerde(captain.strategy)
-    this.metrics = captain.metrics
-    this.chain = this.captain.chain
+    this.blockSerde = new BlockSerde(options.strategy)
+
     this.blockSyncPromise = Promise.resolve()
     this.blockRequestPromise = Promise.resolve()
-    this.logger = logger
     this.recentBlocks = new LeastRecentlyUsed(500)
     this.blocksForProcessing = []
 
@@ -224,6 +229,7 @@ export class BlockSyncer<
 
     const heaviestHead = await this.chain.getHeaviestHead()
     Assert.isNotNull(heaviestHead)
+
     this.dispatch('REQUESTING', {
       request: { hash: heaviestHead.hash, nextBlockDirection: true },
     })
@@ -528,7 +534,8 @@ export class BlockSyncer<
       }
 
       this.blockRequests.set(key, request)
-      this.captain.requestBlocks(
+
+      this.peerNetwork.requestBlocks(
         originalRequest.hash,
         !!originalRequest.nextBlockDirection,
         originalRequest.fromPeer,

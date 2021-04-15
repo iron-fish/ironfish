@@ -24,6 +24,11 @@ export function mockNode(): any {
 export function mockCaptain(): any {
   return {
     onNewBlock: mockEvent(),
-    onRequestBlocks: mockEvent(),
+  }
+}
+
+export function mockPeerNetwork(): any {
+  return {
+    requestBlocks: jest.fn(),
   }
 }

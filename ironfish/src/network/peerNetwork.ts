@@ -51,8 +51,7 @@ import {
   SerializedWasmNoteEncrypted,
 } from '../strategy'
 import { IronfishNode } from '../node'
-import { NetworkBlockType } from '../captain/blockSyncer'
-import { BlockHash } from '../blockchain'
+import { NetworkBlockType } from '../blockSyncer'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -227,40 +226,39 @@ export class PeerNetwork {
         payload: { transaction: serializedTransaction },
       })
     })
+  }
 
-    this.captain.onRequestBlocks.on(
-      (hash: BlockHash, nextBlockDirection: boolean, peer?: Identity) => {
-        const serializedHash = this.captain.chain.blockHashSerde.serialize(hash)
+  /** Used to request a block by header hash or sequence */
+  requestBlocks(hash: Buffer, nextBlockDirection: boolean, peer?: Identity): void {
+    const serializedHash = this.captain.chain.blockHashSerde.serialize(hash)
 
-        const request: BlockRequest = {
-          type: NodeMessageType.Blocks,
-          payload: {
-            hash: serializedHash,
-            nextBlockDirection: nextBlockDirection,
-          },
-        }
-
-        this.request(request, peer)
-          .then((c) => {
-            if (
-              !c ||
-              !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
-            ) {
-              throw new Error('Invalid format')
-            }
-            this.onBlockResponses(
-              {
-                ...c,
-                message: c.message,
-              },
-              request,
-            )
-          })
-          .catch((err) => {
-            this.captain.blockSyncer.handleBlockRequestError(request, err)
-          })
+    const request: BlockRequest = {
+      type: NodeMessageType.Blocks,
+      payload: {
+        hash: serializedHash,
+        nextBlockDirection: nextBlockDirection,
       },
-    )
+    }
+
+    this.request(request, peer)
+      .then((c) => {
+        if (
+          !c ||
+          !isBlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>(c.message)
+        ) {
+          throw new Error('Invalid format')
+        }
+        this.onBlockResponses(
+          {
+            ...c,
+            message: c.message,
+          },
+          request,
+        )
+      })
+      .catch((err) => {
+        this.node.syncer.handleBlockRequestError(request, err)
+      })
   }
 
   start(): void {
@@ -557,20 +555,20 @@ export class PeerNetwork {
   }
 
   private onBlockRequest(message: IncomingPeerMessage<BlockRequestMessage>) {
-    return this.captain.blockSyncer.handleBlockRequest(message)
+    return this.node.syncer.handleBlockRequest(message)
   }
 
   private onBlockResponses(
     message: IncomingPeerMessage<BlocksResponseMessage>,
     originalRequest: BlockRequest,
   ) {
-    return this.captain.blockSyncer.handleBlockResponse(message, originalRequest)
+    return this.node.syncer.handleBlockResponse(message, originalRequest)
   }
 
   private onNewBlock(message: IncomingPeerMessage<NewBlockMessage>) {
     const block = message.message.payload.block
     const peer = message.peerIdentity
-    return this.captain.blockSyncer.addBlockToProcess(block, peer, NetworkBlockType.GOSSIP)
+    return this.node.syncer.addBlockToProcess(block, peer, NetworkBlockType.GOSSIP)
   }
 
   private async onNewTransaction(
