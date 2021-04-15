@@ -21,6 +21,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { IDatabaseTransaction } from '../storage'
 import { BufferMap } from 'buffer-map'
+import { WorkerPool } from '../workerPool'
 
 const REBROADCAST_SEQUENCE_DELTA = BigInt(5)
 
@@ -57,6 +58,7 @@ export class Accounts {
   protected readonly accounts = new Map<string, Account>()
   readonly database: AccountsDB
   protected readonly logger: Logger
+  protected readonly workerPool: WorkerPool
 
   protected defaultAccount: string | null = null
   protected headHash: string | null = null
@@ -64,14 +66,17 @@ export class Accounts {
   protected eventLoopTimeout: SetTimeoutToken | null = null
 
   constructor({
+    workerPool,
     database,
     logger = createRootLogger(),
   }: {
+    workerPool: WorkerPool
     database: AccountsDB
     logger?: Logger
   }) {
     this.logger = logger.withTag('accounts')
     this.database = database
+    this.workerPool = workerPool
   }
 
   async updateHead(node: IronfishNode): Promise<void> {
@@ -682,10 +687,10 @@ export class Accounts {
     const transactionPosted = new IronfishTransaction(
       Buffer.from(
         (
-          await transaction.post(sender.spendingKey, null, transactionFee, captain.workerPool)
+          await transaction.post(sender.spendingKey, null, transactionFee, this.workerPool)
         ).serialize(),
       ),
-      captain.workerPool,
+      this.workerPool,
     )
 
     return transactionPosted

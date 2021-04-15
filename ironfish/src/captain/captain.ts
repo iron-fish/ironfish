@@ -13,7 +13,6 @@ import { JsonSerializable } from '../serde'
 
 import { IDatabase } from '../storage'
 import Blockchain from '../blockchain'
-import { WorkerPool } from '../workerPool'
 
 export class Captain<
   E,
@@ -26,13 +25,11 @@ export class Captain<
   strategy: Strategy<E, H, T, SE, SH, ST>
   chain: Blockchain<E, H, T, SE, SH, ST>
   blockSerde: BlockSerde<E, H, T, SE, SH, ST>
-  workerPool: WorkerPool
   logger: Logger
   metrics: MetricsMonitor
 
   private constructor(
     chain: Blockchain<E, H, T, SE, SH, ST>,
-    workerPool: WorkerPool,
     logger: Logger,
     metrics: MetricsMonitor,
   ) {
@@ -40,7 +37,6 @@ export class Captain<
     this.strategy = chain.strategy
     this.chain = chain
     this.blockSerde = chain.strategy.blockSerde
-    this.workerPool = workerPool
     this.logger = logger
   }
 
@@ -53,7 +49,6 @@ export class Captain<
     ST
   >(
     db: IDatabase,
-    workerPool: WorkerPool,
     strategy: Strategy<E, H, T, SE, SH, ST>,
     chain?: Blockchain<E, H, T, SE, SH, ST>,
     logger: Logger = createRootLogger(),
@@ -62,6 +57,6 @@ export class Captain<
     logger = logger.withTag('captain')
     metrics = metrics || new MetricsMonitor(logger)
     chain = chain || (await Blockchain.new(db, strategy, logger, metrics))
-    return new Captain(chain, workerPool, logger, metrics)
+    return new Captain(chain, logger, metrics)
   }
 }

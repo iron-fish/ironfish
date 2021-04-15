@@ -21,7 +21,6 @@ import {
 import { SerializedTestTransaction, TestStrategy, TestTransaction } from '../strategy'
 import { makeDbName } from './storage'
 import { MemPool } from '../../../memPool'
-import { WorkerPool } from '../../../workerPool'
 
 export type TestCaptain = Captain<
   string,
@@ -75,11 +74,10 @@ export type TestBlock = Block<
 export async function makeInitialTestCaptain(
   strategy: TestStrategy,
   dbPrefix: string,
-  workerPool: WorkerPool = new WorkerPool(),
 ): Promise<TestCaptain> {
   const db = makeDb(dbPrefix)
   const chain = await makeChainInitial(strategy, db)
-  return await Captain.new(db, workerPool, strategy, chain)
+  return await Captain.new(db, strategy, chain)
 }
 
 /**
@@ -89,12 +87,11 @@ export async function makeInitialTestCaptain(
 export async function makeCaptain(
   strategy: TestStrategy,
   dbPrefix?: string,
-  workerPool: WorkerPool = new WorkerPool(),
 ): Promise<TestCaptain> {
   if (!dbPrefix) dbPrefix = makeDbName()
   const db = makeDb(dbPrefix)
   const chain = await makeChain(strategy, db)
-  return await Captain.new(db, workerPool, strategy, chain)
+  return await Captain.new(db, strategy, chain)
 }
 
 /**
@@ -107,7 +104,6 @@ export async function makeCaptainSyncable(
   strategy: TestStrategy,
   dbPrefix?: string,
   addExtraBlocks = true,
-  workerPool = new WorkerPool(),
 ): Promise<TestCaptain> {
   if (!dbPrefix) dbPrefix = makeDbName()
 
@@ -123,7 +119,7 @@ export async function makeCaptainSyncable(
   }
   await dbFull.close()
 
-  return await Captain.new(db, workerPool, strategy, chain)
+  return await Captain.new(db, strategy, chain)
 }
 
 /**
