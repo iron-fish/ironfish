@@ -192,7 +192,7 @@ export class IronfishNode {
     const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
     const captain = await Captain.new(chaindb, strategy, chain, undefined, metrics)
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
-    const accounts = new Accounts({ database: accountDB, workerPool: workerPool })
+    const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
 
     const mining = new MiningDirector({
       chain: chain,
@@ -263,7 +263,7 @@ export class IronfishNode {
       this.metrics.start()
     }
 
-    this.accounts.start(this)
+    this.accounts.start()
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {

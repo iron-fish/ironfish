@@ -35,7 +35,7 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       if (request.data.reset) {
         await node.accounts.reset()
       }
-      void node.accounts.scanTransactions(node.chain)
+      void node.accounts.scanTransactions()
       scan = node.accounts.scan
     }
 

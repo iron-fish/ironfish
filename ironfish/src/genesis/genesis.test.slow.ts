@@ -99,7 +99,7 @@ describe('Genesis block test', () => {
     expect(addBlock.isAdded).toBeTruthy()
 
     // TODO: this should happen automatically in addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
 
     // Check that the balance is what's expected
     expect(node.accounts.getBalance(account)).toEqual({
@@ -137,8 +137,8 @@ describe('Genesis block test', () => {
     )
 
     await newNode.accounts.importAccount(account)
-    await newNode.accounts.updateHead(newNode)
-    await newNode.accounts.scanTransactions(newNode.captain.chain)
+    await newNode.accounts.updateHead()
+    await newNode.accounts.scanTransactions()
 
     expect(newNode.accounts.getBalance(account)).toEqual({
       confirmedBalance: amountBigint,
