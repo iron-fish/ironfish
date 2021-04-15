@@ -7,6 +7,7 @@ import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
 import { Logger } from '../logger'
 import type { Account } from '../account'
 import { IronfishTransaction, IronfishCaptain, IronfishBlock } from '../strategy'
+import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
   memo: string
@@ -26,6 +27,7 @@ export async function makeGenesisBlock(
   captain: IronfishCaptain,
   info: GenesisBlockInfo,
   account: Account,
+  workerPool: WorkerPool,
   logger: Logger,
 ): Promise<{ block: IronfishBlock }> {
   logger = logger.withTag('makeGenesisBlock')
@@ -59,7 +61,7 @@ export async function makeGenesisBlock(
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new IronfishTransaction(
     Buffer.from(initialTransaction.post_miners_fee().serialize()),
-    captain.workerPool,
+    workerPool,
   )
   transactionList.push(postedInitialTransaction)
 
@@ -104,7 +106,7 @@ export async function makeGenesisBlock(
   logger.info('  Posting the transaction...')
   const postedTransaction = new IronfishTransaction(
     Buffer.from(transaction.post(genesisKey.spending_key, undefined, BigInt(0)).serialize()),
-    captain.workerPool,
+    workerPool,
   )
   transactionList.push(postedTransaction)
 
@@ -127,7 +129,7 @@ export async function makeGenesisBlock(
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new IronfishTransaction(
     Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
-    captain.workerPool,
+    workerPool,
   )
 
   // Create the block. We expect this to add notes and nullifiers on the block

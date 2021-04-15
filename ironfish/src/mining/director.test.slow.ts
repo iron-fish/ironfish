@@ -27,7 +27,6 @@ import {
   TestMemPool,
 } from '../captain/testUtilities'
 import { MemPool } from '../memPool'
-import { WorkerPool } from '../workerPool'
 import { Assert } from '../assert'
 
 // Number of notes and nullifiers on the initial chain created by makeCaptain
@@ -66,7 +65,7 @@ describe('Mining director', () => {
   beforeEach(async () => {
     const db = makeDb(makeDbName())
     const chain = await makeChainGenesis(strategy, db)
-    captain = await Captain.new(db, new WorkerPool(), strategy, chain)
+    captain = await Captain.new(db, strategy, chain)
 
     isAddBlockValidSpy = jest
       .spyOn(captain.chain.verifier, 'isAddBlockValid')

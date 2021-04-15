@@ -33,7 +33,7 @@ describe('Genesis block test', () => {
     const db = makeDb()
     const workerPool = new WorkerPool()
     const strategy = new IronfishStrategy(workerPool)
-    const captain = await Captain.new(db, workerPool, strategy)
+    const captain = await Captain.new(db, strategy)
     await db.open()
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
@@ -75,7 +75,13 @@ describe('Genesis block test', () => {
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(captain, info, account, captain.logger)
+    const { block } = await makeGenesisBlock(
+      captain,
+      info,
+      account,
+      node.workerPool,
+      captain.logger,
+    )
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)

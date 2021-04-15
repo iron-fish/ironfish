@@ -71,7 +71,13 @@ export default class GenesisBlockCommand extends IronfishCommand {
     }
 
     this.log('\nBuilding a genesis block...')
-    const { block } = await makeGenesisBlock(node.captain, info, account, this.logger)
+    const { block } = await makeGenesisBlock(
+      node.captain,
+      info,
+      account,
+      node.workerPool,
+      this.logger,
+    )
 
     this.log(`\nGenesis Block`)
     const serialized = node.strategy._blockSerde.serialize(block)
