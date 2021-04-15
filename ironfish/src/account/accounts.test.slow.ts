@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { SerializedBlock, Target } from '../blockchain'
-import { fakeMaxTarget } from '../captain/testUtilities'
+import { fakeMaxTarget } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from '../genesis/genesisBlock'
 import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'

@@ -13,7 +13,7 @@ import {
   TestStrategy,
   TestTransaction,
   SerializedTestTransaction,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 import { Validity } from '../consensus/verifier'
 
 describe('Calculates valid spends', () => {

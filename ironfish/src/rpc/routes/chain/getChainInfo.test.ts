@@ -5,7 +5,7 @@
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RangeHasher } from '../../../merkletree'
 
-import { blockHash, makeFakeBlock, TestStrategy } from '../../../captain/testUtilities'
+import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
 import { GetChainInfoResponse } from './getChainInfo'
 
 describe('Route chain.getChainInfo', () => {

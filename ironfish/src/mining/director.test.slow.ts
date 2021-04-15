@@ -25,7 +25,7 @@ import {
   makeChainGenesis,
   TestMemPool,
   TestBlockchain,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 import { MemPool } from '../memPool'
 import { Assert } from '../assert'
 

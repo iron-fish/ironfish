@@ -19,7 +19,7 @@ import {
   NoteHasher,
   WasmNoteEncryptedHash,
 } from '.'
-import { makeDb, makeDbName } from '../captain/testUtilities'
+import { makeDb, makeDbName } from '../testUtilities/fake'
 import { WorkerPool } from '../workerPool'
 
 async function makeWasmStrategyTree({

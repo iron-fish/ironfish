@@ -5,7 +5,7 @@
 import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
 import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
-import { makeBlockAfter, addBlocksShuffle } from '../captain/testUtilities'
+import { makeBlockAfter, addBlocksShuffle } from '../testUtilities/fake'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()

@@ -20,7 +20,7 @@ import {
   NoteHasher,
   WasmNoteEncryptedHash,
 } from '.'
-import { makeDb, makeDbName } from '../captain/testUtilities'
+import { makeDb, makeDbName } from '../testUtilities/fake'
 import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
 import { WorkerPool } from '../workerPool'
 import { createNodeTest } from '../testUtilities'
