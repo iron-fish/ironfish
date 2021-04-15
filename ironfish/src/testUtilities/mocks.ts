@@ -30,10 +30,6 @@ export function mockNode(): any {
   }
 }
 
-export function mockCaptain(): any {
-  return {}
-}
-
 export function mockPeerNetwork(): any {
   return {
     requestBlocks: jest.fn(),

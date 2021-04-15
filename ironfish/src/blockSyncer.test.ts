@@ -9,18 +9,17 @@ import { Assert } from './assert'
 import { Direction, IncomingPeerMessage } from './network'
 import { BufferSerde } from './serde'
 import {
-  makeCaptainSyncable,
-  makeCaptain,
+  makeChainSyncable,
   response,
   request,
   TestBlockSyncer,
   blockHash,
   makeFakeBlock,
-  makeChain,
+  makeChainFull,
   SerializedTestTransaction,
   TestStrategy,
-  TestCaptain,
   TestBlockchain,
+  makeChain,
 } from './testUtilities/fake'
 import { StringUtils } from './utils'
 import { BlockRequest, BlocksResponse, NodeMessageType } from './network/messages'
@@ -42,13 +41,13 @@ describe('BlockSyncer', () => {
 
     beforeEach(async () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
-      const captain = await makeCaptain(strategy)
+      const chain = await makeChainFull(strategy)
 
       syncer = new BlockSyncer({
         logger: createRootLogger(),
-        chain: captain.chain,
-        strategy: captain.chain.strategy,
-        metrics: captain.chain.metrics,
+        chain: chain,
+        strategy: chain.strategy,
+        metrics: chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
     })
@@ -105,13 +104,13 @@ describe('BlockSyncer', () => {
 
     beforeEach(async () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
-      const captain = await makeCaptainSyncable(strategy)
+      const chain = await makeChainSyncable(strategy)
 
       syncer = new BlockSyncer({
         logger: createRootLogger(),
-        chain: captain.chain,
-        strategy: captain.chain.strategy,
-        metrics: captain.chain.metrics,
+        chain: chain,
+        strategy: chain.strategy,
+        metrics: chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
 
@@ -202,27 +201,27 @@ describe('BlockSyncer', () => {
     let databasePrefix: string
     let syncedSyncerDBPrefix: string
     let targetSpy: jest.SpyInstance
-    let captain: TestCaptain
+    let chain: TestBlockchain
     let fullChain: TestBlockchain
     let requestBlockSpy: jest.SpyInstance
 
-    const createCaptain = async (synced: 'SYNCED' | 'EMPTY' | 'OUT OF SYNC') => {
+    const createChain = async (synced: 'SYNCED' | 'EMPTY' | 'OUT OF SYNC') => {
       databasePrefix = `optimistic_sync_test_db_${dbnum++}`
-      fullChain = await makeChain(strategy, `${databasePrefix}-fullchain`)
+      fullChain = await makeChainFull(strategy, `${databasePrefix}-fullchain`)
 
       if (synced === 'SYNCED') {
-        captain = await makeCaptain(strategy, databasePrefix)
+        chain = await makeChain(strategy, databasePrefix)
       } else if (synced === 'EMPTY') {
-        captain = await makeCaptainSyncable(strategy, databasePrefix, false)
+        chain = await makeChainSyncable(strategy, databasePrefix, false)
       } else if (synced === 'OUT OF SYNC') {
-        captain = await makeCaptainSyncable(strategy, databasePrefix, true)
+        chain = await makeChainSyncable(strategy, databasePrefix, true)
       }
 
       syncer = new BlockSyncer({
         logger: createRootLogger(),
-        chain: captain.chain,
-        strategy: captain.chain.strategy,
-        metrics: captain.chain.metrics,
+        chain: chain,
+        strategy: chain.strategy,
+        metrics: chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
 
@@ -267,13 +266,13 @@ describe('BlockSyncer', () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
 
       syncedSyncerDBPrefix = `synced_syncer_test_db_${dbnum++}`
-      const captain = await makeCaptain(strategy, syncedSyncerDBPrefix)
+      const chain = await makeChainFull(strategy, syncedSyncerDBPrefix)
 
       syncedSyncer = new BlockSyncer({
         logger: createRootLogger(),
-        chain: captain.chain,
-        strategy: captain.chain.strategy,
-        metrics: captain.chain.metrics,
+        chain: chain,
+        strategy: chain.strategy,
+        metrics: chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
     })
@@ -284,7 +283,7 @@ describe('BlockSyncer', () => {
     })
 
     it('makes only latest call when run on a fully synced chain', async () => {
-      await createCaptain('SYNCED')
+      await createChain('SYNCED')
 
       await syncer.start()
       await syncer.shutdown()
@@ -293,7 +292,7 @@ describe('BlockSyncer', () => {
     })
 
     it('fully syncs a chain from scratch when chain is empty', async () => {
-      await createCaptain('EMPTY')
+      await createChain('EMPTY')
 
       await syncer.start()
 
@@ -306,11 +305,11 @@ describe('BlockSyncer', () => {
       expect(requestBlockSpy).toBeCalledTimes(9)
 
       await syncer['blockSyncPromise']
-      await areChainHeadsEqual(fullChain, captain.chain)
+      await areChainHeadsEqual(fullChain, chain)
     })
 
     it('syncs missing blocks when chain is out of sync', async () => {
-      await createCaptain('OUT OF SYNC')
+      await createChain('OUT OF SYNC')
 
       await syncer.start()
 
@@ -322,7 +321,7 @@ describe('BlockSyncer', () => {
 
       expect(requestBlockSpy).toBeCalledTimes(7)
 
-      await areChainHeadsEqual(fullChain, captain.chain)
+      await areChainHeadsEqual(fullChain, chain)
     })
   })
 })
