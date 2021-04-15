@@ -92,9 +92,6 @@ describe('start command', () => {
       config: config,
       internal: internal,
       chain: chain,
-      captain: {
-        chain: chain,
-      },
     }
 
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({

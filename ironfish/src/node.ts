@@ -298,8 +298,8 @@ export class IronfishNode {
 
   async seed(): Promise<IronfishBlock> {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = this.strategy._blockSerde.deserialize(serialized)
-    const result = await this.captain.chain.addBlock(block)
+    const block = this.strategy.blockSerde.deserialize(serialized)
+    const result = await this.chain.addBlock(block)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     return block
   }
@@ -307,7 +307,6 @@ export class IronfishNode {
   onPeerNetworkReady(): void {
     void this.syncer.start()
 
-    // this.captain.blockSyncer.treesSynced &&
     if (this.config.get('enableMiningDirector')) {
       void this.miningDirector.start()
     }

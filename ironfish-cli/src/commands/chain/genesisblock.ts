@@ -72,7 +72,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
     this.log('\nBuilding a genesis block...')
     const { block } = await makeGenesisBlock(
-      node.captain,
+      node.chain,
       info,
       account,
       node.workerPool,
