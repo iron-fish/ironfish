@@ -8,7 +8,7 @@ import {
   blockHash,
   makeBlockWithTransaction,
   makeBlockAfter,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { useAccountFixture } from '../testUtilities/fixtures'
 import { SerializedIronfishBlock } from '../strategy'

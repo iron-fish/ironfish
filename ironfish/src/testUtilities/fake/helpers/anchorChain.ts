@@ -19,7 +19,7 @@ import { Assert } from '../../../assert'
 import { Account } from '../../../account'
 import { IronfishBlock, IronfishBlockchain, IronfishBlockHeader } from '../../../strategy'
 import { IronfishNode } from '../../../node'
-import { useBlockFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { useBlockFixture, useMinerBlockFixture } from '../../fixtures'
 
 /**
  * Type of a test anchorchain, encompassing the various generic parameters.

@@ -14,7 +14,7 @@ import {
   blockHash,
   TestBlockHeader,
   fakeMaxTarget,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 import { Validity, VerificationResultReason } from './verifier'
 import { BlockHeader, Target } from '../blockchain'
 

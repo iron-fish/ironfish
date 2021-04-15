@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import Blockchain, { SerializedBlock, Target } from '../blockchain'
-import { makeDb, fakeMaxTarget } from '../captain/testUtilities'
+import { makeDb, fakeMaxTarget } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'
 import { makeGenesisBlock } from './makeGenesisBlock'

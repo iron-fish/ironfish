@@ -7,7 +7,7 @@ import { default as Block } from '../../../blockchain/block'
 import BlockHeader from '../../../blockchain/blockheader'
 import { BlockSyncer } from '../../../blockSyncer'
 import { BlocksResponse } from '../../../network/messages'
-import { Captain } from '../../captain'
+import { Captain } from '../../../captain/captain'
 import { BlockRequest, NodeMessageType } from '../../../network/messages'
 
 import {

@@ -8,7 +8,7 @@ import {
   makeNullifier,
   TestStrategy,
   TestBlockchain,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 import { Target } from './target'
 
 describe('Note adding', () => {

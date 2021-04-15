@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import BlockHeader, { BlockHeaderSerde } from './blockheader'
-import { TestStrategy } from '../captain/testUtilities'
+import { TestStrategy } from '../testUtilities/fake'
 import { Target } from './target'
 
 describe('Block Header Serde', () => {

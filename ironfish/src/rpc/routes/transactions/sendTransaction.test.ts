@@ -5,7 +5,7 @@ jest.mock('ws')
 
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RangeHasher } from '../../../merkletree'
-import { blockHash, makeFakeBlock, TestStrategy } from '../../../captain/testUtilities'
+import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
 import { ResponseError } from '../../adapters'
 
 describe('Transactions sendTransaction', () => {

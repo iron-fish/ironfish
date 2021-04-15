@@ -21,7 +21,7 @@ import {
   TestStrategy,
   TestCaptain,
   TestBlockchain,
-} from './captain/testUtilities'
+} from './testUtilities/fake'
 import { StringUtils } from './utils'
 import { BlockRequest, BlocksResponse, NodeMessageType } from './network/messages'
 import { createRootLogger } from './logger'

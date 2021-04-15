@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import MerkleTree, { depthAtLeafCount, Side } from './merkletree'
-import { makeDb, makeDbName, makeFullTree, makeTree } from '../captain/testUtilities'
+import { makeDb, makeDbName, makeFullTree, makeTree } from '../testUtilities/fake'
 
 describe('Merkle tree', function () {
   it('initializes database', async () => {

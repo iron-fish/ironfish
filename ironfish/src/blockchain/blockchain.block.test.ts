@@ -15,7 +15,7 @@ import {
   TestTransaction,
   makeNullifier,
   makeNextBlock,
-} from '../captain/testUtilities'
+} from '../testUtilities/fake'
 
 describe('Block matches', () => {
   const strategy = new TestStrategy(new RangeHasher())
