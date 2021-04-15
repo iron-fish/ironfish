@@ -353,11 +353,10 @@ export async function makeBlockWithTransaction(
   )
 
   await node.chain.addBlock(block1)
-  await node.accounts.updateHead(node)
+  await node.accounts.updateHead()
 
   const block2 = await useBlockFixture(node.chain, async () => {
     const transaction = await node.accounts.createTransaction(
-      node.captain,
       from,
       BigInt(1),
       BigInt(0),

@@ -119,7 +119,7 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
-    if (!(await node.captain.chain.hasGenesisBlock())) {
+    if (!(await node.chain.hasGenesisBlock())) {
       await this.addGenesisBlock(node)
     }
 

@@ -76,6 +76,10 @@ describe('start command', () => {
       },
     }
 
+    const chain = {
+      hasGenesisBlock: jest.fn().mockReturnValue(hasGenesisBlock),
+    }
+
     const node = {
       start,
       networkBridge: { attachPeerNetwork: jest.fn() },
@@ -87,11 +91,7 @@ describe('start command', () => {
       seed: seed,
       config: config,
       internal: internal,
-      captain: {
-        chain: {
-          hasGenesisBlock: jest.fn().mockReturnValue(hasGenesisBlock),
-        },
-      },
+      chain: chain,
     }
 
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({

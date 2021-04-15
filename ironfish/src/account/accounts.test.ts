@@ -23,7 +23,7 @@ describe('Accounts', () => {
     const blockA1 = await makeBlockAfter(chain, genesis)
     await chain.addBlock(blockA1)
 
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockA1.header.hash.toString('hex'))
     expect(getTransactionsSpy).toBeCalledTimes(2)
 
@@ -31,7 +31,7 @@ describe('Accounts', () => {
     const blockA2 = await makeBlockAfter(chain, blockA1)
     await chain.addBlock(blockA2)
 
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockA2.header.hash.toString('hex'))
     expect(getTransactionsSpy).toBeCalledTimes(3)
 
@@ -45,7 +45,7 @@ describe('Accounts', () => {
     await chain.addBlock(blockB2)
     await chain.addBlock(blockB3)
 
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockB3.header.hash.toString('hex'))
     expect(getTransactionsSpy).toBeCalledTimes(8)
   }, 8000)

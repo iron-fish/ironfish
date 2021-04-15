@@ -47,8 +47,8 @@ describe('BlockSyncer', () => {
       syncer = new BlockSyncer({
         logger: createRootLogger(),
         chain: captain.chain,
-        strategy: captain.strategy,
-        metrics: captain.metrics,
+        strategy: captain.chain.strategy,
+        metrics: captain.chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
     })
@@ -110,8 +110,8 @@ describe('BlockSyncer', () => {
       syncer = new BlockSyncer({
         logger: createRootLogger(),
         chain: captain.chain,
-        strategy: captain.strategy,
-        metrics: captain.metrics,
+        strategy: captain.chain.strategy,
+        metrics: captain.chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
 
@@ -221,8 +221,8 @@ describe('BlockSyncer', () => {
       syncer = new BlockSyncer({
         logger: createRootLogger(),
         chain: captain.chain,
-        strategy: captain.strategy,
-        metrics: captain.metrics,
+        strategy: captain.chain.strategy,
+        metrics: captain.chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
 
@@ -272,8 +272,8 @@ describe('BlockSyncer', () => {
       syncedSyncer = new BlockSyncer({
         logger: createRootLogger(),
         chain: captain.chain,
-        strategy: captain.strategy,
-        metrics: captain.metrics,
+        strategy: captain.chain.strategy,
+        metrics: captain.chain.metrics,
         peerNetwork: mockPeerNetwork(),
       })
     })

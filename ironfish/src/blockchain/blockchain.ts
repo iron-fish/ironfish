@@ -34,7 +34,7 @@ import {
   SchemaValue,
   StringEncoding,
 } from '../storage'
-import { Logger } from '../logger'
+import { createRootLogger, Logger } from '../logger'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../consensus'
 
 export { default as Block, BlockSerde, SerializedBlock } from './block'
@@ -181,7 +181,7 @@ export class Blockchain<
   >(
     db: IDatabase,
     strategy: Strategy<E, H, T, SE, SH, ST>,
-    logger: Logger,
+    logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
   ): Promise<Blockchain<E, H, T, SE, SH, ST>> {
     metrics = metrics || new MetricsMonitor(logger)

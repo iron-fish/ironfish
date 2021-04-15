@@ -17,7 +17,7 @@ describe('Route chain.getBlock', () => {
   })
 
   it(`should fail if block can't be found with hash`, async () => {
-    const hash = routeTest.node.captain.chain.blockHashSerde.serialize(
+    const hash = routeTest.node.chain.blockHashSerde.serialize(
       Buffer.alloc(32, 'blockhashnotfound'),
     )
 
@@ -34,7 +34,7 @@ describe('Route chain.getBlock', () => {
 
   it('responds with a block', async () => {
     const node = routeTest.node
-    const chain = routeTest.node.captain.chain
+    const chain = routeTest.node.chain
 
     await node.seed()
 
@@ -43,7 +43,7 @@ describe('Route chain.getBlock', () => {
     expect(addResult).toMatchObject({ isAdded: true })
 
     // by hash first
-    const hash = routeTest.node.captain.chain.blockHashSerde.serialize(block.header.hash)
+    const hash = routeTest.node.chain.blockHashSerde.serialize(block.header.hash)
     let response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { hash })
 
     expect(response.content).toMatchObject({

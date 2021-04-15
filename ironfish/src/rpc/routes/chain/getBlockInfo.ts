@@ -42,7 +42,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
   GetBlockInfoRequestSchema,
   async (request, node): Promise<void> => {
     const hash = Buffer.from(request.data.hash, 'hex')
-    const header = await node.captain.chain.getBlockHeader(hash)
+    const header = await node.chain.getBlockHeader(hash)
 
     if (!header) {
       throw new ValidationError(`No block with hash ${request.data.hash}`)

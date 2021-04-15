@@ -79,7 +79,7 @@ describe('Blockchain', () => {
         // Add 99 blocks from blocksA
         for (let i = 0; i < forkLength - 1; ++i) {
           const startAdd = Date.now()
-          await node.captain.chain.addBlock(blocksA[i])
+          await node.chain.addBlock(blocksA[i])
           const endAdd = Date.now()
           samplesAdd.push(endAdd - startAdd)
         }
@@ -87,7 +87,7 @@ describe('Blockchain', () => {
         // Add 99 blocks from blocksB
         for (let i = 0; i < forkLength - 1; ++i) {
           const startFork = Date.now()
-          await node.captain.chain.addBlock(blocksB[i])
+          await node.chain.addBlock(blocksB[i])
           const endFork = Date.now()
           samplesFork.push(endFork - startFork)
         }
@@ -95,7 +95,7 @@ describe('Blockchain', () => {
         // Now add the new heaviest block from blockB which causes
         // the blocks from blocksB to be removed from the trees
         const startRewind = Date.now()
-        await node.captain.chain.addBlock(blocksB[forkLength - 1])
+        await node.chain.addBlock(blocksB[forkLength - 1])
         const endRewind = Date.now()
         samplesRewind.push(endRewind - startRewind)
 
@@ -103,7 +103,7 @@ describe('Blockchain', () => {
         samplesAll.push(endAll - startAll)
 
         // Verify the head is the last block in blocksB
-        const actualHead = await node.captain.chain.getHeaviestHead()
+        const actualHead = await node.chain.getHeaviestHead()
         const expectedHead = blocksB[forkLength - 1]
         Assert.isNotNull(actualHead, 'Chain has no head')
         expect(actualHead.hash.toString('hex')).toEqual(
