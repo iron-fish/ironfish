@@ -62,7 +62,7 @@ export class NodeTest {
     const node = await sdk.node()
     const strategy = node.strategy as IronfishTestStrategy
     const captain = node.captain
-    const chain = node.captain.chain
+    const chain = node.chain
     const peerNetwork = node.peerNetwork
 
     sdk.config.setOverride('bootstrapNodes', [''])

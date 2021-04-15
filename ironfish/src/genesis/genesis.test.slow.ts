@@ -80,7 +80,7 @@ describe('Genesis block test', () => {
       info,
       account,
       node.workerPool,
-      captain.logger,
+      node.logger,
     )
 
     // Check some parameters on it to make sure they match what's expected.

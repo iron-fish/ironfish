@@ -39,7 +39,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const node = await this.sdk.node()
     await node.openDB()
 
-    if (!(await node.captain.chain.isEmpty())) {
+    if (!(await node.chain.isEmpty())) {
       this.log(
         `The database ${node.config.get(
           'databaseName',

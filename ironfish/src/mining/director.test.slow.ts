@@ -4,7 +4,6 @@
 
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { SerializedBlockHeader, Target, Nullifier } from '../blockchain'
-import { Captain } from '../captain'
 import { RangeHasher } from '../merkletree'
 import { MiningDirector } from './director'
 import { waitForEmit } from '../event'
@@ -25,6 +24,7 @@ import {
   blockHash,
   makeChainGenesis,
   TestMemPool,
+  TestBlockchain,
 } from '../captain/testUtilities'
 import { MemPool } from '../memPool'
 import { Assert } from '../assert'
@@ -48,7 +48,7 @@ function generateAccount(): Account {
 
 describe('Mining director', () => {
   const strategy = new TestStrategy(new RangeHasher())
-  let captain: TestCaptain
+  let chain: TestBlockchain
   let targetSpy: jest.SpyInstance
   let targetMeetsSpy: jest.SpyInstance
   let isAddBlockValidSpy: jest.SpyInstance
@@ -64,14 +64,11 @@ describe('Mining director', () => {
 
   beforeEach(async () => {
     const db = makeDb(makeDbName())
-    const chain = await makeChainGenesis(strategy, db)
-    captain = await Captain.new(db, strategy, chain)
+    chain = await makeChainGenesis(strategy, db)
 
-    isAddBlockValidSpy = jest
-      .spyOn(captain.chain.verifier, 'isAddBlockValid')
-      .mockResolvedValue({
-        valid: Validity.Yes,
-      })
+    isAddBlockValidSpy = jest.spyOn(chain.verifier, 'isAddBlockValid').mockResolvedValue({
+      valid: Validity.Yes,
+    })
 
     for (let i = 1; i < 8 * 5; i++) {
       await chain.notes.add(`${i}`)
@@ -86,14 +83,14 @@ describe('Mining director', () => {
     }
 
     memPool = new MemPool({
-      chain: captain.chain,
-      strategy: captain.strategy,
+      chain: chain,
+      strategy: chain.strategy,
     })
 
     director = new MiningDirector({
-      chain: captain.chain,
+      chain: chain,
       memPool: memPool,
-      strategy: captain.strategy,
+      strategy: chain.strategy,
     })
 
     director.setMinerAccount(generateAccount())
@@ -115,10 +112,10 @@ describe('Mining director', () => {
   })
 
   it('creates a new block to be mined when chain head changes', async () => {
-    const chainHead = await captain.chain.getHeaviestHead()
+    const chainHead = await chain.getHeaviestHead()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await captain.chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
     const [data] = await listenPromise
     const buffer = Buffer.from(data.bytes)
     const block = JSON.parse(buffer.toString()) as Partial<SerializedBlockHeader<string>>
@@ -142,11 +139,11 @@ describe('Mining director', () => {
         { nullifier: makeNullifier(9), commitment: '0-3', size: 4 },
       ]),
     )
-    const chainHead = await captain.chain.getHeaviestHead()
+    const chainHead = await chain.getHeaviestHead()
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await captain.chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -172,11 +169,11 @@ describe('Mining director', () => {
       ]),
     )
 
-    const chainHead = await captain.chain.getHeaviestHead()
+    const chainHead = await chain.getHeaviestHead()
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await captain.chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -192,15 +189,17 @@ describe('Mining director', () => {
 // TODO: Move these to MemPool
 describe('isValidTransaction', () => {
   const strategy = new TestStrategy(new RangeHasher())
+  let chain: TestBlockchain
   let captain: TestCaptain
   let memPool: TestMemPool
 
   beforeEach(async () => {
     captain = await makeCaptain(strategy)
+    chain = captain.chain
 
     memPool = new MemPool({
-      chain: captain.chain,
-      strategy: captain.strategy,
+      chain: chain,
+      strategy: chain.strategy,
     })
   })
 
@@ -216,7 +215,7 @@ describe('isValidTransaction', () => {
   })
 
   it('is not valid if the spend was seen in a previous block', async () => {
-    const aPreviousNullifier = await captain.chain.nullifiers.get(4)
+    const aPreviousNullifier = await chain.nullifiers.get(4)
 
     const transaction = new TestTransaction(true, ['abc', 'def'], 50, [
       { nullifier: aPreviousNullifier, commitment: '0-3', size: 4 },
@@ -249,6 +248,7 @@ describe('isValidTransaction', () => {
 
 describe('successfullyMined', () => {
   const strategy = new TestStrategy(new RangeHasher())
+  let chain: TestBlockchain
   let captain: TestCaptain
   let memPool: TestMemPool
   let director: MiningDirector<
@@ -262,16 +262,17 @@ describe('successfullyMined', () => {
 
   beforeEach(async () => {
     captain = await makeCaptain(strategy)
+    chain = captain.chain
 
     memPool = new MemPool({
-      chain: captain.chain,
-      strategy: captain.strategy,
+      chain: chain,
+      strategy: chain.strategy,
     })
 
     director = new MiningDirector({
-      chain: captain.chain,
+      chain: chain,
       memPool: memPool,
-      strategy: captain.strategy,
+      strategy: chain.strategy,
     })
 
     director.setMinerAccount(generateAccount())
@@ -314,6 +315,7 @@ describe('successfullyMined', () => {
 describe('Recalculating target', () => {
   const minDifficulty = Target.minDifficulty() as bigint
   const strategy = new TestStrategy(new RangeHasher())
+  let chain: TestBlockchain
   let captain: TestCaptain
   let memPool: TestMemPool
   let director: MiningDirector<
@@ -331,16 +333,17 @@ describe('Recalculating target', () => {
     jest.setTimeout(15000000)
 
     captain = await makeCaptain(strategy)
+    chain = captain.chain
 
     memPool = new MemPool({
-      chain: captain.chain,
-      strategy: captain.strategy,
+      chain: chain,
+      strategy: chain.strategy,
     })
 
     director = new MiningDirector({
-      chain: captain.chain,
+      chain: chain,
       memPool: memPool,
-      strategy: captain.strategy,
+      strategy: chain.strategy,
     })
 
     director.setMinerAccount(generateAccount())
