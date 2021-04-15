@@ -75,6 +75,16 @@ describe('Verifier', () => {
         captain.chain.verifier.verifyNewTransaction(newTransactionPayload),
       ).rejects.toEqual('Transaction is invalid')
     })
+
+    it('rejects if the transaction has negative fees', async () => {
+      const newTransactionPayload = {
+        transaction: { elements: ['a'], spends: [], totalFees: -5, isValid: true },
+      }
+
+      await expect(
+        captain.chain.verifier.verifyNewTransaction(newTransactionPayload),
+      ).rejects.toEqual('Transaction has negative fees')
+    })
   })
 
   describe('Block', () => {

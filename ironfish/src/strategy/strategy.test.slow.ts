@@ -23,6 +23,7 @@ import {
 import { makeDb, makeDbName } from '../captain/testUtilities'
 import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
 import { WorkerPool } from '../workerPool'
+import { createNodeTest } from '../testUtilities'
 
 async function makeWasmStrategyTree({
   depth,
@@ -69,6 +70,29 @@ describe('Demonstrate the Sapling API', () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
     tree = await makeWasmStrategyTree()
     spenderKey = generateKey()
+  })
+
+  describe('Verifies incoming messages', () => {
+    const nodeTest = createNodeTest()
+
+    it('Rejects incoming new transactions if fees are negative', async () => {
+      // Generate a miner's fee transaction
+      const strategy = new IronfishStrategy(new WorkerPool())
+      const minersFee = await strategy.createMinersFee(
+        BigInt(0),
+        BigInt(0),
+        generateKey().spending_key,
+      )
+      await AsyncTransactionWorkerPool.stop()
+
+      const verifier = strategy.createVerifier(nodeTest.chain)
+      const serialized = strategy.transactionSerde().serialize(minersFee)
+      const payload = { transaction: serialized }
+
+      await expect(verifier.verifyNewTransaction(payload)).rejects.toBe(
+        'Transaction has negative fees',
+      )
+    }, 60000)
   })
 
   describe('Can transact between two accounts', () => {
