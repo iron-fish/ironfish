@@ -59,7 +59,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const heaviestHead = await node.captain.chain.getHeaviestHead()
+    const heaviestHead = await node.chain.getHeaviestHead()
     // latest heaviest head must be a block mined in the past minute
     if (
       !heaviestHead ||

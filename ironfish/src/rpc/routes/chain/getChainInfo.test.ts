@@ -17,12 +17,12 @@ describe('Route chain.getChainInfo', () => {
   const heaviestHeader = makeFakeBlock(strategy, blockHash(2), blockHash(3), 1, 1, 1).header
 
   beforeAll(() => {
-    routeTest.node.captain.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
-    routeTest.node.captain.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
-    routeTest.node.captain.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
-    routeTest.node.captain.chain.blockHashSerde.serialize = jest.fn((value) => value.toString())
+    routeTest.node.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
+    routeTest.node.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
+    routeTest.node.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
+    routeTest.node.chain.blockHashSerde.serialize = jest.fn((value) => value.toString())
 
-    routeTest.node.captain.chain.headers.get = jest.fn().mockImplementation((hash: Buffer) => {
+    routeTest.node.chain.headers.get = jest.fn().mockImplementation((hash: Buffer) => {
       if (hash.equals(latestHeader.hash)) {
         return {
           sequence: latestHeader.sequence,

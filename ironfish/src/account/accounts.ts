@@ -89,7 +89,7 @@ export class Accounts {
         transaction,
         blockHash,
         initialNoteIndex,
-      } of node.captain.chain.getTransactionsForBlock(header)) {
+      } of node.chain.getTransactionsForBlock(header)) {
         await this.syncTransaction(transaction, {
           blockHash: blockHash,
           initialNoteIndex: initialNoteIndex,
@@ -100,7 +100,7 @@ export class Accounts {
     const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      for await (const { transaction } of node.captain.chain.getTransactionsForBlock(header)) {
+      for await (const { transaction } of node.chain.getTransactionsForBlock(header)) {
         await this.syncTransaction(transaction, {})
       }
     }
@@ -108,8 +108,8 @@ export class Accounts {
     this.isUpdatingHead = true
 
     try {
-      const chainHead = await node.captain.chain.getHeaviestHead()
-      const chainTail = await node.captain.chain.getGenesisHeader()
+      const chainHead = await node.chain.getHeaviestHead()
+      const chainTail = await node.chain.getGenesisHeader()
 
       if (!chainHead || !chainTail) {
         // There is no genesis block, so there's nothing to update to
@@ -126,18 +126,18 @@ export class Accounts {
       }
 
       const accountHeadHash = Buffer.from(this.headHash, 'hex')
-      const accountHead = await node.captain.chain.getBlockHeader(accountHeadHash)
+      const accountHead = await node.chain.getBlockHeader(accountHeadHash)
 
       if (!accountHead || chainHead.hash.equals(accountHead.hash)) {
         return
       }
 
-      const { fork, isLinear } = await node.captain.chain.findFork(accountHead, chainHead)
+      const { fork, isLinear } = await node.chain.findFork(accountHead, chainHead)
       if (!fork) return
 
       // Remove the old fork chain
       if (!isLinear) {
-        for await (const header of node.captain.chain.iterateToBlock(accountHead, fork)) {
+        for await (const header of node.chain.iterateToBlock(accountHead, fork)) {
           // Don't remove the fork
           if (!header.hash.equals(fork.hash)) {
             await removeBlock(header)
@@ -147,7 +147,7 @@ export class Accounts {
         }
       }
 
-      for await (const header of node.captain.chain.iterateToBlock(fork, chainHead)) {
+      for await (const header of node.chain.iterateToBlock(fork, chainHead)) {
         if (header.hash.equals(fork.hash)) continue
         await addBlock(header)
         await this.updateHeadHash(header.hash.toString('hex'))
@@ -188,7 +188,7 @@ export class Accounts {
     this.isStarted = true
 
     if (this.shouldRescan && !this.scan) {
-      void this.scanTransactions(node.captain.chain)
+      void this.scanTransactions(node.chain)
     }
 
     void this.eventLoop(node)

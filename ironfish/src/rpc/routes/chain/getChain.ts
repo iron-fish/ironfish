@@ -28,7 +28,7 @@ router.register<typeof GetChainRequestSchema, GetChainResponse>(
   `${ApiNamespace.chain}/getChain`,
   GetChainRequestSchema,
   async (request, node): Promise<void> => {
-    const content = await printChain(node.captain.chain)
+    const content = await printChain(node.chain)
     request.end({ content })
   },
 )

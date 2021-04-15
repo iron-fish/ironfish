@@ -117,7 +117,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     let sequence = null
 
     if (request.data.hash) {
-      hashBuffer = node.captain.chain.blockHashSerde.deserialize(request.data.hash)
+      hashBuffer = node.chain.blockHashSerde.deserialize(request.data.hash)
     }
 
     if (request.data.index) {
@@ -133,7 +133,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     // Given that a chain reorg event might cause the specific block
     // at that sequence can be set to a different one
     if (!hashBuffer && sequence) {
-      const hashBuffers = await node.captain.chain.getAtSequence(sequence)
+      const hashBuffers = await node.chain.getAtSequence(sequence)
       if (Array.isArray(hashBuffers) && hashBuffers.length > 0) {
         hashBuffer = hashBuffers[0]
       }
@@ -143,7 +143,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       throw new ValidationError(`No block found at provided sequence`)
     }
 
-    const block = await node.captain.chain.getBlock(hashBuffer)
+    const block = await node.chain.getBlock(hashBuffer)
     if (!block) {
       throw new ValidationError(`No block found`)
     }
@@ -152,7 +152,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       parentBlock = block
     } else {
-      parentBlock = await node.captain.chain.getBlock(block.header.previousBlockHash)
+      parentBlock = await node.chain.getBlock(block.header.previousBlockHash)
     }
 
     if (!parentBlock) {
@@ -165,17 +165,17 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       }))
 
       const spends = [...transaction.spends()].map((spend) => ({
-        nullifier: node.captain.chain.blockHashSerde.serialize(spend.nullifier),
+        nullifier: node.chain.blockHashSerde.serialize(spend.nullifier),
       }))
 
       // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
       const transactionBuffer = Buffer.from(
-        JSON.stringify(node.captain.strategy.transactionSerde().serialize(transaction)),
+        JSON.stringify(node.strategy.transactionSerde().serialize(transaction)),
       )
 
       return {
         transaction_identifier: {
-          hash: node.captain.chain.blockHashSerde.serialize(transaction.transactionHash()),
+          hash: node.chain.blockHashSerde.serialize(transaction.transactionHash()),
         },
         operations: [],
         metadata: {
@@ -193,11 +193,11 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     request.end({
       blockIdentifier: {
         index: block.header.sequence.toString(),
-        hash: node.captain.chain.blockHashSerde.serialize(block.header.hash),
+        hash: node.chain.blockHashSerde.serialize(block.header.hash),
       },
       parentBlockIdentifier: {
         index: parentBlock.header.sequence.toString(),
-        hash: node.captain.chain.blockHashSerde.serialize(parentBlock.header.hash),
+        hash: node.chain.blockHashSerde.serialize(parentBlock.header.hash),
       },
       timestamp: block.header.timestamp.getTime(),
       transactions,

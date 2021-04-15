@@ -96,7 +96,7 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 )
 
 async function getStatus(node: IronfishNode): Promise<GetStatusResponse> {
-  const heaviestHead = await node.captain.chain.getHeaviestHead()
+  const heaviestHead = await node.chain.getHeaviestHead()
   const status: GetStatusResponse = {
     peerNetwork: {
       isReady: false,

@@ -4,7 +4,6 @@
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import { BlockSerde } from '../blockchain/block'
 import Strategy from '../strategy/strategy'
 import Transaction from '../strategy/transaction'
 import { MetricsMonitor } from '../metrics'
@@ -22,22 +21,10 @@ export class Captain<
   SH extends JsonSerializable,
   ST
 > {
-  strategy: Strategy<E, H, T, SE, SH, ST>
   chain: Blockchain<E, H, T, SE, SH, ST>
-  blockSerde: BlockSerde<E, H, T, SE, SH, ST>
-  logger: Logger
-  metrics: MetricsMonitor
 
-  private constructor(
-    chain: Blockchain<E, H, T, SE, SH, ST>,
-    logger: Logger,
-    metrics: MetricsMonitor,
-  ) {
-    this.metrics = metrics
-    this.strategy = chain.strategy
+  private constructor(chain: Blockchain<E, H, T, SE, SH, ST>) {
     this.chain = chain
-    this.blockSerde = chain.strategy.blockSerde
-    this.logger = logger
   }
 
   static async new<
@@ -54,9 +41,7 @@ export class Captain<
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
   ): Promise<Captain<E, H, T, SE, SH, ST>> {
-    logger = logger.withTag('captain')
-    metrics = metrics || new MetricsMonitor(logger)
     chain = chain || (await Blockchain.new(db, strategy, logger, metrics))
-    return new Captain(chain, logger, metrics)
+    return new Captain(chain)
   }
 }

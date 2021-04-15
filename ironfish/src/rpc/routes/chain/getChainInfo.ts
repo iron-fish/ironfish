@@ -45,14 +45,12 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
   async (request, node): Promise<void> => {
-    const latestHeader = await node.captain.chain.getLatestHead()
-    const heaviestHeader = await node.captain.chain.getHeaviestHead()
+    const latestHeader = await node.chain.getLatestHead()
+    const heaviestHeader = await node.chain.getHeaviestHead()
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
       oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
-      oldestBlockIdentifier.hash = node.captain.chain.blockHashSerde.serialize(
-        heaviestHeader.hash,
-      )
+      oldestBlockIdentifier.hash = node.chain.blockHashSerde.serialize(heaviestHeader.hash)
     }
 
     let currentBlockTimestamp = Number()
@@ -60,17 +58,15 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     if (latestHeader) {
       currentBlockTimestamp = Number(latestHeader.timestamp)
       currentBlockIdentifier.index = latestHeader.sequence.toString()
-      currentBlockIdentifier.hash = node.captain.chain.blockHashSerde.serialize(
-        latestHeader.hash,
-      )
+      currentBlockIdentifier.hash = node.chain.blockHashSerde.serialize(latestHeader.hash)
     }
 
-    const genesisBlockHash = await node.captain.chain.getGenesisHash()
+    const genesisBlockHash = await node.chain.getGenesisHash()
     Assert.isNotNull(genesisBlockHash)
 
     const genesisBlockIdentifier = {} as BlockIdentifier
     genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
-    genesisBlockIdentifier.hash = node.captain.chain.blockHashSerde.serialize(genesisBlockHash)
+    genesisBlockIdentifier.hash = node.chain.blockHashSerde.serialize(genesisBlockHash)
 
     request.end({
       currentBlockIdentifier,
