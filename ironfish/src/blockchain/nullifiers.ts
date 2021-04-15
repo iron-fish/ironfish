@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { MerkleHasher } from '../merkletree'
-import { BufferSerde } from '../serde'
+import { BufferSerde, NullifierSerdeInstance } from '../serde'
 
 import { createKeyed } from 'blake3-wasm'
 
@@ -14,19 +14,12 @@ const NULLIFIER_KEY = Buffer.alloc(32, 'IRONFISH BLAKE3 NULLIFIER PRSNAL')
 const COMBINE_KEY = Buffer.alloc(32, 'IRONFISH NULLIFIER COMBINE HASHS')
 
 export class NullifierHasher implements MerkleHasher<Nullifier, NullifierHash, string, string> {
-  _elementSerde: BufferSerde
-  _hashSerde: BufferSerde
-
-  constructor() {
-    this._elementSerde = new BufferSerde(32)
-    this._hashSerde = new BufferSerde(32)
-  }
   elementSerde(): BufferSerde {
-    return this._elementSerde
+    return NullifierSerdeInstance
   }
 
   hashSerde(): BufferSerde {
-    return this._hashSerde
+    return NullifierSerdeInstance
   }
 
   merkleHash(element: Nullifier): NullifierHash {

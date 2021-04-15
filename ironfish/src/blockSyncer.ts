@@ -15,7 +15,7 @@ import {
   PeerNetwork,
   RPC_TIMEOUT_MILLIS,
 } from './network'
-import Serde, { BufferSerde, JsonSerializable } from './serde'
+import Serde, { BlockHashSerdeInstance, JsonSerializable } from './serde'
 import { MetricsMonitor, Meter } from './metrics'
 import { BlocksResponse } from './network/messages'
 import { Logger } from './logger'
@@ -204,7 +204,7 @@ export class BlockSyncer<
     this.logger = options.logger
     this.peerNetwork = options.peerNetwork
 
-    this.hashSerde = new BufferSerde(32)
+    this.hashSerde = BlockHashSerdeInstance
     this.blockSerde = options.strategy.blockSerde
 
     this.blockSyncPromise = Promise.resolve()
