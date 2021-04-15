@@ -8,7 +8,6 @@ import { zip } from 'lodash'
 import Blockchain from '../../../blockchain'
 import Block from '../../../blockchain/block'
 import { BlockHash, Sequence } from '../../../blockchain/blockheader'
-import { BlockSerde } from '../../../blockchain/block'
 import { Nullifier } from '../../../blockchain/nullifiers'
 import { SerializedTestTransaction, TestTransaction } from '../strategy'
 import makeError from './makeError'
@@ -94,7 +93,7 @@ expect.extend({
     self: Block<string, string, TestTransaction, string, string, SerializedTestTransaction>,
     other: Block<string, string, TestTransaction, string, string, SerializedTestTransaction>,
   ): jest.CustomMatcherResult {
-    const serde = new BlockSerde(self.header.strategy)
+    const serde = self.header.strategy.blockSerde
     let error: string | null = null
     if (!serde.equals(self, other)) {
       const diffString = diff(self, other)

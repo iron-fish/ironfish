@@ -12,6 +12,7 @@ import { TestTransactionSerde } from './TestTransactionSerde'
 import { SerializedTestTransaction } from './SerializedTypes'
 import { TestVerifier } from './testVerifier'
 import { TestBlockchain } from '../helpers'
+import { BlockSerde } from '../../../blockchain'
 
 /**
  * Very basic strategy for testing blockchain code. Models notes and hashes
@@ -24,9 +25,19 @@ export class TestStrategy
   _noteHasher: ConcatHasher
   _nullifierHasher: NullifierHasher
 
+  _blockSerde: BlockSerde<
+    string,
+    string,
+    TestTransaction<string>,
+    string,
+    string,
+    SerializedTestTransaction<string>
+  >
+
   constructor(noteHasher = new ConcatHasher()) {
     this._noteHasher = noteHasher
     this._nullifierHasher = new NullifierHasher()
+    this._blockSerde = new BlockSerde(this)
   }
 
   createVerifier(chain: TestBlockchain): TestVerifier {
@@ -43,6 +54,17 @@ export class TestStrategy
 
   transactionSerde(): TestTransactionSerde {
     return new TestTransactionSerde()
+  }
+
+  get blockSerde(): BlockSerde<
+    string,
+    string,
+    TestTransaction<string>,
+    string,
+    string,
+    SerializedTestTransaction<string>
+  > {
+    return this._blockSerde
   }
 
   /**

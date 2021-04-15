@@ -119,7 +119,8 @@ export class IronfishNode {
       webSocket: webSocket,
       webRtc: webRtc,
       node: this,
-      captain: captain,
+      chain: chain,
+      strategy: strategy,
     })
 
     this.syncer = new BlockSyncer({

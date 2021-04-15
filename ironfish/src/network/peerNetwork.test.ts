@@ -12,7 +12,7 @@ import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockPrivateIdentity } from './testUtilities'
 import { Assert } from '../assert'
 import { DisconnectingMessage } from './messages'
-import { mockNode, mockCaptain } from '../testUtilities/mocks'
+import { mockNode, mockStrategy, mockChain } from '../testUtilities/mocks'
 
 jest.useFakeTimers()
 
@@ -22,7 +22,8 @@ it('Closes the PeerManager when close is called', () => {
     agent: 'sdk/1/cli',
     webSocket: ws,
     node: mockNode(),
-    captain: mockCaptain(),
+    chain: mockChain(),
+    strategy: mockStrategy(),
   })
 
   const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
@@ -36,7 +37,8 @@ it('Registers a handler', () => {
     agent: 'sdk/1/cli',
     webSocket: ws,
     node: mockNode(),
-    captain: mockCaptain(),
+    chain: mockChain(),
+    strategy: mockStrategy(),
   })
 
   peerNetwork.registerHandler(
@@ -55,7 +57,8 @@ it('ignores a message if validation fails', async () => {
     agent: 'sdk/1/cli',
     webSocket: ws,
     node: mockNode(),
-    captain: mockCaptain(),
+    chain: mockChain(),
+    strategy: mockStrategy(),
   })
 
   const handlerMock = jest.fn(() => {})
@@ -79,7 +82,8 @@ it('changes isReady when peers connect', () => {
     agent: 'sdk/1/cli',
     webSocket: ws,
     node: mockNode(),
-    captain: mockCaptain(),
+    chain: mockChain(),
+    strategy: mockStrategy(),
     minPeers: 1,
   })
 
@@ -113,7 +117,8 @@ it('rejects websocket connections when at max peers', () => {
     agent: 'sdk/1/cli',
     webSocket: wsActual,
     node: mockNode(),
-    captain: mockCaptain(),
+    chain: mockChain(),
+    strategy: mockStrategy(),
     listen: true,
     port: 0,
     minPeers: 1,

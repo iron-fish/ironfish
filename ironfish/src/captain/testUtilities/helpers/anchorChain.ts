@@ -341,21 +341,21 @@ export async function makeBlockWithTransaction(
   from: Account,
   to: Account,
 ): Promise<IronfishBlock> {
-  const head = await node.captain.chain.getHeaviestHead()
+  const head = await node.chain.getHeaviestHead()
   Assert.isNotNull(head, 'No genesis block. Call node.seed() first')
   const sequence = head.sequence
 
   const block1 = await useMinerBlockFixture(
-    node.captain,
+    node.chain,
     sequence + BigInt(1),
     from,
     node.accounts,
   )
 
-  await node.captain.chain.addBlock(block1)
+  await node.chain.addBlock(block1)
   await node.accounts.updateHead(node)
 
-  const block2 = await useBlockFixture(node.captain, async () => {
+  const block2 = await useBlockFixture(node.chain, async () => {
     const transaction = await node.accounts.createTransaction(
       node.captain,
       from,
@@ -365,9 +365,9 @@ export async function makeBlockWithTransaction(
       to.publicAddress,
     )
 
-    return node.captain.chain.newBlock(
+    return node.chain.newBlock(
       [transaction],
-      await node.captain.chain.strategy.createMinersFee(
+      await node.chain.strategy.createMinersFee(
         await transaction.transactionFee(),
         sequence + BigInt(2),
         from.spendingKey,

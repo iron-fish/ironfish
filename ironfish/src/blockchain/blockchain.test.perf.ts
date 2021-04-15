@@ -27,14 +27,14 @@ describe('Blockchain', () => {
     for (let i = 0; i < 100; ++i) {
       console.log(`Creating Blocks ${i}`)
 
-      const blockA = await useBlockFixture(nodeA.captain, async () =>
+      const blockA = await useBlockFixture(nodeA.chain, async () =>
         nodeA.captain.chain.newBlock(
           [],
           await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
         ),
       )
 
-      const blockB = await useBlockFixture(nodeB.captain, async () =>
+      const blockB = await useBlockFixture(nodeB.chain, async () =>
         nodeB.captain.chain.newBlock(
           [],
           await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),

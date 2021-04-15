@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { default as Block, BlockSerde, SerializedBlock } from '../blockchain/block'
+import { default as Block, SerializedBlock } from '../blockchain/block'
 import Strategy from '../strategy/strategy'
 import { Transaction, Spend } from '../strategy/transaction'
 import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
@@ -49,7 +49,7 @@ export class Verifier<
   constructor(chain: Blockchain<E, H, T, SE, SH, ST>) {
     this.strategy = chain.strategy
     this.chain = chain
-    this.blockSerde = new BlockSerde(chain.strategy)
+    this.blockSerde = chain.strategy.blockSerde
     this.hashSerde = chain.blockHashSerde
   }
 
