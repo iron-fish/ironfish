@@ -6,7 +6,7 @@ import { IronfishSdk } from '../sdk'
 import { v4 as uuid } from 'uuid'
 import os from 'os'
 import path from 'path'
-import { IronfishBlockchain, IronfishCaptain } from '../strategy'
+import { IronfishBlockchain } from '../strategy'
 import { IronfishTestVerifier } from './verifier'
 import { IronfishTestStrategy } from './strategy'
 import { ConfigOptions } from '../fileStores/config'
@@ -25,14 +25,12 @@ export class NodeTest {
   sdk!: IronfishSdk
   node!: IronfishNode
   strategy!: IronfishTestStrategy
-  captain!: IronfishCaptain
   chain!: IronfishBlockchain
   peerNetwork!: PeerNetwork
 
   setups = new Array<{
     sdk: IronfishSdk
     node: IronfishNode
-    captain: IronfishCaptain
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
@@ -48,7 +46,6 @@ export class NodeTest {
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy
-    captain: IronfishCaptain
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
   }> {
@@ -61,7 +58,6 @@ export class NodeTest {
     const sdk = await IronfishSdk.init({ dataDir, verifierClass, strategyClass })
     const node = await sdk.node()
     const strategy = node.strategy as IronfishTestStrategy
-    const captain = node.captain
     const chain = node.chain
     const peerNetwork = node.peerNetwork
 
@@ -79,18 +75,17 @@ export class NodeTest {
 
     await node.openDB()
 
-    const setup = { sdk, node, captain, strategy, chain, peerNetwork }
+    const setup = { sdk, node, strategy, chain, peerNetwork }
     this.setups.push(setup)
     return setup
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, captain, strategy, chain } = await this.createSetup()
+    const { sdk, node, strategy, chain } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
-    this.captain = captain
     this.chain = chain
   }
 
