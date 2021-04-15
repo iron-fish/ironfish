@@ -32,6 +32,7 @@ describe('start command', () => {
   let hasGenesisBlock = false
 
   const setConfig = jest.fn()
+  const setOverrideConfig = jest.fn()
   const seed = jest.fn().mockReturnValue(true)
   const start = jest.fn()
   const waitForShutdown = jest.fn()
@@ -53,6 +54,7 @@ describe('start command', () => {
     const config = {
       save: jest.fn(),
       set: setConfig,
+      setOverride: setOverrideConfig,
       get: jest.fn().mockImplementation((config: 'enableTelemetry') => configOptions[config]),
       getArray: jest
         .fn()
@@ -105,6 +107,7 @@ describe('start command', () => {
 
   afterEach(() => {
     setConfig.mockReset()
+    setOverrideConfig.mockReset()
     seed.mockReset()
     start.mockReset()
     ironfishmodule.IronfishSdk.init = ironFishSdkBackup
@@ -150,6 +153,20 @@ describe('start command', () => {
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()
+      })
+  })
+
+  describe('Filters out empty string bootstrap nodes', () => {
+    beforeAll(() => {
+      isFirstRun = false
+      hasGenesisBlock = true
+    })
+    test
+      .stdout()
+      .command(['start', '-b', ''])
+      .exit(0)
+      .it('Calls setOverride with an empty array', () => {
+        expect(setOverrideConfig).toHaveBeenCalledWith('bootstrapNodes', [])
       })
   })
 })
