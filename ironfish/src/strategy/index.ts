@@ -8,7 +8,6 @@ import {
   WasmNoteEncrypted,
   WasmTransactionPosted,
 } from 'ironfish-wasm-nodejs'
-import { Captain } from '../captain'
 import { BlockSyncer } from '../blockSyncer'
 import {
   Block,
@@ -531,15 +530,6 @@ export type IronfishBlockHeader = BlockHeader<
 >
 
 export type IronfishBlockchain = Blockchain<
-  IronfishNoteEncrypted,
-  WasmNoteEncryptedHash,
-  IronfishTransaction,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
->
-
-export type IronfishCaptain = Captain<
   IronfishNoteEncrypted,
   WasmNoteEncryptedHash,
   IronfishTransaction,

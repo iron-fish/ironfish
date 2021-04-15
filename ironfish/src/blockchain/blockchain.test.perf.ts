@@ -28,23 +28,20 @@ describe('Blockchain', () => {
       console.log(`Creating Blocks ${i}`)
 
       const blockA = await useBlockFixture(nodeA.chain, async () =>
-        nodeA.captain.chain.newBlock(
+        nodeA.chain.newBlock(
           [],
           await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
         ),
       )
 
       const blockB = await useBlockFixture(nodeB.chain, async () =>
-        nodeB.captain.chain.newBlock(
+        nodeB.chain.newBlock(
           [],
           await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
         ),
       )
 
-      await Promise.all([
-        nodeA.captain.chain.addBlock(blockA),
-        nodeB.captain.chain.addBlock(blockB),
-      ])
+      await Promise.all([nodeA.chain.addBlock(blockA), nodeB.chain.addBlock(blockB)])
 
       blocksA.push(blockA)
       blocksB.push(blockB)

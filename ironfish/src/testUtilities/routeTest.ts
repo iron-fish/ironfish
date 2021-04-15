@@ -6,7 +6,7 @@ import { IronfishSdk } from '../sdk'
 import { MemoryAdapter } from '../rpc/adapters'
 import { IronfishMemoryClient } from '../rpc/clients'
 import { NodeTest } from './nodeTest'
-import { IronfishBlockchain, IronfishCaptain } from '../strategy'
+import { IronfishBlockchain } from '../strategy'
 import { IronfishTestStrategy } from './strategy'
 import { PeerNetwork } from '../network/peerNetwork'
 /**
@@ -22,7 +22,6 @@ export class RouteTest extends NodeTest {
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy
-    captain: IronfishCaptain
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
     adapter: MemoryAdapter
@@ -38,12 +37,11 @@ export class RouteTest extends NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, captain, strategy, chain, client, adapter } = await this.createSetup()
+    const { sdk, node, strategy, chain, client, adapter } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
-    this.captain = captain
     this.chain = chain
     this.client = client
     this.adapter = adapter
