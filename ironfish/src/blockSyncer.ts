@@ -26,6 +26,7 @@ import { Strategy } from './strategy'
 
 export const MAX_MESSAGE_SIZE = 500000 // 0.5 MB
 export const MAX_BLOCKS_PER_MESSAGE = 1
+export const MAX_GOSSIPPED_BLOCKS = 200
 
 export const ALLOWED_TRANSITIONS_TO_FROM = {
   ['STARTING']: ['STOPPED'],
@@ -186,7 +187,8 @@ export class BlockSyncer<
     }
   >()
 
-  blocksForProcessing: BlockToProcess<E, H, T, SE, SH, ST>[]
+  gossippedBlocksForProcessing: BlockToProcess<E, H, T, SE, SH, ST>[]
+  requestedBlocksForProcessing: BlockToProcess<E, H, T, SE, SH, ST>[]
 
   logger: Logger
   peerNetwork: PeerNetwork
@@ -210,7 +212,8 @@ export class BlockSyncer<
     this.blockSyncPromise = Promise.resolve()
     this.blockRequestPromise = Promise.resolve()
     this.recentBlocks = new LeastRecentlyUsed(500)
-    this.blocksForProcessing = []
+    this.gossippedBlocksForProcessing = []
+    this.requestedBlocksForProcessing = []
 
     this.status = {
       blockAddingSpeed: this.metrics.addMeter(),
@@ -275,14 +278,27 @@ export class BlockSyncer<
     fromPeer: Identity,
     type: NetworkBlockType,
   ): void {
-    if (
-      this.blocksForProcessing &&
-      this.blocksForProcessing[0] &&
-      block.header.sequence <= this.blocksForProcessing[0].block.header.sequence
-    ) {
-      this.blocksForProcessing.unshift({ block, fromPeer, type })
+    const blockToProcess = { block, fromPeer, type }
+
+    if (type === NetworkBlockType.GOSSIP) {
+      this.gossippedBlocksForProcessing.push(blockToProcess)
+
+      // Drop blocks if we exceed the max queue length
+      if (this.gossippedBlocksForProcessing.length > MAX_GOSSIPPED_BLOCKS) {
+        this.gossippedBlocksForProcessing.shift()
+      }
+    } else if (type === NetworkBlockType.SYNCING) {
+      if (
+        this.requestedBlocksForProcessing.length &&
+        block.header.sequence <= this.requestedBlocksForProcessing[0].block.header.sequence
+      ) {
+        this.requestedBlocksForProcessing.unshift(blockToProcess)
+      } else {
+        this.requestedBlocksForProcessing.push(blockToProcess)
+      }
     } else {
-      this.blocksForProcessing.push({ block, fromPeer, type })
+      // Check that all network block types are handled
+      Assert.isNever(type)
     }
 
     this.getNextBlockToSync()
@@ -291,7 +307,12 @@ export class BlockSyncer<
   getNextBlockToSync(): void {
     if (this.state.type !== 'IDLE') return
 
-    const nextBlockToProcess = this.blocksForProcessing.shift()
+    let nextBlockToProcess
+    if (this.requestedBlocksForProcessing.length > 0) {
+      nextBlockToProcess = this.requestedBlocksForProcessing.shift()
+    } else if (this.gossippedBlocksForProcessing.length > 0) {
+      nextBlockToProcess = this.gossippedBlocksForProcessing.shift()
+    }
 
     if (nextBlockToProcess) this.dispatch('SYNCING', { block: nextBlockToProcess })
   }
