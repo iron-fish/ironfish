@@ -4,10 +4,9 @@
 
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import { default as Block, BlockSerde } from '../blockchain/block'
+import { BlockSerde } from '../blockchain/block'
 import Strategy from '../strategy/strategy'
 import Transaction from '../strategy/transaction'
-import { Event } from '../event'
 import { MetricsMonitor } from '../metrics'
 import { createRootLogger, Logger } from '../logger'
 import { JsonSerializable } from '../serde'
@@ -30,12 +29,6 @@ export class Captain<
   workerPool: WorkerPool
   logger: Logger
   metrics: MetricsMonitor
-
-  /**
-   * Emitted when a new block has been created, such as
-   * when a new block has been mined.
-   */
-  onNewBlock = new Event<[Block<E, H, T, SE, SH, ST>]>()
 
   private constructor(
     chain: Blockchain<E, H, T, SE, SH, ST>,
@@ -70,15 +63,5 @@ export class Captain<
     metrics = metrics || new MetricsMonitor(logger)
     chain = chain || (await Blockchain.new(db, strategy, logger, metrics))
     return new Captain(chain, workerPool, logger, metrics)
-  }
-
-  /**
-   * Submit a freshly mined block to be forwarded to the p2p network
-   *
-   * This method would only be used by miners.
-   * @param block the block that has been mined by an external miner or pool.
-   */
-  emitBlock(block: Block<E, H, T, SE, SH, ST>): void {
-    this.onNewBlock.emit(block)
   }
 }
