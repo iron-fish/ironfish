@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { SerializedBlock, Target } from '../blockchain'
-import { Captain } from '../captain'
+import Blockchain, { SerializedBlock, Target } from '../blockchain'
 import { makeDb, fakeMaxTarget } from '../captain/testUtilities'
 import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'
@@ -33,12 +32,12 @@ describe('Genesis block test', () => {
     const db = makeDb()
     const workerPool = new WorkerPool()
     const strategy = new IronfishStrategy(workerPool)
-    const captain = await Captain.new(db, strategy)
+    const chain = await Blockchain.new(db, strategy)
     await db.open()
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
     const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await captain.chain.addBlock(block)
+    const addedBlock = await chain.addBlock(block)
     expect(addedBlock.isAdded).toBe(true)
 
     // We should also be able to create new blocks after the genesis block
@@ -48,7 +47,7 @@ describe('Genesis block test', () => {
       block.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
-    const newBlock = await captain.chain.newBlock([], minersfee)
+    const newBlock = await chain.newBlock([], minersfee)
     expect(newBlock).toBeTruthy()
   }, 60000)
 
@@ -56,7 +55,7 @@ describe('Genesis block test', () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
-    const captain = nodeTest.captain
+    const chain = nodeTest.chain
 
     const amountNumber = 5
     const amountBigint = BigInt(amountNumber)
@@ -75,13 +74,7 @@ describe('Genesis block test', () => {
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(
-      captain,
-      info,
-      account,
-      node.workerPool,
-      node.logger,
-    )
+    const { block } = await makeGenesisBlock(chain, info, account, node.workerPool, node.logger)
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)
@@ -95,7 +88,7 @@ describe('Genesis block test', () => {
     })
 
     // Add the block to the chain
-    const addBlock = await captain.chain.addBlock(block)
+    const addBlock = await chain.addBlock(block)
     expect(addBlock.isAdded).toBeTruthy()
 
     // TODO: this should happen automatically in addBlock
@@ -113,7 +106,7 @@ describe('Genesis block test', () => {
       block.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
-    const additionalBlock = await captain.chain.newBlock([], minersfee)
+    const additionalBlock = await chain.newBlock([], minersfee)
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
@@ -122,12 +115,12 @@ describe('Genesis block test', () => {
 
     // Now start from scratch with a clean database and make sure the block
     // is still the same.
-    const { node: newNode, captain: newCaptain } = await nodeTest.createSetup()
+    const { node: newNode, chain: newChain } = await nodeTest.createSetup()
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock<Buffer, Buffer>
     const deserializedBlock = strategy._blockSerde.deserialize(result)
-    const addedBlock = await newCaptain.chain.addBlock(deserializedBlock)
+    const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 
     // Validate parameters again to make sure they're what's expected
@@ -151,7 +144,7 @@ describe('Genesis block test', () => {
       deserializedBlock.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
-    const newBlock = await newCaptain.chain.newBlock([], newMinersfee)
+    const newBlock = await newChain.newBlock([], newMinersfee)
     expect(newBlock).toBeTruthy()
   }, 600000)
 })

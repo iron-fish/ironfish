@@ -6,7 +6,7 @@ import { Target } from '../blockchain'
 import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
 import { Logger } from '../logger'
 import type { Account } from '../account'
-import { IronfishTransaction, IronfishCaptain, IronfishBlock } from '../strategy'
+import { IronfishTransaction, IronfishBlock, IronfishBlockchain } from '../strategy'
 import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
@@ -24,14 +24,14 @@ export type GenesisBlockInfo = {
  * nullifier merkle trees.
  */
 export async function makeGenesisBlock(
-  captain: IronfishCaptain,
+  chain: IronfishBlockchain,
   info: GenesisBlockInfo,
   account: Account,
   workerPool: WorkerPool,
   logger: Logger,
 ): Promise<{ block: IronfishBlock }> {
   logger = logger.withTag('makeGenesisBlock')
-  if (!(await captain.chain.isEmpty())) {
+  if (!(await chain.isEmpty())) {
     throw new Error('Database must be empty to create a genesis block.')
   }
   // Sum the allocations to get the total number of coins
@@ -71,18 +71,18 @@ export async function makeGenesisBlock(
   if (postedInitialTransaction.notesLength() != 1)
     throw new Error('Expected postedInitialTransaction to have 1 note')
   for (const n of postedInitialTransaction.notes()) {
-    await captain.chain.notes.add(n)
+    await chain.notes.add(n)
   }
 
   // Construct a witness of that note
   logger.info('  Constructing a witness of the note...')
-  const witness = await captain.chain.notes.witness(0)
+  const witness = await chain.notes.witness(0)
   if (witness == null)
     throw new Error('We must be able to construct a witness in order to generate a spend.')
 
   // Now that we have the witness, remove the note from the tree
   logger.info('  Removing the note from the tree...')
-  await captain.chain.notes.truncate(0)
+  await chain.notes.truncate(0)
 
   /**
    *
@@ -137,11 +137,7 @@ export async function makeGenesisBlock(
   // on the block header.
   const graffiti = Buffer.alloc(32)
   graffiti.write('genesis')
-  const block = await captain.chain.newBlock(
-    transactionList,
-    postedMinersFeeTransaction,
-    graffiti,
-  )
+  const block = await chain.newBlock(transactionList, postedMinersFeeTransaction, graffiti)
   // Modify the block with any custom properties.
   block.header.target = Target.initialTarget()
   block.header.timestamp = new Date(info.timestamp)
