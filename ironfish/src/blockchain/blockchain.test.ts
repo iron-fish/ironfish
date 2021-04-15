@@ -296,45 +296,33 @@ describe('Blockchain', () => {
     const { node: nodeB } = await nodeTest.createSetup()
     await Promise.all([nodeA.seed(), nodeB.seed()])
 
-    const notes = await nodeA.captain.chain.notes.size()
-    const nullifiers = await nodeB.captain.chain.nullifiers.size()
+    const notes = await nodeA.chain.notes.size()
+    const nullifiers = await nodeB.chain.nullifiers.size()
 
     const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
 
-    const blockA1 = await useBlockFixture(nodeA.captain, async () =>
-      nodeA.captain.chain.newBlock(
+    const blockA1 = await useBlockFixture(nodeA.chain, async () =>
+      nodeA.chain.newBlock(
         [],
-        await nodeA.captain.chain.strategy.createMinersFee(
-          BigInt(0),
-          BigInt(2),
-          accountA.spendingKey,
-        ),
+        await nodeA.chain.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
       ),
     )
 
-    const blockB1 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB1 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
-        await nodeB.captain.chain.strategy.createMinersFee(
-          BigInt(0),
-          BigInt(2),
-          accountB.spendingKey,
-        ),
+        await nodeB.chain.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
       ),
     )
 
-    await nodeA.captain.chain.addBlock(blockA1)
-    await nodeB.captain.chain.addBlock(blockB1)
+    await nodeA.chain.addBlock(blockA1)
+    await nodeB.chain.addBlock(blockB1)
 
-    const blockB2 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
-        await nodeB.captain.chain.strategy.createMinersFee(
-          BigInt(0),
-          BigInt(3),
-          accountB.spendingKey,
-        ),
+        await nodeB.chain.strategy.createMinersFee(BigInt(0), BigInt(3), accountB.spendingKey),
       ),
     )
 
@@ -349,35 +337,35 @@ describe('Blockchain', () => {
     expect(minersFeeB2.notesLength()).toBe(1)
 
     // Check nodeA's chain has notes from blockA1
-    expect(await nodeA.captain.chain.notes.size()).toBe(notes + 1)
-    expect(await nodeA.captain.chain.nullifiers.size()).toBe(nullifiers)
-    const addedNoteA1 = (await nodeA.captain.chain.notes.getLeaf(notes)).element
+    expect(await nodeA.chain.notes.size()).toBe(notes + 1)
+    expect(await nodeA.chain.nullifiers.size()).toBe(nullifiers)
+    const addedNoteA1 = (await nodeA.chain.notes.getLeaf(notes)).element
     expect(minersFeeA1.getNote(0).serialize().equals(addedNoteA1.serialize())).toBe(true)
 
     // Check nodeB's chain has notes from blockB1
-    expect(await nodeB.captain.chain.notes.size()).toBe(notes + 1)
-    expect(await nodeB.captain.chain.nullifiers.size()).toBe(nullifiers)
-    let addedNoteB1 = (await nodeB.captain.chain.notes.getLeaf(notes)).element
+    expect(await nodeB.chain.notes.size()).toBe(notes + 1)
+    expect(await nodeB.chain.nullifiers.size()).toBe(nullifiers)
+    let addedNoteB1 = (await nodeB.chain.notes.getLeaf(notes)).element
     expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
 
     // Now add blockB2 to nodeB
-    await nodeB.captain.chain.addBlock(blockB2)
+    await nodeB.chain.addBlock(blockB2)
 
     // Check nodeB's chain has notes from blockB2
-    expect(await nodeB.captain.chain.notes.size()).toBe(notes + 2)
-    expect(await nodeB.captain.chain.nullifiers.size()).toBe(nullifiers)
-    let addedNoteB2 = (await nodeB.captain.chain.notes.getLeaf(notes + 1)).element
+    expect(await nodeB.chain.notes.size()).toBe(notes + 2)
+    expect(await nodeB.chain.nullifiers.size()).toBe(nullifiers)
+    let addedNoteB2 = (await nodeB.chain.notes.getLeaf(notes + 1)).element
     expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
 
     // Now cause reorg on nodeA
-    await nodeA.captain.chain.addBlock(blockB1)
-    await nodeA.captain.chain.addBlock(blockB2)
+    await nodeA.chain.addBlock(blockB1)
+    await nodeA.chain.addBlock(blockB2)
 
     // Check nodeA's chain has removed blockA1 notes and added blockB1 + blockB2 note
-    expect(await nodeA.captain.chain.notes.size()).toBe(notes + 2)
-    expect(await nodeA.captain.chain.nullifiers.size()).toBe(nullifiers)
-    addedNoteB1 = (await nodeA.captain.chain.notes.getLeaf(notes)).element
-    addedNoteB2 = (await nodeA.captain.chain.notes.getLeaf(notes + 1)).element
+    expect(await nodeA.chain.notes.size()).toBe(notes + 2)
+    expect(await nodeA.chain.nullifiers.size()).toBe(nullifiers)
+    addedNoteB1 = (await nodeA.chain.notes.getLeaf(notes)).element
+    addedNoteB2 = (await nodeA.chain.notes.getLeaf(notes + 1)).element
     expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
     expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
   }, 20000)

@@ -46,7 +46,8 @@ import { Identity } from './identity'
 import { parseUrl } from './utils/parseUrl'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import {
-  IronfishCaptain,
+  IronfishBlockchain,
+  IronfishStrategy,
   SerializedTransaction,
   SerializedWasmNoteEncrypted,
 } from '../strategy'
@@ -102,7 +103,8 @@ export class PeerNetwork {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
-  private readonly captain: IronfishCaptain
+  private readonly strategy: IronfishStrategy
+  private readonly chain: IronfishBlockchain
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -130,12 +132,14 @@ export class PeerNetwork {
     logger?: Logger
     metrics?: MetricsMonitor
     node: IronfishNode
-    captain: IronfishCaptain
+    strategy: IronfishStrategy
+    chain: IronfishBlockchain
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
 
     this.node = options.node
-    this.captain = options.captain
+    this.chain = options.chain
+    this.strategy = options.strategy
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
     this.metrics = options.metrics || new MetricsMonitor(this.logger)
     this.bootstrapNodes = options.bootstrapNodes || []
@@ -191,7 +195,7 @@ export class PeerNetwork {
       NodeMessageType.NewBlock,
       RoutingStyle.gossip,
       (p) => {
-        return this.captain.chain.verifier.verifyNewBlock(p)
+        return this.chain.verifier.verifyNewBlock(p)
       },
       (message) => this.onNewBlock(message),
     )
@@ -200,13 +204,13 @@ export class PeerNetwork {
       NodeMessageType.NewTransaction,
       RoutingStyle.gossip,
       (p) => {
-        return this.captain.chain.verifier.verifyNewTransaction(p)
+        return this.chain.verifier.verifyNewTransaction(p)
       },
       async (message) => await this.onNewTransaction(message),
     )
 
     this.node.miningDirector.onNewBlock.on((block) => {
-      const serializedBlock = this.captain.blockSerde.serialize(block)
+      const serializedBlock = this.strategy.blockSerde.serialize(block)
 
       this.gossip({
         type: NodeMessageType.NewBlock,
@@ -217,9 +221,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = this.captain.strategy
-        .transactionSerde()
-        .serialize(transaction)
+      const serializedTransaction = this.strategy.transactionSerde().serialize(transaction)
 
       this.gossip({
         type: NodeMessageType.NewTransaction,
@@ -230,7 +232,7 @@ export class PeerNetwork {
 
   /** Used to request a block by header hash or sequence */
   requestBlocks(hash: Buffer, nextBlockDirection: boolean, peer?: Identity): void {
-    const serializedHash = this.captain.chain.blockHashSerde.serialize(hash)
+    const serializedHash = this.chain.blockHashSerde.serialize(hash)
 
     const request: BlockRequest = {
       type: NodeMessageType.Blocks,

@@ -15,6 +15,14 @@ export function mockAccounts(): any {
   }
 }
 
+export function mockChain(): any {
+  return {}
+}
+
+export function mockStrategy(): any {
+  return {}
+}
+
 export function mockNode(): any {
   return {
     accounts: mockAccounts(),

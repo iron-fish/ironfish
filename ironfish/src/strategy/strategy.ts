@@ -8,7 +8,7 @@ import { BlockHash } from '../blockchain/blockheader'
 import Transaction from './transaction'
 import Serde, { JsonSerializable } from '../serde'
 import Verifier from '../consensus/verifier'
-import Blockchain from '../blockchain'
+import Blockchain, { BlockSerde } from '../blockchain'
 
 export { default as Transaction, Spend } from './transaction'
 
@@ -47,6 +47,11 @@ export default interface Strategy<
    * Get the object that can serialize and deserialize lists of transactions.
    */
   transactionSerde(): Serde<T, ST>
+
+  /**
+   * Get the object that can serialize and deserialize blocks
+   */
+  readonly blockSerde: BlockSerde<E, H, T, SE, SH, ST>
 
   /**
    * Given the serialized bytes of a block header, return a 32-byte hash of that block.

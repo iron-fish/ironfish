@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import Blockchain, { AddBlockResult } from './blockchain'
-import Block, { BlockSerde, SerializedBlock } from './blockchain/block'
+import Block, { SerializedBlock } from './blockchain/block'
 import { BlockHash } from './blockchain/blockheader'
 import { Transaction } from './strategy/transaction'
 import { BlockRequest } from './network/messages'
@@ -157,7 +157,8 @@ export class BlockSyncer<
   hashSerde: Serde<BlockHash, string>
   blockSerde: Serde<Block<E, H, T, SE, SH, ST>, SerializedBlock<SH, ST>>
   chain: Blockchain<E, H, T, SE, SH, ST>
-  private metrics: MetricsMonitor
+  strategy: Strategy<E, H, T, SE, SH, ST>
+  metrics: MetricsMonitor
 
   private _state: Readonly<ActionState<E, H, T, SE, SH, ST>> = {
     type: 'STOPPED',
@@ -199,11 +200,12 @@ export class BlockSyncer<
   }) {
     this.metrics = options.metrics
     this.chain = options.chain
+    this.strategy = options.strategy
     this.logger = options.logger
     this.peerNetwork = options.peerNetwork
 
     this.hashSerde = new BufferSerde(32)
-    this.blockSerde = new BlockSerde(options.strategy)
+    this.blockSerde = options.strategy.blockSerde
 
     this.blockSyncPromise = Promise.resolve()
     this.blockRequestPromise = Promise.resolve()

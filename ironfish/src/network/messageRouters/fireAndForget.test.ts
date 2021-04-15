@@ -5,7 +5,7 @@
 jest.mock('ws')
 
 import ws from 'ws'
-import { mockCaptain, mockNode } from '../../testUtilities/mocks'
+import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { PeerManager } from '../peers/peerManager'
 import { mockPrivateIdentity, mockLocalPeer, getConnectedPeer } from '../testUtilities'
@@ -51,7 +51,8 @@ describe('FireAndForget Router', () => {
       agent: 'sdk/1/cli',
       webSocket: ws,
       node: mockNode(),
-      captain: mockCaptain(),
+      chain: mockChain(),
+      strategy: mockStrategy(),
     })
 
     const fireAndForgetMock = jest.fn(async () => {})

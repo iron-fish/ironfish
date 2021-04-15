@@ -10,7 +10,6 @@ import {
   makeBlockAfter,
 } from '../captain/testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { BlockSerde } from './block'
 import { useAccountFixture } from '../testUtilities/fixtures'
 import { SerializedIronfishBlock } from '../strategy'
 
@@ -42,15 +41,15 @@ describe('Block', () => {
     const genesis = await nodeTest.node.seed()
     const block = await makeBlockAfter(nodeTest.captain.chain, genesis)
 
-    const serialized = nodeTest.captain.blockSerde.serialize(block)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
 
-    const deserialized = nodeTest.captain.blockSerde.deserialize(serialized)
-    expect(nodeTest.captain.blockSerde.equals(deserialized, block)).toBe(true)
+    const deserialized = nodeTest.strategy.blockSerde.deserialize(serialized)
+    expect(nodeTest.strategy.blockSerde.equals(deserialized, block)).toBe(true)
   })
 
   it('throws when deserializing invalid block', () => {
-    const serde = nodeTest.captain.blockSerde
+    const serde = nodeTest.strategy.blockSerde
 
     expect(() =>
       serde.deserialize(({ bad: 'data' } as unknown) as SerializedIronfishBlock),
@@ -59,7 +58,7 @@ describe('Block', () => {
 
   it('check block equality', () => {
     const strategy = new TestStrategy()
-    const serde = new BlockSerde(strategy)
+    const serde = strategy.blockSerde
 
     const block1 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
     const block2 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)

@@ -29,7 +29,7 @@ describe('Accounts', () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
-    const captain = nodeTest.captain
+    const chain = nodeTest.chain
 
     const account = await node.accounts.createAccount('test', true)
 
@@ -44,7 +44,7 @@ describe('Accounts', () => {
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
     const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await captain.chain.addBlock(block)
+    const addedBlock = await chain.addBlock(block)
     expect(addedBlock.isAdded).toBe(true)
 
     // TODO: This should happen automatically as a result of addBlock
@@ -62,8 +62,8 @@ describe('Accounts', () => {
       block.header.sequence + BigInt(1),
       account.spendingKey,
     )
-    const newBlock = await captain.chain.newBlock([], minersfee)
-    const addResult = await captain.chain.addBlock(newBlock)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
     // TODO: This should happen automatically as a result of addBlock
@@ -80,7 +80,7 @@ describe('Accounts', () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
-    const captain = nodeTest.captain
+    const chain = nodeTest.chain
 
     const account = await node.accounts.createAccount('test', true)
 
@@ -94,7 +94,7 @@ describe('Accounts', () => {
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
     const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await captain.chain.addBlock(block)
+    const addedBlock = await chain.addBlock(block)
     expect(addedBlock.isAdded).toBe(true)
 
     // Balance after adding the genesis block should be 0
@@ -111,8 +111,8 @@ describe('Accounts', () => {
       block.header.sequence + BigInt(1),
       account.spendingKey,
     )
-    const newBlock = await captain.chain.newBlock([], minersfee)
-    const addResult = await captain.chain.addBlock(newBlock)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 500000000 after adding the miner's fee
@@ -149,6 +149,7 @@ describe('Accounts', () => {
     const strategy = nodeTest.strategy
     const node = nodeTest.node
     const captain = nodeTest.captain
+    const chain = nodeTest.chain
 
     const account = await node.accounts.createAccount('test', true)
 
@@ -161,7 +162,7 @@ describe('Accounts', () => {
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
     const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await captain.chain.addBlock(block)
+    const addedBlock = await chain.addBlock(block)
     expect(addedBlock.isAdded).toBe(true)
 
     // Balance after adding the genesis block should be 0
@@ -178,8 +179,8 @@ describe('Accounts', () => {
       block.header.sequence + BigInt(1),
       account.spendingKey,
     )
-    const newBlock = await captain.chain.newBlock([], minersfee)
-    const addResult = await captain.chain.addBlock(newBlock)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 500000000 after adding the miner's fee
@@ -207,8 +208,8 @@ describe('Accounts', () => {
       block.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
-    const newBlock2 = await captain.chain.newBlock([transaction], minersfee2)
-    const addResult2 = await captain.chain.addBlock(newBlock2)
+    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const addResult2 = await chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 2 should be 499999998
@@ -236,14 +237,14 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const block1 = await useBlockFixture(nodeA.captain, async () =>
-      nodeA.captain.chain.newBlock(
+    const block1 = await useBlockFixture(nodeA.chain, async () =>
+      nodeA.chain.newBlock(
         [],
         await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
       ),
     )
 
-    const addedBlock = await nodeA.captain.chain.addBlock(block1)
+    const addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Initial balance should be 500000000
@@ -253,7 +254,7 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(500000000),
     })
 
-    const block2 = await useBlockFixture(nodeA.captain, async () => {
+    const block2 = await useBlockFixture(nodeA.chain, async () => {
       // Generate a transaction from account A to account B
       const transaction = await nodeA.accounts.createTransaction(
         nodeA.captain,
@@ -265,7 +266,7 @@ describe('Accounts', () => {
       )
 
       // Create block 2
-      return nodeA.captain.chain.newBlock(
+      return nodeA.chain.newBlock(
         [transaction],
         await nodeA.strategy.createMinersFee(
           await transaction.transactionFee(),
@@ -275,7 +276,7 @@ describe('Accounts', () => {
       )
     })
 
-    await nodeA.captain.chain.addBlock(block2)
+    await nodeA.chain.addBlock(block2)
     await nodeA.accounts.updateHead(nodeA)
 
     // Attempting to create another transaction for account A
@@ -308,33 +309,33 @@ describe('Accounts', () => {
     await nodeA.accounts.importAccount(accountB)
 
     // Create and add A1
-    const blockA1 = await useBlockFixture(nodeA.captain, async () =>
-      nodeA.captain.chain.newBlock(
+    const blockA1 = await useBlockFixture(nodeA.chain, async () =>
+      nodeA.chain.newBlock(
         [],
         await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
       ),
     )
-    let addedBlock = await nodeA.captain.chain.addBlock(blockA1)
+    let addedBlock = await nodeA.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B1
-    const blockB1 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB1 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB1)
+    addedBlock = await nodeB.chain.addBlock(blockB1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B2
-    const blockB2 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB2)
+    addedBlock = await nodeB.chain.addBlock(blockB2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
@@ -354,11 +355,11 @@ describe('Accounts', () => {
     })
 
     // Copy block B1 to nodeA
-    await nodeA.captain.chain.addBlock(blockB1)
+    await nodeA.chain.addBlock(blockB1)
     await nodeA.accounts['updateHead'](nodeA)
 
     // Copy block B2 to nodeA
-    await nodeA.captain.chain.addBlock(blockB2)
+    await nodeA.chain.addBlock(blockB2)
     await nodeA.accounts['updateHead'](nodeA)
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(0),
@@ -387,22 +388,22 @@ describe('Accounts', () => {
     await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block 1
-    const block1 = await useBlockFixture(nodeB.captain, async () =>
-      nodeA.captain.chain.newBlock(
+    const block1 = await useBlockFixture(nodeB.chain, async () =>
+      nodeA.chain.newBlock(
         [],
         await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
       ),
     )
-    let addedBlock = await nodeA.captain.chain.addBlock(block1)
+    let addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
-    addedBlock = await nodeB.captain.chain.addBlock(block1)
+    addedBlock = await nodeB.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
     await nodeA.accounts['updateHead'](nodeA)
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
-      nodeA.captain,
+      nodeA.chain,
       async () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeA.accounts.createTransaction(
@@ -415,7 +416,7 @@ describe('Accounts', () => {
         )
 
         // Create block A2
-        return nodeA.captain.chain.newBlock(
+        return nodeA.chain.newBlock(
           [transaction],
           await nodeA.strategy.createMinersFee(
             BigInt(0),
@@ -427,27 +428,27 @@ describe('Accounts', () => {
       nodeA.accounts,
     )
 
-    addedBlock = await nodeA.captain.chain.addBlock(blockA2)
+    addedBlock = await nodeA.chain.addBlock(blockA2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B2
-    const blockB2 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(3), generateKey().spending_key),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB2)
+    addedBlock = await nodeB.chain.addBlock(blockB2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B3
-    const blockB3 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB3 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(4), generateKey().spending_key),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB3)
+    addedBlock = await nodeB.chain.addBlock(blockB3)
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
@@ -468,8 +469,8 @@ describe('Accounts', () => {
     })
 
     // Copy block B2 and B3 to nodeA
-    await nodeA.captain.chain.addBlock(blockB2)
-    await nodeA.captain.chain.addBlock(blockB3)
+    await nodeA.chain.addBlock(blockB2)
+    await nodeA.chain.addBlock(blockB3)
     await nodeA.accounts['updateHead'](nodeA)
 
     // B should not have confirmed coins yet because the transaction isn't on a block
@@ -502,18 +503,18 @@ describe('Accounts', () => {
 
     // Create and add Block 1
     const block1 = await useBlockFixture(
-      nodeA.captain,
+      nodeA.chain,
       async () =>
-        nodeA.captain.chain.newBlock(
+        nodeA.chain.newBlock(
           [],
           await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
         ),
       nodeA.accounts,
     )
 
-    let addedBlock = await nodeA.captain.chain.addBlock(block1)
+    let addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
-    addedBlock = await nodeB.captain.chain.addBlock(block1)
+    addedBlock = await nodeB.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Generate a transaction from account A to account B
@@ -521,7 +522,7 @@ describe('Accounts', () => {
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
-      nodeB.captain,
+      nodeB.chain,
       async () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeB.accounts.createTransaction(
@@ -534,7 +535,7 @@ describe('Accounts', () => {
         )
 
         // Create block A2
-        return nodeA.captain.chain.newBlock(
+        return nodeA.chain.newBlock(
           [transaction],
           await nodeA.strategy.createMinersFee(
             BigInt(0),
@@ -546,27 +547,27 @@ describe('Accounts', () => {
       nodeB.accounts,
     )
 
-    addedBlock = await nodeA.captain.chain.addBlock(blockA2)
+    addedBlock = await nodeA.chain.addBlock(blockA2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B2
-    const blockB2 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(3), generateKey().spending_key),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB2)
+    addedBlock = await nodeB.chain.addBlock(blockB2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B3
-    const blockB3 = await useBlockFixture(nodeB.captain, async () =>
-      nodeB.captain.chain.newBlock(
+    const blockB3 = await useBlockFixture(nodeB.chain, async () =>
+      nodeB.chain.newBlock(
         [],
         await nodeB.strategy.createMinersFee(BigInt(0), BigInt(4), generateKey().spending_key),
       ),
     )
-    addedBlock = await nodeB.captain.chain.addBlock(blockB3)
+    addedBlock = await nodeB.chain.addBlock(blockB3)
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
@@ -587,8 +588,8 @@ describe('Accounts', () => {
     })
 
     // Copy block B2 and B3 to nodeA
-    await nodeA.captain.chain.addBlock(blockB2)
-    await nodeA.captain.chain.addBlock(blockB3)
+    await nodeA.chain.addBlock(blockB2)
+    await nodeA.chain.addBlock(blockB3)
     await nodeA.accounts['updateHead'](nodeA)
 
     // A should have its original coins

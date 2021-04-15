@@ -39,7 +39,7 @@ export class Captain<
     this.metrics = metrics
     this.strategy = chain.strategy
     this.chain = chain
-    this.blockSerde = new BlockSerde(chain.strategy)
+    this.blockSerde = chain.strategy.blockSerde
     this.workerPool = workerPool
     this.logger = logger
   }

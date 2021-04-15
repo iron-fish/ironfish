@@ -435,6 +435,17 @@ export class IronfishStrategy
     return new TransactionSerde(this.workerPool)
   }
 
+  get blockSerde(): BlockSerde<
+    IronfishNoteEncrypted,
+    WasmNoteEncryptedHash,
+    IronfishTransaction,
+    SerializedWasmNoteEncrypted,
+    SerializedWasmNoteEncryptedHash,
+    SerializedTransaction
+  > {
+    return this._blockSerde
+  }
+
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     return hashBlockHeader(serializedHeader)
   }

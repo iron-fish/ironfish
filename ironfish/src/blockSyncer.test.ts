@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target, BlockSerde } from './blockchain'
+import { Target } from './blockchain'
 import { BlockSyncer } from './blockSyncer'
 import { RangeHasher } from './merkletree'
 import { Assert } from './assert'
@@ -97,7 +97,7 @@ describe('BlockSyncer', () => {
 
   describe('RequestOneBlock', () => {
     const strategy = new TestStrategy(new RangeHasher())
-    const blockSerde = new BlockSerde(strategy)
+    const blockSerde = strategy.blockSerde
     let onRequestBlockSpy: jest.SpyInstance
     let syncer: TestBlockSyncer
     let targetSpy: jest.SpyInstance

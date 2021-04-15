@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Accounts, Account } from '../account'
 import { IJSON } from '../serde'
-import { IronfishBlock, IronfishCaptain, SerializedIronfishBlock } from '../strategy'
+import { IronfishBlock, IronfishBlockchain, SerializedIronfishBlock } from '../strategy'
 import fs from 'fs'
 import path from 'path'
 import { getCurrentTestPath } from './utils'
@@ -151,7 +151,7 @@ export async function restoreBlockFixtureToAccounts(
  * caches that in the fixtures folder next to the current test
  */
 export async function useBlockFixture(
-  captain: IronfishCaptain,
+  chain: IronfishBlockchain,
   generate: FixtureGenerate<IronfishBlock>,
   addTransactionsTo?: Accounts,
 ): Promise<IronfishBlock> {
@@ -162,10 +162,10 @@ export async function useBlockFixture(
       }
     },
     serialize: (block: IronfishBlock): SerializedIronfishBlock => {
-      return captain.blockSerde.serialize(block)
+      return chain.strategy.blockSerde.serialize(block)
     },
     deserialize: (serialized: SerializedIronfishBlock): IronfishBlock => {
-      return captain.blockSerde.deserialize(serialized)
+      return chain.strategy.blockSerde.deserialize(serialized)
     },
   })
 }
@@ -174,7 +174,7 @@ export async function useBlockFixture(
  * Generates a block with a miners fee transaction on the current chain state
  */
 export async function useMinerBlockFixture(
-  captain: IronfishCaptain,
+  chain: IronfishBlockchain,
   sequence: bigint,
   account?: Account,
   addTransactionsTo?: Accounts,
@@ -182,11 +182,11 @@ export async function useMinerBlockFixture(
   const spendingKey = account ? account.spendingKey : generateKey().spending_key
 
   return await useBlockFixture(
-    captain,
+    chain,
     async () =>
-      captain.chain.newBlock(
+      chain.newBlock(
         [],
-        await captain.chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
+        await chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
       ),
     addTransactionsTo,
   )

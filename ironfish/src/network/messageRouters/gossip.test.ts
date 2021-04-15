@@ -12,7 +12,7 @@ import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { GossipRouter } from './gossip'
 import { PeerManager } from '../peers/peerManager'
 import { mockLocalPeer, getConnectedPeer } from '../testUtilities'
-import { mockCaptain, mockNode } from '../../testUtilities/mocks'
+import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
 
 jest.useFakeTimers()
 
@@ -109,7 +109,8 @@ describe('Gossip Router', () => {
       agent: 'sdk/1/cli',
       webSocket: ws,
       node: mockNode(),
-      captain: mockCaptain(),
+      chain: mockChain(),
+      strategy: mockStrategy(),
     })
 
     const gossipMock = jest.fn(async () => {})
@@ -133,7 +134,8 @@ describe('Gossip Router', () => {
       agent: 'sdk/1/cli',
       webSocket: ws,
       node: mockNode(),
-      captain: mockCaptain(),
+      chain: mockChain(),
+      strategy: mockStrategy(),
     })
 
     const gossipMock = jest.fn(async () => {})
