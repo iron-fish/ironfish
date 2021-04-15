@@ -86,7 +86,10 @@ describe('Mining director', () => {
       }
     }
 
-    memPool = new MemPool(captain)
+    memPool = new MemPool({
+      chain: captain.chain,
+      strategy: captain.strategy,
+    })
 
     director = new MiningDirector({
       chain: captain.chain,
@@ -195,7 +198,11 @@ describe('isValidTransaction', () => {
 
   beforeEach(async () => {
     captain = await makeCaptain(strategy)
-    memPool = new MemPool(captain)
+
+    memPool = new MemPool({
+      chain: captain.chain,
+      strategy: captain.strategy,
+    })
   })
 
   it('is not valid if the spend was seen in other transactions in this block', async () => {
@@ -256,7 +263,11 @@ describe('successfullyMined', () => {
 
   beforeEach(async () => {
     captain = await makeCaptain(strategy)
-    memPool = new MemPool(captain)
+
+    memPool = new MemPool({
+      chain: captain.chain,
+      strategy: captain.strategy,
+    })
 
     director = new MiningDirector({
       chain: captain.chain,
@@ -321,7 +332,11 @@ describe('Recalculating target', () => {
     jest.setTimeout(15000000)
 
     captain = await makeCaptain(strategy)
-    memPool = new MemPool(captain)
+
+    memPool = new MemPool({
+      chain: captain.chain,
+      strategy: captain.strategy,
+    })
 
     director = new MiningDirector({
       chain: captain.chain,

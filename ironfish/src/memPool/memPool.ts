@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Captain } from '../captain'
 import { Nullifier } from '../blockchain/nullifiers'
 import Transaction from '../strategy/transaction'
 import { createRootLogger, Logger } from '../logger'
 import { JsonSerializable } from '../serde'
+import { Blockchain } from '../blockchain'
+import { Strategy } from '../strategy'
 
 export class MemPool<
   E,
@@ -16,12 +17,20 @@ export class MemPool<
   SH extends JsonSerializable,
   ST
 > {
-  private transactions = new Map<string, T>()
-  private readonly captain: Captain<E, H, T, SE, SH, ST>
-  private readonly logger: Logger
+  transactions = new Map<string, T>()
+  chain: Blockchain<E, H, T, SE, SH, ST>
+  strategy: Strategy<E, H, T, SE, SH, ST>
+  logger: Logger
 
-  constructor(captain: Captain<E, H, T, SE, SH, ST>, logger: Logger = createRootLogger()) {
-    this.captain = captain
+  constructor(options: {
+    strategy: Strategy<E, H, T, SE, SH, ST>
+    chain: Blockchain<E, H, T, SE, SH, ST>
+    logger?: Logger
+  }) {
+    const logger = options.logger || createRootLogger()
+
+    this.chain = options.chain
+    this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
   }
 
@@ -74,7 +83,7 @@ export class MemPool<
    */
   async prune(): Promise<void> {
     // The size of the tree before which any valid transactions must not have been seen
-    const beforeSize = await this.captain.chain.nullifiers.size()
+    const beforeSize = await this.chain.nullifiers.size()
 
     const seenNullifiers: Nullifier[] = []
     let pruneCount = 0
@@ -123,7 +132,7 @@ export class MemPool<
   ): Promise<boolean> {
     // it's faster to check if spends have been seen or not, so do that first
     for (const spend of transaction.spends()) {
-      if (!(await this.captain.chain.verifier.verifySpend(spend, beforeSize))) {
+      if (!(await this.chain.verifier.verifySpend(spend, beforeSize))) {
         return false
       }
     }
@@ -134,7 +143,7 @@ export class MemPool<
 
     for (const spend of transaction.spends()) {
       for (const seen of seenNullifiers) {
-        if (this.captain.strategy.nullifierHasher().hashSerde().equals(spend.nullifier, seen)) {
+        if (this.strategy.nullifierHasher().hashSerde().equals(spend.nullifier, seen)) {
           return false
         }
       }

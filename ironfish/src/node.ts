@@ -190,7 +190,7 @@ export class IronfishNode {
     const accountDB = new AccountsDB({ database: accountdb, workerPool })
     const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
     const captain = await Captain.new(chaindb, workerPool, strategy, chain, undefined, metrics)
-    const memPool = new MemPool(captain, logger)
+    const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
     const accounts = new Accounts({ database: accountDB })
 
     const mining = new MiningDirector({
