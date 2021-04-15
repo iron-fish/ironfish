@@ -224,7 +224,7 @@ export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>
 
 /**
  * The type of a Iron Fish message. This is an exhaustive list of
- * the messages that are sent from Captain. Other messages may
+ * the messages that are sent from IronfishNode. Other messages may
  * be sent by peerNetwork's internal mechanisms (for example, a peer list).
  *
  * Note: A Response to a Request must have the same MessageType

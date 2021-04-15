@@ -139,7 +139,7 @@ type ActionType<
  *              the hash of an `E`. Used for the internal nodes and root hash
  *              of the notes Merkle Tree
  * @typeParam T Transaction
- *              Type of a transaction stored on Captain's chain.
+ *              Type of a transaction stored on the Blockchain.
  * @typeParam SE SerializedWasmNoteEncrypted
  * @typeParam SH SerializedWasmNoteEncryptedHash
  * @typeParam ST SerializedTransaction

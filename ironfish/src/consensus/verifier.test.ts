@@ -8,12 +8,12 @@ jest.mock('../network')
 import { RangeHasher } from '../merkletree'
 import {
   TestStrategy,
-  makeCaptain,
-  TestCaptain,
   makeFakeBlock,
   blockHash,
   TestBlockHeader,
   fakeMaxTarget,
+  TestBlockchain,
+  makeChainFull,
 } from '../testUtilities/fake'
 import { Validity, VerificationResultReason } from './verifier'
 import { BlockHeader, Target } from '../blockchain'
@@ -21,14 +21,14 @@ import { BlockHeader, Target } from '../blockchain'
 describe('Verifier', () => {
   describe('Transactions', () => {
     const strategy = new TestStrategy(new RangeHasher())
-    let captain: TestCaptain
+    let chain: TestBlockchain
 
     beforeEach(async () => {
-      captain = await makeCaptain(strategy)
+      chain = await makeChainFull(strategy)
     })
 
     it('constructs a verifier', () => {
-      expect(captain.chain.verifier).toBeDefined()
+      expect(chain.verifier).toBeDefined()
     })
 
     it('extracts a valid transaction', async () => {
@@ -36,7 +36,7 @@ describe('Verifier', () => {
         transaction: { elements: ['a'], spends: [], totalFees: 5, isValid: true },
       }
 
-      const result = await captain.chain.verifier.verifyNewTransaction(newTransactionPayload)
+      const result = await chain.verifier.verifyNewTransaction(newTransactionPayload)
 
       const { transaction, serializedTransaction } = result
 
@@ -57,13 +57,13 @@ describe('Verifier', () => {
 
     it('rejects if payload is not a serialized transaction', async () => {
       await expect(
-        captain.chain.verifier.verifyNewTransaction({ notA: 'Transaction' }),
+        chain.verifier.verifyNewTransaction({ notA: 'Transaction' }),
       ).rejects.toEqual('Payload is not a serialized transaction')
     })
 
     it('rejects if the transaction cannot be deserialized', async () => {
       await expect(
-        captain.chain.verifier.verifyNewTransaction({ transaction: { not: 'valid' } }),
+        chain.verifier.verifyNewTransaction({ transaction: { not: 'valid' } }),
       ).rejects.toEqual('Could not deserialize transaction')
     })
 
@@ -71,9 +71,9 @@ describe('Verifier', () => {
       const newTransactionPayload = {
         transaction: { elements: ['a'], spends: [], totalFees: 5, isValid: false },
       }
-      await expect(
-        captain.chain.verifier.verifyNewTransaction(newTransactionPayload),
-      ).rejects.toEqual('Transaction is invalid')
+      await expect(chain.verifier.verifyNewTransaction(newTransactionPayload)).rejects.toEqual(
+        'Transaction is invalid',
+      )
     })
 
     it('rejects if the transaction has negative fees', async () => {
@@ -81,20 +81,20 @@ describe('Verifier', () => {
         transaction: { elements: ['a'], spends: [], totalFees: -5, isValid: true },
       }
 
-      await expect(
-        captain.chain.verifier.verifyNewTransaction(newTransactionPayload),
-      ).rejects.toEqual('Transaction has negative fees')
+      await expect(chain.verifier.verifyNewTransaction(newTransactionPayload)).rejects.toEqual(
+        'Transaction has negative fees',
+      )
     })
   })
 
   describe('Block', () => {
     const strategy = new TestStrategy(new RangeHasher())
-    let captain: TestCaptain
+    let chain: TestBlockchain
     let targetSpy: jest.SpyInstance
 
     beforeEach(async () => {
       targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
-      captain = await makeCaptain(strategy)
+      chain = await makeChainFull(strategy)
     })
 
     afterAll(() => {
@@ -103,12 +103,12 @@ describe('Verifier', () => {
 
     it('extracts a valid block', async () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
-      const serializedBlock = captain.chain.verifier.blockSerde.serialize(block)
+      const serializedBlock = chain.verifier.blockSerde.serialize(block)
 
       const {
         block: newBlock,
         serializedBlock: newSerializedBlock,
-      } = await captain.chain.verifier.verifyNewBlock({ block: serializedBlock })
+      } = await chain.verifier.verifyNewBlock({ block: serializedBlock })
 
       expect(newBlock.header.hash.equals(block.header.hash)).toBe(true)
       expect(newSerializedBlock.header.previousBlockHash).toEqual(
@@ -117,31 +117,31 @@ describe('Verifier', () => {
     })
 
     it('rejects if payload is not a serialized block', async () => {
-      await expect(captain.chain.verifier.verifyNewBlock({ notA: 'Block' })).rejects.toEqual(
+      await expect(chain.verifier.verifyNewBlock({ notA: 'Block' })).rejects.toEqual(
         'Payload is not a serialized block',
       )
     })
 
     it('rejects if the block cannot be deserialized', async () => {
-      await expect(
-        captain.chain.verifier.verifyNewBlock({ block: { not: 'valid' } }),
-      ).rejects.toEqual('Could not deserialize block')
+      await expect(chain.verifier.verifyNewBlock({ block: { not: 'valid' } })).rejects.toEqual(
+        'Could not deserialize block',
+      )
     })
 
     it('rejects if the block is not valid', async () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
       block.transactions[0].isValid = false
-      const serializedBlock = captain.chain.verifier.blockSerde.serialize(block)
+      const serializedBlock = chain.verifier.blockSerde.serialize(block)
       const newBlockPayload = { block: serializedBlock }
 
-      await expect(captain.chain.verifier.verifyNewBlock(newBlockPayload)).rejects.toEqual(
+      await expect(chain.verifier.verifyNewBlock(newBlockPayload)).rejects.toEqual(
         'Block is invalid',
       )
     })
 
     it('validates a valid block', async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
-      const verification = await captain.chain.verifier.verifyBlock(block)
+      const verification = await chain.verifier.verifyBlock(block)
       expect(verification.valid).toBe(Validity.Yes)
     })
 
@@ -149,7 +149,7 @@ describe('Verifier', () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.header.target = new Target(0)
 
-      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
         valid: 0,
       })
@@ -159,7 +159,7 @@ describe('Verifier', () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.transactions[1].isValid = false
 
-      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_PROOF,
         valid: 0,
       })
@@ -169,7 +169,7 @@ describe('Verifier', () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       block.header.minersFee = BigInt(-1)
 
-      expect(await captain.chain.verifier.verifyBlock(block)).toMatchObject({
+      expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
         valid: 0,
       })
@@ -179,7 +179,7 @@ describe('Verifier', () => {
   describe('BlockHeader', () => {
     const strategy = new TestStrategy(new RangeHasher())
     let dateSpy: jest.SpyInstance<number, []>
-    let captain: TestCaptain
+    let chain: TestBlockchain
     let header: TestBlockHeader
 
     beforeAll(() => {
@@ -188,7 +188,7 @@ describe('Verifier', () => {
 
     beforeEach(async () => {
       dateSpy.mockClear()
-      captain = await makeCaptain(strategy)
+      chain = await makeChainFull(strategy)
 
       header = new BlockHeader(
         strategy,
@@ -205,13 +205,13 @@ describe('Verifier', () => {
     })
 
     it('validates a valid transaction', () => {
-      expect(captain.chain.verifier.verifyBlockHeader(header).valid).toBe(Validity.Yes)
+      expect(chain.verifier.verifyBlockHeader(header).valid).toBe(Validity.Yes)
     })
 
     it('fails validation when target is invalid', () => {
       header.target = new Target(BigInt(0))
 
-      expect(captain.chain.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
         valid: 0,
       })
@@ -220,7 +220,7 @@ describe('Verifier', () => {
     it('fails validation when timestamp is in future', () => {
       header.timestamp = new Date(1598467898637)
 
-      expect(captain.chain.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
         valid: 0,
       })
@@ -230,7 +230,7 @@ describe('Verifier', () => {
       header.graffiti = Buffer.alloc(31)
       header.graffiti.write('test')
 
-      expect(captain.chain.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
         valid: 0,
       })
@@ -238,7 +238,7 @@ describe('Verifier', () => {
       header.graffiti = Buffer.alloc(33)
       header.graffiti.write('test2')
 
-      expect(captain.chain.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
         valid: 0,
       })

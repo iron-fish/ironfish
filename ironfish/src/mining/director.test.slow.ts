@@ -12,10 +12,8 @@ import { Validity } from '../consensus/verifier'
 
 import {
   TestStrategy,
-  TestCaptain,
   TestTransaction,
   SerializedTestTransaction,
-  makeCaptain,
   makeNullifier,
   makeFakeBlock,
   makeDb,
@@ -25,11 +23,12 @@ import {
   makeChainGenesis,
   TestMemPool,
   TestBlockchain,
+  makeChainFull,
 } from '../testUtilities/fake'
 import { MemPool } from '../memPool'
 import { Assert } from '../assert'
 
-// Number of notes and nullifiers on the initial chain created by makeCaptain
+// Number of notes and nullifiers on the initial chain created by makeFullChain
 const TEST_CHAIN_NUM_NOTES = 40
 const TEST_CHAIN_NUM_NULLIFIERS = 16
 
@@ -190,12 +189,10 @@ describe('Mining director', () => {
 describe('isValidTransaction', () => {
   const strategy = new TestStrategy(new RangeHasher())
   let chain: TestBlockchain
-  let captain: TestCaptain
   let memPool: TestMemPool
 
   beforeEach(async () => {
-    captain = await makeCaptain(strategy)
-    chain = captain.chain
+    chain = await makeChainFull(strategy)
 
     memPool = new MemPool({
       chain: chain,
@@ -249,7 +246,6 @@ describe('isValidTransaction', () => {
 describe('successfullyMined', () => {
   const strategy = new TestStrategy(new RangeHasher())
   let chain: TestBlockchain
-  let captain: TestCaptain
   let memPool: TestMemPool
   let director: MiningDirector<
     string,
@@ -261,8 +257,7 @@ describe('successfullyMined', () => {
   >
 
   beforeEach(async () => {
-    captain = await makeCaptain(strategy)
-    chain = captain.chain
+    chain = await makeChainFull(strategy)
 
     memPool = new MemPool({
       chain: chain,
@@ -316,7 +311,6 @@ describe('Recalculating target', () => {
   const minDifficulty = Target.minDifficulty() as bigint
   const strategy = new TestStrategy(new RangeHasher())
   let chain: TestBlockchain
-  let captain: TestCaptain
   let memPool: TestMemPool
   let director: MiningDirector<
     string,
@@ -332,8 +326,7 @@ describe('Recalculating target', () => {
     jest.useFakeTimers()
     jest.setTimeout(15000000)
 
-    captain = await makeCaptain(strategy)
-    chain = captain.chain
+    chain = await makeChainFull(strategy)
 
     memPool = new MemPool({
       chain: chain,
