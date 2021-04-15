@@ -6,7 +6,6 @@ import { Event } from '../event'
 import { generateKey, generateNewPublicAddress, WasmNote } from 'ironfish-wasm-nodejs'
 import {
   IronfishBlockHeader,
-  IronfishCaptain,
   IronfishTransaction,
   IronfishMemPool,
   IronfishBlockchain,
@@ -16,7 +15,6 @@ import {
 import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { createRootLogger, Logger } from '../logger'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
-import { IronfishNode } from '../node'
 import { ValidationError } from '../rpc/adapters/errors'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { IDatabaseTransaction } from '../storage'
@@ -59,6 +57,7 @@ export class Accounts {
   readonly database: AccountsDB
   protected readonly logger: Logger
   protected readonly workerPool: WorkerPool
+  protected readonly chain: IronfishBlockchain
 
   protected defaultAccount: string | null = null
   protected headHash: string | null = null
@@ -66,20 +65,23 @@ export class Accounts {
   protected eventLoopTimeout: SetTimeoutToken | null = null
 
   constructor({
+    chain,
     workerPool,
     database,
     logger = createRootLogger(),
   }: {
+    chain: IronfishBlockchain
     workerPool: WorkerPool
     database: AccountsDB
     logger?: Logger
   }) {
+    this.chain = chain
     this.logger = logger.withTag('accounts')
     this.database = database
     this.workerPool = workerPool
   }
 
-  async updateHead(node: IronfishNode): Promise<void> {
+  async updateHead(): Promise<void> {
     if (this.scan || this.isUpdatingHead) return
 
     const addBlock = async (header: IronfishBlockHeader): Promise<void> => {
@@ -89,7 +91,7 @@ export class Accounts {
         transaction,
         blockHash,
         initialNoteIndex,
-      } of node.chain.getTransactionsForBlock(header)) {
+      } of this.chain.getTransactionsForBlock(header)) {
         await this.syncTransaction(transaction, {
           blockHash: blockHash,
           initialNoteIndex: initialNoteIndex,
@@ -100,7 +102,7 @@ export class Accounts {
     const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      for await (const { transaction } of node.chain.getTransactionsForBlock(header)) {
+      for await (const { transaction } of this.chain.getTransactionsForBlock(header)) {
         await this.syncTransaction(transaction, {})
       }
     }
@@ -108,8 +110,8 @@ export class Accounts {
     this.isUpdatingHead = true
 
     try {
-      const chainHead = await node.chain.getHeaviestHead()
-      const chainTail = await node.chain.getGenesisHeader()
+      const chainHead = await this.chain.getHeaviestHead()
+      const chainTail = await this.chain.getGenesisHeader()
 
       if (!chainHead || !chainTail) {
         // There is no genesis block, so there's nothing to update to
@@ -126,18 +128,18 @@ export class Accounts {
       }
 
       const accountHeadHash = Buffer.from(this.headHash, 'hex')
-      const accountHead = await node.chain.getBlockHeader(accountHeadHash)
+      const accountHead = await this.chain.getBlockHeader(accountHeadHash)
 
       if (!accountHead || chainHead.hash.equals(accountHead.hash)) {
         return
       }
 
-      const { fork, isLinear } = await node.chain.findFork(accountHead, chainHead)
+      const { fork, isLinear } = await this.chain.findFork(accountHead, chainHead)
       if (!fork) return
 
       // Remove the old fork chain
       if (!isLinear) {
-        for await (const header of node.chain.iterateToBlock(accountHead, fork)) {
+        for await (const header of this.chain.iterateToBlock(accountHead, fork)) {
           // Don't remove the fork
           if (!header.hash.equals(fork.hash)) {
             await removeBlock(header)
@@ -147,7 +149,7 @@ export class Accounts {
         }
       }
 
-      for await (const header of node.chain.iterateToBlock(fork, chainHead)) {
+      for await (const header of this.chain.iterateToBlock(fork, chainHead)) {
         if (header.hash.equals(fork.hash)) continue
         await addBlock(header)
         await this.updateHeadHash(header.hash.toString('hex'))
@@ -183,15 +185,15 @@ export class Accounts {
     return false
   }
 
-  start(node: IronfishNode): void {
+  start(): void {
     if (this.isStarted) return
     this.isStarted = true
 
     if (this.shouldRescan && !this.scan) {
-      void this.scanTransactions(node.chain)
+      void this.scanTransactions()
     }
 
-    void this.eventLoop(node)
+    void this.eventLoop()
   }
 
   async stop(): Promise<void> {
@@ -212,11 +214,10 @@ export class Accounts {
     }
   }
 
-  async eventLoop(node: IronfishNode): Promise<void> {
-    await this.updateHead(node)
-
-    await this.rebroadcastTransactions(node.captain)
-    this.eventLoopTimeout = setTimeout(() => void this.eventLoop(node), 1000)
+  async eventLoop(): Promise<void> {
+    await this.updateHead()
+    await this.rebroadcastTransactions()
+    this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
   }
 
   async loadTransactionsFromDb(): Promise<void> {
@@ -447,7 +448,7 @@ export class Accounts {
     )
   }
 
-  async scanTransactions(chain: IronfishBlockchain): Promise<void> {
+  async scanTransactions(): Promise<void> {
     if (this.scan) {
       this.logger.info('Skipping Scan, already scanning.')
       return
@@ -482,7 +483,7 @@ export class Accounts {
       transaction,
       initialNoteIndex,
       sequence,
-    } of chain.getTransactions(accountHeadHash)) {
+    } of this.chain.getTransactions(accountHeadHash)) {
       if (this.scan.isAborted) {
         this.scan.signalComplete()
         this.scan = null
@@ -562,7 +563,6 @@ export class Accounts {
   }
 
   async pay(
-    captain: IronfishCaptain,
     memPool: IronfishMemPool,
     sender: Account,
     amount: bigint,
@@ -570,13 +570,12 @@ export class Accounts {
     memo: string,
     receiverPublicAddress: string,
   ): Promise<IronfishTransaction> {
-    const heaviestHead = await captain.chain.getHeaviestHead()
+    const heaviestHead = await this.chain.getHeaviestHead()
     if (heaviestHead == null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
     }
 
     const transaction = await this.createTransaction(
-      captain,
       sender,
       amount,
       transactionFee,
@@ -592,7 +591,6 @@ export class Accounts {
   }
 
   async createTransaction(
-    captain: IronfishCaptain,
     sender: Account,
     amount: bigint,
     transactionFee: bigint,
@@ -619,7 +617,7 @@ export class Accounts {
           unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
         )
 
-        if (await captain.chain.nullifiers.contains(nullifier)) {
+        if (await this.chain.nullifiers.contains(nullifier)) {
           this.logger.debug(
             `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
               'hex',
@@ -641,7 +639,7 @@ export class Accounts {
         }
 
         // Try creating a witness from the note
-        const witness = await captain.chain.notes.witness(unspentNote.index)
+        const witness = await this.chain.notes.witness(unspentNote.index)
 
         if (witness == null) {
           this.logger.debug(
@@ -700,8 +698,8 @@ export class Accounts {
     this.onBroadcastTransaction.emit(transaction)
   }
 
-  async rebroadcastTransactions(captain: IronfishCaptain): Promise<void> {
-    const heaviestHead = await captain.chain.getHeaviestHead()
+  async rebroadcastTransactions(): Promise<void> {
+    const heaviestHead = await this.chain.getHeaviestHead()
     if (heaviestHead == null) return
 
     const headSequence = heaviestHead.sequence
@@ -757,10 +755,10 @@ export class Accounts {
     return account
   }
 
-  async startScanTransactionsFor(chain: IronfishBlockchain, account: Account): Promise<void> {
+  async startScanTransactionsFor(account: Account): Promise<void> {
     account.rescan = Date.now()
     await this.database.setAccount(account)
-    await this.scanTransactions(chain)
+    await this.scanTransactions()
   }
 
   async importAccount(toImport: Partial<Account>): Promise<Account> {

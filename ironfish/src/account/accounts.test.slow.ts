@@ -32,9 +32,7 @@ describe('Accounts', () => {
     const chain = nodeTest.chain
 
     const account = await node.accounts.createAccount('test', true)
-
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
 
     // Initial balance should be 0
     expect(node.accounts.getBalance(account)).toEqual({
@@ -47,8 +45,7 @@ describe('Accounts', () => {
     const addedBlock = await chain.addBlock(block)
     expect(addedBlock.isAdded).toBe(true)
 
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
 
     // Balance after adding the genesis block should be 0
     expect(node.accounts.getBalance(account)).toEqual({
@@ -66,8 +63,7 @@ describe('Accounts', () => {
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
 
     // Account should now have a balance of 500000000 after adding the miner's fee
     expect(node.accounts.getBalance(account)).toEqual({
@@ -85,8 +81,7 @@ describe('Accounts', () => {
     const account = await node.accounts.createAccount('test', true)
 
     // Initial balance should be 0
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(0),
       unconfirmedBalance: BigInt(0),
@@ -98,8 +93,7 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Balance after adding the genesis block should be 0
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(0),
       unconfirmedBalance: BigInt(0),
@@ -116,8 +110,7 @@ describe('Accounts', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 500000000 after adding the miner's fee
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(500000000),
       unconfirmedBalance: BigInt(500000000),
@@ -148,13 +141,11 @@ describe('Accounts', () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
-    const captain = nodeTest.captain
     const chain = nodeTest.chain
 
     const account = await node.accounts.createAccount('test', true)
 
     // Initial balance should be 0
-    // TODO: This should happen automatically as a result of addBlock
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(0),
       unconfirmedBalance: BigInt(0),
@@ -166,8 +157,7 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Balance after adding the genesis block should be 0
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(0),
       unconfirmedBalance: BigInt(0),
@@ -184,8 +174,7 @@ describe('Accounts', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 500000000 after adding the miner's fee
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(500000000),
       unconfirmedBalance: BigInt(500000000),
@@ -193,7 +182,6 @@ describe('Accounts', () => {
 
     // Spend the balance
     const transaction = await node.accounts.pay(
-      captain,
       node.memPool,
       account,
       BigInt(2),
@@ -213,8 +201,7 @@ describe('Accounts', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 2 should be 499999998
-    // TODO: This should happen automatically as a result of addBlock
-    await node.accounts.updateHead(node)
+    await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
       confirmedBalance: BigInt(499999998),
       unconfirmedBalance: BigInt(499999998),
@@ -248,7 +235,7 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Initial balance should be 500000000
-    await nodeA.accounts.updateHead(nodeA)
+    await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(500000000),
       unconfirmedBalance: BigInt(500000000),
@@ -257,7 +244,6 @@ describe('Accounts', () => {
     const block2 = await useBlockFixture(nodeA.chain, async () => {
       // Generate a transaction from account A to account B
       const transaction = await nodeA.accounts.createTransaction(
-        nodeA.captain,
         accountA,
         BigInt(1),
         BigInt(1),
@@ -277,13 +263,12 @@ describe('Accounts', () => {
     })
 
     await nodeA.chain.addBlock(block2)
-    await nodeA.accounts.updateHead(nodeA)
+    await nodeA.accounts.updateHead()
 
     // Attempting to create another transaction for account A
     // to account C should not throw an error
     await expect(
       nodeA.accounts.createTransaction(
-        nodeA.captain,
         accountA,
         BigInt(1),
         BigInt(1),
@@ -339,8 +324,8 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.accounts['updateHead'](nodeA)
-    await nodeB.accounts['updateHead'](nodeB)
+    await nodeA.accounts.updateHead()
+    await nodeB.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(500000000),
       unconfirmedBalance: BigInt(500000000),
@@ -356,11 +341,11 @@ describe('Accounts', () => {
 
     // Copy block B1 to nodeA
     await nodeA.chain.addBlock(blockB1)
-    await nodeA.accounts['updateHead'](nodeA)
+    await nodeA.accounts.updateHead()
 
     // Copy block B2 to nodeA
     await nodeA.chain.addBlock(blockB2)
-    await nodeA.accounts['updateHead'](nodeA)
+    await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(0),
       unconfirmedBalance: BigInt(500000000),
@@ -399,7 +384,7 @@ describe('Accounts', () => {
     addedBlock = await nodeB.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
-    await nodeA.accounts['updateHead'](nodeA)
+    await nodeA.accounts.updateHead()
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
@@ -407,7 +392,6 @@ describe('Accounts', () => {
       async () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeA.accounts.createTransaction(
-          nodeA.captain,
           accountA,
           BigInt(2),
           BigInt(0),
@@ -452,8 +436,8 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.accounts['updateHead'](nodeA)
-    await nodeB.accounts['updateHead'](nodeB)
+    await nodeA.accounts.updateHead()
+    await nodeB.accounts.updateHead()
 
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(499999998),
@@ -471,7 +455,7 @@ describe('Accounts', () => {
     // Copy block B2 and B3 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.chain.addBlock(blockB3)
-    await nodeA.accounts['updateHead'](nodeA)
+    await nodeA.accounts.updateHead()
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should not have confirmed coins any more because the transaction is pending
@@ -518,7 +502,7 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Generate a transaction from account A to account B
-    await nodeB.accounts['updateHead'](nodeB)
+    await nodeB.accounts.updateHead()
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
@@ -526,7 +510,6 @@ describe('Accounts', () => {
       async () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeB.accounts.createTransaction(
-          nodeB.captain,
           accountA,
           BigInt(2),
           BigInt(0),
@@ -571,8 +554,8 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.accounts['updateHead'](nodeA)
-    await nodeB.accounts['updateHead'](nodeB)
+    await nodeA.accounts.updateHead()
+    await nodeB.accounts.updateHead()
 
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
       confirmedBalance: BigInt(499999998),
@@ -590,7 +573,7 @@ describe('Accounts', () => {
     // Copy block B2 and B3 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.chain.addBlock(blockB3)
-    await nodeA.accounts['updateHead'](nodeA)
+    await nodeA.accounts.updateHead()
 
     // A should have its original coins
     // B should not have the coins any more

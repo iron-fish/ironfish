@@ -85,7 +85,6 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     const transactionPosted = await node.accounts.pay(
-      node.captain,
       node.memPool,
       account,
       BigInt(transaction.amount),
