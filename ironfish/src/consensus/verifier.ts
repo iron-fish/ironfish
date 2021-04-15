@@ -183,6 +183,9 @@ export class Verifier<
     } catch {
       return Promise.reject('Could not deserialize transaction')
     }
+    if ((await transaction.transactionFee()) < 0) {
+      return Promise.reject('Transaction has negative fees')
+    }
     if (!(await transaction.verify()).valid) {
       return Promise.reject('Transaction is invalid')
     }
