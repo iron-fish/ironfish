@@ -173,7 +173,7 @@ export default class Start extends IronfishCommand {
    * Insert the genesis block into the node
    */
   async addGenesisBlock(node: IronfishNode): Promise<void> {
-    cli.action.start('Initializing the blockchain', 'Creating the genesis block', {
+    cli.action.start('Initializing the blockchain', 'Loading the genesis block', {
       stdout: true,
     })
 
@@ -182,7 +182,7 @@ export default class Start extends IronfishCommand {
       cli.action.stop('Failed to seed the database with the genesis block.')
     }
 
-    cli.action.stop('Genesis block created successfully')
+    cli.action.stop('Genesis block loaded successfully')
   }
 
   /**
