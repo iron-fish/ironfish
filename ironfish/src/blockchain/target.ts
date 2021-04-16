@@ -293,3 +293,5 @@ export class TargetSerde implements Serde<Target, string> {
     return new Target(data)
   }
 }
+
+export const TargetSerdeInstance = new TargetSerde()

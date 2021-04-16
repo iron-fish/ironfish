@@ -560,19 +560,4 @@ Object {
 }
 `;
 
-exports[`NullifierHasher constructs a nullifier hasher 1`] = `
-NullifierHasher {
-  "_elementSerde": BufferSerde {
-    "serde": Uint8ArraySerde {
-      "size": 32,
-    },
-    "size": 32,
-  },
-  "_hashSerde": BufferSerde {
-    "serde": Uint8ArraySerde {
-      "size": 32,
-    },
-    "size": 32,
-  },
-}
-`;
+exports[`NullifierHasher constructs a nullifier hasher 1`] = `NullifierHasher {}`;

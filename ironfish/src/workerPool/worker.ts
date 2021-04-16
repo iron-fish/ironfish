@@ -8,6 +8,7 @@
 
 import { generateKey, WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { parentPort, MessagePort } from 'worker_threads'
+import { Assert } from '../assert'
 import type {
   TransactionFeeRequest,
   TransactionFeeResponse,
@@ -37,10 +38,6 @@ function handleTransactionFee({
   return { type: 'transactionFee', requestId, transactionFee: BigInt(fee) }
 }
 
-function assertNever(x: never): never {
-  throw new Error(`Unexpected value: ${JSON.stringify(x)}`)
-}
-
 export function handleRequest(request: WorkerRequest): WorkerResponse | null {
   let message: WorkerResponse | null = null
 
@@ -52,7 +49,7 @@ export function handleRequest(request: WorkerRequest): WorkerResponse | null {
       message = handleTransactionFee(request)
       break
     default: {
-      assertNever(request)
+      Assert.isNever(request)
     }
   }
 

@@ -409,6 +409,7 @@ export class IronfishStrategy
     SerializedWasmNoteEncryptedHash,
     SerializedTransaction
   >
+  _transactionSerde: TransactionSerde
   private _verifierClass: typeof IronfishVerifier
   private miningRewardCachedByYear: Map<number, number>
   private readonly workerPool: WorkerPool
@@ -416,6 +417,7 @@ export class IronfishStrategy
   constructor(workerPool: WorkerPool, verifierClass: typeof IronfishVerifier | null = null) {
     this._noteHasher = new NoteHasher()
     this._nullifierHasher = new NullifierHasher()
+    this._transactionSerde = new TransactionSerde(workerPool)
     this._blockSerde = new BlockSerde(this)
     this._verifierClass = verifierClass || Verifier
     this.miningRewardCachedByYear = new Map<number, number>()
@@ -431,7 +433,7 @@ export class IronfishStrategy
   }
 
   transactionSerde(): TransactionSerde {
-    return new TransactionSerde(this.workerPool)
+    return this._transactionSerde
   }
 
   get blockSerde(): BlockSerde<

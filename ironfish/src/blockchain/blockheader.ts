@@ -5,8 +5,13 @@
 import Strategy from '../strategy/strategy'
 import Transaction from '../strategy/transaction'
 import { NullifierHash } from './nullifiers'
-import { Target, TargetSerde } from './target'
-import Serde, { BufferSerde, JsonSerializable, IJSON } from '../serde'
+import { Target, TargetSerdeInstance } from './target'
+import Serde, {
+  JsonSerializable,
+  IJSON,
+  GraffitiSerdeInstance,
+  BlockHashSerdeInstance,
+} from '../serde'
 import { GRAPH_ID_NULL } from '.'
 
 export type BlockHash = Buffer
@@ -112,9 +117,6 @@ export default class BlockHeader<
 
   public hash: Buffer
 
-  private bufferSerde: BufferSerde
-  private targetSerde: TargetSerde
-
   constructor(
     strategy: Strategy<E, H, T, SE, SH, ST>,
     sequence: bigint,
@@ -132,9 +134,6 @@ export default class BlockHeader<
     count = 0,
     hash?: Buffer,
   ) {
-    this.targetSerde = new TargetSerde()
-    this.bufferSerde = new BufferSerde(32)
-
     this.strategy = strategy
     this.sequence = sequence
     this.previousBlockHash = previousBlockHash
@@ -161,7 +160,7 @@ export default class BlockHeader<
   serializePartial(): Buffer {
     const serialized = {
       sequence: this.sequence.toString(),
-      previousBlockHash: this.bufferSerde.serialize(this.previousBlockHash),
+      previousBlockHash: BlockHashSerdeInstance.serialize(this.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
           .noteHasher()
@@ -176,10 +175,10 @@ export default class BlockHeader<
           .serialize(this.nullifierCommitment.commitment),
         size: this.nullifierCommitment.size,
       },
-      target: this.targetSerde.serialize(this.target),
+      target: TargetSerdeInstance.serialize(this.target),
       timestamp: this.timestamp.getTime(),
       minersFee: this.minersFee.toString(),
-      graffiti: this.bufferSerde.serialize(this.graffiti),
+      graffiti: GraffitiSerdeInstance.serialize(this.graffiti),
     }
 
     return Buffer.from(IJSON.stringify(serialized))
@@ -242,13 +241,7 @@ export class BlockHeaderSerde<
   SH extends JsonSerializable,
   ST
 > implements Serde<BlockHeader<E, H, T, SE, SH, ST>, SerializedBlockHeader<SH>> {
-  private bufferSerde: BufferSerde
-  private targetSerde: TargetSerde
-  constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {
-    this.strategy = strategy
-    this.targetSerde = new TargetSerde()
-    this.bufferSerde = new BufferSerde(32)
-  }
+  constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {}
 
   equals(
     element1: BlockHeader<E, H, T, SE, SH, ST>,
@@ -269,7 +262,7 @@ export class BlockHeaderSerde<
           element2.nullifierCommitment.commitment,
         ) &&
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
-      this.targetSerde.equals(element1.target, element2.target) &&
+      TargetSerdeInstance.equals(element1.target, element2.target) &&
       element1.randomness === element2.randomness &&
       element1.timestamp.getTime() === element2.timestamp.getTime() &&
       element1.minersFee === element2.minersFee &&
@@ -280,7 +273,7 @@ export class BlockHeaderSerde<
   serialize(header: BlockHeader<E, H, T, SE, SH, ST>): SerializedBlockHeader<SH> {
     const serialized = {
       sequence: header.sequence.toString(),
-      previousBlockHash: this.bufferSerde.serialize(header.previousBlockHash),
+      previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
           .noteHasher()
@@ -295,7 +288,7 @@ export class BlockHeaderSerde<
           .serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
       },
-      target: this.targetSerde.serialize(header.target),
+      target: TargetSerdeInstance.serialize(header.target),
       randomness: header.randomness,
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
@@ -303,8 +296,8 @@ export class BlockHeaderSerde<
       work: header.work.toString(),
       graphId: header.graphId,
       count: header.count,
-      hash: this.bufferSerde.serialize(header.hash),
-      graffiti: this.bufferSerde.serialize(header.graffiti),
+      hash: BlockHashSerdeInstance.serialize(header.hash),
+      graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
     }
 
     return serialized
@@ -316,7 +309,7 @@ export class BlockHeaderSerde<
     const header = new BlockHeader(
       this.strategy,
       BigInt(data.sequence),
-      Buffer.from(this.bufferSerde.deserialize(data.previousBlockHash)),
+      Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
         commitment: this.strategy
           .noteHasher()
@@ -331,16 +324,16 @@ export class BlockHeaderSerde<
           .deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
       },
-      this.targetSerde.deserialize(data.target),
+      TargetSerdeInstance.deserialize(data.target),
       data.randomness,
       new Date(data.timestamp),
       BigInt(data.minersFee),
-      Buffer.from(this.bufferSerde.deserialize(data.graffiti)),
+      Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
       data.isValid,
       data.work ? BigInt(data.work) : BigInt(0),
       data.graphId,
       data.count,
-      Buffer.from(this.bufferSerde.deserialize(data.hash)),
+      Buffer.from(BlockHashSerdeInstance.deserialize(data.hash)),
     )
 
     return header

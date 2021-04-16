@@ -7,7 +7,7 @@ import { Transaction } from '../strategy/transaction'
 import Block from './block'
 import Verifier, { Validity, VerificationResultReason } from '../consensus/verifier'
 import BlockHeader, { BlockHeaderSerde, BlockHash } from './blockheader'
-import Serde, { BufferSerde, JsonSerializable } from '../serde'
+import Serde, { BlockHashSerdeInstance, BufferSerde, JsonSerializable } from '../serde'
 import { Target } from './target'
 import { Graph } from './graph'
 import { MetricsMonitor } from '../metrics'
@@ -118,7 +118,7 @@ export class Blockchain<
     metrics: MetricsMonitor,
   ) {
     this.blockHeaderSerde = new BlockHeaderSerde(strategy)
-    this.blockHashSerde = new BufferSerde(32)
+    this.blockHashSerde = BlockHashSerdeInstance
     this.noteSerde = notes.merkleHasher.elementSerde()
 
     this.logger = logger.withTag('blockchain')
