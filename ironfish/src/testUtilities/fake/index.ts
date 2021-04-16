@@ -6,5 +6,4 @@
 import './matchers/index'
 
 export * from './helpers'
-export * from './mocks'
 export * from './strategy'

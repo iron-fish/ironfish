@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IDatabase, LevelupDatabase } from '../../../storage'
+import { IDatabase, LevelupDatabase } from '../../storage'
 import leveldown from 'leveldown'
 
 /** Generate a test database name from the given test if not provided*/

@@ -2,15 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TestTransaction } from './TestTransaction'
-import { SerializedTestTransaction } from './SerializedTypes'
 import {
   Verifier,
   Validity,
   VerificationResult,
   VerificationResultReason,
-} from '../../../consensus'
-import { TestBlock, TestBlockHeader } from '../helpers'
+} from '../../consensus'
+import {
+  SerializedTestTransaction,
+  TestBlock,
+  TestBlockHeader,
+  TestTransaction,
+} from './strategy'
 
 export class TestVerifier extends Verifier<
   string,

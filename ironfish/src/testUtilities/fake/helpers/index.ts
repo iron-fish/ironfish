@@ -3,6 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './blockchain'
-export * from './jest'
 export * from './merkleTree'
-export * from './storage'
+export * from '../../helpers/storage'
