@@ -2,16 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  TestStrategy,
-  makeFakeBlock,
-  blockHash,
-  makeBlockWithTransaction,
-  makeBlockAfter,
-} from '../testUtilities/fake'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { useAccountFixture } from '../testUtilities/fixtures'
 import { SerializedIronfishBlock } from '../strategy'
+import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
+import { TestStrategy, makeFakeBlock, blockHash } from '../testUtilities/fake'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()

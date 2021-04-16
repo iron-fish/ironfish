@@ -5,7 +5,7 @@
 import { MerkleTree } from '../../../merkletree'
 import { StructureHasher } from '../../../merkletree/hasher'
 import { IDatabase } from '../../../storage'
-import { makeDb, makeDbName } from './storage'
+import { makeDb, makeDbName } from '../../helpers/storage'
 
 /**
  * Make a tree with the given elements.
