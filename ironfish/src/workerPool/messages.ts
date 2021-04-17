@@ -18,7 +18,7 @@ export type CreateMinersFeeRequest = {
 
 export type CreateMinersFeeResponse = {
   type: 'createMinersFee'
-  serializedTransactionPosted: Buffer
+  serializedTransactionPosted: Uint8Array
 }
 
 export type CreateTransactionRequest = {
@@ -39,7 +39,7 @@ export type CreateTransactionRequest = {
 
 export type CreateTransactionResponse = {
   type: 'createTransaction'
-  serializedTransactionPosted: Buffer
+  serializedTransactionPosted: Uint8Array
 }
 
 export type TransactionFeeRequest = {
