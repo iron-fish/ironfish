@@ -105,9 +105,18 @@ function handleTransactionFee({
 function handleVerify({
   serializedTransactionPosted,
 }: VerifyTransactionRequest): VerifyTransactionResponse {
-  const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
-  const verified = transaction.verify()
-  transaction.free()
+  let transaction
+
+  let verified = false
+  try {
+    transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
+    verified = transaction.verify()
+  } catch {
+    verified = false
+  } finally {
+    transaction?.free()
+  }
+
   return { type: 'verify', verified }
 }
 

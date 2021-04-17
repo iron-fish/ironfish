@@ -121,7 +121,7 @@ export class WorkerPool {
       throw new Error('Response type must match request type')
     }
 
-    return new IronfishTransaction(response.serializedTransactionPosted, this)
+    return new IronfishTransaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   async createTransaction(
@@ -155,7 +155,7 @@ export class WorkerPool {
       throw new Error('Response type must match request type')
     }
 
-    return new IronfishTransaction(response.serializedTransactionPosted, this)
+    return new IronfishTransaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   async transactionFee(transaction: IronfishTransaction): Promise<bigint> {

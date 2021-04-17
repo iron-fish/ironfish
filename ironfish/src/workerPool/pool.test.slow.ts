@@ -73,22 +73,32 @@ describe('Worker Pool', () => {
     })
 
     it('Resolves promises created by the pool on a worker thread', async () => {
-      // Generate a miner's fee transaction
       const strategy = new IronfishStrategy(workerPool)
+      expect(workerPool['workers'].length).toBeGreaterThan(0)
+
+      const minersFeePromise = strategy.createMinersFee(
+        BigInt(0),
+        BigInt(0),
+        generateKey().spending_key,
+      )
+      expect(workerPool['resolvers'].size).toBe(1)
+
+      await minersFeePromise
+
+      expect(workerPool['resolvers'].size).toBe(0)
+    }, 60000)
+
+    it('Returns an IronfishTransaction with a Buffer', async () => {
+      const strategy = new IronfishStrategy(workerPool)
+      expect(workerPool['workers'].length).toBeGreaterThan(0)
+
       const minersFee = await strategy.createMinersFee(
         BigInt(0),
         BigInt(0),
         generateKey().spending_key,
       )
 
-      expect(workerPool['workers'].length).toBeGreaterThan(0)
-      const promise = workerPool.transactionFee(minersFee)
-      expect(workerPool['resolvers'].size).toBe(1)
-
-      const fee = await promise
-
-      expect(workerPool['resolvers'].size).toBe(0)
-      expect(fee).toEqual(BigInt(-500000000))
+      expect(minersFee.serialize()).toBeInstanceOf(Buffer)
     }, 60000)
   })
 })
