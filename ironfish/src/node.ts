@@ -30,6 +30,7 @@ import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { WorkerPool } from './workerPool'
 import { BlockSyncer } from './blockSyncer'
+import { createDB } from './storage/utils'
 
 export class IronfishNode {
   database: IDatabase
@@ -137,7 +138,6 @@ export class IronfishNode {
     internal,
     logger = createRootLogger(),
     metrics,
-    makeDatabase,
     files,
     verifierClass,
     strategyClass,
@@ -151,7 +151,6 @@ export class IronfishNode {
     databaseName?: string
     logger?: Logger
     metrics?: MetricsMonitor
-    makeDatabase: (path: string) => Promise<IDatabase>
     files: FileSystem
     verifierClass: typeof IronfishVerifier | null
     strategyClass: typeof IronfishStrategy | null
@@ -180,11 +179,17 @@ export class IronfishNode {
     strategyClass = strategyClass || IronfishStrategy
     const strategy = new strategyClass(workerPool, verifierClass)
 
-    const chaindb = await makeDatabase(config.chainDatabasePath)
-    const accountdb = await makeDatabase(config.accountDatabasePath)
-    const accountDB = new AccountsDB({ database: accountdb, workerPool })
+    const chaindb = createDB({ location: config.chainDatabasePath })
     const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
+
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
+
+    const accountDB = new AccountsDB({
+      location: config.accountDatabasePath,
+      workerPool,
+      files,
+    })
+
     const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
 
     const mining = new MiningDirector({
@@ -218,12 +223,14 @@ export class IronfishNode {
   }
 
   async openDB(): Promise<void> {
+    await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
+
     try {
       await this.database.open()
-      await this.accounts.database.open()
+      await this.accounts.db.open()
     } catch (e) {
       await this.database.close()
-      await this.accounts.database.close()
+      await this.accounts.db.close()
       throw e
     }
 
@@ -235,7 +242,7 @@ export class IronfishNode {
 
   async closeDB(): Promise<void> {
     await this.database.close()
-    await this.accounts.database.close()
+    await this.accounts.db.close()
   }
 
   async start(): Promise<void> {

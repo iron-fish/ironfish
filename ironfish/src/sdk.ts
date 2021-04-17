@@ -9,7 +9,6 @@ import {
   setLogColorEnabledFromConfig,
 } from './logger'
 import { MetricsMonitor } from './metrics'
-import { IDatabase, makeLevelupDatabaseNode } from './storage'
 import { Config, ConfigOptions } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
@@ -20,19 +19,15 @@ import { renderVersion } from './network/version'
 import { IronfishStrategy, IronfishVerifier } from './strategy'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 
-type MakeDatabase = (path: string) => Promise<IDatabase>
-
 const VERSION = '1'
 const VERSION_PRODUCT = 'ironfish-sdk'
 const VERSION_CODE = GIT_VERSION
 
 export class IronfishSdk {
-  runtime: JSRuntime
   client: IronfishIpcClient
   clientMemory: IronfishMemoryClient
   config: Config
   fileSystem: FileSystem
-  makeDatabase: MakeDatabase
   logger: Logger
   metrics: MetricsMonitor
   internal: InternalStore
@@ -40,25 +35,21 @@ export class IronfishSdk {
   strategyClass: typeof IronfishStrategy | null
 
   private constructor(
-    runtime: JSRuntime,
     client: IronfishIpcClient,
     clientMemory: IronfishMemoryClient,
     config: Config,
     internal: InternalStore,
     fileSystem: FileSystem,
-    makeDatabase: MakeDatabase,
     logger: Logger,
     metrics: MetricsMonitor,
     verifierClass: typeof IronfishVerifier | null = null,
     strategyClass: typeof IronfishStrategy | null = null,
   ) {
-    this.runtime = runtime
     this.client = client
     this.clientMemory = clientMemory
     this.config = config
     this.internal = internal
     this.fileSystem = fileSystem
-    this.makeDatabase = makeDatabase
     this.logger = logger
     this.metrics = metrics
     this.verifierClass = verifierClass
@@ -69,7 +60,6 @@ export class IronfishSdk {
     configName,
     configOverrides,
     fileSystem,
-    makeDatabase,
     dataDir,
     logger = createRootLogger(),
     metrics,
@@ -79,7 +69,6 @@ export class IronfishSdk {
     configName?: string
     configOverrides?: Partial<ConfigOptions>
     fileSystem?: FileSystem
-    makeDatabase?: MakeDatabase
     dataDir?: string
     logger?: Logger
     metrics?: MetricsMonitor
@@ -93,12 +82,6 @@ export class IronfishSdk {
         fileSystem = new NodeFileProvider()
         await fileSystem.init()
       } else throw new Error(`No default fileSystem for ${String(runtime)}`)
-    }
-
-    if (!makeDatabase) {
-      if (runtime === 'node') {
-        makeDatabase = makeLevelupDatabaseNode
-      } else throw new Error(`No default makeDatabase for ${String(runtime)}`)
     }
 
     logger = logger.withTag('ironfishsdk')
@@ -147,13 +130,11 @@ export class IronfishSdk {
     const clientMemory = new IronfishMemoryClient(logger)
 
     return new IronfishSdk(
-      runtime,
       client,
       clientMemory,
       config,
       internal,
       fileSystem,
-      makeDatabase,
       logger,
       metrics,
       verifierClass,
@@ -171,7 +152,6 @@ export class IronfishSdk {
       internal: this.internal,
       files: this.fileSystem,
       databaseName: databaseName,
-      makeDatabase: this.makeDatabase,
       logger: this.logger,
       metrics: this.metrics,
       verifierClass: this.verifierClass,
@@ -240,7 +220,7 @@ export class IronfishSdk {
 /**
  * Get the current javascript runtime
  */
-function getRuntime(): JSRuntime {
+export function getRuntime(): 'node' | 'browser' | 'unknown' {
   if (
     typeof process === 'object' &&
     process &&
@@ -253,5 +233,3 @@ function getRuntime(): JSRuntime {
 
   return 'unknown'
 }
-
-export type JSRuntime = 'node' | 'browser' | 'unknown'

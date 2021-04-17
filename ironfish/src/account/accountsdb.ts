@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { FileSystem } from '../fileSystems'
 import {
   BufferEncoding,
   IDatabase,
@@ -11,6 +12,7 @@ import {
   JsonEncoding,
   StringEncoding,
 } from '../storage'
+import { createDB } from '../storage/utils'
 import { IronfishTransaction } from '../strategy'
 import { WorkerPool } from '../workerPool'
 
@@ -45,6 +47,8 @@ export type AccountsDBMeta = {
 export class AccountsDB {
   database: IDatabase
   workerPool: WorkerPool
+  location: string
+  files: FileSystem
 
   accounts: IDatabaseStore<{ key: string; value: Account }>
 
@@ -70,11 +74,21 @@ export class AccountsDB {
     }
   }>
 
-  constructor({ database, workerPool }: { database: IDatabase; workerPool: WorkerPool }) {
-    this.database = database
+  constructor({
+    files,
+    location,
+    workerPool,
+  }: {
+    files: FileSystem
+    location: string
+    workerPool: WorkerPool
+  }) {
+    this.files = files
+    this.location = location
     this.workerPool = workerPool
+    this.database = createDB({ location })
 
-    this.meta = database.addStore<{
+    this.meta = this.database.addStore<{
       key: keyof AccountsDBMeta
       value: AccountsDBMeta[keyof AccountsDBMeta]
     }>({
@@ -84,14 +98,14 @@ export class AccountsDB {
       valueEncoding: new JsonEncoding(),
     })
 
-    this.accounts = database.addStore<{ key: string; value: Account }>({
+    this.accounts = this.database.addStore<{ key: string; value: Account }>({
       version: 1,
       name: 'accounts',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
     })
 
-    this.noteToNullifier = database.addStore<{
+    this.noteToNullifier = this.database.addStore<{
       key: string
       value: { nullifierHash: string; noteIndex: number | null; spent: boolean }
     }>({
@@ -101,14 +115,14 @@ export class AccountsDB {
       valueEncoding: new JsonEncoding(),
     })
 
-    this.nullifierToNote = database.addStore<{ key: string; value: string }>({
+    this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
       version: 1,
       name: 'nullifierToNote',
       keyEncoding: new StringEncoding(),
       valueEncoding: new StringEncoding(),
     })
 
-    this.transactions = database.addStore<{
+    this.transactions = this.database.addStore<{
       key: Buffer
       value: {
         transaction: Buffer
@@ -124,6 +138,7 @@ export class AccountsDB {
   }
 
   async open(): Promise<void> {
+    await this.files.mkdir(this.location, { recursive: true })
     await this.database.open()
   }
 
