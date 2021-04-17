@@ -53,7 +53,7 @@ export class Accounts {
   >()
   protected readonly nullifierToNote = new Map<string, string>()
   protected readonly accounts = new Map<string, Account>()
-  readonly database: AccountsDB
+  readonly db: AccountsDB
   protected readonly logger: Logger
   protected readonly workerPool: WorkerPool
   protected readonly chain: IronfishBlockchain
@@ -76,7 +76,7 @@ export class Accounts {
   }) {
     this.chain = chain
     this.logger = logger.withTag('accounts')
-    this.database = database
+    this.db = database
     this.workerPool = workerPool
   }
 
@@ -207,9 +207,9 @@ export class Accounts {
       await this.scan.abort()
     }
 
-    if (this.database.database.isOpen) {
+    if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
-      await this.database.setHeadHash(this.headHash)
+      await this.db.setHeadHash(this.headHash)
     }
   }
 
@@ -220,15 +220,15 @@ export class Accounts {
   }
 
   async loadTransactionsFromDb(): Promise<void> {
-    await this.database.loadNullifierToNoteMap(this.nullifierToNote)
-    await this.database.loadNoteToNullifierMap(this.noteToNullifier)
-    await this.database.loadTransactionsIntoMap(this.transactionMap)
+    await this.db.loadNullifierToNoteMap(this.nullifierToNote)
+    await this.db.loadNoteToNullifierMap(this.noteToNullifier)
+    await this.db.loadTransactionsIntoMap(this.transactionMap)
   }
 
   async saveTransactionsToDb(): Promise<void> {
-    await this.database.replaceNullifierToNoteMap(this.nullifierToNote)
-    await this.database.replaceNoteToNullifierMap(this.noteToNullifier)
-    await this.database.replaceTransactions(this.transactionMap)
+    await this.db.replaceNullifierToNoteMap(this.nullifierToNote)
+    await this.db.replaceNoteToNullifierMap(this.noteToNullifier)
+    await this.db.replaceTransactions(this.transactionMap)
   }
 
   async updateTransactionMap(
@@ -241,7 +241,7 @@ export class Accounts {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.transactionMap.set(transactionHash, transaction)
-    await this.database.saveTransaction(transactionHash, transaction, tx)
+    await this.db.saveTransaction(transactionHash, transaction, tx)
   }
 
   async updateNullifierToNoteMap(
@@ -250,7 +250,7 @@ export class Accounts {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.nullifierToNote.set(nullifier, note)
-    await this.database.saveNullifierToNote(nullifier, note, tx)
+    await this.db.saveNullifierToNote(nullifier, note, tx)
   }
 
   async updateNoteToNullifierMap(
@@ -263,12 +263,12 @@ export class Accounts {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.noteToNullifier.set(noteHash, note)
-    await this.database.saveNoteToNullifier(noteHash, note, tx)
+    await this.db.saveNoteToNullifier(noteHash, note, tx)
   }
 
   async updateHeadHash(headHash: string | null): Promise<void> {
     this.headHash = headHash
-    await this.database.setHeadHash(headHash)
+    await this.db.setHeadHash(headHash)
   }
 
   async reset(): Promise<void> {
@@ -369,12 +369,8 @@ export class Accounts {
 
     const notes = this.decryptNotes(transaction, initialNoteIndex)
 
-    await this.database.database.transaction(
-      [
-        this.database.noteToNullifier,
-        this.database.nullifierToNote,
-        this.database.transactions,
-      ],
+    await this.db.database.transaction(
+      [this.db.noteToNullifier, this.db.nullifierToNote, this.db.transactions],
       'readwrite',
       async (tx) => {
         if (notes.length > 0) {
@@ -502,7 +498,7 @@ export class Accounts {
     for (const account of this.accounts.values()) {
       if (account.rescan !== null && account.rescan <= started) {
         account.rescan = null
-        await this.database.setAccount(account)
+        await this.db.setAccount(account)
       }
     }
 
@@ -738,7 +734,7 @@ export class Accounts {
     }
 
     this.accounts.set(account.name, account)
-    await this.database.setAccount(account)
+    await this.db.setAccount(account)
 
     if (setDefault) {
       await this.setDefaultAccount(account.name)
@@ -749,7 +745,7 @@ export class Accounts {
 
   async startScanTransactionsFor(account: Account): Promise<void> {
     account.rescan = Date.now()
-    await this.database.setAccount(account)
+    await this.db.setAccount(account)
     await this.scanTransactions()
   }
 
@@ -768,7 +764,7 @@ export class Accounts {
     }
 
     this.accounts.set(account.name, account)
-    await this.database.setAccount(account)
+    await this.db.setAccount(account)
 
     return account
   }
@@ -784,14 +780,14 @@ export class Accounts {
   async removeAccount(name: string): Promise<void> {
     if (name === this.defaultAccount) {
       const prev = this.getDefaultAccount()
-      await this.database.setDefaultAccount(null)
+      await this.db.setDefaultAccount(null)
 
       this.defaultAccount = null
       this.onDefaultAccountChange.emit(null, prev)
     }
 
     this.accounts.delete(name)
-    await this.database.removeAccount(name)
+    await this.db.removeAccount(name)
   }
 
   get hasDefaultAccount(): boolean {
@@ -814,7 +810,7 @@ export class Accounts {
     }
 
     const nextName = next ? next.name : null
-    await this.database.setDefaultAccount(nextName)
+    await this.db.setDefaultAccount(nextName)
     this.defaultAccount = nextName
     this.onDefaultAccountChange.emit(next, prev)
   }
@@ -832,15 +828,15 @@ export class Accounts {
     this.assertHasAccount(account)
     const key = generateNewPublicAddress(account.spendingKey)
     account.publicAddress = key.public_address
-    await this.database.setAccount(account)
+    await this.db.setAccount(account)
   }
 
   async load(): Promise<void> {
-    for await (const account of this.database.loadAccounts()) {
+    for await (const account of this.db.loadAccounts()) {
       this.accounts.set(account.name, account)
     }
 
-    const meta = await this.database.loadAccountsMeta()
+    const meta = await this.db.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountName
     this.headHash = meta.headHash
 

@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { makeLevelupDatabaseNode } from './storage'
 import { NodeFileProvider } from './fileSystems'
-import { IronfishSdk } from './sdk'
+import { getRuntime, IronfishSdk } from './sdk'
 import os from 'os'
 import { Config } from './fileStores'
 import { Accounts } from './account'
@@ -21,7 +20,6 @@ describe('IronfishSdk', () => {
       configName: 'foo.config.json',
       dataDir: dataDir,
       fileSystem: fileSystem,
-      makeDatabase: makeLevelupDatabaseNode,
     })
 
     expect(sdk.config).toBeInstanceOf(Config)
@@ -34,9 +32,10 @@ describe('IronfishSdk', () => {
 
   it('should detect platform defaults', async () => {
     const sdk = await IronfishSdk.init({ dataDir: os.tmpdir() })
+    const runtime = getRuntime()
 
-    expect(sdk.makeDatabase).toBe(makeLevelupDatabaseNode)
     expect(sdk.fileSystem).toBeInstanceOf(NodeFileProvider)
+    expect(runtime).toBe('node')
   })
 
   it('should create a node', async () => {
@@ -47,7 +46,6 @@ describe('IronfishSdk', () => {
       configName: 'foo.config.json',
       dataDir: os.tmpdir(),
       fileSystem: fileSystem,
-      makeDatabase: makeLevelupDatabaseNode,
     })
 
     const node = await sdk.node({ databaseName: 'foo' })
