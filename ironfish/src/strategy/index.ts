@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  generateNewPublicAddress,
-  WasmNote,
-  WasmNoteEncrypted,
-  WasmTransactionPosted,
-} from 'ironfish-wasm-nodejs'
+import { WasmNote, WasmNoteEncrypted, WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { BlockSyncer } from '../blockSyncer'
 import {
   Block,
@@ -23,7 +18,6 @@ import { Transaction, Spend } from './transaction'
 import Serde from '../serde'
 import { MiningDirector } from '../mining'
 import hashBlockHeader from '../mining/miningAlgorithm'
-import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
 import { MemPool } from '../memPool'
 import {
   Validity,
@@ -490,26 +484,13 @@ export class IronfishStrategy
   async createMinersFee(
     totalTransactionFees: bigint,
     blockSequence: bigint,
-    minerKey: string,
+    minerSpendKey: string,
   ): Promise<IronfishTransaction> {
-    const transaction = AsyncTransactionWorkerPool.createTransaction()
-
-    // Generate a public address from the miner's spending key
-    const owner = generateNewPublicAddress(minerKey).public_address
-
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward
     const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))
-    const minerNote = new WasmNote(owner, amount, '')
-    const serializedNote = Buffer.from(minerNote.serialize())
-    minerNote.free()
 
-    await transaction.receive(minerKey, new IronfishNote(serializedNote))
-
-    return new IronfishTransaction(
-      Buffer.from((await transaction.postMinersFee(this.workerPool)).serialize()),
-      this.workerPool,
-    )
+    return this.workerPool.createMinersFee(minerSpendKey, amount, '')
   }
 }
 

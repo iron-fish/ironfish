@@ -4,7 +4,6 @@
 
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { IronfishStrategy } from '../strategy'
-import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { WorkerPool } from './pool'
 
 describe('Worker Pool', () => {
@@ -22,7 +21,6 @@ describe('Worker Pool', () => {
       BigInt(0),
       generateKey().spending_key,
     )
-    await AsyncTransactionWorkerPool.stop()
 
     expect(emptyPool['workers'].length).toBe(0)
     const promise = emptyPool.transactionFee(minersFee)
@@ -43,7 +41,6 @@ describe('Worker Pool', () => {
       BigInt(0),
       generateKey().spending_key,
     )
-    await AsyncTransactionWorkerPool.stop()
 
     pool.start(1)
 
@@ -83,7 +80,6 @@ describe('Worker Pool', () => {
         BigInt(0),
         generateKey().spending_key,
       )
-      await AsyncTransactionWorkerPool.stop()
 
       expect(workerPool['workers'].length).toBeGreaterThan(0)
       const promise = workerPool.transactionFee(minersFee)

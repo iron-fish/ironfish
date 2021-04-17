@@ -21,7 +21,6 @@ import {
   WasmNoteEncryptedHash,
 } from '.'
 import { makeDb, makeDbName } from '../testUtilities/fake'
-import { AsyncTransactionWorkerPool } from './asyncTransactionWorkerPool'
 import { WorkerPool } from '../workerPool'
 import { createNodeTest } from '../testUtilities'
 
@@ -83,7 +82,6 @@ describe('Demonstrate the Sapling API', () => {
         BigInt(0),
         generateKey().spending_key,
       )
-      await AsyncTransactionWorkerPool.stop()
 
       const verifier = strategy.createVerifier(nodeTest.chain)
       const serialized = strategy.transactionSerde().serialize(minersFee)
@@ -173,7 +171,6 @@ describe('Demonstrate the Sapling API', () => {
         BigInt(0),
         generateKey().spending_key,
       )
-      await AsyncTransactionWorkerPool.stop()
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
       expect(await minersFee.verify()).toEqual({ valid: 1 })
@@ -188,7 +185,6 @@ describe('Demonstrate the Sapling API', () => {
         BigInt(0),
         generateKey().spending_key,
       )
-      await AsyncTransactionWorkerPool.stop()
 
       minersFee.withReference(() => {
         expect(minersFee['wasmTransactionPosted']).not.toBeNull()
@@ -205,7 +201,6 @@ describe('Demonstrate the Sapling API', () => {
       const key = generateKey()
       const strategy = new IronfishStrategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), BigInt(0), key.spending_key)
-      await AsyncTransactionWorkerPool.stop()
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
       const noteIterator = minersFee.notes()

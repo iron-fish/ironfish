@@ -8,7 +8,6 @@ import { genesisBlockData } from './genesisBlock'
 import { makeGenesisBlock } from './makeGenesisBlock'
 import { IronfishStrategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
-import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { createNodeTest } from '../testUtilities'
 
@@ -22,8 +21,7 @@ describe('Genesis block test', () => {
     targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
   })
 
-  afterAll(async () => {
-    await AsyncTransactionWorkerPool.stop()
+  afterAll(() => {
     targetMeetsSpy.mockClear()
     targetSpy.mockClear()
   })

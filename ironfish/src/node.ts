@@ -22,7 +22,6 @@ import { RpcServer } from './rpc/server'
 import { MiningDirector } from './mining'
 import { submitMetric, startCollecting, stopCollecting, setDefaultTags } from './telemetry'
 import { MetricsMonitor } from './metrics'
-import { AsyncTransactionWorkerPool } from './strategy/asyncTransactionWorkerPool'
 import { Accounts, Account, AccountsDB } from './account'
 import { MemPool } from './memPool'
 import { Assert } from './assert'
@@ -241,10 +240,8 @@ export class IronfishNode {
   async start(): Promise<void> {
     this.shutdownPromise = new Promise((r) => (this.shutdownResolve = r))
 
-    // Work in the transaction pool happens concurrently,
+    // Work in the worker pool happens concurrently,
     // so we should start it as soon as possible
-    AsyncTransactionWorkerPool.start()
-
     this.workerPool.start(os.cpus().length)
 
     if (this.config.get('enableTelemetry')) {
@@ -280,7 +277,6 @@ export class IronfishNode {
       this.rpc.stop(),
       stopCollecting(),
       this.metrics.stop(),
-      AsyncTransactionWorkerPool.stop(),
       this.workerPool.stop(),
       this.miningDirector.shutdown(),
     ])
