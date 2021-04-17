@@ -2,16 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishTransaction } from '../strategy'
+import { IronfishNote, IronfishTransaction } from '../strategy'
 import * as worker from './worker'
 import { Worker } from 'worker_threads'
 import type {
+  CreateTransactionRequest,
+  CreateMinersFeeRequest,
   OmitRequestId,
   TransactionFeeRequest,
   VerifyTransactionRequest,
   WorkerRequest,
   WorkerResponse,
+  WorkerRequestMessage,
+  WorkerResponseMessage,
 } from './messages'
+import type { Side } from '../merkletree/merkletree'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
@@ -31,18 +36,17 @@ export class WorkerPool {
   private workerIndex = 0
   private lastRequestId = 0
 
-  private sendRequest(
-    request: Readonly<OmitRequestId<WorkerRequest>>,
-  ): Promise<WorkerResponse | null> {
+  private sendRequest(request: Readonly<WorkerRequest>): Promise<WorkerResponse | null> {
     const requestId = this.lastRequestId++
 
-    const requestWithId = { ...request, requestId }
+    const requestMessage: Readonly<WorkerRequestMessage> = { requestId, body: request }
 
     if (this.workers.length === 0) {
-      return Promise.resolve(worker.handleRequest(requestWithId))
+      const response = worker.handleRequest(requestMessage)
+      return Promise.resolve(response ? response.body : null)
     }
 
-    return this.promisifyRequest(requestWithId)
+    return this.promisifyRequest(requestMessage)
   }
 
   /**
@@ -50,7 +54,7 @@ export class WorkerPool {
    * giving it an id and constructing a promise that can be resolved
    * when the worker thread has issued a response message.
    */
-  private promisifyRequest(request: Readonly<WorkerRequest>): Promise<WorkerResponse> {
+  private promisifyRequest(request: Readonly<WorkerRequestMessage>): Promise<WorkerResponse> {
     const promise: Promise<WorkerResponse> = new Promise((resolve) => {
       this.resolvers.set(request.requestId, (posted) => resolve(posted))
     })
@@ -61,11 +65,11 @@ export class WorkerPool {
     return promise
   }
 
-  promisifyResponse(response: WorkerResponse): void {
+  private promisifyResponse(response: WorkerResponseMessage): void {
     const resolver = this.resolvers.get(response.requestId)
     if (resolver) {
       this.resolvers.delete(response.requestId)
-      resolver(response)
+      resolver(response.body)
     }
   }
 
@@ -97,6 +101,61 @@ export class WorkerPool {
     this.resolvers.clear()
     this._started = false
     return
+  }
+
+  async createMinersFee(
+    spendKey: string,
+    amount: bigint,
+    memo: string,
+  ): Promise<IronfishTransaction> {
+    const request: OmitRequestId<CreateMinersFeeRequest> = {
+      type: 'createMinersFee',
+      spendKey,
+      amount,
+      memo,
+    }
+
+    const response = await this.sendRequest(request)
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return new IronfishTransaction(response.serializedTransactionPosted, this)
+  }
+
+  async createTransaction(
+    spendKey: string,
+    transactionFee: bigint,
+    spends: {
+      note: IronfishNote
+      treeSize: number
+      rootHash: Buffer
+      authPath: {
+        side: Side
+        hashOfSibling: Buffer
+      }[]
+    }[],
+    receives: { publicAddress: string; amount: bigint; memo: string }[],
+  ): Promise<IronfishTransaction> {
+    const request: OmitRequestId<CreateTransactionRequest> = {
+      type: 'createTransaction',
+      spendKey,
+      transactionFee,
+      spends: spends.map((s) => ({
+        ...s,
+        note: s.note.serialize(),
+      })),
+      receives,
+    }
+
+    const response = await this.sendRequest(request)
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return new IronfishTransaction(response.serializedTransactionPosted, this)
   }
 
   async transactionFee(transaction: IronfishTransaction): Promise<bigint> {

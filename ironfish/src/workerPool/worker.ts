@@ -6,57 +6,138 @@
  * Handler for Worker messages.
  */
 
-import { generateKey, WasmTransactionPosted } from 'ironfish-wasm-nodejs'
+import {
+  generateKey,
+  generateNewPublicAddress,
+  WasmNote,
+  WasmTransaction,
+  WasmTransactionPosted,
+} from 'ironfish-wasm-nodejs'
 import { parentPort, MessagePort } from 'worker_threads'
 import { Assert } from '../assert'
+import { Witness } from '../merkletree'
+import { NoteHasher } from '../strategy'
 import type {
+  CreateMinersFeeRequest,
+  CreateMinersFeeResponse,
+  CreateTransactionRequest,
+  CreateTransactionResponse,
   TransactionFeeRequest,
   TransactionFeeResponse,
   VerifyTransactionRequest,
   VerifyTransactionResponse,
-  WorkerRequest,
+  WorkerRequestMessage,
   WorkerResponse,
+  WorkerResponseMessage,
 } from './messages'
 
-function handleVerify({
-  requestId,
-  serializedTransactionPosted,
-}: VerifyTransactionRequest): VerifyTransactionResponse {
-  const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
-  const verified = transaction.verify()
+// Global constants
+// Needed for constructing a witness when creating transactions
+const noteHasher = new NoteHasher()
+
+function handleCreateMinersFee({
+  spendKey,
+  amount,
+  memo,
+}: CreateMinersFeeRequest): CreateMinersFeeResponse {
+  // Generate a public address from the miner's spending key
+  const minerPublicAddress = generateNewPublicAddress(spendKey).public_address
+
+  const minerNote = new WasmNote(minerPublicAddress, amount, memo)
+
+  const transaction = new WasmTransaction()
+  transaction.receive(spendKey, minerNote)
+
+  const postedTransaction = transaction.post_miners_fee()
+
+  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
+
+  minerNote.free()
   transaction.free()
-  return { type: 'verify', requestId, verified }
+  postedTransaction.free()
+
+  return { type: 'createMinersFee', serializedTransactionPosted }
+}
+
+function handleCreateTransaction({
+  transactionFee,
+  spendKey,
+  spends,
+  receives,
+}: CreateTransactionRequest): CreateTransactionResponse {
+  const transaction = new WasmTransaction()
+
+  for (const spend of spends) {
+    const note = WasmNote.deserialize(spend.note)
+    transaction.spend(
+      spendKey,
+      note,
+      new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
+    )
+    note.free()
+  }
+
+  for (const { publicAddress, amount, memo } of receives) {
+    const note = new WasmNote(publicAddress, amount, memo)
+    transaction.receive(spendKey, note)
+    note.free()
+  }
+
+  const postedTransaction = transaction.post(spendKey, undefined, transactionFee)
+
+  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
+
+  transaction.free()
+  postedTransaction.free()
+
+  return { type: 'createTransaction', serializedTransactionPosted }
 }
 
 function handleTransactionFee({
-  requestId,
   serializedTransactionPosted,
 }: TransactionFeeRequest): TransactionFeeResponse {
   const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
   const fee = transaction.transactionFee
   transaction.free()
-  return { type: 'transactionFee', requestId, transactionFee: BigInt(fee) }
+  return { type: 'transactionFee', transactionFee: BigInt(fee) }
 }
 
-export function handleRequest(request: WorkerRequest): WorkerResponse | null {
-  let message: WorkerResponse | null = null
+function handleVerify({
+  serializedTransactionPosted,
+}: VerifyTransactionRequest): VerifyTransactionResponse {
+  const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
+  const verified = transaction.verify()
+  transaction.free()
+  return { type: 'verify', verified }
+}
 
-  switch (request.type) {
-    case 'verify':
-      message = handleVerify(request)
+export function handleRequest(request: WorkerRequestMessage): WorkerResponseMessage | null {
+  let response: WorkerResponse | null = null
+
+  const body = request.body
+
+  switch (body.type) {
+    case 'createMinersFee':
+      response = handleCreateMinersFee(body)
+      break
+    case 'createTransaction':
+      response = handleCreateTransaction(body)
       break
     case 'transactionFee':
-      message = handleTransactionFee(request)
+      response = handleTransactionFee(body)
+      break
+    case 'verify':
+      response = handleVerify(body)
       break
     default: {
-      Assert.isNever(request)
+      Assert.isNever(body)
     }
   }
 
-  return message
+  return { requestId: request.requestId, body: response }
 }
 
-function onMessage(port: MessagePort, request: WorkerRequest) {
+function onMessage(port: MessagePort, request: WorkerRequestMessage) {
   const response = handleRequest(request)
 
   if (response !== null) {
@@ -69,5 +150,5 @@ if (parentPort !== null) {
   generateKey()
 
   const port = parentPort
-  port.on('message', (request: WorkerRequest) => onMessage(port, request))
+  port.on('message', (request: WorkerRequestMessage) => onMessage(port, request))
 }

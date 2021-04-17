@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 import { Event } from '../event'
-import { generateKey, generateNewPublicAddress, WasmNote } from 'ironfish-wasm-nodejs'
+import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
 import {
   IronfishBlockHeader,
   IronfishTransaction,
@@ -12,7 +12,6 @@ import {
   IronfishWitness,
   IronfishNote,
 } from '../strategy'
-import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { createRootLogger, Logger } from '../logger'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { ValidationError } from '../rpc/adapters/errors'
@@ -668,30 +667,23 @@ export class Accounts {
       throw new Error('Insufficient funds')
     }
 
-    const transaction = AsyncTransactionWorkerPool.createTransaction()
-
-    // Generate spends for everything in notesToSpend
-    for (const note of notesToSpend) {
-      await transaction.spend(sender.spendingKey, note.note, note.witness)
-    }
-
-    // Generate the note transferring currency to the receiver
-    const note = new WasmNote(receiverPublicAddress, amount, memo)
-    const serializedNote = Buffer.from(note.serialize())
-    note.free()
-    await transaction.receive(sender.spendingKey, new IronfishNote(serializedNote))
-
-    // Post the transaction and we're done!
-    const transactionPosted = new IronfishTransaction(
-      Buffer.from(
-        (
-          await transaction.post(sender.spendingKey, null, transactionFee, this.workerPool)
-        ).serialize(),
-      ),
-      this.workerPool,
+    return this.workerPool.createTransaction(
+      sender.spendingKey,
+      transactionFee,
+      notesToSpend.map((n) => ({
+        note: n.note,
+        treeSize: n.witness.treeSize(),
+        authPath: n.witness.authenticationPath,
+        rootHash: n.witness.rootHash,
+      })),
+      [
+        {
+          publicAddress: receiverPublicAddress,
+          amount,
+          memo,
+        },
+      ],
     )
-
-    return transactionPosted
   }
 
   broadcastTransaction(transaction: IronfishTransaction): void {

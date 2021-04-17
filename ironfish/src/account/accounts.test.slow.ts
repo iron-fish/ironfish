@@ -5,7 +5,6 @@ import { SerializedBlock, Target } from '../blockchain'
 import { fakeMaxTarget } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from '../genesis/genesisBlock'
-import { AsyncTransactionWorkerPool } from '../strategy/asyncTransactionWorkerPool'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
 
@@ -19,8 +18,7 @@ describe('Accounts', () => {
     targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
   })
 
-  afterAll(async () => {
-    await AsyncTransactionWorkerPool.stop()
+  afterAll(() => {
     targetMeetsSpy.mockClear()
     targetSpy.mockClear()
   })
