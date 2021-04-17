@@ -34,7 +34,7 @@ export type IJsonSerializable =
  * It surprises me that Javascript doesn't have some sort of native or standard
  * support for this.
  */
-export default interface Serde<E, SE = JsonSerializable> {
+export interface Serde<E, SE = JsonSerializable> {
   /** Determine whether two elements should be considered equal */
   equals(element1: E, element2: E): boolean
   /**
@@ -49,3 +49,5 @@ export default interface Serde<E, SE = JsonSerializable> {
    */
   deserialize(data: SE): E
 }
+
+export default Serde

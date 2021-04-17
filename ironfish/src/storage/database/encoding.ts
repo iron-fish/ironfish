@@ -65,3 +65,5 @@ export default class BufferToStringEncoding implements Serde<Buffer, string> {
     throw new Error('You should never use this')
   }
 }
+
+export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
