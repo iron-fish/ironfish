@@ -14,16 +14,12 @@ import { FileSystem, NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { ApiNamespace, IpcAdapter, IronfishIpcClient, IronfishMemoryClient } from './rpc'
 import { InternalStore } from './fileStores'
-import GIT_VERSION from './gitHash'
-import { renderVersion } from './network/version'
 import { IronfishStrategy, IronfishVerifier } from './strategy'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
-
-const VERSION = '1'
-const VERSION_PRODUCT = 'ironfish-sdk'
-const VERSION_CODE = GIT_VERSION
+import { Platform } from './platform'
 
 export class IronfishSdk {
+  agent: string
   client: IronfishIpcClient
   clientMemory: IronfishMemoryClient
   config: Config
@@ -35,6 +31,7 @@ export class IronfishSdk {
   strategyClass: typeof IronfishStrategy | null
 
   private constructor(
+    agent: string,
     client: IronfishIpcClient,
     clientMemory: IronfishMemoryClient,
     config: Config,
@@ -45,6 +42,7 @@ export class IronfishSdk {
     verifierClass: typeof IronfishVerifier | null = null,
     strategyClass: typeof IronfishStrategy | null = null,
   ) {
+    this.agent = agent
     this.client = client
     this.clientMemory = clientMemory
     this.config = config
@@ -57,6 +55,7 @@ export class IronfishSdk {
   }
 
   static async init({
+    agent,
     configName,
     configOverrides,
     fileSystem,
@@ -66,6 +65,7 @@ export class IronfishSdk {
     verifierClass,
     strategyClass,
   }: {
+    agent?: string
     configName?: string
     configOverrides?: Partial<ConfigOptions>
     fileSystem?: FileSystem
@@ -75,10 +75,10 @@ export class IronfishSdk {
     verifierClass?: typeof IronfishVerifier
     strategyClass?: typeof IronfishStrategy
   } = {}): Promise<IronfishSdk> {
-    const runtime = getRuntime()
+    const runtime = Platform.getRuntime()
 
     if (!fileSystem) {
-      if (runtime === 'node') {
+      if (runtime.type === 'node') {
         fileSystem = new NodeFileProvider()
         await fileSystem.init()
       } else throw new Error(`No default fileSystem for ${String(runtime)}`)
@@ -129,7 +129,10 @@ export class IronfishSdk {
 
     const clientMemory = new IronfishMemoryClient(logger)
 
+    agent = agent || 'sdk'
+
     return new IronfishSdk(
+      agent,
       client,
       clientMemory,
       config,
@@ -147,7 +150,7 @@ export class IronfishSdk {
     const webRtc = (await require('wrtc')) as IsomorphicWebRtc | undefined
 
     const node = await IronfishNode.init({
-      agent: this.getVersion('cli'),
+      agent: Platform.getAgent(this.agent),
       config: this.config,
       internal: this.internal,
       files: this.fileSystem,
@@ -201,35 +204,4 @@ export class IronfishSdk {
 
     return node
   }
-
-  /**
-   * Combines the SDK's version with the name of the client using the SDK
-   * to produce a version string usable by the peer network code.
-   * @param agentName The name of the agent using the SDK. e.g. cli, browser
-   */
-  getVersion(agentName: string): string {
-    return renderVersion({
-      version: VERSION,
-      product: VERSION_PRODUCT,
-      code: VERSION_CODE,
-      agent: agentName,
-    })
-  }
-}
-
-/**
- * Get the current javascript runtime
- */
-export function getRuntime(): 'node' | 'browser' | 'unknown' {
-  if (
-    typeof process === 'object' &&
-    process &&
-    process.release &&
-    process.versions &&
-    typeof process.versions.node === 'string'
-  ) {
-    return 'node'
-  }
-
-  return 'unknown'
 }

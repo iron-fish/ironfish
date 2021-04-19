@@ -4,5 +4,5 @@
     "noEmit": true,
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
+  "include": ["src", "package.json"],
 }

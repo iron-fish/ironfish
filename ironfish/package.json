@@ -1,6 +1,7 @@
 {
   "name": "ironfish",
   "version": "0.1.0",
+  "gitHash": "",
   "private": true,
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src",

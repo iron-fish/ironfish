@@ -18,9 +18,9 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
-echo "Inserting GIT hash into ironfish/gitHash.ts"
+echo "Inserting GIT hash into ironfish/package.json as gitHash"
 GIT_HASH=$(git rev-parse --short HEAD)
-echo "export default '$GIT_HASH'" >> ironfish/gitHash.ts
+cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
 
 echo "Removing lifecycle scripts"
 cat <<< "$(jq 'del(.scripts.prebuild)' < package.json)" > package.json
