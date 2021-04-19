@@ -108,6 +108,7 @@ export abstract class IronfishCommand extends Command {
     }
 
     this.sdk = await IronfishSdk.init({
+      agent: 'cli',
       configOverrides: configOverrides,
       configName: typeof configFlag === 'string' ? configFlag : undefined,
       dataDir: typeof dataDirFlag === 'string' ? dataDirFlag : undefined,

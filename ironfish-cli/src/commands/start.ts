@@ -24,6 +24,7 @@ import {
   VerboseFlagKey,
 } from '../flags'
 import { ONE_FISH_IMAGE, TELEMETRY_BANNER } from '../images'
+import { Platform } from 'ironfish'
 
 const DEFAULT_ACCOUNT_NAME = 'default'
 
@@ -100,14 +101,14 @@ export default class Start extends IronfishCommand {
 
     const node = await this.sdk.node()
 
-    const version = this.sdk.getVersion('cli')
+    const version = Platform.getAgent('cli')
     const name = this.sdk.config.get('nodeName').trim() || null
     const port = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.logger.log(`\n${ONE_FISH_IMAGE}`)
     this.logger.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
-    this.logger.log(`Peer Version  ${version}`)
+    this.logger.log(`Peer Agent    ${version}`)
     this.logger.log(`Port          ${port}`)
     this.logger.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     this.logger.log(`Node Name     ${name || 'NONE'}`)

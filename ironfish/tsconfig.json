@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "build"
   },
-  "include": ["src"],
+  "include": ["src", "package.json"],
   "exclude": ["src/**/*.test.*"],
 }

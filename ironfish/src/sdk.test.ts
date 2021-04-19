@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { NodeFileProvider } from './fileSystems'
-import { getRuntime, IronfishSdk } from './sdk'
+import { IronfishSdk } from './sdk'
 import os from 'os'
 import { Config } from './fileStores'
 import { Accounts } from './account'
 import { IronfishIpcClient } from './rpc'
 import { IronfishNode } from './node'
+import { Platform } from './platform'
 
 describe('IronfishSdk', () => {
   it('should initialize an SDK', async () => {
@@ -32,10 +33,10 @@ describe('IronfishSdk', () => {
 
   it('should detect platform defaults', async () => {
     const sdk = await IronfishSdk.init({ dataDir: os.tmpdir() })
-    const runtime = getRuntime()
+    const runtime = Platform.getRuntime()
 
     expect(sdk.fileSystem).toBeInstanceOf(NodeFileProvider)
-    expect(runtime).toBe('node')
+    expect(runtime.type).toBe('node')
   })
 
   it('should create a node', async () => {

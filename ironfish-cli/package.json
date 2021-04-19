@@ -64,6 +64,9 @@
       "identifier": "network.ironfish.cli"
     },
     "commands": "./build/commands",
+    "hooks": {
+      "init": "./build/hooks/version"
+    },
     "bin": "ironfish",
     "plugins": [
       "@oclif/plugin-help",
