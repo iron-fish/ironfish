@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHash, SerializedBlockHeader } from './blockheader'
+import { BlockHash, SerializedBlockHeader } from '../primitives/blockheader'
 import { DatabaseSchema } from '../storage'
-import { SerializedCounts } from './block'
+import { SerializedCounts } from '../primitives/block'
 import { Graph } from './graph'
 
 export const SCHEMA_VERSION = 1

@@ -45,14 +45,12 @@ import { LocalPeer } from './peers/localPeer'
 import { Identity } from './identity'
 import { parseUrl } from './utils/parseUrl'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
-import {
-  IronfishBlockchain,
-  IronfishStrategy,
-  SerializedTransaction,
-  SerializedWasmNoteEncrypted,
-} from '../strategy'
 import { IronfishNode } from '../node'
 import { NetworkBlockType } from '../blockSyncer'
+import { IronfishStrategy } from '../strategy'
+import { IronfishBlockchain } from '../blockchain'
+import { SerializedWasmNoteEncrypted } from '../primitives/noteEncrypted'
+import { SerializedTransaction } from '../primitives/transaction'
 
 /**
  * The routing style that should be used for a message of a given type

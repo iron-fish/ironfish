@@ -2,16 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { default as Block, SerializedBlock } from '../blockchain/block'
-import Strategy from '../strategy/strategy'
-import { Transaction, Spend } from '../strategy/transaction'
-import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
-import BlockHeader from '../blockchain/blockheader'
-import Blockchain, { Target } from '../blockchain'
-import { PayloadType } from '../network'
-import Serde, { BufferSerde, JsonSerializable } from '../serde'
+import { ALLOWED_BLOCK_FUTURE_SECONDS } from './consensus'
+import { Block, SerializedBlock } from '../primitives/block'
+import { Blockchain } from '../blockchain'
+import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { IDatabaseTransaction } from '../storage'
-
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from '../primitives/noteEncrypted'
+import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
+import { PayloadType } from '../network'
+import { Serde, BufferSerde, JsonSerializable } from '../serde'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+  Spend,
+} from '../primitives/transaction'
+import { Strategy } from '../strategy'
+import { Target } from '../primitives/target'
 /**
  * Verifier transctions and blocks
  *
@@ -425,9 +437,6 @@ export class Verifier<
   }
 }
 
-import { BlockHash } from '../blockchain'
-import { ALLOWED_BLOCK_FUTURE_SECONDS } from './consensus'
-
 /**
  * Indicator of whether or not an entity is valid. Note that No maps to zero,
  * so a truthy test will work, but beware of Unknown responses
@@ -463,4 +472,11 @@ export interface VerificationResult {
   hash?: BlockHash
 }
 
-export default Verifier
+export class IronfishVerifier extends Verifier<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+> {}

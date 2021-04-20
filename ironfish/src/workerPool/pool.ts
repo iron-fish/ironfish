@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishNote, IronfishTransaction } from '../strategy'
 import * as worker from './worker'
 import { Worker } from 'worker_threads'
 import type {
@@ -17,6 +16,8 @@ import type {
   WorkerResponseMessage,
 } from './messages'
 import type { Side } from '../merkletree/merkletree'
+import { IronfishTransaction } from '../primitives/transaction'
+import { IronfishNote } from '../primitives/note'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.

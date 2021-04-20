@@ -11,18 +11,15 @@ import {
   WasmTransactionPosted,
   Key,
 } from 'ironfish-wasm-nodejs'
-import { MerkleTree } from '../merkletree'
-import { IDatabase } from '../storage'
-import {
-  IronfishNote,
-  IronfishNoteEncrypted,
-  IronfishStrategy,
-  NoteHasher,
-  WasmNoteEncryptedHash,
-} from '.'
-import { makeDb, makeDbName } from '../testUtilities/fake'
-import { WorkerPool } from '../workerPool'
-import { createNodeTest } from '../testUtilities'
+import { MerkleTree } from './merkletree'
+import { IDatabase } from './storage'
+import { IronfishStrategy } from './strategy'
+import { makeDb, makeDbName } from './testUtilities/fake'
+import { WorkerPool } from './workerPool'
+import { createNodeTest } from './testUtilities'
+import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteEncrypted'
+import { NoteHasher } from './merkletree/hasher'
+import { IronfishNote } from './primitives/note'
 
 async function makeWasmStrategyTree({
   depth,
@@ -278,5 +275,28 @@ describe('Demonstrate the Sapling API', () => {
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()
     })
+  })
+})
+
+describe('Miners reward', () => {
+  let strategy: IronfishStrategy
+
+  beforeAll(() => {
+    strategy = new IronfishStrategy(new WorkerPool())
+  })
+
+  // see https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
+  // for more details
+  it('miners reward is properly calculated for year 0-1', () => {
+    let minersReward = strategy.miningReward(BigInt(1))
+    expect(minersReward).toBe(5 * 10 ** 8)
+
+    minersReward = strategy.miningReward(BigInt(100000))
+    expect(minersReward).toBe(5 * 10 ** 8)
+  })
+
+  it('miners reward is properly calculated for year 1-2', () => {
+    const minersReward = strategy.miningReward(BigInt(2100001))
+    expect(minersReward).toBe(475614712)
   })
 })

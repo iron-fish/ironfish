@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target } from './blockchain'
+import { Target } from './primitives/target'
 import { BlockSyncer } from './blockSyncer'
 import { RangeHasher } from './merkletree'
 import { Assert } from './assert'

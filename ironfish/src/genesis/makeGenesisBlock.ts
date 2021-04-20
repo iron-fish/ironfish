@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target } from '../blockchain'
+import { Target } from '../primitives/target'
 import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
 import { Logger } from '../logger'
 import type { Account } from '../account'
-import { IronfishTransaction, IronfishBlock, IronfishBlockchain } from '../strategy'
 import { WorkerPool } from '../workerPool'
+import { IronfishBlockchain } from '../blockchain'
+import { IronfishBlock } from '../primitives/block'
+import { IronfishTransaction } from '../primitives/transaction'
 
 export type GenesisBlockInfo = {
   memo: string

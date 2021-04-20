@@ -14,12 +14,12 @@ import {
   TestStrategy,
   TestTransaction,
 } from '../strategy'
-import { Spend } from '../../../strategy/transaction'
-import { Target } from '../../../blockchain/target'
-import Block from '../../../blockchain/block'
-import Blockchain from '../../../blockchain'
-import BlockHeader, { BlockHash } from '../../../blockchain/blockheader'
-import Strategy from '../../../strategy/strategy'
+import { Spend } from '../../../primitives/transaction'
+import { Target } from '../../../primitives/target'
+import { Block } from '../../../primitives/block'
+import { Blockchain } from '../../../blockchain'
+import { BlockHeader, BlockHash } from '../../../primitives/blockheader'
+import { Strategy } from '../../../strategy'
 import {
   BlockRequest,
   BlocksResponse,

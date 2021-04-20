@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Strategy from '../strategy/strategy'
-import Transaction from '../strategy/transaction'
-import { NullifierHash } from './nullifiers'
+import { Strategy } from '../strategy'
+import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
+import { NullifierHash } from './nullifier'
 import { Target, TargetSerdeInstance } from './target'
 import Serde, {
   JsonSerializable,
@@ -12,12 +12,26 @@ import Serde, {
   GraffitiSerdeInstance,
   BlockHashSerdeInstance,
 } from '../serde'
-import { GRAPH_ID_NULL } from '.'
+import { GRAPH_ID_NULL } from '../blockchain/blockchain'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from './noteEncrypted'
 
 export type BlockHash = Buffer
 export type Sequence = bigint
 
-export default class BlockHeader<
+import { createHash } from 'blake3-wasm'
+
+export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
+  const hash = createHash()
+  hash.update(serializedHeader)
+  return hash.digest()
+}
+
+export class BlockHeader<
   E,
   H,
   T extends Transaction<E, H>,
@@ -339,3 +353,12 @@ export class BlockHeaderSerde<
     return header
   }
 }
+
+export type IronfishBlockHeader = BlockHeader<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

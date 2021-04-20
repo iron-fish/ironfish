@@ -4,14 +4,12 @@
 
 import { Identity, isIdentity } from './identity'
 import { IJSON } from '../serde'
-import { SerializedBlock } from '../blockchain/block'
+import { SerializedBlock } from '../primitives/block'
 import { Gossip, Rpc } from './messageRouters'
 import { UnwrapPromise } from '../utils'
-import {
-  IronfishVerifier,
-  SerializedTransaction,
-  SerializedWasmNoteEncrypted,
-} from '../strategy'
+import { IronfishVerifier } from '../consensus'
+import { SerializedWasmNoteEncrypted } from '../primitives/noteEncrypted'
+import { SerializedTransaction } from '../primitives/transaction'
 
 /**
  * The type of the message for the purposes of routing within our code.

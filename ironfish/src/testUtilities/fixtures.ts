@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Accounts, Account } from '../account'
 import { IJSON } from '../serde'
-import { IronfishBlock, IronfishBlockchain, SerializedIronfishBlock } from '../strategy'
 import fs from 'fs'
 import path from 'path'
 import { getCurrentTestPath } from './utils'
 import { generateKey } from 'ironfish-wasm-nodejs'
+import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import { IronfishBlockchain } from '../blockchain'
 
 const FIXTURE_FOLDER = '__fixtures__'
 
@@ -161,10 +162,10 @@ export async function useBlockFixture(
         await restoreBlockFixtureToAccounts(block, addTransactionsTo)
       }
     },
-    serialize: (block: IronfishBlock): SerializedIronfishBlock => {
+    serialize: (block: IronfishBlock): IronfishBlockSerialized => {
       return chain.strategy.blockSerde.serialize(block)
     },
-    deserialize: (serialized: SerializedIronfishBlock): IronfishBlock => {
+    deserialize: (serialized: IronfishBlockSerialized): IronfishBlock => {
       return chain.strategy.blockSerde.deserialize(serialized)
     },
   })

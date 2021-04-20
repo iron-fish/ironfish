@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { IronfishTransaction } from '../primitives/transaction'
 import { FileSystem } from '../fileSystems'
 import {
   BufferEncoding,
@@ -13,7 +14,6 @@ import {
   StringEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
-import { IronfishTransaction } from '../strategy'
 import { WorkerPool } from '../workerPool'
 
 export type Account = {

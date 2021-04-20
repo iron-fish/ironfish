@@ -6,16 +6,7 @@ import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { IDatabase } from './storage'
 import { IJSON } from './serde'
-import {
-  IronfishMiningDirector,
-  IronfishStrategy,
-  IronfishMemPool,
-  IronfishVerifier,
-  IronfishBlock,
-  IronfishBlockchain,
-  IronfishBlockSyncer,
-} from './strategy'
-import Blockchain, { SerializedBlock } from './blockchain'
+import { Blockchain, IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
 import { genesisBlockData } from './genesis'
 import { RpcServer } from './rpc/server'
@@ -23,13 +14,17 @@ import { MiningDirector } from './mining'
 import { submitMetric, startCollecting, stopCollecting, setDefaultTags } from './telemetry'
 import { MetricsMonitor } from './metrics'
 import { Accounts, Account, AccountsDB } from './account'
-import { MemPool } from './memPool'
+import { IronfishMemPool, MemPool } from './memPool'
 import { Assert } from './assert'
 import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { WorkerPool } from './workerPool'
-import { BlockSyncer } from './blockSyncer'
+import { BlockSyncer, IronfishBlockSyncer } from './blockSyncer'
 import { createDB } from './storage/utils'
+import { IronfishMiningDirector } from './mining/director'
+import { IronfishStrategy } from './strategy'
+import { IronfishVerifier } from './consensus/verifier'
+import { IronfishBlock, SerializedBlock } from './primitives/block'
 
 export class IronfishNode {
   database: IDatabase

@@ -4,7 +4,7 @@
 
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { useAccountFixture } from '../testUtilities/fixtures'
-import { SerializedIronfishBlock } from '../strategy'
+import { IronfishBlockSerialized } from './block'
 import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
 import { TestStrategy, makeFakeBlock, blockHash } from '../testUtilities/fake'
 
@@ -47,7 +47,7 @@ describe('Block', () => {
     const serde = nodeTest.strategy.blockSerde
 
     expect(() =>
-      serde.deserialize(({ bad: 'data' } as unknown) as SerializedIronfishBlock),
+      serde.deserialize(({ bad: 'data' } as unknown) as IronfishBlockSerialized),
     ).toThrowError('Unable to deserialize')
   })
 

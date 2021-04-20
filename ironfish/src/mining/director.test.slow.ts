@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { SerializedBlockHeader, Target, Nullifier } from '../blockchain'
 import { RangeHasher } from '../merkletree'
 import { MiningDirector } from './director'
 import { waitForEmit } from '../event'
@@ -27,6 +26,9 @@ import {
 } from '../testUtilities/fake'
 import { MemPool } from '../memPool'
 import { Assert } from '../assert'
+import { Target } from '../primitives/target'
+import { SerializedBlockHeader } from '../primitives/blockheader'
+import { Nullifier } from '../primitives/nullifier'
 
 // Number of notes and nullifiers on the initial chain created by makeFullChain
 const TEST_CHAIN_NUM_NOTES = 40

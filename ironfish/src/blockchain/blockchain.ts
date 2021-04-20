@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Strategy from '../strategy/strategy'
-import { Transaction } from '../strategy/transaction'
-import Block from './block'
-import Verifier, { Validity, VerificationResultReason } from '../consensus/verifier'
-import BlockHeader, { BlockHeaderSerde, BlockHash } from './blockheader'
-import Serde, { BlockHashSerdeInstance, BufferSerde, JsonSerializable } from '../serde'
-import { Target } from './target'
+import { Strategy } from '../strategy'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+} from '../primitives/transaction'
+import { Block } from '../primitives/block'
+import { Verifier, Validity, VerificationResultReason } from '../consensus/verifier'
+import { BlockHeader, BlockHeaderSerde, BlockHash } from '../primitives/blockheader'
+import { Serde, BlockHashSerdeInstance, BufferSerde, JsonSerializable } from '../serde'
+import { Target } from '../primitives/target'
 import { Graph } from './graph'
 import { MetricsMonitor } from '../metrics'
-import { Nullifier, NullifierHash } from './nullifiers'
+import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Event } from '../event'
-
-export const GRAPH_ID_NULL = 0
 
 import {
   HeadersSchema,
@@ -36,19 +38,17 @@ import {
 } from '../storage'
 import { createRootLogger, Logger } from '../logger'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../consensus'
-
-export { default as Block, BlockSerde, SerializedBlock } from './block'
-export {
-  default as BlockHeader,
-  BlockHash,
-  BlockHeaderSerde,
-  SerializedBlockHeader,
-} from './blockheader'
-
-export { Target } from './target'
 import { MerkleTree } from '../merkletree'
 import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from '../primitives/noteEncrypted'
+
+export const GRAPH_ID_NULL = 0
 
 export interface AddBlockResult {
   isAdded: boolean
@@ -848,10 +848,11 @@ export class Blockchain<
           graph = g
           resolved = r
 
+          Assert.isNotNull(resolved.heaviestHash)
+
           isFastForward = this.blockHashSerde.equals(
             previousBlockHeader.hash,
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            resolved.heaviestHash!,
+            resolved.heaviestHash,
           )
         } else {
           // We are adding the genesis block
@@ -1789,4 +1790,11 @@ export class Blockchain<
   }
 }
 
-export default Blockchain
+export type IronfishBlockchain = Blockchain<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

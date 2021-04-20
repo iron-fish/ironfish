@@ -16,7 +16,8 @@ import {
   makeChainFull,
 } from '../testUtilities/fake'
 import { Validity, VerificationResultReason } from './verifier'
-import { BlockHeader, Target } from '../blockchain'
+import { Target } from '../primitives/target'
+import { BlockHeader } from '../primitives/blockheader'
 
 describe('Verifier', () => {
   describe('Transactions', () => {

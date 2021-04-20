@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import BlockHeader, { BlockHeaderSerde } from './blockheader'
+import { BlockHeader, BlockHeaderSerde } from './blockheader'
 import { TestStrategy } from '../testUtilities/fake'
 import { Target } from './target'
 

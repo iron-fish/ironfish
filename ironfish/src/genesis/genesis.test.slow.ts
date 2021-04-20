@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import Blockchain, { SerializedBlock, Target } from '../blockchain'
+import { Blockchain } from '../blockchain'
 import { makeDb, fakeMaxTarget } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'
@@ -10,6 +10,8 @@ import { IronfishStrategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import { createNodeTest } from '../testUtilities'
+import { SerializedBlock } from '../primitives/block'
+import { Target } from '../primitives/target'
 
 describe('Genesis block test', () => {
   const nodeTest = createNodeTest()

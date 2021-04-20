@@ -4,7 +4,7 @@
 
 /* eslint-disable no-console */
 import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
-import { IronfishBlock } from '../strategy'
+import { IronfishBlock } from '../primitives/block'
 import _ from 'lodash'
 import { MathUtils, UnwrapPromise } from '../utils'
 import { Assert } from '../assert'

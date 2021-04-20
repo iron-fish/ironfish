@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target } from '../blockchain'
-import hashBlockHeader from './miningAlgorithm'
+import { hashBlockHeader } from '../primitives/blockheader'
+import { Target } from '../primitives/target'
 
 /**
  * Expose a worker task that attempts to mine 1000 randomness
