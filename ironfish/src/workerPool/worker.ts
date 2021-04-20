@@ -16,7 +16,7 @@ import {
 import { parentPort, MessagePort } from 'worker_threads'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
-import { NoteHasher } from '../strategy'
+import { NoteHasher } from '../merkletree/hasher'
 import type {
   CreateMinersFeeRequest,
   CreateMinersFeeResponse,

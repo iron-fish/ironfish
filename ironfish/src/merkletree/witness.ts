@@ -5,6 +5,12 @@
 import { Side } from './merkletree'
 import { MerkleHasher } from './hasher'
 import { JsonSerializable } from '../serde'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from '../primitives/noteEncrypted'
 
 export interface WitnessNode<H> {
   side: Side
@@ -62,3 +68,10 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
     return this.merkleHasher.hashSerde().serialize(this.rootHash)
   }
 }
+
+export type IronfishWitness = Witness<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash
+>

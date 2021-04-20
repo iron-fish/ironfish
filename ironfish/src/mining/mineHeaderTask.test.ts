@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import hashBlockHeader from './miningAlgorithm'
+import * as blockHeaderModule from '../primitives/blockheader'
 import mineBatch from './mineHeaderTask'
 import { mocked } from 'ts-jest/utils'
 
-jest.mock('./miningAlgorithm')
+jest.mock('../primitives/blockheader')
 
 describe('Mine header tasks', () => {
   beforeEach(() => {
-    mocked(hashBlockHeader).mockReset()
+    mocked(blockHeaderModule.hashBlockHeader).mockReset()
   })
+
   it('attempt batch size times', () => {
     const targetTooBig = Buffer.alloc(8)
     targetTooBig[0] = 10
-    mocked(hashBlockHeader).mockReturnValue(targetTooBig)
+    mocked(blockHeaderModule.hashBlockHeader).mockReturnValue(targetTooBig)
 
     const result = mineBatch({
       headerBytesWithoutRandomness: Buffer.alloc(8),
@@ -26,12 +27,12 @@ describe('Mine header tasks', () => {
     })
 
     expect(result).toStrictEqual({ initialRandomness: 42 })
-    expect(hashBlockHeader).toBeCalledTimes(10)
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(10)
   })
   it('finds the randomness', () => {
     const targetTooBig = Buffer.alloc(8)
     targetTooBig[0] = 10
-    mocked(hashBlockHeader)
+    mocked(blockHeaderModule.hashBlockHeader)
       .mockReturnValueOnce(targetTooBig)
       .mockReturnValueOnce(targetTooBig)
       .mockReturnValueOnce(targetTooBig)
@@ -46,12 +47,12 @@ describe('Mine header tasks', () => {
     })
 
     expect(result).toStrictEqual({ initialRandomness: 42, randomness: 45, miningRequestId: 2 })
-    expect(hashBlockHeader).toBeCalledTimes(4)
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(4)
   })
   it('wraps the randomness', () => {
     const targetTooBig = Buffer.alloc(8)
     targetTooBig[0] = 10
-    mocked(hashBlockHeader)
+    mocked(blockHeaderModule.hashBlockHeader)
       .mockReturnValueOnce(targetTooBig)
       .mockReturnValueOnce(targetTooBig)
       .mockReturnValueOnce(targetTooBig)
@@ -71,6 +72,6 @@ describe('Mine header tasks', () => {
       randomness: 2,
       miningRequestId: 3,
     })
-    expect(hashBlockHeader).toBeCalledTimes(5)
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(5)
   })
 })

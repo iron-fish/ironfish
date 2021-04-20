@@ -2,12 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Nullifier } from '../blockchain/nullifiers'
-import Transaction from '../strategy/transaction'
+import { Nullifier } from '../primitives/nullifier'
 import { createRootLogger, Logger } from '../logger'
 import { JsonSerializable } from '../serde'
 import { Blockchain } from '../blockchain'
 import { Strategy } from '../strategy'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from '../primitives/noteEncrypted'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+} from '../primitives/transaction'
 
 export class MemPool<
   E,
@@ -154,3 +164,12 @@ export class MemPool<
     return true
   }
 }
+
+export type IronfishMemPool = MemPool<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

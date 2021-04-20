@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import Blockchain, { Block, BlockHash, BlockHeaderSerde, Target } from '../blockchain'
-import { Strategy, Transaction } from '../strategy'
+import { Blockchain } from '../blockchain'
+import { Strategy } from '../strategy'
 import { JsonSerializable } from '../serde'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
@@ -11,6 +11,20 @@ import LeastRecentlyUsed from 'lru-cache'
 import { MemPool } from '../memPool'
 import { ErrorUtils } from '../utils'
 import { Account } from '../account'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from '../primitives/noteEncrypted'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+} from '../primitives/transaction'
+import { Target } from '../primitives/target'
+import { Block } from '../primitives/block'
+import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -412,4 +426,11 @@ export class MiningDirector<
   }
 }
 
-export default MiningDirector
+export type IronfishMiningDirector = MiningDirector<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

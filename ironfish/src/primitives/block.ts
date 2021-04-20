@@ -3,18 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { zip } from 'lodash'
-import BlockHeader, { BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import Transaction from '../strategy/transaction'
+import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
+import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
 import Serde, { JsonSerializable } from '../serde'
-import Strategy from '../strategy/strategy'
-import { Nullifier } from './nullifiers'
+import { Strategy } from '../strategy'
+import { Nullifier } from './nullifier'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from './noteEncrypted'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
  * and the list of transactions that were added to the tree between the
  * previous block and the ones committed to in this header.
  */
-export default class Block<
+export class Block<
   E,
   H,
   T extends Transaction<E, H>,
@@ -149,3 +155,17 @@ export class BlockSerde<
     throw new Error('Unable to deserialize')
   }
 }
+
+export type IronfishBlock = Block<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>
+
+export type IronfishBlockSerialized = SerializedBlock<
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

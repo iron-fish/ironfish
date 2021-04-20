@@ -14,9 +14,10 @@ import { FileSystem, NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { ApiNamespace, IpcAdapter, IronfishIpcClient, IronfishMemoryClient } from './rpc'
 import { InternalStore } from './fileStores'
-import { IronfishStrategy, IronfishVerifier } from './strategy'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { Platform } from './platform'
+import { IronfishVerifier } from './consensus'
+import { IronfishStrategy } from './strategy'
 
 export class IronfishSdk {
   agent: string

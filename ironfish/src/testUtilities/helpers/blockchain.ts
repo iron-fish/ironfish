@@ -4,12 +4,13 @@
 
 import { Account } from '../../account'
 import { Assert } from '../../assert'
-import { IronfishBlock, IronfishBlockchain, IronfishBlockHeader } from '../../strategy'
 import { IronfishNode } from '../../node'
-import { Target } from '../../blockchain/target'
+import { Target } from '../../primitives/target'
 import { useBlockFixture, useMinerBlockFixture } from '../fixtures'
-import Block from '../../blockchain/block'
-import BlockHeader from '../../blockchain/blockheader'
+import { BlockHeader } from '../../primitives/blockheader'
+import { IronfishBlockchain } from '../../blockchain'
+import { Block, IronfishBlock } from '../../primitives/block'
+import { IronfishBlockHeader } from '../../primitives/blockheader'
 
 export async function makeBlockAfter(
   chain: IronfishBlockchain,

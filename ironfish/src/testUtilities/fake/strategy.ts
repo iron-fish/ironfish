@@ -5,14 +5,16 @@
 import { BlockSyncer } from '../../blockSyncer'
 import { ConcatHasher } from '../../merkletree'
 import { MemPool } from '../../memPool'
-import { NullifierHasher } from '../../blockchain/nullifiers'
+import { NullifierHasher } from '../../primitives/nullifier'
 import { TestVerifier } from './verifier'
-import Blockchain, { Block, BlockSerde } from '../../blockchain'
-import BlockHeader, { BlockHash } from '../../blockchain/blockheader'
-import { Strategy, Transaction, Spend } from '../../strategy'
+import { Blockchain } from '../../blockchain'
+import { BlockHeader, BlockHash } from '../../primitives/blockheader'
+import { Strategy } from '../../strategy'
 import { Validity, VerificationResult, VerificationResultReason } from '../../consensus'
 import { StringUtils } from '../../utils'
-import Serde, { BufferSerde, IJSON } from '../../serde'
+import { Serde, BufferSerde, IJSON } from '../../serde'
+import { Block, BlockSerde } from '../../primitives/block'
+import { Spend, Transaction } from '../../primitives/transaction'
 
 export type TestBlockchain = Blockchain<
   string,

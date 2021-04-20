@@ -6,9 +6,10 @@ import { IronfishSdk } from '../sdk'
 import { MemoryAdapter } from '../rpc/adapters'
 import { IronfishMemoryClient } from '../rpc/clients'
 import { NodeTest } from './nodeTest'
-import { IronfishBlockchain } from '../strategy'
+import { IronfishBlockchain } from '../blockchain'
 import { IronfishTestStrategy } from './strategy'
 import { PeerNetwork } from '../network/peerNetwork'
+
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
  * to create one to make sure you call the proper test lifecycle methods on

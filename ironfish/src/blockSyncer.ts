@@ -2,10 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Blockchain, { AddBlockResult } from './blockchain'
-import Block, { SerializedBlock } from './blockchain/block'
-import { BlockHash } from './blockchain/blockheader'
-import { Transaction } from './strategy/transaction'
+import { Blockchain, AddBlockResult } from './blockchain'
+import { Block, SerializedBlock } from './primitives/block'
+import { BlockHash } from './primitives/blockheader'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+} from './primitives/transaction'
 import { BlockRequest } from './network/messages'
 import {
   CannotSatisfyRequestError,
@@ -23,6 +27,12 @@ import LeastRecentlyUsed from 'lru-cache'
 import { ErrorUtils } from './utils'
 import { Assert } from './assert'
 import { Strategy } from './strategy'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+} from './primitives/noteEncrypted'
 
 export const MAX_MESSAGE_SIZE = 500000 // 0.5 MB
 export const MAX_BLOCKS_PER_MESSAGE = 1
@@ -674,3 +684,12 @@ export class BlockSyncer<
     }
   }
 }
+
+export type IronfishBlockSyncer = BlockSyncer<
+  IronfishNoteEncrypted,
+  WasmNoteEncryptedHash,
+  IronfishTransaction,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  SerializedTransaction
+>

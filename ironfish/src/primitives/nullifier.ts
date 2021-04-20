@@ -4,7 +4,6 @@
 
 import { MerkleHasher } from '../merkletree'
 import { BufferSerde, NullifierSerdeInstance } from '../serde'
-
 import { createKeyed } from 'blake3-wasm'
 
 export type Nullifier = Buffer

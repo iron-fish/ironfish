@@ -3,6 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { StringSerde } from '../serde'
 import Serde, { JsonSerializable } from '../serde'
+import {
+  IronfishNoteEncrypted,
+  SerializedWasmNoteEncrypted,
+  SerializedWasmNoteEncryptedHash,
+  WasmNoteEncryptedHash,
+  WasmNoteEncryptedHashSerde,
+  WasmNoteEncryptedSerde,
+} from '../primitives/noteEncrypted'
+import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
 
 /**
  * Interface for objects that can calculate the hashes of elements.
@@ -27,6 +36,46 @@ export interface MerkleHasher<E, H, SE extends JsonSerializable, SH extends Json
    * Combine two hashes to get the parent hash
    */
   combineHash: (depth: number, left: H, right: H) => H
+}
+
+/**
+ * Hasher implementation for notes to satisfy the MerkleTree requirements.
+ */
+export class NoteHasher
+  implements
+    MerkleHasher<
+      IronfishNoteEncrypted,
+      WasmNoteEncryptedHash,
+      SerializedWasmNoteEncrypted,
+      SerializedWasmNoteEncryptedHash
+    > {
+  _merkleNoteSerde: WasmNoteEncryptedSerde
+  _merkleNoteHashSerde: WasmNoteEncryptedHashSerde
+
+  constructor() {
+    this._merkleNoteSerde = new WasmNoteEncryptedSerde()
+    this._merkleNoteHashSerde = new WasmNoteEncryptedHashSerde()
+  }
+
+  elementSerde(): Serde<IronfishNoteEncrypted, SerializedWasmNoteEncrypted> {
+    return this._merkleNoteSerde
+  }
+
+  hashSerde(): Serde<WasmNoteEncryptedHash, SerializedWasmNoteEncryptedHash> {
+    return this._merkleNoteHashSerde
+  }
+
+  merkleHash(note: IronfishNoteEncrypted): Buffer {
+    return note.merkleHash()
+  }
+
+  combineHash(
+    depth: number,
+    left: WasmNoteEncryptedHash,
+    right: WasmNoteEncryptedHash,
+  ): WasmNoteEncryptedHash {
+    return Buffer.from(WasmNoteEncrypted.combineHash(depth, left, right))
+  }
 }
 
 /**

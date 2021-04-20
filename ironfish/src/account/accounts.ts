@@ -4,14 +4,6 @@
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 import { Event } from '../event'
 import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
-import {
-  IronfishBlockHeader,
-  IronfishTransaction,
-  IronfishMemPool,
-  IronfishBlockchain,
-  IronfishWitness,
-  IronfishNote,
-} from '../strategy'
 import { createRootLogger, Logger } from '../logger'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { ValidationError } from '../rpc/adapters/errors'
@@ -19,6 +11,12 @@ import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { IDatabaseTransaction } from '../storage'
 import { BufferMap } from 'buffer-map'
 import { WorkerPool } from '../workerPool'
+import { IronfishTransaction } from '../primitives/transaction'
+import { IronfishBlockchain } from '../blockchain'
+import { IronfishBlockHeader } from '../primitives/blockheader'
+import { IronfishNote } from '../primitives/note'
+import { IronfishWitness } from '../merkletree/witness'
+import { IronfishMemPool } from '../memPool'
 
 const REBROADCAST_SEQUENCE_DELTA = BigInt(5)
 
