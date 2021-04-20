@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../../assert'
-import { createRootLogger } from '../../../logger'
 import { GENESIS_BLOCK_PREVIOUS } from '../../../consensus'
 import { IDatabase } from '../../../storage'
 import { makeDb, makeDbName } from '../../helpers/storage'
@@ -186,11 +185,7 @@ export async function makeChainInitial(
 ): Promise<TestBlockchain> {
   const db =
     typeof dbPrefix === 'string' || dbPrefix === undefined ? makeDb(dbPrefix) : dbPrefix
-  const chain = Blockchain.new(
-    db,
-    strategy || new TestStrategy(new RangeHasher()),
-    createRootLogger(),
-  )
+  const chain = new Blockchain(db, strategy || new TestStrategy(new RangeHasher()))
 
   await db.open()
   return chain
@@ -371,7 +366,7 @@ export async function makeBlockchain(): Promise<
   const database = makeDb(name)
 
   const strategy = new TestStrategy(new RangeHasher())
-  const chain = await Blockchain.new(database, strategy, createRootLogger())
+  const chain = new Blockchain(database, strategy)
 
   await database.open()
   return chain

@@ -174,7 +174,7 @@ export class IronfishNode {
     const strategy = new strategyClass(workerPool, verifierClass)
 
     const chaindb = createDB({ location: config.chainDatabasePath })
-    const chain = await Blockchain.new(chaindb, strategy, logger, metrics)
+    const chain = new Blockchain(chaindb, strategy, logger, metrics)
 
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
 

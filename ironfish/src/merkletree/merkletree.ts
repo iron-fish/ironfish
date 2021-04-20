@@ -38,11 +38,11 @@ export default class MerkleTree<
   leaves: IDatabaseStore<LeavesSchema<E, H>>
   nodes: IDatabaseStore<NodesSchema<H>>
 
-  private constructor(
+  constructor(
     readonly merkleHasher: MerkleHasher<E, H, SE, SH>,
     readonly db: IDatabase,
     readonly treeName: string,
-    readonly treeDepth: number,
+    readonly treeDepth: number = 32,
   ) {
     class LeafEncoding implements IDatabaseEncoding<LeavesSchema<E, H>['value']> {
       serialize = (value: LeavesSchema<E, H>['value']): Buffer => {
@@ -123,24 +123,6 @@ export default class MerkleTree<
       valueEncoding: new NodeEncoding(),
       keyPath: 'index',
     })
-  }
-
-  /**
-   * Construct a new merkle tree given a concrete merklehasher instance.
-   */
-  static async new<E, H, SE extends JsonSerializable, SH extends JsonSerializable>(
-    hasher: MerkleHasher<E, H, SE, SH>,
-    db: IDatabase,
-    treeName: string,
-    treeDepth?: number,
-  ): Promise<MerkleTree<E, H, SE, SH>>
-  static async new<E, H, SE extends JsonSerializable, SH extends JsonSerializable>(
-    hasher: MerkleHasher<E, H, SE, SH>,
-    db: IDatabase,
-    treeName: string,
-    treeDepth = 32,
-  ): Promise<MerkleTree<E, H, SE, SH>> {
-    return Promise.resolve(new MerkleTree(hasher, db, treeName, treeDepth))
   }
 
   /**
