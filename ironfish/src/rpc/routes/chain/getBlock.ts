@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { ValidationError } from '../../adapters'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import { BlockHashSerdeInstance } from '../../../serde'
 
 export type GetBlockRequest = { index?: number; hash?: string }
 
@@ -117,7 +118,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     let sequence = null
 
     if (request.data.hash) {
-      hashBuffer = node.chain.blockHashSerde.deserialize(request.data.hash)
+      hashBuffer = BlockHashSerdeInstance.deserialize(request.data.hash)
     }
 
     if (request.data.index) {
@@ -165,7 +166,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       }))
 
       const spends = [...transaction.spends()].map((spend) => ({
-        nullifier: node.chain.blockHashSerde.serialize(spend.nullifier),
+        nullifier: BlockHashSerdeInstance.serialize(spend.nullifier),
       }))
 
       // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
@@ -175,7 +176,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
       return {
         transaction_identifier: {
-          hash: node.chain.blockHashSerde.serialize(transaction.transactionHash()),
+          hash: BlockHashSerdeInstance.serialize(transaction.transactionHash()),
         },
         operations: [],
         metadata: {
@@ -193,11 +194,11 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     request.end({
       blockIdentifier: {
         index: block.header.sequence.toString(),
-        hash: node.chain.blockHashSerde.serialize(block.header.hash),
+        hash: BlockHashSerdeInstance.serialize(block.header.hash),
       },
       parentBlockIdentifier: {
         index: parentBlock.header.sequence.toString(),
-        hash: node.chain.blockHashSerde.serialize(parentBlock.header.hash),
+        hash: BlockHashSerdeInstance.serialize(parentBlock.header.hash),
       },
       timestamp: block.header.timestamp.getTime(),
       transactions,

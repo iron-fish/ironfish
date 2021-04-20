@@ -24,7 +24,7 @@ import {
 import { NoteHasher } from './merkletree/hasher'
 import { NullifierHasher } from './primitives/nullifier'
 import { BlockSerde } from './primitives/block'
-import { hashBlockHeader, BlockHash } from './primitives/blockheader'
+import { hashBlockHeader, BlockHash, BlockHeaderSerde } from './primitives/blockheader'
 
 /**
  * Strategy to allow Blockchain to remain
@@ -66,6 +66,10 @@ export interface Strategy<
    * Get the object that can serialize and deserialize blocks
    */
   readonly blockSerde: BlockSerde<E, H, T, SE, SH, ST>
+
+  readonly blockHeaderSerde: BlockHeaderSerde<E, H, T, SE, SH, ST>
+
+  readonly noteSerde: Serde<E, SE>
 
   /**
    * Given the serialized bytes of a block header, return a 32-byte hash of that block.
@@ -130,6 +134,18 @@ export class IronfishStrategy
     SerializedWasmNoteEncryptedHash,
     SerializedTransaction
   >
+
+  _blockHeaderSerde: BlockHeaderSerde<
+    IronfishNoteEncrypted,
+    WasmNoteEncryptedHash,
+    IronfishTransaction,
+    SerializedWasmNoteEncrypted,
+    SerializedWasmNoteEncryptedHash,
+    SerializedTransaction
+  >
+
+  _noteSerde: Serde<IronfishNoteEncrypted, Buffer>
+
   _transactionSerde: TransactionSerde
 
   private _verifierClass: typeof IronfishVerifier
@@ -141,6 +157,8 @@ export class IronfishStrategy
     this._nullifierHasher = new NullifierHasher()
     this._transactionSerde = new TransactionSerde(workerPool)
     this._blockSerde = new BlockSerde(this)
+    this._blockHeaderSerde = new BlockHeaderSerde(this)
+    this._noteSerde = this._noteHasher.elementSerde()
     this._verifierClass = verifierClass || Verifier
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = workerPool
@@ -156,6 +174,21 @@ export class IronfishStrategy
 
   transactionSerde(): TransactionSerde {
     return this._transactionSerde
+  }
+
+  get noteSerde(): Serde<IronfishNoteEncrypted, Buffer> {
+    return this._noteSerde
+  }
+
+  get blockHeaderSerde(): BlockHeaderSerde<
+    IronfishNoteEncrypted,
+    WasmNoteEncryptedHash,
+    IronfishTransaction,
+    SerializedWasmNoteEncrypted,
+    SerializedWasmNoteEncryptedHash,
+    SerializedTransaction
+  > {
+    return this._blockHeaderSerde
   }
 
   get blockSerde(): BlockSerde<

@@ -11,7 +11,7 @@ import { BlockHash, Sequence } from '../../../primitives/blockheader'
 import { Nullifier } from '../../../primitives/nullifier'
 import { SerializedTestTransaction, TestTransaction } from '../strategy'
 import makeError from './makeError'
-import { BufferSerde } from '../../../serde'
+import { BlockHashSerdeInstance, BufferSerde } from '../../../serde'
 
 declare global {
   namespace jest {
@@ -62,7 +62,7 @@ expect.extend({
       if (hashesForSequence) {
         for (const candidate of hashesForSequence) {
           if (error !== null) break
-          if (chain.blockHashSerde.equals(candidate, hash)) {
+          if (BlockHashSerdeInstance.equals(candidate, hash)) {
             error = `Hash ${String(hash)} exists in sequences index for ${sequence}`
           }
         }
@@ -183,7 +183,7 @@ expect.extend({
         for (const [actual, expected] of zip(actualHashes, hashes)) {
           if (error !== null) break
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          if (!chain.blockHashSerde.equals(Buffer.from(actual!), Buffer.from(expected!))) {
+          if (!BlockHashSerdeInstance.equals(Buffer.from(actual!), Buffer.from(expected!))) {
             const diffString = diff(actual, expected)
             error = `Hashes for sequence ${sequence} don't match\n\nDifference:\n\n${String(
               diffString,

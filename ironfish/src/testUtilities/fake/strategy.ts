@@ -8,11 +8,11 @@ import { MemPool } from '../../memPool'
 import { NullifierHasher } from '../../primitives/nullifier'
 import { TestVerifier } from './verifier'
 import { Blockchain } from '../../blockchain'
-import { BlockHeader, BlockHash } from '../../primitives/blockheader'
+import { BlockHeader, BlockHash, BlockHeaderSerde } from '../../primitives/blockheader'
 import { Strategy } from '../../strategy'
 import { Validity, VerificationResult, VerificationResultReason } from '../../consensus'
 import { StringUtils } from '../../utils'
-import { Serde, BufferSerde, IJSON } from '../../serde'
+import { Serde, BufferSerde, IJSON, StringSerde } from '../../serde'
 import { Block, BlockSerde } from '../../primitives/block'
 import { Spend, Transaction } from '../../primitives/transaction'
 
@@ -90,10 +90,23 @@ export class TestStrategy
     SerializedTestTransaction<string>
   >
 
+  _noteSerde: StringSerde
+
+  _blockHeaderSerde: BlockHeaderSerde<
+    string,
+    string,
+    TestTransaction<string>,
+    string,
+    string,
+    SerializedTestTransaction<string>
+  >
+
   constructor(noteHasher = new ConcatHasher()) {
     this._noteHasher = noteHasher
     this._nullifierHasher = new NullifierHasher()
     this._blockSerde = new BlockSerde(this)
+    this._blockHeaderSerde = new BlockHeaderSerde(this)
+    this._noteSerde = this._noteHasher.elementSerde()
   }
 
   createVerifier(chain: TestBlockchain): TestVerifier {
@@ -110,6 +123,21 @@ export class TestStrategy
 
   transactionSerde(): TestTransactionSerde {
     return new TestTransactionSerde()
+  }
+
+  get noteSerde(): StringSerde {
+    return this._noteSerde
+  }
+
+  get blockHeaderSerde(): BlockHeaderSerde<
+    string,
+    string,
+    TestTransaction<string>,
+    string,
+    string,
+    SerializedTestTransaction<string>
+  > {
+    return this._blockHeaderSerde
   }
 
   get blockSerde(): BlockSerde<

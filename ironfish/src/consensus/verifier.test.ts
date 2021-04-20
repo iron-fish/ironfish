@@ -104,7 +104,7 @@ describe('Verifier', () => {
 
     it('extracts a valid block', async () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
-      const serializedBlock = chain.verifier.blockSerde.serialize(block)
+      const serializedBlock = chain.strategy.blockSerde.serialize(block)
 
       const {
         block: newBlock,
@@ -132,7 +132,7 @@ describe('Verifier', () => {
     it('rejects if the block is not valid', async () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
       block.transactions[0].isValid = false
-      const serializedBlock = chain.verifier.blockSerde.serialize(block)
+      const serializedBlock = chain.strategy.blockSerde.serialize(block)
       const newBlockPayload = { block: serializedBlock }
 
       await expect(chain.verifier.verifyNewBlock(newBlockPayload)).rejects.toEqual(

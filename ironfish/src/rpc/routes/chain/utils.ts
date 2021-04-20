@@ -6,7 +6,7 @@ import { Blockchain, GRAPH_ID_NULL } from '../../../blockchain'
 import { Graph } from '../../../blockchain/graph'
 import { Block } from '../../../primitives/block'
 import { Transaction } from '../../../primitives/transaction'
-import { JsonSerializable } from '../../../serde'
+import { BlockHashSerdeInstance, JsonSerializable } from '../../../serde'
 import { HashUtils } from '../../../utils'
 
 /**
@@ -48,21 +48,21 @@ export async function printGraph<
   const blockHash = block.header.hash.toString('hex')
   seen.add(blockHash)
 
-  const isLatest = chain.blockHashSerde.equals(block.header.hash, genesisGraph.latestHash)
+  const isLatest = BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.latestHash)
     ? ' LATEST'
     : ''
 
   const isHeaviest =
     genesisGraph.heaviestHash &&
-    chain.blockHashSerde.equals(block.header.hash, genesisGraph.heaviestHash)
+    BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.heaviestHash)
       ? ' HEAVY'
       : ''
 
-  const isTail = chain.blockHashSerde.equals(block.header.hash, genesisGraph.tailHash)
+  const isTail = BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.tailHash)
     ? ' TAIL'
     : ''
 
-  const isGenesis = chain.blockHashSerde.equals(
+  const isGenesis = BlockHashSerdeInstance.equals(
     block.header.hash,
     (await chain.getGenesisHash()) || Buffer.from(''),
   )

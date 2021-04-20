@@ -51,6 +51,7 @@ import { IronfishStrategy } from '../strategy'
 import { IronfishBlockchain } from '../blockchain'
 import { SerializedWasmNoteEncrypted } from '../primitives/noteEncrypted'
 import { SerializedTransaction } from '../primitives/transaction'
+import { BlockHashSerdeInstance } from '../serde'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -230,7 +231,7 @@ export class PeerNetwork {
 
   /** Used to request a block by header hash or sequence */
   requestBlocks(hash: Buffer, nextBlockDirection: boolean, peer?: Identity): void {
-    const serializedHash = this.chain.blockHashSerde.serialize(hash)
+    const serializedHash = BlockHashSerdeInstance.serialize(hash)
 
     const request: BlockRequest = {
       type: NodeMessageType.Blocks,
