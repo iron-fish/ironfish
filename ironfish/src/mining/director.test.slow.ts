@@ -15,7 +15,6 @@ import {
   SerializedTestTransaction,
   makeNullifier,
   makeFakeBlock,
-  makeDb,
   makeDbName,
   makeNextBlock,
   blockHash,
@@ -64,8 +63,7 @@ describe('Mining director', () => {
   >
 
   beforeEach(async () => {
-    const db = makeDb(makeDbName())
-    chain = await makeChainGenesis(strategy, db)
+    chain = await makeChainGenesis(strategy, makeDbName())
 
     isAddBlockValidSpy = jest.spyOn(chain.verifier, 'isAddBlockValid').mockResolvedValue({
       valid: Validity.Yes,

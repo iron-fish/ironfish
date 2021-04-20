@@ -4,8 +4,7 @@
 
 import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_PREVIOUS } from '../../../consensus'
-import { IDatabase } from '../../../storage'
-import { makeDb, makeDbName } from '../../helpers/storage'
+import { makeDbName, makeDbPath } from '../../helpers/storage'
 import { RangeHasher } from '../../../merkletree'
 import {
   SerializedTestTransaction,
@@ -181,13 +180,14 @@ export async function makeChainInitial(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string | IDatabase,
+  dbPrefix?: string,
 ): Promise<TestBlockchain> {
-  const db =
-    typeof dbPrefix === 'string' || dbPrefix === undefined ? makeDb(dbPrefix) : dbPrefix
-  const chain = new Blockchain(db, strategy || new TestStrategy(new RangeHasher()))
+  const chain = new Blockchain(
+    makeDbPath(dbPrefix),
+    strategy || new TestStrategy(new RangeHasher()),
+  )
 
-  await db.open()
+  await chain.db.open()
   return chain
 }
 
@@ -203,7 +203,7 @@ export async function makeChainGenesis(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string | IDatabase,
+  dbPrefix?: string,
 ): Promise<TestBlockchain> {
   const chain = await makeChainInitial(strategy, dbPrefix)
   await chain.notes.add('0')
@@ -246,7 +246,7 @@ export async function makeChainFull(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string | IDatabase,
+  dbPrefix?: string,
 ): Promise<TestBlockchain> {
   const chain = await makeChainGenesis(strategy, dbPrefix)
 
@@ -362,13 +362,10 @@ export async function makeBlockchain(): Promise<
     SerializedTestTransaction<string>
   >
 > {
-  const name = makeDbName()
-  const database = makeDb(name)
-
   const strategy = new TestStrategy(new RangeHasher())
-  const chain = new Blockchain(database, strategy)
+  const chain = new Blockchain(makeDbPath(), strategy)
 
-  await database.open()
+  await chain.db.open()
   return chain
 }
 
@@ -380,8 +377,7 @@ export async function makeInitialTestChain(
   strategy: TestStrategy,
   dbPrefix: string,
 ): Promise<TestBlockchain> {
-  const db = makeDb(dbPrefix)
-  return await makeChainInitial(strategy, db)
+  return await makeChainInitial(strategy, dbPrefix)
 }
 
 /**
@@ -393,8 +389,7 @@ export async function makeChain(
   dbPrefix?: string,
 ): Promise<TestBlockchain> {
   if (!dbPrefix) dbPrefix = makeDbName()
-  const db = makeDb(dbPrefix)
-  return await makeChainFull(strategy, db)
+  return await makeChainFull(strategy, dbPrefix)
 }
 
 /**
@@ -410,17 +405,14 @@ export async function makeChainSyncable(
 ): Promise<TestBlockchain> {
   if (!dbPrefix) dbPrefix = makeDbName()
 
-  const db = makeDb(dbPrefix)
-  const chain = await makeChainGenesis(strategy, db)
-
-  const dbFull = makeDb(dbPrefix + '-full')
+  const chain = await makeChainGenesis(strategy, dbPrefix)
 
   if (addExtraBlocks) {
-    const chainFull = await makeChainFull(strategy, dbFull)
+    const chainFull = await makeChainFull(strategy, dbPrefix + '-full')
     await chain.addBlock(await blockBySequence(chainFull, 8))
     await chain.addBlock(await blockBySequence(chainFull, 7))
+    await chainFull.db.close()
   }
-  await dbFull.close()
 
   return chain
 }

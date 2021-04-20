@@ -4,7 +4,6 @@
 import os from 'os'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { IDatabase } from './storage'
 import { IJSON } from './serde'
 import { Blockchain, IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
@@ -20,14 +19,12 @@ import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { WorkerPool } from './workerPool'
 import { BlockSyncer, IronfishBlockSyncer } from './blockSyncer'
-import { createDB } from './storage/utils'
 import { IronfishMiningDirector } from './mining/director'
 import { IronfishStrategy } from './strategy'
 import { IronfishVerifier } from './consensus/verifier'
 import { IronfishBlock, SerializedBlock } from './primitives/block'
 
 export class IronfishNode {
-  database: IDatabase
   chain: IronfishBlockchain
   strategy: IronfishStrategy
   config: Config
@@ -49,7 +46,6 @@ export class IronfishNode {
   private constructor({
     agent,
     chain,
-    database,
     files,
     config,
     internal,
@@ -64,7 +60,6 @@ export class IronfishNode {
     webSocket,
   }: {
     agent: string
-    database: IDatabase
     files: FileSystem
     config: Config
     internal: InternalStore
@@ -79,7 +74,6 @@ export class IronfishNode {
     webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
   }) {
-    this.database = database
     this.files = files
     this.config = config
     this.internal = internal
@@ -173,8 +167,7 @@ export class IronfishNode {
     strategyClass = strategyClass || IronfishStrategy
     const strategy = new strategyClass(workerPool, verifierClass)
 
-    const chaindb = createDB({ location: config.chainDatabasePath })
-    const chain = new Blockchain(chaindb, strategy, logger, metrics)
+    const chain = new Blockchain(config.chainDatabasePath, strategy, logger, metrics)
 
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
 
@@ -199,7 +192,6 @@ export class IronfishNode {
 
     return new IronfishNode({
       agent,
-      database: chaindb,
       chain,
       strategy,
       files,
@@ -220,10 +212,10 @@ export class IronfishNode {
     await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
 
     try {
-      await this.database.open()
+      await this.chain.db.open()
       await this.accounts.db.open()
     } catch (e) {
-      await this.database.close()
+      await this.chain.db.close()
       await this.accounts.db.close()
       throw e
     }
@@ -235,7 +227,7 @@ export class IronfishNode {
   }
 
   async closeDB(): Promise<void> {
-    await this.database.close()
+    await this.chain.db.close()
     await this.accounts.db.close()
   }
 

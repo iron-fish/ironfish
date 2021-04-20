@@ -16,3 +16,8 @@ export function makeDb(name?: string): IDatabase {
   if (!name) name = makeDbName()
   return new LevelupDatabase(leveldown(`./testdbs/${name}`))
 }
+
+export function makeDbPath(name?: string): string {
+  if (!name) name = makeDbName()
+  return `./testdbs/${name}`
+}

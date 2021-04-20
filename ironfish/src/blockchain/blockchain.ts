@@ -47,6 +47,7 @@ import {
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
+import { createDB } from '../storage/utils'
 
 export const GRAPH_ID_NULL = 0
 
@@ -66,6 +67,7 @@ export class Blockchain<
   SH extends JsonSerializable,
   ST
 > {
+  db: IDatabase
   logger: Logger
   genesisBlockHash: BlockHash | null
   genesisHeader: BlockHeader<E, H, T, SE, SH, ST> | null
@@ -104,11 +106,13 @@ export class Blockchain<
   >()
 
   constructor(
-    readonly db: IDatabase,
+    location: string,
     readonly strategy: Strategy<E, H, T, SE, SH, ST>,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
   ) {
+    this.db = createDB({ location })
+
     this.logger = logger.withTag('blockchain')
     this.genesisBlockHash = null
     this.genesisHeader = null
@@ -116,46 +120,46 @@ export class Blockchain<
     this.looseNotes = {}
     this.looseNullifiers = {}
 
-    this.notes = new MerkleTree(strategy.noteHasher(), db, 'anchorchain notes', 32)
+    this.notes = new MerkleTree(strategy.noteHasher(), this.db, 'anchorchain notes', 32)
 
     this.nullifiers = new MerkleTree(
       strategy.nullifierHasher(),
-      db,
+      this.db,
       'anchorchain nullifiers',
       32,
     )
 
     this.verifier = strategy.createVerifier(this)
 
-    this.headers = db.addStore({
+    this.headers = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'Headers',
       keyEncoding: new BufferEncoding(), // block hash
       valueEncoding: new JsonEncoding<SchemaValue<HeadersSchema<SH>>>(),
     })
 
-    this.transactions = db.addStore({
+    this.transactions = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'Transactions',
       keyEncoding: new BufferEncoding(), // block hash
       valueEncoding: new JsonEncoding<ST[]>(),
     })
 
-    this.sequenceToHash = db.addStore({
+    this.sequenceToHash = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'SequenceToHash',
       keyEncoding: new StringEncoding(), // serialized bigint sequence
       valueEncoding: new BufferArrayEncoding(), // array of block hashes
     })
 
-    this.hashToNext = db.addStore({
+    this.hashToNext = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'HashToNextHash',
       keyEncoding: new BufferEncoding(), // serialized bigint sequence
       valueEncoding: new BufferArrayEncoding(), // array of block hashes
     })
 
-    this.graphs = db.addStore({
+    this.graphs = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'Graphs',
       keyEncoding: new StringEncoding(), // graph id
