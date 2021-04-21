@@ -389,10 +389,7 @@ export class Peer {
       }
     }
 
-    this.logger.debug(
-      `Sending ${message.type} message to ${this.displayName} failed, dropping message`,
-    )
-
+    // The message could not be sent on any connection
     return null
   }
 

@@ -5,7 +5,7 @@
 import SimplePeer, { SignalData } from 'simple-peer'
 import { Event } from '../../../event'
 import type { Logger } from '../../../logger'
-import { LooseMessage, parseMessage } from '../../messages'
+import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 import { IsomorphicWebRtc } from '../../types'
@@ -128,6 +128,10 @@ export class WebRtcConnection extends Connection {
    * Encode the message to json and send it to the peer
    */
   send = (message: LooseMessage): boolean => {
+    if (message.type === NodeMessageType.NewBlock && this.peer.bufferSize > 0) {
+      return false
+    }
+
     if (this.shouldLogMessageType(message.type)) {
       this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${message.type}`)
     }
