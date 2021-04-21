@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Blockchain, AddBlockResult } from './blockchain'
+import { Blockchain } from './blockchain'
 import { Block, SerializedBlock } from './primitives/block'
 import { BlockHash } from './primitives/blockheader'
 import {
@@ -462,8 +462,9 @@ export class BlockSyncer<
     this.blockSyncPromise = (async () => {
       const time = Date.now()
       const latestBlock = blockToProcess.block
-      const addBlockResult: AddBlockResult = await this.chain.addBlock(latestBlock)
+      const addBlockResult = await this.chain.addBlock(latestBlock)
       const timeToAddBlock = Date.now() - time
+
       this.logger.debug(
         `Adding block ${blockToProcess.block.header.hash.toString('hex')} ${
           blockToProcess.block.header.sequence

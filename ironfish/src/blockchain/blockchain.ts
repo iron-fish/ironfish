@@ -17,7 +17,6 @@ import { Graph } from './graph'
 import { MetricsMonitor } from '../metrics'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Event } from '../event'
-
 import {
   HeadersSchema,
   SCHEMA_VERSION,
@@ -51,14 +50,6 @@ import { createDB } from '../storage/utils'
 
 export const GRAPH_ID_NULL = 0
 
-export interface AddBlockResult {
-  isAdded: boolean
-  connectedToGenesis?: boolean
-  isHeadChanged: boolean
-  resolvedGraph?: Graph
-  reason?: VerificationResultReason
-}
-
 export class Blockchain<
   E,
   H,
@@ -69,37 +60,32 @@ export class Blockchain<
 > {
   db: IDatabase
   logger: Logger
+  strategy: Strategy<E, H, T, SE, SH, ST>
+  verifier: Verifier<E, H, T, SE, SH, ST>
+  metrics: MetricsMonitor
+
+  notes: MerkleTree<E, H, SE, SH>
+  nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
   genesisBlockHash: BlockHash | null
   genesisHeader: BlockHeader<E, H, T, SE, SH, ST> | null
   looseNotes: { [key: number]: E }
   looseNullifiers: { [key: number]: Nullifier }
-  verifier: Verifier<E, H, T, SE, SH, ST>
 
-  // Block is a header + transactions
-  // (both are indexed by block hash)
+  // BlockHash -> BlockHeader
   headers: IDatabaseStore<HeadersSchema<SH>>
+  // BlockHash -> BlockHeader
   transactions: IDatabaseStore<TransactionsSchema<ST>>
-
-  // Given a sequence, return an array of blocks with that sequence
+  // Sequence -> BlockHash[]
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
-
-  // Given a hash, return an array of blocks pointing to it as previous
+  // BlockHash -> BlockHash[] (blocks pointing at the keyed hash)
   hashToNext: IDatabaseStore<HashToNextSchema>
-
+  // GraphID -> Graph
   graphs: IDatabaseStore<GraphSchema>
 
-  // Notes & Nullifiers Merkle Trees
-  notes: MerkleTree<E, H, SE, SH>
-  nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
-
-  // MetricsMonitor used to create and record performance metrics
-  metrics: MetricsMonitor
-
+  // When the heaviest head changes
   onChainHeadChange = new Event<[hash: BlockHash]>()
-
   // When ever a block is added to the heaviest chain and the trees have been updated
   onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
-
   // When ever a block is removed from the heaviest chain, trees have not been updated yet
   onDisconnectBlock = new Event<
     [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
@@ -107,16 +93,18 @@ export class Blockchain<
 
   constructor(
     location: string,
-    readonly strategy: Strategy<E, H, T, SE, SH, ST>,
+    strategy: Strategy<E, H, T, SE, SH, ST>,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
   ) {
+    this.strategy = strategy
+    this.logger = logger.withTag('blockchain')
+    this.metrics = metrics || new MetricsMonitor(this.logger)
+    this.verifier = strategy.createVerifier(this)
     this.db = createDB({ location })
 
-    this.logger = logger.withTag('blockchain')
     this.genesisBlockHash = null
     this.genesisHeader = null
-    this.metrics = metrics || new MetricsMonitor(this.logger)
     this.looseNotes = {}
     this.looseNullifiers = {}
 
@@ -128,8 +116,6 @@ export class Blockchain<
       'anchorchain nullifiers',
       32,
     )
-
-    this.verifier = strategy.createVerifier(this)
 
     this.headers = this.db.addStore({
       version: SCHEMA_VERSION,
@@ -677,8 +663,14 @@ export class Blockchain<
   async addBlock(
     networkBlockToAdd: Block<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
-  ): Promise<AddBlockResult> {
-    const addBlockResult: AddBlockResult = await this.db.withTransaction(
+  ): Promise<{
+    isAdded: boolean
+    connectedToGenesis?: boolean
+    isHeadChanged: boolean
+    resolvedGraph?: Graph
+    reason?: VerificationResultReason
+  }> {
+    const addBlockResult = await this.db.withTransaction(
       tx,
       [
         this.notes.counter,
@@ -902,6 +894,7 @@ export class Blockchain<
     ) {
       this.onChainHeadChange.emit(addBlockResult.resolvedGraph.heaviestHash)
     }
+
     return addBlockResult
   }
 
