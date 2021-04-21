@@ -31,3 +31,8 @@ export const GENESIS_SUPPLY_IN_IRON = 42000000
  * should get in rewards.
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = 2100000
+
+/**
+ * The oldest the tip should be before we consider the chain synced
+ */
+export const MAX_SYNCED_AGE_MS = 60 * 1000

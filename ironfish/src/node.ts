@@ -212,10 +212,10 @@ export class IronfishNode {
     await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
 
     try {
-      await this.chain.db.open()
+      await this.chain.open()
       await this.accounts.db.open()
     } catch (e) {
-      await this.chain.db.close()
+      await this.chain.close()
       await this.accounts.db.close()
       throw e
     }

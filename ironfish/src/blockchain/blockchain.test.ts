@@ -369,4 +369,32 @@ describe('Blockchain', () => {
     expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
     expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
   }, 20000)
+
+  it('should update synced', async () => {
+    const nowSpy = jest.spyOn(Date, 'now')
+    const syncedSpy = jest.spyOn(nodeTest.node.chain.onSynced, 'emit')
+
+    // Empty chain should not be synced
+    expect(nodeTest.node.chain.synced).toEqual(false)
+    expect(syncedSpy).not.toHaveBeenCalled()
+
+    // Genesis block is a too far back to be synced
+    nowSpy.mockReturnValue(Number.MAX_SAFE_INTEGER)
+    const genesis = await nodeTest.node.seed()
+    expect(nodeTest.node.chain.head).toEqual(genesis.header)
+    expect(nodeTest.node.chain.synced).toEqual(false)
+    expect(syncedSpy).not.toHaveBeenCalled()
+
+    // Set now to genesis block creation time to consider it synced
+    nowSpy.mockReturnValue(genesis.header.timestamp.valueOf())
+    nodeTest.node.chain['updateSynced']()
+    expect(nodeTest.node.chain.synced).toEqual(true)
+    expect(syncedSpy).toHaveBeenCalledTimes(1)
+
+    // Once it's true, it stays true
+    nowSpy.mockReturnValue(Number.MAX_SAFE_INTEGER)
+    nodeTest.node.chain['updateSynced']()
+    expect(nodeTest.node.chain.synced).toEqual(true)
+    expect(syncedSpy).toHaveBeenCalledTimes(1)
+  })
 })
