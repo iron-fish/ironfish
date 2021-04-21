@@ -10,8 +10,8 @@ import {
 } from '../primitives/transaction'
 import { Block } from '../primitives/block'
 import { Verifier, Validity, VerificationResultReason } from '../consensus/verifier'
-import { BlockHeader, BlockHeaderSerde, BlockHash } from '../primitives/blockheader'
-import { Serde, BlockHashSerdeInstance, BufferSerde, JsonSerializable } from '../serde'
+import { BlockHeader, BlockHash } from '../primitives/blockheader'
+import { BlockHashSerdeInstance, JsonSerializable } from '../serde'
 import { Target } from '../primitives/target'
 import { Graph } from './graph'
 import { MetricsMonitor } from '../metrics'
@@ -66,9 +66,6 @@ export class Blockchain<
   SH extends JsonSerializable,
   ST
 > {
-  blockHeaderSerde: BlockHeaderSerde<E, H, T, SE, SH, ST>
-  blockHashSerde: BufferSerde
-  noteSerde: Serde<E, SE>
   logger: Logger
   genesisBlockHash: BlockHash | null
   genesisHeader: BlockHeader<E, H, T, SE, SH, ST> | null
@@ -117,10 +114,6 @@ export class Blockchain<
     logger: Logger,
     metrics: MetricsMonitor,
   ) {
-    this.blockHeaderSerde = new BlockHeaderSerde(strategy)
-    this.blockHashSerde = BlockHashSerdeInstance
-    this.noteSerde = notes.merkleHasher.elementSerde()
-
     this.logger = logger.withTag('blockchain')
     this.genesisBlockHash = null
     this.genesisHeader = null
@@ -270,7 +263,7 @@ export class Blockchain<
       this.logger.debug(`No tail for hash ${hash.toString('hex')}`)
       return null
     }
-    return this.blockHeaderSerde.deserialize(tailHeader)
+    return this.strategy.blockHeaderSerde.deserialize(tailHeader)
   }
 
   async getHead(
@@ -299,7 +292,7 @@ export class Blockchain<
       return null
     }
 
-    return this.blockHeaderSerde.deserialize(header)
+    return this.strategy.blockHeaderSerde.deserialize(header)
   }
 
   async getLatest(
@@ -316,7 +309,7 @@ export class Blockchain<
       return null
     }
 
-    return this.blockHeaderSerde.deserialize(header)
+    return this.strategy.blockHeaderSerde.deserialize(header)
   }
 
   async getBlockHeader(
@@ -324,7 +317,7 @@ export class Blockchain<
     tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
     const header = await this.headers.get(hash, tx)
-    return header ? this.blockHeaderSerde.deserialize(header) : null
+    return header ? this.strategy.blockHeaderSerde.deserialize(header) : null
   }
 
   /**
@@ -343,7 +336,7 @@ export class Blockchain<
         const hash = block.header.hash
         Assert.isNotNull(hash, 'Header hash should be set before header is saved')
 
-        await this.headers.put(hash, this.blockHeaderSerde.serialize(block.header), tx)
+        await this.headers.put(hash, this.strategy.blockHeaderSerde.serialize(block.header), tx)
 
         await Promise.all([
           this.transactions.add(
@@ -730,7 +723,7 @@ export class Blockchain<
           const resolvedGraph = await this.resolveBlockGraph(hash, tx)
           Assert.isNotNull(resolvedGraph)
           const connectedToGenesis =
-            !!genesis && this.blockHashSerde.equals(resolvedGraph.tailHash, genesis)
+            !!genesis && BlockHashSerdeInstance.equals(resolvedGraph.tailHash, genesis)
 
           return {
             isAdded: true,
@@ -765,14 +758,14 @@ export class Blockchain<
         // GENESIS_BLOCK_PREVIOUS
         const addingGenesis =
           !genesis &&
-          this.blockHashSerde.equals(block.header.previousBlockHash, GENESIS_BLOCK_PREVIOUS)
+          BlockHashSerdeInstance.equals(block.header.previousBlockHash, GENESIS_BLOCK_PREVIOUS)
 
         // Adding to a genesis block chain? Or adding the genesis block itself?
         const addingToGenesis =
           addingGenesis ||
           (!!previousTail &&
             !!genesis &&
-            this.blockHashSerde.equals(previousTail.hash, genesis))
+            BlockHashSerdeInstance.equals(previousTail.hash, genesis))
 
         // Check if we can validate this block (blocks can only be fully validated if
         // they are valid *and* connected to genesis, so we check validation in case
@@ -850,7 +843,7 @@ export class Blockchain<
 
           Assert.isNotNull(resolved.heaviestHash)
 
-          isFastForward = this.blockHashSerde.equals(
+          isFastForward = BlockHashSerdeInstance.equals(
             previousBlockHeader.hash,
             resolved.heaviestHash,
           )
@@ -883,11 +876,11 @@ export class Blockchain<
         // did the heaviest block connecting to genesis change?
         const genesisHeaviestChanged =
           genesis &&
-          this.blockHashSerde.equals(resolved.tailHash, genesis) &&
+          BlockHashSerdeInstance.equals(resolved.tailHash, genesis) &&
           oldHeaviest &&
           resolved &&
           resolved.heaviestHash &&
-          !this.blockHashSerde.equals(oldHeaviest.hash, resolved.heaviestHash)
+          !BlockHashSerdeInstance.equals(oldHeaviest.hash, resolved.heaviestHash)
 
         await this.setBlock(block, tx)
         await this.setGraph(resolved, tx)
@@ -1096,7 +1089,7 @@ export class Blockchain<
     let currentBlock: Block<E, H, T, SE, SH, ST> | null = heaviestBlock
     while (
       currentBlock &&
-      !this.blockHashSerde.equals(currentBlock.header.hash, block.header.hash)
+      !BlockHashSerdeInstance.equals(currentBlock.header.hash, block.header.hash)
     ) {
       blocks.unshift(currentBlock)
       currentBlock = await this.getBlock(currentBlock.header.previousBlockHash, tx)
@@ -1328,7 +1321,7 @@ export class Blockchain<
         ])
 
         if (serializedHeader) {
-          header = this.blockHeaderSerde.deserialize(serializedHeader)
+          header = this.strategy.blockHeaderSerde.deserialize(serializedHeader)
         }
 
         if (header && transactions) {
@@ -1359,7 +1352,7 @@ export class Blockchain<
     header: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const serializedBlockHeader = this.blockHeaderSerde.serialize(header)
+    const serializedBlockHeader = this.strategy.blockHeaderSerde.serialize(header)
     const hash = header.hash
     await this.headers.put(hash, serializedBlockHeader, tx)
   }
@@ -1537,7 +1530,7 @@ export class Blockchain<
         if (index < noteCount) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const oldNote = (await this.notes.get(index, tx))!
-          if (!this.noteSerde.equals(note, oldNote)) {
+          if (!this.strategy.noteSerde.equals(note, oldNote)) {
             this.logger.warn(
               `Tried to insert a note, but a different note already there for position ${index}`,
             )

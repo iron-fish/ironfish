@@ -15,7 +15,7 @@ import {
 } from '../primitives/noteEncrypted'
 import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
 import { PayloadType } from '../network'
-import { Serde, BufferSerde, JsonSerializable } from '../serde'
+import { JsonSerializable } from '../serde'
 import {
   IronfishTransaction,
   SerializedTransaction,
@@ -24,6 +24,7 @@ import {
 } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { Target } from '../primitives/target'
+
 /**
  * Verifier transctions and blocks
  *
@@ -50,8 +51,6 @@ export class Verifier<
 > {
   strategy: Strategy<E, H, T, SE, SH, ST>
   chain: Blockchain<E, H, T, SE, SH, ST>
-  blockSerde: Serde<Block<E, H, T, SE, SH, ST>, SerializedBlock<SH, ST>>
-  hashSerde: BufferSerde
 
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
@@ -61,8 +60,6 @@ export class Verifier<
   constructor(chain: Blockchain<E, H, T, SE, SH, ST>) {
     this.strategy = chain.strategy
     this.chain = chain
-    this.blockSerde = chain.strategy.blockSerde
-    this.hashSerde = chain.blockHashSerde
   }
 
   /**
@@ -83,7 +80,7 @@ export class Verifier<
     }
     let block
     try {
-      block = this.blockSerde.deserialize(payload.block)
+      block = this.strategy.blockSerde.deserialize(payload.block)
     } catch {
       return Promise.reject('Could not deserialize block')
     }

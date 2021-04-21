@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import * as yup from 'yup'
 
 import { ApiNamespace, router } from '../router'
+import { BlockHashSerdeInstance } from '../../../serde'
 
 export type GetChainInfoRequest = Record<string, never>
 export type BlockIdentifier = { index: string; hash: string }
@@ -50,7 +51,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
       oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
-      oldestBlockIdentifier.hash = node.chain.blockHashSerde.serialize(heaviestHeader.hash)
+      oldestBlockIdentifier.hash = BlockHashSerdeInstance.serialize(heaviestHeader.hash)
     }
 
     let currentBlockTimestamp = Number()
@@ -58,7 +59,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     if (latestHeader) {
       currentBlockTimestamp = Number(latestHeader.timestamp)
       currentBlockIdentifier.index = latestHeader.sequence.toString()
-      currentBlockIdentifier.hash = node.chain.blockHashSerde.serialize(latestHeader.hash)
+      currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
     }
 
     const genesisBlockHash = await node.chain.getGenesisHash()
@@ -66,7 +67,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
 
     const genesisBlockIdentifier = {} as BlockIdentifier
     genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
-    genesisBlockIdentifier.hash = node.chain.blockHashSerde.serialize(genesisBlockHash)
+    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(genesisBlockHash)
 
     request.end({
       currentBlockIdentifier,

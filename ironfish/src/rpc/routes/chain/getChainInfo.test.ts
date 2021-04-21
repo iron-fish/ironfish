@@ -7,6 +7,7 @@ import { RangeHasher } from '../../../merkletree'
 
 import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
 import { GetChainInfoResponse } from './getChainInfo'
+import { BlockHashSerdeInstance } from '../../../serde'
 
 describe('Route chain.getChainInfo', () => {
   const routeTest = createRouteTest()
@@ -20,7 +21,10 @@ describe('Route chain.getChainInfo', () => {
     routeTest.node.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
     routeTest.node.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
     routeTest.node.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
-    routeTest.node.chain.blockHashSerde.serialize = jest.fn((value) => value.toString())
+
+    jest
+      .spyOn(BlockHashSerdeInstance, 'serialize')
+      .mockImplementation((value) => value.toString())
 
     routeTest.node.chain.headers.get = jest.fn().mockImplementation((hash: Buffer) => {
       if (hash.equals(latestHeader.hash)) {

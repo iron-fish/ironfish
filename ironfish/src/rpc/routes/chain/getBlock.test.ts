@@ -6,6 +6,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { GetBlockResponse } from './getBlock'
+import { BlockHashSerdeInstance } from '../../../serde'
 
 describe('Route chain.getBlock', () => {
   const routeTest = createRouteTest()
@@ -17,9 +18,7 @@ describe('Route chain.getBlock', () => {
   })
 
   it(`should fail if block can't be found with hash`, async () => {
-    const hash = routeTest.node.chain.blockHashSerde.serialize(
-      Buffer.alloc(32, 'blockhashnotfound'),
-    )
+    const hash = BlockHashSerdeInstance.serialize(Buffer.alloc(32, 'blockhashnotfound'))
 
     await expect(routeTest.adapter.request('chain/getBlock', { hash })).rejects.toThrow(
       'No block found',
@@ -43,7 +42,7 @@ describe('Route chain.getBlock', () => {
     expect(addResult).toMatchObject({ isAdded: true })
 
     // by hash first
-    const hash = routeTest.node.chain.blockHashSerde.serialize(block.header.hash)
+    const hash = BlockHashSerdeInstance.serialize(block.header.hash)
     let response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { hash })
 
     expect(response.content).toMatchObject({
