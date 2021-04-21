@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from '../blockchain'
-import { makeDb, fakeMaxTarget } from '../testUtilities/fake'
+import { fakeMaxTarget, makeDbPath } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from './genesisBlock'
 import { makeGenesisBlock } from './makeGenesisBlock'
@@ -29,11 +29,10 @@ describe('Genesis block test', () => {
   })
 
   it('Can start a chain with the existing genesis block', async () => {
-    const db = makeDb()
     const workerPool = new WorkerPool()
     const strategy = new IronfishStrategy(workerPool)
-    const chain = new Blockchain(db, strategy)
-    await db.open()
+    const chain = new Blockchain(makeDbPath(), strategy)
+    await chain.db.open()
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
     const block = strategy._blockSerde.deserialize(result)
