@@ -32,7 +32,7 @@ export async function makeTree({
   if (!name) name = makeDbName()
   if (!database) database = makeDb(name)
 
-  const tree = await MerkleTree.new(new StructureHasher(), database, name, depth)
+  const tree = new MerkleTree(new StructureHasher(), database, name, depth)
 
   if (openDb) {
     await database.open()

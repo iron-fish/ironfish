@@ -35,7 +35,7 @@ async function makeWasmStrategyTree({
   if (!name) name = makeDbName()
   if (!database) database = makeDb(name)
 
-  const tree = await MerkleTree.new(new NoteHasher(), database, name, depth)
+  const tree = new MerkleTree(new NoteHasher(), database, name, depth)
 
   if (openDb) {
     await database.open()

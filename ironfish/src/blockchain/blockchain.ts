@@ -103,25 +103,27 @@ export class Blockchain<
     [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
   >()
 
-  /**
-   * Construct a new Blockchain
-   */
-  private constructor(
+  constructor(
     readonly db: IDatabase,
     readonly strategy: Strategy<E, H, T, SE, SH, ST>,
-    notes: MerkleTree<E, H, SE, SH>,
-    nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>,
-    logger: Logger,
-    metrics: MetricsMonitor,
+    logger: Logger = createRootLogger(),
+    metrics?: MetricsMonitor,
   ) {
     this.logger = logger.withTag('blockchain')
     this.genesisBlockHash = null
     this.genesisHeader = null
-    this.metrics = metrics
-    this.notes = notes
-    this.nullifiers = nullifiers
+    this.metrics = metrics || new MetricsMonitor(this.logger)
     this.looseNotes = {}
     this.looseNullifiers = {}
+
+    this.notes = new MerkleTree(strategy.noteHasher(), db, 'anchorchain notes', 32)
+
+    this.nullifiers = new MerkleTree(
+      strategy.nullifierHasher(),
+      db,
+      'anchorchain nullifiers',
+      32,
+    )
 
     this.verifier = strategy.createVerifier(this)
 
@@ -159,33 +161,6 @@ export class Blockchain<
       keyEncoding: new StringEncoding(), // graph id
       valueEncoding: new JsonEncoding<Graph>(),
     })
-  }
-
-  /**
-   * Construct a new Blockchain backed by the given database
-   */
-  static async new<
-    E,
-    H,
-    T extends Transaction<E, H>,
-    SE extends JsonSerializable,
-    SH extends JsonSerializable,
-    ST
-  >(
-    db: IDatabase,
-    strategy: Strategy<E, H, T, SE, SH, ST>,
-    logger: Logger = createRootLogger(),
-    metrics?: MetricsMonitor,
-  ): Promise<Blockchain<E, H, T, SE, SH, ST>> {
-    metrics = metrics || new MetricsMonitor(logger)
-    const notes = await MerkleTree.new(strategy.noteHasher(), db, 'anchorchain notes', 32)
-    const nullifiers = await MerkleTree.new(
-      strategy.nullifierHasher(),
-      db,
-      'anchorchain nullifiers',
-      32,
-    )
-    return Promise.resolve(new Blockchain(db, strategy, notes, nullifiers, logger, metrics))
   }
 
   async getBlockToNext(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
