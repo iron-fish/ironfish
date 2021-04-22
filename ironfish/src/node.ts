@@ -185,6 +185,7 @@ export class IronfishNode {
       memPool: memPool,
       logger: logger,
       graffiti: config.get('blockGraffiti'),
+      force: config.get('miningForce'),
     })
 
     const anonymousTelemetryId = Math.random().toString().substring(2)
@@ -296,10 +297,7 @@ export class IronfishNode {
 
   onPeerNetworkNotReady(): void {
     void this.syncer.shutdown()
-
-    if (this.config.get('enableMiningDirector')) {
-      this.miningDirector.shutdown()
-    }
+    this.miningDirector.shutdown()
   }
 
   onDefaultAccountChange = (account: Account | null): void => {

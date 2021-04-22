@@ -65,6 +65,11 @@ export default class Start extends IronfishCommand {
       description: 'disable the web socket listen server',
       hidden: true,
     }),
+    forceMining: flags.boolean({
+      default: undefined,
+      description: 'force mining even if we are not synced',
+      hidden: true,
+    }),
   }
 
   node: IronfishNode | null = null
@@ -97,6 +102,12 @@ export default class Start extends IronfishCommand {
     }
     if (flags.worker != undefined && flags.worker !== this.sdk.config.get('isWorker')) {
       this.sdk.config.setOverride('isWorker', flags.worker)
+    }
+    if (
+      flags.forceMining != undefined &&
+      flags.forceMining !== this.sdk.config.get('miningForce')
+    ) {
+      this.sdk.config.setOverride('miningForce', flags.forceMining)
     }
 
     const node = await this.sdk.node()
