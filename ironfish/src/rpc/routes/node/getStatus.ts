@@ -15,7 +15,10 @@ export type GetStatusRequest =
 export type GetStatusResponse = {
   node: {
     status: 'started' | 'stopped' | 'error'
-    heaviestHead: string
+  }
+  blockchain: {
+    synced: boolean
+    head: string
   }
   blockSyncer: {
     status: string
@@ -44,7 +47,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
     node: yup
       .object({
         status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
-        heaviestHead: yup.string().defined(),
+      })
+      .defined(),
+    blockchain: yup
+      .object({
+        synced: yup.boolean().defined(),
+        head: yup.string().defined(),
       })
       .defined(),
     peerNetwork: yup
@@ -73,7 +81,7 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
   async (request, node): Promise<void> => {
-    const status = await getStatus(node)
+    const status = getStatus(node)
 
     if (!request.data?.stream) {
       request.end(status)
@@ -84,7 +92,7 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 
     let stream = true
     while (stream) {
-      const status = await getStatus(node)
+      const status = getStatus(node)
       request.stream(status)
       await PromiseUtils.sleep(500)
     }
@@ -95,19 +103,21 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
   },
 )
 
-async function getStatus(node: IronfishNode): Promise<GetStatusResponse> {
-  const heaviestHead = await node.chain.getHeaviestHead()
+function getStatus(node: IronfishNode): GetStatusResponse {
   const status: GetStatusResponse = {
     peerNetwork: {
       isReady: false,
       inboundTraffic: 0,
       outboundTraffic: 0,
     },
+    blockchain: {
+      synced: node.chain.synced,
+      head: `${node.chain.head?.hash.toString('hex') || ''} (${
+        node.chain.head?.sequence.toString() || ''
+      })`,
+    },
     node: {
       status: 'started',
-      heaviestHead: `${heaviestHead?.hash.toString('hex') || ''} (${
-        heaviestHead?.sequence.toString() || ''
-      })`,
     },
     blockSyncer: {
       status: node.syncer.state.type,

@@ -88,9 +88,13 @@ function renderStatus(content: GetStatusResponse): string {
     content.peerNetwork.inboundTraffic,
   )}/s, Out: ${FileUtils.formatFileSize(content.peerNetwork.outboundTraffic)}/s`
 
+  const blockchainStatus = `${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'}, HEAD ${
+    content.blockchain.head
+  }`
+
   return `
-Node:                       ${nodeStatus}
-Blocks syncing:             ${blockSyncerStatus}
-Heaviest head:              ${content.node.heaviestHead}
-P2P Network:                ${peerNetworkStatus}`
+Node:                 ${nodeStatus}
+P2P Network:          ${peerNetworkStatus}
+Blocks syncing:       ${blockSyncerStatus}
+Blockchain:           ${blockchainStatus}`
 }

@@ -36,7 +36,7 @@ import {
   StringEncoding,
 } from '../storage'
 import { createRootLogger, Logger } from '../logger'
-import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../consensus'
+import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE, MAX_SYNCED_AGE_MS } from '../consensus'
 import { MerkleTree } from '../merkletree'
 import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
@@ -64,12 +64,15 @@ export class Blockchain<
   verifier: Verifier<E, H, T, SE, SH, ST>
   metrics: MetricsMonitor
 
+  synced = false
+  opened = false
   notes: MerkleTree<E, H, SE, SH>
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
   genesisBlockHash: BlockHash | null
   genesisHeader: BlockHeader<E, H, T, SE, SH, ST> | null
   looseNotes: { [key: number]: E }
   looseNullifiers: { [key: number]: Nullifier }
+  head: BlockHeader<E, H, T, SE, SH, ST> | null = null
 
   // BlockHash -> BlockHeader
   headers: IDatabaseStore<HeadersSchema<SH>>
@@ -84,6 +87,8 @@ export class Blockchain<
 
   // When the heaviest head changes
   onChainHeadChange = new Event<[hash: BlockHash]>()
+  // When ever the blockchain becomes synced
+  onSynced = new Event<[]>()
   // When ever a block is added to the heaviest chain and the trees have been updated
   onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
   // When ever a block is removed from the heaviest chain, trees have not been updated yet
@@ -151,6 +156,38 @@ export class Blockchain<
       keyEncoding: new StringEncoding(), // graph id
       valueEncoding: new JsonEncoding<Graph>(),
     })
+  }
+
+  async open(): Promise<void> {
+    if (this.opened) return
+    this.opened = true
+    await this.db.open()
+
+    this.head = await this.getHeaviestHead()
+    this.updateSynced()
+  }
+
+  async close(): Promise<void> {
+    if (!this.opened) return
+    this.opened = false
+    await this.db.close()
+  }
+
+  protected updateSynced(): void {
+    if (this.synced) {
+      return
+    }
+
+    if (!this.head) {
+      return
+    }
+
+    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+      return
+    }
+
+    this.synced = true
+    this.onSynced.emit()
   }
 
   async getBlockToNext(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
@@ -864,6 +901,7 @@ export class Blockchain<
               resolved.heaviestHash ? resolved.heaviestHash.toString('hex') : ''
             }: ${isFastForward ? 'LINEAR' : 'FORKED'}`,
           )
+
           headChanged = true
 
           if (isFastForward) {
@@ -876,6 +914,7 @@ export class Blockchain<
 
         if (addingGenesis) {
           await this.addToTreesFromBlocks([block], 0, 0, tx)
+          headChanged = true
         }
 
         return {
@@ -892,9 +931,12 @@ export class Blockchain<
       addBlockResult.resolvedGraph &&
       addBlockResult.resolvedGraph.heaviestHash
     ) {
-      this.onChainHeadChange.emit(addBlockResult.resolvedGraph.heaviestHash)
+      const headHash = addBlockResult.resolvedGraph.heaviestHash
+      this.head = await this.getBlockHeader(headHash)
+      this.onChainHeadChange.emit(headHash)
     }
 
+    this.updateSynced()
     return addBlockResult
   }
 
