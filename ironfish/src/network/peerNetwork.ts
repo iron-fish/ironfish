@@ -194,7 +194,7 @@ export class PeerNetwork {
       NodeMessageType.NewBlock,
       RoutingStyle.gossip,
       (p) => {
-        return this.chain.verifier.verifyNewBlock(p)
+        return this.chain.verifier.verifyNewBlock(p, this.node.workerPool)
       },
       (message) => this.onNewBlock(message),
     )

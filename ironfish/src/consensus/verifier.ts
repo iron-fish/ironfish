@@ -24,6 +24,7 @@ import {
 } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { Target } from '../primitives/target'
+import { WorkerPool } from '../workerPool'
 
 /**
  * Verifier transctions and blocks
@@ -74,10 +75,16 @@ export class Verifier<
    */
   async verifyNewBlock(
     payload: PayloadType,
+    workerPool: WorkerPool,
   ): Promise<{ block: Block<E, H, T, SE, SH, ST>; serializedBlock: SerializedBlock<SH, ST> }> {
     if (!isNewBlockPayload<SH, ST>(payload)) {
       return Promise.reject('Payload is not a serialized block')
     }
+
+    if (workerPool.isMessageQueueFull()) {
+      return Promise.reject('Dropping block because worker pool message queue is full')
+    }
+
     let block
     try {
       block = this.strategy.blockSerde.deserialize(payload.block)

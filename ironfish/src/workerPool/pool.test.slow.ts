@@ -48,7 +48,7 @@ describe('Worker Pool', () => {
     expect(pool.started).toBe(true)
 
     const worker = pool['workers'][0]
-    const terminateSpy = jest.spyOn(worker, 'terminate')
+    const terminateSpy = jest.spyOn(worker.worker, 'terminate')
     void pool.verify(minersFee)
     expect(pool['resolvers'].size).toBeGreaterThan(0)
 
