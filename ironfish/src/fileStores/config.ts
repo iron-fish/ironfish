@@ -37,6 +37,13 @@ export type ConfigOptions = {
    * */
   isWorker: boolean
   /**
+   * Should the mining director mine, even if we are not synced?
+   * Only useful if no miner has been on the network in a long time
+   * otherwise you should not turn this on or you'll create useless
+   * forks while you sync.
+   */
+  miningForce: boolean
+  /**
    * True if you want to send worker peers out to other clients or not
    * */
   broadcastWorkers: boolean
@@ -128,6 +135,7 @@ export class Config extends KeyStore<ConfigOptions> {
       isWorker: false,
       logLevel: '*:info',
       logPrefix: '',
+      miningForce: false,
       blockGraffiti: '',
       nodeName: '',
       p2pSimulateLatency: 0,

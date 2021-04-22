@@ -25,6 +25,7 @@ import {
 import { Target } from '../primitives/target'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
+import { Assert } from '../assert'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -143,6 +144,11 @@ export class MiningDirector<
    */
   private miningRequestId: number
 
+  /**
+   * Should the miner mine, even if the chain is not synced
+   */
+  force: boolean
+
   constructor(options: {
     chain: Blockchain<E, H, T, SE, SH, ST>
     memPool: MemPool<E, H, T, SE, SH, ST>
@@ -150,6 +156,7 @@ export class MiningDirector<
     logger?: Logger
     graffiti?: string
     account?: Account
+    force?: boolean
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -158,6 +165,7 @@ export class MiningDirector<
     this.strategy = options.strategy
     this.logger = logger.withTag('director')
 
+    this.force = options.force || false
     this._blockGraffiti = ''
     this._minerAccount = null
     this.blockHeaderSerde = new BlockHeaderSerde(options.strategy)
@@ -178,16 +186,25 @@ export class MiningDirector<
         this.logger.error(err)
       })
     })
+
+    this.chain.onSynced.on(() => this.onChainSynced())
   }
 
   async start(): Promise<void> {
     this.setState({ type: 'STARTED' })
     this.logger.debug('Mining director is running')
 
-    const heaviestHead = await this.chain.getHeaviestHead()
-    if (heaviestHead) {
-      await this.generateBlockToMine(heaviestHead.hash)
+    if (!this.chain.synced && !this.force) {
+      this.logger.debug(`Aborting mining because we are still syncing`)
+      return
     }
+
+    if (!this.chain.head) {
+      this.logger.debug(`Aborting mining because we have no genesis block`)
+      return
+    }
+
+    await this.generateBlockToMine(this.chain.head.hash)
   }
 
   isStarted(): boolean {
@@ -221,10 +238,31 @@ export class MiningDirector<
       return
     }
 
+    if (!this.chain.synced && !this.force) {
+      return
+    }
+
     await this.generateBlockToMine(newChainHead)
   }
 
+  async onChainSynced(): Promise<void> {
+    if (!this.isStarted()) {
+      return
+    }
+
+    Assert.isNotNull(this.chain.head)
+    await this.generateBlockToMine(this.chain.head.hash)
+  }
+
   async generateBlockToMine(chainHead: BlockHash): Promise<void> {
+    // Are we already mining that block
+    if (
+      this.currentBlockUnderConstruction !== null &&
+      chainHead.equals(this.currentBlockUnderConstruction)
+    ) {
+      return
+    }
+
     // If we're already generating a block, update the next block to generate and exit
     this.nextBlockToConstruct = chainHead
     if (this.currentBlockUnderConstruction !== null) return
@@ -402,6 +440,7 @@ export class MiningDirector<
       block.header.hash,
     )
     const header = block.header
+
     submitMetric({
       name: 'minedBlock',
       fields: [

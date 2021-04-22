@@ -90,6 +90,7 @@ describe('Mining director', () => {
       chain: chain,
       memPool: memPool,
       strategy: chain.strategy,
+      force: true,
     })
 
     director.setMinerAccount(generateAccount())
@@ -268,6 +269,7 @@ describe('successfullyMined', () => {
       chain: chain,
       memPool: memPool,
       strategy: chain.strategy,
+      force: true,
     })
 
     director.setMinerAccount(generateAccount())
@@ -337,6 +339,7 @@ describe('Recalculating target', () => {
       chain: chain,
       memPool: memPool,
       strategy: chain.strategy,
+      force: true,
     })
 
     director.setMinerAccount(generateAccount())
