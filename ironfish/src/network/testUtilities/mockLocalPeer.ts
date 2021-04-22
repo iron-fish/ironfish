@@ -7,16 +7,23 @@ import wrtc from 'wrtc'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
 import { mockPrivateIdentity } from './mockPrivateIdentity'
+import { VERSION_PROTOCOL } from '../version'
+import { mockChain } from '../../testUtilities/mocks'
+import { IronfishBlockchain } from '../../blockchain'
 
 /**
  * Utility to create a fake "keypair" for testing the network layer
  */
 export function mockLocalPeer({
   identity = mockPrivateIdentity('local'),
-  version = 'sdk/1/cli',
+  agent = 'sdk/1/cli',
+  version = VERSION_PROTOCOL,
+  chain,
 }: {
   identity?: PrivateIdentity
-  version?: string
+  agent?: string
+  version?: number
+  chain?: IronfishBlockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, version, ws, wrtc)
+  return new LocalPeer(identity, agent, version, chain || mockChain(), ws, wrtc)
 }

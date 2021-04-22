@@ -86,20 +86,27 @@ export type Identify = Message<
     identity: Identity
     isWorker?: boolean
     name?: string
-    version: string
+    version: number
+    agent: string
     port: number | null
+    head: string
+    work: string
+    sequence: number
   }
 >
 
 export function isIdentify(obj: unknown): obj is Identify {
   if (!isPayloadMessage(obj)) return false
+
   const payload = obj.payload as Identify['payload']
+
   return (
     obj.type === InternalMessageType.identity &&
     typeof payload === 'object' &&
     payload != null &&
     typeof payload.identity === 'string' &&
-    typeof payload.version === 'string'
+    typeof payload.agent === 'string' &&
+    typeof payload.version === 'number'
   )
 }
 
