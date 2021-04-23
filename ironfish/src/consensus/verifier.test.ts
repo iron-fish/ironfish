@@ -18,6 +18,7 @@ import {
 import { Validity, VerificationResultReason } from './verifier'
 import { Target } from '../primitives/target'
 import { BlockHeader } from '../primitives/blockheader'
+import { WorkerPool } from '../workerPool'
 
 describe('Verifier', () => {
   describe('Transactions', () => {
@@ -109,7 +110,7 @@ describe('Verifier', () => {
       const {
         block: newBlock,
         serializedBlock: newSerializedBlock,
-      } = await chain.verifier.verifyNewBlock({ block: serializedBlock })
+      } = await chain.verifier.verifyNewBlock({ block: serializedBlock }, new WorkerPool())
 
       expect(newBlock.header.hash.equals(block.header.hash)).toBe(true)
       expect(newSerializedBlock.header.previousBlockHash).toEqual(
@@ -118,15 +119,15 @@ describe('Verifier', () => {
     })
 
     it('rejects if payload is not a serialized block', async () => {
-      await expect(chain.verifier.verifyNewBlock({ notA: 'Block' })).rejects.toEqual(
-        'Payload is not a serialized block',
-      )
+      await expect(
+        chain.verifier.verifyNewBlock({ notA: 'Block' }, new WorkerPool()),
+      ).rejects.toEqual('Payload is not a serialized block')
     })
 
     it('rejects if the block cannot be deserialized', async () => {
-      await expect(chain.verifier.verifyNewBlock({ block: { not: 'valid' } })).rejects.toEqual(
-        'Could not deserialize block',
-      )
+      await expect(
+        chain.verifier.verifyNewBlock({ block: { not: 'valid' } }, new WorkerPool()),
+      ).rejects.toEqual('Could not deserialize block')
     })
 
     it('rejects if the block is not valid', async () => {
@@ -135,9 +136,9 @@ describe('Verifier', () => {
       const serializedBlock = chain.strategy.blockSerde.serialize(block)
       const newBlockPayload = { block: serializedBlock }
 
-      await expect(chain.verifier.verifyNewBlock(newBlockPayload)).rejects.toEqual(
-        'Block is invalid',
-      )
+      await expect(
+        chain.verifier.verifyNewBlock(newBlockPayload, new WorkerPool()),
+      ).rejects.toEqual('Block is invalid')
     })
 
     it('validates a valid block', async () => {

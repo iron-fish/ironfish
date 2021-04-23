@@ -19,6 +19,10 @@ import type { Side } from '../merkletree/merkletree'
 import { IronfishTransaction } from '../primitives/transaction'
 import { IronfishNote } from '../primitives/note'
 
+const MESSAGE_QUEUE_MAX_LENGTH = 200
+
+type WorkerPoolWorker = { worker: Worker; awaitingResponse: boolean }
+
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
  */
@@ -27,14 +31,14 @@ export class WorkerPool {
     number,
     (response: WorkerResponse) => void
   >()
-  private workers: Array<Worker> = []
+  private messageQueue: Array<WorkerRequestMessage> = []
+  private workers: Array<WorkerPoolWorker> = []
 
   private _started = false
   public get started(): boolean {
     return this._started
   }
 
-  private workerIndex = 0
   private lastRequestId = 0
 
   private sendRequest(request: Readonly<WorkerRequest>): Promise<WorkerResponse | null> {
@@ -60,13 +64,36 @@ export class WorkerPool {
       this.resolvers.set(request.requestId, (posted) => resolve(posted))
     })
 
-    this.workerIndex = (this.workerIndex + 1) % this.workers.length
-    this.workers[this.workerIndex].postMessage(request)
+    for (const worker of this.workers) {
+      // If we find a worker that's not busy, send it the request
+      if (worker.awaitingResponse === false) {
+        worker.awaitingResponse = true
+        worker.worker.postMessage(request)
+        return promise
+      }
+    }
 
+    // All workers are busy, so push the request onto the messageQueue
+    this.messageQueue.push(request)
     return promise
   }
 
-  private promisifyResponse(response: WorkerResponseMessage): void {
+  private promisifyResponse(
+    worker: WorkerPoolWorker | undefined,
+    response: WorkerResponseMessage,
+  ): void {
+    if (worker !== undefined) {
+      // Send the worker a new request if the message queue is not empty
+      if (this.messageQueue.length === 0) {
+        worker.awaitingResponse = false
+      } else {
+        worker.awaitingResponse = true
+        const message = this.messageQueue.shift()
+        worker.worker.postMessage(message)
+      }
+    }
+
+    // Resolve the outstanding promise with the response
     const resolver = this.resolvers.get(response.requestId)
     if (resolver) {
       this.resolvers.delete(response.requestId)
@@ -89,16 +116,22 @@ export class WorkerPool {
 
     for (let i = 0; i < workers; i++) {
       const worker = new Worker(dir + '/worker.js')
-      worker.on('message', (value) => this.promisifyResponse(value))
-      this.workers.push(worker)
+
+      worker.on('message', (value) => {
+        const w = this.workers.find((w) => w.worker === worker)
+        this.promisifyResponse(w, value)
+      })
+
+      this.workers.push({ worker, awaitingResponse: false })
     }
 
     return this
   }
 
   async stop(): Promise<undefined> {
-    await Promise.all(this.workers.map((w) => w.terminate()))
+    await Promise.all(this.workers.map((w) => w.worker.terminate()))
     this.workers = []
+    this.messageQueue = []
     this.resolvers.clear()
     this._started = false
     return
@@ -123,6 +156,10 @@ export class WorkerPool {
     }
 
     return new IronfishTransaction(Buffer.from(response.serializedTransactionPosted), this)
+  }
+
+  isMessageQueueFull(): boolean {
+    return this.messageQueue.length >= MESSAGE_QUEUE_MAX_LENGTH
   }
 
   async createTransaction(
