@@ -106,7 +106,10 @@ export function isIdentify(obj: unknown): obj is Identify {
     payload != null &&
     typeof payload.identity === 'string' &&
     typeof payload.agent === 'string' &&
-    typeof payload.version === 'number'
+    typeof payload.version === 'number' &&
+    typeof payload.head === 'string' &&
+    typeof payload.work === 'string' &&
+    typeof payload.sequence === 'number'
   )
 }
 
