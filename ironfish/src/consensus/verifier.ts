@@ -13,7 +13,7 @@ import {
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
-import { isNewBlockPayload, isNewTransactionPayload } from '../network/messages'
+import { isNewTransactionPayload } from '../network/messages'
 import { PayloadType } from '../network'
 import { JsonSerializable } from '../serde'
 import {
@@ -74,20 +74,16 @@ export class Verifier<
    * forward it to other peers.
    */
   async verifyNewBlock(
-    payload: PayloadType,
+    newBlock: SerializedBlock<SH, ST>,
     workerPool: WorkerPool,
   ): Promise<{ block: Block<E, H, T, SE, SH, ST>; serializedBlock: SerializedBlock<SH, ST> }> {
-    if (!isNewBlockPayload<SH, ST>(payload)) {
-      return Promise.reject('Payload is not a serialized block')
-    }
-
     if (workerPool.isMessageQueueFull()) {
       return Promise.reject('Dropping block because worker pool message queue is full')
     }
 
     let block
     try {
-      block = this.strategy.blockSerde.deserialize(payload.block)
+      block = this.strategy.blockSerde.deserialize(newBlock)
     } catch {
       return Promise.reject('Could not deserialize block')
     }
@@ -96,7 +92,7 @@ export class Verifier<
     if (!validationResult.valid) {
       return Promise.reject('Block is invalid')
     }
-    return Promise.resolve({ block, serializedBlock: payload.block })
+    return Promise.resolve({ block, serializedBlock: newBlock })
   }
 
   /**

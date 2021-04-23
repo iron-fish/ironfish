@@ -36,3 +36,13 @@ export const IRON_FISH_YEAR_IN_BLOCKS = 2100000
  * The oldest the tip should be before we consider the chain synced
  */
 export const MAX_SYNCED_AGE_MS = 60 * 1000
+
+/**
+ * The maximum allowed requested blocks by the network
+ */
+export const MAX_REQUESTED_BLOCKS = 500
+
+/**
+ * The network has a target block time of 15 seconds
+ */
+export const TARGET_BLOCK_TIME_MS = 15 * 1000

@@ -91,12 +91,16 @@ export class GossipRouter {
 
     const peerIdentity = peer.getIdentityOrThrow()
 
+    await handler({ peerIdentity, message: gossipMessage })
+
     const peersConnections =
       this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
+
     for (const activePeer of this.peerManager.getConnectedPeers()) {
       if (activePeer.state.type !== 'CONNECTED') {
         throw new Error('Peer not in state CONNECTED returned from getConnectedPeers')
       }
+
       // To reduce network noise, we don't send the message back to the peer that
       // sent it to us, or any of the peers connected to it
       if (
@@ -106,8 +110,8 @@ export class GossipRouter {
       ) {
         continue
       }
+
       activePeer.send(gossipMessage)
     }
-    await handler({ peerIdentity, message: gossipMessage })
   }
 }
