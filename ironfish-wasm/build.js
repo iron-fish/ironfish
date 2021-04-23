@@ -23,7 +23,7 @@ if(buildNode) {
     });
     if (result.error) {
         if (result.error.message.includes('ENOENT')) {
-            console.error('wasm-pack is not installed. Run `cargo install wasm-pack`.')
+            console.error('wasm-pack is not installed. Install from https://rustwasm.github.io/wasm-pack')
         } else {
             console.error(result.error.message);
         }
