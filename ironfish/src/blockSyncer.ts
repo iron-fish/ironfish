@@ -47,14 +47,6 @@ export const ALLOWED_TRANSITIONS_TO_FROM = {
   ['REQUESTING']: ['SYNCING', 'IDLE'],
 }
 
-/**
- * Responsible for the metrics used in the status command.
- */
-export type BlockSyncerChainStatus = {
-  blockAddingSpeed: Meter
-  speed: Meter
-}
-
 export type Request = {
   hash: BlockHash
   fromPeer?: Identity
@@ -175,7 +167,7 @@ export class BlockSyncer<
     type: 'STOPPED',
   }
 
-  public status: BlockSyncerChainStatus
+  speed: Meter
 
   private blockSyncPromise: Promise<void>
   public blockRequestPromise: Promise<void>
@@ -225,10 +217,7 @@ export class BlockSyncer<
     this.gossippedBlocksForProcessing = []
     this.requestedBlocksForProcessing = []
 
-    this.status = {
-      blockAddingSpeed: this.metrics.addMeter(),
-      speed: this.metrics.addMeter(),
-    }
+    this.speed = this.metrics.addMeter()
   }
 
   get state(): Readonly<ActionState<E, H, T, SE, SH, ST>> {
@@ -472,8 +461,7 @@ export class BlockSyncer<
       )
 
       // Metrics status update
-      this.status.speed.add(1)
-      this.status.blockAddingSpeed.add(timeToAddBlock)
+      this.speed.add(1)
 
       if (!addBlockResult.isAdded || !addBlockResult.resolvedGraph) {
         this.logger.debug(
