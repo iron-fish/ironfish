@@ -23,7 +23,7 @@ if(buildNode) {
     });
     if (result.error) {
         if (result.error.message.includes('ENOENT')) {
-            console.error('wasm-pack is not installed. Run `cargo install wasm-pack`.')
+            console.error('wasm-pack is not installed. See README.md for install instructions.')
         } else {
             console.error(result.error.message);
         }

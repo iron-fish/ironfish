@@ -22,7 +22,7 @@ See https://ironfish.network
       1. Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
       1. On the next screen, click `Process`.
       1. Once it finishes, add the `bin` folder containing `cc` to your path.
-1. Run `cargo install wasm-pack` to install the WebAssembly wrapper generator.
+1. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 1. Run `yarn install` from the root directory to install packages.
 
 ## Usage

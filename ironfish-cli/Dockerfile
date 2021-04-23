@@ -7,7 +7,7 @@ RUN \
     apt-get update && \
     apt-get install jq rsync -y && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    cargo install wasm-pack && \
+    curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y && \
     ./ironfish-cli/scripts/build.sh
 
 FROM node:14.16.0-slim
