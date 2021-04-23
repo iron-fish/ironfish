@@ -9,6 +9,7 @@
   "dependencies": {
     "axios": "0.21.1",
     "blake3-wasm": "2.1.5",
+    "bfilter": "1.0.5",
     "buffer": "6.0.3",
     "buffer-json": "2.0.0",
     "buffer-map": "0.0.7",

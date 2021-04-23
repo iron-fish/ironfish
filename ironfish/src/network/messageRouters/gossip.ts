@@ -4,7 +4,7 @@
 
 import { MessageType, IncomingPeerMessage, Message, isMessage, PayloadType } from '../messages'
 import { v4 as uuid } from 'uuid'
-import EvictingSet from '../utils/evictingSet'
+import { RollingFilter } from 'bfilter'
 import { PeerManager } from '../peers/peerManager'
 import { Peer } from '../peers/peer'
 
@@ -14,7 +14,8 @@ import { Peer } from '../peers/peer'
  * bounded to a specific size and old ones are evicted in the order
  * they were inserted.
  */
-const MAX_SEEN_GOSSIPS_SIZE = 1000
+const GOSSIP_FILTER_SIZE = 100000
+const GOSSIP_FILTER_FP_RATE = 0.000001
 
 type IncomingGossipGeneric<T extends MessageType> = IncomingPeerMessage<Gossip<T, PayloadType>>
 type IncomingGossipPeerMessage = IncomingGossipGeneric<MessageType>
@@ -34,12 +35,12 @@ export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> 
  */
 export class GossipRouter {
   peerManager: PeerManager
-  private seenGossips: EvictingSet<string>
+  private seenGossipFilter: RollingFilter
   private handlers: Map<MessageType, (message: IncomingGossipPeerMessage) => Promise<unknown>>
 
   constructor(peerManager: PeerManager) {
     this.peerManager = peerManager
-    this.seenGossips = new EvictingSet(MAX_SEEN_GOSSIPS_SIZE)
+    this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.handlers = new Map<
       MessageType,
       (message: IncomingPeerMessage<Gossip<MessageType, PayloadType>>) => Promise<unknown>
@@ -76,15 +77,15 @@ export class GossipRouter {
       ...message,
       nonce,
     }
+    this.seenGossipFilter.add(nonce, 'utf-8')
     this.peerManager.broadcast(gossipMessage)
-    this.seenGossips.add(nonce)
   }
 
   async handle(peer: Peer, gossipMessage: IncomingGossipPeerMessage['message']): Promise<void> {
     const handler = this.handlers.get(gossipMessage.type)
     if (handler === undefined) return
 
-    if (this.seenGossips.has(gossipMessage.nonce)) {
+    if (!this.seenGossipFilter.added(gossipMessage.nonce, 'utf-8')) {
       return
     }
 
@@ -107,7 +108,6 @@ export class GossipRouter {
       }
       activePeer.send(gossipMessage)
     }
-    this.seenGossips.add(gossipMessage.nonce)
     await handler({ peerIdentity, message: gossipMessage })
   }
 }
