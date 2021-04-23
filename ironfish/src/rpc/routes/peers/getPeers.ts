@@ -139,7 +139,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       agent: peer.agent,
       head: peer.head?.toString('hex') || null,
       work: String(peer.work),
-      sequence: peer.sequence,
+      sequence: peer.sequence != null ? Number(peer.sequence) : null,
       connections: connections,
       error: peer.error != null ? String(peer.error) : null,
       connectionWebSocket: connectionWebSocket,

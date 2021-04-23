@@ -3,14 +3,26 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * This is used to unwrap a message from an error if its possible
- * otherwise just returns the error
+ * This is used to unwrap a message from an error if its possible otherwise just renders the error as JSON
  */
-export function renderError(error: unknown): string {
+function extractMessage(error: unknown): string {
   if (!error) return ''
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error
   return JSON.stringify(error)
+}
+
+/**
+ * This is used to unwrap a message from an error
+ *
+ * Falls back to JSON.stringify the error if we cannot get the message
+ */
+export function renderError(error: unknown, stack = false): string {
+  if (stack && error instanceof Error && error.stack) {
+    return error.stack
+  }
+
+  return extractMessage(error)
 }
 
 export const ErrorUtils = { renderError }

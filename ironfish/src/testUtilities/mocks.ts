@@ -30,17 +30,22 @@ export function mockNode(): any {
   return {
     accounts: mockAccounts(),
     miningDirector: mockDirector(),
+    syncer: mockSyncer(),
   }
 }
 
 export function mockPeerNetwork(): any {
-  return {
-    requestBlocks: jest.fn(),
-  }
+  return {}
 }
 
 export function mockDirector(): any {
   return {
     onNewBlock: mockEvent(),
+  }
+}
+
+export function mockSyncer(): any {
+  return {
+    addNewBlock: jest.fn(),
   }
 }

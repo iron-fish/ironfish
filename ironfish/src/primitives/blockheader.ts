@@ -85,6 +85,9 @@ export class BlockHeader<
    * Unix timestamp according to the miner who mined the block. This value
    * must be taken with a grain of salt, but miners must verify that it is an
    * appropriate distance to the previous blocks timestamp.
+   *
+   * TODO: this is called timestamp but it's not a timestamp, it's a date.
+   * Fix this to be a timestamp or rename it
    */
   public timestamp: Date
 
@@ -113,7 +116,7 @@ export class BlockHeader<
    * (For internal uses — excluded when sent over the network)
    * Cumulative work from genesis to this block
    */
-  public work: BigInt
+  public work: bigint
 
   /**
    * (For internal uses — excluded when sent over the network)
@@ -143,7 +146,7 @@ export class BlockHeader<
     minersFee: BigInt,
     graffiti: Buffer,
     isValid = false,
-    work: BigInt = BigInt(0),
+    work = BigInt(0),
     graphId: number = GRAPH_ID_NULL,
     count = 0,
     hash?: Buffer,
