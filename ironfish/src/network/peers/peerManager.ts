@@ -863,7 +863,7 @@ export class PeerManager {
     }
 
     if (version < VERSION_PROTOCOL_MIN) {
-      const error = `Peer version ${message.payload.version} is not compatible to our minimum: ${VERSION_PROTOCOL_MIN}`
+      const error = `Peer version ${message.payload.version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
       this.logger.debug(`Disconnecting from ${identity} - ${error}`)
 
       peer
