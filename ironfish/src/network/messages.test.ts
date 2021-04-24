@@ -14,6 +14,7 @@ import {
   DisconnectingReason,
   isDisconnectingMessage,
 } from './messages'
+import { VERSION_PROTOCOL } from './version'
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -21,7 +22,11 @@ describe('isIdentify', () => {
       type: InternalMessageType.identity,
       payload: {
         identity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        version: 'ironfish-sdk/1/cli',
+        version: VERSION_PROTOCOL,
+        agent: '',
+        head: '',
+        sequence: 1,
+        work: BigInt(0).toString(),
         port: null,
       },
     }
