@@ -42,7 +42,7 @@ import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
 import { parseUrl } from '../utils'
 import { ArrayUtils } from '../../utils'
-import { parseVersion, renderVersion, versionsAreCompatible } from '../version'
+import { VERSION_PROTOCOL_MIN } from '../version'
 
 /**
  * PeerManager keeps the state of Peers and their underlying connections up to date,
@@ -846,7 +846,8 @@ export class PeerManager {
     }
 
     const identity = message.payload.identity
-    const version = parseVersion(message.payload.version)
+    const version = message.payload.version
+    const agent = message.payload.agent
     const port = message.payload.port
     const name = message.payload.name || null
 
@@ -861,12 +862,10 @@ export class PeerManager {
       return
     }
 
-    if (!versionsAreCompatible(this.localPeer.version, version)) {
-      const error = `Peer version ${
-        message.payload.version
-      } is not compatible to ours: ${renderVersion(this.localPeer.version)}`
-
+    if (version < VERSION_PROTOCOL_MIN) {
+      const error = `Peer version ${message.payload.version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
       this.logger.debug(`Disconnecting from ${identity} - ${error}`)
+
       peer
         .getConnectionRetry(connection.type, connection.direction)
         ?.failedConnection(peer.isWhitelisted)
@@ -989,6 +988,10 @@ export class PeerManager {
     peer.name = name
     peer.isWorker = message.payload.isWorker || false
     peer.version = version
+    peer.agent = agent
+    peer.head = Buffer.from(message.payload.head, 'hex')
+    peer.sequence = message.payload.sequence
+    peer.work = BigInt(message.payload.work)
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection

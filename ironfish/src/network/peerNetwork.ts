@@ -52,6 +52,7 @@ import { IronfishBlockchain } from '../blockchain'
 import { SerializedWasmNoteEncrypted } from '../primitives/noteEncrypted'
 import { SerializedTransaction } from '../primitives/transaction'
 import { BlockHashSerdeInstance } from '../serde'
+import { VERSION_PROTOCOL } from './version'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -145,7 +146,15 @@ export class PeerNetwork {
     this.metrics = options.metrics || new MetricsMonitor(this.logger)
     this.bootstrapNodes = options.bootstrapNodes || []
 
-    this.localPeer = new LocalPeer(identity, options.agent, options.webSocket, options.webRtc)
+    this.localPeer = new LocalPeer(
+      identity,
+      options.agent,
+      VERSION_PROTOCOL,
+      options.chain,
+      options.webSocket,
+      options.webRtc,
+    )
+
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
     this.localPeer.isWorker = options.isWorker || false
