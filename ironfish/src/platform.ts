@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Package } from './package'
-import { renderVersion, VERSION_PROTOCOL } from './network/version'
 
 /**
  * Get the current javascript engine type
@@ -24,18 +23,10 @@ const getRuntime = ():
   return { type: 'unknown', runtime: 'unknown' }
 }
 
-/**
- * Combines the SDK's version with the name of the client using the SDK
- * to produce a version string usable by the peer network code.
- * @param agentName The name of the agent using the SDK. e.g. cli, browser
- */
-const getAgent = (agentName: string): string => {
-  return renderVersion({
-    version: String(VERSION_PROTOCOL),
-    product: 'ironfish',
-    code: Package.git,
-    agent: agentName,
-  })
+const getAgent = (name: string): string => {
+  let agent = `ironfish/${name}`
+  if (Package.git) agent += `/${Package.git.slice(8)}`
+  return agent
 }
 
 export const Platform = { getAgent, getRuntime }
