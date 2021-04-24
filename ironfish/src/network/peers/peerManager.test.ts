@@ -49,14 +49,12 @@ import {
   DisconnectingMessage,
   SignalRequest,
 } from '../messages'
+import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
+import { Assert } from '../../assert'
 
 jest.useFakeTimers()
 
 describe('PeerManager', () => {
-  it('Throws when creating a peerManager with an invalid version string', () => {
-    expect(() => new PeerManager(mockLocalPeer({ version: '1' }))).toThrowError()
-  })
-
   describe('Dispose peers', () => {
     it('Should not dispose of peers that have a CONNECTED peer', () => {
       const pm = new PeerManager(mockLocalPeer())
@@ -157,7 +155,12 @@ describe('PeerManager', () => {
       type: InternalMessageType.identity,
       payload: {
         identity: identity,
-        version: 'sdk/1/cli',
+        version: VERSION_PROTOCOL,
+        agent: '',
+
+        head: '',
+        sequence: 1,
+        work: BigInt(0).toString(),
         port: null,
       },
     }
@@ -258,12 +261,19 @@ describe('PeerManager', () => {
       identity: null,
       connections: { webSocket: connection },
     })
+
+    Assert.isNotNull(pm.localPeer.chain.head)
+
     expect(sendSpy).toBeCalledWith({
       type: InternalMessageType.identity,
       payload: {
         identity: privateIdentityToIdentity(localIdentity),
-        version: 'sdk/1/cli',
+        version: VERSION_PROTOCOL,
         port: null,
+        agent: pm.localPeer.agent,
+        head: pm.localPeer.chain.head.hash,
+        sequence: Number(pm.localPeer.chain.head.sequence),
+        work: pm.localPeer.chain.head.work.toString(),
       },
     })
   })
@@ -684,7 +694,12 @@ describe('PeerManager', () => {
         payload: {
           identity: other,
           port: peer.port,
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
         },
       }
       peer.onMessage.emit(identify, connection)
@@ -721,7 +736,11 @@ describe('PeerManager', () => {
         type: InternalMessageType.identity,
         payload: {
           identity: privateIdentityToIdentity(other),
-          version: 'sdk/2/cli',
+          version: VERSION_PROTOCOL_MIN - 1,
+          agent: '',
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
           port: peer.port,
         },
       }
@@ -751,7 +770,12 @@ describe('PeerManager', () => {
         type: InternalMessageType.identity,
         payload: {
           identity: 'test',
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
           port: peer.port,
         },
       }
@@ -776,7 +800,12 @@ describe('PeerManager', () => {
         payload: {
           identity: privateIdentityToIdentity(localIdentity),
           port: 9033,
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
         },
       }
       connection.onMessage.emit(identify)
@@ -818,7 +847,12 @@ describe('PeerManager', () => {
         payload: {
           identity: privateIdentityToIdentity(localIdentity),
           port: 9033,
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
         },
       }
       connection.onMessage.emit(identify)
@@ -862,7 +896,12 @@ describe('PeerManager', () => {
         payload: {
           identity: peer2Identity,
           port: peer1.port,
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
         },
       }
       connection.onMessage.emit(identify)
@@ -910,7 +949,12 @@ describe('PeerManager', () => {
         type: InternalMessageType.identity,
         payload: {
           identity: peerIdentity,
-          version: 'sdk/1/cli',
+          version: VERSION_PROTOCOL,
+          agent: '',
+
+          head: '',
+          sequence: 1,
+          work: BigInt(0).toString(),
           port: 9033,
         },
       }

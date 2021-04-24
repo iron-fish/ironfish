@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../assert'
+import { IronfishBlockchain } from '../../blockchain'
 import { Identity, PrivateIdentity, privateIdentityToIdentity } from '../identity'
 import { Identify, InternalMessageType } from '../messages'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from '../types'
-import { parseVersion, renderVersion, Version } from '../version'
 import { boxMessage, unboxMessage } from './encryption'
 
 /**
@@ -12,16 +13,20 @@ import { boxMessage, unboxMessage } from './encryption'
  * and maintains references to all known peers.
  */
 export class LocalPeer {
+  readonly chain: IronfishBlockchain
   // our keypair for encrypting messages
   private readonly privateIdentity: PrivateIdentity
   // the identity we expose to other peers
   readonly publicIdentity: Identity
-  // the version of the local client
-  readonly version: Version
+  // the agent of the local client
+  readonly agent: string
+  // the protocol version of the local client
+  readonly version: number
   // constructor for either a Node WebSocket or a browser WebSocket
   readonly webSocket: IsomorphicWebSocketConstructor
   // optional object containing a Node implementation of WebRTC
   readonly webRtc: IsomorphicWebRtc
+
   // optional port the local peer is listening on
   port: number | null
   // optional a human readable name for the node
@@ -35,21 +40,17 @@ export class LocalPeer {
 
   constructor(
     identity: PrivateIdentity,
-    version: string,
+    agent: string,
+    version: number,
+    chain: IronfishBlockchain,
     webSocket: IsomorphicWebSocketConstructor,
     webRtc?: IsomorphicWebRtc,
   ) {
     this.privateIdentity = identity
     this.publicIdentity = privateIdentityToIdentity(identity)
-    this.version = parseVersion(version)
-
-    if (
-      this.version.product === null ||
-      this.version.agent === null ||
-      this.version.version === null
-    ) {
-      throw new Error(`Invalid local version ${version} -- example formatting: "sdk/1/cli"`)
-    }
+    this.chain = chain
+    this.agent = agent
+    this.version = version
 
     this.webSocket = webSocket
     this.webRtc = webRtc
@@ -62,14 +63,20 @@ export class LocalPeer {
    * Construct an Identify message with our identity and version.
    */
   getIdentifyMessage(): Identify {
+    Assert.isNotNull(this.chain.head, 'Cannot connect to the network without a genesis block')
+
     return {
       type: InternalMessageType.identity,
       payload: {
         identity: this.publicIdentity,
         isWorker: this.isWorker || undefined,
-        version: renderVersion(this.version),
+        version: this.version,
+        agent: this.agent,
         name: this.name || undefined,
         port: this.port,
+        head: this.chain.head.hash.toString('hex'),
+        work: this.chain.head.work.toString(),
+        sequence: Number(this.chain.head.sequence),
       },
     }
   }
