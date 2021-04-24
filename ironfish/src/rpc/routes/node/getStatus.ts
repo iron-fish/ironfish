@@ -130,8 +130,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
   status.peerNetwork.outboundTraffic = node.metrics.p2p_OutboundTraffic.rate5s
 
   status.blockSyncer.syncing = {
-    blockSpeed: MathUtils.round(node.syncer.status.blockAddingSpeed.avg, 2),
-    speed: MathUtils.round(node.syncer.status.speed.rate1m, 2),
+    blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
+    speed: MathUtils.round(node.syncer.speed.rate1m, 2),
   }
 
   return status

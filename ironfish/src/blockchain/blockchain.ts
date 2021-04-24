@@ -14,7 +14,7 @@ import { BlockHeader, BlockHash } from '../primitives/blockheader'
 import { BlockHashSerdeInstance, JsonSerializable } from '../serde'
 import { Target } from '../primitives/target'
 import { Graph } from './graph'
-import { MetricsMonitor } from '../metrics'
+import { Meter, MetricsMonitor } from '../metrics'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Event } from '../event'
 import {
@@ -39,7 +39,7 @@ import { createRootLogger, Logger } from '../logger'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE, MAX_SYNCED_AGE_MS } from '../consensus'
 import { MerkleTree } from '../merkletree'
 import { Assert } from '../assert'
-import { AsyncUtils } from '../utils'
+import { AsyncUtils, BenchUtils } from '../utils'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
@@ -73,6 +73,7 @@ export class Blockchain<
   looseNotes: { [key: number]: E }
   looseNullifiers: { [key: number]: Nullifier }
   head: BlockHeader<E, H, T, SE, SH, ST> | null = null
+  addSpeed: Meter
 
   // BlockHash -> BlockHeader
   headers: IDatabaseStore<HeadersSchema<SH>>
@@ -112,6 +113,7 @@ export class Blockchain<
     this.genesisHeader = null
     this.looseNotes = {}
     this.looseNullifiers = {}
+    this.addSpeed = this.metrics.addMeter()
 
     this.notes = new MerkleTree(strategy.noteHasher(), this.db, 'anchorchain notes', 32)
 
@@ -707,6 +709,8 @@ export class Blockchain<
     resolvedGraph?: Graph
     reason?: VerificationResultReason
   }> {
+    const start = BenchUtils.start()
+
     const addBlockResult = await this.db.withTransaction(
       tx,
       [
@@ -925,6 +929,8 @@ export class Blockchain<
         }
       },
     )
+
+    this.addSpeed.add(BenchUtils.end(start))
 
     if (
       addBlockResult.isHeadChanged &&
