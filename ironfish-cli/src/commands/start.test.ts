@@ -101,7 +101,6 @@ describe('start command', () => {
       node: jest.fn().mockReturnValue(node),
       config: config,
       internal: internal,
-      getVersion: jest.fn().mockReturnValue('sdk/1/cli'),
     }))
   })
 

@@ -32,9 +32,15 @@ export class ListCommand extends IronfishCommand {
       default: STATE_COLUMN_HEADER,
       description: 'sort by column header',
     }),
-    versions: flags.boolean({
+    agents: flags.boolean({
+      char: 'a',
       default: false,
-      description: 'display peer versions',
+      description: 'display peer agents',
+    }),
+    sequence: flags.boolean({
+      char: 's',
+      default: false,
+      description: 'display peer head sequence',
     }),
     names: flags.boolean({
       char: 'n',
@@ -85,7 +91,13 @@ export class ListCommand extends IronfishCommand {
 
 function renderTable(
   content: GetPeersResponse,
-  flags: { extended: boolean; names: boolean; sort: string; versions: boolean },
+  flags: {
+    extended: boolean
+    names: boolean
+    sort: string
+    agents: boolean
+    sequence: boolean
+  },
 ): string {
   let columns: Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
@@ -106,12 +118,22 @@ function renderTable(
     }
   }
 
-  if (flags.versions) {
-    columns['version'] = {
-      header: 'VERSION',
+  if (flags.agents) {
+    columns['agents'] = {
+      header: 'AGENT',
       minWidth: 5,
       get: (row: GetPeerResponsePeer) => {
-        return row.version || '-'
+        return row.agent || '-'
+      },
+    }
+  }
+
+  if (flags.sequence) {
+    columns['sequence'] = {
+      header: 'SEQ',
+      minWidth: 2,
+      get: (row: GetPeerResponsePeer) => {
+        return row.sequence || '-'
       },
     }
   }

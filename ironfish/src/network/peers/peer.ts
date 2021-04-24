@@ -5,7 +5,6 @@ import { Event } from '../../event'
 import { Logger, createRootLogger } from '../../logger'
 
 import { Identity } from '../identity'
-import { Version } from '../version'
 import { DisconnectingReason, LooseMessage } from '../messages'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
@@ -65,12 +64,26 @@ export class Peer {
    * name associated with this peer
    */
   name: string | null = null
-
   /**
-   * Is the peer a worker node that should not be advertised
+   * The peers protocol version
    */
-  version: Version | null = null
-
+  version: number | null = null
+  /**
+   * The peers agent
+   */
+  agent: string | null = null
+  /**
+   * The peers heaviest head hash
+   */
+  head: Buffer | null = null
+  /**
+   * The peers heaviest head cumulative work
+   */
+  work: BigInt | null = null
+  /**
+   * The peers heaviest head sequence
+   */
+  sequence: number | null = null
   /**
    * The loggable name of the peer. For a more specific value,
    * try Peer.name or Peer.state.identity.
