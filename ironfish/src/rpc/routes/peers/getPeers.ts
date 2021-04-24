@@ -4,14 +4,17 @@
 import { router, ApiNamespace } from '../router'
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
-import { renderVersion } from '../../../network/version'
 
 type ConnectionState = Connection['state']['type'] | ''
 
 type PeerResponse = {
   state: string
   identity: string | null
-  version: string | null
+  version: number | null
+  head: string | null
+  sequence: number | null
+  work: string | null
+  agent: string | null
   name: string | null
   address: string | null
   port: number | null
@@ -52,7 +55,11 @@ export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
             port: yup.number().nullable().defined(),
             identity: yup.string().nullable().defined(),
             name: yup.string().nullable().defined(),
-            version: yup.string().nullable().defined(),
+            head: yup.string().nullable().defined(),
+            work: yup.string().nullable().defined(),
+            sequence: yup.number().nullable().defined(),
+            version: yup.number().nullable().defined(),
+            agent: yup.string().nullable().defined(),
             error: yup.string().nullable().defined(),
             connections: yup.number().defined(),
             connectionWebSocket: yup.string<ConnectionState>().defined(),
@@ -128,7 +135,11 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       port: peer.port,
       identity: peer.state.identity,
       name: peer.name,
-      version: peer.version ? renderVersion(peer.version) : null,
+      version: peer.version,
+      agent: peer.agent,
+      head: peer.head?.toString('hex') || null,
+      work: String(peer.work),
+      sequence: peer.sequence,
       connections: connections,
       error: peer.error != null ? String(peer.error) : null,
       connectionWebSocket: connectionWebSocket,
