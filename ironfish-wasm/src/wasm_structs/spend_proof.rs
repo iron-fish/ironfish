@@ -4,6 +4,7 @@
 
 use wasm_bindgen::prelude::*;
 
+use super::WasmIoError;
 use ironfish_rust::sapling_bls12::{MerkleNoteHash, SpendProof};
 
 #[wasm_bindgen]
@@ -19,12 +20,12 @@ impl WasmSpendProof {
     }
 
     #[wasm_bindgen(getter, js_name = "rootHash")]
-    pub fn root_hash(&self) -> Vec<u8> {
+    pub fn root_hash(&self) -> Result<Vec<u8>, JsValue> {
         let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(vec![]);
         MerkleNoteHash::new(self.proof.root_hash())
             .write(&mut cursor)
-            .unwrap();
-        cursor.into_inner()
+            .map_err(WasmIoError)?;
+        Ok(cursor.into_inner())
     }
 
     #[wasm_bindgen(getter)]
