@@ -23,6 +23,7 @@ export type ConfigOptions = {
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
+  enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
   getFundsApi: string
@@ -128,6 +129,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpc: true,
       enableRpcIpc: true,
       enableRpcTcp: false,
+      enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
       getFundsApi: DEFAULT_GET_FUNDS_API,

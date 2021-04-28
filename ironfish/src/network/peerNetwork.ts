@@ -125,6 +125,7 @@ export class PeerNetwork {
     maxPeers?: number
     minPeers?: number
     targetPeers?: number
+    enableSyncing?: boolean
     isWorker?: boolean
     broadcastWorkers?: boolean
     simulateLatency?: number
@@ -135,6 +136,7 @@ export class PeerNetwork {
     chain: IronfishBlockchain
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
+    const enableSyncing = options.enableSyncing ?? true
 
     this.node = options.node
     this.chain = options.chain
@@ -190,23 +192,38 @@ export class PeerNetwork {
       (message) => this.onBlockRequest(message),
     )
 
-    this.registerHandler(
-      NodeMessageType.NewBlock,
-      RoutingStyle.gossip,
-      (p) => {
-        return this.chain.verifier.verifyNewBlock(p, this.node.workerPool)
-      },
-      (message) => this.onNewBlock(message),
-    )
+    if (enableSyncing) {
+      this.registerHandler(
+        NodeMessageType.NewBlock,
+        RoutingStyle.gossip,
+        (p) => {
+          return this.chain.verifier.verifyNewBlock(p, this.node.workerPool)
+        },
+        (message) => this.onNewBlock(message),
+      )
 
-    this.registerHandler(
-      NodeMessageType.NewTransaction,
-      RoutingStyle.gossip,
-      (p) => {
-        return this.chain.verifier.verifyNewTransaction(p)
-      },
-      async (message) => await this.onNewTransaction(message),
-    )
+      this.registerHandler(
+        NodeMessageType.NewTransaction,
+        RoutingStyle.gossip,
+        (p) => {
+          return this.chain.verifier.verifyNewTransaction(p)
+        },
+        async (message) => await this.onNewTransaction(message),
+      )
+    } else {
+      this.registerHandler(
+        NodeMessageType.NewBlock,
+        RoutingStyle.gossip,
+        () => Promise.resolve(undefined),
+        () => Promise.resolve(undefined),
+      )
+      this.registerHandler(
+        NodeMessageType.NewTransaction,
+        RoutingStyle.gossip,
+        () => Promise.resolve(undefined),
+        () => Promise.resolve(undefined),
+      )
+    }
 
     this.node.miningDirector.onNewBlock.on((block) => {
       const serializedBlock = this.strategy.blockSerde.serialize(block)
