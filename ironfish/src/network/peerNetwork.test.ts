@@ -11,7 +11,7 @@ import net from 'net'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockPrivateIdentity } from './testUtilities'
 import { Assert } from '../assert'
-import { DisconnectingMessage } from './messages'
+import { DisconnectingMessage, NodeMessageType } from './messages'
 import { mockNode, mockStrategy, mockChain } from '../testUtilities/mocks'
 
 jest.useFakeTimers()
@@ -152,4 +152,141 @@ it('rejects websocket connections when at max peers', () => {
   expect(typeof args).toEqual('string')
   const message = JSON.parse(args) as DisconnectingMessage
   expect(message.type).toEqual('disconnecting')
+})
+
+describe('enableSyncing option', () => {
+  it('Defaults enableSyncing to true', async () => {
+    const verifyNewBlock = jest.fn(() => {
+      throw new Error('')
+    })
+
+    const verifyNewTransaction = jest.fn(() => {
+      throw new Error('')
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chain: any = {
+      ...mockChain(),
+      verifier: {
+        verifyNewBlock,
+        verifyNewTransaction,
+      },
+    }
+
+    const peerNetwork = new PeerNetwork({
+      identity: mockPrivateIdentity('local'),
+      agent: 'sdk/1/cli',
+      webSocket: ws,
+      node: mockNode(),
+      chain: chain,
+      strategy: mockStrategy(),
+    })
+
+    // Spy on new blocks
+    const blockSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewBlock')
+
+    const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
+      NodeMessageType.NewBlock,
+    )
+    if (newBlockHandler === undefined) throw new Error('Expected newBlockHandler to be defined')
+
+    await newBlockHandler({
+      peerIdentity: '',
+      message: {
+        type: NodeMessageType.NewBlock,
+        nonce: 'nonce',
+        payload: {},
+      },
+    })
+
+    expect(blockSpy).toHaveBeenCalled()
+
+    // Spy on new transactions
+    const transactionSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewTransaction')
+
+    const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
+      NodeMessageType.NewTransaction,
+    )
+    if (newTransactionHandler === undefined)
+      throw new Error('Expected newTransactionHandler to be defined')
+
+    await newTransactionHandler({
+      peerIdentity: '',
+      message: {
+        type: NodeMessageType.NewTransaction,
+        nonce: 'nonce',
+        payload: {},
+      },
+    })
+
+    expect(transactionSpy).toHaveBeenCalled()
+  })
+
+  it('Does not call verifier when enableSyncing is false', async () => {
+    const verifyNewBlock = jest.fn(() => {
+      throw new Error('')
+    })
+
+    const verifyNewTransaction = jest.fn(() => {
+      throw new Error('')
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chain: any = {
+      ...mockChain(),
+      verifier: {
+        verifyNewBlock,
+        verifyNewTransaction,
+      },
+    }
+
+    const peerNetwork = new PeerNetwork({
+      identity: mockPrivateIdentity('local'),
+      agent: 'sdk/1/cli',
+      webSocket: ws,
+      node: mockNode(),
+      chain: chain,
+      strategy: mockStrategy(),
+      enableSyncing: false,
+    })
+
+    // Spy on new blocks
+    const blockSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewBlock')
+
+    const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
+      NodeMessageType.NewBlock,
+    )
+    if (newBlockHandler === undefined) throw new Error('Expected newBlockHandler to be defined')
+
+    await newBlockHandler({
+      peerIdentity: '',
+      message: {
+        type: NodeMessageType.NewBlock,
+        nonce: 'nonce',
+        payload: {},
+      },
+    })
+
+    expect(blockSpy).not.toHaveBeenCalled()
+
+    // Spy on new transactions
+    const transactionSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewTransaction')
+
+    const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
+      NodeMessageType.NewTransaction,
+    )
+    if (newTransactionHandler === undefined)
+      throw new Error('Expected newTransactionHandler to be defined')
+
+    await newTransactionHandler({
+      peerIdentity: '',
+      message: {
+        type: NodeMessageType.NewTransaction,
+        nonce: 'nonce',
+        payload: {},
+      },
+    })
+
+    expect(transactionSpy).not.toHaveBeenCalled()
+  })
 })

@@ -94,6 +94,7 @@ export class IronfishNode {
       maxPeers: config.get('maxPeers'),
       minPeers: config.get('minPeers'),
       listen: config.get('enableListenP2P'),
+      enableSyncing: config.get('enableSyncing'),
       targetPeers: config.get('targetPeers'),
       isWorker: config.get('isWorker'),
       broadcastWorkers: config.get('broadcastWorkers'),
@@ -288,7 +289,9 @@ export class IronfishNode {
   }
 
   onPeerNetworkReady(): void {
-    void this.syncer.start()
+    if (this.config.get('enableSyncing')) {
+      void this.syncer.start()
+    }
 
     if (this.config.get('enableMiningDirector')) {
       void this.miningDirector.start()
