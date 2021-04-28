@@ -8,7 +8,9 @@ use ironfish_rust::sapling_bls12::{
     Key, ProposedTransaction, PublicAddress, SimpleTransaction, Transaction, SAPLING,
 };
 
+use super::errors::*;
 use super::note::WasmNote;
+use super::panic_hook;
 use super::spend_proof::WasmSpendProof;
 use super::witness::JsWitness;
 
@@ -20,18 +22,20 @@ pub struct WasmTransactionPosted {
 #[wasm_bindgen]
 impl WasmTransactionPosted {
     #[wasm_bindgen]
-    pub fn deserialize(bytes: &[u8]) -> WasmTransactionPosted {
-        console_error_panic_hook::set_once();
+    pub fn deserialize(bytes: &[u8]) -> Result<WasmTransactionPosted, JsValue> {
+        panic_hook::set_once();
+
         let mut cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(bytes);
-        let transaction = Transaction::read(SAPLING.clone(), &mut cursor).unwrap();
-        WasmTransactionPosted { transaction }
+        let transaction =
+            Transaction::read(SAPLING.clone(), &mut cursor).map_err(WasmTransactionError)?;
+        Ok(WasmTransactionPosted { transaction })
     }
 
     #[wasm_bindgen]
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> Result<Vec<u8>, JsValue> {
         let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(vec![]);
-        self.transaction.write(&mut cursor).unwrap();
-        cursor.into_inner()
+        self.transaction.write(&mut cursor).map_err(WasmIoError)?;
+        Ok(cursor.into_inner())
     }
 
     #[wasm_bindgen]
@@ -48,12 +52,15 @@ impl WasmTransactionPosted {
     }
 
     #[wasm_bindgen(js_name = "getNote")]
-    pub fn get_note(&self, index: usize) -> Vec<u8> {
+    pub fn get_note(&self, index: usize) -> Result<Vec<u8>, JsValue> {
         let proof = &self.transaction.receipts()[index];
         // Note bytes are 275
         let mut cursor: Vec<u8> = Vec::with_capacity(275);
-        proof.merkle_note().write(&mut cursor).unwrap();
-        cursor
+        proof
+            .merkle_note()
+            .write(&mut cursor)
+            .map_err(WasmIoError)?;
+        Ok(cursor)
     }
 
     #[wasm_bindgen(getter, js_name = "spendsLength")]
@@ -75,13 +82,13 @@ impl WasmTransactionPosted {
     }
 
     #[wasm_bindgen(getter, js_name = "transactionSignature")]
-    pub fn transaction_signature(&self) -> Vec<u8> {
+    pub fn transaction_signature(&self) -> Result<Vec<u8>, JsValue> {
         let mut serialized_signature = vec![];
         self.transaction
             .binding_signature()
             .write(&mut serialized_signature)
-            .unwrap();
-        serialized_signature
+            .map_err(WasmIoError)?;
+        Ok(serialized_signature)
     }
 
     #[wasm_bindgen(getter, js_name = "transactionHash")]
@@ -99,7 +106,8 @@ pub struct WasmTransaction {
 impl WasmTransaction {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmTransaction {
-        console_error_panic_hook::set_once();
+        panic_hook::set_once();
+
         WasmTransaction {
             transaction: ProposedTransaction::new(SAPLING.clone()),
         }
@@ -107,59 +115,29 @@ impl WasmTransaction {
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[wasm_bindgen]
-    pub fn receive(&mut self, spender_hex_key: &str, note: &WasmNote) -> String {
-        let spender_key = Key::from_hex(SAPLING.clone(), spender_hex_key).unwrap();
-        match self.transaction.receive(&spender_key, &note.note) {
-            Ok(_) => "".into(),
-            Err(e) => match e {
-                ironfish_rust::errors::SaplingProofError::InconsistentWitness => {
-                    "InconsistentWitness".into()
-                }
-                ironfish_rust::errors::SaplingProofError::IOError => "IOError".into(),
-                ironfish_rust::errors::SaplingProofError::ReceiptCircuitProofError => {
-                    "ReceiptCircuitProofError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SaplingKeyError => {
-                    "SaplingKeyError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SigningError => "SigningError".into(),
-                ironfish_rust::errors::SaplingProofError::SpendCircuitProofError(d) => {
-                    format!("SpendCircuitProofError - {}", d)
-                }
-                ironfish_rust::errors::SaplingProofError::VerificationFailed => {
-                    "VerificationFailed".into()
-                }
-            },
-        }
+    pub fn receive(&mut self, spender_hex_key: &str, note: &WasmNote) -> Result<String, JsValue> {
+        let spender_key =
+            Key::from_hex(SAPLING.clone(), spender_hex_key).map_err(WasmSaplingKeyError)?;
+        self.transaction
+            .receive(&spender_key, &note.note)
+            .map_err(WasmSaplingProofError)?;
+        Ok("".to_string())
     }
 
     /// Spend the note owned by spender_hex_key at the given witness location.
     #[wasm_bindgen]
-    pub fn spend(&mut self, spender_hex_key: &str, note: &WasmNote, witness: &JsWitness) -> String {
-        let spender_key = Key::from_hex(SAPLING.clone(), spender_hex_key).unwrap();
-        match self.transaction.spend(spender_key, &note.note, witness) {
-            Ok(_) => "".into(),
-            Err(e) => match e {
-                ironfish_rust::errors::SaplingProofError::InconsistentWitness => {
-                    "InconsistentWitness".into()
-                }
-                ironfish_rust::errors::SaplingProofError::IOError => "IOError".into(),
-                ironfish_rust::errors::SaplingProofError::ReceiptCircuitProofError => {
-                    "ReceiptCircuitProofError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SaplingKeyError => {
-                    "SaplingKeyError".into()
-                }
-
-                ironfish_rust::errors::SaplingProofError::SigningError => "SigningError".into(),
-                ironfish_rust::errors::SaplingProofError::SpendCircuitProofError(d) => {
-                    format!("SpendCircuitProofError - {}", d)
-                }
-                ironfish_rust::errors::SaplingProofError::VerificationFailed => {
-                    "VerificationFailed".into()
-                }
-            },
-        }
+    pub fn spend(
+        &mut self,
+        spender_hex_key: &str,
+        note: &WasmNote,
+        witness: &JsWitness,
+    ) -> Result<String, JsValue> {
+        let spender_key =
+            Key::from_hex(SAPLING.clone(), spender_hex_key).map_err(WasmSaplingKeyError)?;
+        self.transaction
+            .spend(spender_key, &note.note, witness)
+            .map_err(WasmSaplingProofError)?;
+        Ok("".to_string())
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
@@ -168,10 +146,12 @@ impl WasmTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     #[wasm_bindgen]
-    pub fn post_miners_fee(&mut self) -> WasmTransactionPosted {
-        WasmTransactionPosted {
-            transaction: self.transaction.post_miners_fee().unwrap(),
-        }
+    pub fn post_miners_fee(&mut self) -> Result<WasmTransactionPosted, JsValue> {
+        let transaction = self
+            .transaction
+            .post_miners_fee()
+            .map_err(WasmTransactionError)?;
+        Ok(WasmTransactionPosted { transaction })
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -190,18 +170,24 @@ impl WasmTransaction {
         spender_hex_key: &str,
         change_goes_to: Option<String>,
         intended_transaction_fee: u64,
-    ) -> WasmTransactionPosted {
-        let spender_key = Key::from_hex(SAPLING.clone(), spender_hex_key).unwrap();
+    ) -> Result<WasmTransactionPosted, JsValue> {
+        let spender_key =
+            Key::from_hex(SAPLING.clone(), spender_hex_key).map_err(WasmSaplingKeyError)?;
         let change_key = match change_goes_to {
-            Some(s) => Some(PublicAddress::from_hex(SAPLING.clone(), &s).unwrap()),
+            Some(s) => {
+                Some(PublicAddress::from_hex(SAPLING.clone(), &s).map_err(WasmSaplingKeyError)?)
+            }
             None => None,
         };
-        WasmTransactionPosted {
-            transaction: self
-                .transaction
-                .post(&spender_key, change_key, intended_transaction_fee)
-                .unwrap(),
-        }
+
+        let posted_transaction = self
+            .transaction
+            .post(&spender_key, change_key, intended_transaction_fee)
+            .map_err(WasmTransactionError)?;
+
+        Ok(WasmTransactionPosted {
+            transaction: posted_transaction,
+        })
     }
 }
 
@@ -219,75 +205,44 @@ pub struct WasmSimpleTransaction {
 #[wasm_bindgen]
 impl WasmSimpleTransaction {
     #[wasm_bindgen(constructor)]
-    pub fn new(spender_hex_key: &str, intended_transaction_fee: u64) -> WasmSimpleTransaction {
-        console_error_panic_hook::set_once();
-        let spender_key = Key::from_hex(SAPLING.clone(), spender_hex_key).unwrap();
-        WasmSimpleTransaction {
+    pub fn new(
+        spender_hex_key: &str,
+        intended_transaction_fee: u64,
+    ) -> Result<WasmSimpleTransaction, JsValue> {
+        panic_hook::set_once();
+
+        let spender_key =
+            Key::from_hex(SAPLING.clone(), spender_hex_key).map_err(WasmSaplingKeyError)?;
+        Ok(WasmSimpleTransaction {
             transaction: SimpleTransaction::new(
                 SAPLING.clone(),
                 spender_key,
                 intended_transaction_fee,
             ),
-        }
+        })
     }
 
     #[wasm_bindgen]
-    pub fn spend(&mut self, note: &WasmNote, witness: &JsWitness) -> String {
-        match self.transaction.spend(&note.note, witness) {
-            Ok(_) => "".into(),
-            Err(e) => match e {
-                ironfish_rust::errors::SaplingProofError::InconsistentWitness => {
-                    "InconsistentWitness".into()
-                }
-                ironfish_rust::errors::SaplingProofError::IOError => "IOError".into(),
-                ironfish_rust::errors::SaplingProofError::ReceiptCircuitProofError => {
-                    "ReceiptCircuitProofError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SaplingKeyError => {
-                    "SaplingKeyError".into()
-                }
-
-                ironfish_rust::errors::SaplingProofError::SigningError => "SigningError".into(),
-                ironfish_rust::errors::SaplingProofError::SpendCircuitProofError(d) => {
-                    format!("SpendCircuitProofError - {}", d)
-                }
-                ironfish_rust::errors::SaplingProofError::VerificationFailed => {
-                    "VerificationFailed".into()
-                }
-            },
-        }
+    pub fn spend(&mut self, note: &WasmNote, witness: &JsWitness) -> Result<String, JsValue> {
+        self.transaction
+            .spend(&note.note, witness)
+            .map_err(WasmSaplingProofError)?;
+        Ok("".to_string())
     }
 
     #[wasm_bindgen]
-    pub fn receive(&mut self, note: &WasmNote) -> String {
-        match self.transaction.receive(&note.note) {
-            Ok(_) => "".into(),
-            Err(e) => match e {
-                ironfish_rust::errors::SaplingProofError::InconsistentWitness => {
-                    "InconsistentWitness".into()
-                }
-                ironfish_rust::errors::SaplingProofError::IOError => "IOError".into(),
-                ironfish_rust::errors::SaplingProofError::ReceiptCircuitProofError => {
-                    "ReceiptCircuitProofError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SaplingKeyError => {
-                    "SaplingKeyError".into()
-                }
-                ironfish_rust::errors::SaplingProofError::SigningError => "SigningError".into(),
-                ironfish_rust::errors::SaplingProofError::SpendCircuitProofError(d) => {
-                    format!("SpendCircuitProofError - {}", d)
-                }
-                ironfish_rust::errors::SaplingProofError::VerificationFailed => {
-                    "VerificationFailed".into()
-                }
-            },
-        }
+    pub fn receive(&mut self, note: &WasmNote) -> Result<String, JsValue> {
+        self.transaction
+            .receive(&note.note)
+            .map_err(WasmSaplingProofError)?;
+        Ok("".to_string())
     }
 
     #[wasm_bindgen]
-    pub fn post(&mut self) -> WasmTransactionPosted {
-        WasmTransactionPosted {
-            transaction: self.transaction.post().unwrap(),
-        }
+    pub fn post(&mut self) -> Result<WasmTransactionPosted, JsValue> {
+        let posted_transaction = self.transaction.post().map_err(WasmTransactionError)?;
+        Ok(WasmTransactionPosted {
+            transaction: posted_transaction,
+        })
     }
 }

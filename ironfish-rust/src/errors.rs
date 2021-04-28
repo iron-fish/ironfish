@@ -23,7 +23,7 @@ pub enum SaplingKeyError {
 
 impl fmt::Display for SaplingKeyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -49,7 +49,7 @@ pub enum SaplingProofError {
 
 impl fmt::Display for SaplingProofError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -86,7 +86,7 @@ pub enum TransactionError {
 
 impl fmt::Display for TransactionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -119,7 +119,7 @@ pub enum NoteError {
 
 impl fmt::Display for NoteError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}", self)
     }
 }
 

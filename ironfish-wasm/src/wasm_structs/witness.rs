@@ -8,6 +8,8 @@ use wasm_bindgen::JsCast;
 use ironfish_rust::sapling_bls12::{Bls12, Fr, MerkleNoteHash};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
+use super::panic_hook;
+
 #[wasm_bindgen(typescript_custom_section)]
 const IWITNESS: &'static str = r#"
 interface IWitness {
@@ -67,12 +69,17 @@ extern "C" {
 /// like transactions.
 impl WitnessTrait<Bls12> for JsWitness {
     fn verify(&self, hash: &MerkleNoteHash) -> bool {
+        panic_hook::set_once();
+
         let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(vec![]);
         hash.write(&mut cursor).unwrap();
+
         self.verify(&cursor.into_inner())
     }
 
     fn get_auth_path(&self) -> Vec<WitnessNode<Fr>> {
+        panic_hook::set_once();
+
         self.auth_path()
             .iter()
             .map(|element| {
@@ -96,6 +103,8 @@ impl WitnessTrait<Bls12> for JsWitness {
     }
 
     fn root_hash(&self) -> Fr {
+        panic_hook::set_once();
+
         // Convert the serialized root hash back to a Fr
         let bytes = self.serialize_root_hash();
         let mut cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(&bytes);
