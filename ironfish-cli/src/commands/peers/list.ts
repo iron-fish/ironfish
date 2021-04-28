@@ -10,6 +10,8 @@ import blessed from 'blessed'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
+const STATE_COLUMN_HEADER = 'STATE'
+
 export class ListCommand extends IronfishCommand {
   static description = `List all connected peers`
 
@@ -24,6 +26,11 @@ export class ListCommand extends IronfishCommand {
       char: 'e',
       default: false,
       description: 'display all information',
+    }),
+    sort: flags.string({
+      char: 's',
+      default: STATE_COLUMN_HEADER,
+      description: 'sort by column header',
     }),
     versions: flags.boolean({
       default: false,
@@ -78,7 +85,7 @@ export class ListCommand extends IronfishCommand {
 
 function renderTable(
   content: GetPeersResponse,
-  flags: { extended: boolean; names: boolean; versions: boolean },
+  flags: { extended: boolean; names: boolean; sort: string; versions: boolean },
 ): string {
   let columns: Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
@@ -112,7 +119,7 @@ function renderTable(
   columns = {
     ...columns,
     state: {
-      header: 'STATE',
+      header: STATE_COLUMN_HEADER,
       minWidth: 15,
       get: (row: GetPeerResponsePeer) => {
         return row.state + (row.error ? '(!)' : '')
@@ -159,6 +166,7 @@ function renderTable(
   cli.table(content.peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     extended: flags.extended,
+    sort: flags.sort,
   })
 
   return result
