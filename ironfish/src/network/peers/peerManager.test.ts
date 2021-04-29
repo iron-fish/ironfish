@@ -5,7 +5,7 @@
 import * as encryption from './encryption'
 
 jest.mock('ws')
-jest.mock('wrtc')
+jest.mock('simple-peer')
 jest.mock('./encryption', () => {
   const originalModule = jest.requireActual<typeof encryption>('./encryption')
 
