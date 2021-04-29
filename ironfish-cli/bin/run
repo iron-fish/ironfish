@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('segfault-handler').registerHandler()
+require('segfault-handler').registerHandler('segfault.log')
 
 require('@oclif/command').run()
 .then(require('@oclif/command/flush'))
