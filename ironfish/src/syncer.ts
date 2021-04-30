@@ -330,9 +330,6 @@ export class Syncer {
 
       this.abort(peer)
     }
-
-    peer.sequence = sequence
-    peer.head = head
   }
 
   /*
