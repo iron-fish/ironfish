@@ -40,7 +40,7 @@ export const MAX_SYNCED_AGE_MS = 60 * 1000
 /**
  * The maximum allowed requested blocks by the network
  */
-export const MAX_REQUESTED_BLOCKS = 500
+export const MAX_REQUESTED_BLOCKS = 50
 
 /**
  * The network has a target block time of 15 seconds
