@@ -7,5 +7,12 @@ if [ -z "${REGISTRY_URL-}" ]; then
     exit 1
 fi
 
-docker tag ironfish:latest ${REGISTRY_URL}/ironfish:latest
-docker push ${REGISTRY_URL}/ironfish:latest
+if [ -z "${PACKAGE_NAME-}" ]; then
+    echo "Set PACKAGE_NAME before running deploy-docker.sh"
+    exit 1
+fi
+
+
+docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:latest
+docker push ${REGISTRY_URL}/${PACKAGE_NAME}:latest
+
