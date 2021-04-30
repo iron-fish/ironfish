@@ -39,6 +39,7 @@ import {
   IncomingRpcGeneric,
   isRpc,
   Rpc,
+  CannotSatisfyRequestError,
 } from './messageRouters'
 import { Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
@@ -60,6 +61,7 @@ import {
 } from '.'
 import { Assert } from '../assert'
 import { BlockHash } from '../primitives/blockheader'
+import { MAX_REQUESTED_BLOCKS } from '../consensus'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -638,9 +640,18 @@ export class PeerNetwork {
       Rpc<NodeMessageType.GetBlockHashes, GetBlockHashesRequest['payload']>
     >,
   ): Promise<GetBlockHashesResponse['payload']> {
+    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+
     if (request.message.payload.limit === 0) {
       // TODO: increase banscore LOW
       return { blocks: [] }
+    }
+
+    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
+      // TODO: increase banscore MAX
+      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
+      peer.close(error)
+      throw error
     }
 
     const message = request.message
@@ -667,9 +678,18 @@ export class PeerNetwork {
   private async onGetBlocksRequest(
     request: IncomingPeerMessage<Rpc<NodeMessageType.GetBlocks, GetBlocksRequest['payload']>>,
   ): Promise<GetBlocksResponse<BlockHash, SerializedTransaction>['payload']> {
+    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+
     if (request.message.payload.limit === 0) {
       // TODO: increase banscore LOW
       return { blocks: [] }
+    }
+
+    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
+      // TODO: increase banscore MAX
+      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
+      peer.close(error)
+      throw error
     }
 
     const message = request.message
