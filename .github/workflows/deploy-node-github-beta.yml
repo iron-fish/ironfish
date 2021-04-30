@@ -1,4 +1,4 @@
-name: Deploy Node Image to Github
+name: Deploy Node Image to Github Beta
 on: workflow_dispatch
 
 jobs:
