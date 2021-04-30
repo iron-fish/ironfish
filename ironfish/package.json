@@ -26,7 +26,7 @@
     "node-ipc": "9.1.3",
     "parse-json": "5.1.0",
     "piscina": "^2.1.0",
-    "simple-peer": "9.9.3",
+    "simple-peer": "9.11.0",
     "tweetnacl": "1.0.3",
     "uuid": "^8.3.0",
     "yup": "0.29.3"
@@ -53,7 +53,7 @@
     "@types/levelup": "4.3.0",
     "@types/lodash": "^4.14.161",
     "@types/lru-cache": "5.1.0",
-    "@types/simple-peer": "9.6.1",
+    "@types/simple-peer": "9.6.2",
     "@types/uuid": "^8.0.1",
     "@types/ws": "^7.2.6",
     "@types/yup": "0.29.10",
