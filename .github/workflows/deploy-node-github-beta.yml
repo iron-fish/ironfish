@@ -27,4 +27,4 @@ jobs:
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           REGISTRY_URL: ghcr.io/iron-fish
-          PACKAGE_NAME: ironfish
+          PACKAGE_NAME: ironfish-beta
