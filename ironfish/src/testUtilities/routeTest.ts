@@ -9,6 +9,7 @@ import { NodeTest } from './nodeTest'
 import { IronfishBlockchain } from '../blockchain'
 import { IronfishTestStrategy } from './strategy'
 import { PeerNetwork } from '../network/peerNetwork'
+import { Syncer } from '../syncer'
 
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
@@ -25,6 +26,7 @@ export class RouteTest extends NodeTest {
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
+    syncer: Syncer
     adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
@@ -38,12 +40,23 @@ export class RouteTest extends NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, client, adapter } = await this.createSetup()
+    const {
+      sdk,
+      node,
+      strategy,
+      chain,
+      peerNetwork,
+      syncer,
+      client,
+      adapter,
+    } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
     this.chain = chain
+    this.syncer = syncer
+    this.peerNetwork = peerNetwork
     this.client = client
     this.adapter = adapter
   }
