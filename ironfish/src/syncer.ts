@@ -37,15 +37,15 @@ export class Syncer {
     peerNetwork: PeerNetwork
     chain: IronfishBlockchain
     strategy: IronfishStrategy
-    metrics: MetricsMonitor
-    logger: Logger
+    metrics?: MetricsMonitor
+    logger?: Logger
   }) {
     const logger = options.logger || createRootLogger()
 
     this.peerNetwork = options.peerNetwork
     this.chain = options.chain
     this.strategy = options.strategy
-    this.metrics = options.metrics
+    this.metrics = options.metrics || new MetricsMonitor()
     this.logger = logger.withTag('syncer')
 
     this.state = 'stopped'
@@ -138,7 +138,9 @@ export class Syncer {
 
     this.stopping = this.syncFrom(peer)
       .catch((error) => {
-        if (error instanceof AbortSyncingError) return
+        if (error instanceof AbortSyncingError || this.loader !== peer) {
+          return
+        }
 
         this.logger.error(
           `Stopping sync from ${peer.displayName} due to ${ErrorUtils.renderError(
@@ -160,12 +162,14 @@ export class Syncer {
       return
     }
 
-    peer.onStateChanged.off(this.onPeerStateChanged)
-    this.loader = null
-
     if (this.state === 'syncing') {
       this.state = 'idle'
     }
+
+    peer.onStateChanged.off(this.onPeerStateChanged)
+
+    this.loader = null
+    this.stopping = null
   }
 
   async syncFrom(peer: Peer): Promise<void> {
