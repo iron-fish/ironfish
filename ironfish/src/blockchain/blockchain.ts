@@ -241,7 +241,6 @@ export class Blockchain<
     const header = await this.headers.get(hash, tx)
 
     if (!header) {
-      this.logger.debug(`Couldn't get header ${hash.toString('hex')} when resolving graph`)
       return null
     }
 
@@ -251,7 +250,6 @@ export class Blockchain<
   async resolveGraph(graphId: number, tx?: IDatabaseTransaction): Promise<Graph | null> {
     let graph = await this.getGraph(graphId, tx)
     if (!graph) {
-      this.logger.debug(`Could not resolve graph with id ${graphId}`)
       return null
     }
 

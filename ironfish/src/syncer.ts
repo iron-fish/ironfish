@@ -12,7 +12,7 @@ import { Peer, PeerNetwork } from './network'
 import { PeerState } from './network/peers/peer'
 import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
 import { IronfishStrategy } from './strategy'
-import { BlockHash } from './primitives/blockheader'
+import { BlockHash, IronfishBlockHeader } from './primitives/blockheader'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -179,9 +179,9 @@ export class Syncer {
     this.abort(peer)
 
     this.logger.info(
-      `Found peer ${peer.displayName} ancestor, syncing from ${sequence} -> ${String(
-        peer.sequence,
-      )} after ${requests} requests`,
+      `Found peer ${peer.displayName} ancestor ${HashUtils.renderHash(
+        ancestor,
+      )}, syncing from ${sequence} -> ${String(peer.sequence)} after ${requests} requests`,
     )
 
     await this.syncBlocks(peer, ancestor, sequence)
@@ -208,11 +208,41 @@ export class Syncer {
       }
     }
 
+    const hasHash = async (
+      hash: Buffer | null,
+    ): Promise<{ found: boolean; local: IronfishBlockHeader | null }> => {
+      // This function is temporary and will be deleted once graphs are
+      // deleted. This will check a result from a peer during ancestry check,
+      // and see if connected to the genesis block. If not, we consider it a
+      // search miss. This avoids getting stuck trying to sync an orphan island,
+      // without having the correct ancestor block before the island and is only
+      // needed because we add orphans to the block chain.
+
+      if (hash == null) {
+        return { found: false, local: null }
+      }
+
+      const [genesisHash, local, resolved] = await Promise.all([
+        this.chain.getGenesisHash(),
+        this.chain.getBlockHeader(hash),
+        this.chain.resolveBlockGraph(hash),
+      ])
+
+      if (!genesisHash || !local || !resolved) {
+        return { found: false, local: null }
+      }
+
+      const found = resolved.tailHash.equals(genesisHash)
+      return { found, local }
+    }
+
     // First we search linearly backwards in case we are on the main chain already
     const start = MathUtils.min(peer.sequence, this.chain.head.sequence)
 
     this.logger.info(
-      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks from ${peer.sequence}`,
+      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks from ${
+        peer.sequence
+      } starting at ${HashUtils.renderHash(this.chain.head.hash)}`,
     )
 
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
@@ -220,16 +250,24 @@ export class Syncer {
 
       const needle = start - BigInt(i)
       const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+      if (!hashes.length) continue
+
       const hash = hashes[0]
+      const { found, local } = await hasHash(hash)
 
-      if (!hash) continue
+      if (!found) {
+        continue
+      }
 
-      if (await this.chain.hasAtHash(hash)) {
-        return {
-          sequence: needle,
-          ancestor: hashes[0],
-          requests: requests,
-        }
+      if (local && local.sequence !== BigInt(needle)) {
+        // TODO jspafford: increase banscore MAX
+        throw new Error(`Peer sent invalid header for hash`)
+      }
+
+      return {
+        sequence: needle,
+        ancestor: hash,
+        requests: requests,
       }
     }
 
@@ -249,15 +287,16 @@ export class Syncer {
       const needle = Math.floor((lower + upper) / 2)
       const hashes = await this.peerNetwork.getBlockHashes(peer, BigInt(needle), 1)
       const remote = hashes.length === 1 ? hashes[0] : null
-      const local = remote ? await this.chain.getBlockHeader(remote) : null
 
-      this.logger.debug(
+      const { found, local } = await hasHash(remote)
+
+      this.logger.info(
         `Searched for ancestor from ${
           peer.displayName
-        }, lower: ${lower}, upper: ${upper}, needle: ${needle}: ${local ? 'HIT' : 'MISS'}`,
+        }, needle: ${needle}, lower: ${lower}, upper: ${upper}: ${found ? 'HIT' : 'MISS'}`,
       )
 
-      if (!local) {
+      if (!found) {
         upper = needle - 1
         continue
       }
@@ -365,7 +404,9 @@ export class Syncer {
     }
 
     if (!connectedToGenesis) {
-      this.logger.debug(`Peer ${peer.displayName} sent orphan at ${block.header.sequence}`)
+      this.logger.info(
+        `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
+      )
       await this.syncOrphan(peer, block.header.hash)
       return { added: false, block }
     }
