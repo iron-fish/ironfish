@@ -193,7 +193,6 @@ export function isPeerList(obj: unknown): obj is PeerList {
 export enum DisconnectingReason {
   ShuttingDown = 0,
   Congested = 1,
-  Unknown = 2,
 }
 
 export type DisconnectingMessage = Message<
