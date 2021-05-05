@@ -23,7 +23,7 @@ function parseNumber(input: string): number | null {
 }
 
 export default class Export extends IronfishCommand {
-  static description = 'Export part of the chain database to JSONš'
+  static description = 'Export part of the chain database to JSON'
 
   static flags = {
     ...LocalFlags,
@@ -42,13 +42,13 @@ export default class Export extends IronfishCommand {
       parse: parseNumber,
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
-      description: 'the sequence to start at inclusive. (genesis block is 1)',
+      description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
       parse: parseNumber,
       required: false,
-      description: 'the sequence to end at inclusive.',
+      description: 'the sequence to end at (inclusive)',
     },
   ]
 
