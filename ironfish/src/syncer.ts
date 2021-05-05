@@ -388,13 +388,6 @@ export class Syncer {
     return count
   }
 
-  /*
-   * TODO:
-   *  - Check if block was unsolicited
-   *  - Add block
-   *  - if block not valid, increase ban score
-   *  - if the block was orphaned: fetch blocks from orphan
-   */
   async addBlock(
     peer: Peer,
     serialized: IronfishBlockSerialized,
@@ -407,21 +400,29 @@ export class Syncer {
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
 
-    const { isAdded, connectedToGenesis, reason } = await this.chain.addBlock(block)
+    // TODO: after addBlock has removed blocks and doesn't add
+    // orphans, we should move this back below the verification
+    // checking and banning
+    const isOrphan = !(await this.chain.hasAtHash(block.header.previousBlockHash))
+    if (isOrphan) {
+      this.logger.info(
+        `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
+      )
+
+      if (!this.loader) {
+        await this.syncOrphan(peer, block.header.hash)
+      }
+
+      return { added: false, block, reason: VerificationResultReason.ORPHAN }
+    }
+
+    const { isAdded, reason } = await this.chain.addBlock(block)
 
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
       const error = `Peer ${peer.displayName} sent an invalid block: ${reason}`
       this.logger.warn(error)
       throw new Error(error)
-    }
-
-    if (!connectedToGenesis && !this.loader) {
-      this.logger.info(
-        `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
-      )
-      await this.syncOrphan(peer, block.header.hash)
-      return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
     Assert.isTrue(isAdded)
