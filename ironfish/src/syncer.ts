@@ -5,7 +5,7 @@
 import { Assert } from './assert'
 import { IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
-import { GENESIS_BLOCK_SEQUENCE } from './consensus'
+import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
@@ -19,6 +19,7 @@ const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
 
 class AbortSyncingError extends Error {}
+class VerificationError extends Error {}
 
 export class Syncer {
   readonly peerNetwork: PeerNetwork
@@ -128,7 +129,7 @@ export class Syncer {
     Assert.isNotNull(this.chain.head)
 
     this.logger.info(
-      `Found peer to start syncing, work: +${(
+      `Starting sync from ${peer.displayName}. work: +${(
         peer.work - this.chain.head.work
       ).toString()}, seq: ${this.chain.head.sequence.toString()} -> ${peer.sequence.toString()}`,
     )
@@ -147,7 +148,7 @@ export class Syncer {
         this.logger.error(
           `Stopping sync from ${peer.displayName} due to ${ErrorUtils.renderError(
             error,
-            true,
+            !(error instanceof VerificationError),
           )}`,
         )
 
@@ -183,10 +184,14 @@ export class Syncer {
     this.logger.info(
       `Found peer ${peer.displayName} ancestor ${HashUtils.renderHash(
         ancestor,
-      )}, syncing from ${sequence} -> ${String(peer.sequence)} after ${requests} requests`,
+      )}, syncing from ${sequence}${
+        sequence !== peer.sequence ? ` -> ${String(peer.sequence)}` : ''
+      } after ${requests} requests`,
     )
 
-    await this.syncBlocks(peer, ancestor, sequence)
+    const count = await this.syncBlocks(peer, ancestor, sequence)
+
+    this.logger.info(`Finished syncing ${count} blocks from ${peer.displayName}`)
   }
 
   /**
@@ -324,8 +329,10 @@ export class Syncer {
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer | null, sequence: bigint): Promise<void> {
+  async syncBlocks(peer: Peer, head: Buffer | null, sequence: bigint): Promise<number> {
     this.abort(peer)
+
+    let count = 0
 
     while (head) {
       this.logger.debug(
@@ -349,7 +356,7 @@ export class Syncer {
         this.abort(peer)
 
         if (block.header.sequence !== sequence) {
-          throw new Error(
+          throw new VerificationError(
             `Sent back block out of sequence: expected ${sequence}, actual ${block.header.sequence}`,
           )
         }
@@ -366,6 +373,8 @@ export class Syncer {
         peer.work = block.header.work
 
         head = block.header.hash
+
+        count += 1
       }
 
       // They didn't send a full message so they have no more blocks
@@ -375,6 +384,8 @@ export class Syncer {
 
       this.abort(peer)
     }
+
+    return count
   }
 
   /*
@@ -387,16 +398,16 @@ export class Syncer {
   async addBlock(
     peer: Peer,
     serialized: IronfishBlockSerialized,
-  ): Promise<{ added: boolean; block: IronfishBlock }> {
+  ): Promise<{
+    added: boolean
+    block: IronfishBlock
+    reason: VerificationResultReason | null
+  }> {
     Assert.isNotNull(this.chain.head)
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
 
     const { isAdded, connectedToGenesis, reason } = await this.chain.addBlock(block)
-
-    if (!isAdded && reason) {
-      return { added: false, block }
-    }
 
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
@@ -405,14 +416,15 @@ export class Syncer {
       throw new Error(error)
     }
 
-    if (!connectedToGenesis) {
+    if (!connectedToGenesis && !this.loader) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
       )
       await this.syncOrphan(peer, block.header.hash)
-      return { added: false, block }
+      return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
+    Assert.isTrue(isAdded)
     this.speed.add(1)
 
     if (Number(block.header.sequence) % 20 === 0) {
@@ -424,7 +436,7 @@ export class Syncer {
       )
     }
 
-    return { added: true, block }
+    return { added: true, block, reason: reason || null }
   }
 
   async addNewBlock(peer: Peer, block: IronfishBlockSerialized): Promise<void> {
@@ -438,11 +450,17 @@ export class Syncer {
       return
     }
 
-    await this.addBlock(peer, block)
+    await this.addBlock(peer, block).catch((error) => {
+      this.logger.error(
+        `Error when adding new block ${block.header.sequence} from ${
+          peer.displayName
+        }: ${ErrorUtils.renderError(error, !(error instanceof VerificationError))}`,
+      )
+    })
   }
 
-  protected async syncOrphan(peer: Peer, block: BlockHash): Promise<void> {
-    const hashes = await this.peerNetwork.getBlockHashes(peer, block, 1)
+  protected async syncOrphan(peer: Peer, hash: BlockHash): Promise<void> {
+    const hashes = await this.peerNetwork.getBlockHashes(peer, hash, 1)
     if (!hashes.length) return
 
     this.startSync(peer)

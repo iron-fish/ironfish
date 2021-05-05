@@ -460,6 +460,7 @@ export enum VerificationResultReason {
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   INVALID_SPEND = 'Invalid spend',
+  ORPHAN = 'Block is an orphan',
 }
 
 /**
