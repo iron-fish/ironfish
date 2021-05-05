@@ -42,3 +42,7 @@ lerna-debug.log*
 # ironfish-cli
 bin/ironfish-cli/databases
 .dockerignore
+ironfish-cli/segfault.log
+
+# ironfish-graph-explorer
+ironfish-graph-explorer/src/data.json
