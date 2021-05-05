@@ -1,0 +1,38 @@
+@font-face {
+    font-family: 'Roboto';
+    src: url('./Roboto.woff') format('woff');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'DMMono';
+    src: url('./DMMono.woff') format('woff');
+    font-weight: 600;
+    font-style: normal;
+}
+
+body { margin: 0; }
+
+#node {
+    border-radius: 2px;
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    padding: 15px;
+    display: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-family: 'DMMono';
+    font-size: 16px;
+}
+
+#fps {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    margin: 0;
+    font-size: 15px;
+    color: white;
+    font-family: 'Roboto';
+}

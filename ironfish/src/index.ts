@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './account'
 export * from './assert'
+export * from './blockchain'
+export * from './consensus'
 export * from './fileStores'
 export * from './fileSystems'
 export * from './genesis'

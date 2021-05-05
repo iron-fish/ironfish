@@ -387,7 +387,7 @@ export class Blockchain<
     return await this.getGraphPath(blockOrHash.graphId, toGraphId, tx)
   }
 
-  protected async getGraphPath(
+  async getGraphPath(
     graphIdOrGraph: number | Graph,
     toGraphId: number | null = null,
     tx?: IDatabaseTransaction,
