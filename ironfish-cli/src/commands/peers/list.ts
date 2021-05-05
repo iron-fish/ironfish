@@ -28,7 +28,7 @@ export class ListCommand extends IronfishCommand {
       description: 'display all information',
     }),
     sort: flags.string({
-      char: 's',
+      char: 'o',
       default: STATE_COLUMN_HEADER,
       description: 'sort by column header',
     }),
