@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-require('segfault-handler').registerHandler('segfault.log')
+// segfault-handler causes crashes in node-webrtc on Windows because
+// it catches all exceptions rather than only exceptions that would
+// crash the process
+if (process.platform !== 'win32') {
+  require('segfault-handler').registerHandler('segfault.log')
+}
 
 require('@oclif/command').run()
 .then(require('@oclif/command/flush'))
