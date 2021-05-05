@@ -44,5 +44,8 @@ export const MAX_REQUESTED_BLOCKS = 50
 
 /**
  * The network has a target block time of 15 seconds
+ *
+ * NOTE: This is not used in target calculation, or IRON_FISH_YEAR_IN_BLOCKS.
+ * Ideally, it should be in a future refactor.
  */
 export const TARGET_BLOCK_TIME_MS = 15 * 1000
