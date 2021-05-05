@@ -144,7 +144,7 @@ function makeGraph() {
         .nodeRelSize(NODE_REL)
         .nodeId('hash')
         .nodeLabel(node => makeLabel(node))
-        .nodeAutoColorBy('graphId')
+        .nodeAutoColorBy('graffiti')
         .nodeCanvasObjectMode(node => {
             return highlightNode === node || hoverNode === node ? 'before' : undefined
         })
