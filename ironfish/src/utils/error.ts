@@ -19,6 +19,7 @@ function extractMessage(error: unknown): string {
  */
 export function renderError(error: unknown, stack = false): string {
   if (stack && error instanceof Error && error.stack) {
+    // stack also contains the error message
     return error.stack
   }
 
