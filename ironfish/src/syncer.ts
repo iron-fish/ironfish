@@ -121,6 +121,8 @@ export class Syncer {
   }
 
   startSync(peer: Peer): void {
+    if (this.loader) return
+
     Assert.isNotNull(peer.sequence)
     Assert.isNotNull(peer.work)
     Assert.isNotNull(this.chain.head)
