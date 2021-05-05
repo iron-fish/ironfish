@@ -14,6 +14,8 @@ function getNodes() {
     const links = []
     const map = new Map()
     let lowest = null
+    let highest = null
+
 
     let islandNext = 0
     const islands = new Map() // Map<number, Map<number, number>>
@@ -53,6 +55,10 @@ function getNodes() {
         if(!lowest || node.seq < lowest.seq) {
             lowest = node
         }
+
+        if(!highest || node.seq > highest.seq) {
+            highest = node
+        }
     }
 
     for(const block of blocks) {
@@ -72,7 +78,7 @@ function getNodes() {
         links.push(link)
     }
 
-    return [nodes, links, lowest]
+    return [nodes, links, lowest, highest]
 }
 
 function makeLabel(node) {
@@ -124,7 +130,7 @@ function makeGraph() {
         fpsElement.innerText = `${fps.toFixed(2)} FPS`
     }
 
-    const [nodes, links, lowest] = getNodes()
+    const [nodes, links, lowest, highest] = getNodes()
     let highlightNode = null
     let hoverNode = null
 
@@ -167,7 +173,7 @@ function makeGraph() {
 
     graph.onEngineStop(() => {
         graph.zoom(0.8, 0)
-        graph.centerAt(lowest.x, lowest.y, 0)
+        graph.centerAt(highest.x, highest.y, 0)
     })
 
     const fuse = new Fuse(nodes, {
