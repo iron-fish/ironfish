@@ -239,7 +239,6 @@ export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>
 export enum NodeMessageType {
   Note = 'Note',
   Nullifier = 'Nullifier',
-  Blocks = 'Blocks',
   NewBlock = 'NewBlock',
   NewTransaction = 'NewTransaction',
   GetBlockHashes = 'GetBlockHashes',
@@ -326,29 +325,6 @@ export function isNullifierResponsePayload(
 ): obj is MessagePayload<NullifierResponse> {
   return obj != null && 'nullifier' in obj && typeof obj.nullifier === 'string'
 }
-
-/**
- * A request for a block.
- *
- * A response to this request should be for the block before the given hash
- * with the given sequence
- *
- * If the given hash is undefined, return the head block of the heaviest chain
- */
-export type BlockRequest = Message<
-  NodeMessageType.Blocks,
-  {
-    /**
-     * The hash that the block request is relative to.
-     */
-    hash: string
-    /**
-     * To either respond with the next block in the forwards direction
-     * from given hash or not
-     */
-    nextBlockDirection: boolean
-  }
->
 
 export type GetBlockHashesRequest = Message<
   NodeMessageType.GetBlockHashes,
@@ -452,14 +428,6 @@ function isBlock<SH, ST>(
     'hash' in obj.header
   )
 }
-
-/**
- * A response to a request for a block. A valid message contains an array of serialized block.
- */
-export type BlocksResponse<SH, ST> = Rpc<
-  NodeMessageType.Blocks,
-  { blocks: SerializedBlock<SH, ST>[] }
->
 
 /**
  * A newly mined block gossipped on the P2P network
