@@ -26,9 +26,9 @@ export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
 export const GENESIS_SUPPLY_IN_IRON = 42000000
 
 /*
- * A ratio of blocks per year that represetnts an approximation of how many blocks are considered a "year".
+ * A ratio of blocks per year that represents an approximation of how many blocks are considered a "year".
  * It's generally an approximation based on 15 second block times. It's used in calculating how much a miner
- * should get in rewards.
+ * should get in rewards. Approximately (365 * 24  * 60 * 60) / TARGET_BLOCK_TIME_MS
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = 2100000
 
