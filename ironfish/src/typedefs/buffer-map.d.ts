@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 declare module 'buffer-map' {
-  export class BufferMap<T> implements Iterable<[Buffer, T]> {
+  export class BufferMap<T> implements Iterable<[Buffer, T]>, Map<Buffer, T> {
     constructor(iterable: Iterable<T> | null | undefined = null)
 
     readonly size: number
