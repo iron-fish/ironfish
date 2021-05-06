@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockSyncer } from '../../blockSyncer'
 import { ConcatHasher } from '../../merkletree'
 import { MemPool } from '../../memPool'
 import { NullifierHasher } from '../../primitives/nullifier'
@@ -26,15 +25,6 @@ export type TestBlockchain = Blockchain<
 >
 
 export type TestMemPool = MemPool<
-  string,
-  string,
-  TestTransaction,
-  string,
-  string,
-  SerializedTestTransaction
->
-
-export type TestBlockSyncer = BlockSyncer<
   string,
   string,
   TestTransaction,

@@ -11,6 +11,7 @@ import { IronfishTestVerifier } from './verifier'
 import { IronfishTestStrategy } from './strategy'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
+import { Syncer } from '../syncer'
 
 export type NodeTestOptions = { config?: Partial<ConfigOptions> } | undefined
 
@@ -27,6 +28,7 @@ export class NodeTest {
   strategy!: IronfishTestStrategy
   chain!: IronfishBlockchain
   peerNetwork!: PeerNetwork
+  syncer!: Syncer
 
   setups = new Array<{
     sdk: IronfishSdk
@@ -34,6 +36,7 @@ export class NodeTest {
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
+    syncer: Syncer
   }>()
 
   constructor(options: NodeTestOptions = {}) {
@@ -48,6 +51,7 @@ export class NodeTest {
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
+    syncer: Syncer
   }> {
     if (!options) options = this.options
 
@@ -60,8 +64,10 @@ export class NodeTest {
     const strategy = node.strategy as IronfishTestStrategy
     const chain = node.chain
     const peerNetwork = node.peerNetwork
+    const syncer = node.syncer
 
     sdk.config.setOverride('bootstrapNodes', [''])
+    sdk.config.setOverride('enableListenP2P', false)
 
     // Allow tests to override default settings
     if (options?.config) {
@@ -75,18 +81,20 @@ export class NodeTest {
 
     await node.openDB()
 
-    const setup = { sdk, node, strategy, chain, peerNetwork }
+    const setup = { sdk, node, strategy, chain, peerNetwork, syncer }
     this.setups.push(setup)
     return setup
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain } = await this.createSetup()
+    const { sdk, node, strategy, chain, peerNetwork, syncer } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
     this.chain = chain
+    this.peerNetwork = peerNetwork
+    this.syncer = syncer
   }
 
   async teardownEach(): Promise<void> {

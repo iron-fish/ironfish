@@ -27,4 +27,12 @@ function round(value: number, places: number): number {
   return Math.round(value * scalar) / scalar
 }
 
-export const MathUtils = { arrayAverage, arraySum, round }
+function max<T extends number | bigint>(a: T, b: T): T {
+  return a > b ? a : b
+}
+
+function min<T extends number | bigint>(a: T, b: T): T {
+  return a > b ? b : a
+}
+
+export const MathUtils = { arrayAverage, arraySum, round, min, max }

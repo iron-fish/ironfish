@@ -110,7 +110,7 @@ describe('Verifier', () => {
       const {
         block: newBlock,
         serializedBlock: newSerializedBlock,
-      } = await chain.verifier.verifyNewBlock({ block: serializedBlock }, new WorkerPool())
+      } = await chain.verifier.verifyNewBlock(serializedBlock, new WorkerPool())
 
       expect(newBlock.header.hash.equals(block.header.hash)).toBe(true)
       expect(newSerializedBlock.header.previousBlockHash).toEqual(
@@ -118,26 +118,13 @@ describe('Verifier', () => {
       )
     })
 
-    it('rejects if payload is not a serialized block', async () => {
-      await expect(
-        chain.verifier.verifyNewBlock({ notA: 'Block' }, new WorkerPool()),
-      ).rejects.toEqual('Payload is not a serialized block')
-    })
-
-    it('rejects if the block cannot be deserialized', async () => {
-      await expect(
-        chain.verifier.verifyNewBlock({ block: { not: 'valid' } }, new WorkerPool()),
-      ).rejects.toEqual('Could not deserialize block')
-    })
-
     it('rejects if the block is not valid', async () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
       block.transactions[0].isValid = false
       const serializedBlock = chain.strategy.blockSerde.serialize(block)
-      const newBlockPayload = { block: serializedBlock }
 
       await expect(
-        chain.verifier.verifyNewBlock(newBlockPayload, new WorkerPool()),
+        chain.verifier.verifyNewBlock(serializedBlock, new WorkerPool()),
       ).rejects.toEqual('Block is invalid')
     })
 
