@@ -8,8 +8,6 @@ import { SerializedBlock } from '../primitives/block'
 import { Gossip, Rpc } from './messageRouters'
 import { UnwrapPromise } from '../utils'
 import { IronfishVerifier } from '../consensus'
-import { SerializedWasmNoteEncrypted } from '../primitives/noteEncrypted'
-import { SerializedTransaction } from '../primitives/transaction'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -240,9 +238,10 @@ export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>
 export enum NodeMessageType {
   Note = 'Note',
   Nullifier = 'Nullifier',
-  Blocks = 'Blocks',
   NewBlock = 'NewBlock',
   NewTransaction = 'NewTransaction',
+  GetBlockHashes = 'GetBlockHashes',
+  GetBlocks = 'GetBlocks',
 }
 
 /**
@@ -326,53 +325,107 @@ export function isNullifierResponsePayload(
   return obj != null && 'nullifier' in obj && typeof obj.nullifier === 'string'
 }
 
-/**
- * A request for a block.
- *
- * A response to this request should be for the block before the given hash
- * with the given sequence
- *
- * If the given hash is undefined, return the head block of the heaviest chain
- */
-export type BlockRequest = Message<
-  NodeMessageType.Blocks,
+export type GetBlockHashesRequest = Message<
+  NodeMessageType.GetBlockHashes,
   {
-    /**
-     * The hash that the block request is relative to.
-     */
-    hash: string
-    /**
-     * To either respond with the next block in the forwards direction
-     * from given hash or not
-     */
-    nextBlockDirection: boolean
+    start: string | number
+    limit: number
   }
 >
 
-/**
- * Type narrowing to verify that the block has the hash and sequence parameters
- * and that they are either undefined or strings.
- */
-export function isBlockRequestPayload(obj: PayloadType): obj is BlockRequest['payload'] {
-  return obj != null && 'hash' in obj && (typeof obj.hash === 'string' || obj.hash === null)
-}
-
-/**
- * A response to a request for a block. A valid message contains an array of serialized block.
- */
-export type BlocksResponse<SH, ST> = Rpc<
-  NodeMessageType.Blocks,
-  { blocks: SerializedBlock<SH, ST>[] }
+export type GetBlockHashesResponse = Message<
+  NodeMessageType.GetBlockHashes,
+  {
+    blocks: string[]
+  }
 >
 
-/**
- * Type narrowing to confirm the message payload contains a `block` object
- * that represents a serialized block.
- * Does not do anything to confirm whether that object is a legitimate block.
- */
-export function isBlocksResponse<SH, ST>(obj: LooseMessage): obj is BlocksResponse<SH, ST> {
-  const ret = obj.type === NodeMessageType.Blocks && 'payload' in obj && 'blocks' in obj.payload
-  return ret
+export type GetBlocksRequest = Message<
+  NodeMessageType.GetBlocks,
+  {
+    start: string | number
+    limit: number
+  }
+>
+
+export type GetBlocksResponse<SH, ST> = Message<
+  NodeMessageType.GetBlocks,
+  {
+    blocks: SerializedBlock<SH, ST>[]
+  }
+>
+
+export function isGetBlocksResponse<SH, ST>(
+  obj: LooseMessage,
+): obj is GetBlocksResponse<SH, ST> {
+  if (
+    obj.type === NodeMessageType.GetBlocks &&
+    'payload' in obj &&
+    'blocks' in obj.payload &&
+    Array.isArray(obj.payload.blocks)
+  ) {
+    for (const block of obj.payload.blocks) {
+      if (!isBlock(block)) return false
+    }
+
+    return true
+  }
+
+  return false
+}
+
+export function isGetBlocksRequest(obj: PayloadType): obj is GetBlocksRequest['payload'] {
+  return (
+    obj != null &&
+    'start' in obj &&
+    (typeof obj.start === 'string' || typeof obj.start === 'number') &&
+    'limit' in obj &&
+    typeof obj.limit === 'number'
+  )
+}
+
+export function isGetBlockHashesResponse(obj: LooseMessage): obj is GetBlockHashesResponse {
+  if (
+    obj.type === NodeMessageType.GetBlockHashes &&
+    'payload' in obj &&
+    'blocks' in obj.payload &&
+    Array.isArray(obj.payload.blocks)
+  ) {
+    for (const block of obj.payload.blocks) {
+      if (!isBlockHash(block)) return false
+    }
+
+    return true
+  }
+
+  return false
+}
+export function isGetBlockHashesRequest(
+  obj: PayloadType,
+): obj is GetBlockHashesRequest['payload'] {
+  return (
+    obj != null &&
+    'start' in obj &&
+    (typeof obj.start === 'string' || typeof obj.start === 'number') &&
+    'limit' in obj &&
+    typeof obj.limit === 'number'
+  )
+}
+
+function isBlockHash(obj: unknown | undefined): obj is string {
+  return typeof obj === 'string'
+}
+
+function isBlock<SH, ST>(
+  obj: Record<string, unknown> | undefined,
+): obj is SerializedBlock<SH, ST> {
+  return (
+    obj != null &&
+    'header' in obj &&
+    typeof obj.header === 'object' &&
+    obj.header != null &&
+    'hash' in obj.header
+  )
 }
 
 /**
@@ -415,35 +468,12 @@ export function isNewTransactionPayload<ST>(
   )
 }
 
-export type NewBlockMessage = Gossip<
+export type NewBlockMessage<SH, ST> = Gossip<
   NodeMessageType.NewBlock,
-  UnwrapPromise<ReturnType<IronfishVerifier['verifyNewBlock']>>
+  UnwrapPromise<{ block: SerializedBlock<SH, ST> }>
 >
 
 export type NewTransactionMessage = Gossip<
   NodeMessageType.NewTransaction,
   UnwrapPromise<ReturnType<IronfishVerifier['verifyNewTransaction']>>
->
-
-export type BlockRequestMessage = Rpc<NodeMessageType.Blocks, MessagePayload<BlockRequest>>
-
-export type BlocksResponseMessage = Rpc<
-  NodeMessageType.Blocks,
-  MessagePayload<BlocksResponse<SerializedWasmNoteEncrypted, SerializedTransaction>>
->
-
-export type NoteRequestMessage = Rpc<NodeMessageType.Note, MessagePayload<NoteRequest>>
-
-export type NoteResponseMessage = Rpc<
-  NodeMessageType.Note,
-  MessagePayload<NoteResponse<SerializedWasmNoteEncrypted>>
->
-
-export type NullifierRequestMessage = Rpc<
-  NodeMessageType.Nullifier,
-  MessagePayload<NullifierRequest>
->
-export type NullifierResponseMessage = Rpc<
-  NodeMessageType.Nullifier,
-  MessagePayload<NullifierResponse>
 >
