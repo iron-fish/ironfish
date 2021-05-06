@@ -182,31 +182,36 @@ describe('enableSyncing option', () => {
       strategy: mockStrategy(),
     })
 
-    // Spy on new blocks
-    const blockSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewBlock')
+    const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
     const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
       NodeMessageType.NewBlock,
     )
-    if (newBlockHandler === undefined) throw new Error('Expected newBlockHandler to be defined')
+    Assert.isNotUndefined(newBlockHandler)
+
+    expect(peerNetwork['node']['syncer'].addNewBlock).not.toHaveBeenCalled()
 
     await newBlockHandler({
-      peerIdentity: '',
+      peerIdentity: peer.getIdentityOrThrow(),
       message: {
         type: NodeMessageType.NewBlock,
         nonce: 'nonce',
-        payload: {},
+        payload: { block: Buffer.alloc(0) },
       },
     })
 
-    expect(blockSpy).toHaveBeenCalled()
+    expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalled()
 
     // Spy on new transactions
-    const transactionSpy = jest.spyOn(peerNetwork['chain']['verifier'], 'verifyNewTransaction')
+    const verifyNewTransactionSpy = jest.spyOn(
+      peerNetwork['chain']['verifier'],
+      'verifyNewTransaction',
+    )
 
     const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
       NodeMessageType.NewTransaction,
     )
+
     if (newTransactionHandler === undefined)
       throw new Error('Expected newTransactionHandler to be defined')
 
@@ -219,7 +224,7 @@ describe('enableSyncing option', () => {
       },
     })
 
-    expect(transactionSpy).toHaveBeenCalled()
+    expect(verifyNewTransactionSpy).toHaveBeenCalled()
   })
 
   it('Does not call verifier when enableSyncing is false', async () => {

@@ -449,7 +449,7 @@ export class MiningDirector<
       ],
     })
 
-    void this.chain.addBlock(block)
+    await this.chain.addBlock(block)
     this.onNewBlock.emit(block)
   }
 

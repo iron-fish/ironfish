@@ -18,14 +18,6 @@ import { Block } from '../../../primitives/block'
 import { Blockchain } from '../../../blockchain'
 import { BlockHeader, BlockHash } from '../../../primitives/blockheader'
 import { Strategy } from '../../../strategy'
-import {
-  BlockRequest,
-  BlocksResponse,
-  IncomingPeerMessage,
-  MessagePayload,
-  NodeMessageType,
-} from '../../../network/messages'
-import { Direction } from '../../../network/messageRouters/rpc'
 
 /**
  * Add the notes directly to the anchorchain's notes merkle tree
@@ -442,36 +434,4 @@ export async function blockBySequence(
     throw new Error(`Block ${sequence || ''} does not exist`)
   }
   return block
-}
-
-/**
- * Format a proper response given a payload for Block Syncer
- */
-export function response(
-  payload: MessagePayload<BlocksResponse<string, SerializedTestTransaction<string>>>,
-): IncomingPeerMessage<BlocksResponse<string, SerializedTestTransaction<string>>> {
-  return {
-    peerIdentity: 'somebody',
-    message: {
-      rpcId: 1,
-      type: NodeMessageType.Blocks,
-      direction: Direction.response,
-      payload: payload,
-    },
-  }
-}
-
-/**
- * Format a proper request given a payload for Block Syncer
- */
-export function request(
-  payload: MessagePayload<BlockRequest>,
-): IncomingPeerMessage<BlockRequest> {
-  return {
-    peerIdentity: 'somebody',
-    message: {
-      type: NodeMessageType.Blocks,
-      payload: payload,
-    },
-  }
 }

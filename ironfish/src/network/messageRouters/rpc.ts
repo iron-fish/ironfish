@@ -16,6 +16,7 @@ import { rpcTimeoutMillis, nextRpcId, RpcId } from './rpcId'
 import { Peer } from '../peers/peer'
 import { NetworkError } from '../peers/connections/errors'
 import { Connection } from '../peers/connections/connection'
+import { ErrorUtils } from '../../utils'
 
 export enum Direction {
   request = 'request',
@@ -131,7 +132,15 @@ export class RpcRouter {
 
         if (request && request?.connection?.state.type === 'DISCONNECTED') {
           request.connection.onStateChanged.off(onConnectionStateChanged)
-          const errorMessage = `Connection closed while waiting for request ${message.type}: ${rpcId}`
+
+          const errorMessage = `Connection closed while waiting for request ${
+            message.type
+          }: ${rpcId}${
+            request.connection.error
+              ? ':' + ErrorUtils.renderError(request.connection.error)
+              : ''
+          }`
+
           request.reject(new NetworkError(errorMessage))
         }
       }
