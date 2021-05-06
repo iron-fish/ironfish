@@ -22,7 +22,6 @@ export type GetStatusResponse = {
   }
   blockSyncer: {
     status: string
-    error?: string
     syncing?: {
       blockSpeed: number
       speed: number
@@ -120,8 +119,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: 'started',
     },
     blockSyncer: {
-      status: node.syncer.state.type,
-      error: undefined,
+      status: node.syncer.state,
     },
   }
 

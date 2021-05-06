@@ -20,7 +20,7 @@ type PeerConnectionState =
   | { webSocket?: undefined; webRtc: WebRtcConnection }
   | { webSocket: WebSocketConnection; webRtc?: undefined }
 
-type PeerState =
+export type PeerState =
   /* Identity may exist if the peer is known by another peer, or has been previously connected to */
   | { type: 'DISCONNECTED'; identity: Identity | null }
   /* Peer has at least one connection, but none are ready to send/receive messages */
@@ -79,11 +79,11 @@ export class Peer {
   /**
    * The peers heaviest head cumulative work
    */
-  work: BigInt | null = null
+  work: bigint | null = null
   /**
    * The peers heaviest head sequence
    */
-  sequence: number | null = null
+  sequence: bigint | null = null
   /**
    * The loggable name of the peer. For a more specific value,
    * try Peer.name or Peer.state.identity.
@@ -180,7 +180,9 @@ export class Peer {
    * Event fired when the peer changes state. The event may fire when connections change, even if the
    * state type stays the same.
    */
-  readonly onStateChanged: Event<[{ prevState: PeerState }]> = new Event()
+  readonly onStateChanged: Event<
+    [{ peer: Peer; state: PeerState; prevState: PeerState }]
+  > = new Event()
 
   constructor(
     identity: Identity | null,
@@ -554,7 +556,7 @@ export class Peer {
       )
     }
 
-    this.onStateChanged.emit({ prevState })
+    this.onStateChanged.emit({ peer: this, state: nextState, prevState })
   }
 
   /**
