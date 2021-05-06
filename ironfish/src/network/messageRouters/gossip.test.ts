@@ -39,8 +39,9 @@ describe('Gossip Router', () => {
     const peer2Spy = jest.spyOn(peer2, 'send')
 
     const router = new GossipRouter(pm)
-    router.register('test', () => Promise.resolve())
-    const message = { type: 'test', nonce: 'test_handler1', payload: { test: 'payload' } }
+
+    router.register('test', () => true)
+    let message = { type: 'test', nonce: 'test_handler1', payload: { test: 'payload' } }
     await router.handle(peer1, message)
 
     expect(broadcastMock).not.toBeCalled()
@@ -48,6 +49,18 @@ describe('Gossip Router', () => {
     expect(peer1Spy).not.toBeCalled()
     expect(peer2Spy).toBeCalledTimes(1)
     expect(peer2Spy).toBeCalledWith(message)
+
+    peer1Spy.mockReset()
+    peer2Spy.mockReset()
+
+    // should not send it back if we return false
+    router.register('test', () => false)
+    message = { type: 'test', nonce: 'test_handler2', payload: { test: 'payload' } }
+    await router.handle(peer1, message)
+
+    // Should not regossip to anyone
+    expect(peer1Spy).not.toBeCalled()
+    expect(peer2Spy).not.toBeCalled()
   })
 
   it('Does not process a seen message twice', async () => {
@@ -59,7 +72,7 @@ describe('Gossip Router', () => {
     const peer2Spy = jest.spyOn(peer2, 'send')
 
     const router = new GossipRouter(pm)
-    router.register('test', () => Promise.resolve())
+    router.register('test', () => true)
     const message = { type: 'test', nonce: 'test_handler1', payload: { test: 'payload' } }
     // Should send the message to peer2
     await router.handle(peer1, message)
@@ -94,7 +107,7 @@ describe('Gossip Router', () => {
     peer2.knownPeers.set(peer1.getIdentityOrThrow(), peer1)
 
     const router = new GossipRouter(pm)
-    router.register('test', () => Promise.resolve())
+    router.register('test', () => true)
     const message = { type: 'test', nonce: 'test_double', payload: { test: 'payload' } }
     await router.handle(peer1, message)
     expect(broadcastMock).not.toBeCalled()
@@ -119,7 +132,7 @@ describe('Gossip Router', () => {
       'hello',
       RoutingStyle.gossip,
       () => Promise.resolve({ name: '' }),
-      () => {},
+      () => true,
     )
     const pm = new PeerManager(mockLocalPeer())
     const { peer } = getConnectedPeer(pm)
@@ -145,7 +158,7 @@ describe('Gossip Router', () => {
       'hello',
       RoutingStyle.gossip,
       jest.fn((p) => Promise.resolve(p)),
-      () => {},
+      () => true,
     )
     const logFn = jest.fn()
     network['logger'].mock(() => logFn)

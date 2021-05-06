@@ -16,7 +16,7 @@ describe('Route node/getStatus', () => {
         status: 'started',
       },
       blockSyncer: {
-        status: 'STOPPED',
+        status: 'stopped',
       },
     })
   })
