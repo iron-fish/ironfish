@@ -36,7 +36,12 @@ import {
   StringEncoding,
 } from '../storage'
 import { createRootLogger, Logger } from '../logger'
-import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE, MAX_SYNCED_AGE_MS } from '../consensus'
+import {
+  GENESIS_BLOCK_PREVIOUS,
+  GENESIS_BLOCK_SEQUENCE,
+  MAX_SYNCED_AGE_MS,
+  TARGET_BLOCK_TIME_MS,
+} from '../consensus'
 import { MerkleTree } from '../merkletree'
 import { Assert } from '../assert'
 import { AsyncUtils, BenchUtils } from '../utils'
@@ -163,6 +168,7 @@ export class Blockchain<
   async open(): Promise<void> {
     if (this.opened) return
     this.opened = true
+
     await this.db.open()
 
     this.head = await this.getHeaviestHead()
@@ -190,6 +196,20 @@ export class Blockchain<
 
     this.synced = true
     this.onSynced.emit()
+  }
+
+  get progress(): number {
+    if (!this.genesisHeader) return 0
+    if (!this.head) return 0
+
+    const start = this.genesisHeader.timestamp.valueOf()
+    const current = this.head.timestamp.valueOf()
+    const end = Date.now()
+    const offset = TARGET_BLOCK_TIME_MS * 4
+
+    const progress = (current - start) / (end - offset - start)
+
+    return Math.max(Math.min(1, progress), 0)
   }
 
   async getBlockToNext(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
@@ -221,7 +241,6 @@ export class Blockchain<
     const header = await this.headers.get(hash, tx)
 
     if (!header) {
-      this.logger.debug(`Couldn't get header ${hash.toString('hex')} when resolving graph`)
       return null
     }
 
@@ -231,7 +250,6 @@ export class Blockchain<
   async resolveGraph(graphId: number, tx?: IDatabaseTransaction): Promise<Graph | null> {
     let graph = await this.getGraph(graphId, tx)
     if (!graph) {
-      this.logger.debug(`Could not resolve graph with id ${graphId}`)
       return null
     }
 
@@ -460,12 +478,11 @@ export class Blockchain<
    * @throws Error if you try to iterate right-to-left
    */
   async *iterateToBlock(
-    from: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST>,
-    to: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST>,
+    start: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST> | BlockHash,
+    end: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST> | BlockHash,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
-    if (from instanceof Block) from = from.header
-    if (to instanceof Block) to = to.header
+    const [from, to] = await this.getHeadersFromInput([start, end], tx)
 
     if (from.graphId === GRAPH_ID_NULL) return
     if (to.graphId === GRAPH_ID_NULL) return
@@ -901,7 +918,7 @@ export class Blockchain<
         let headChanged = false
         if (genesisHeaviestChanged && resolved.heaviestHash) {
           this.logger.debug(
-            `Heaviest Changed ${oldHeaviest ? oldHeaviest?.hash.toString('hex') : ''} -> ${
+            `Heaviest Changed ${oldHeaviest ? oldHeaviest.hash.toString('hex') : ''} -> ${
               resolved.heaviestHash ? resolved.heaviestHash.toString('hex') : ''
             }: ${isFastForward ? 'LINEAR' : 'FORKED'}`,
           )
@@ -1406,6 +1423,35 @@ export class Blockchain<
    */
   async getAtSequence(sequence: BigInt, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
     return (await this.sequenceToHash.get(sequence.toString(), tx)) || []
+  }
+
+  async resolveAtSequence(
+    sequence: BigInt,
+    path?: number[],
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
+    if (!this.head) {
+      return null
+    }
+
+    path = path || (await this.getGraphPath(this.head.graphId, null, tx))
+    if (!path) return null
+
+    const hashes = await this.getAtSequence(sequence, tx)
+
+    for (const hash of hashes) {
+      const header = await this.getBlockHeader(hash, tx)
+      if (!header) continue
+
+      const graph = await this.getGraph(header.graphId, tx)
+      if (!graph) continue
+
+      if (path.includes(graph.id)) {
+        return header
+      }
+    }
+
+    return null
   }
 
   /**
