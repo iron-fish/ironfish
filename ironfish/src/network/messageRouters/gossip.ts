@@ -17,8 +17,10 @@ import { Peer } from '../peers/peer'
 const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
 
-type IncomingGossipGeneric<T extends MessageType> = IncomingPeerMessage<Gossip<T, PayloadType>>
-type IncomingGossipPeerMessage = IncomingGossipGeneric<MessageType>
+export type IncomingGossipGeneric<T extends MessageType> = IncomingPeerMessage<
+  Gossip<T, PayloadType>
+>
+export type IncomingGossipPeerMessage = IncomingGossipGeneric<MessageType>
 
 export type Gossip<T extends MessageType, P extends PayloadType> = Message<T, P> & {
   // Each message gets a unique identifier
@@ -36,14 +38,17 @@ export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> 
 export class GossipRouter {
   peerManager: PeerManager
   private seenGossipFilter: RollingFilter
-  private handlers: Map<MessageType, (message: IncomingGossipPeerMessage) => Promise<unknown>>
+  private handlers: Map<
+    MessageType,
+    (message: IncomingGossipPeerMessage) => Promise<boolean | void> | boolean | void
+  >
 
   constructor(peerManager: PeerManager) {
     this.peerManager = peerManager
     this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.handlers = new Map<
       MessageType,
-      (message: IncomingPeerMessage<Gossip<MessageType, PayloadType>>) => Promise<unknown>
+      (message: IncomingPeerMessage<Gossip<MessageType, PayloadType>>) => Promise<boolean>
     >()
   }
 
@@ -56,11 +61,11 @@ export class GossipRouter {
    */
   register<T extends MessageType>(
     type: T,
-    handler: (message: IncomingGossipGeneric<T>) => Promise<unknown>,
+    handler: (message: IncomingGossipGeneric<T>) => Promise<boolean | void> | boolean | void,
   ): void
   register(
     type: MessageType,
-    handler: (message: IncomingGossipPeerMessage) => Promise<unknown>,
+    handler: (message: IncomingGossipPeerMessage) => Promise<boolean | void> | boolean | void,
   ): void {
     this.handlers.set(type, handler)
   }
@@ -91,7 +96,8 @@ export class GossipRouter {
 
     const peerIdentity = peer.getIdentityOrThrow()
 
-    await handler({ peerIdentity, message: gossipMessage })
+    const gossip = await handler({ peerIdentity, message: gossipMessage })
+    if (!gossip) return
 
     const peersConnections =
       this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()

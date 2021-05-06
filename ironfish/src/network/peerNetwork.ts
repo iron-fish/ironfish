@@ -40,6 +40,7 @@ import {
   isRpc,
   Rpc,
   CannotSatisfyRequestError,
+  IncomingGossipGeneric,
 } from './messageRouters'
 import { Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
@@ -62,6 +63,7 @@ import {
 import { Assert } from '../assert'
 import { BlockHash } from '../primitives/blockheader'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
+import { ErrorUtils } from '../utils'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -81,7 +83,7 @@ interface RouteMap<T extends MessageType, P extends PayloadType> {
 }
 
 interface ReturnMap {
-  [RoutingStyle.gossip]: void
+  [RoutingStyle.gossip]: Promise<boolean | void> | boolean | void
   [RoutingStyle.globalRPC]: Promise<PayloadType>
   [RoutingStyle.directRPC]: Promise<PayloadType>
   [RoutingStyle.fireAndForget]: void
@@ -443,7 +445,12 @@ export class PeerNetwork {
 
     switch (style) {
       case RoutingStyle.gossip: {
-        this.gossipRouter.register(type, hdlr)
+        this.gossipRouter.register(
+          type,
+          hdlr as (
+            message: IncomingGossipGeneric<T>,
+          ) => Promise<boolean | void> | boolean | void,
+        )
         break
       }
       case RoutingStyle.directRPC:
@@ -720,30 +727,42 @@ export class PeerNetwork {
     return { blocks: serialized }
   }
 
-  private onNewBlock(
+  private async onNewBlock(
     message: IncomingPeerMessage<
       Gossip<
         NodeMessageType.NewBlock,
         NewBlockMessage<SerializedWasmNoteEncryptedHash, SerializedTransaction>['payload']
       >
     >,
-  ) {
+  ): Promise<boolean> {
     const block = message.message.payload.block
     const peer = this.peerManager.getPeer(message.peerIdentity)
-    if (!peer) return
+    if (!peer) return false
 
-    void this.node.syncer.addNewBlock(peer, block)
+    try {
+      await this.node.syncer.addNewBlock(peer, block)
+    } catch (error) {
+      this.logger.error(
+        `Error when adding new block ${block.header.sequence} from ${
+          peer.displayName
+        }: ${ErrorUtils.renderError(error, true)}`,
+      )
+
+      return false
+    }
+
+    return true
   }
 
   private async onNewTransaction(
     message: IncomingPeerMessage<NewTransactionMessage>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const transaction = message.message.payload.transaction
 
     if (this.node.memPool.acceptTransaction(transaction)) {
       await this.node.accounts.syncTransaction(transaction, {})
     }
 
-    await Promise.resolve()
+    return true
   }
 }

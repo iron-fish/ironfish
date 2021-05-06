@@ -422,7 +422,7 @@ export class Syncer {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
       const error = `Peer ${peer.displayName} sent an invalid block: ${reason}`
       this.logger.warn(error)
-      throw new Error(error)
+      throw new VerificationError(error)
     }
 
     Assert.isTrue(isAdded)
@@ -451,13 +451,7 @@ export class Syncer {
       return
     }
 
-    await this.addBlock(peer, block).catch((error) => {
-      this.logger.error(
-        `Error when adding new block ${block.header.sequence} from ${
-          peer.displayName
-        }: ${ErrorUtils.renderError(error, !(error instanceof VerificationError))}`,
-      )
-    })
+    await this.addBlock(peer, block)
   }
 
   protected async syncOrphan(peer: Peer, hash: BlockHash): Promise<void> {
