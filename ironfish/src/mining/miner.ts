@@ -148,7 +148,7 @@ async function miner(
     miningRequestId: number
   }>,
   successfullyMined: (randomness: number, miningRequestId: number) => void,
-  numTasks = 1,
+  numTasks: number,
 ): Promise<void> {
   let blockToMineResult = await newBlocksIterator.next()
   if (blockToMineResult.done) return

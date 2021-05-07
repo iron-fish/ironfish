@@ -58,6 +58,7 @@ describe('Miner', () => {
         },
       ]),
       successfullyMined,
+      1,
     )
     expect(MockPiscina).toHaveBeenCalledTimes(1)
     expect(mock.runTask).toHaveBeenCalledTimes(1)
@@ -92,6 +93,7 @@ describe('Miner', () => {
         },
       ]),
       successfullyMined,
+      1,
     )
     expect(MockPiscina).toHaveBeenCalledTimes(1)
     expect(mock.runTask).toHaveBeenCalledTimes(3)
@@ -130,6 +132,7 @@ describe('Miner', () => {
         successfulPromise,
       ),
       successfullyMined,
+      1,
     )
     expect(successfullyMined).toBeCalledTimes(1)
     expect(MockPiscina).toHaveBeenCalledTimes(1)

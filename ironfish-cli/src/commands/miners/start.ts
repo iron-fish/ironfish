@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { flags } from '@oclif/command'
 import cli from 'cli-ux'
+import os from 'os'
 import { miner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -11,10 +13,23 @@ export class Miner extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    threads: flags.integer({
+      char: 't',
+      default: 1,
+      description:
+        'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+    }),
   }
 
   async start(): Promise<void> {
-    this.parse(Miner)
+    const { flags } = this.parse(Miner)
+
+    let threads = flags.threads
+    if (threads === 0 || threads < -1) {
+      throw new Error('--threads must be a positive integer or -1.')
+    } else if (threads === -1) {
+      threads = os.cpus().length
+    }
 
     const client = this.sdk.client
 
@@ -54,11 +69,11 @@ export class Miner extends IronfishCommand {
         continue
       }
 
-      this.logger.log('Starting to mine')
+      this.logger.log(`Starting to mine with ${threads} thread${threads === 1 ? '' : 's'}`)
       const blocksStream = client.newBlocksStream().contentStream()
 
       cli.action.start('Mining a block')
-      await miner(nextBlock(blocksStream), successfullyMined)
+      await miner(nextBlock(blocksStream), successfullyMined, threads)
       cli.action.stop('Mining interrupted')
     }
   }
