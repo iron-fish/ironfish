@@ -19,7 +19,7 @@
     "typeorm": "node --require ts-node/register ../node_modules/.bin/typeorm"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "2.1.10",
+    "@openapitools/openapi-generator-cli": "2.2.6",
     "@types/cors": "2.8.9",
     "@types/express": "^4.17.9",
     "@types/express-openapi": "^1.9.0",
@@ -37,7 +37,6 @@
     "typescript": "^4.1.2"
   },
   "resolutions": {
-    "node-forge": "0.10.0",
     "object-path": "^0.11.4"
   },
   "homepage": "https://github.com/iron-fish/ironfish",

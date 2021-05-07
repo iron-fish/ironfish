@@ -59,7 +59,6 @@
   },
   "resolutions": {
     "axios": "^0.21.1",
-    "node-forge": "0.10.0",
     "node-notifier": "8.0.1",
     "object-path": "^0.11.4"
   }

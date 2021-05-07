@@ -14,7 +14,6 @@
     "eslint-plugin-react-hooks": "4.1.2"
   },
   "resolutions": {
-    "node-forge": "0.10.0",
     "object-path": "^0.11.4"
   }
 }
