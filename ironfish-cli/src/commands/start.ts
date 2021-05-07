@@ -49,6 +49,10 @@ export default class Start extends IronfishCommand {
       char: 'p',
       description: 'port to run the local ws server on',
     }),
+    workers: flags.integer({
+      description:
+        'number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
+    }),
     name: flags.string({
       char: 'n',
       description: 'name for the node',
@@ -93,6 +97,9 @@ export default class Start extends IronfishCommand {
     }
     if (flags.port != undefined && flags.port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', flags.port)
+    }
+    if (flags.workers != undefined && flags.workers !== this.sdk.config.get('nodeWorkers')) {
+      this.sdk.config.setOverride('nodeWorkers', flags.workers)
     }
     if (flags.name != undefined && flags.name.trim() !== this.sdk.config.get('nodeName')) {
       this.sdk.config.setOverride('nodeName', flags.name.trim())

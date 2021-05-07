@@ -74,6 +74,14 @@ export type ConfigOptions = {
    */
   blockGraffiti: string
   nodeName: string
+  /**
+   * The number of CPU workers to use for long-running node operations, like creating
+   * transactions and verifying blocks. 0 disables workers (this is likely to cause
+   * performance issues), and -1 auto-detects based on the number of CPU cores.
+   * Each worker uses several hundred MB of memory, so try a lower value to reduce memory
+   * consumption.
+   */
+  nodeWorkers: number
   p2pSimulateLatency: number
   peerPort: number
   rpcTcpHost: string
@@ -140,6 +148,7 @@ export class Config extends KeyStore<ConfigOptions> {
       miningForce: false,
       blockGraffiti: '',
       nodeName: '',
+      nodeWorkers: -1,
       p2pSimulateLatency: 0,
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',
