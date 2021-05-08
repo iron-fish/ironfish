@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export default function makeError(
+export function makeError(
   error: string | null,
   success: string,
 ): { pass: boolean; message: () => string } {
@@ -16,5 +16,15 @@ export default function makeError(
       pass: true,
       message: () => success,
     }
+  }
+}
+
+export function makeResult(
+  pass: boolean,
+  message: string,
+): { pass: boolean; message: () => string } {
+  return {
+    pass: pass,
+    message: () => message,
   }
 }

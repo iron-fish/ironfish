@@ -38,3 +38,6 @@ export type SetTimeoutToken = ReturnType<typeof setTimeout>
 export function IsNodeTimeout(timer: number | NodeJS.Timeout): timer is NodeJS.Timeout {
   return typeof timer !== 'number'
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Constructor<T> = new (...args: any[]) => T
