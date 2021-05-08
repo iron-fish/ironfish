@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { BufferMap } from 'buffer-map'
 import { Nullifier } from '../primitives/nullifier'
 import { createRootLogger, Logger } from '../logger'
 import { JsonSerializable } from '../serde'
@@ -27,7 +28,7 @@ export class MemPool<
   SH extends JsonSerializable,
   ST
 > {
-  transactions = new Map<string, T>()
+  transactions = new BufferMap<T>()
   chain: Blockchain<E, H, T, SE, SH, ST>
   strategy: Strategy<E, H, T, SE, SH, ST>
   logger: Logger
@@ -49,8 +50,7 @@ export class MemPool<
   }
 
   exists(transactionHash: Buffer): boolean {
-    const hash = transactionHash.toString('hex')
-    return this.transactions.has(hash)
+    return this.transactions.has(transactionHash)
   }
 
   async *get(): AsyncGenerator<T, void, unknown> {
@@ -65,7 +65,7 @@ export class MemPool<
    * Accepts a transaction from the network
    */
   acceptTransaction(transaction: T): boolean {
-    const hash = transaction.transactionHash().toString('hex')
+    const hash = transaction.transactionHash()
     if (this.transactions.has(hash)) return false
 
     this.add(transaction)
@@ -73,15 +73,9 @@ export class MemPool<
   }
 
   private add(transaction: T): void {
-    const hash = transaction.transactionHash().toString('hex')
-    const fee = transaction.transactionFee()
-
-    this.logger.debug('notes: ', transaction.notesLength())
-    this.logger.debug('spends: ', transaction.spendsLength())
-    this.logger.debug('fee: ', fee)
-
+    const hash = transaction.transactionHash()
     this.transactions.set(hash, transaction)
-    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
   }
 
   /**
@@ -102,8 +96,7 @@ export class MemPool<
       const isValid = await this.isValidTransaction(transaction, beforeSize, seenNullifiers)
 
       if (!isValid) {
-        const hash = transaction.transactionHash().toString('hex')
-        this.transactions.delete(hash)
+        this.transactions.delete(transaction.transactionHash())
         pruneCount++
       }
     }
