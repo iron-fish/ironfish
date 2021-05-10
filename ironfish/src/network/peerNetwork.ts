@@ -597,7 +597,5 @@ export class PeerNetwork {
     if (this.node.memPool.acceptTransaction(transaction)) {
       await this.node.accounts.syncTransaction(transaction, {})
     }
-
-    await Promise.resolve()
   }
 }

@@ -365,80 +365,82 @@ export class Accounts {
 
     let newSequence = submittedSequence
 
-    const notes = this.decryptNotes(transaction, initialNoteIndex)
+    await transaction.withReference(() => {
+      const notes = this.decryptNotes(transaction, initialNoteIndex)
 
-    await this.db.database.transaction(
-      [this.db.noteToNullifier, this.db.nullifierToNote, this.db.transactions],
-      'readwrite',
-      async (tx) => {
-        if (notes.length > 0) {
-          const transactionHash = transaction.transactionHash()
+      return this.db.database.transaction(
+        [this.db.noteToNullifier, this.db.nullifierToNote, this.db.transactions],
+        'readwrite',
+        async (tx) => {
+          if (notes.length > 0) {
+            const transactionHash = transaction.transactionHash()
 
-          const existingT = this.transactionMap.get(transactionHash)
-          // If we passed in a submittedSequence, set submittedSequence to that value.
-          // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          //   submittedSequence was passed in.
-          // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
-          newSequence = submittedSequence || existingT?.submittedSequence || null
+            const existingT = this.transactionMap.get(transactionHash)
+            // If we passed in a submittedSequence, set submittedSequence to that value.
+            // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
+            //   submittedSequence was passed in.
+            // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
+            newSequence = submittedSequence || existingT?.submittedSequence || null
 
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          await this.updateTransactionMap(
-            transactionHash,
-            {
-              transaction,
-              blockHash,
-              submittedSequence: newSequence,
-            },
-            tx,
-          )
-        }
-
-        for (const { noteIndex, nullifier, forSpender, merkleHash } of notes) {
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          if (!forSpender) {
-            if (nullifier !== null) {
-              await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
-            }
-
-            await this.updateNoteToNullifierMap(
-              merkleHash,
+            // The transaction is useful if we want to display transaction history,
+            // but since we spent the note, we don't need to put it in the nullifierToNote mappings
+            await this.updateTransactionMap(
+              transactionHash,
               {
-                nullifierHash: nullifier,
-                noteIndex: noteIndex,
-                spent: false,
+                transaction,
+                blockHash,
+                submittedSequence: newSequence,
               },
               tx,
             )
           }
-        }
 
-        // If newSequence is null and blockHash is null, we're removing the transaction from
-        // the chain and it wasn't created by us, so unmark notes as spent
-        const isRemovingTransaction = newSequence === null && blockHash === null
+          for (const { noteIndex, nullifier, forSpender, merkleHash } of notes) {
+            // The transaction is useful if we want to display transaction history,
+            // but since we spent the note, we don't need to put it in the nullifierToNote mappings
+            if (!forSpender) {
+              if (nullifier !== null) {
+                await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
+              }
 
-        for (const spend of transaction.spends()) {
-          const nullifier = spend.nullifier.toString('hex')
-          const noteHash = this.nullifierToNote.get(nullifier)
-
-          if (noteHash) {
-            const nullifier = this.noteToNullifier.get(noteHash)
-
-            if (!nullifier) {
-              throw new Error(
-                'nullifierToNote mappings must have a corresponding noteToNullifier map',
+              await this.updateNoteToNullifierMap(
+                merkleHash,
+                {
+                  nullifierHash: nullifier,
+                  noteIndex: noteIndex,
+                  spent: false,
+                },
+                tx,
               )
             }
-
-            await this.updateNoteToNullifierMap(noteHash, {
-              ...nullifier,
-              spent: !isRemovingTransaction,
-            })
           }
-        }
-      },
-    )
+
+          // If newSequence is null and blockHash is null, we're removing the transaction from
+          // the chain and it wasn't created by us, so unmark notes as spent
+          const isRemovingTransaction = newSequence === null && blockHash === null
+
+          for (const spend of transaction.spends()) {
+            const nullifier = spend.nullifier.toString('hex')
+            const noteHash = this.nullifierToNote.get(nullifier)
+
+            if (noteHash) {
+              const nullifier = this.noteToNullifier.get(noteHash)
+
+              if (!nullifier) {
+                throw new Error(
+                  'nullifierToNote mappings must have a corresponding noteToNullifier map',
+                )
+              }
+
+              await this.updateNoteToNullifierMap(noteHash, {
+                ...nullifier,
+                spent: !isRemovingTransaction,
+              })
+            }
+          }
+        },
+      )
+    })
   }
 
   async scanTransactions(): Promise<void> {
