@@ -36,7 +36,7 @@ export class Accounts {
   readonly onBroadcastTransaction = new Event<[transaction: IronfishTransaction]>()
 
   scan: ScanState | null = null
-  isUpdatingHead = false
+  updateHeadState: ScanState | null = null
 
   protected readonly transactionMap = new BufferMap<
     Readonly<{
@@ -79,34 +79,40 @@ export class Accounts {
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.isUpdatingHead) return
-
-    const addBlock = async (header: IronfishBlockHeader): Promise<void> => {
-      this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
-
-      for await (const {
-        transaction,
-        blockHash,
-        initialNoteIndex,
-      } of this.chain.getTransactionsForBlock(header)) {
-        await this.syncTransaction(transaction, {
-          blockHash: blockHash,
-          initialNoteIndex: initialNoteIndex,
-        })
-      }
+    if (this.scan || this.updateHeadState) {
+      return
     }
 
-    const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
-      this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
-
-      for await (const { transaction } of this.chain.getTransactionsForBlock(header)) {
-        await this.syncTransaction(transaction, {})
-      }
-    }
-
-    this.isUpdatingHead = true
+    this.updateHeadState = new ScanState()
 
     try {
+      const addBlock = async (header: IronfishBlockHeader): Promise<void> => {
+        this.logger.debug(
+          `AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`,
+        )
+
+        for await (const {
+          transaction,
+          blockHash,
+          initialNoteIndex,
+        } of this.chain.getTransactionsForBlock(header)) {
+          await this.syncTransaction(transaction, {
+            blockHash: blockHash,
+            initialNoteIndex: initialNoteIndex,
+          })
+        }
+      }
+
+      const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
+        this.logger.debug(
+          `AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`,
+        )
+
+        for await (const { transaction } of this.chain.getTransactionsForBlock(header)) {
+          await this.syncTransaction(transaction, {})
+        }
+      }
+
       const chainHead = await this.chain.getHeaviestHead()
       const chainTail = await this.chain.getGenesisHeader()
 
@@ -166,7 +172,8 @@ export class Accounts {
         '\n',
       )
     } finally {
-      this.isUpdatingHead = false
+      this.updateHeadState.signalComplete()
+      this.updateHeadState = null
     }
   }
 
@@ -205,6 +212,10 @@ export class Accounts {
       await this.scan.abort()
     }
 
+    if (this.updateHeadState) {
+      await this.updateHeadState.abort()
+    }
+
     if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
       await this.db.setHeadHash(this.headHash)
@@ -212,9 +223,17 @@ export class Accounts {
   }
 
   async eventLoop(): Promise<void> {
+    if (!this.isStarted) {
+      return
+    }
+
     await this.updateHead()
+
     await this.rebroadcastTransactions()
-    this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
+
+    if (this.isStarted) {
+      this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
+    }
   }
 
   async loadTransactionsFromDb(): Promise<void> {
@@ -457,9 +476,7 @@ export class Accounts {
 
     // If were updating the account head we need to wait until its finished
     // but setting this.scan is our lock so updating the head doesn't run again
-    while (this.isUpdatingHead) {
-      await new Promise((r) => setTimeout(r, 1000))
-    }
+    await this.updateHeadState?.wait()
 
     const accountHeadHash = Buffer.from(this.headHash, 'hex')
 
@@ -685,6 +702,8 @@ export class Accounts {
   }
 
   async rebroadcastTransactions(): Promise<void> {
+    if (!this.isStarted) return
+
     const heaviestHead = await this.chain.getHeaviestHead()
     if (heaviestHead == null) return
 
