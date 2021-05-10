@@ -882,7 +882,7 @@ class ScanState {
     return this.wait()
   }
 
-  async wait(): Promise<void> {
-    await this.runningPromise
+  wait(): Promise<void> {
+    return this.runningPromise
   }
 }
