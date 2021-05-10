@@ -1,26 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-export {}
 
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toThrowErrorInstance<T>(errorClass: Constructor<T>): R
-      toRejectErrorInstance<T>(errorClass: Constructor<T>): Promise<R>
-    }
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Constructor<T> = new (...args: any[]) => T
-
-function makeResult(pass: boolean, message: string): { pass: boolean; message: () => string } {
-  return {
-    pass: pass,
-    message: () => message,
-  }
-}
+import { Constructor } from '../../utils/types'
+import { makeResult } from './utils'
 
 function toThrowErrorInstance<T>(
   received: () => unknown,
@@ -71,3 +54,12 @@ expect.extend({
   toThrowErrorInstance,
   toRejectErrorInstance,
 })
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toThrowErrorInstance<T>(errorClass: Constructor<T>): R
+      toRejectErrorInstance<T>(errorClass: Constructor<T>): Promise<R>
+    }
+  }
+}

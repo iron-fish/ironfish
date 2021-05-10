@@ -10,7 +10,6 @@ import {
   makeNextBlock,
   makeNullifier,
   SerializedTestTransaction,
-  syncCommitments,
   TestBlockchain,
   TestStrategy,
   TestTransaction,
@@ -252,54 +251,6 @@ describe('Block matches', () => {
     await addNotes(anchor, [1, 2, 3, 4, 5])
     await anchor.nullifiers.add(Buffer.alloc(32))
     expect(await anchor.verifier.blockMatchesTrees(header)).toBe(false)
-  })
-})
-
-describe('Anchorchain adding', () => {
-  const strategy = new TestStrategy(new RangeHasher())
-  let blockchain: TestBlockchain
-  let listener: jest.Mock
-  let targetSpy: jest.SpyInstance
-
-  beforeEach(async () => {
-    targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
-    blockchain = await makeChainInitial(strategy)
-    listener = jest.fn()
-    blockchain.onChainHeadChange.on(listener)
-  })
-
-  afterAll(() => {
-    targetSpy.mockClear()
-  })
-
-  it('constructs an empty chain', async () => {
-    expect(await blockchain.notes.size()).toBe(0)
-    expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(await blockchain.isEmpty()).toBe(true)
-    expect(listener).not.toBeCalled()
-  })
-
-  it('adds a genesis block', async () => {
-    expect(await blockchain.hasGenesisBlock()).toBe(false)
-    expect(await blockchain.isEmpty()).toBe(true)
-
-    const block = makeFakeBlock(strategy, blockHash(0), blockHash(1), 1, 1, 5)
-    block.transactions[0]._spends.push({
-      nullifier: Buffer.alloc(32),
-      commitment: 'something',
-      size: 1,
-    })
-    await addNotes(blockchain, [1, 2, 3, 4, 5])
-    await blockchain.nullifiers.add(Buffer.alloc(32))
-    await syncCommitments(block.header, blockchain)
-    const addedBlockResult = await blockchain.addBlock(block)
-    expect(addedBlockResult.isAdded).toBe(true)
-    expect(await blockchain.notes.size()).toBe(5)
-    expect(await blockchain.nullifiers.size()).toBe(1)
-    expect((await blockchain.getHeaviestHead())?.hash).toEqualHash(blockHash(1))
-
-    expect(await blockchain.isEmpty()).toBe(false)
-    expect(await blockchain.hasGenesisBlock()).toBe(true)
   })
 })
 

@@ -10,6 +10,34 @@ import { makeBlockAfter, addBlocksShuffle } from '../testUtilities/helpers/block
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
 
+  it('constructs an empty chain', async () => {
+    const { chain } = nodeTest
+    await chain.open()
+
+    expect(await chain.notes.size()).toBe(0)
+    expect(await chain.nullifiers.size()).toBe(0)
+    expect(await chain.isEmpty()).toBe(true)
+    expect(chain.head).toBe(null)
+    expect(chain.synced).toBe(false)
+  })
+
+  it('add genesis block', async () => {
+    const { node, chain } = nodeTest
+    await chain.open()
+
+    expect(chain.head).toBe(null)
+    expect(await chain.hasGenesisBlock()).toBe(false)
+    expect(await chain.isEmpty()).toBe(true)
+
+    const genesis = await node.seed()
+
+    expect(chain.head?.hash).toEqualHash(genesis.header.hash)
+    expect(await chain.isEmpty()).toBe(false)
+    expect(await chain.hasGenesisBlock()).toBe(true)
+    expect(await chain.notes.size()).toBeGreaterThan(0)
+    expect(await chain.nullifiers.size()).toBeGreaterThan(0)
+  })
+
   it('add blocks and build graphs', async () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()

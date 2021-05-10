@@ -6,7 +6,7 @@ import diff from 'jest-diff'
 
 import { MerkleTree, WitnessSide, Witness } from '../../../merkletree'
 import { NodeValue } from '../../../merkletree/schema'
-import makeError from './makeError'
+import { makeError } from '../../matchers/utils'
 
 declare global {
   namespace jest {
