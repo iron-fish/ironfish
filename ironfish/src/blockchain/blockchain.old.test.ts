@@ -514,21 +514,3 @@ describe('Header consistency is valid against previous', () => {
     `)
   })
 })
-
-describe('block verification', () => {
-  let strategy: TestStrategy
-  let blockchain: TestBlockchain
-  let targetSpy: jest.SpyInstance
-
-  beforeEach(async () => {
-    targetSpy = jest.spyOn(Target, 'minDifficulty').mockImplementation(() => BigInt(1))
-    strategy = new TestStrategy(new RangeHasher())
-    blockchain = await makeChainInitial(strategy)
-    await blockchain.notes.add('1')
-    await blockchain.nullifiers.add(Buffer.alloc(32))
-  })
-
-  afterAll(() => {
-    targetSpy.mockClear()
-  })
-})
