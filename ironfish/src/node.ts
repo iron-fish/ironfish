@@ -238,7 +238,11 @@ export class IronfishNode {
 
     // Work in the worker pool happens concurrently,
     // so we should start it as soon as possible
-    this.workerPool.start(os.cpus().length)
+    let workers = this.config.get('nodeWorkers')
+    if (workers === -1) {
+      workers = os.cpus().length - 1
+    }
+    this.workerPool.start(workers)
 
     if (this.config.get('enableTelemetry')) {
       startCollecting(this.config.get('telemetryApi'))
