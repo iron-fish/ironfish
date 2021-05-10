@@ -878,7 +878,7 @@ class ScanState {
   }
 
   async abort(): Promise<void> {
-    this.aborted = false
+    this.aborted = true
     return this.wait()
   }
 
