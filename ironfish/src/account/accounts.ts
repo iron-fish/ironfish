@@ -858,7 +858,6 @@ class ScanState {
   onTransaction = new Event<[sequence: BigInt]>()
 
   private aborted: boolean
-  private running: boolean
   private runningPromise: Promise<void>
   private runningResolve: PromiseResolve<void>
 
@@ -867,7 +866,6 @@ class ScanState {
     this.runningPromise = promise
     this.runningResolve = resolve
 
-    this.running = true
     this.aborted = false
   }
 
