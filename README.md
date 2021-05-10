@@ -6,6 +6,7 @@
 ![Node CI](https://github.com/iron-fish/ironfish/actions/workflows/ci.yml/badge.svg)
 ![Rust CI](https://github.com/iron-fish/ironfish/actions/workflows/rust_ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=fOjPFN18xZ)](https://codecov.io/gh/iron-fish/ironfish)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Firon-fish%2Fironfish.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Firon-fish%2Fironfish?ref=badge_shield)
 
 Iron Fish is a Layer 1 blockchain that provides the strongest privacy guarantees on every single transaction. Leveraging zero-knowledge proofs (zk-SNARKs), and the highest industry standards for encryption.
 
@@ -48,3 +49,7 @@ Once your environment is setup - you can run the CLI by following [these directi
  - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
  - [ironfish-http-api](./ironfish-http-api/README.md): API hosted on Iron Fish servers for the Iron Fish faucet.
  - [ironfish-rosetta-api](./ironfish-rosetta-api/README.md): API hosted on Iron Fish servers for the block explorer. The code of the block explorer client can be found [here](https://github.com/iron-fish/block-explorer).
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Firon-fish%2Fironfish.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Firon-fish%2Fironfish?ref=badge_large)
