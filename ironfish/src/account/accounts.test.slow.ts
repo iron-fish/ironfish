@@ -5,7 +5,12 @@ import { fakeMaxTarget } from '../testUtilities/fake'
 import { IJSON } from '../serde'
 import { genesisBlockData } from '../genesis/genesisBlock'
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockFixture,
+  useMinerBlockFixture,
+} from '../testUtilities'
 import { Target } from '../primitives/target'
 import { SerializedBlock } from '../primitives/block'
 
@@ -299,13 +304,7 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const block1 = await useBlockFixture(nodeA.chain, async () =>
-      nodeA.chain.newBlock(
-        [],
-        await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-      ),
-    )
-
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     const addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -369,32 +368,17 @@ describe('Accounts', () => {
     await nodeA.accounts.importAccount(accountB)
 
     // Create and add A1
-    const blockA1 = await useBlockFixture(nodeA.chain, async () =>
-      nodeA.chain.newBlock(
-        [],
-        await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-      ),
-    )
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     let addedBlock = await nodeA.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B1
-    const blockB1 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
-      ),
-    )
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
     addedBlock = await nodeB.chain.addBlock(blockB1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B2
-    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
-      ),
-    )
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
     addedBlock = await nodeB.chain.addBlock(blockB2)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -448,12 +432,7 @@ describe('Accounts', () => {
     await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block 1
-    const block1 = await useBlockFixture(nodeB.chain, async () =>
-      nodeA.chain.newBlock(
-        [],
-        await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-      ),
-    )
+    const block1 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
     let addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
     addedBlock = await nodeB.chain.addBlock(block1)
@@ -491,22 +470,12 @@ describe('Accounts', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B2
-    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(3), generateKey().spending_key),
-      ),
-    )
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
     addedBlock = await nodeB.chain.addBlock(blockB2)
     expect(addedBlock.isAdded).toBe(true)
 
     // Create and add B3
-    const blockB3 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(4), generateKey().spending_key),
-      ),
-    )
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
     addedBlock = await nodeB.chain.addBlock(blockB3)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -560,20 +529,13 @@ describe('Accounts', () => {
     await nodeA.accounts.importAccount(accountB)
     await nodeB.accounts.importAccount(accountA)
 
-    // Create and add Block 1
-    const block1 = await useBlockFixture(
-      nodeA.chain,
-      async () =>
-        nodeA.chain.newBlock(
-          [],
-          await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-        ),
-      nodeA.accounts,
-    )
-
-    let addedBlock = await nodeA.chain.addBlock(block1)
+    // Create and add Block A1
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.accounts)
+    let addedBlock = await nodeA.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
-    addedBlock = await nodeB.chain.addBlock(block1)
+
+    // Adding again should just say its added
+    addedBlock = await nodeB.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
 
     // Generate a transaction from account A to account B

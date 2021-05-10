@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
+import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { IronfishBlock } from '../primitives/block'
 import _ from 'lodash'
 import { MathUtils, UnwrapPromise } from '../utils'
@@ -27,19 +27,8 @@ describe('Blockchain', () => {
     for (let i = 0; i < 100; ++i) {
       console.log(`Creating Blocks ${i}`)
 
-      const blockA = await useBlockFixture(nodeA.chain, async () =>
-        nodeA.chain.newBlock(
-          [],
-          await nodeA.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-        ),
-      )
-
-      const blockB = await useBlockFixture(nodeB.chain, async () =>
-        nodeB.chain.newBlock(
-          [],
-          await nodeB.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
-        ),
-      )
+      const blockA = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      const blockB = await useMinerBlockFixture(nodeB.chain, 2, accountB)
 
       await Promise.all([nodeA.chain.addBlock(blockA), nodeB.chain.addBlock(blockB)])
 

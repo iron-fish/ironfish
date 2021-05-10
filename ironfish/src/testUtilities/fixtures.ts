@@ -176,7 +176,7 @@ export async function useBlockFixture(
  */
 export async function useMinerBlockFixture(
   chain: IronfishBlockchain,
-  sequence: bigint,
+  sequence: bigint | number,
   account?: Account,
   addTransactionsTo?: Accounts,
 ): Promise<IronfishBlock> {
@@ -187,7 +187,7 @@ export async function useMinerBlockFixture(
     async () =>
       chain.newBlock(
         [],
-        await chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
+        await chain.strategy.createMinersFee(BigInt(0), BigInt(sequence), spendingKey),
       ),
     addTransactionsTo,
   )

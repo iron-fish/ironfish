@@ -4,7 +4,7 @@
 
 import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
-import { createNodeTest, useAccountFixture, useBlockFixture } from '../testUtilities'
+import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { makeBlockAfter, addBlocksShuffle } from '../testUtilities/helpers/blockchain'
 
 describe('Blockchain', () => {
@@ -330,29 +330,13 @@ describe('Blockchain', () => {
     const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
 
-    const blockA1 = await useBlockFixture(nodeA.chain, async () =>
-      nodeA.chain.newBlock(
-        [],
-        await nodeA.chain.strategy.createMinersFee(BigInt(0), BigInt(2), accountA.spendingKey),
-      ),
-    )
-
-    const blockB1 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.chain.strategy.createMinersFee(BigInt(0), BigInt(2), accountB.spendingKey),
-      ),
-    )
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
 
     await nodeA.chain.addBlock(blockA1)
     await nodeB.chain.addBlock(blockB1)
 
-    const blockB2 = await useBlockFixture(nodeB.chain, async () =>
-      nodeB.chain.newBlock(
-        [],
-        await nodeB.chain.strategy.createMinersFee(BigInt(0), BigInt(3), accountB.spendingKey),
-      ),
-    )
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
 
     expect(blockA1.transactions.length).toBe(1)
     expect(blockB1.transactions.length).toBe(1)
