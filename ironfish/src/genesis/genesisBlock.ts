@@ -1,6 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+export const GENESIS_HASH = Buffer.from(
+  '541ACF487F1B56C50FA2207737E9D4124D513DEB0A6E8D6FF04677C149773F92',
+  'hex',
+)
+
 export const genesisBlockData = `
 {
   "header": {
