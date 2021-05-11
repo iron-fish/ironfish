@@ -5,7 +5,7 @@
 import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
-import { makeBlockAfter, addBlocksShuffle } from '../testUtilities/helpers/blockchain'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -42,8 +42,7 @@ describe('Blockchain', () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
-    await nodeTest.node.seed()
-    const genesis = await chain.getGenesisHeader()
+    const genesis = await nodeTest.node.seed()
     Assert.isNotNull(genesis)
 
     // G -> A1 -> A2
@@ -58,12 +57,12 @@ describe('Blockchain', () => {
     // so that Genesis, A1, A2, have the same graph,
     // and B2 merges into graph [A1-A2], and [A1-A2] merge
     // into genesis block graph so [B2-B3] -> [A2,A2,Genesis]
-    await chain.addBlock(blockA1)
-    await chain.addBlock(blockA2)
-    await chain.addBlock(blockB2)
-    await chain.addBlock(blockB3)
+    await expect(chain).toAddBlock(blockA1)
+    await expect(chain).toAddBlock(blockA2)
+    await expect(chain).toAddBlock(blockB2)
+    await expect(chain).toAddBlock(blockB3)
 
-    const headerGenesis = await chain.getBlockHeader(genesis.hash)
+    const headerGenesis = await chain.getBlockHeader(genesis.header.hash)
     const headerA1 = await chain.getBlockHeader(blockA1.header.hash)
     const headerA2 = await chain.getBlockHeader(blockA2.header.hash)
     const headerB2 = await chain.getBlockHeader(blockB2.header.hash)
@@ -75,7 +74,7 @@ describe('Blockchain', () => {
     Assert.isNotNull(headerB2)
     Assert.isNotNull(headerB3)
 
-    const graphGenesis = await chain.getGraph(genesis.graphId)
+    const graphGenesis = await chain.getGraph(genesis.header.graphId)
     const graphA1 = await chain.getGraph(headerA1.graphId)
     const graphA2 = await chain.getGraph(headerA2.graphId)
     const graphB2 = await chain.getGraph(headerB2.graphId)
@@ -98,7 +97,7 @@ describe('Blockchain', () => {
     expect(graphB2.mergeId).toEqual(headerA2.graphId)
     expect(graphB3.mergeId).toEqual(headerA2.graphId)
 
-    expect(graphGenesis.tailHash?.equals(genesis.hash)).toBe(true)
+    expect(graphGenesis.tailHash?.equals(genesis.header.hash)).toBe(true)
     expect(graphGenesis.latestHash?.equals(headerB3.hash)).toBe(true)
     expect(graphGenesis.heaviestHash?.equals(headerB3.hash)).toBe(true)
   }, 10000)
@@ -124,21 +123,13 @@ describe('Blockchain', () => {
     const blockC4 = await makeBlockAfter(chain, blockC3)
     const blockD4 = await makeBlockAfter(chain, blockC3)
 
-    const { isAdded: isAddedB3 } = await chain.addBlock(blockB3)
-    const { isAdded: isAddedA2 } = await chain.addBlock(blockA2)
-    const { isAdded: isAddedA1 } = await chain.addBlock(blockA1)
-    const { isAdded: isAddedC3 } = await chain.addBlock(blockC3)
-    const { isAdded: isAddedB2 } = await chain.addBlock(blockB2)
-    const { isAdded: isAddedC4 } = await chain.addBlock(blockC4)
-    const { isAdded: isAddedD4 } = await chain.addBlock(blockD4)
-
-    expect(isAddedA1).toBe(true)
-    expect(isAddedA2).toBe(true)
-    expect(isAddedB2).toBe(true)
-    expect(isAddedB3).toBe(true)
-    expect(isAddedC3).toBe(true)
-    expect(isAddedC4).toBe(true)
-    expect(isAddedD4).toBe(true)
+    await expect(chain).toAddBlock(blockA1)
+    await expect(chain).toAddBlock(blockB2)
+    await expect(chain).toAddBlock(blockB3)
+    await expect(chain).toAddBlock(blockA2)
+    await expect(chain).toAddBlock(blockC3)
+    await expect(chain).toAddBlock(blockC4)
+    await expect(chain).toAddBlock(blockD4)
 
     // should be able to start at the tail
     let blocks = await AsyncUtils.materialize(chain.iterateToBlock(genesis, blockD4))
@@ -187,15 +178,10 @@ describe('Blockchain', () => {
     const blockB1 = await makeBlockAfter(chain, genesis)
     const blockB2 = await makeBlockAfter(chain, blockB1)
 
-    const { isAdded: isAddedA1 } = await chain.addBlock(blockA1)
-    const { isAdded: isAddedA2 } = await chain.addBlock(blockA2)
-    const { isAdded: isAddedB1 } = await chain.addBlock(blockB1)
-    const { isAdded: isAddedB2 } = await chain.addBlock(blockB2)
-
-    expect(isAddedA1).toBe(true)
-    expect(isAddedA2).toBe(true)
-    expect(isAddedB1).toBe(true)
-    expect(isAddedB2).toBe(true)
+    await expect(chain).toAddBlock(blockA1)
+    await expect(chain).toAddBlock(blockA2)
+    await expect(chain).toAddBlock(blockB1)
+    await expect(chain).toAddBlock(blockB2)
 
     // Cannot iterate between 2 forks when graph path happen to make it seem like
     // it can work, a few wrong blocks are yielded in this case
@@ -277,15 +263,13 @@ describe('Blockchain', () => {
     const blockC4 = await makeBlockAfter(chain, blockC3)
     const blockD4 = await makeBlockAfter(chain, blockC3)
 
-    await addBlocksShuffle(chain, [
-      blockA1,
-      blockA2,
-      blockB2,
-      blockB3,
-      blockC3,
-      blockC4,
-      blockD4,
-    ])
+    await expect(chain).toAddBlock(blockA1)
+    await expect(chain).toAddBlock(blockA2)
+    await expect(chain).toAddBlock(blockB2)
+    await expect(chain).toAddBlock(blockB3)
+    await expect(chain).toAddBlock(blockC3)
+    await expect(chain).toAddBlock(blockC4)
+    await expect(chain).toAddBlock(blockD4)
 
     const { fork: fork1, isLinear: isLinear1 } = await chain.findFork(blockA1, blockA1)
     expect(fork1?.hash.equals(blockA1.header.hash)).toBe(true)
