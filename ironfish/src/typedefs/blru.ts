@@ -9,7 +9,7 @@ declare module 'blru' {
     constructor(
       capacity: number,
       getSize?: GetSizeFunction<TKey, TValue> | null,
-      CustomMap?: Map<TKey, TValue> | null,
+      CustomMap?: typeof Map | unknown | null,
     )
 
     map: Map<TKey, TValue>
