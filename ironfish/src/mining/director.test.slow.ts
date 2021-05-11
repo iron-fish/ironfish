@@ -112,7 +112,7 @@ describe('Mining director', () => {
   })
 
   it('creates a new block to be mined when chain head changes', async () => {
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
@@ -139,7 +139,7 @@ describe('Mining director', () => {
         { nullifier: makeNullifier(9), commitment: '0-3', size: 4 },
       ]),
     )
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -169,7 +169,7 @@ describe('Mining director', () => {
       ]),
     )
 
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -355,7 +355,7 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty + BigInt(10000000000))
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.chain.getHeaviestHead()
+    const heaviestHeader = director.chain.head
     Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')
@@ -370,7 +370,7 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty)
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.chain.getHeaviestHead()
+    const heaviestHeader = director.chain.head
     Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')

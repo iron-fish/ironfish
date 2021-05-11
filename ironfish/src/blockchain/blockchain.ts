@@ -631,10 +631,9 @@ export class Blockchain<
   async *iterateToHead(
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
-    const head = await this.getHeaviestHead()
-    if (!head) return
+    if (!this.head) return
 
-    for await (const block of this.iterateFromGenesis(head, tx)) {
+    for await (const block of this.iterateFromGenesis(this.head, tx)) {
       yield block
     }
   }
@@ -1334,7 +1333,7 @@ export class Blockchain<
     const noteRoot = await this.notes.rootHash(tx)
     const nullifierRoot = await this.nullifiers.rootHash(tx)
 
-    const heaviestHead = await this.getHeaviestHead(tx)
+    const heaviestHead = this.head
     if (!heaviestHead) {
       this.logger.error(`No heaviest head — should never happen`)
       return false
@@ -1466,7 +1465,7 @@ export class Blockchain<
   ): Promise<void> {
     const blocks: Block<E, H, T, SE, SH, ST>[] = []
 
-    const heaviestHead = await this.getHeaviestHead(tx)
+    const heaviestHead = this.head
     if (!heaviestHead) {
       this.logger.error(
         `While updateTreesBlockToHead heaviestHead was null — should never happen`,
@@ -1755,24 +1754,6 @@ export class Blockchain<
     await this.headers.put(hash, serializedBlockHeader, tx)
   }
 
-  // getHeaviestHead(
-  //   _tx?: IDatabaseTransaction,
-  // ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-  //   return Promise.resolve(this.head)
-  // }
-
-  // getLatestHead(_tx?: IDatabaseTransaction): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-  //   return Promise.resolve(this.latest)
-  // }
-
-  async getHeaviestHead(
-    tx?: IDatabaseTransaction,
-  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    const genesisHash = await this.getGenesisHash(tx)
-    if (!genesisHash) return null
-    return await this.getHead(genesisHash, tx)
-  }
-
   async getLatestHead(
     tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
@@ -1871,7 +1852,7 @@ export class Blockchain<
         let target
         const timestamp = new Date()
 
-        const heaviestHead = await this.getHeaviestHead(tx)
+        const heaviestHead = this.head
         if (!heaviestHead) {
           previousBlockHash = GENESIS_BLOCK_PREVIOUS
           previousSequence = BigInt(0)
@@ -2120,7 +2101,7 @@ export class Blockchain<
     if (fromBlockHash) {
       to = await this.getBlockHeader(fromBlockHash, tx)
     } else {
-      to = await this.getHeaviestHead(tx)
+      to = this.head
     }
 
     if (!to) return

@@ -93,7 +93,7 @@ export async function makeNextBlock(
   oldNoteCount?: number,
   oldNullifierCount?: number,
 ): Promise<Block<string, string, TestTransaction, string, string, SerializedTestTransaction>> {
-  const head = await chain.getHeaviestHead()
+  const head = chain.head
   const noteCount = await chain.notes.size()
   const noteHash = await chain.notes.rootHash()
   const nullifierCount = await chain.nullifiers.size()
@@ -421,7 +421,7 @@ export async function blockBySequence(
 ): Promise<Block<string, string, TestTransaction, string, string, SerializedTestTransaction>> {
   let hash: Buffer | null
   if (sequence === null) {
-    const heaviestHead = await chain.getHeaviestHead()
+    const heaviestHead = chain.head
     hash = heaviestHead ? heaviestHead.hash : null
   } else {
     hash = blockHash(sequence)

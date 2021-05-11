@@ -113,7 +113,7 @@ export class Accounts {
         }
       }
 
-      const chainHead = await this.chain.getHeaviestHead()
+      const chainHead = await this.chain.head
       const chainTail = await this.chain.getGenesisHeader()
 
       if (!chainHead || !chainTail) {
@@ -582,7 +582,7 @@ export class Accounts {
     memo: string,
     receiverPublicAddress: string,
   ): Promise<IronfishTransaction> {
-    const heaviestHead = await this.chain.getHeaviestHead()
+    const heaviestHead = this.chain.head
     if (heaviestHead == null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
     }
@@ -706,7 +706,7 @@ export class Accounts {
   async rebroadcastTransactions(): Promise<void> {
     if (!this.isStarted) return
 
-    const heaviestHead = await this.chain.getHeaviestHead()
+    const heaviestHead = this.chain.head
     if (heaviestHead == null) return
 
     const headSequence = heaviestHead.sequence
