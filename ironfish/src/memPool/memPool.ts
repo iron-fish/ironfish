@@ -66,16 +66,14 @@ export class MemPool<
    */
   acceptTransaction(transaction: T): boolean {
     const hash = transaction.transactionHash()
-    if (this.transactions.has(hash)) return false
+    if (this.transactions.has(hash)) {
+      return false
+    }
 
-    this.add(transaction)
-    return true
-  }
-
-  private add(transaction: T): void {
-    const hash = transaction.transactionHash()
     this.transactions.set(hash, transaction)
+
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
+    return true
   }
 
   /**
