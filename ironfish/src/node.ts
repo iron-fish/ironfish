@@ -270,7 +270,7 @@ export class IronfishNode {
   }
 
   async shutdown(): Promise<void> {
-    await Promise.all([
+    await Promise.allSettled([
       this.accounts.stop(),
       this.syncer.shutdown(),
       this.peerNetwork.stop(),
