@@ -102,33 +102,3 @@ export async function makeBlockWithTransaction(
 
   return block2
 }
-
-/**
- * This adds blocks to a chain in random order. It's useful to help root out bugs where insertion order
- * can create bugs because someone accidently wrote code that is graph structure dependent. If any block
- * fails to be added, the operation will stop and return false
- *
- * @param chain the chain to insert blocks into
- * @param blocks the blocks to insert in random order
- * @param randomDrop should it randomly decide drop blocks with a 10% chance
- */
-export async function addBlocksShuffle(
-  chain: IronfishBlockchain,
-  blocks: IronfishBlock[],
-  randomDrop = false,
-): Promise<boolean> {
-  blocks = [...blocks]
-
-  while (blocks.length > 0) {
-    const index = Math.floor(Math.random() * blocks.length)
-    const block = blocks.splice(index, 1)[0]
-
-    const shouldDrop = randomDrop && Math.random() > 0.9
-    if (shouldDrop) continue
-
-    const { isAdded } = await chain.addBlock(block)
-    if (!isAdded) return false
-  }
-
-  return true
-}
