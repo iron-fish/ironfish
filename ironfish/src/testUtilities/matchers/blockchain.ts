@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import diff from 'jest-diff'
+import { IronfishBlockchain } from '../../blockchain'
 import { IronfishBlock } from '../../primitives/block'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
@@ -49,10 +50,26 @@ function toEqualBlock(self: IronfishBlock, other: IronfishBlock): jest.CustomMat
   return makeError(error, `Expected two blocks to match, but they didn't`)
 }
 
+async function toAddBlock(
+  self: IronfishBlockchain,
+  other: IronfishBlock,
+): Promise<jest.CustomMatcherResult> {
+  let error: string | null = null
+
+  const result = await self.addBlock(other)
+
+  if (!result.isAdded) {
+    error = `Could not add block: ${String(result.reason)}`
+  }
+
+  return makeError(error, `Expected to add block`)
+}
+
 expect.extend({
   toEqualHash: toEqualHash,
   toEqualNullifier: toEqualNullifier,
   toEqualBlock: toEqualBlock,
+  toAddBlock: toAddBlock,
 })
 
 declare global {
@@ -61,6 +78,7 @@ declare global {
       toEqualNullifier(other: Nullifier): R
       toEqualHash(other: BlockHash | null | undefined): R
       toEqualBlock(block: IronfishBlock): Promise<R>
+      toAddBlock(block: IronfishBlock): Promise<R>
     }
   }
 }
