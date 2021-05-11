@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 declare module 'buffer-map' {
-  export class BufferMap<T> implements Iterable<[Buffer, T]>, Map<Buffer, T> {
+  export class BufferMap<T> implements Map<Buffer, T>, Iterable<[Buffer, T]> {
     constructor(iterable: Iterable<T> | null | undefined = null)
 
     readonly size: number
 
     get(key: Buffer): T | undefined
     has(key: Buffer): boolean
-    set(key: Buffer, value: T): BufferMap
+    set(key: Buffer, value: T): this
     delete(key: Buffer): boolean
     clear(): void
 
@@ -31,7 +31,7 @@ declare module 'buffer-map' {
     readonly size: number
 
     has(key: Buffer): boolean
-    set(key: Buffer): BufferMap
+    set(key: Buffer): this
     delete(key: Buffer): boolean
     clear(): void
 

@@ -400,11 +400,9 @@ export class Syncer {
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
 
-    // TODO: after addBlock has removed blocks and doesn't add
-    // orphans, we should move this back below the verification
-    // checking and banning
-    const isOrphan = !(await this.chain.hasAtHash(block.header.previousBlockHash))
-    if (isOrphan) {
+    const { isAdded, reason } = await this.chain.addBlock(block)
+
+    if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
       )
@@ -416,8 +414,6 @@ export class Syncer {
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
-    const { isAdded, reason } = await this.chain.addBlock(block)
-
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
       const error = `Peer ${peer.displayName} sent an invalid block: ${reason}`
@@ -427,15 +423,6 @@ export class Syncer {
 
     Assert.isTrue(isAdded)
     this.speed.add(1)
-
-    if (Number(block.header.sequence) % 20 === 0) {
-      this.logger.info(
-        `Added block:` +
-          ` seq: ${Number(serialized.header.sequence)}` +
-          ` hash: ${HashUtils.renderBlockHeaderHash(block.header)}` +
-          ` progress: ${(this.chain.progress * 100).toFixed(2)}%`,
-      )
-    }
 
     return { added: true, block, reason: reason || null }
   }

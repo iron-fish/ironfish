@@ -284,11 +284,17 @@ export class IronfishNode {
   }
 
   async seed(): Promise<IronfishBlock> {
-    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = this.strategy.blockSerde.deserialize(serialized)
-    const result = await this.chain.addBlock(block)
-    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
-    return block
+    const genesisHash = await this.chain.getGenesisHash()
+    let genesis = genesisHash ? await this.chain.getBlock(genesisHash) : null
+
+    if (!genesis) {
+      const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
+      genesis = this.strategy.blockSerde.deserialize(serialized)
+      const result = await this.chain.addBlock(genesis)
+      Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+    }
+
+    return genesis
   }
 
   onPeerNetworkReady(): void {
