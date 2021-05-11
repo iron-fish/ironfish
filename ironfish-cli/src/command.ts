@@ -120,8 +120,10 @@ export abstract class IronfishCommand extends Command {
     const signals: SIGNALS[] = ['SIGINT', 'SIGTERM', 'SIGUSR2']
 
     for (const signal of signals) {
-      const gracefulShutdown = (signal: SIGNALS) => {
-        process.off(signal, gracefulShutdown)
+      const gracefulShutdown = (signal: NodeJS.Signals) => {
+        if (this.closing) {
+          return
+        }
 
         // Allow 3 seconds for graceful termination
         setTimeout(() => {
@@ -139,11 +141,11 @@ export abstract class IronfishCommand extends Command {
         })
       }
 
-      process.on(signal, gracefulShutdown.bind(signal))
+      process.once(signal, gracefulShutdown)
     }
   }
 
-  closeFromSignal(signal: SIGNALS): Promise<unknown> {
+  closeFromSignal(signal: NodeJS.Signals): Promise<unknown> {
     throw new Error(`Not implemented closeFromSignal: ${signal}`)
   }
 }
