@@ -43,7 +43,7 @@ describe('Syncer', () => {
     // Peer should have more work than us now
     syncer.findPeer()
     expect(startSyncSpy).toHaveBeenCalledWith(peer)
-  })
+  }, 10000)
 
   it('should sync and then finish from peer', async () => {
     const { node, peerNetwork, syncer } = nodeTest
