@@ -24,7 +24,8 @@ describe('Transactions sendTransaction', () => {
   beforeAll(async () => {
     await routeTest.node.accounts.createAccount('existingAccount', true)
 
-    routeTest.node.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    routeTest.node.chain.head = heaviestHeader as any
   })
 
   it('throws if account does not exist', async () => {

@@ -45,9 +45,11 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
 router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
-  async (request, node): Promise<void> => {
-    const latestHeader = await node.chain.getLatestHead()
-    const heaviestHeader = await node.chain.getHeaviestHead()
+  (request, node): void => {
+    Assert.isNotNull(node.chain.genesis, 'no genesis')
+
+    const latestHeader = node.chain.latest
+    const heaviestHeader = node.chain.head
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
       oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
@@ -62,12 +64,9 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
       currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
     }
 
-    const genesisBlockHash = await node.chain.getGenesisHash()
-    Assert.isNotNull(genesisBlockHash)
-
     const genesisBlockIdentifier = {} as BlockIdentifier
     genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
-    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(genesisBlockHash)
+    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
     request.end({
       currentBlockIdentifier,

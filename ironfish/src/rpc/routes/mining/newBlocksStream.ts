@@ -59,11 +59,8 @@ router.register<typeof NewBlocksStreamRequestSchema, NewBlocksStreamResponse>(
     })
 
     // 'prime' the stream with the current block
-    const currentHead = await node.chain.getHeaviestHead()
-    if (currentHead) {
-      await node.miningDirector.onChainHeadChange(currentHead.hash)
+    if (node.chain.head) {
+      await node.miningDirector.onChainHeadChange(node.chain.head.hash)
     }
-
-    await Promise.resolve()
   },
 )

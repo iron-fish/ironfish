@@ -134,7 +134,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     // Given that a chain reorg event might cause the specific block
     // at that sequence can be set to a different one
     if (!hashBuffer && sequence) {
-      const hashBuffers = await node.chain.getAtSequence(sequence)
+      const hashBuffers = await node.chain.getHashesAtSequence(sequence)
       if (Array.isArray(hashBuffers) && hashBuffers.length > 0) {
         hashBuffer = hashBuffers[0]
       }

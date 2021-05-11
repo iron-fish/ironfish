@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { GENESIS_BLOCK_SEQUENCE, Graph, Assert } from 'ironfish'
+import { GENESIS_BLOCK_SEQUENCE, Graph, Assert, IJSON } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import cli from 'cli-ux'
@@ -55,16 +55,18 @@ export default class Export extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = this.parse(Export)
 
-    cli.action.start('Opening node for export')
+    cli.action.start('Opening node')
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
     await node.seed()
-    Assert.isNotNull(node.chain.head)
     cli.action.stop('done.')
 
+    Assert.isNotNull(node.chain.head, 'head')
+    Assert.isNotNull(node.chain.latest, 'latest')
+
     const min = Number(GENESIS_BLOCK_SEQUENCE)
-    const max = Number(node.chain.head.sequence)
+    const max = Number(node.chain.latest.sequence)
 
     const path = node.files.resolve(flags.path)
     const start = Math.min(Math.max(args.start ? (args.start as number) : min, min), max)
@@ -82,9 +84,9 @@ export default class Export extends IronfishCommand {
 
     const map = new Map<string, [Graph, Set<number>]>()
 
-    for (let i = start; i < stop; ++i) {
-      const hashes = await node.chain.getAtSequence(BigInt(i))
-      const blocks = await Promise.all(hashes.map((h) => node.chain.getBlockHeader(h)))
+    for (let i = start; i <= stop; ++i) {
+      const hashes = await node.chain.getHashesAtSequence(BigInt(i))
+      const blocks = await Promise.all(hashes.map((h) => node.chain.getHeader(h)))
 
       for (const block of blocks) {
         Assert.isNotNull(block, 'block')
@@ -99,18 +101,22 @@ export default class Export extends IronfishCommand {
         }
 
         if (!rootPath && rootGraph.heaviestHash) {
-          const head = await node.chain.getBlockHeader(rootGraph.heaviestHash)
+          const head = await node.chain.getHeader(rootGraph.heaviestHash)
           Assert.isNotNull(head, 'head')
           const path = await node.chain.getGraphPath(head.graphId)
           rootPath = new Set(path)
         }
 
         if (!rootPath && rootGraph.latestHash) {
-          const head = await node.chain.getBlockHeader(rootGraph.latestHash)
+          const head = await node.chain.getHeader(rootGraph.latestHash)
           Assert.isNotNull(head, 'head')
           const path = await node.chain.getGraphPath(head.graphId)
           rootPath = new Set(path)
         }
+
+        const isMain = (
+          await node.chain.sequenceToHash2.get(block.sequence.toString())
+        )?.equals(block.hash)
 
         result.push({
           hash: hash,
@@ -118,8 +124,11 @@ export default class Export extends IronfishCommand {
           prev: block.previousBlockHash.toString('hex'),
           graphId: block.graphId,
           rootId: rootGraph.id,
-          main: rootPath?.has(block.graphId) || false,
+          main: isMain,
           graffiti: block.graffiti.toString('ascii'),
+          work: block.work.toString(),
+          head: block.hash.equals(node.chain.head.hash),
+          latest: block.hash.equals(node.chain.latest.hash),
         })
       }
 

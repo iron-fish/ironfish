@@ -27,10 +27,7 @@ export const genesisBlockData = `
     "randomness": 0,
     "timestamp": 1617401592091,
     "minersFee": "0",
-    "isValid": false,
     "work": "0",
-    "graphId": 0,
-    "count": 0,
     "hash": "541ACF487F1B56C50FA2207737E9D4124D513DEB0A6E8D6FF04677C149773F92",
     "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000"
   },

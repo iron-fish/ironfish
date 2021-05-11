@@ -2,11 +2,8 @@
 
 exports[`Block Header Serde serializes and deserializes a block header 1`] = `
 Object {
-  "count": 0,
   "graffiti": "7465737400000000000000000000000000000000000000000000000000000000",
-  "graphId": 0,
   "hash": "0500000000000000000000000000000000000000000000000000000000000000",
-  "isValid": false,
   "minersFee": "-1",
   "noteCommitment": Object {
     "commitment": "header",
