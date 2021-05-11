@@ -19,8 +19,10 @@ describe('Route chain.getChainInfo', () => {
 
   beforeAll(() => {
     routeTest.node.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
-    routeTest.node.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
     routeTest.node.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    routeTest.node.chain.head = heaviestHeader as any
 
     jest
       .spyOn(BlockHashSerdeInstance, 'serialize')

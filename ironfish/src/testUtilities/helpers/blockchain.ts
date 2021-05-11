@@ -67,7 +67,7 @@ export async function makeBlockWithTransaction(
   from: Account,
   to: Account,
 ): Promise<IronfishBlock> {
-  const head = await node.chain.getHeaviestHead()
+  const head = node.chain.head
   Assert.isNotNull(head, 'No genesis block. Call node.seed() first')
   const sequence = head.sequence
 
