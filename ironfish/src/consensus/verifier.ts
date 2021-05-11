@@ -132,7 +132,7 @@ export class Verifier<
 
     // minersFee should match the block header
     // minersFee should be (negative) miningReward + totalTransactionFees
-    if (BigInt(block.header.minersFee) !== minersFee) {
+    if (block.header.minersFee !== minersFee) {
       return { valid: Validity.No, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
