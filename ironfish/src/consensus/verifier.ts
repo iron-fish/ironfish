@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ALLOWED_BLOCK_FUTURE_SECONDS } from './consensus'
+import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 import { Block, SerializedBlock } from '../primitives/block'
 import { Blockchain } from '../blockchain'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
@@ -303,6 +303,44 @@ export class Verifier<
     )
   }
 
+  // TODO: Rename to verifyBlock but merge verifyBlock into this
+  async verifyBlockAdd(
+    block: Block<E, H, T, SE, SH, ST>,
+    prev: BlockHeader<E, H, T, SE, SH, ST> | null,
+    tx: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      return { valid: Validity.Yes }
+    }
+
+    if (!prev) {
+      return { valid: Validity.No, reason: VerificationResultReason.INVALID_PREV_HASH }
+    }
+
+    if (!block.header.previousBlockHash.equals(prev.hash)) {
+      return { valid: Validity.No, reason: VerificationResultReason.INVALID_PREV_HASH }
+    }
+
+    return block.withTransactionReferences(async () => {
+      let verification = this.isValidAgainstPrevious(block, prev)
+      if (verification.valid == Validity.No) {
+        return verification
+      }
+
+      verification = await this.verifyBlock(block)
+      if (verification.valid == Validity.No) {
+        return verification
+      }
+
+      verification = await this.hasValidSpends(block, tx)
+      if (verification.valid == Validity.No) {
+        return verification
+      }
+
+      return { valid: Validity.Yes }
+    })
+  }
+
   async isAddBlockValid(
     previousHeader: BlockHeader<E, H, T, SE, SH, ST> | null,
     block: Block<E, H, T, SE, SH, ST> | null,
@@ -310,18 +348,24 @@ export class Verifier<
     addingToGenesis: boolean,
     tx: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    if (addingGenesis) return { valid: Validity.Yes }
+    if (addingGenesis) {
+      return { valid: Validity.Yes }
+    }
 
     if (!block) {
       return { valid: Validity.No }
     }
 
     // if there's no previous block, we can't know if it's valid
-    if (!previousHeader) return { valid: Validity.Unknown }
+    if (!previousHeader) {
+      return { valid: Validity.Unknown }
+    }
 
     // if there is a previous block, but it's not connected to genesis,
     // then we also can't know if it's valid
-    if (!addingToGenesis) return { valid: Validity.Unknown }
+    if (!addingToGenesis) {
+      return { valid: Validity.Unknown }
+    }
 
     return block.withTransactionReferences(async () => {
       // now we know we have a previous, previous is connected to genesis
@@ -440,6 +484,10 @@ export class Verifier<
 /**
  * Indicator of whether or not an entity is valid. Note that No maps to zero,
  * so a truthy test will work, but beware of Unknown responses
+ *
+ * TODO: Remove Unknown, and delete this entire enum. Unknown validity
+ * is the same as not valid and therefore this should just be a bool.
+ * Validness is binary, there is no tertiary state to validness.
  */
 export enum Validity {
   No,
@@ -454,6 +502,7 @@ export enum VerificationResultReason {
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
+  INVALID_PREV_HASH = 'invalid previous hash',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
@@ -461,6 +510,7 @@ export enum VerificationResultReason {
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   INVALID_SPEND = 'Invalid spend',
   ORPHAN = 'Block is an orphan',
+  DUPLICATE = 'duplicate',
 }
 
 /**
