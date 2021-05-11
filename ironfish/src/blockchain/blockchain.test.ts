@@ -39,6 +39,7 @@ describe('Blockchain', () => {
     expect(await chain.notes.size()).toBeGreaterThan(0)
     expect(await chain.nullifiers.size()).toBeGreaterThan(0)
     expect(await chain.getPrevious(genesis.header)).toBe(null)
+    expect(await chain.getNext(genesis.header)).toBe(null)
   })
 
   it('add blocks and build graphs', async () => {
@@ -106,6 +107,13 @@ describe('Blockchain', () => {
 
     expect(chain.head?.hash?.equals(headerB3.hash)).toBe(true)
     expect(chain.latest?.hash?.equals(headerB3.hash)).toBe(true)
+
+    // getNext
+    expect((await chain.getNext(genesis.header))?.hash?.equals(headerA1.hash)).toBe(true)
+    expect((await chain.getNext(headerA1))?.hash?.equals(headerB2.hash)).toBe(true)
+    expect(await chain.getNext(headerA2)).toBe(null)
+    expect((await chain.getNext(headerB2))?.hash?.equals(headerB3.hash)).toBe(true)
+    expect(await chain.getNext(headerB3)).toBe(null)
 
     // getPrevious
     expect(await chain.getPrevious(genesis.header)).toBe(null)
