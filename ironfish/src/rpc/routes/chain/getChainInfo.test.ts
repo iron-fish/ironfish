@@ -18,8 +18,10 @@ describe('Route chain.getChainInfo', () => {
   const heaviestHeader = makeFakeBlock(strategy, blockHash(2), blockHash(3), 1, 1, 1).header
 
   beforeAll(() => {
-    routeTest.node.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
     routeTest.node.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    routeTest.node.chain.latest = latestHeader as any
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     routeTest.node.chain.head = heaviestHeader as any

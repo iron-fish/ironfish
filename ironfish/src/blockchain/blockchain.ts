@@ -359,23 +359,6 @@ export class Blockchain<
     return this.strategy.blockHeaderSerde.deserialize(header)
   }
 
-  async getLatest(
-    hash: BlockHash,
-    tx?: IDatabaseTransaction,
-  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    const graph = await this.resolveBlockGraph(hash, tx)
-    if (!graph) return null
-    const header = await this.headers.get(graph.latestHash, tx)
-    if (!header) {
-      this.logger.debug(
-        `Couldn't get header ${hash.toString('hex')} when getting head for graph`,
-      )
-      return null
-    }
-
-    return this.strategy.blockHeaderSerde.deserialize(header)
-  }
-
   async getBlockHeader(
     hash: BlockHash,
     tx?: IDatabaseTransaction,
@@ -1752,14 +1735,6 @@ export class Blockchain<
     const serializedBlockHeader = this.strategy.blockHeaderSerde.serialize(header)
     const hash = header.hash
     await this.headers.put(hash, serializedBlockHeader, tx)
-  }
-
-  async getLatestHead(
-    tx?: IDatabaseTransaction,
-  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    const genesisHash = await this.getGenesisHash(tx)
-    if (!genesisHash) return null
-    return await this.getLatest(genesisHash, tx)
   }
 
   /**

@@ -46,7 +46,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
   async (request, node): Promise<void> => {
-    const latestHeader = await node.chain.getLatestHead()
+    const latestHeader = node.chain.latest
     const heaviestHeader = node.chain.head
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
