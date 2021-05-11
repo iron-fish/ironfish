@@ -9,6 +9,11 @@ import { Graph } from './graph'
 
 export const SCHEMA_VERSION = 1
 
+export interface MetaSchema extends DatabaseSchema {
+  key: 'head' | 'latest'
+  value: BlockHash
+}
+
 export interface HeadersSchema<SH> extends DatabaseSchema {
   key: BlockHash
   value: SerializedBlockHeader<SH>
@@ -33,6 +38,12 @@ export interface CountsSchema extends DatabaseSchema {
 export interface SequenceToHashSchema extends DatabaseSchema {
   key: string
   value: BlockHash[]
+}
+
+// Essentially an index, but one sequence can have multiple hashes
+export interface SequenceToHash2Schema extends DatabaseSchema {
+  key: string
+  value: BlockHash
 }
 
 // Essentially an index, but one sequence can have multiple hashes
