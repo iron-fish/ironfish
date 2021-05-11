@@ -133,6 +133,20 @@ export class WebSocketConnection extends Connection {
     }
 
     this.setState({ type: 'DISCONNECTED' })
-    this.socket.close()
+
+    // Unbind event handlers, they can still fire with buffered inbound messages after
+    // the socket is closed
+    this.socket.onmessage = null
+    this.socket.onclose = null
+    this.socket.onopen = null
+    this.socket.onerror = null
+
+    // This can throw a "WebSocket was closed before the connection was established"
+    // error -- since we're closing the connection anyway, we can discard any error.
+    try {
+      this.socket.close()
+    } catch {
+      // Discard the errors
+    }
   }
 }
