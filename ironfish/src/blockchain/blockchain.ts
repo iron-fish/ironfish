@@ -788,7 +788,7 @@ export class Blockchain<
       return { isAdded: false, reason: VerificationResultReason.DUPLICATE }
     }
 
-    const previous = await this.getBlockHeader(block.header.previousBlockHash)
+    const previous = await this.getPrevious(block.header)
 
     if (!previous) {
       this.addOrphan(block)
@@ -865,7 +865,7 @@ export class Blockchain<
       'You cannot disconnect the genesisBlock',
     )
 
-    const prev = await this.getBlockHeader(block.header.previousBlockHash)
+    const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
     await this.saveDisconnect(block, prev, tx)
@@ -880,7 +880,7 @@ export class Blockchain<
       'Reconnecting block does not go on current head',
     )
 
-    const prev = await this.getBlockHeader(block.header.previousBlockHash)
+    const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
     await this.saveReconnect(block, prev, tx)
@@ -2325,6 +2325,12 @@ export class Blockchain<
       await this.meta.put('head', hash)
       await this.saveConnect(block, prev, tx)
     }
+  }
+
+  async getPrevious(
+    header: BlockHeader<E, H, T, SE, SH, ST>,
+  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
+    return this.getBlockHeader(header.previousBlockHash)
   }
 }
 
