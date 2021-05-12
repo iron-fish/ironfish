@@ -57,6 +57,7 @@ import {
 import { createDB } from '../storage/utils'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
+import { isFunction } from 'lodash'
 
 export const GRAPH_ID_NULL = 0
 
@@ -212,7 +213,25 @@ export class Blockchain<
     if (headHash) this.head = await this.getBlockHeader(headHash)
 
     const latestHash = await this.meta.get('latest')
-    if (latestHash) this.head = await this.getBlockHeader(latestHash)
+    if (latestHash) this.latest = await this.getBlockHeader(latestHash)
+
+    // if (this.latest) {
+    //   const foo = await this.getAtSequence(this.latest.sequence)
+    //   const headers = await Promise.all(
+    //     foo.map(async (h) => {
+    //       const header = await this.getBlockHeader(h)
+    //       Assert.isNotNull(header)
+    //       return header
+    //     }),
+    //   )
+
+    //   console.log(
+    //     'TESTING',
+    //     headers.map((h) => h.hash.toString('hex')),
+    //     headers.map((h) => h.sequence.toString()),
+    //     foo.length,
+    //   )
+    // }
 
     this.updateSynced()
   }
@@ -500,7 +519,8 @@ export class Blockchain<
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
           ` curr: ${HashUtils.renderHash(current)},` +
-          ` end: ${HashUtils.renderHash(end.hash)}`,
+          ` end: ${HashUtils.renderHash(end.hash)},` +
+          ` progress: ${count}/${String(max)}`,
       )
     }
   }
@@ -744,7 +764,7 @@ export class Blockchain<
     block.header.count = 0
 
     let result
-    if (this.head && block.header.work < this.head.work) {
+    if (this.head && block.header.work <= this.head.work) {
       result = await this.saveForkToChain(block, prev, tx)
     } else {
       result = await this.saveHeadToChain(block, prev, tx)
@@ -793,6 +813,7 @@ export class Blockchain<
     await this.saveDisconnect(block, prev, tx)
 
     this.head = prev
+
     await this.onDisconnectBlock.emitAsync(block, tx)
   }
 
@@ -862,7 +883,11 @@ export class Blockchain<
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
           this.head.sequence
-        }) for ${HashUtils.renderHash(block.header.hash)} (${block.header.sequence})`,
+        }) for ${HashUtils.renderHash(block.header.hash)} (${
+          block.header.sequence
+        }) on prev ${HashUtils.renderHash(block.header.previousBlockHash)} (${
+          block.header.sequence - BigInt(1)
+        })`,
       )
 
       await this.reorganizeChain(prev, tx)
@@ -2262,6 +2287,58 @@ export class Blockchain<
     }
 
     return this.getBlockHeader(hash)
+  }
+
+  async removeBlock(hash: Buffer): Promise<void> {
+    this.logger.info(`Deleting block ${hash.toString('hex')}`)
+
+    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+      if (!(await this.hasAtHash(hash, tx))) {
+        this.logger.warn(`No block exists at ${hash.toString('hex')}`)
+        return
+      }
+
+      const header = await this.getBlockHeader(hash, tx)
+      Assert.isNotNull(header)
+
+      const block = await this.getBlock(hash, tx)
+      Assert.isNotNull(block)
+
+      const next = await this.hashToNext.get(hash, tx)
+      if (next !== undefined) {
+        throw new Error(`Cannot delete block when ${next.length} thigns are connected`)
+      }
+
+      if (this.head?.hash.equals(hash)) {
+        await this.disconnect(block, tx)
+      }
+
+      const sequence = header.sequence.toString()
+      let sequences = await this.sequenceToHash.get(sequence, tx)
+      sequences = (sequences || []).filter((h) => !h.equals(hash))
+      if (sequences.length === 0) {
+        await this.sequenceToHash.del(sequence, tx)
+      } else {
+        await this.sequenceToHash.put(sequence, sequences, tx)
+      }
+
+      let prev = await this.hashToNext.get(header.previousBlockHash, tx)
+      prev = (prev || []).filter((h) => !h.equals(hash))
+      if (prev.length === 0) {
+        await this.hashToNext.del(header.previousBlockHash, tx)
+      } else {
+        await this.hashToNext.put(header.previousBlockHash, prev, tx)
+      }
+
+      await this.transactions.del(hash, tx)
+      await this.headers.del(hash, tx)
+
+      // TODO: use heads table to recalculate this
+      if (this.latest?.hash.equals(hash)) {
+        this.latest = null
+        await this.meta.put('latest', block.header.previousBlockHash, tx)
+      }
+    })
   }
 }
 

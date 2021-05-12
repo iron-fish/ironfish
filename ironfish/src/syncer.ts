@@ -247,9 +247,9 @@ export class Syncer {
     const start = MathUtils.min(peer.sequence, this.chain.head.sequence)
 
     this.logger.info(
-      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks from ${
-        peer.sequence
-      } starting at ${HashUtils.renderHash(this.chain.head.hash)}`,
+      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks starting at ${HashUtils.renderHash(
+        this.chain.head.hash,
+      )} (${this.chain.head.sequence}) from peer ${peer.displayName} at ${peer.sequence}`,
     )
 
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
@@ -400,9 +400,11 @@ export class Syncer {
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
 
-    const { isAdded, reason } = await this.chain.addBlock(block)
-
-    if (reason === VerificationResultReason.ORPHAN) {
+    // TODO: after addBlock has removed blocks and doesn't add
+    // orphans, we should move this back below the verification
+    // checking and banning
+    const isOrphan = !(await this.chain.hasAtHash(block.header.previousBlockHash))
+    if (isOrphan) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
       )
@@ -414,6 +416,8 @@ export class Syncer {
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
+    const { isAdded, reason } = await this.chain.addBlock(block)
+
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
       const error = `Peer ${peer.displayName} sent an invalid block: ${reason}`
@@ -423,6 +427,15 @@ export class Syncer {
 
     Assert.isTrue(isAdded)
     this.speed.add(1)
+
+    if (Number(block.header.sequence) % 20 === 0) {
+      this.logger.info(
+        `Added block:` +
+          ` seq: ${Number(serialized.header.sequence)}` +
+          ` hash: ${HashUtils.renderBlockHeaderHash(block.header)}` +
+          ` progress: ${(this.chain.progress * 100).toFixed(2)}%`,
+      )
+    }
 
     return { added: true, block, reason: reason || null }
   }
