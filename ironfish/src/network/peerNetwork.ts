@@ -61,7 +61,7 @@ import {
   isNewBlockPayload,
 } from '.'
 import { Assert } from '../assert'
-import { BlockHash } from '../primitives/blockheader'
+import { BlockHash, IronfishBlockHeader } from '../primitives/blockheader'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { ErrorUtils } from '../utils'
 
@@ -629,14 +629,17 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: string | number): Promise<Buffer | null> {
+  private async resolveSequenceOrHash(
+    start: string | number,
+  ): Promise<IronfishBlockHeader | null> {
     if (typeof start === 'string') {
-      return Buffer.from(start, 'hex')
+      const hash = Buffer.from(start, 'hex')
+      return await this.chain.getBlockHeader(hash)
     }
 
     if (typeof start === 'number') {
       const header = await this.chain.resolveAtSequence(BigInt(start))
-      if (header) return header.hash
+      if (header) return header
     }
 
     return null
@@ -668,12 +671,10 @@ export class PeerNetwork {
     const from = await this.resolveSequenceOrHash(start)
     if (!from) return { blocks: [] }
 
-    const to = await this.chain.getHead(from)
-    if (!to) return { blocks: [] }
-
     const hashes = []
-    for await (const header of this.chain.iterateToBlock(from, to)) {
-      hashes.push(header.hash)
+
+    for await (const hash of this.chain.iterateToHashes(from)) {
+      hashes.push(hash)
       if (hashes.length === limit) break
     }
 
@@ -706,12 +707,9 @@ export class PeerNetwork {
     const from = await this.resolveSequenceOrHash(start)
     if (!from) return { blocks: [] }
 
-    const to = await this.chain.getHead(from)
-    if (!to) return { blocks: [] }
-
     const hashes = []
-    for await (const header of this.chain.iterateToBlock(from, to)) {
-      hashes.push(header.hash)
+    for await (const hash of this.chain.iterateToHashes(from)) {
+      hashes.push(hash)
       if (hashes.length === limit) break
     }
 

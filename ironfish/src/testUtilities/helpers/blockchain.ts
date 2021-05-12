@@ -67,9 +67,8 @@ export async function makeBlockWithTransaction(
   from: Account,
   to: Account,
 ): Promise<IronfishBlock> {
-  const head = node.chain.head
-  Assert.isNotNull(head, 'No genesis block. Call node.seed() first')
-  const sequence = head.sequence
+  Assert.isNotNull(node.chain.head, 'No genesis block. Call node.seed() first')
+  const sequence = node.chain.head.sequence
 
   const block1 = await useMinerBlockFixture(
     node.chain,
@@ -78,7 +77,7 @@ export async function makeBlockWithTransaction(
     node.accounts,
   )
 
-  await node.chain.addBlock(block1)
+  await expect(node.chain).toAddBlock(block1)
   await node.accounts.updateHead()
 
   const block2 = await useBlockFixture(node.chain, async () => {

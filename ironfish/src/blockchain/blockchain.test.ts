@@ -122,7 +122,7 @@ describe('Blockchain', () => {
     expect((await chain.getPrevious(headerB3))?.hash?.equals(headerB2.hash)).toBe(true)
   }, 10000)
 
-  it('iterateToBlock', async () => {
+  it('iterate', async () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
@@ -133,7 +133,6 @@ describe('Blockchain', () => {
     // G -> A1 -> A2
     //         -> B2 -> B3
     //               -> C3 -> C4
-    //                     -> D4
 
     const blockA1 = await makeBlockAfter(chain, genesis)
     const blockA2 = await makeBlockAfter(chain, blockA1)
@@ -141,7 +140,6 @@ describe('Blockchain', () => {
     const blockB3 = await makeBlockAfter(chain, blockB2)
     const blockC3 = await makeBlockAfter(chain, blockB2)
     const blockC4 = await makeBlockAfter(chain, blockC3)
-    const blockD4 = await makeBlockAfter(chain, blockC3)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockB2)
@@ -149,40 +147,50 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockA2)
     await expect(chain).toAddBlock(blockC3)
     await expect(chain).toAddBlock(blockC4)
-    await expect(chain).toAddBlock(blockD4)
 
     // should be able to start at the tail
-    let blocks = await AsyncUtils.materialize(chain.iterateToBlock(genesis, blockD4))
+    let blocks = await AsyncUtils.materialize(chain.iterateTo(genesis, blockC4.header))
     expect(blocks.length).toBe(5)
     expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
     expect(blocks[1].hash.equals(blockA1.header.hash)).toBe(true)
     expect(blocks[2].hash.equals(blockB2.header.hash)).toBe(true)
     expect(blocks[3].hash.equals(blockC3.header.hash)).toBe(true)
-    expect(blocks[4].hash.equals(blockD4.header.hash)).toBe(true)
+    expect(blocks[4].hash.equals(blockC4.header.hash)).toBe(true)
 
     // should be able to start at the head
-    blocks = await AsyncUtils.materialize(chain.iterateToBlock(blockD4, genesis))
+    blocks = await AsyncUtils.materialize(chain.iterateFrom(blockC4.header, genesis))
     expect(blocks.length).toBe(5)
-    expect(blocks[0].hash.equals(blockD4.header.hash)).toBe(true)
+    expect(blocks[0].hash.equals(blockC4.header.hash)).toBe(true)
     expect(blocks[1].hash.equals(blockC3.header.hash)).toBe(true)
     expect(blocks[2].hash.equals(blockB2.header.hash)).toBe(true)
     expect(blocks[3].hash.equals(blockA1.header.hash)).toBe(true)
     expect(blocks[4].hash.equals(genesis.hash)).toBe(true)
 
     // should be able to start after the tail
-    blocks = await AsyncUtils.materialize(chain.iterateToBlock(blockA1, blockB3))
+    blocks = await AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockB3.header))
     expect(blocks.length).toBe(3)
     expect(blocks[0].hash.equals(blockA1.header.hash)).toBe(true)
     expect(blocks[1].hash.equals(blockB2.header.hash)).toBe(true)
     expect(blocks[2].hash.equals(blockB3.header.hash)).toBe(true)
 
+    // should be able to start before the head
+    blocks = await AsyncUtils.materialize(chain.iterateFrom(blockB2.header, blockA1.header))
+    expect(blocks.length).toBe(2)
+    expect(blocks[0].hash.equals(blockB2.header.hash)).toBe(true)
+    expect(blocks[1].hash.equals(blockA1.header.hash)).toBe(true)
+
     // If we iterate the same block, it should be yielded once
-    blocks = await AsyncUtils.materialize(chain.iterateToBlock(genesis, genesis))
+    blocks = await AsyncUtils.materialize(chain.iterateTo(genesis, genesis))
+    expect(blocks.length).toBe(1)
+    expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
+
+    // If we iterate the same block, it should be yielded once
+    blocks = await AsyncUtils.materialize(chain.iterateFrom(genesis, genesis))
     expect(blocks.length).toBe(1)
     expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
   })
 
-  it('iterateToBlock errors', async () => {
+  it('iterate errors', async () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
@@ -207,29 +215,23 @@ describe('Blockchain', () => {
     // it can work, a few wrong blocks are yielded in this case
 
     // left-to-right
-    let result = AsyncUtils.materialize(chain.iterateToBlock(blockA1, blockB2))
+    let result = AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockB2.header))
     await expect(result).rejects.toThrowError(
       'Failed to iterate between blocks on diverging forks',
     )
-    // right-to-left
-    result = AsyncUtils.materialize(chain.iterateToBlock(blockB2, blockA1))
+    result = AsyncUtils.materialize(chain.iterateFrom(blockA1.header, blockB2.header))
     await expect(result).rejects.toThrowError(
       'Failed to iterate between blocks on diverging forks',
     )
 
-    // Cannot iterate between 2 forks when graph path looks immediately wrong
-    // because the graph path does not merge into the destination
-
-    // left-to-right
-    result = AsyncUtils.materialize(chain.iterateToBlock(blockB1, blockA2))
-    await expect(result).rejects.toThrowError(
-      'Start path does not match from block, are they on a fork?',
-    )
-
     // right-to-left
-    result = AsyncUtils.materialize(chain.iterateToBlock(blockA2, blockB1))
+    result = AsyncUtils.materialize(chain.iterateTo(blockB2.header, blockA1.header))
     await expect(result).rejects.toThrowError(
-      'Start path does not match from block, are they on a fork?',
+      'Failed to iterate between blocks on diverging forks',
+    )
+    result = AsyncUtils.materialize(chain.iterateFrom(blockB2.header, blockA1.header))
+    await expect(result).rejects.toThrowError(
+      'Failed to iterate between blocks on diverging forks',
     )
   })
 

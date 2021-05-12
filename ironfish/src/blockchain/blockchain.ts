@@ -411,8 +411,7 @@ export class Blockchain<
    *    -> B2 -> B2
    *          -> C3
    *
-   * A graph path from C3 -> A1 would be [A, B, C]. Using this we can make decisions about forks
-   * and specfically allows us to iterate from left to right. See `iterateToBlock` for more information.
+   * A graph path from C3 -> A1 would be [A, B, C]. Using this we can make decisions about forks.
    */
   protected async getBlockGraphPath(
     blockOrHash: BlockHash | BlockHeader<E, H, T, SE, SH, ST>,
@@ -462,153 +461,84 @@ export class Blockchain<
     return path
   }
 
-  /**
-   * Yields all block between 2 blocks including the two blocks
-   * The blocks must have a fast forward linear path between them.
-   * If the same block is passed in, then the block will be yielded
-   * once. It supports both left-to-right and right-to-left iteration.
-   *
-   * If the two blocks are on diverging forks, blocks will be yielded
-   * until it realizes it cannot find the target block and then an error
-   * will be thrown
-   *
-   * As an example, take this graph and consider iterateToBlock(A1, B2)
-   * A1 -> A2 -> A3
-   *    -> B2 -> B2
-   *          -> C3
-   *
-   * First, this is left-to-right iteration. The way this is done is
-   * to first get the graph path of C3, which results in Array<GraphId>
-   * which is [A, B, C]. Then start at the beginning, and each time
-   * there are more than 1 block, look to see which of the blocks is the
-   * next step in the graph path. Let's see we would move from A1 -> C3
-   * in the example above.
-   *
-   * 1. Get path to C3: [A, B, C]
-   * 2. Start at A1
-   * 3. Load A2, B2
-   * 4. B2 is graph B, the next graph we need so go there
-   * 5. Load B2, C3
-   * 6. C3 is graph C, the next graph we need so go there
-   * 7. Current block is target block, stop.
-   *
-   * iterateToBlock(B2, A1) would be much simpler, and we just use the
-   * Block.previousBlockHash to go backwards until we find A1.
-   *
-   * @param from the block to start iterating from
-   * @param to the block to start iterating to
-   * @param tx
-   * @yields BlockHeaders between from and to
-   * @throws Error if the blocks are on diverging forks after yielding wrong blocks
-   * @throws Error if you try to iterate right-to-left
-   */
-  async *iterateToBlock(
-    start: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST> | BlockHash,
-    end: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST> | BlockHash,
+  async *iterateTo(
+    start: BlockHeader<E, H, T, SE, SH, ST>,
+    end?: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
-    const [from, to] = await this.getHeadersFromInput([start, end], tx)
-
-    if (from.graphId === GRAPH_ID_NULL) return
-    if (to.graphId === GRAPH_ID_NULL) return
-
-    // right-to-left iteration
-    if (from.sequence >= to.sequence) {
-      const path = await this.getBlockGraphPath(from.hash, to.graphId, tx)
-
-      if (path[0] !== to.graphId) {
-        throw new Error('Start path does not match from block, are they on a fork?')
-      }
-
-      let current = from
-      yield current
-
-      while (
-        current.sequence >= to.sequence &&
-        current.sequence >= GENESIS_BLOCK_SEQUENCE &&
-        !current.hash.equals(to.hash)
-      ) {
-        const header = await this.getBlockHeader(current.previousBlockHash, tx)
-        Assert.isNotNull(header)
-        yield header
-        current = header
-      }
-
-      if (!current.hash.equals(to.hash)) {
-        const error = `Failed to iterate between blocks on diverging forks: curr: ${HashUtils.renderHash(
-          current.hash,
-        )} (${current.sequence}), to: ${HashUtils.renderHash(to.hash)} (${to.sequence})`
-        this.logger.error(error)
-        throw new Error(error)
-      }
+    for await (const hash of this.iterateToHashes(start, end, tx)) {
+      const header = await this.getBlockHeader(hash, tx)
+      Assert.isNotNull(header)
+      yield header
     }
-    // left-to-right iteration
-    else {
-      const path = await this.getBlockGraphPath(to.hash, from.graphId, tx)
-      let pathIndex = 0
+  }
 
-      if (path[pathIndex] !== from.graphId) {
-        throw new Error('Start path does not match from block, are they on a fork?')
-      }
+  async *iterateToHashes(
+    start: BlockHeader<E, H, T, SE, SH, ST>,
+    end?: BlockHeader<E, H, T, SE, SH, ST>,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<BlockHash, void, void> {
+    let current = start.hash as BlockHash | null
+    const max = end ? end.sequence - start.sequence : null
+    let count = 0
 
-      let current = from
+    while (current) {
       yield current
 
-      // left-to-right iterate the number of sequences there are between from -> to
-      for (let i = current.sequence; i < to.sequence; ++i) {
-        const nextBlockHashes = await this.getBlockToNext(current.hash, tx)
-
-        let nextGraphHeader: BlockHeader<E, H, T, SE, SH, ST> | null = null
-        let currentGraphHeader: BlockHeader<E, H, T, SE, SH, ST> | null = null
-
-        for (const nextBlockHash of nextBlockHashes) {
-          const nextBlockHeader = await this.getBlockHeader(nextBlockHash)
-          Assert.isNotNull(nextBlockHeader)
-
-          // We found a block on the current graph
-          if (nextBlockHeader.graphId === path[pathIndex]) {
-            currentGraphHeader = nextBlockHeader
-          }
-
-          // We found a block on the next graph
-          if (pathIndex < path.length - 1 && nextBlockHeader.graphId === path[pathIndex + 1]) {
-            nextGraphHeader = nextBlockHeader
-            pathIndex++
-          }
-        }
-
-        if (nextGraphHeader) {
-          current = nextGraphHeader
-          yield nextGraphHeader
-        } else if (currentGraphHeader) {
-          current = currentGraphHeader
-          yield currentGraphHeader
-        } else {
-          const error =
-            `No next block was found in our current or next graph:\n` +
-            ` src: ${path[pathIndex]},\n` +
-            ` src-hash: ${current.hash.toString('hex')},\n` +
-            ` src-seq: ${current.sequence},\n` +
-            ` dest: ${path[Math.min(pathIndex + 1, path.length - 1)]},\n` +
-            ` progress: ${pathIndex + 1}/${path.length}`
-
-          this.logger.error(error)
-          throw new Error(error)
-        }
+      if (end && current.equals(end.hash)) {
+        break
       }
 
-      if (!current.hash.equals(to.hash)) {
-        throw new Error(
-          `Failed to iterate between blocks on diverging forks: curr: ${HashUtils.renderHash(
-            current.hash,
-          )} (${current.sequence}), to: ${HashUtils.renderHash(to.hash)} (${to.sequence})`,
-        )
+      if (max !== null && count++ >= max) {
+        break
       }
+
+      current = await this.getNextHash(current, tx)
+    }
+
+    if (end && current && !current.equals(end.hash)) {
+      throw new Error(
+        'Failed to iterate between blocks on diverging forks:' +
+          ` curr: ${HashUtils.renderHash(current)},` +
+          ` end: ${HashUtils.renderHash(end.hash)}`,
+      )
+    }
+  }
+
+  async *iterateFrom(
+    start: BlockHeader<E, H, T, SE, SH, ST>,
+    end?: BlockHeader<E, H, T, SE, SH, ST>,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
+    let current = start as BlockHeader<E, H, T, SE, SH, ST> | null
+    const max = end ? start.sequence - end.sequence : null
+    let count = 0
+
+    while (current) {
+      yield current
+
+      if (end && current.hash.equals(end.hash)) {
+        break
+      }
+
+      if (max !== null && count++ >= max) {
+        break
+      }
+
+      current = await this.getPrevious(current, tx)
+    }
+
+    if (end && current && !current.hash.equals(end.hash)) {
+      throw new Error(
+        'Failed to iterate between blocks on diverging forks:' +
+          ` curr: ${HashUtils.renderHash(current.hash)},` +
+          ` end: ${HashUtils.renderHash(end.hash)}`,
+      )
     }
   }
 
   /**
-   * Like iterateToBlock except it always iterates between the genesis block
+   * Like iterateTo except it always iterates between the genesis block
    * and the heaviest head
    */
   async *iterateToHead(
@@ -735,17 +665,17 @@ export class Blockchain<
   }
 
   /**
-   * Like iterateToBlock except it always iterates between the genesis block
+   * Like iterateTo except it always iterates between the genesis block
    * and `to`
    */
   async *iterateFromGenesis(
-    to: BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST>,
+    to: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
     const genesis = await this.getGenesisHeader()
     if (!genesis) return
 
-    for await (const block of this.iterateToBlock(genesis, to, tx)) {
+    for await (const block of this.iterateTo(genesis, to, tx)) {
       yield block
     }
   }
@@ -867,9 +797,16 @@ export class Blockchain<
   }
 
   async reconnect(block: Block<E, H, T, SE, SH, ST>, tx: IDatabaseTransaction): Promise<void> {
+    Assert.isNotNull(this.head, 'Cannot reconnect the genesis block')
     Assert.isTrue(
-      !!this.head && block.header.previousBlockHash.equals(this.head.hash),
-      'Reconnecting block does not go on current head',
+      block.header.previousBlockHash.equals(this.head.hash),
+      `Reconnecting block ${block.header.hash.toString('hex')} (${
+        block.header.sequence
+      }) does not go on current head ${this.head.hash.toString('hex')} (${
+        this.head.sequence - BigInt(1)
+      }) expected ${block.header.previousBlockHash.toString('hex')} (${
+        block.header.sequence - BigInt(1)
+      })`,
     )
 
     const prev = await this.getPrevious(block.header)
@@ -973,7 +910,7 @@ export class Blockchain<
     this.looseNullifiers = {}
 
     // Step 2: Collect all the blocks from the old head to the fork
-    const removeIter = this.iterateToBlock(oldHeaviestHead, fork, tx)
+    const removeIter = this.iterateFrom(oldHeaviestHead, fork, tx)
     const removeHeaders = await AsyncUtils.materialize(removeIter)
     const removeBlocks = await Promise.all(
       removeHeaders
@@ -991,7 +928,7 @@ export class Blockchain<
     }
 
     // Step 3. Collect all the blocks from the fork to the new head
-    const addIter = this.iterateToBlock(newHeaviestHeader, fork, tx)
+    const addIter = this.iterateFrom(newHeaviestHeader, fork, tx)
     const addHeaders = await AsyncUtils.materialize(addIter)
     const addBlocks = await Promise.all(
       addHeaders
@@ -1401,7 +1338,7 @@ export class Blockchain<
     Assert.isNotNull(fork, `No fork found in updateTreesWithFork`)
 
     // Step 2: Collect all the blocks from the old head to the fork
-    const removedIter = this.iterateToBlock(oldHeaviestHead, fork, tx)
+    const removedIter = this.iterateFrom(oldHeaviestHead, fork, tx)
     const removedHeaders = await AsyncUtils.materialize(removedIter)
     const removedBlocks = await Promise.all(
       removedHeaders.reverse().map((h) => this.getBlock(h, tx)),
@@ -1419,7 +1356,7 @@ export class Blockchain<
     ])
 
     // Step 3. Collect all the blocks from the fork to the new head
-    const addedIter = this.iterateToBlock(newHeaviestHeadHeader, fork, tx)
+    const addedIter = this.iterateFrom(newHeaviestHeadHeader, fork, tx)
     const addedHeaders = await AsyncUtils.materialize(addedIter)
     const addedBlocks = await Promise.all(
       addedHeaders.reverse().map(async (h) => {
@@ -2305,18 +2242,20 @@ export class Blockchain<
 
   async getPrevious(
     header: BlockHeader<E, H, T, SE, SH, ST>,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    return this.getBlockHeader(header.previousBlockHash)
+    return this.getBlockHeader(header.previousBlockHash, tx)
   }
 
-  async getNextHash(hash: BlockHash): Promise<BlockHash | null> {
-    return (await this.hashToNext2.get(hash)) || null
+  async getNextHash(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash | null> {
+    return (await this.hashToNext2.get(hash, tx)) || null
   }
 
   async getNext(
     header: BlockHeader<E, H, T, SE, SH, ST>,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    const hash = await this.hashToNext2.get(header.hash)
+    const hash = await this.getNextHash(header.hash, tx)
 
     if (!hash) {
       return null
