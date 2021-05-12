@@ -40,9 +40,13 @@ export interface SequenceToHashSchema extends DatabaseSchema {
   value: BlockHash[]
 }
 
-// Essentially an index, but one sequence can have multiple hashes
 export interface SequenceToHash2Schema extends DatabaseSchema {
   key: string
+  value: BlockHash
+}
+
+export interface HashToNext2Schema extends DatabaseSchema {
+  key: BlockHash
   value: BlockHash
 }
 
