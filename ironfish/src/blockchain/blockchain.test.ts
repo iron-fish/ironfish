@@ -18,6 +18,7 @@ describe('Blockchain', () => {
     expect(await chain.nullifiers.size()).toBe(0)
     expect(await chain.isEmpty()).toBe(true)
     expect(chain.head).toBe(null)
+    expect(chain.latest).toBe(null)
     expect(chain.synced).toBe(false)
   })
 
@@ -32,10 +33,12 @@ describe('Blockchain', () => {
     const genesis = await node.seed()
 
     expect(chain.head?.hash).toEqualHash(genesis.header.hash)
+    expect(chain.latest?.hash).toEqualHash(genesis.header.hash)
     expect(await chain.isEmpty()).toBe(false)
     expect(await chain.hasGenesisBlock()).toBe(true)
     expect(await chain.notes.size()).toBeGreaterThan(0)
     expect(await chain.nullifiers.size()).toBeGreaterThan(0)
+    expect(await chain.getPrevious(genesis.header)).toBe(null)
   })
 
   it('add blocks and build graphs', async () => {
@@ -100,6 +103,15 @@ describe('Blockchain', () => {
     expect(graphGenesis.tailHash?.equals(genesis.header.hash)).toBe(true)
     expect(graphGenesis.latestHash?.equals(headerB3.hash)).toBe(true)
     expect(graphGenesis.heaviestHash?.equals(headerB3.hash)).toBe(true)
+
+    expect(chain.head?.hash?.equals(headerB3.hash)).toBe(true)
+    expect(chain.latest?.hash?.equals(headerB3.hash)).toBe(true)
+
+    // getPrevious
+    expect(await chain.getPrevious(genesis.header)).toBe(null)
+    expect((await chain.getPrevious(headerA1))?.hash?.equals(genesis.header.hash)).toBe(true)
+    expect((await chain.getPrevious(headerB2))?.hash?.equals(headerA1.hash)).toBe(true)
+    expect((await chain.getPrevious(headerB3))?.hash?.equals(headerB2.hash)).toBe(true)
   }, 10000)
 
   it('iterateToBlock', async () => {
