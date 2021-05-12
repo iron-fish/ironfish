@@ -26,6 +26,7 @@ import {
   HashToNextSchema,
   SequenceToHash2Schema,
   MetaSchema,
+  HashToNext2Schema,
 } from './schema'
 import {
   BufferArrayEncoding,
@@ -98,6 +99,8 @@ export class Blockchain<
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // Sequence -> BlockHash
   sequenceToHash2: IDatabaseStore<SequenceToHash2Schema>
+  // BlockHash -> BlockHash
+  hashToNext2: IDatabaseStore<HashToNext2Schema>
   // BlockHash -> BlockHash[] (blocks pointing at the keyed hash)
   hashToNext: IDatabaseStore<HashToNextSchema>
   // GraphID -> Graph
@@ -174,6 +177,13 @@ export class Blockchain<
       version: SCHEMA_VERSION,
       name: 'SequenceToHash2',
       keyEncoding: new StringEncoding(),
+      valueEncoding: new BufferEncoding(),
+    })
+
+    this.hashToNext2 = this.db.addStore({
+      version: SCHEMA_VERSION,
+      name: 'HashToNextHash2',
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new BufferEncoding(),
     })
 
@@ -2238,8 +2248,12 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
+    await this.hashToNext2.put(prev.hash, block.header.hash, tx)
+    await this.sequenceToHash2.put(block.header.sequence.toString(), block.header.hash, tx)
+
     await this.saveConnect(block, prev, tx)
+
+    await this.meta.put('head', prev.hash, tx)
   }
 
   protected async saveDisconnect(
@@ -2248,10 +2262,15 @@ export class Blockchain<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     // TODO: transaction goes here
+    await this.hashToNext2.del(prev.hash, tx)
+    await this.sequenceToHash2.del(block.header.sequence.toString(), tx)
+
     await Promise.all([
       this.notes.truncate(prev.noteCommitment.size, tx),
       this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
     ])
+
+    await this.meta.put('head', prev.hash, tx)
   }
 
   protected async saveBlock(
@@ -2322,7 +2341,8 @@ export class Blockchain<
 
     if (!fork) {
       await this.sequenceToHash2.put(block.header.sequence.toString(), hash, tx)
-      await this.meta.put('head', hash)
+      await this.hashToNext2.put(block.header.previousBlockHash, hash, tx)
+      await this.meta.put('head', hash, tx)
       await this.saveConnect(block, prev, tx)
     }
   }
@@ -2331,6 +2351,22 @@ export class Blockchain<
     header: BlockHeader<E, H, T, SE, SH, ST>,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
     return this.getBlockHeader(header.previousBlockHash)
+  }
+
+  async getNextHash(hash: BlockHash): Promise<BlockHash | null> {
+    return (await this.hashToNext2.get(hash)) || null
+  }
+
+  async getNext(
+    header: BlockHeader<E, H, T, SE, SH, ST>,
+  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
+    const hash = await this.hashToNext2.get(header.hash)
+
+    if (!hash) {
+      return null
+    }
+
+    return this.getBlockHeader(hash)
   }
 }
 
