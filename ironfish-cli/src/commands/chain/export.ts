@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { GENESIS_BLOCK_SEQUENCE, Graph, Assert, IJSON } from 'ironfish'
+import { GENESIS_BLOCK_SEQUENCE, Assert } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import cli from 'cli-ux'
@@ -82,48 +82,16 @@ export default class Export extends IronfishCommand {
 
     progress.start(stop - start, 0)
 
-    const map = new Map<string, [Graph, Set<number>]>()
-
     for (let i = start; i <= stop; ++i) {
-      const hashes = await node.chain.getHashesAtSequence(BigInt(i))
-      const blocks = await Promise.all(hashes.map((h) => node.chain.getHeader(h)))
+      const blocks = await node.chain.getHeadersAtSequence(BigInt(i))
 
       for (const block of blocks) {
-        Assert.isNotNull(block, 'block')
-
-        const hash = block.hash.toString('hex')
-        let [rootGraph, rootPath] = map.get(hash) || [null, null]
-
-        if (!rootGraph) {
-          const root = await node.chain.resolveBlockGraph(block.hash)
-          Assert.isNotNull(root, 'root')
-          rootGraph = root
-        }
-
-        if (!rootPath && rootGraph.heaviestHash) {
-          const head = await node.chain.getHeader(rootGraph.heaviestHash)
-          Assert.isNotNull(head, 'head')
-          const path = await node.chain.getGraphPath(head.graphId)
-          rootPath = new Set(path)
-        }
-
-        if (!rootPath && rootGraph.latestHash) {
-          const head = await node.chain.getHeader(rootGraph.latestHash)
-          Assert.isNotNull(head, 'head')
-          const path = await node.chain.getGraphPath(head.graphId)
-          rootPath = new Set(path)
-        }
-
-        const isMain = (
-          await node.chain.sequenceToHash2.get(block.sequence.toString())
-        )?.equals(block.hash)
+        const isMain = await node.chain.isHeadChain(block)
 
         result.push({
-          hash: hash,
+          hash: block.hash.toString('hex'),
           seq: Number(block.sequence),
           prev: block.previousBlockHash.toString('hex'),
-          graphId: block.graphId,
-          rootId: rootGraph.id,
           main: isMain,
           graffiti: block.graffiti.toString('ascii'),
           work: block.work.toString(),

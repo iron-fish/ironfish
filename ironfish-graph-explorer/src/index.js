@@ -23,11 +23,12 @@ function getNodes() {
     console.log('Building nodes from ', data.length, 'blocks')
 
     for(const block of blocks) {
-        let island = islands.get(block.rootId) || [islandNext++, new Map()]
-        islands.set(block.rootId, island)
+        let island = islands.get(block.prev) || [islandNext++, new Map()]
+        islands.set(block.hash, island)
         const [islandOffset, childOffsets] = island
 
         let childOffset = 0
+
         if(!block.main) {
             childOffset = childOffsets.get(block.seq)
             childOffset = childOffset === undefined ? 1 : ++childOffset
@@ -39,10 +40,8 @@ function getNodes() {
 
         const node = {
             hash: block.hash,
-            graphId: block.graphId,
             seq: block.seq,
             prev: block.prev,
-            rootId: block.rootId,
             main: block.main,
             head: block.head,
             latest: block.latest,
@@ -109,8 +108,6 @@ function makeGraph() {
             `<b>HASH</b>   ${node.hash}<br>` +
             `<b>PREV</b>   ${node.prev}<br>` +
             `<b>SEQ</b>    ${node.seq}<br>` +
-            `<b>GRAPH</b>  ${node.graphId}<br>` +
-            `<b>ROOT</b>   ${node.rootId}<br>` +
             `<b>GRAFF</b>  ${node.graffiti}<br>` +
             `<b>WORK</b>   ${node.work} (+${node.diff})<br>` +
             `<b>MAIN</b>   ${node.main}<br>` +
