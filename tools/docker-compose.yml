@@ -9,6 +9,7 @@ services:
             - "9001:9001"
         networks:
             - node_network
+        restart: unless-stopped    
         command: start -v --name node1 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8001 --port 9001 --bootstrap='' --forceMining --datadir /ironfishdata
         volumes:
             - ~/.ironfish-beta-1:/ironfishdata
@@ -21,6 +22,7 @@ services:
             - "9002:9002"
         networks:
             - node_network
+        restart: unless-stopped     
         command: start -v --name node2 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8002 --port 9002 --bootstrap='node1:9001' --datadir /ironfishdata
         volumes:
             - ~/.ironfish-beta-2:/ironfishdata
@@ -32,6 +34,7 @@ services:
             - "node1"
         networks:
             - node_network
+        restart: unless-stopped    
         command: miners:start --rpc.tcp --rpc.tcp.host=node1 --rpc.tcp.port=8001
 
 networks:
