@@ -125,7 +125,7 @@ export class Blockchain<
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
-    this.logAllBlockAdd = options.logAllBlockAdd || true
+    this.logAllBlockAdd = options.logAllBlockAdd || false
 
     // TODO: Delete
     this.looseNotes = {}

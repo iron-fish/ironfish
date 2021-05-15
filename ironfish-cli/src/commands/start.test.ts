@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
 import * as ironfishmodule from 'ironfish'
+import { IronfishBlockchain } from 'ironfish'
 
 jest.mock('ironfish', () => {
   const originalModule = jest.requireActual('ironfish')
@@ -30,6 +31,9 @@ jest.mock('ironfish', () => {
 describe('start command', () => {
   let isFirstRun = true
   let hasGenesisBlock = false
+  let chain: { hasGenesisBlock: boolean } = {
+    hasGenesisBlock: hasGenesisBlock,
+  }
 
   const setConfig = jest.fn()
   const setOverrideConfig = jest.fn()
@@ -76,10 +80,6 @@ describe('start command', () => {
       localPeer: {
         publicIdentity: 'identity',
       },
-    }
-
-    const chain = {
-      hasGenesisBlock: jest.fn().mockReturnValue(hasGenesisBlock),
     }
 
     const node = {
@@ -137,7 +137,7 @@ describe('start command', () => {
   describe('second run', () => {
     beforeAll(() => {
       isFirstRun = false
-      hasGenesisBlock = true
+      chain.hasGenesisBlock = true
     })
     test
       .stdout()
