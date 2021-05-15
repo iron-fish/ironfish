@@ -416,15 +416,6 @@ export class Syncer {
     Assert.isTrue(isAdded)
     this.speed.add(1)
 
-    if (Number(block.header.sequence) % 20 === 0) {
-      this.logger.info(
-        `Added block:` +
-          ` seq: ${Number(serialized.header.sequence)}` +
-          ` hash: ${HashUtils.renderBlockHeaderHash(block.header)}` +
-          ` progress: ${(this.chain.progress * 100).toFixed(2)}%`,
-      )
-    }
-
     return { added: true, block, reason: reason || null }
   }
 
