@@ -387,12 +387,9 @@ export class Syncer {
     Assert.isNotNull(this.chain.head)
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
+    const { isAdded, reason } = await this.chain.addBlock(block)
 
-    // TODO: after addBlock has removed blocks and doesn't add
-    // orphans, we should move this back below the verification
-    // checking and banning
-    const isOrphan = !(await this.chain.hasBlock(block.header.previousBlockHash))
-    if (isOrphan) {
+    if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
       )
@@ -404,7 +401,9 @@ export class Syncer {
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
-    const { isAdded, reason } = await this.chain.addBlock(block)
+    if (reason === VerificationResultReason.DUPLICATE) {
+      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
+    }
 
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
