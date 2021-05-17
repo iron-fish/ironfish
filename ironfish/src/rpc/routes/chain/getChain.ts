@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { printChain } from './utils'
+import { renderChain } from './utils'
 
 export type GetChainRequest = Record<string, never> | undefined
 
@@ -28,7 +28,7 @@ router.register<typeof GetChainRequestSchema, GetChainResponse>(
   `${ApiNamespace.chain}/getChain`,
   GetChainRequestSchema,
   async (request, node): Promise<void> => {
-    const content = await printChain(node.chain)
+    const content = await renderChain(node.chain)
     request.end({ content })
   },
 )

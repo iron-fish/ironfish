@@ -33,7 +33,7 @@ export async function makeGenesisBlock(
   logger: Logger,
 ): Promise<{ block: IronfishBlock }> {
   logger = logger.withTag('makeGenesisBlock')
-  if (!(await chain.isEmpty())) {
+  if (!chain.isEmpty) {
     throw new Error('Database must be empty to create a genesis block.')
   }
   // Sum the allocations to get the total number of coins

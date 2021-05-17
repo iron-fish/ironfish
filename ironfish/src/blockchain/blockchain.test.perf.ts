@@ -89,7 +89,7 @@ describe('Blockchain', () => {
         samplesAll.push(endAll - startAll)
 
         // Verify the head is the last block in blocksB
-        const actualHead = await node.chain.getHeaviestHead()
+        const actualHead = node.chain.head
         const expectedHead = blocksB[forkLength - 1]
         Assert.isNotNull(actualHead, 'Chain has no head')
         expect(actualHead.hash.toString('hex')).toEqual(

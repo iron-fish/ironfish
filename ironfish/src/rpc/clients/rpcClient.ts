@@ -180,7 +180,7 @@ export abstract class IronfishRpcClient {
   }
 
   async getChainInfo(
-    params: GetChainInfoRequest,
+    params: GetChainInfoRequest = undefined,
   ): Promise<ResponseEnded<GetChainInfoResponse>> {
     return this.request<GetChainInfoResponse>('chain/getChainInfo', params).waitForEnd()
   }

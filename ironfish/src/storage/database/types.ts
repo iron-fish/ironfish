@@ -6,7 +6,7 @@ import { Serde, IJsonSerializable } from '../../serde'
 import { IDatabase } from './database'
 import { IDatabaseTransaction } from './transaction'
 
-export type DatabaseKey = number | string | Date | Buffer | Array<IJsonSerializable>
+export type DatabaseKey = bigint | number | string | Date | Buffer | Array<IJsonSerializable>
 
 export type DatabaseSchema = {
   key: DatabaseKey

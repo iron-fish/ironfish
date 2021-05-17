@@ -218,38 +218,26 @@ export class Syncer {
     const hasHash = async (
       hash: Buffer | null,
     ): Promise<{ found: boolean; local: IronfishBlockHeader | null }> => {
-      // This function is temporary and will be deleted once graphs are
-      // deleted. This will check a result from a peer during ancestry check,
-      // and see if connected to the genesis block. If not, we consider it a
-      // search miss. This avoids getting stuck trying to sync an orphan island,
-      // without having the correct ancestor block before the island and is only
-      // needed because we add orphans to the block chain.
-
       if (hash == null) {
         return { found: false, local: null }
       }
 
-      const [genesisHash, local, resolved] = await Promise.all([
-        this.chain.getGenesisHash(),
-        this.chain.getBlockHeader(hash),
-        this.chain.resolveBlockGraph(hash),
-      ])
-
-      if (!genesisHash || !local || !resolved) {
+      const header = await this.chain.getHeader(hash)
+      if (!header) {
         return { found: false, local: null }
       }
 
-      const found = resolved.tailHash.equals(genesisHash)
-      return { found, local }
+      const found = await this.chain.isHeadChain(header)
+      return { found: found, local: header }
     }
 
     // First we search linearly backwards in case we are on the main chain already
     const start = MathUtils.min(peer.sequence, this.chain.head.sequence)
 
     this.logger.info(
-      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks from ${
-        peer.sequence
-      } starting at ${HashUtils.renderHash(this.chain.head.hash)}`,
+      `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks starting at ${HashUtils.renderHash(
+        this.chain.head.hash,
+      )} (${this.chain.head.sequence}) from peer ${peer.displayName} at ${peer.sequence}`,
     )
 
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
@@ -399,7 +387,6 @@ export class Syncer {
     Assert.isNotNull(this.chain.head)
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
-
     const { isAdded, reason } = await this.chain.addBlock(block)
 
     if (reason === VerificationResultReason.ORPHAN) {
@@ -412,6 +399,10 @@ export class Syncer {
       }
 
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
+    }
+
+    if (reason === VerificationResultReason.DUPLICATE) {
+      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
     }
 
     if (reason) {

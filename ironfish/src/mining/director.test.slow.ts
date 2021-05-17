@@ -51,7 +51,7 @@ describe('Mining director', () => {
   let chain: TestBlockchain
   let targetSpy: jest.SpyInstance
   let targetMeetsSpy: jest.SpyInstance
-  let isAddBlockValidSpy: jest.SpyInstance
+  let verifyBlockAddSpy: jest.SpyInstance
   let memPool: TestMemPool
   let director: MiningDirector<
     string,
@@ -65,7 +65,7 @@ describe('Mining director', () => {
   beforeEach(async () => {
     chain = await makeChainGenesis(strategy, makeDbName())
 
-    isAddBlockValidSpy = jest.spyOn(chain.verifier, 'isAddBlockValid').mockResolvedValue({
+    verifyBlockAddSpy = jest.spyOn(chain.verifier, 'verifyBlockAdd').mockResolvedValue({
       valid: Validity.Yes,
     })
 
@@ -108,14 +108,14 @@ describe('Mining director', () => {
   afterAll(() => {
     targetSpy.mockClear()
     targetMeetsSpy.mockClear()
-    isAddBlockValidSpy.mockClear()
+    verifyBlockAddSpy.mockClear()
   })
 
   it('creates a new block to be mined when chain head changes', async () => {
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
     const [data] = await listenPromise
     const buffer = Buffer.from(data.bytes)
     const block = JSON.parse(buffer.toString()) as Partial<SerializedBlockHeader<string>>
@@ -139,11 +139,11 @@ describe('Mining director', () => {
         { nullifier: makeNullifier(9), commitment: '0-3', size: 4 },
       ]),
     )
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -169,11 +169,11 @@ describe('Mining director', () => {
       ]),
     )
 
-    const chainHead = await chain.getHeaviestHead()
+    const chainHead = chain.head
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onChainHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -355,7 +355,7 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty + BigInt(10000000000))
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.chain.getHeaviestHead()
+    const heaviestHeader = director.chain.head
     Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')
@@ -370,7 +370,7 @@ describe('Recalculating target', () => {
     const newTarget = Target.fromDifficulty(minDifficulty)
     jest.spyOn(Target, 'calculateTarget').mockReturnValueOnce(newTarget)
 
-    const heaviestHeader = await director.chain.getHeaviestHead()
+    const heaviestHeader = director.chain.head
     Assert.isNotNull(heaviestHeader)
 
     const spy = jest.spyOn(director, 'constructAndMineBlock')

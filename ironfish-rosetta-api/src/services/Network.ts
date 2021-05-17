@@ -30,7 +30,7 @@ export const NetworkStatus = async (
   const rpc = await RPCClient.init()
   await rpc.sdk.client.connect()
 
-  const chainInfo: ResponseEnded<GetChainInfoResponse> = await rpc.sdk.client.getChainInfo({})
+  const chainInfo: ResponseEnded<GetChainInfoResponse> = await rpc.sdk.client.getChainInfo()
 
   if (!chainInfo || !chainInfo.content) {
     throw new Error(`Chain info data not found`)
