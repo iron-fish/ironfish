@@ -5,6 +5,8 @@ on:
       - 'ironfish-wasm/**'
       - 'rust-toolchain'
   push:
+    branches:
+      - master
     paths:
     - 'ironfish-rust/**'
     - 'ironfish-wasm/**'
