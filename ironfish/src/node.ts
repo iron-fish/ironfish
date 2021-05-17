@@ -23,6 +23,7 @@ import { IronfishStrategy } from './strategy'
 import { IronfishVerifier } from './consensus/verifier'
 import { IronfishBlock, SerializedBlock } from './primitives/block'
 import { Syncer } from './syncer'
+import { GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class IronfishNode {
   chain: IronfishBlockchain
@@ -168,7 +169,12 @@ export class IronfishNode {
     strategyClass = strategyClass || IronfishStrategy
     const strategy = new strategyClass(workerPool, verifierClass)
 
-    const chain = new Blockchain(config.chainDatabasePath, strategy, logger, metrics)
+    const chain = new Blockchain({
+      location: config.chainDatabasePath,
+      strategy,
+      logger,
+      metrics,
+    })
 
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
 
@@ -286,17 +292,22 @@ export class IronfishNode {
     }
   }
 
+  /**
+   * Insert the genesis block into the chain
+   */
   async seed(): Promise<IronfishBlock> {
-    const genesisHash = await this.chain.getGenesisHash()
-    let genesis = genesisHash ? await this.chain.getBlock(genesisHash) : null
-
-    if (!genesis) {
-      const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-      genesis = this.strategy.blockSerde.deserialize(serialized)
-      const result = await this.chain.addBlock(genesis)
-      Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+    if (!this.chain.isEmpty) {
+      const header = await this.chain.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+      Assert.isNotNull(header)
+      const genesis = await this.chain.getBlock(header)
+      Assert.isNotNull(genesis)
+      return genesis
     }
 
+    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
+    const genesis = this.strategy.blockSerde.deserialize(serialized)
+    const result = await this.chain.addBlock(genesis)
+    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     return genesis
   }
 

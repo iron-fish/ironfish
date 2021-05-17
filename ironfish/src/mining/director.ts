@@ -181,7 +181,7 @@ export class MiningDirector<
       this.setMinerAccount(options.account)
     }
 
-    this.chain.onChainHeadChange.on((newChainHead: BlockHash) => {
+    this.chain.onHeadChange.on((newChainHead: BlockHash) => {
       void this.onChainHeadChange(newChainHead).catch((err) => {
         this.logger.error(err)
       })
@@ -343,7 +343,7 @@ export class MiningDirector<
       totalTransactionFees += transactionFee
     }
 
-    const blockHeader = await this.chain.getBlockHeader(newChainHead)
+    const blockHeader = await this.chain.getHeader(newChainHead)
     if (!blockHeader) {
       // Chain normally has a header for a heaviestHead. Block could be removed
       // if a predecessor is proven invalid while this task is running. (unlikely but possible)

@@ -12,7 +12,6 @@ import Serde, {
   GraffitiSerdeInstance,
   BlockHashSerdeInstance,
 } from '../serde'
-import { GRAPH_ID_NULL } from '../blockchain/blockchain'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
@@ -29,6 +28,44 @@ export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   const hash = createHash()
   hash.update(serializedHeader)
   return hash.digest()
+}
+
+export function isBlockLater<
+  E,
+  H,
+  T extends Transaction<E, H>,
+  SE extends JsonSerializable,
+  SH extends JsonSerializable,
+  ST
+>(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
+  if (a.sequence !== b.sequence) {
+    return a.sequence > b.sequence
+  }
+
+  return a.hash < b.hash
+}
+
+export function isBlockHeavier<
+  E,
+  H,
+  T extends Transaction<E, H>,
+  SE extends JsonSerializable,
+  SH extends JsonSerializable,
+  ST
+>(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
+  if (a.work !== b.work) {
+    return a.work > b.work
+  }
+
+  if (a.sequence !== b.sequence) {
+    return a.sequence > b.sequence
+  }
+
+  if (a.target.toDifficulty() !== b.target.toDifficulty()) {
+    return a.target.toDifficulty() > b.target.toDifficulty()
+  }
+
+  return a.hash < b.hash
 }
 
 export class BlockHeader<
@@ -108,29 +145,9 @@ export class BlockHeader<
 
   /**
    * (For internal uses — excluded when sent over the network)
-   * Is this block valid. If valid, all blocks before it are also valid
-   */
-  public isValid: boolean
-
-  /**
-   * (For internal uses — excluded when sent over the network)
    * Cumulative work from genesis to this block
    */
   public work: bigint
-
-  /**
-   * (For internal uses — excluded when sent over the network)
-   * graphId of GRAPH_ID_NULL (0) indicates no graph has been assigned to a block
-   * (should never happen after block has been added)
-   */
-  public graphId: number
-
-  /**
-   * (For internal uses — excluded when sent over the network)
-   * the number of blocks pointing to this one
-   * (number of next blocks)
-   */
-  public count: number
 
   public hash: Buffer
 
@@ -145,10 +162,7 @@ export class BlockHeader<
     timestamp: Date | undefined = undefined,
     minersFee: BigInt,
     graffiti: Buffer,
-    isValid = false,
     work = BigInt(0),
-    graphId: number = GRAPH_ID_NULL,
-    count = 0,
     hash?: Buffer,
   ) {
     this.strategy = strategy
@@ -160,10 +174,7 @@ export class BlockHeader<
     this.randomness = randomness
     this.timestamp = timestamp || new Date()
     this.minersFee = minersFee
-    this.isValid = isValid
     this.work = work
-    this.graphId = graphId
-    this.count = count
     this.graffiti = graffiti
     this.hash = hash || this.recomputeHash()
   }
@@ -242,10 +253,7 @@ export type SerializedBlockHeader<SH> = {
   timestamp: number
   minersFee: string
 
-  isValid: boolean
   work: string
-  graphId: number
-  count: number
   hash: string
   graffiti: string
 }
@@ -309,10 +317,7 @@ export class BlockHeaderSerde<
       randomness: header.randomness,
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
-      isValid: header.isValid,
       work: header.work.toString(),
-      graphId: header.graphId,
-      count: header.count,
       hash: BlockHashSerdeInstance.serialize(header.hash),
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
     }
@@ -346,10 +351,7 @@ export class BlockHeaderSerde<
       new Date(data.timestamp),
       BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-      data.isValid,
       data.work ? BigInt(data.work) : BigInt(0),
-      data.graphId,
-      data.count,
       Buffer.from(BlockHashSerdeInstance.deserialize(data.hash)),
     )
 
