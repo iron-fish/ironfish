@@ -31,7 +31,7 @@ declare module 'buffer-map' {
     readonly size: number
 
     has(key: Buffer): boolean
-    set(key: Buffer): this
+    add(key: Buffer): this
     delete(key: Buffer): boolean
     clear(): void
 

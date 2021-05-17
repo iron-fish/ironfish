@@ -341,53 +341,6 @@ export class Verifier<
     })
   }
 
-  async isAddBlockValid(
-    previousHeader: BlockHeader<E, H, T, SE, SH, ST> | null,
-    block: Block<E, H, T, SE, SH, ST> | null,
-    addingGenesis: boolean,
-    addingToGenesis: boolean,
-    tx: IDatabaseTransaction,
-  ): Promise<VerificationResult> {
-    if (addingGenesis) {
-      return { valid: Validity.Yes }
-    }
-
-    if (!block) {
-      return { valid: Validity.No }
-    }
-
-    // if there's no previous block, we can't know if it's valid
-    if (!previousHeader) {
-      return { valid: Validity.Unknown }
-    }
-
-    // if there is a previous block, but it's not connected to genesis,
-    // then we also can't know if it's valid
-    if (!addingToGenesis) {
-      return { valid: Validity.Unknown }
-    }
-
-    return block.withTransactionReferences(async () => {
-      // now we know we have a previous, previous is connected to genesis
-      // (and therefore valid), so now we can check our current block
-      let verification
-
-      verification = this.isValidAgainstPrevious(block, previousHeader)
-      if (verification.valid == Validity.No) {
-        return verification
-      }
-
-      verification = await this.verifyBlock(block)
-      if (verification.valid == Validity.No) {
-        return verification
-      }
-
-      verification = await this.hasValidSpends(block, tx)
-
-      return verification
-    })
-  }
-
   /**
    * Verify that the given spend was not in the nullifiers tree when it was the given size,
    * and that the root of the notes tree is the one that is actually associated with the

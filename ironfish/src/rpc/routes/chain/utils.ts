@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
-import { Blockchain, GRAPH_ID_NULL } from '../../../blockchain'
-import { Graph } from '../../../blockchain/graph'
-import { Block } from '../../../primitives/block'
-import { Transaction } from '../../../primitives/transaction'
-import { BlockHashSerdeInstance, JsonSerializable } from '../../../serde'
+import { Blockchain } from '../../../blockchain'
+import { BlockHeader } from '../../../primitives/blockheader'
+import { BufferSet } from 'buffer-map'
+import { createRootLogger, Logger } from '../../../logger'
 import { HashUtils } from '../../../utils'
+import { JsonSerializable } from '../../../serde'
+import { Transaction } from '../../../primitives/transaction'
+import { checkTreeMatchesHeaviest } from '../../../blockchain/utils'
 
-/**
- * When shown, graph ids are simplified ids for debugging and not their real ids
- */
-export async function printGraph<
+const DEFAULT_OPTIONS = {
+  seq: true,
+  work: true,
+  indent: '|',
+}
+
+export async function logChain<
   E,
   H,
   T extends Transaction<E, H>,
@@ -21,145 +26,28 @@ export async function printGraph<
   ST
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
-  genesisGraph: Graph,
-  graph: Graph,
-  block: Block<E, H, T, SE, SH, ST>,
-  indent: string,
-  last: boolean,
-  content: string[],
-  seen = new Set<string>(),
-  simpleGraphIds: { id: number; ids: Map<number, number> } = {
-    id: 0,
-    ids: new Map<number, number>(),
-  },
-  show: {
-    gph?: boolean
-    gphSimple?: boolean
+  start?: bigint | null,
+  end?: bigint | null,
+  options: {
     prev?: boolean
     merge?: boolean
     seq?: boolean
     work?: boolean
-    indent?: boolean
-  } = {
-    seq: true,
-    work: true,
-  },
+    indent?: string
+  } = DEFAULT_OPTIONS,
+  logger?: Logger,
 ): Promise<void> {
-  const blockHash = block.header.hash.toString('hex')
-  seen.add(blockHash)
+  const content = await renderChain(chain, start, end, options, logger)
 
-  const isLatest = BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.latestHash)
-    ? ' LATEST'
-    : ''
-
-  const isHeaviest =
-    genesisGraph.heaviestHash &&
-    BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.heaviestHash)
-      ? ' HEAVY'
-      : ''
-
-  const isTail = BlockHashSerdeInstance.equals(block.header.hash, genesisGraph.tailHash)
-    ? ' TAIL'
-    : ''
-
-  const isGenesis = BlockHashSerdeInstance.equals(
-    block.header.hash,
-    (await chain.getGenesisHash()) || Buffer.from(''),
-  )
-    ? ' GENESIS'
-    : ''
-
-  const blockString = HashUtils.renderHashHex(blockHash)
-
-  function resolveGraphId(graphId: number): number {
-    if (!show.gphSimple) return graphId
-
-    if (!simpleGraphIds.ids.has(graphId)) {
-      simpleGraphIds.ids.set(graphId, ++simpleGraphIds.id)
-    }
-
-    const simpleId = simpleGraphIds.ids.get(graphId)
-    Assert.isNotUndefined(simpleId)
-    return simpleId
-  }
-
-  // Reduce graphs down to simple integer
-  const graphId = resolveGraphId(block.header.graphId)
-
-  const suffixParts = []
-  if (show.seq) {
-    suffixParts.push(`${block.header.sequence} seq`)
-  }
-  if (show.prev) {
-    suffixParts.push(`prev ${HashUtils.renderHash(block.header.previousBlockHash)}`)
-  }
-  if (show.gph) {
-    suffixParts.push(`gph ${graphId}`)
-  }
-  if (show.work) {
-    suffixParts.push(`work: ${block.header.work.toString()}`)
-  }
-  if (show.merge) {
-    const graph = await chain.getGraph(block.header.graphId)
-
-    if (graph && graph.mergeId !== null) {
-      const mergeId = resolveGraphId(graph.mergeId)
-      suffixParts.push(`mrg ${mergeId}`)
-    }
-  }
-  const suffix = suffixParts.length ? ` (${suffixParts.join(', ')})` : ''
-  const indentation = show.indent ? '  ' : ''
-
-  content.push(
-    indent + `+- Block ${blockString}${suffix}${isLatest}${isHeaviest}${isTail}${isGenesis}`,
-  )
-
-  indent += last ? `${indentation}` : `| ${indentation}`
-
-  let children = await Promise.all(
-    (await chain.getBlockToNext(block.header.hash)).map(async (h) => {
-      const block = await chain.getBlock(h)
-      if (!block) throw new Error('block was totally not there')
-
-      const graph =
-        block.header.graphId === GRAPH_ID_NULL
-          ? null
-          : await chain.getGraph(block.header.graphId)
-
-      return [block, graph] as [Block<E, H, T, SE, SH, ST>, Graph]
-    }),
-  )
-
-  children = children.filter(([b, g]) => {
-    return b.header.graphId === graph.id || g.mergeId === graph.id
-  })
-
-  for (let i = 0; i < children.length; i++) {
-    const [child, childGraph] = children[i]
-    const childHash = child.header.hash.toString('hex')
-
-    if (seen.has(childHash)) {
-      // eslint-disable-next-line no-console
-      console.error(`ERROR FOUND LOOPING CHAIN ${blockHash} -> ${childHash}`)
-      return
-    }
-
-    await printGraph(
-      chain,
-      genesisGraph,
-      childGraph,
-      child,
-      indent,
-      i == children.length - 1,
-      content,
-      seen,
-      simpleGraphIds,
-      show,
-    )
+  if (logger) {
+    logger.info(content.join('\n'))
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(content.join('\n'))
   }
 }
 
-export async function printChain<
+export async function renderChain<
   E,
   H,
   T extends Transaction<E, H>,
@@ -168,59 +56,133 @@ export async function printChain<
   ST
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
-  show: {
-    gph?: boolean
-    gphSimple?: boolean
+  start?: bigint | null,
+  end?: bigint | null,
+  options: {
     prev?: boolean
-    merge?: boolean
     seq?: boolean
     work?: boolean
-    indent?: boolean
-  } = {
-    seq: true,
-    work: true,
-  },
+    indent?: string
+  } = DEFAULT_OPTIONS,
+  logger = createRootLogger(),
 ): Promise<string[]> {
   const content: string[] = []
-  const graphs = await chain.graphs.getAllValues()
-  const treeStatus = await chain.checkTreeMatchesHeaviest()
+  const status = await checkTreeMatchesHeaviest(chain)
 
-  const simpleGraphIds = {
-    id: 0,
-    ids: new Map<number, number>(),
+  content.push(
+    '======',
+    `GENESIS: ${chain.genesis?.hash.toString('hex') || '-'}`,
+    `HEAD:    ${chain.head?.hash.toString('hex') || '-'}`,
+    `LATEST:  ${chain.latest?.hash.toString('hex') || '-'}`,
+    `TREES:   ${status ? 'OK' : 'ERROR'}`,
+    '======',
+  )
+
+  if (!chain.genesis || !chain.head || !chain.latest) {
+    return content
   }
 
-  for (const graph of graphs) {
-    if (graph.mergeId !== null) continue
+  start = start || chain.genesis.sequence
+  end = end || chain.latest.sequence
 
-    content.push(
-      '\n======',
-      'TAIL',
-      graph.tailHash.toString('hex'),
-      'HEAVIEST',
-      graph.heaviestHash ? graph.heaviestHash.toString('hex') : '---NULL---',
-      'LATEST',
-      graph.latestHash.toString('hex'),
-      'TREES OKAY?',
-      treeStatus ? 'TRUE' : 'FALSE',
-    )
+  const roots = await chain.getHeadersAtSequence(start)
 
-    const tail = await chain.getBlock(graph.tailHash)
-    if (!tail) throw new Error('no tail is bad')
-
-    await printGraph(
-      chain,
-      graph,
-      graph,
-      tail,
-      '',
-      true,
-      content,
-      undefined,
-      simpleGraphIds,
-      show,
-    )
+  for (const root of roots) {
+    await renderGraph(chain, root, end, content, options, logger)
   }
 
   return content
+}
+
+export async function renderGraph<
+  E,
+  H,
+  T extends Transaction<E, H>,
+  SE extends JsonSerializable,
+  SH extends JsonSerializable,
+  ST
+>(
+  chain: Blockchain<E, H, T, SE, SH, ST>,
+  header: BlockHeader<E, H, T, SE, SH, ST>,
+  end: bigint,
+  content: string[],
+  options: {
+    prev?: boolean
+    seq?: boolean
+    work?: boolean
+    indent?: string
+  } = DEFAULT_OPTIONS,
+  logger = createRootLogger(),
+  last = true,
+  only = true,
+  indent = '',
+  seen = new BufferSet(),
+): Promise<void> {
+  Assert.isNotNull(chain.latest)
+  Assert.isNotNull(chain.head)
+  Assert.isNotNull(chain.genesis)
+
+  seen.add(header.hash)
+
+  let rendered = `+- Block ${HashUtils.renderHash(header.hash)}`
+
+  if (options.seq) {
+    rendered += ` (${header.sequence})`
+  }
+  if (options.prev) {
+    rendered += ` prev: ${HashUtils.renderHash(header.previousBlockHash)}`
+  }
+  if (options.work) {
+    rendered += ` work: ${header.work.toString()}`
+  }
+
+  if (header.hash.equals(chain.latest.hash)) {
+    rendered += ' LATEST'
+  }
+  if (header.hash.equals(chain.head.hash)) {
+    rendered += ' HEAD'
+  }
+  if (header.hash.equals(chain.genesis.hash)) {
+    rendered += ' GENESIS'
+  }
+  if (last) {
+    rendered += ' LAST'
+  }
+  if (only) {
+    rendered += ' ONLY'
+  }
+
+  content.push(indent + rendered)
+
+  if (header.sequence === end) {
+    return
+  }
+
+  const next = await chain.getHeadersAtSequence(header.sequence + BigInt(1))
+  const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
+  const nesting = children.length >= 2
+
+  const indentation = nesting ? options.indent || '' : ''
+  indent += last ? indentation : `| ${indentation}`
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
+
+    if (seen.has(child.hash)) {
+      logger.error(
+        `ERROR FOUND LOOPING CHAIN ${header.hash.toString('hex')} -> ${child.hash.toString(
+          'hex',
+        )}`,
+      )
+      return
+    }
+
+    const last = i == children.length - 1
+    const only = children.length === 1
+    await renderGraph(chain, child, end, content, options, logger, last, only, indent, seen)
+
+    if (!last) {
+      content.push(indent + '--')
+    }
+  }
 }

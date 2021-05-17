@@ -12,16 +12,15 @@ describe('Accounts', () => {
     const { node, chain, strategy } = nodeTest
     strategy.disableMiningReward()
 
-    const getTransactionsSpy = jest.spyOn(chain, 'getTransactionsForBlock')
+    const getTransactionsSpy = jest.spyOn(chain, 'iterateBlockTransactions')
 
     // G
     await node.seed()
-    const genesis = await chain.getGenesisHeader()
-    Assert.isNotNull(genesis)
+    Assert.isNotNull(chain.genesis)
 
     // G -> A1
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    await chain.addBlock(blockA1)
+    const blockA1 = await makeBlockAfter(chain, chain.genesis)
+    await expect(chain).toAddBlock(blockA1)
 
     await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockA1.header.hash.toString('hex'))
@@ -29,7 +28,7 @@ describe('Accounts', () => {
 
     // G -> A1 -> A2
     const blockA2 = await makeBlockAfter(chain, blockA1)
-    await chain.addBlock(blockA2)
+    await expect(chain).toAddBlock(blockA2)
 
     await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockA2.header.hash.toString('hex'))
@@ -38,12 +37,13 @@ describe('Accounts', () => {
     // Add 3 more on a heavier fork. Chain A should be removed first, then chain B added
     // G -> A1 -> A2
     //   -> B1 -> B2 -> B3
-    const blockB1 = await makeBlockAfter(chain, genesis)
+    const blockB1 = await makeBlockAfter(chain, chain.genesis)
     const blockB2 = await makeBlockAfter(chain, blockB1)
     const blockB3 = await makeBlockAfter(chain, blockB2)
-    await chain.addBlock(blockB1)
-    await chain.addBlock(blockB2)
-    await chain.addBlock(blockB3)
+
+    await expect(chain).toAddBlock(blockB1)
+    await expect(chain).toAddBlock(blockB2)
+    await expect(chain).toAddBlock(blockB3)
 
     await node.accounts.updateHead()
     expect(node.accounts['headHash']).toEqual(blockB3.header.hash.toString('hex'))
