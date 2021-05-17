@@ -4,11 +4,9 @@
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { Assert } from '../../../assert'
 import * as yup from 'yup'
-
 import { ApiNamespace, router } from '../router'
 import { BlockHashSerdeInstance } from '../../../serde'
 
-export type GetChainInfoRequest = Record<string, never>
 export type BlockIdentifier = { index: string; hash: string }
 
 export interface ChainInfo {
@@ -17,12 +15,13 @@ export interface ChainInfo {
   oldestBlockIdentifier: BlockIdentifier
   currentBlockTimestamp: number
 }
+
+export type GetChainInfoRequest = Record<string, never> | undefined
 export type GetChainInfoResponse = ChainInfo
 
-export const GetChainInfoRequestSchema: yup.ObjectSchema<GetChainInfoRequest> = yup
-  .object<Record<string, never>>()
-  .noUnknown()
-  .defined()
+export const GetChainInfoRequestSchema: yup.MixedSchema<GetChainInfoRequest> = yup
+  .mixed()
+  .oneOf([undefined] as const)
 
 export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> = yup
   .object({
@@ -45,9 +44,12 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
 router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
-  async (request, node): Promise<void> => {
-    const latestHeader = await node.chain.getLatestHead()
-    const heaviestHeader = await node.chain.getHeaviestHead()
+  (request, node): void => {
+    Assert.isNotNull(node.chain.genesis, 'no genesis')
+
+    const latestHeader = node.chain.latest
+    const heaviestHeader = node.chain.head
+
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
       oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
@@ -62,12 +64,9 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
       currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
     }
 
-    const genesisBlockHash = await node.chain.getGenesisHash()
-    Assert.isNotNull(genesisBlockHash)
-
     const genesisBlockIdentifier = {} as BlockIdentifier
     genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
-    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(genesisBlockHash)
+    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
     request.end({
       currentBlockIdentifier,

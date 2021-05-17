@@ -31,7 +31,7 @@ describe('Genesis block test', () => {
   it('Can start a chain with the existing genesis block', async () => {
     const workerPool = new WorkerPool()
     const strategy = new IronfishStrategy(workerPool)
-    const chain = new Blockchain(makeDbPath(), strategy)
+    const chain = new Blockchain({ location: makeDbPath(), strategy })
     await chain.db.open()
 
     const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
