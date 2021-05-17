@@ -7,7 +7,7 @@ import cli from 'cli-ux'
 
 export default class ReAddBlock extends IronfishCommand {
   static description =
-    'Remove and readd a block on the chain if its got no other blocks after it'
+    'Remove and readd a block on the chain if it has no other blocks after it'
 
   static hidden = true
 
