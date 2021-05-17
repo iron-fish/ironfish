@@ -1,4 +1,9 @@
-on: 
+on:
+  pull_request:
+    paths:
+      - 'ironfish-rust/**'
+      - 'ironfish-wasm/**'
+      - 'rust-toolchain'
   push:
     paths:
     - 'ironfish-rust/**'
