@@ -358,6 +358,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
         if hash_result == [0; 32] {
             return Err(errors::SaplingKeyError::InvalidViewingKey);
         }
-        Ok(read_scalar(&hash_result[..])?)
+        let scalar = read_scalar(&hash_result[..])?;
+        Ok(scalar)
     }
 }

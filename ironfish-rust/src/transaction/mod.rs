@@ -234,7 +234,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
         }
 
         let mut hash_result = [0; 32];
-        hash_result[..].clone_from_slice(&hasher.finalize().as_ref()[..]);
+        hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
         hash_result
     }
 
@@ -488,7 +488,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         }
 
         let mut hash_result = [0; 32];
-        hash_result[..].clone_from_slice(&hasher.finalize().as_ref()[..]);
+        hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
         hash_result
     }
 
