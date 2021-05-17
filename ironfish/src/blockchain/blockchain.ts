@@ -1054,7 +1054,7 @@ export class Blockchain<
 
       const next = await this.getHeadersAtSequence(header.sequence + BigInt(1), tx)
       if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
-        throw new Error(`Cannot delete block when ${next.length} thigns are connected`)
+        throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
       }
 
       if (this.head?.hash.equals(hash)) {
