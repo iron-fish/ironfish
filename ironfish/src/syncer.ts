@@ -401,6 +401,9 @@ export class Syncer {
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
+    if (reason === VerificationResultReason.DUPLICATE) {
+      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
+    }
 
     if (reason) {
       // TODO jspafford: Increase ban by ban amount, should return from addBlock
