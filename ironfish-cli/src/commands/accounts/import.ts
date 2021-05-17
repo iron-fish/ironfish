@@ -6,6 +6,7 @@ import { IronfishCommand } from '../../command'
 import { JSONUtils, PromiseUtils, Account } from 'ironfish'
 import fs from 'fs'
 import { flags } from '@oclif/command'
+import { cli } from 'cli-ux'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -39,19 +40,25 @@ export class ImportCommand extends IronfishCommand {
     if (importPath) {
       const resolved = this.sdk.fileSystem.resolve(importPath)
       data = fs.readFileSync(resolved, 'utf8')
-    } else if (process.stdin) {
-      data = ''
-
-      const onData = (dataIn: string): void => {
-        data += dataIn
-      }
-
-      process.stdin.setEncoding('utf8')
-      process.stdin.on('data', onData)
-      while (!process.stdin.readableEnded) {
-        await PromiseUtils.sleep(100)
-      }
-      process.stdin.off('data', onData)
+    } else {
+      const importAccountName= (await cli.prompt('Enter the account name', {
+        required: true,
+      })) as string
+      const importSpendingKey = (await cli.prompt('Enter the account spending key', {
+        required: true,
+      })) as string
+      const importIncomingViewKey = (await cli.prompt('Enter the account incoming view key', {
+        required: true,
+      })) as string
+      const importOutgoingViewKey = (await cli.prompt('Enter the account outgoing view key', {
+        required: true,
+      })) as string
+      const importPublicAddress = (await cli.prompt('Enter the account public address', {
+        required: true,
+      })) as string
+      data = `{"name": "${importAccountName}", "spendingKey": "${importSpendingKey}",
+      "incomingViewKey": "${importIncomingViewKey}", "outgoingViewKey": "${importOutgoingViewKey}",
+      "publicAddress": "${importPublicAddress}"}`
     }
 
     if (data === null) {
