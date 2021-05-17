@@ -11,10 +11,7 @@ describe('Route chain.getChainInfo', () => {
   it('returns the right object with hash', async () => {
     await routeTest.node.seed()
 
-    const response = await routeTest.adapter.request<GetChainInfoResponse>(
-      'chain/getChainInfo',
-      {},
-    )
+    const response = await routeTest.adapter.request<GetChainInfoResponse>('chain/getChainInfo')
 
     expect(response.content.currentBlockIdentifier.index).toEqual(
       routeTest.chain.latest?.sequence.toString(),

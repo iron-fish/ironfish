@@ -63,7 +63,7 @@ export class Syncer {
 
     Logger.debug('Syncer connected')
 
-    const networkStatus = await this.rpc.sdk.client.getChainInfo({})
+    const networkStatus = await this.rpc.sdk.client.getChainInfo()
 
     // no latest block
     if (!networkStatus || !networkStatus.content) {
