@@ -38,7 +38,7 @@ export default class ReAddBlock extends IronfishCommand {
     const block = await node.chain.getBlock(hash)
 
     if (!block) {
-      this.log(`No block found with has ${hash.toString('hex')}`)
+      this.log(`No block found with hash ${hash.toString('hex')}`)
       this.exit(0)
     }
 
