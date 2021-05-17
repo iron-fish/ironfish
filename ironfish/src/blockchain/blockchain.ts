@@ -600,7 +600,7 @@ export class Blockchain<
     const { fork } = await this.findFork(oldHeaviestHead, newHeaviestHeader, tx)
     Assert.isNotNull(fork, 'No fork found')
 
-    // Step 1: remove loost notes and loose nullifiers from queue as they are stale
+    // Step 1: remove loose notes and loose nullifiers from queue as they are stale
     this.looseNotes = {}
     this.looseNullifiers = {}
 
