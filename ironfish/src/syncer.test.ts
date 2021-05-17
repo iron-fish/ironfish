@@ -6,6 +6,7 @@ import { Assert } from './assert'
 import { createNodeTest } from './testUtilities/nodeTest'
 import { getConnectedPeer } from './network/testUtilities'
 import { PromiseUtils } from './utils'
+import { makeBlockAfter } from './testUtilities/helpers/blockchain'
 
 describe('Syncer', () => {
   const nodeTest = createNodeTest()
@@ -135,5 +136,54 @@ describe('Syncer', () => {
     expect(syncer.stopping).toBe(null)
     expect(syncer.state).toEqual('idle')
     expect(syncer.loader).toBe(null)
+  })
+
+  it('should sync blocks', async () => {
+    const { strategy, node, chain, peerNetwork, syncer } = nodeTest
+    const genesis = await node.seed()
+
+    strategy.disableMiningReward()
+    syncer.blocksPerMessage = 1
+
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockA3 = await makeBlockAfter(chain, blockA2)
+    const blockA4 = await makeBlockAfter(chain, blockA3)
+
+    const { peer } = getConnectedPeer(peerNetwork.peerManager)
+    peer.sequence = blockA4.header.sequence
+    peer.head = blockA4.header.hash
+    peer.work = BigInt(10)
+
+    const getBlocksSpy = jest
+      .spyOn(peerNetwork, 'getBlocks')
+      .mockImplementationOnce(() =>
+        Promise.resolve([
+          strategy.blockSerde.serialize(genesis),
+          strategy.blockSerde.serialize(blockA1),
+        ]),
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve([
+          strategy.blockSerde.serialize(blockA1),
+          strategy.blockSerde.serialize(blockA2),
+        ]),
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve([
+          strategy.blockSerde.serialize(blockA2),
+          strategy.blockSerde.serialize(blockA3),
+        ]),
+      )
+      .mockImplementationOnce(() => Promise.resolve([strategy.blockSerde.serialize(blockA3)]))
+
+    syncer.loader = peer
+    await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
+
+    expect(getBlocksSpy).toBeCalledTimes(4)
+    expect(getBlocksSpy).toHaveBeenNthCalledWith(1, peer, genesis.header.hash, 2)
+    expect(getBlocksSpy).toHaveBeenNthCalledWith(2, peer, blockA1.header.hash, 2)
+    expect(getBlocksSpy).toHaveBeenNthCalledWith(3, peer, blockA2.header.hash, 2)
+    expect(getBlocksSpy).toHaveBeenNthCalledWith(4, peer, blockA3.header.hash, 2)
   })
 })
