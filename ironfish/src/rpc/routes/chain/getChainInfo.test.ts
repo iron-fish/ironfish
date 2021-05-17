@@ -3,54 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RangeHasher } from '../../../merkletree'
-
-import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
 import { GetChainInfoResponse } from './getChainInfo'
-import { BlockHashSerdeInstance } from '../../../serde'
 
 describe('Route chain.getChainInfo', () => {
   const routeTest = createRouteTest()
-  const date = new Date()
-  const strategy = new TestStrategy(new RangeHasher())
-  const genesis = Buffer.from('genesis1234')
-  const latestHeader = makeFakeBlock(strategy, blockHash(1), blockHash(2), 1, 1, 1).header
-  const heaviestHeader = makeFakeBlock(strategy, blockHash(2), blockHash(3), 1, 1, 1).header
-
-  beforeAll(() => {
-    routeTest.node.chain.getLatestHead = jest.fn().mockReturnValue(latestHeader)
-    routeTest.node.chain.getHeaviestHead = jest.fn().mockReturnValue(heaviestHeader)
-    routeTest.node.chain.getAtSequence = jest.fn().mockReturnValue([genesis])
-
-    jest
-      .spyOn(BlockHashSerdeInstance, 'serialize')
-      .mockImplementation((value) => value.toString())
-
-    routeTest.node.chain.headers.get = jest.fn().mockImplementation((hash: Buffer) => {
-      if (hash.equals(latestHeader.hash)) {
-        return {
-          sequence: latestHeader.sequence,
-          hash: latestHeader.hash,
-          timestamp: date.getTime(),
-        }
-      }
-      if (hash.equals(heaviestHeader.hash)) {
-        return {
-          sequence: heaviestHeader.sequence,
-          hash: heaviestHeader.hash,
-        }
-      }
-    })
-  })
 
   it('returns the right object with hash', async () => {
-    const response = await routeTest.adapter.request('chain/getChainInfo', {})
+    await routeTest.node.seed()
 
-    const content = response.content as GetChainInfoResponse
+    const response = await routeTest.adapter.request<GetChainInfoResponse>('chain/getChainInfo')
 
-    expect(content.currentBlockIdentifier.index).toEqual(latestHeader.sequence.toString())
-    expect(content.genesisBlockIdentifier.index).toEqual('1')
-    expect(content.oldestBlockIdentifier.index).toEqual(heaviestHeader.sequence.toString())
-    expect(content.currentBlockTimestamp).toEqual(Number(latestHeader.timestamp))
-  })
+    expect(response.content.currentBlockIdentifier.index).toEqual(
+      routeTest.chain.latest?.sequence.toString(),
+    )
+    expect(response.content.genesisBlockIdentifier.index).toEqual(
+      routeTest.chain.genesis?.sequence.toString(),
+    )
+    expect(response.content.oldestBlockIdentifier.index).toEqual(
+      routeTest.chain.head?.sequence.toString(),
+    )
+    expect(response.content.currentBlockTimestamp).toEqual(
+      Number(routeTest.chain.latest?.timestamp),
+    )
+  }, 7000)
 })

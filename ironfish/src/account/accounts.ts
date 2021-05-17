@@ -95,7 +95,7 @@ export class Accounts {
           transaction,
           blockHash,
           initialNoteIndex,
-        } of this.chain.getTransactionsForBlock(header)) {
+        } of this.chain.iterateBlockTransactions(header)) {
           await this.syncTransaction(transaction, {
             blockHash: blockHash,
             initialNoteIndex: initialNoteIndex,
@@ -108,13 +108,13 @@ export class Accounts {
           `AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`,
         )
 
-        for await (const { transaction } of this.chain.getTransactionsForBlock(header)) {
+        for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
           await this.syncTransaction(transaction, {})
         }
       }
 
-      const chainHead = await this.chain.getHeaviestHead()
-      const chainTail = await this.chain.getGenesisHeader()
+      const chainHead = this.chain.head
+      const chainTail = this.chain.genesis
 
       if (!chainHead || !chainTail) {
         // There is no genesis block, so there's nothing to update to
@@ -131,7 +131,7 @@ export class Accounts {
       }
 
       const accountHeadHash = Buffer.from(this.headHash, 'hex')
-      const accountHead = await this.chain.getBlockHeader(accountHeadHash)
+      const accountHead = await this.chain.getHeader(accountHeadHash)
 
       if (!accountHead || chainHead.hash.equals(accountHead.hash)) {
         return
@@ -142,7 +142,7 @@ export class Accounts {
 
       // Remove the old fork chain
       if (!isLinear) {
-        for await (const header of this.chain.iterateToBlock(accountHead, fork)) {
+        for await (const header of this.chain.iterateFrom(accountHead, fork)) {
           // Don't remove the fork
           if (!header.hash.equals(fork.hash)) {
             await removeBlock(header)
@@ -152,7 +152,7 @@ export class Accounts {
         }
       }
 
-      for await (const header of this.chain.iterateToBlock(fork, chainHead)) {
+      for await (const header of this.chain.iterateTo(fork, chainHead)) {
         if (header.hash.equals(fork.hash)) continue
         await addBlock(header)
         await this.updateHeadHash(header.hash.toString('hex'))
@@ -495,7 +495,7 @@ export class Accounts {
       transaction,
       initialNoteIndex,
       sequence,
-    } of this.chain.getTransactions(accountHeadHash)) {
+    } of this.chain.iterateAllTransactions(accountHeadHash)) {
       if (this.scan.isAborted) {
         this.scan.signalComplete()
         this.scan = null
@@ -582,7 +582,7 @@ export class Accounts {
     memo: string,
     receiverPublicAddress: string,
   ): Promise<IronfishTransaction> {
-    const heaviestHead = await this.chain.getHeaviestHead()
+    const heaviestHead = this.chain.head
     if (heaviestHead == null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
     }
@@ -706,7 +706,7 @@ export class Accounts {
   async rebroadcastTransactions(): Promise<void> {
     if (!this.isStarted) return
 
-    const heaviestHead = await this.chain.getHeaviestHead()
+    const heaviestHead = this.chain.head
     if (heaviestHead == null) return
 
     const headSequence = heaviestHead.sequence

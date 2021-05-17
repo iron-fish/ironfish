@@ -97,7 +97,7 @@ export default class MerkleTree<
 
     this.counter = db.addStore({
       version: SCHEMA_VERSION,
-      name: `${treeName}_Counter`,
+      name: `${treeName}c`,
       keyEncoding: new JsonEncoding<CounterSchema['key']>(),
       valueEncoding: new JsonEncoding<CounterSchema['value']>(),
       upgrade: async (db, oldVersion, newVersion, tx): Promise<void> => {
@@ -110,7 +110,7 @@ export default class MerkleTree<
 
     this.leaves = db.addStore({
       version: SCHEMA_VERSION,
-      name: `${treeName}_Leaves`,
+      name: `${treeName}l`,
       keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
       valueEncoding: new LeafEncoding(),
       keyPath: 'index',
@@ -118,7 +118,7 @@ export default class MerkleTree<
 
     this.nodes = db.addStore({
       version: SCHEMA_VERSION,
-      name: `${treeName}_Nodes`,
+      name: `${treeName}n`,
       keyEncoding: new JsonEncoding<NodesSchema<H>['key']>(),
       valueEncoding: new NodeEncoding(),
       keyPath: 'index',

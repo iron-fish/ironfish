@@ -30,6 +30,9 @@ jest.mock('ironfish', () => {
 describe('start command', () => {
   let isFirstRun = true
   let hasGenesisBlock = false
+  const chain: { hasGenesisBlock: boolean } = {
+    hasGenesisBlock: hasGenesisBlock,
+  }
 
   const setConfig = jest.fn()
   const setOverrideConfig = jest.fn()
@@ -76,10 +79,6 @@ describe('start command', () => {
       localPeer: {
         publicIdentity: 'identity',
       },
-    }
-
-    const chain = {
-      hasGenesisBlock: jest.fn().mockReturnValue(hasGenesisBlock),
     }
 
     const node = {
@@ -137,7 +136,7 @@ describe('start command', () => {
   describe('second run', () => {
     beforeAll(() => {
       isFirstRun = false
-      hasGenesisBlock = true
+      chain.hasGenesisBlock = true
     })
     test
       .stdout()
