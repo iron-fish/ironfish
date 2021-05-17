@@ -52,7 +52,7 @@ export async function checkTreeMatchesHeaviest<
 
     chain.logger.error(
       `Note Merkle Tree is in a BAD STATE: \n
-      Heviest head is ${heaviestBlock.header.hash.toString('hex')} seq ${
+      Heaviest head is ${heaviestBlock.header.hash.toString('hex')} seq ${
         heaviestBlock.header.sequence
       }
         Note tree size: ${noteSize} \n
