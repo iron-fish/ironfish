@@ -33,6 +33,7 @@ export class Syncer {
   stopping: Promise<void> | null
   cancelLoop: SetTimeoutToken | null
   loader: Peer | null = null
+  blocksPerMessage: number
 
   constructor(options: {
     peerNetwork: PeerNetwork
@@ -40,6 +41,7 @@ export class Syncer {
     strategy: IronfishStrategy
     metrics?: MetricsMonitor
     logger?: Logger
+    blocksPerMessage?: number
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -53,6 +55,9 @@ export class Syncer {
     this.speed = this.metrics.addMeter()
     this.stopping = null
     this.cancelLoop = null
+
+    this.blocksPerMessage =
+      options.blocksPerMessage == null ? REQUEST_BLOCKS_PER_MESSAGE : options.blocksPerMessage
   }
 
   async start(): Promise<void> {
@@ -83,7 +88,7 @@ export class Syncer {
       this.stopSync(this.loader)
     }
 
-    await this.stopping
+    await this.wait()
     this.state = 'stopped'
   }
 
@@ -173,6 +178,10 @@ export class Syncer {
 
     this.loader = null
     this.stopping = null
+  }
+
+  async wait(): Promise<void> {
+    await this.stopping
   }
 
   async syncFrom(peer: Peer): Promise<void> {
@@ -324,7 +333,7 @@ export class Syncer {
 
     while (head) {
       this.logger.debug(
-        `Requesting ${REQUEST_BLOCKS_PER_MESSAGE} blocks starting at ${sequence} from ${peer.displayName}`,
+        `Requesting ${this.blocksPerMessage} blocks starting at ${sequence} from ${peer.displayName}`,
       )
 
       // TODO: record requested blocks to banscore peers who sent unsolicited blocks
@@ -332,7 +341,7 @@ export class Syncer {
       const [, ...blocks]: IronfishBlockSerialized[] = await this.peerNetwork.getBlocks(
         peer,
         head,
-        REQUEST_BLOCKS_PER_MESSAGE + 1,
+        this.blocksPerMessage + 1,
       )
 
       this.abort(peer)
@@ -366,7 +375,7 @@ export class Syncer {
       }
 
       // They didn't send a full message so they have no more blocks
-      if (blocks.length < REQUEST_BLOCKS_PER_MESSAGE) {
+      if (blocks.length < this.blocksPerMessage) {
         break
       }
 
