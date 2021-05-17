@@ -4,11 +4,9 @@
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { Assert } from '../../../assert'
 import * as yup from 'yup'
-
 import { ApiNamespace, router } from '../router'
 import { BlockHashSerdeInstance } from '../../../serde'
 
-export type GetChainInfoRequest = Record<string, never>
 export type BlockIdentifier = { index: string; hash: string }
 
 export interface ChainInfo {
@@ -17,12 +15,13 @@ export interface ChainInfo {
   oldestBlockIdentifier: BlockIdentifier
   currentBlockTimestamp: number
 }
+
+export type GetChainInfoRequest = Record<string, never> | undefined
 export type GetChainInfoResponse = ChainInfo
 
-export const GetChainInfoRequestSchema: yup.ObjectSchema<GetChainInfoRequest> = yup
-  .object<Record<string, never>>()
-  .noUnknown()
-  .defined()
+export const GetChainInfoRequestSchema: yup.MixedSchema<GetChainInfoRequest> = yup
+  .mixed()
+  .oneOf([undefined] as const)
 
 export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> = yup
   .object({
@@ -50,6 +49,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
 
     const latestHeader = node.chain.latest
     const heaviestHeader = node.chain.head
+
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
       oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
