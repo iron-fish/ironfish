@@ -462,6 +462,10 @@ export class Syncer {
    */
   protected onPeerStateChanged = ({ peer, state }: { peer: Peer; state: PeerState }): void => {
     if (state.type !== 'CONNECTED') {
+      this.logger.info(
+        `Peer ${peer.displayName} disconnected (${peer.state.type}) while syncing.`,
+      )
+
       this.stopSync(peer)
     }
   }
