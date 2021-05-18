@@ -407,11 +407,11 @@ export class Syncer {
         await this.syncOrphan(peer, block.header.hash)
       }
 
-      return { added: false, block, reason: VerificationResultReason.ORPHAN }
+      return { added: true, block, reason: VerificationResultReason.ORPHAN }
     }
 
     if (reason === VerificationResultReason.DUPLICATE) {
-      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
+      return { added: true, block, reason: VerificationResultReason.DUPLICATE }
     }
 
     if (reason) {
@@ -462,6 +462,10 @@ export class Syncer {
    */
   protected onPeerStateChanged = ({ peer, state }: { peer: Peer; state: PeerState }): void => {
     if (state.type !== 'CONNECTED') {
+      this.logger.info(
+        `Peer ${peer.displayName} disconnected (${peer.state.type}) while syncing.`,
+      )
+
       this.stopSync(peer)
     }
   }
