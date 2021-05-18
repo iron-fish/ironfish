@@ -407,11 +407,11 @@ export class Syncer {
         await this.syncOrphan(peer, block.header.hash)
       }
 
-      return { added: false, block, reason: VerificationResultReason.ORPHAN }
+      return { added: true, block, reason: VerificationResultReason.ORPHAN }
     }
 
     if (reason === VerificationResultReason.DUPLICATE) {
-      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
+      return { added: true, block, reason: VerificationResultReason.DUPLICATE }
     }
 
     if (reason) {
