@@ -28,6 +28,7 @@ export type GetStatusResponse = {
     }
   }
   peerNetwork: {
+    peers: number
     isReady: boolean
     inboundTraffic: number
     outboundTraffic: number
@@ -56,6 +57,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .defined(),
     peerNetwork: yup
       .object({
+        peers: yup.number().defined(),
         isReady: yup.boolean().defined(),
         inboundTraffic: yup.number().defined(),
         outboundTraffic: yup.number().defined(),
@@ -103,8 +105,11 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 )
 
 function getStatus(node: IronfishNode): GetStatusResponse {
+  const peers = node.peerNetwork.peerManager.getConnectedPeers()
+
   const status: GetStatusResponse = {
     peerNetwork: {
+      peers: peers.length,
       isReady: false,
       inboundTraffic: 0,
       outboundTraffic: 0,
