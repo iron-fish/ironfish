@@ -106,6 +106,7 @@ export class IronfishNode {
       node: this,
       chain: chain,
       strategy: strategy,
+      metrics: this.metrics,
     })
 
     this.syncer = new Syncer({
