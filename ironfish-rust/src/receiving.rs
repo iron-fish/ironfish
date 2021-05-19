@@ -68,8 +68,8 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ReceiptParams<J> {
         let receipt_proof = ReceiptParams {
             sapling,
             proof,
-            merkle_note,
             value_commitment_randomness,
+            merkle_note,
         };
 
         Ok(receipt_proof)

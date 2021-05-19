@@ -108,7 +108,6 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
     }
 
     /// Load a MerkleNote from the given stream
-    #[allow(clippy::or_fun_call)]
     pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
         let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
         let note_commitment = read_scalar(&mut reader).map_err(|_| {
@@ -120,13 +119,14 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
 
         let public_key_non_prime =
             edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
-        let ephemeral_public_key =
-            public_key_non_prime
-                .as_prime_order(&sapling.jubjub)
-                .ok_or(io::Error::new(
+        let ephemeral_public_key = public_key_non_prime
+            .as_prime_order(&sapling.jubjub)
+            .ok_or_else(|| {
+                io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "Unable to convert note commitment",
-                ))?;
+                )
+            })?;
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];

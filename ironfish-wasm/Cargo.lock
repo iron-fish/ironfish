@@ -85,7 +85,7 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 [[package]]
 name = "bellman"
 version = "0.6.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "bit-vec",
  "blake2s_simd",
@@ -305,7 +305,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 [[package]]
 name = "equihash"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -320,7 +320,7 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 [[package]]
 name = "ff"
 version = "0.6.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "byteorder",
  "ff_derive",
@@ -331,7 +331,7 @@ dependencies = [
 [[package]]
 name = "ff_derive"
 version = "0.6.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "addchain",
  "num-bigint",
@@ -407,7 +407,7 @@ dependencies = [
 [[package]]
 name = "group"
 version = "0.6.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "byteorder",
  "ff",
@@ -580,7 +580,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "pairing"
 version = "0.16.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "byteorder",
  "ff",
@@ -1055,7 +1055,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "zcash_primitives"
 version = "0.2.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "aes",
  "blake2b_simd",
@@ -1078,7 +1078,7 @@ dependencies = [
 [[package]]
 name = "zcash_proofs"
 version = "0.2.0"
-source = "git+https://github.com/iron-fish/librustzcash.git#8a2fe71c8aed7ff9271fe97cd64fd8abacff892c"
+source = "git+https://github.com/iron-fish/librustzcash.git?rev=8186d84#8186d8488419f345daf41f00bdc33fcc94d32715"
 dependencies = [
  "bellman",
  "blake2b_simd",

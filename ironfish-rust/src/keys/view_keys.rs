@@ -255,6 +255,6 @@ pub(crate) fn shared_secret<J: JubjubEngine + pairing::MultiMillerLoop>(
     hasher.update(&shared_secret);
     hasher.update(&reference_bytes);
     let mut hash_result = [0; 32];
-    hash_result[..].clone_from_slice(&hasher.finalize().as_ref()[..]);
+    hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
     hash_result
 }
