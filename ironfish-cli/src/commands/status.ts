@@ -86,7 +86,9 @@ function renderStatus(content: GetStatusResponse): string {
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
   } In: ${FileUtils.formatFileSize(
     content.peerNetwork.inboundTraffic,
-  )}/s, Out: ${FileUtils.formatFileSize(content.peerNetwork.outboundTraffic)}/s`
+  )}/s, Out: ${FileUtils.formatFileSize(content.peerNetwork.outboundTraffic)}/s, peers ${
+    content.peerNetwork.peers
+  }`
 
   const blockchainStatus = `${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'}, HEAD ${
     content.blockchain.head
