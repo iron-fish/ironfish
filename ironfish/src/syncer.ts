@@ -365,9 +365,11 @@ export class Syncer {
           break
         }
 
-        peer.sequence = block.header.sequence
-        peer.head = block.header.hash
-        peer.work = block.header.work
+        if (!peer.sequence || block.header.sequence > peer.sequence) {
+          peer.sequence = block.header.sequence
+          peer.head = block.header.hash
+          peer.work = block.header.work
+        }
 
         head = block.header.hash
 
@@ -427,7 +429,7 @@ export class Syncer {
     return { added: true, block, reason: reason || null }
   }
 
-  async addNewBlock(peer: Peer, block: IronfishBlockSerialized): Promise<void> {
+  async addNewBlock(peer: Peer, newBlock: IronfishBlockSerialized): Promise<void> {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
     if (!this.chain.synced) {
@@ -438,7 +440,11 @@ export class Syncer {
       return
     }
 
-    await this.addBlock(peer, block)
+    const { block } = await this.addBlock(peer, newBlock)
+
+    if (!peer.sequence || block.header.sequence > peer.sequence) {
+      peer.sequence = block.header.sequence
+    }
   }
 
   protected async syncOrphan(peer: Peer, hash: BlockHash): Promise<void> {
