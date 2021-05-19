@@ -135,6 +135,7 @@ export class IronfishTransaction
 
   async verify(): Promise<VerificationResult> {
     const result = await this.workerPool.verify(this)
+
     return result === true
       ? { valid: Validity.Yes }
       : { valid: Validity.No, reason: VerificationResultReason.ERROR }

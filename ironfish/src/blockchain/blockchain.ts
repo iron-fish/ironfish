@@ -447,7 +447,7 @@ export class Blockchain<
 
     if (this.logAllBlockAdd || Number(block.header.sequence) % 20 === 0) {
       this.logger.info(
-        'Added block:' +
+        'Added block' +
           ` seq: ${Number(block.header.sequence)},` +
           ` hash: ${HashUtils.renderHash(block.header.hash)},` +
           ` txs: ${block.transactions.length},` +
@@ -535,12 +535,12 @@ export class Blockchain<
 
     this.logger.warn(
       'Added block to fork' +
-        ` seq: ${block.header.sequence}, ` +
-        ` head-seq: ${this.head?.sequence || ''}, ` +
-        ` hash: ${HashUtils.renderHash(block.header.hash)}, ` +
-        ` head-hash: ${this.head?.hash ? HashUtils.renderHash(this.head.hash) : ''}, ` +
-        ` work: ${block.header.work}, ` +
-        ` head-work: ${this.head?.work || ''}, ` +
+        ` seq: ${block.header.sequence},` +
+        ` head-seq: ${this.head?.sequence || ''},` +
+        ` hash: ${HashUtils.renderHash(block.header.hash)},` +
+        ` head-hash: ${this.head?.hash ? HashUtils.renderHash(this.head.hash) : ''},` +
+        ` work: ${block.header.work},` +
+        ` head-work: ${this.head?.work || ''},` +
         ` work-diff: ${(this.head?.work || BigInt(0)) - block.header.work}`,
     )
 
