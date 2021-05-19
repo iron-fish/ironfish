@@ -16,21 +16,27 @@ import { RollingAverage } from './rollingAverage'
  * */
 export class Meter {
   private _started = false
+  private _rate1s: RollingAverage
   private _rate5s: RollingAverage
   private _rate1m: RollingAverage
   private _rate5m: RollingAverage
+  private _average: RollingAverage
   private _count = 0
-  private _totalCount = 0
-  private _sum = 0
   private _interval: NodeJS.Timeout | null = null
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
   constructor() {
     this._intervalMs = 1000
+    this._rate1s = new RollingAverage(1000 / this._intervalMs)
     this._rate5s = new RollingAverage(5000 / this._intervalMs)
     this._rate1m = new RollingAverage((1 * 60 * 1000) / this._intervalMs)
     this._rate5m = new RollingAverage((5 * 60 * 1000) / this._intervalMs)
+    this._average = new RollingAverage(100)
+  }
+
+  get rate1s(): number {
+    return this._rate1s.average
   }
 
   get rate5s(): number {
@@ -46,14 +52,13 @@ export class Meter {
   }
 
   get avg(): number {
-    return this._sum / this._totalCount
+    return this._average.average
   }
 
-  add(value: number): void {
+  add(count: number): void {
     if (!this._started) return
-    this._count += 1
-    this._totalCount = this._totalCount + 1
-    this._sum += value
+    this._count += count
+    this._average.add(count)
   }
 
   start(): void {
@@ -82,6 +87,7 @@ export class Meter {
     const elapsedMs = now - this._intervalLastMs
     const rate = elapsedMs === 0 ? 0 : (this._count / elapsedMs) * 1000
 
+    this._rate1s.add(rate)
     this._rate5s.add(rate)
     this._rate1m.add(rate)
     this._rate5m.add(rate)
