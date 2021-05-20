@@ -254,7 +254,7 @@ export class Syncer {
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
       requests++
 
-      const needle = start - BigInt(i)
+      const needle = start - BigInt(i * 2)
       const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       if (!hashes.length) continue
 
@@ -307,9 +307,9 @@ export class Syncer {
       this.logger.info(
         `Searched for ancestor from ${
           peer.displayName
-        }, needle: ${needle}, lower: ${lower}, upper: ${upper}, time: ${end.toFixed(2)}ms: ${
-          found ? 'HIT' : 'MISS'
-        }`,
+        }, needle: ${needle}, lower: ${lower}, upper: ${upper}, hash: ${HashUtils.renderHash(
+          remote,
+        )}, time: ${end.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
       )
 
       if (!found) {
