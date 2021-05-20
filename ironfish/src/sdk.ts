@@ -18,6 +18,7 @@ import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/type
 import { Platform } from './platform'
 import { IronfishVerifier } from './consensus'
 import { IronfishStrategy } from './strategy'
+import { FileReporter } from './logger/reporters'
 
 export class IronfishSdk {
   agent: string
@@ -108,6 +109,14 @@ export class IronfishSdk {
     }
 
     setLogColorEnabledFromConfig(true)
+
+    const logFile = config.get('enableLogFile')
+
+    if (logFile && fileSystem instanceof NodeFileProvider && fileSystem.path) {
+      const path = fileSystem.path.join(config.dataDir, 'ironfish.log')
+      const fileLogger = new FileReporter(fileSystem, path)
+      logger.addReporter(fileLogger)
+    }
 
     if (!metrics) {
       metrics = metrics || new MetricsMonitor(logger)
