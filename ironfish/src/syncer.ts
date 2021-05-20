@@ -135,7 +135,7 @@ export class Syncer {
     this.logger.info(
       `Starting sync from ${peer.displayName}. work: +${(
         peer.work - this.chain.head.work
-      ).toString()}, seq: ${this.chain.head.sequence.toString()} -> ${peer.sequence.toString()}`,
+      ).toString()}, ours: ${this.chain.head.sequence.toString()}, theirs: ${peer.sequence.toString()}`,
     )
 
     this.state = 'syncing'
@@ -423,11 +423,11 @@ export class Syncer {
         await this.syncOrphan(peer, block.header.hash)
       }
 
-      return { added: true, block, reason: VerificationResultReason.ORPHAN }
+      return { added: false, block, reason: VerificationResultReason.ORPHAN }
     }
 
     if (reason === VerificationResultReason.DUPLICATE) {
-      return { added: true, block, reason: VerificationResultReason.DUPLICATE }
+      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
     }
 
     if (reason) {
