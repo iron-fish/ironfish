@@ -20,6 +20,9 @@ const REQUEST_BLOCKS_PER_MESSAGE = 20
 
 class AbortSyncingError extends Error {}
 
+// Whitelist of node names to sync from
+const whitelist = new Set<string>([])
+
 export class Syncer {
   readonly peerNetwork: PeerNetwork
   readonly chain: IronfishBlockchain
@@ -114,6 +117,7 @@ export class Syncer {
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
       .filter((peer) => peer.work && peer.work > head.work)
+      .filter((peer) => (whitelist.size ? whitelist.has(peer.name || '') : true))
       .sort((a, b) => {
         Assert.isNotNull(a.work)
         Assert.isNotNull(b.work)
@@ -459,6 +463,10 @@ export class Syncer {
     }
 
     if (this.loader) {
+      return
+    }
+
+    if (whitelist.size && !whitelist.has(peer.name || '')) {
       return
     }
 
