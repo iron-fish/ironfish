@@ -63,6 +63,8 @@ export class PeerManager {
    */
   readonly identifiedPeers: Map<Identity, Peer> = new Map<Identity, Peer>()
 
+  readonly banned = new Set<Identity>()
+
   /**
    * List of all peers, including both unidentified and identified.
    */
@@ -357,6 +359,10 @@ export class PeerManager {
   }
 
   canConnectToWebSocket(peer: Peer, now = Date.now()): boolean {
+    if (this.isBanned(peer)) {
+      return false
+    }
+
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' ||
       this.getPeersWithConnection().length < this.targetPeers
@@ -381,6 +387,10 @@ export class PeerManager {
   }
 
   canConnectToWebRTC(peer: Peer, now = Date.now()): boolean {
+    if (this.isBanned(peer)) {
+      return false
+    }
+
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' ||
       this.getPeersWithConnection().length < this.targetPeers
@@ -636,7 +646,23 @@ export class PeerManager {
       }
     })
 
+    peer.onBanned.on(() => this.banPeer(peer))
+
     return peer
+  }
+
+  banPeer(peer: Peer): void {
+    const identity = peer.state.identity
+
+    if (identity) {
+      this.banned.add(identity)
+    }
+
+    peer.close()
+  }
+
+  isBanned(peer: Peer): boolean {
+    return !!peer.state.identity && this.banned.has(peer.state.identity)
   }
 
   /**
@@ -870,6 +896,12 @@ export class PeerManager {
         .getConnectionRetry(connection.type, connection.direction)
         ?.failedConnection(peer.isWhitelisted)
       peer.close(new Error(error))
+      return
+    }
+
+    if (this.banned.has(identity)) {
+      peer.getConnectionRetry(connection.type, connection.direction).neverRetryConnecting()
+      peer.close(new Error('banned'))
       return
     }
 

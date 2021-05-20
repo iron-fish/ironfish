@@ -12,6 +12,13 @@ import { Connection, ConnectionDirection, ConnectionType } from './connections/c
 import { ErrorUtils } from '../../utils'
 import colors from 'colors/safe'
 
+export enum BAN_SCORE {
+  NO = 0,
+  LOW = 1,
+  MED = 5,
+  MAX = 10,
+}
+
 /**
  * PeerConnectionState contains at least one connection, as well as an optional second connection.
  */
@@ -59,6 +66,9 @@ export class Peer {
   get error(): Readonly<unknown> | null {
     return this._error
   }
+
+  banScore = 0
+  maxBanScore: number
 
   /**
    * name associated with this peer
@@ -177,6 +187,11 @@ export class Peer {
   readonly onKnownPeersChanged: Event<[]> = new Event()
 
   /**
+   * Fired when the peer should be banned
+   */
+  readonly onBanned: Event<[]> = new Event()
+
+  /**
    * Event fired when the peer changes state. The event may fire when connections change, even if the
    * state type stays the same.
    */
@@ -189,13 +204,16 @@ export class Peer {
     {
       logger = createRootLogger(),
       maxPending = 5,
+      maxBanScore = BAN_SCORE.MAX,
     }: {
       logger?: Logger
       maxPending?: number
+      maxBanScore?: number
     } = {},
   ) {
     this.logger = logger.withTag('Peer')
     this.pendingRPCMax = maxPending
+    this.maxBanScore = maxBanScore
     this._error = null
     this._state = {
       type: 'DISCONNECTED',
@@ -578,5 +596,19 @@ export class Peer {
     this.onStateChanged.clear()
     this.onKnownPeersChanged.clear()
     this.onMessage.clear()
+    this.onBanned.clear()
+  }
+
+  punish(score: number, reason?: string): boolean {
+    this.banScore += score
+
+    if (this.banScore < this.maxBanScore) {
+      return false
+    }
+
+    this.logger.info(`Peer ${this.displayName} has been banned: ${reason || 'UNKNOWN'}`)
+    this.close(`BANNED: ${reason || 'UNKNOWN'}`)
+    this.onBanned.emit()
+    return true
   }
 }
