@@ -124,13 +124,13 @@ export default class Start extends IronfishCommand {
     const port = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
-    this.logger.log(`\n${ONE_FISH_IMAGE}`)
-    this.logger.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
-    this.logger.log(`Peer Agent    ${version}`)
-    this.logger.log(`Port          ${port}`)
-    this.logger.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
-    this.logger.log(`Node Name     ${name || 'NONE'}`)
-    this.logger.log(` `)
+    this.log(`\n${ONE_FISH_IMAGE}`)
+    this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
+    this.log(`Peer Agent    ${version}`)
+    this.log(`Port          ${port}`)
+    this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    this.log(`Node Name     ${name || 'NONE'}`)
+    this.log(` `)
 
     await this.waitForOpenDatabase(node)
 
@@ -210,7 +210,7 @@ export default class Start extends IronfishCommand {
   async firstRun(node: IronfishNode): Promise<void> {
     // Try to get the user to display telementry
     if (!node.config.get('enableTelemetry')) {
-      this.logger.log(TELEMETRY_BANNER)
+      this.log(TELEMETRY_BANNER)
     }
 
     // Create a default account on startup

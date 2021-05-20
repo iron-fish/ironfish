@@ -132,7 +132,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!flags.confirm) {
-      this.logger.log(`
+      this.log(`
 You are about to send:
 ${displayIronAmountWithCurrency(
   amount,
@@ -189,7 +189,7 @@ ${displayIronAmountWithCurrency(
       stopProgressBar()
 
       const transaction = result.content
-      this.logger.log(`
+      this.log(`
 Sending ${displayIronAmountWithCurrency(amount, true)} to ${transaction.toPublicKey} from ${
         transaction.fromAccountName
       }
@@ -201,7 +201,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
-      this.logger.log(`An error occurred while sending the transaction.`)
+      this.log(`An error occurred while sending the transaction.`)
       if (error instanceof Error) this.error(error.message)
       this.exit(2)
     }
