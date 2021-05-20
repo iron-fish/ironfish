@@ -16,7 +16,6 @@ function getNodes() {
     let lowest = null
     let highest = null
 
-
     let islandNext = 0
     const islands = new Map() // Map<number, Map<number, number>>
 
@@ -47,6 +46,7 @@ function getNodes() {
             latest: block.latest,
             graffiti: block.graffiti,
             work: BigInt(block.work),
+            shortHash: renderHash(block.hash),
             diff: 0,
             x: nodeOffsetX,
             y: nodeOffsetY,
@@ -88,8 +88,12 @@ function getNodes() {
     return [nodes, links, lowest, highest]
 }
 
+function renderHash(hash) {
+    return `${hash.slice(0, 5)}...${hash.slice(-5)}`
+}
+
 function makeLabel(node) {
-    return `${node.seq} ${node.hash.slice(0, 5)}...${node.hash.slice(-5)}`
+    return `${node.shortHash} - ${node.seq}`
 }
 
 function makeGraph() {
@@ -102,8 +106,6 @@ function makeGraph() {
     const fpsElement = document.getElementById('fps')
 
     function onNodeClick(node) {
-        console.log('Clicked', node)
-
         nodeElement.innerHTML = (
             `<b>HASH</b>   ${node.hash}<br>` +
             `<b>PREV</b>   ${node.prev}<br>` +
@@ -120,7 +122,6 @@ function makeGraph() {
     }
 
     function onBackgroundClick() {
-        console.log('Background clicked')
         nodeElement.innerHTML = ''
         nodeElement.style.display = 'none'
         highlightNode = null
@@ -142,6 +143,8 @@ function makeGraph() {
     const [nodes, links, lowest, highest] = getNodes()
     let highlightNode = null
     let hoverNode = null
+    let results = []
+    let resultIndex = -1
 
     const graph = ForceGraph()(graphElement)
         .backgroundColor('#101020')
@@ -185,37 +188,80 @@ function makeGraph() {
         graph.centerAt(highest.x, highest.y, 0)
     })
 
+    const controls = {
+        Search: '',
+        Next: () => onNextResult(),
+        Prev: () => onPrevResult(),
+    }
+
+    const gui = new dat.GUI()
+    gui.add(controls, 'Search', '').onChange(_.debounce(onSearch, 600))
+    const nextButton = gui.add(controls, 'Next')
+    const prevButton = gui.add(controls, 'Prev')
+    nextButton.__li.style.display = 'none'
+    prevButton.__li.style.display = 'none'
+
     const fuse = new Fuse(nodes, {
         findAllMatches: false,
         location: 0,
         threshold: 0.1,
         distance: 1000,
-        keys: [ "hash", "seq"]
+        keys: [ "shortHash", "hash", "seq"]
     })
 
+    function onNextResult() {
+        if(results.length === 0) return
+
+        resultIndex = (resultIndex + 1) % results.length
+
+        const result = results[resultIndex]
+        const node = nodes[result.refIndex]
+        selectNode(node)
+    }
+
+    function onPrevResult() {
+        if(results.length === 0) return
+
+        resultIndex--
+        if(resultIndex <= 0) resultIndex = results.length - 1
+
+        const result = results[resultIndex]
+        const node = nodes[result.refIndex]
+        selectNode(node)
+    }
+
     function onSearch(search) {
-        const results = fuse.search(search)
+        results = fuse.search(search)
+        resultIndex = -1
 
         if(!results.length) {
+            selectNode(null)
+            nextButton.__li.style.display = 'none'
+            prevButton.__li.style.display = 'none'
+            return
+        }
+
+        console.log('Found Results', results.length)
+
+        nextButton.__li.style.display = ''
+        prevButton.__li.style.display = ''
+        onNextResult()
+    }
+
+    function selectNode(node) {
+        if (!node) {
             highlightNode = null
             onBackgroundClick()
             return
         }
 
-        const result = results[0];
-        const node = nodes[result.refIndex]
-
-        console.log('Found', node)
         highlightNode = node
         graph.zoom(0.8, 1000);
         graph.centerAt(node.x, node.y, 1000)
         onNodeClick(node)
+
+        console.log('Selected', resultIndex, node)
     }
-
-    const controls = { 'Search': '' }
-    const gui = new dat.GUI()
-    gui.add(controls, 'Search', '').onChange(_.debounce(onSearch, 600))
 }
-
 
 makeGraph()
