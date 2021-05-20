@@ -3,22 +3,29 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { FileSystem } from './fileSystem'
+import type fs from 'fs'
 
 export class NodeFileProvider extends FileSystem {
+  fsSync: typeof import('fs') | null = null
   fs: typeof import('fs').promises | null = null
   path: typeof import('path') | null = null
   os: typeof import('os') | null = null
 
   async init(): Promise<FileSystem> {
-    this.fs = (await import('fs')).promises
+    this.fsSync = await import('fs')
     this.path = await import('path')
     this.os = await import('os')
+    this.fs = this.fsSync.promises
     return this
   }
 
-  async writeFile(path: string, data: string): Promise<void> {
+  async writeFile(
+    path: string,
+    data: string,
+    options?: { mode?: fs.Mode; flag?: fs.OpenMode },
+  ): Promise<void> {
     Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    await this.fs.writeFile(path, data)
+    await this.fs.writeFile(path, data, options)
   }
 
   async readFile(path: string): Promise<string> {

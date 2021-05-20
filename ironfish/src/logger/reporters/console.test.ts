@@ -7,7 +7,7 @@
 
 import { LogLevel, logType } from 'consola'
 import { format } from 'date-fns'
-import { ConsoleReporter } from './reporter'
+import { ConsoleReporter, loggers } from './console'
 
 describe('setLogLevel', () => {
   it('sets defaultMinimumLogLevel when tag is *', () => {
@@ -96,10 +96,11 @@ describe('shouldLog', () => {
 
 describe('logPrefix', () => {
   it('omits logPrefix if logPrefix is an empty string', () => {
+    const spy = jest.spyOn(loggers, 'info').mockImplementationOnce(() => {})
+
     const reporter = new ConsoleReporter()
     reporter.defaultMinimumLogLevel = LogLevel.Info
     reporter.logPrefix = ''
-    const spy = jest.spyOn(console, 'info').mockImplementationOnce(() => {})
     reporter.log({
       args: ['testlog'],
       date: new Date(),
@@ -107,16 +108,18 @@ describe('logPrefix', () => {
       type: 'info',
       tag: 'test',
     })
+
     expect(spy).toBeCalledWith('testlog')
     spy.mockRestore()
   })
 
   it('formats logPrefix if set', () => {
+    const spy = jest.spyOn(loggers, 'info').mockImplementationOnce(() => {})
+    const date = new Date()
+
     const reporter = new ConsoleReporter()
     reporter.defaultMinimumLogLevel = LogLevel.Info
     reporter.logPrefix = '[%time%] [%tag%] [%level%]'
-    const spy = jest.spyOn(console, 'info').mockImplementationOnce(() => {})
-    const date = new Date()
     reporter.log({
       args: ['testlog'],
       date: date,
@@ -124,6 +127,7 @@ describe('logPrefix', () => {
       type: 'info',
       tag: 'testtag',
     })
+
     expect(spy).toBeCalledWith(`[${format(date, 'HH:mm:ss.SSS')}] [testtag] [info]`, 'testlog')
     spy.mockRestore()
   })
