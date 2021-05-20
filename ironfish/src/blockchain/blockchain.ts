@@ -55,6 +55,7 @@ import { createDB } from '../storage/utils'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
+import { BAN_SCORE } from '../network/peers/peer'
 
 export class Blockchain<
   E,
@@ -229,8 +230,12 @@ export class Blockchain<
 
   async addBlock(
     block: Block<E, H, T, SE, SH, ST>,
-  ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
-    return this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+    score: number | null
+  }> {
+    const result = await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
       const hash = block.header.recomputeHash()
 
       if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -268,6 +273,8 @@ export class Blockchain<
 
       return { isAdded: true, reason: null }
     })
+
+    return { ...result, score: result.reason ? BAN_SCORE.MAX : BAN_SCORE.NO }
   }
 
   /**
