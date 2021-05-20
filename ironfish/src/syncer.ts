@@ -6,10 +6,10 @@ import { Assert } from './assert'
 import { IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
-import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
-import { PeerState } from './network/peers/peer'
+import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
 import { IronfishStrategy } from './strategy'
 import { BlockHash, IronfishBlockHeader } from './primitives/blockheader'
@@ -19,7 +19,6 @@ const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
 
 class AbortSyncingError extends Error {}
-class VerificationError extends Error {}
 
 export class Syncer {
   readonly peerNetwork: PeerNetwork
@@ -153,11 +152,10 @@ export class Syncer {
         this.logger.error(
           `Stopping sync from ${peer.displayName} due to ${ErrorUtils.renderError(
             error,
-            !(error instanceof VerificationError),
+            true,
           )}`,
         )
 
-        // TODO jspafford: increase banscore LOW
         peer.close(error)
       })
       .then(() => {
@@ -194,13 +192,13 @@ export class Syncer {
       `Found peer ${peer.displayName} ancestor ${HashUtils.renderHash(
         ancestor,
       )}, syncing from ${sequence}${
-        sequence !== peer.sequence ? ` -> ${String(peer.sequence)}` : ''
+        sequence !== peer.sequence
+          ? ` -> ${String(peer.sequence)} (${peer.sequence - sequence})`
+          : ''
       } after ${requests} requests`,
     )
 
-    const count = await this.syncBlocks(peer, ancestor, sequence)
-
-    this.logger.info(`Finished syncing ${count} blocks from ${peer.displayName}`)
+    await this.syncBlocks(peer, ancestor, sequence)
   }
 
   /**
@@ -264,8 +262,12 @@ export class Syncer {
       }
 
       if (local && local.sequence !== BigInt(needle)) {
-        // TODO jspafford: increase banscore MAX
-        throw new Error(`Peer sent invalid header for hash`)
+        this.logger.warn(
+          `Peer ${peer.displayName} sent invalid header for hash. Expected sequence ${needle} but got ${local.sequence}`,
+        )
+
+        peer.punish(BAN_SCORE.MAX, 'invalid header')
+        this.abort(peer)
       }
 
       return {
@@ -288,16 +290,22 @@ export class Syncer {
     while (lower <= upper) {
       requests++
 
+      const start = BenchUtils.start()
+
       const needle = Math.floor((lower + upper) / 2)
       const hashes = await this.peerNetwork.getBlockHashes(peer, BigInt(needle), 1)
       const remote = hashes.length === 1 ? hashes[0] : null
+
+      const end = BenchUtils.end(start)
 
       const { found, local } = await hasHash(remote)
 
       this.logger.info(
         `Searched for ancestor from ${
           peer.displayName
-        }, needle: ${needle}, lower: ${lower}, upper: ${upper}: ${found ? 'HIT' : 'MISS'}`,
+        }, needle: ${needle}, lower: ${lower}, upper: ${upper}, time: ${end.toFixed(2)}ms: ${
+          found ? 'HIT' : 'MISS'
+        }`,
       )
 
       if (!found) {
@@ -306,8 +314,10 @@ export class Syncer {
       }
 
       if (local && local.sequence !== BigInt(needle)) {
-        // TODO jspafford: increase banscore MAX
-        throw new Error(`Peer sent invalid header for hash`)
+        this.logger.warn(`Peer ${peer.displayName} sent invalid header for hash`)
+
+        peer.punish(BAN_SCORE.MAX, 'header not match sequence')
+        this.abort(peer)
       }
 
       ancestorHash = remote
@@ -326,10 +336,11 @@ export class Syncer {
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer | null, sequence: bigint): Promise<number> {
+  async syncBlocks(peer: Peer, head: Buffer | null, sequence: bigint): Promise<void> {
     this.abort(peer)
 
     let count = 0
+    let skipped = 0
 
     while (head) {
       this.logger.debug(
@@ -353,16 +364,13 @@ export class Syncer {
         this.abort(peer)
 
         if (block.header.sequence !== sequence) {
-          throw new VerificationError(
-            `Sent back block out of sequence: expected ${sequence}, actual ${block.header.sequence}`,
+          this.logger.warn(
+            `Peer ${peer.displayName} sent block out of sequence. Expected ${sequence} but got ${block.header.sequence}`,
           )
-        }
 
-        // Block was not added for some reason,
-        // we should stop adding blocks
-        if (!added) {
-          head = null
-          break
+          peer.punish(BAN_SCORE.MAX, 'out of sequence')
+          this.abort(peer)
+          return
         }
 
         peer.sequence = block.header.sequence
@@ -370,8 +378,11 @@ export class Syncer {
         peer.work = block.header.work
 
         head = block.header.hash
-
         count += 1
+
+        if (!added) {
+          skipped += 1
+        }
       }
 
       // They didn't send a full message so they have no more blocks
@@ -382,7 +393,10 @@ export class Syncer {
       this.abort(peer)
     }
 
-    return count
+    this.logger.info(
+      `Finished syncing ${count} blocks from ${peer.displayName}` +
+        (skipped ? `, skipped ${skipped}` : ''),
+    )
   }
 
   async addBlock(
@@ -396,7 +410,7 @@ export class Syncer {
     Assert.isNotNull(this.chain.head)
 
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
-    const { isAdded, reason } = await this.chain.addBlock(block)
+    const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
@@ -415,10 +429,18 @@ export class Syncer {
     }
 
     if (reason) {
-      // TODO jspafford: Increase ban by ban amount, should return from addBlock
-      const error = `Peer ${peer.displayName} sent an invalid block: ${reason}`
-      this.logger.warn(error)
-      throw new VerificationError(error)
+      Assert.isNotNull(score)
+
+      this.logger.warn(
+        `Peer ${
+          peer.displayName
+        } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
+          block.header.hash,
+        )}, reason: ${reason}`,
+      )
+
+      peer.punish(score, reason)
+      return { added: false, block, reason }
     }
 
     Assert.isTrue(isAdded)
