@@ -418,6 +418,8 @@ export class Syncer {
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
+    this.speed.add(1)
+
     if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
@@ -450,8 +452,6 @@ export class Syncer {
     }
 
     Assert.isTrue(isAdded)
-    this.speed.add(1)
-
     return { added: true, block, reason: reason || null }
   }
 
