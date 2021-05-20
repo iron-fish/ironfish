@@ -5,19 +5,10 @@
 // The reporter intentionally logs to the console, so disable the lint
 /* eslint-disable no-console */
 
-import { ConsolaReporter, ConsolaReporterLogObject, LogLevel, logType } from 'consola'
+import { ConsolaReporter, ConsolaReporterLogObject, LogLevel } from 'consola'
 import { format as formatDate } from 'date-fns'
 import colors from 'colors/safe'
-import { StringUtils } from '../utils/strings'
-
-function isUnreachable(x: never): never {
-  throw new Error(x)
-}
-
-// Do nothing when log level is 'silent'
-const silentLogger = () => {
-  /* noop */
-}
+import { StringUtils } from '../../utils/strings'
 
 const COLORS = [
   colors.red,
@@ -31,7 +22,7 @@ const COLORS = [
   colors.grey,
 ]
 
-export class ConsoleReporter implements ConsolaReporter {
+export class TextReporter implements ConsolaReporter {
   /**
    * Maps tags to log level overrides.
    */
@@ -69,47 +60,13 @@ export class ConsoleReporter implements ConsolaReporter {
   }
 
   /**
-   * Converts a logType to a console logging function.
-   * @param level a logType from logObj
-   */
-  private getConsoleLogger(type: logType) {
-    switch (type) {
-      case 'fatal':
-        return console.error
-      case 'error':
-        return console.error
-      case 'warn':
-        return console.warn
-      case 'log':
-        return console.log
-      case 'info':
-        return console.info
-      case 'success':
-        return console.info
-      case 'debug':
-        return console.debug
-      case 'trace':
-        return console.trace
-      case 'silent':
-        return silentLogger
-      case 'verbose':
-        return console.debug
-      case 'ready':
-        return console.info
-      case 'start':
-        return console.info
-      default:
-        isUnreachable(type)
-    }
-  }
-
-  /**
    * Determines whether to output logs based on the configured minimum log levels.
    * @param logObj a logObj instance from the consola reporter's log function
    */
   private shouldLog(logObj: ConsolaReporterLogObject): boolean {
     // logs with multiple tags come with the tags joined with ':'
     const tags = logObj.tag.split(':')
+
     // Start with the default log level, then check tags from least specific
     // to most specific and override the log level if we have an override for that tag.
     let level: LogLevel = this.defaultMinimumLogLevel
@@ -144,10 +101,19 @@ export class ConsoleReporter implements ConsolaReporter {
       .replace(/%tag%/g, formattedTag)
   }
 
+  logText(_logObj: ConsolaReporterLogObject, _args: unknown[]): void {
+    throw new Error('Not implemented')
+  }
+
   log(logObj: ConsolaReporterLogObject): void {
     if (!this.shouldLog(logObj)) return
 
-    const logOutput = this.getConsoleLogger(logObj.type)
-    logOutput(...(this.logPrefix ? [this.buildLogPrefix(logObj)] : []), ...logObj.args)
+    const args = logObj.args
+
+    if (this.logPrefix) {
+      args.unshift(this.buildLogPrefix(logObj))
+    }
+
+    this.logText(logObj, args)
   }
 }

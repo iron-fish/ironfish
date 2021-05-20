@@ -19,6 +19,7 @@ export type ConfigOptions = {
   databaseName: string
   editor: string
   enableListenP2P: boolean
+  enableLogFile: boolean
   enableMiningDirector: boolean
   enableRpc: boolean
   enableRpcIpc: boolean
@@ -133,6 +134,7 @@ export class Config extends KeyStore<ConfigOptions> {
       databaseName: DEFAULT_DATABASE_NAME,
       editor: '',
       enableListenP2P: true,
+      enableLogFile: false,
       enableMiningDirector: false,
       enableRpc: true,
       enableRpcIpc: true,
