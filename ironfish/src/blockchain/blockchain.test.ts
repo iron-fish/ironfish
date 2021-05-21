@@ -6,6 +6,24 @@ import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { logChain } from '../rpc/routes/chain/utils'
+import type * as BlockHeaderModule from '../primitives/blockheader'
+
+let heavier: boolean | null = null
+
+jest.mock('../primitives/blockheader', () => {
+  const originalModule = jest.requireActual<typeof BlockHeaderModule>(
+    '../primitives/blockheader',
+  )
+  const originalMethod = originalModule.isBlockHeavier
+
+  return {
+    ...originalModule,
+    isBlockHeavier: jest.fn().mockImplementation((a, b) => {
+      return heavier === null ? originalMethod(a, b) : heavier
+    }),
+  }
+})
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -371,4 +389,101 @@ describe('Blockchain', () => {
     expect(nodeTest.node.chain.synced).toEqual(true)
     expect(syncedSpy).toHaveBeenCalledTimes(1)
   })
+
+  it.only('should reproduce issue', async () => {
+    // G -> A1 -> A2
+    //         -> B2 -> B3
+    //               -> C3
+
+    // G[h] -> A1[h] -> B2[h] -> A2[h]
+    // G < A1 < B2 < A2 < C3
+
+    // MIDDLE
+    // RIGHT
+    // LEFT
+
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeC } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+    const { node: nodeBP } = await nodeTest.createSetup()
+
+    await Promise.all([nodeA.seed(), nodeC.seed(), nodeB.seed(), nodeBP.seed()])
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    await expect(nodeC.chain).toAddBlock(blockA1)
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    await expect(nodeBP.chain).toAddBlock(blockA1)
+
+    // Mock time so all of these blocks have the same created time
+    const now = Date.now()
+    const dateSpy = jest.spyOn(global.Date, 'now').mockImplementation(() => now)
+
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const blockC2 = await useMinerBlockFixture(nodeC.chain, 3)
+    await expect(nodeC.chain).toAddBlock(blockC2)
+
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    await expect(nodeBP.chain).toAddBlock(blockB2)
+
+    dateSpy.mockRestore()
+
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    const blockB3P = await useMinerBlockFixture(nodeBP.chain, 4)
+    await expect(nodeBP.chain).toAddBlock(blockB3P)
+
+    // Now run the actual test...
+    console.log('\nAdding Genesis')
+    const node = nodeTest.node
+    const genesis = await node.seed()
+    expect(node.chain.head?.hash).toEqualBuffer(genesis.header.hash)
+
+    console.log('\nAdding BlockA1')
+    heavier = true
+    await expect(node.chain).toAddBlock(blockA1)
+    expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
+
+    console.log('\nAdding BlockA2')
+    heavier = true
+    await expect(node.chain).toAddBlock(blockA2)
+    expect(node.chain.head?.hash).toEqualBuffer(blockA2.header.hash)
+
+    console.log('\nAdding BlockB2')
+    heavier = true
+    await expect(node.chain).toAddBlock(blockB2)
+    expect(node.chain.head?.hash).toEqualBuffer(blockB2.header.hash)
+
+    console.log('\nAdding BlockC2')
+    heavier = true
+    await expect(node.chain).toAddBlock(blockC2)
+    expect(node.chain.head?.hash).toEqualBuffer(blockC2.header.hash)
+
+    console.log('\nAdding BlockB3')
+    heavier = false
+    await expect(node.chain).toAddBlock(blockB3)
+    expect(node.chain.head?.hash).toEqualBuffer(blockC2.header.hash)
+
+    console.log('\nAdding BlockB3P')
+    heavier = true
+    // node.chain.head = null
+    await expect(node.chain).toAddBlock(blockB3P)
+    expect(node.chain.head).toEqualBuffer(blockB3P.header.hash)
+
+    await logChain(node.chain)
+    await AsyncUtils.materialize(node.chain.iterateTo(blockA1.header, blockB3P.header))
+  }, 60000)
 })
+
+// const blocks = [
+//   {"sequence":"87609","previousBlockHash":"00000AAAF979373210E7A300683B3F43F0CBCFE256E5C872A2B230DA54BF546C","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:FmIRrvFeRL46j91xmtw1W2WfYXV8aDziRdylz3i+Tw4="},"size":87619},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119168122137470741531148419739919836830683240879764286269471717772405373","randomness":8948667025730197,"timestamp":1621572875792,"minersFee":"-500000000","work":"971670","hash":"0000041C758BF99F823C64EDBC5EF315D721DEB53BFD587EB0682962B666D720","graffiti":"3C33203C33202D206E756C6C2330373633000000000000000000000000000000"},
+//   {"sequence":"87610","previousBlockHash":"0000041C758BF99F823C64EDBC5EF315D721DEB53BFD587EB0682962B666D720","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:CCF57l1Y4mCWrqSgFH1fwC/fqObwze487oFc8oXwnzs="},"size":87620},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119110017895822219160506041295001468767250515011809530315938363049006247","randomness":5409908534339563,"timestamp":1621572876641,"minersFee":"-500000000","work":"972144","hash":"000005E62964453DB49BA8B0B0A77DD98C21075F154A9447F0F9DAA3ED814A17","graffiti":"6C6170746F703100000000000000000000000000000000000000000000000000"},
+//   {"sequence":"87610","previousBlockHash":"0000041C758BF99F823C64EDBC5EF315D721DEB53BFD587EB0682962B666D720","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:7jtAKEjv8HZ7Q8cYTx5hhj+F7zDmHSFstK1GClrK7Aw="},"size":87620},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119110017895822219160506041295001468767250515011809530315938363049006247","randomness":6103706057173198,"timestamp":1621572878983,"minersFee":"-500000000","work":"972144","hash":"0000031D0D1BB0A89F0E5B36EEB7C776FFCDC1EAEA6C0B082194C50DDBAB8541","graffiti":"6C6170746F703200000000000000000000000000000000000000000000000000"},
+//   {"sequence":"87610","previousBlockHash":"0000041C758BF99F823C64EDBC5EF315D721DEB53BFD587EB0682962B666D720","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:IwMROJ3WNzjiy/claGH7ugMRCwZbLORxfhXHvBvFoBs="},"size":87620},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119110017895822219160506041295001468767250515011809530315938363049006247","randomness":6095884990261934,"timestamp":1621572880873,"minersFee":"-500000000","work":"972144","hash":"000001A66B150097534EA2628D652C25D44BF7CC2EAF4C6E5BA0FDE672B9A9DF","graffiti":"3C33202D206E756C6C2330373633000000000000000000000000000000000000"},
+//   {"sequence":"87611","previousBlockHash":"0000031D0D1BB0A89F0E5B36EEB7C776FFCDC1EAEA6C0B082194C50DDBAB8541","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:q4r3j7hphRlr5vpzjYe8/row6dxvhsv3SipIL0ZL4WU="},"size":87621},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119051970287734953932140866207172711026600355602755207120840436849732505","randomness":3160349255859125,"timestamp":1621572886724,"minersFee":"-500000000","work":"972618","hash":"0000060CF50E09D71ADF352E4DD3028022128D7CF5CB496EFFFF789373511B48","graffiti":"6C6170746F703100000000000000000000000000000000000000000000000000"},
+//   {"sequence":"87611","previousBlockHash":"0000031D0D1BB0A89F0E5B36EEB7C776FFCDC1EAEA6C0B082194C50DDBAB8541","noteCommitment":{"commitment":{"type":"Buffer","data":"base64:n3U0hkqUR6+/qeU+vMZ1eoGVsF+V02XNGVO4wRd8KE8="},"size":87621},"nullifierCommitment":{"commitment":"3FDFBC5DB1FF496EE125680206D557063C43704AF139834D9A06080DA4211536","size":7},"target":"119051970287734953932140866207172711026600355602755207120840436849732505","randomness":5516860449529060,"timestamp":1621572885852,"minersFee":"-500000000","work":"972618","hash":"0000050C21498CC100135BF7083AFA5181D6AB7565D7B3448FA2931E4C8D4DD5","graffiti":"3C33203C33202D206E756C6C2330373633000000000000000000000000000000"},
+// ]

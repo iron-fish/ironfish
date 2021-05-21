@@ -256,7 +256,7 @@ export class Blockchain<
         return { isAdded: false, reason: VerificationResultReason.DUPLICATE }
       }
 
-      const previous = await this.getPrevious(block.header)
+      const previous = await this.getPrevious(block.header, tx)
 
       if (!previous) {
         this.addOrphan(block)
@@ -477,7 +477,7 @@ export class Blockchain<
       'You cannot disconnect the genesisBlock',
     )
 
-    const prev = await this.getPrevious(block.header)
+    const prev = await this.getPrevious(block.header, tx)
     Assert.isNotNull(prev)
 
     await this.saveDisconnect(block, prev, tx)
@@ -503,7 +503,7 @@ export class Blockchain<
       })`,
     )
 
-    const prev = await this.getPrevious(block.header)
+    const prev = await this.getPrevious(block.header /*, tx*/)
     Assert.isNotNull(prev)
 
     await this.saveReconnect(block, prev, tx)
@@ -552,6 +552,20 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
   ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
+    if (this.hasGenesisBlock && !this.head) {
+      const error = `We have a genesis block but no head: ${block.header.hash.toString('hex')}`
+      this.logger.error(error)
+      throw new Error(error)
+    }
+
+    if (this.hasGenesisBlock && !prev) {
+      const error = `We have a genesis block but no prev: hash: ${block.header.hash.toString(
+        'hex',
+      )}, ${block.header.previousBlockHash.toString('hex')}}`
+      this.logger.error(error)
+      throw new Error(error)
+    }
+
     if (this.head && prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
@@ -770,7 +784,7 @@ export class Blockchain<
         let previousBlockHash
         let previousSequence
         let target
-        const timestamp = new Date()
+        const timestamp = new Date(Date.now())
 
         const heaviestHead = this.head
         if (!heaviestHead) {
