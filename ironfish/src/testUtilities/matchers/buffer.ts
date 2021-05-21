@@ -15,7 +15,12 @@ function toEqualBuffer(
     (self != null && other != null && self.equals(other))
 
   if (!pass) {
-    return makeResult(false, `expected buffers to match:\n\n${String(diff(self, other))}`)
+    return makeResult(
+      false,
+      `expected buffers to match:\n\n${String(
+        diff(self?.toString('hex'), other?.toString('hex')),
+      )}`,
+    )
   }
 
   return makeResult(
