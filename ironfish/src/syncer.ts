@@ -20,6 +20,9 @@ const REQUEST_BLOCKS_PER_MESSAGE = 20
 
 class AbortSyncingError extends Error {}
 
+// Whitelist of node names to sync from
+const whitelist = new Set<string>([])
+
 export class Syncer {
   readonly peerNetwork: PeerNetwork
   readonly chain: IronfishBlockchain
@@ -114,6 +117,7 @@ export class Syncer {
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
       .filter((peer) => peer.work && peer.work > head.work)
+      .filter((peer) => (whitelist.size ? whitelist.has(peer.name || '') : true))
       .sort((a, b) => {
         Assert.isNotNull(a.work)
         Assert.isNotNull(b.work)
@@ -250,7 +254,7 @@ export class Syncer {
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
       requests++
 
-      const needle = start - BigInt(i)
+      const needle = start - BigInt(i * 2)
       const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       if (!hashes.length) continue
 
@@ -303,9 +307,9 @@ export class Syncer {
       this.logger.info(
         `Searched for ancestor from ${
           peer.displayName
-        }, needle: ${needle}, lower: ${lower}, upper: ${upper}, time: ${end.toFixed(2)}ms: ${
-          found ? 'HIT' : 'MISS'
-        }`,
+        }, needle: ${needle}, lower: ${lower}, upper: ${upper}, hash: ${HashUtils.renderHash(
+          remote,
+        )}, time: ${end.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
       )
 
       if (!found) {
@@ -414,6 +418,8 @@ export class Syncer {
     const block = this.chain.strategy.blockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
+    this.speed.add(1)
+
     if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
@@ -446,8 +452,6 @@ export class Syncer {
     }
 
     Assert.isTrue(isAdded)
-    this.speed.add(1)
-
     return { added: true, block, reason: reason || null }
   }
 
@@ -459,6 +463,10 @@ export class Syncer {
     }
 
     if (this.loader) {
+      return
+    }
+
+    if (whitelist.size && !whitelist.has(peer.name || '')) {
       return
     }
 

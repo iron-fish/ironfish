@@ -546,7 +546,7 @@ export class PeerNetwork {
 
     if (!isGetBlockHashesResponse(response.message)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlockHashesResponse`)
+      throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
     }
 
     return response.message.payload.blocks.map((hash) => Buffer.from(hash, 'hex'))
@@ -571,7 +571,7 @@ export class PeerNetwork {
 
     if (!isGetBlocksResponse<BlockHash, SerializedTransaction>(response.message)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlocksResponse`)
+      throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
     }
 
     return response.message.payload.blocks
