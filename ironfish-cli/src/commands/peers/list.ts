@@ -100,7 +100,6 @@ function renderTable(
     names: boolean
     all: boolean
     sort: string
-    versions: boolean
     agents: boolean
     sequence: boolean
   },
