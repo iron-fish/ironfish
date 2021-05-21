@@ -72,16 +72,16 @@ describe('Note adding', () => {
     expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
-  it("warns if the note doesn't match the previously inserted note that position", async () => {
-    const warnFn = jest.fn()
+  it("logs errors if the note doesn't match the previously inserted note that position", async () => {
+    const errorFn = jest.fn()
     blockchain['logger'].mockTypes((type) => {
-      return type === 'warn' ? warnFn : () => {}
+      return type === 'error' ? errorFn : () => {}
     })
     await blockchain.addNote(0, 'zero')
     await blockchain.addNote(1, 'one')
     await blockchain.addNote(2, 'two')
     await blockchain.addNote(2, 'not two')
-    expect(warnFn).toHaveBeenCalled()
+    expect(errorFn).toHaveBeenCalled()
   })
 })
 
