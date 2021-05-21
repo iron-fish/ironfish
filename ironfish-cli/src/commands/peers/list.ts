@@ -22,6 +22,10 @@ export class ListCommand extends IronfishCommand {
       default: false,
       description: 'follow the peers list live',
     }),
+    all: flags.boolean({
+      default: false,
+      description: 'show all peers, not just connected peers',
+    }),
     extended: flags.boolean({
       char: 'e',
       default: false,
@@ -85,7 +89,7 @@ export class ListCommand extends IronfishCommand {
 
 function renderTable(
   content: GetPeersResponse,
-  flags: { extended: boolean; names: boolean; sort: string; versions: boolean },
+  flags: { extended: boolean; names: boolean; all: boolean; sort: string; versions: boolean },
 ): string {
   let columns: Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
@@ -161,9 +165,15 @@ function renderTable(
     },
   }
 
+  let peers = content.peers
+
+  if (!flags.all) {
+    peers = peers.filter((p) => p.state === 'CONNECTED')
+  }
+
   let result = ''
 
-  cli.table(content.peers, columns, {
+  cli.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     extended: flags.extended,
     sort: flags.sort,
