@@ -24,7 +24,7 @@ const getRuntime = ():
 }
 
 const getAgent = (name: string): string => {
-  let agent = `ironfish/${name}`
+  let agent = `if/${name}`
   if (Package.git) agent += `/${Package.git.slice(0, 8)}`
   return agent
 }
