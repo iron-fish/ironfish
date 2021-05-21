@@ -21,7 +21,7 @@ CWD="$(pwd)"
 NODE1="yarn start:once start -v -p 9034 -w -n peer1 -b localhost:9033 --datadir ~/.ironfish1"
 NODE2="yarn start:once start -v -p 9035 -w -n peer2 -b localhost:9033 --datadir ~/.ironfish2 --no-listen"
 NODE3="yarn start:once start -v -p 9036 -w -n peer3 -b localhost:9033 --datadir ~/.ironfish3 --no-listen"
-NODE2_LIST="yarn start:once peers:list -fenv --datadir ~/.ironfish1"
+NODE2_LIST="yarn start:once peers:list -fenas --datadir ~/.ironfish1"
 
 osascript <<END
   tell application "Terminal"
