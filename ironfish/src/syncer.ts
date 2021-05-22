@@ -347,12 +347,12 @@ export class Syncer {
     let skipped = 0
 
     while (head) {
-      this.logger.debug(
-        `Requesting ${this.blocksPerMessage} blocks starting at ${sequence} from ${peer.displayName}`,
+      this.logger.info(
+        `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
+          head,
+        )} (${sequence}) from ${peer.displayName}`,
       )
 
-      // TODO: record requested blocks to banscore peers who sent unsolicited blocks
-      // TODO: should get requests by hash start at hash inclusively, or not?
       const [, ...blocks]: IronfishBlockSerialized[] = await this.peerNetwork.getBlocks(
         peer,
         head,
