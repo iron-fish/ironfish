@@ -597,14 +597,14 @@ export class Blockchain<
    * on the new head chain before `head`
    */
   private async reorganizeChain(
-    newHeaviestHeader: BlockHeader<E, H, T, SE, SH, ST>,
+    newHead: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const oldHeaviestHead = this.head
-    Assert.isNotNull(oldHeaviestHead, 'No genesis block with fork')
+    const oldHead = this.head
+    Assert.isNotNull(oldHead, 'No genesis block with fork')
 
     // Step 0: Find the fork between the two heads
-    const { fork } = await this.findFork(oldHeaviestHead, newHeaviestHeader, tx)
+    const { fork } = await this.findFork(oldHead, newHead, tx)
     Assert.isNotNull(fork, 'No fork found')
 
     // Step 1: remove loose notes and loose nullifiers from queue as they are stale
@@ -612,7 +612,7 @@ export class Blockchain<
     this.looseNullifiers = {}
 
     // Step 2: Collect all the blocks from the old head to the fork
-    const removeIter = this.iterateFrom(oldHeaviestHead, fork, tx)
+    const removeIter = this.iterateFrom(oldHead, fork, tx)
     const removeHeaders = await AsyncUtils.materialize(removeIter)
     const removeBlocks = await Promise.all(
       removeHeaders
@@ -630,7 +630,7 @@ export class Blockchain<
     }
 
     // Step 3. Collect all the blocks from the fork to the new head
-    const addIter = this.iterateFrom(newHeaviestHeader, fork, tx)
+    const addIter = this.iterateFrom(newHead, fork, tx)
     const addHeaders = await AsyncUtils.materialize(addIter)
     const addBlocks = await Promise.all(
       addHeaders
@@ -650,15 +650,9 @@ export class Blockchain<
 
     this.logger.warn(
       'Reorganized chain.' +
-        ` blocks: ${
-          oldHeaviestHead.sequence -
-          fork.sequence +
-          (newHeaviestHeader.sequence - fork.sequence)
-        },` +
-        ` old: ${HashUtils.renderHash(oldHeaviestHead.hash)} (${oldHeaviestHead.sequence}),` +
-        ` new: ${HashUtils.renderHash(newHeaviestHeader.hash)} (${
-          newHeaviestHeader.sequence
-        }),` +
+        ` blocks: ${oldHead.sequence - fork.sequence + (newHead.sequence - fork.sequence)},` +
+        ` old: ${HashUtils.renderHash(oldHead.hash)} (${oldHead.sequence}),` +
+        ` new: ${HashUtils.renderHash(newHead.hash)} (${newHead.sequence}),` +
         ` fork: ${HashUtils.renderHash(fork.hash)} (${fork.sequence})`,
     )
   }
@@ -875,7 +869,7 @@ export class Blockchain<
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const oldNote = (await this.notes.get(index, tx))!
           if (!this.strategy.noteSerde.equals(note, oldNote)) {
-            this.logger.warn(
+            this.logger.error(
               `Tried to insert a note, but a different note already there for position ${index}`,
             )
           }
