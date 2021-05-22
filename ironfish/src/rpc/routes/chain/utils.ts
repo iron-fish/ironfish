@@ -114,7 +114,7 @@ export async function renderGraph<
   } = DEFAULT_OPTIONS,
   logger = createRootLogger(),
   last = true,
-  only = true,
+  _only = true,
   indent = '',
   seen = new BufferSet(),
 ): Promise<void> {
@@ -144,12 +144,6 @@ export async function renderGraph<
   }
   if (header.hash.equals(chain.genesis.hash)) {
     rendered += ' GENESIS'
-  }
-  if (last) {
-    rendered += ' LAST'
-  }
-  if (only) {
-    rendered += ' ONLY'
   }
 
   content.push(indent + rendered)
@@ -182,7 +176,7 @@ export async function renderGraph<
     await renderGraph(chain, child, end, content, options, logger, last, only, indent, seen)
 
     if (!last) {
-      content.push(indent + '--')
+      content.push(indent + '')
     }
   }
 }

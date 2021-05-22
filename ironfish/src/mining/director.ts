@@ -433,12 +433,11 @@ export class MiningDirector<
     }
 
     this.logger.info(
-      `Successful block ${block.header.sequence} has ${block.transactions.length} transactions`,
+      `Successfully mined block ${block.header.hash.toString('hex')} (${
+        block.header.sequence
+      }) has ${block.transactions.length} transactions`,
     )
-    this.logger.info(
-      `Propagating successfully mined block ${block.header.sequence}`,
-      block.header.hash,
-    )
+
     const header = block.header
 
     submitMetric({
