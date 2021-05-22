@@ -4,7 +4,6 @@
 import { flags } from '@oclif/command'
 import { IronfishCommand, SIGNALS } from '../command'
 import { DatabaseIsLockedError, IronfishNode, PromiseUtils } from 'ironfish'
-import cli from 'cli-ux'
 import {
   ConfigFlag,
   ConfigFlagKey,
@@ -138,10 +137,6 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
-    if (!node.chain.hasGenesisBlock) {
-      await this.addGenesisBlock(node)
-    }
-
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
     }
@@ -186,22 +181,6 @@ export default class Start extends IronfishCommand {
         throw e
       }
     }
-  }
-
-  /**
-   * Insert the genesis block into the node
-   */
-  async addGenesisBlock(node: IronfishNode): Promise<void> {
-    cli.action.start('Initializing the blockchain', 'Loading the genesis block', {
-      stdout: true,
-    })
-
-    const result = await node.seed()
-    if (!result) {
-      cli.action.stop('Failed to seed the database with the genesis block.')
-    }
-
-    cli.action.stop('Genesis block loaded successfully')
   }
 
   /**

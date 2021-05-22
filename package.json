@@ -28,7 +28,7 @@
     "prebuild": "node tools/node-platform-check && (cd ironfish-wasm && yarn build)",
     "preinstall": "node tools/node-platform-check && (cd ironfish-wasm && yarn build)",
     "test": "lerna run test",
-    "test:coverage": "lerna run test --stream -- --collect-coverage",
+    "test:coverage": "lerna run test --stream --concurrency 1 -- --collect-coverage",
     "test:coverage:html": "lerna run test:coverage:html",
     "test:changed": "lerna run --since origin/master --include-dependents test",
     "test:update": "lerna run test -- -u",

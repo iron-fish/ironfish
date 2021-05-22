@@ -15,7 +15,6 @@ describe('Blockchain', () => {
   it('Add Block with fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
-    await Promise.all([nodeA.seed(), nodeB.seed()])
 
     const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
@@ -58,7 +57,6 @@ describe('Blockchain', () => {
         console.log(`Running Test ${i}`)
 
         const { node } = await nodeTest.createSetup()
-        await node.seed()
 
         const startAll = Date.now()
 

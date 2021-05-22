@@ -13,7 +13,12 @@ import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
 import { Syncer } from '../syncer'
 
-export type NodeTestOptions = { config?: Partial<ConfigOptions> } | undefined
+export type NodeTestOptions =
+  | {
+      config?: Partial<ConfigOptions>
+      autoSeed?: boolean
+    }
+  | undefined
 
 /**
  * Used as an easy wrapper for testing the node, and blockchain. Use
@@ -60,7 +65,7 @@ export class NodeTest {
     const strategyClass = IronfishTestStrategy
 
     const sdk = await IronfishSdk.init({ dataDir, verifierClass, strategyClass })
-    const node = await sdk.node()
+    const node = await sdk.node({ autoSeed: this.options?.autoSeed })
     const strategy = node.strategy as IronfishTestStrategy
     const chain = node.chain
     const peerNetwork = node.peerNetwork
@@ -117,11 +122,11 @@ export function createNodeTest(preserveState = false, options: NodeTestOptions =
   const nodeTest = new NodeTest(options)
 
   if (preserveState) {
-    beforeAll(() => nodeTest.setup())
+    beforeAll(() => nodeTest.setup(), 10000)
     afterEach(() => nodeTest.teardownEach())
     afterAll(() => nodeTest.teardownAll())
   } else {
-    beforeEach(() => nodeTest.setup())
+    beforeEach(() => nodeTest.setup(), 10000)
     afterEach(() => nodeTest.teardownEach())
     afterEach(() => nodeTest.teardownAll())
   }

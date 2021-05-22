@@ -177,7 +177,7 @@ describe('Verifier', () => {
 
     beforeEach(async () => {
       dateSpy.mockClear()
-      chain = await makeChainFull(strategy)
+      chain = await makeChainFull(strategy, { autoSeed: false })
 
       header = new BlockHeader(
         strategy,
