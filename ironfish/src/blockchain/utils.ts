@@ -51,21 +51,18 @@ export async function checkTreeMatchesHeaviest<
       .serialize(heaviestBlock.header.noteCommitment.commitment)
 
     chain.logger.error(
-      `Note Merkle Tree is in a BAD STATE: \n
-      Heaviest head is ${heaviestBlock.header.hash.toString('hex')} seq ${
-        heaviestBlock.header.sequence
-      }
-        Note tree size: ${noteSize} \n
-        Note root: ${
+      `Note Merkle Tree is in a BAD STATE:\n` +
+        `  Heaviest Head:    ${heaviestBlock.header.hash.toString('hex')} (${
+          heaviestBlock.header.sequence
+        } seq)\n` +
+        `  Note commitment:  ${
           noteRootSerialized ? (noteRootSerialized as Buffer).toString('hex') : '???'
-        } \n
-        Block commitment tree size: ${blockNoteSize}\n
-        Block commitment: ${
+        } (${noteSize} tree size)\n` +
+        `  Block commitment: ${
           blockRootSerialized ? (blockRootSerialized as Buffer).toString('hex') : '???'
-        }\n`,
+        } (${blockNoteSize} tree size)`,
     )
 
-    chain.logger.debug(`TREES IN BAD STATE`)
     return false
   }
 
