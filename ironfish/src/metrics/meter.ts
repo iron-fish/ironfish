@@ -70,6 +70,8 @@ export class Meter {
   stop(): void {
     if (!this._started) return
     this._started = false
+    this._intervalLastMs = null
+    this._count = 0
 
     if (this._interval) {
       clearInterval(this._interval)
