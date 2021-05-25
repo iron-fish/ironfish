@@ -78,6 +78,16 @@ export class Meter {
     }
   }
 
+  reset(): void {
+    this._rate1s.reset()
+    this._rate5s.reset()
+    this._rate1m.reset()
+    this._rate5m.reset()
+    this._average.reset()
+    this._count = 0
+    this._intervalLastMs = null
+  }
+
   private update(): void {
     const now = Date.now()
 
