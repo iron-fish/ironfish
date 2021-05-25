@@ -8,13 +8,16 @@ import { LocalFlags } from '../../flags'
 import cli from 'cli-ux'
 import fs from 'fs'
 
-interface ProgressBar {
+export interface ProgressBar {
   progress: VoidFunction
-  start: (current?: number, total?: number) => void
+  getTotal(): number
+  setTotal(totalValue: number): void
+  start(totalValue?: number, startValue?: number, payload?: { speed: string }): void
   stop: VoidFunction
-  update: (number: number) => void
-  getTotal: () => number
-  increment: VoidFunction
+  update(currentValue?: number, payload?: Record<string, unknown>): void
+  update(payload?: Record<string, unknown>): void
+  increment(delta?: number, payload?: Record<string, unknown>): void
+  increment(payload?: Record<string, unknown>): void
 }
 
 function parseNumber(input: string): number | null {
