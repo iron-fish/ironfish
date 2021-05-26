@@ -425,6 +425,11 @@ export class MiningDirector<
       return
     }
 
+    if (!this.chain.head || !block.header.previousBlockHash.equals(this.chain.head.hash)) {
+      this.logger.debug('Discarding block that no longer attaches to heaviest head')
+      return
+    }
+
     block.header.randomness = randomness
     const validation = await this.chain.verifier.verifyBlock(block)
     if (!validation.valid) {
@@ -448,8 +453,12 @@ export class MiningDirector<
       ],
     })
 
-    await this.chain.addBlock(block)
-    this.onNewBlock.emit(block)
+    const { isAdded, reason } = await this.chain.addBlock(block)
+    if (isAdded) {
+      this.onNewBlock.emit(block)
+    } else {
+      this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
+    }
   }
 
   /**
