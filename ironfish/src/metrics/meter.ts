@@ -97,12 +97,12 @@ export class Meter {
     }
 
     const elapsedMs = now - this._intervalLastMs
-    const rate = elapsedMs === 0 ? 0 : (this._count / elapsedMs) * 1000
+    const rateSec = elapsedMs === 0 ? 0 : (this._count / elapsedMs) * 1000
 
-    this._rate1s.add(rate)
-    this._rate5s.add(rate)
-    this._rate1m.add(rate)
-    this._rate5m.add(rate)
+    this._rate1s.add(rateSec)
+    this._rate5s.add(rateSec)
+    this._rate1m.add(rateSec)
+    this._rate5m.add(rateSec)
     this._count = 0
     this._intervalLastMs = now
   }
