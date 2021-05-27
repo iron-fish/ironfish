@@ -70,10 +70,22 @@ export class Meter {
   stop(): void {
     if (!this._started) return
     this._started = false
+    this._intervalLastMs = null
+    this._count = 0
 
     if (this._interval) {
       clearInterval(this._interval)
     }
+  }
+
+  reset(): void {
+    this._rate1s.reset()
+    this._rate5s.reset()
+    this._rate1m.reset()
+    this._rate5m.reset()
+    this._average.reset()
+    this._count = 0
+    this._intervalLastMs = null
   }
 
   private update(): void {
