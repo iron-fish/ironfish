@@ -1141,52 +1141,6 @@ export class Blockchain<
     }
   }
 
-  /**
-   * This function will take multiple BlockHash | BlockHeader | Block and normalize it to BlockHeader
-   * performing database loads if it needs to. It's useful for operating on blocks with variadic
-   * inputs for convenience.
-   *
-   * @param inputs BlockHash | BlockHeader | Block to turn into BlockHeader
-   * @param tx
-   * @returns BlockHeader[] assocaited with the inputs
-   */
-  private async getHeadersFromInput(
-    inputs: Array<BlockHash | BlockHeader<E, H, T, SE, SH, ST> | Block<E, H, T, SE, SH, ST>>,
-    tx?: IDatabaseTransaction,
-  ): Promise<Array<BlockHeader<E, H, T, SE, SH, ST>>> {
-    type LoadResult = [BlockHeader<E, H, T, SE, SH, ST>, BlockHash, number]
-
-    const outputs: BlockHeader<E, H, T, SE, SH, ST>[] = []
-    const promises: Promise<LoadResult>[] = []
-
-    for (let i = 0; i < inputs.length; ++i) {
-      const input = inputs[i]
-
-      if (input instanceof Block) {
-        // Transform any blocks to headers
-        outputs[i] = input.header
-      } else if (input instanceof Buffer) {
-        // Load any hashes into headers
-        const promise = this.getHeader(input, tx).then((r) => [r, input, i] as LoadResult)
-        promises.push(promise)
-      } else {
-        // headers should just get copied over
-        outputs[i] = input
-      }
-    }
-
-    // Wait for all block headers to load
-    if (promises.length > 0) {
-      const loaded = await Promise.all(promises)
-      for (const [header, hash, index] of loaded) {
-        Assert.isNotNull(header, `Error loading block by header: ${hash.toString('hex')}`)
-        outputs[index] = header
-      }
-    }
-
-    return outputs
-  }
-
   private async saveConnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
