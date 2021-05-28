@@ -137,6 +137,17 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
+    const trees = await node.chain.verifier.blockMatchesTrees(node.chain.head)
+    if (!trees.valid) {
+      this.log(
+        `Error starting node: your merkle trees are corrupt: ${String(trees.reason)}.` +
+          `\n  1. Run ironfish chain:repair to attempt repair` +
+          `\n  2. Delete your database at ${node.config.chainDatabasePath}`,
+      )
+
+      this.exit(1)
+    }
+
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
     }
