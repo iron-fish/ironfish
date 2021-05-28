@@ -9,7 +9,6 @@ import { createRootLogger, Logger } from '../../../logger'
 import { HashUtils } from '../../../utils'
 import { JsonSerializable } from '../../../serde'
 import { Transaction } from '../../../primitives/transaction'
-import { checkTreeMatchesHeaviest } from '../../../blockchain/utils'
 
 const DEFAULT_OPTIONS = {
   seq: true,
@@ -67,14 +66,17 @@ export async function renderChain<
   logger = createRootLogger(),
 ): Promise<string[]> {
   const content: string[] = []
-  const status = await checkTreeMatchesHeaviest(chain)
+
+  const trees = chain.head
+    ? await chain.verifier.blockMatchesTrees(chain.head)
+    : { valid: true, reason: null }
 
   content.push(
     '======',
     `GENESIS: ${chain.genesis?.hash.toString('hex') || '-'}`,
     `HEAD:    ${chain.head?.hash.toString('hex') || '-'}`,
     `LATEST:  ${chain.latest?.hash.toString('hex') || '-'}`,
-    `TREES:   ${status ? 'OK' : 'ERROR'}`,
+    `TREES:   ${trees.valid ? 'OK' : `ERROR: ${String(trees.reason)}`}`,
     '======',
   )
 
