@@ -864,6 +864,7 @@ export class Blockchain<
       'readwrite',
       async (tx) => {
         let noteCount = await this.notes.size(tx)
+
         // do we have a note at this index already?
         if (index < noteCount) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -875,7 +876,9 @@ export class Blockchain<
           }
           return
         }
+
         this.looseNotes[index] = note
+
         for (;;) {
           const note = this.looseNotes[noteCount]
           if (note) {
@@ -885,6 +888,7 @@ export class Blockchain<
             break
           }
         }
+
         // Garbage collecting. We keep notes in looseNotes after they are added
         // to deal with adding them back after truncation events,
         // but once the chain is large enough, the oldest notes are not likely to
@@ -1035,7 +1039,7 @@ export class Blockchain<
       return null
     }
 
-    return this.getHeader(hash)
+    return this.getHeader(hash, tx)
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
@@ -1141,7 +1145,7 @@ export class Blockchain<
     }
   }
 
-  private async saveConnect(
+  async saveConnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,

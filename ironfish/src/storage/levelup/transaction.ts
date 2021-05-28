@@ -45,6 +45,10 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.batch = new LevelupBatch(db)
   }
 
+  get size(): number {
+    return this.batch.queue.length
+  }
+
   async acquireLock(): Promise<void> {
     if (this.unlock) return
 

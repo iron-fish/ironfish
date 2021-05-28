@@ -382,7 +382,7 @@ export class Verifier<
   async blockMatchesTrees(
     header: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
-  ): Promise<boolean> {
+  ): Promise<{ valid: boolean; reason: VerificationResultReason | null }> {
     return this.chain.db.withTransaction(
       tx,
       [
@@ -400,35 +400,35 @@ export class Verifier<
         const actualNoteSize = await this.chain.notes.size(tx)
         const actualNullifierSize = await this.chain.nullifiers.size(tx)
 
-        if (actualNoteSize < noteSize) {
-          return false
+        if (noteSize > actualNoteSize) {
+          return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
         }
-        if (actualNullifierSize < nullifierSize) {
-          return false
+
+        if (nullifierSize > actualNullifierSize) {
+          return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
         }
-        try {
-          const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-          if (
-            !this.strategy
-              .noteHasher()
-              .hashSerde()
-              .equals(pastNoteRoot, header.noteCommitment.commitment)
-          ) {
-            return false
-          }
-          const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-          if (
-            !this.strategy
-              .nullifierHasher()
-              .hashSerde()
-              .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
-          ) {
-            return false
-          }
-        } catch {
-          return false
+
+        const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
+        if (
+          !this.strategy
+            .noteHasher()
+            .hashSerde()
+            .equals(pastNoteRoot, header.noteCommitment.commitment)
+        ) {
+          return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
         }
-        return true
+
+        const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
+        if (
+          !this.strategy
+            .nullifierHasher()
+            .hashSerde()
+            .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
+        ) {
+          return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
+        }
+
+        return { valid: true, reason: null }
       },
     )
   }
@@ -456,7 +456,9 @@ export enum VerificationResultReason {
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
   INVALID_PREV_HASH = 'invalid previous hash',
+  NOTE_COMMITMENT = 'note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
+  NULLIFIER_COMMITMENT = 'nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
