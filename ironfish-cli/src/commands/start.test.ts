@@ -30,7 +30,15 @@ jest.mock('ironfish', () => {
 describe('start command', () => {
   let isFirstRun = true
   let hasGenesisBlock = false
-  const chain: { hasGenesisBlock: boolean } = {
+
+  const verifier = {
+    blockMatchesTrees: jest
+      .fn()
+      .mockReturnValue(Promise.resolve({ valid: true, reason: null })),
+  }
+
+  const chain = {
+    verifier: verifier,
     hasGenesisBlock: hasGenesisBlock,
   }
 
