@@ -28,6 +28,8 @@ import { Assert } from '../assert'
 import { Target } from '../primitives/target'
 import { SerializedBlockHeader } from '../primitives/blockheader'
 import { Nullifier } from '../primitives/nullifier'
+import { createNodeTest } from '../testUtilities'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 
 // Number of notes and nullifiers on the initial chain created by makeFullChain
 const TEST_CHAIN_NUM_NOTES = 40
@@ -302,10 +304,63 @@ describe('successfullyMined', () => {
     const onNewBlockSpy = jest.spyOn(director.onNewBlock, 'emit')
 
     const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
+    block.header.noteCommitment.size = 53
+    block.header.nullifierCommitment.size = 16
     director.recentBlocks.set(2, block)
     await director.successfullyMined(5, 2)
 
     expect(onNewBlockSpy).toBeCalled()
+  })
+})
+
+describe('Non-fake director tests', () => {
+  describe('successfullyMined', () => {
+    const nodeTest = createNodeTest()
+
+    it('rejects if chain head has changed', async () => {
+      const { strategy, chain, node } = nodeTest
+      strategy.disableMiningReward()
+
+      const genesis = await nodeTest.node.seed()
+      Assert.isNotNull(genesis)
+
+      const blockA1 = await makeBlockAfter(chain, genesis)
+      const blockA2 = await makeBlockAfter(chain, genesis)
+      node.miningDirector.recentBlocks.set(2, blockA1)
+      node.miningDirector.recentBlocks.set(3, blockA2)
+
+      const addSpy = jest.spyOn(chain, 'addBlock')
+
+      await node.miningDirector.successfullyMined(1, 2)
+      expect(addSpy).toBeCalledTimes(1)
+      addSpy.mockClear()
+
+      await node.miningDirector.successfullyMined(2, 3)
+      expect(addSpy).not.toBeCalled()
+    })
+
+    it('does not emit if block cannot be added to chain', async () => {
+      const { strategy, chain, node } = nodeTest
+      strategy.disableMiningReward()
+
+      const genesis = await nodeTest.node.seed()
+      Assert.isNotNull(genesis)
+
+      const block = await makeBlockAfter(chain, genesis)
+      block.header.nullifierCommitment.size = 999
+
+      const addSpy = jest.spyOn(chain, 'addBlock')
+      const emitSpy = jest.spyOn(node.miningDirector.onNewBlock, 'emit')
+
+      node.miningDirector.recentBlocks.set(1, block)
+      await node.miningDirector.successfullyMined(1, 1)
+      expect(addSpy).toBeCalledTimes(1)
+
+      await expect(addSpy.mock.results[0].value).resolves.toMatchObject({
+        isAdded: false,
+      })
+      expect(emitSpy).not.toBeCalled()
+    })
   })
 })
 
