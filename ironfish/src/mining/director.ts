@@ -38,7 +38,7 @@ type DirectorState = { type: 'STARTED' } | { type: 'STOPPED' }
 /**
  * Responsible for directing miners about which block to mine.
  *
- * Listens for changes to the anchor chain head and emits a 'onBlockToMine' event
+ * Listens for changes to the blockchain head and emits a 'onBlockToMine' event
  * for each one.
  *
  * @typeParam E Note element stored in transactions and the notes Merkle Tree
@@ -220,7 +220,7 @@ export class MiningDirector<
   }
 
   /**
-   * Event listener hooked up to changes in AnchorChain.
+   * Event listener hooked up to changes in Blockchain.
    *
    * When a new head is received it:
    *  * adds any transactions that we were attempting to mine back to the pool

@@ -4,26 +4,22 @@
 import os from 'os'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { IJSON } from './serde'
 import { Blockchain, IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
-import { genesisBlockData } from './genesis'
 import { RpcServer } from './rpc/server'
 import { MiningDirector } from './mining'
 import { submitMetric, startCollecting, stopCollecting, setDefaultTags } from './telemetry'
 import { MetricsMonitor } from './metrics'
 import { Accounts, Account, AccountsDB } from './account'
 import { IronfishMemPool, MemPool } from './memPool'
-import { Assert } from './assert'
 import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { WorkerPool } from './workerPool'
 import { IronfishMiningDirector } from './mining/director'
 import { IronfishStrategy } from './strategy'
 import { IronfishVerifier } from './consensus/verifier'
-import { IronfishBlock, SerializedBlock } from './primitives/block'
 import { Syncer } from './syncer'
-import { GENESIS_BLOCK_SEQUENCE } from './consensus'
+import { IronfishBlockSerialized } from './primitives/block'
 
 export class IronfishNode {
   chain: IronfishBlockchain
@@ -127,6 +123,8 @@ export class IronfishNode {
     dataDir,
     config,
     internal,
+    loadGenesisBlock,
+    autoSeed,
     logger = createRootLogger(),
     metrics,
     files,
@@ -139,6 +137,8 @@ export class IronfishNode {
     dataDir?: string
     config?: Config
     internal?: InternalStore
+    loadGenesisBlock?: () => Promise<IronfishBlockSerialized>
+    autoSeed?: boolean
     databaseName?: string
     logger?: Logger
     metrics?: MetricsMonitor
@@ -175,6 +175,8 @@ export class IronfishNode {
       strategy,
       logger,
       metrics,
+      loadGenesisBlock,
+      autoSeed,
     })
 
     const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
@@ -291,25 +293,6 @@ export class IronfishNode {
     if (this.shutdownResolve) {
       this.shutdownResolve()
     }
-  }
-
-  /**
-   * Insert the genesis block into the chain
-   */
-  async seed(): Promise<IronfishBlock> {
-    if (!this.chain.isEmpty) {
-      const header = await this.chain.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
-      Assert.isNotNull(header)
-      const genesis = await this.chain.getBlock(header)
-      Assert.isNotNull(genesis)
-      return genesis
-    }
-
-    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const genesis = this.strategy.blockSerde.deserialize(serialized)
-    const result = await this.chain.addBlock(genesis)
-    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
-    return genesis
   }
 
   onPeerNetworkReady(): void {

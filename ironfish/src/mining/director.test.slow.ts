@@ -65,7 +65,7 @@ describe('Mining director', () => {
   >
 
   beforeEach(async () => {
-    chain = await makeChainGenesis(strategy, makeDbName())
+    chain = await makeChainGenesis(strategy, { dbPrefix: makeDbName() })
 
     verifyBlockAddSpy = jest.spyOn(chain.verifier, 'verifyBlockAdd').mockResolvedValue({
       valid: Validity.Yes,
@@ -117,7 +117,7 @@ describe('Mining director', () => {
     const chainHead = chain.head
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
     const [data] = await listenPromise
     const buffer = Buffer.from(data.bytes)
     const block = JSON.parse(buffer.toString()) as Partial<SerializedBlockHeader<string>>
@@ -145,7 +145,7 @@ describe('Mining director', () => {
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -175,7 +175,7 @@ describe('Mining director', () => {
     expect(chainHead).toBeDefined()
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead!.recomputeHash())
+    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -321,11 +321,8 @@ describe('Non-fake director tests', () => {
       const { strategy, chain, node } = nodeTest
       strategy.disableMiningReward()
 
-      const genesis = await nodeTest.node.seed()
-      Assert.isNotNull(genesis)
-
-      const blockA1 = await makeBlockAfter(chain, genesis)
-      const blockA2 = await makeBlockAfter(chain, genesis)
+      const blockA1 = await makeBlockAfter(chain, chain.genesis)
+      const blockA2 = await makeBlockAfter(chain, chain.genesis)
       node.miningDirector.recentBlocks.set(2, blockA1)
       node.miningDirector.recentBlocks.set(3, blockA2)
 
@@ -343,10 +340,7 @@ describe('Non-fake director tests', () => {
       const { strategy, chain, node } = nodeTest
       strategy.disableMiningReward()
 
-      const genesis = await nodeTest.node.seed()
-      Assert.isNotNull(genesis)
-
-      const block = await makeBlockAfter(chain, genesis)
+      const block = await makeBlockAfter(chain, chain.genesis)
       block.header.nullifierCommitment.size = 999
 
       const addSpy = jest.spyOn(chain, 'addBlock')

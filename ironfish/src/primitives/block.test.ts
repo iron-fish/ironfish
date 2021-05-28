@@ -12,8 +12,6 @@ describe('Block', () => {
   const nodeTest = createNodeTest()
 
   it('correctly counts notes and nullifiers', async () => {
-    await nodeTest.node.seed()
-
     const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeTest.node.accounts, 'accountB')
     const block = await makeBlockWithTransaction(nodeTest.node, accountA, accountB)
@@ -33,8 +31,7 @@ describe('Block', () => {
   it('serializes and deserializes a block', async () => {
     nodeTest.strategy.disableMiningReward()
 
-    const genesis = await nodeTest.node.seed()
-    const block = await makeBlockAfter(nodeTest.chain, genesis)
+    const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
     const serialized = nodeTest.strategy.blockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })

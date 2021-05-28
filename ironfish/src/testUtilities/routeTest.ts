@@ -67,7 +67,7 @@ export class RouteTest extends NodeTest {
  */
 export function createRouteTest(): RouteTest {
   const routeTest = new RouteTest()
-  beforeAll(() => routeTest.setup())
+  beforeAll(() => routeTest.setup(), 10000)
   afterEach(() => routeTest.teardownEach())
   afterAll(() => routeTest.teardownAll())
   return routeTest

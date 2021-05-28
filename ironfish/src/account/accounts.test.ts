@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../assert'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities'
 
@@ -13,10 +12,6 @@ describe('Accounts', () => {
     strategy.disableMiningReward()
 
     const getTransactionsSpy = jest.spyOn(chain, 'iterateBlockTransactions')
-
-    // G
-    await node.seed()
-    Assert.isNotNull(chain.genesis)
 
     // G -> A1
     const blockA1 = await makeBlockAfter(chain, chain.genesis)
