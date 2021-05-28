@@ -353,11 +353,18 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
-      const [, ...blocks]: IronfishBlockSerialized[] = await this.peerNetwork.getBlocks(
+      const [
+        headBlock,
+        ...blocks
+      ]: IronfishBlockSerialized[] = await this.peerNetwork.getBlocks(
         peer,
         head,
         this.blocksPerMessage + 1,
       )
+
+      if (headBlock == null) {
+        peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
+      }
 
       this.abort(peer)
 
