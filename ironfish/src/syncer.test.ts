@@ -21,9 +21,8 @@ describe('Syncer', () => {
     expect(syncer.state).toBe('stopped')
   })
 
-  it('should load from peer with more work', async () => {
-    const { node, chain, peerNetwork, syncer } = nodeTest
-    await node.seed()
+  it('should load from peer with more work', () => {
+    const { chain, peerNetwork, syncer } = nodeTest
     Assert.isNotNull(chain.head)
 
     const startSyncSpy = jest.spyOn(syncer, 'startSync').mockImplementation()
@@ -47,8 +46,7 @@ describe('Syncer', () => {
   }, 10000)
 
   it('should sync and then finish from peer', async () => {
-    const { node, peerNetwork, syncer } = nodeTest
-    await node.seed()
+    const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
@@ -74,8 +72,7 @@ describe('Syncer', () => {
   })
 
   it('should stop syncing on error', async () => {
-    const { node, peerNetwork, syncer } = nodeTest
-    await node.seed()
+    const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
@@ -104,9 +101,8 @@ describe('Syncer', () => {
     expect(peer.error).toBe(error)
   })
 
-  it('should stop syncing when peer disconnects', async () => {
-    const { node, peerNetwork, syncer } = nodeTest
-    await node.seed()
+  it('should stop syncing when peer disconnects', () => {
+    const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
@@ -139,8 +135,10 @@ describe('Syncer', () => {
   })
 
   it('should sync blocks', async () => {
-    const { strategy, node, chain, peerNetwork, syncer } = nodeTest
-    const genesis = await node.seed()
+    const { strategy, chain, peerNetwork, syncer } = nodeTest
+
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
 
     strategy.disableMiningReward()
     syncer.blocksPerMessage = 1

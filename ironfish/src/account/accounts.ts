@@ -116,11 +116,6 @@ export class Accounts {
       const chainHead = this.chain.head
       const chainTail = this.chain.genesis
 
-      if (!chainHead || !chainTail) {
-        // There is no genesis block, so there's nothing to update to
-        return
-      }
-
       if (!this.headHash) {
         await addBlock(chainTail)
         await this.updateHeadHash(chainTail.hash.toString('hex'))

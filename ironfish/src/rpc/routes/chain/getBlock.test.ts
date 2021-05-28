@@ -15,7 +15,7 @@ describe('Route chain.getBlock', () => {
     await expect(routeTest.adapter.request('chain/getBlock', {})).rejects.toThrow(
       'Missing hash or sequence',
     )
-  })
+  }, 10000)
 
   it(`should fail if block can't be found with hash`, async () => {
     const hash = BlockHashSerdeInstance.serialize(Buffer.alloc(32, 'blockhashnotfound'))
@@ -23,19 +23,16 @@ describe('Route chain.getBlock', () => {
     await expect(routeTest.adapter.request('chain/getBlock', { hash })).rejects.toThrow(
       'No block found',
     )
-  })
+  }, 10000)
 
   it(`should fail if block can't be found with sequence`, async () => {
     await expect(routeTest.adapter.request('chain/getBlock', { index: 5 })).rejects.toThrow(
       'No block found',
     )
-  })
+  }, 10000)
 
   it('responds with a block', async () => {
-    const node = routeTest.node
     const chain = routeTest.node.chain
-
-    await node.seed()
 
     const block = await useMinerBlockFixture(chain, BigInt(2))
     const addResult = await chain.addBlock(block)

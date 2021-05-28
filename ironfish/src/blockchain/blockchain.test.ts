@@ -10,30 +10,15 @@ import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
 
-  it('constructs an empty chain', async () => {
+  it('add genesis block', async () => {
     const { chain } = nodeTest
     await chain.open()
 
-    expect(await chain.notes.size()).toBe(0)
-    expect(await chain.nullifiers.size()).toBe(0)
-    expect(chain.isEmpty).toBe(true)
-    expect(chain.head).toBe(null)
-    expect(chain.latest).toBe(null)
-    expect(chain.synced).toBe(false)
-  })
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
 
-  it('add genesis block', async () => {
-    const { node, chain } = nodeTest
-    await chain.open()
-
-    expect(chain.head).toBe(null)
-    expect(chain.hasGenesisBlock).toBe(false)
-    expect(chain.isEmpty).toBe(true)
-
-    const genesis = await node.seed()
-
-    expect(chain.head?.hash).toEqualHash(genesis.header.hash)
-    expect(chain.latest?.hash).toEqualHash(genesis.header.hash)
+    expect(chain.head.hash).toEqualHash(genesis.header.hash)
+    expect(chain.latest.hash).toEqualHash(genesis.header.hash)
     expect(chain.isEmpty).toBe(false)
     expect(chain.hasGenesisBlock).toBe(true)
     expect(await chain.notes.size()).toBeGreaterThan(0)
@@ -46,11 +31,11 @@ describe('Blockchain', () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
-    const genesis = await nodeTest.node.seed()
-    Assert.isNotNull(genesis)
-
     // G -> A1 -> A2
     //         -> B2 -> B3
+
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
 
     const blockA1 = await makeBlockAfter(chain, genesis)
     const blockA2 = await makeBlockAfter(chain, blockA1)
@@ -78,9 +63,9 @@ describe('Blockchain', () => {
     Assert.isNotNull(headerB2)
     Assert.isNotNull(headerB3)
 
-    expect(chain.genesis?.hash?.equals(genesis.header.hash)).toBe(true)
-    expect(chain.head?.hash?.equals(headerB3.hash)).toBe(true)
-    expect(chain.latest?.hash?.equals(headerB3.hash)).toBe(true)
+    expect(chain.genesis.hash.equals(genesis.header.hash)).toBe(true)
+    expect(chain.head.hash.equals(headerB3.hash)).toBe(true)
+    expect(chain.latest.hash.equals(headerB3.hash)).toBe(true)
 
     // getNext
     expect((await chain.getNext(genesis.header))?.hash?.equals(headerA1.hash)).toBe(true)
@@ -106,11 +91,7 @@ describe('Blockchain', () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
-    await nodeTest.node.seed()
     const genesis = chain.genesis
-    Assert.isNotNull(genesis)
-    Assert.isNotNull(chain.head)
-    Assert.isNotNull(chain.latest)
 
     // G -> A1 -> A2
     //         -> B2 -> B3
@@ -179,9 +160,7 @@ describe('Blockchain', () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
-    await nodeTest.node.seed()
     const genesis = chain.genesis
-    Assert.isNotNull(genesis)
 
     // G -> A1 -> A2
     //   -> B1 -> B2
@@ -224,9 +203,7 @@ describe('Blockchain', () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
-    await nodeTest.node.seed()
     const genesis = chain.genesis
-    Assert.isNotNull(genesis)
 
     // G -> A1 -> A2
     //         -> B2 -> B3
@@ -284,7 +261,6 @@ describe('Blockchain', () => {
      */
     const { node: nodeA } = nodeTest
     const { node: nodeB } = await nodeTest.createSetup()
-    await Promise.all([nodeA.seed(), nodeB.seed()])
 
     const notes = await nodeA.chain.notes.size()
     const nullifiers = await nodeB.chain.nullifiers.size()
@@ -344,7 +320,7 @@ describe('Blockchain', () => {
     expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
   }, 20000)
 
-  it('should update synced', async () => {
+  it('should update synced', () => {
     const nowSpy = jest.spyOn(Date, 'now')
     const syncedSpy = jest.spyOn(nodeTest.node.chain.onSynced, 'emit')
 
@@ -354,13 +330,12 @@ describe('Blockchain', () => {
 
     // Genesis block is a too far back to be synced
     nowSpy.mockReturnValue(Number.MAX_SAFE_INTEGER)
-    const genesis = await nodeTest.node.seed()
-    expect(nodeTest.node.chain.head).toEqual(genesis.header)
+    expect(nodeTest.node.chain.head).toEqual(nodeTest.chain.genesis)
     expect(nodeTest.node.chain.synced).toEqual(false)
     expect(syncedSpy).not.toHaveBeenCalled()
 
     // Set now to genesis block creation time to consider it synced
-    nowSpy.mockReturnValue(genesis.header.timestamp.valueOf())
+    nowSpy.mockReturnValue(nodeTest.chain.genesis.timestamp.valueOf())
     nodeTest.node.chain['updateSynced']()
     expect(nodeTest.node.chain.synced).toEqual(true)
     expect(syncedSpy).toHaveBeenCalledTimes(1)

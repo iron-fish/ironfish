@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { fakeMaxTarget } from '../testUtilities/fake'
-import { IJSON } from '../serde'
-import { genesisBlockData } from '../genesis/genesisBlock'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import {
   createNodeTest,
@@ -12,7 +10,6 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { Target } from '../primitives/target'
-import { SerializedBlock } from '../primitives/block'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -35,7 +32,6 @@ describe('Accounts', () => {
 
   it('Returns the correct balance when an account receives a miners fee', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -48,11 +44,6 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(0),
     })
 
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await chain.addBlock(block)
-    expect(addedBlock.isAdded).toBe(true)
-
     await node.accounts.updateHead()
 
     // Balance after adding the genesis block should be 0
@@ -64,7 +55,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee = await nodeTest.strategy.createMinersFee(
       BigInt(0),
-      block.header.sequence + BigInt(1),
+      BigInt(2),
       account.spendingKey,
     )
     const newBlock = await chain.newBlock([], minersfee)
@@ -95,11 +86,6 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(0),
     })
 
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await chain.addBlock(block)
-    expect(addedBlock.isAdded).toBe(true)
-
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
@@ -108,11 +94,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(
-      BigInt(0),
-      block.header.sequence + BigInt(1),
-      account.spendingKey,
-    )
+    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -159,11 +141,6 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(0),
     })
 
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await chain.addBlock(block)
-    expect(addedBlock.isAdded).toBe(true)
-
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
@@ -172,11 +149,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(
-      BigInt(0),
-      block.header.sequence + BigInt(1),
-      account.spendingKey,
-    )
+    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -201,7 +174,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
       await transaction.transactionFee(),
-      block.header.sequence + BigInt(1),
+      newBlock.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
@@ -231,11 +204,6 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(0),
     })
 
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await chain.addBlock(block)
-    expect(addedBlock.isAdded).toBe(true)
-
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
@@ -244,11 +212,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(
-      BigInt(0),
-      block.header.sequence + BigInt(1),
-      account.spendingKey,
-    )
+    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -273,7 +237,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
       await transaction.transactionFee(),
-      block.header.sequence + BigInt(1),
+      newBlock.header.sequence + BigInt(1),
       generateKey().spending_key,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
@@ -290,7 +254,6 @@ describe('Accounts', () => {
 
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
-    await nodeA.seed()
 
     // Create an account A
     const accountA = await useAccountFixture(nodeA.accounts, () =>
@@ -360,7 +323,6 @@ describe('Accounts', () => {
 
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
-    await Promise.all([nodeA.seed(), nodeB.seed()])
 
     const accountA = await useAccountFixture(nodeA.accounts, 'testA')
     const accountB = await useAccountFixture(nodeB.accounts, 'testB')
@@ -424,7 +386,6 @@ describe('Accounts', () => {
 
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
-    await Promise.all([nodeA.seed(), nodeB.seed()])
 
     const accountA = await useAccountFixture(nodeA.accounts, 'testA')
     const accountB = await useAccountFixture(nodeB.accounts, 'testB')
@@ -522,7 +483,6 @@ describe('Accounts', () => {
 
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
-    await Promise.all([nodeA.seed(), nodeB.seed()])
 
     const accountA = await useAccountFixture(nodeA.accounts, 'testA')
     const accountB = await useAccountFixture(nodeB.accounts, 'testB')

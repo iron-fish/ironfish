@@ -62,7 +62,6 @@ export default class Export extends IronfishCommand {
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    await node.seed()
     cli.action.stop('done.')
 
     Assert.isNotNull(node.chain.head, 'head')

@@ -8,10 +8,10 @@ import {
   SerializedTransaction,
   Transaction,
 } from '../primitives/transaction'
-import { Block } from '../primitives/block'
+import { Block, SerializedBlock } from '../primitives/block'
 import { Verifier, Validity, VerificationResultReason } from '../consensus/verifier'
 import { BlockHeader, BlockHash, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
-import { JsonSerializable } from '../serde'
+import { IJSON, JsonSerializable } from '../serde'
 import { Target } from '../primitives/target'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
@@ -56,6 +56,7 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import { BAN_SCORE } from '../network/peers/peer'
+import { genesisBlockData } from '../genesis'
 
 export class Blockchain<
   E,
@@ -75,12 +76,49 @@ export class Blockchain<
   opened = false
   notes: MerkleTree<E, H, SE, SH>
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
-  head: BlockHeader<E, H, T, SE, SH, ST> | null = null
-  latest: BlockHeader<E, H, T, SE, SH, ST> | null = null
-  genesis: BlockHeader<E, H, T, SE, SH, ST> | null = null
+
+  private _head: BlockHeader<E, H, T, SE, SH, ST> | null = null
+  get head(): BlockHeader<E, H, T, SE, SH, ST> {
+    Assert.isNotNull(
+      this._head,
+      'Blockchain.head should never be null. Is the chain database open?',
+    )
+    return this._head
+  }
+  set head(newHead: BlockHeader<E, H, T, SE, SH, ST>) {
+    this._head = newHead
+  }
+
+  private _latest: BlockHeader<E, H, T, SE, SH, ST> | null = null
+  get latest(): BlockHeader<E, H, T, SE, SH, ST> {
+    Assert.isNotNull(
+      this._latest,
+      'Blockchain.latest should never be null. Is the chain database open?',
+    )
+    return this._latest
+  }
+  set latest(newLatest: BlockHeader<E, H, T, SE, SH, ST>) {
+    this._latest = newLatest
+  }
+
+  private _genesis: BlockHeader<E, H, T, SE, SH, ST> | null = null
+  get genesis(): BlockHeader<E, H, T, SE, SH, ST> {
+    Assert.isNotNull(
+      this._genesis,
+      'Blockchain.genesis should never be null. Is the chain database open?',
+    )
+    return this._genesis
+  }
+  set genesis(newGenesis: BlockHeader<E, H, T, SE, SH, ST>) {
+    this._genesis = newGenesis
+  }
+
   addSpeed: Meter
   invalid: LRU<Buffer, boolean>
   logAllBlockAdd: boolean
+  // Whether to seed the chain with a genesis block when opening the database.
+  autoSeed: boolean
+  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
 
   // TODO: delete this, if anything ends up in here its an error to begin with
   looseNotes: { [key: number]: E }
@@ -116,6 +154,8 @@ export class Blockchain<
     logger?: Logger
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
+    autoSeed?: boolean
+    loadGenesisBlock?: () => Promise<SerializedBlock<SH, ST>>
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -127,6 +167,8 @@ export class Blockchain<
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
+    this.autoSeed = options.autoSeed ?? true
+    this.loadGenesisBlock = options.loadGenesisBlock ?? this.loadDefaultGenesisBlock
 
     // TODO: Delete
     this.looseNotes = {}
@@ -184,17 +226,14 @@ export class Blockchain<
   }
 
   get isEmpty(): boolean {
-    return !this.head
+    return !this._head
   }
 
   get hasGenesisBlock(): boolean {
-    return !!this.genesis
+    return !!this._genesis
   }
 
   get progress(): number {
-    if (!this.genesis) return 0
-    if (!this.head) return 0
-
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
@@ -205,21 +244,70 @@ export class Blockchain<
     return Math.max(Math.min(1, progress), 0)
   }
 
+  private loadDefaultGenesisBlock = () => {
+    return Promise.resolve(IJSON.parse(genesisBlockData) as SerializedBlock<SH, ST>)
+  }
+
+  private async seed() {
+    const serialized = await this.loadGenesisBlock()
+    const genesis = this.strategy.blockSerde.deserialize(serialized)
+
+    const result = await this.addBlock(genesis)
+    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+
+    const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    Assert.isNotNull(
+      genesisHeader,
+      'Added the genesis block to the chain, but could not fetch the header',
+    )
+
+    return genesisHeader
+  }
+
   async open(): Promise<void> {
     if (this.opened) return
     this.opened = true
 
     await this.db.open()
 
-    this.genesis = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    if (!genesisHeader && this.autoSeed) {
+      genesisHeader = await this.seed()
+    }
+
+    if (genesisHeader) {
+      this.genesis = genesisHeader
+      this.head = this.genesis
+      this.latest = this.genesis
+    }
 
     const headHash = await this.meta.get('head')
-    if (headHash) this.head = await this.getHeader(headHash)
+    if (headHash) {
+      const head = await this.getHeader(headHash)
+      Assert.isNotNull(
+        head,
+        `The blockchain meta table has a head hash of ${headHash.toString(
+          'hex',
+        )}, but no block header for that hash.`,
+      )
+      this.head = head
+    }
 
     const latestHash = await this.meta.get('latest')
-    if (latestHash) this.latest = await this.getHeader(latestHash)
+    if (latestHash) {
+      const latest = await this.getHeader(latestHash)
+      Assert.isNotNull(
+        latest,
+        `The blockchain meta table has a latest hash of ${latestHash.toString(
+          'hex',
+        )}, but no block header for that hash.`,
+      )
+      this.latest = latest
+    }
 
-    this.updateSynced()
+    if (this._head) {
+      this.updateSynced()
+    }
   }
 
   async close(): Promise<void> {
@@ -431,7 +519,7 @@ export class Blockchain<
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
     let result
-    if (this.head && !isBlockHeavier(block.header, this.head)) {
+    if (!this.isEmpty && !isBlockHeavier(block.header, this.head)) {
       result = await this.addForkToChain(block, prev, tx)
     } else {
       result = await this.addHeadToChain(block, prev, tx)
@@ -464,12 +552,10 @@ export class Blockchain<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     Assert.isTrue(
-      !this.head || block.header.hash.equals(this.head.hash),
+      block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
         block.header.hash,
-      )} block that is not the current head ${
-        this.head ? HashUtils.renderHash(this.head.hash) : ''
-      }`,
+      )} block that is not the current head ${HashUtils.renderHash(this.head.hash)}`,
     )
 
     Assert.isFalse(
@@ -491,7 +577,6 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    Assert.isNotNull(this.head, 'Cannot reconnect the genesis block')
     Assert.isTrue(
       block.header.previousBlockHash.equals(this.head.hash),
       `Reconnecting block ${block.header.hash.toString('hex')} (${
@@ -536,12 +621,12 @@ export class Blockchain<
     this.logger.warn(
       'Added block to fork' +
         ` seq: ${block.header.sequence},` +
-        ` head-seq: ${this.head?.sequence || ''},` +
+        ` head-seq: ${this.head.sequence || ''},` +
         ` hash: ${HashUtils.renderHash(block.header.hash)},` +
-        ` head-hash: ${this.head?.hash ? HashUtils.renderHash(this.head.hash) : ''},` +
+        ` head-hash: ${this.head.hash ? HashUtils.renderHash(this.head.hash) : ''},` +
         ` work: ${block.header.work},` +
-        ` head-work: ${this.head?.work || ''},` +
-        ` work-diff: ${(this.head?.work || BigInt(0)) - block.header.work}`,
+        ` head-work: ${this.head.work || ''},` +
+        ` work-diff: ${(this.head.work || BigInt(0)) - block.header.work}`,
     )
 
     return { isAdded: true, reason: null }
@@ -552,7 +637,7 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
   ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
-    if (this.head && prev && !block.header.previousBlockHash.equals(this.head.hash)) {
+    if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
           this.head.sequence
@@ -772,12 +857,12 @@ export class Blockchain<
         let target
         const timestamp = new Date()
 
-        const heaviestHead = this.head
-        if (!heaviestHead) {
+        if (!this.hasGenesisBlock) {
           previousBlockHash = GENESIS_BLOCK_PREVIOUS
           previousSequence = BigInt(0)
           target = Target.initialTarget()
         } else {
+          const heaviestHead = this.head
           if (
             originalNoteSize !== heaviestHead.noteCommitment.size ||
             originalNullifierSize !== heaviestHead.nullifierCommitment.size
@@ -1062,7 +1147,7 @@ export class Blockchain<
         throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
       }
 
-      if (this.head?.hash.equals(hash)) {
+      if (this.head.hash.equals(hash)) {
         await this.disconnect(block, tx)
       }
 
@@ -1078,9 +1163,9 @@ export class Blockchain<
       await this.headers.del(hash, tx)
 
       // TODO: use a new heads table to recalculate this
-      if (this.latest?.hash.equals(hash)) {
-        this.latest = null
-        await this.meta.put('latest', block.header.previousBlockHash, tx)
+      if (this.latest.hash.equals(hash)) {
+        this.latest = this.head
+        await this.meta.put('latest', this.head.hash, tx)
       }
     })
   }
@@ -1104,8 +1189,6 @@ export class Blockchain<
     }
 
     if (!to) return
-
-    Assert.isNotNull(this.genesis)
 
     for await (const header of this.iterateFrom(this.genesis, to, tx)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
@@ -1225,7 +1308,7 @@ export class Blockchain<
       await this.saveConnect(block, prev, tx)
     }
 
-    if (!this.latest || isBlockLater(block.header, this.latest)) {
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
@@ -1233,10 +1316,6 @@ export class Blockchain<
 
   private updateSynced(): void {
     if (this.synced) {
-      return
-    }
-
-    if (!this.head) {
       return
     }
 

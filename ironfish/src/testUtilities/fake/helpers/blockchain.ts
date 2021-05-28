@@ -20,12 +20,12 @@ import { BlockHeader, BlockHash } from '../../../primitives/blockheader'
 import { Strategy } from '../../../strategy'
 
 /**
- * Add the notes directly to the anchorchain's notes merkle tree
+ * Add the notes directly to the Blockchain's notes merkle tree
  * without doing any of the checking or syncing that would happen in
- * `anchor.addNote`
+ * `Blockchain.addNote`
  */
 export async function addNotes(
-  anchor: Blockchain<
+  blockchain: Blockchain<
     string,
     string,
     TestTransaction,
@@ -36,7 +36,7 @@ export async function addNotes(
   notes: number[],
 ): Promise<void> {
   for (const note of notes) {
-    await anchor.notes.add(`${note}`)
+    await blockchain.notes.add(`${note}`)
   }
 }
 
@@ -45,7 +45,7 @@ export async function addNotes(
  * hash of the notes and nullifiers trees on the given chain.
  *
  * There is a chance this functionality could be useful for more than testing.
- * It could be moved to a method on anchorChain.
+ * It could be moved to a method on Blockchain.
  */
 export async function syncCommitments(
   header: BlockHeader<
@@ -56,7 +56,7 @@ export async function syncCommitments(
     string,
     SerializedTestTransaction
   >,
-  anchor: Blockchain<
+  blockchain: Blockchain<
     string,
     string,
     TestTransaction,
@@ -65,20 +65,20 @@ export async function syncCommitments(
     SerializedTestTransaction
   >,
 ): Promise<void> {
-  header.noteCommitment.size = await anchor.notes.size()
-  header.noteCommitment.commitment = await anchor.notes.rootHash()
-  header.nullifierCommitment.size = await anchor.nullifiers.size()
-  header.nullifierCommitment.commitment = await anchor.nullifiers.rootHash()
+  header.noteCommitment.size = await blockchain.notes.size()
+  header.noteCommitment.commitment = await blockchain.notes.rootHash()
+  header.nullifierCommitment.size = await blockchain.nullifiers.size()
+  header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
 }
 
 /**
  * Make a block that suits the two trees currently on the chain. All notes/nullifiers
- * that were added to the anchorchain (using chain.notes.add, not chain.AddNote)
+ * that were added to the Blockchain (using chain.notes.add, not chain.AddNote)
  * since the head of the chain are entered as transactions
  * into the fake block. The last note in the tree becomes the miner's fee.
  * The hash and previous hash are all derived from the sequence.
  *
- * Warning: This will not work if you don't add at least one note to the anchorchain
+ * Warning: This will not work if you don't add at least one note to the blockchain
  * using chain.notes.add.
  *
  * This is kind of a strange workflow, but it's the easiest way to make a chain
@@ -93,7 +93,6 @@ export async function makeNextBlock(
   oldNoteCount?: number,
   oldNullifierCount?: number,
 ): Promise<Block<string, string, TestTransaction, string, string, SerializedTestTransaction>> {
-  const head = chain.head
   const noteCount = await chain.notes.size()
   const noteHash = await chain.notes.rootHash()
   const nullifierCount = await chain.nullifiers.size()
@@ -108,9 +107,7 @@ export async function makeNextBlock(
     oldNullifierCount = 0
     previousBlockHash = GENESIS_BLOCK_PREVIOUS
   } else {
-    if (!head) {
-      throw new Error('Heaviest head must always exist after adding genesis')
-    }
+    const head = chain.head
     newSequence = Number(head.sequence) + 1
     oldNoteCount = oldNoteCount ? oldNoteCount : head.noteCommitment.size
     oldNullifierCount = oldNullifierCount ? oldNullifierCount : head.nullifierCommitment.size
@@ -161,7 +158,7 @@ export async function makeNextBlock(
 }
 
 /**
- * Make an anchorchain with no blocks.
+ * Make a blockchain with a genesis block.
  */
 export async function makeChainInitial(
   strategy?: Strategy<
@@ -172,11 +169,15 @@ export async function makeChainInitial(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string,
+  options: {
+    autoSeed?: boolean
+    dbPrefix?: string
+  } = {},
 ): Promise<TestBlockchain> {
   const chain = new Blockchain({
-    location: makeDbPath(dbPrefix),
+    location: makeDbPath(options.dbPrefix),
     strategy: strategy || new TestStrategy(new RangeHasher()),
+    autoSeed: options.autoSeed,
   })
 
   await chain.db.open()
@@ -184,7 +185,7 @@ export async function makeChainInitial(
 }
 
 /**
- * Make an anchorchain with a genesis block that has one note and one nullifier.
+ * Make a blockchain with a genesis block and one additional block that has one note and one nullifier.
  */
 export async function makeChainGenesis(
   strategy?: Strategy<
@@ -195,9 +196,12 @@ export async function makeChainGenesis(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string,
+  options: {
+    dbPrefix?: string
+    autoSeed?: boolean
+  } = {},
 ): Promise<TestBlockchain> {
-  const chain = await makeChainInitial(strategy, dbPrefix)
+  const chain = await makeChainInitial(strategy, options)
   await chain.notes.add('0')
   await chain.nullifiers.add(makeNullifier(0))
   const genesis = await makeNextBlock(chain, true)
@@ -238,9 +242,12 @@ export async function makeChainFull(
     string,
     SerializedTestTransaction
   >,
-  dbPrefix?: string,
+  options: {
+    dbPrefix?: string
+    autoSeed?: boolean
+  } = {},
 ): Promise<TestBlockchain> {
-  const chain = await makeChainGenesis(strategy, dbPrefix)
+  const chain = await makeChainGenesis(strategy, options)
 
   for (let i = 1; i < 8 * 5; i++) {
     await chain.notes.add(`${i}`)
@@ -267,7 +274,7 @@ export async function makeChainFull(
  * end numbers of a sequence of notes in the block.
  *
  * Note: The resulting block is suitable for use on a blockchain.BlockChain,
- * but will fail if you try adding it to an anchorchain without some extra
+ * but will fail if you try adding it to a blockchain without some extra
  * massaging of the values.
  *
  * Specifically, the nullifier commitment does not have a correct value against
@@ -276,7 +283,7 @@ export async function makeChainFull(
  *
  * Most notably, a block created with this function will not go onto a chain
  * created with makeChain or makeFullChain. You are probably better off using
- * makeNextBlock from the anchorChain test utilities instead.
+ * makeNextBlock from the blockchain test utilities instead.
  */
 export function makeFakeBlock(
   strategy: TestStrategy,
@@ -344,23 +351,6 @@ export function makeNullifier(digit: number): BlockHash {
   return hash
 }
 
-export async function makeBlockchain(): Promise<
-  Blockchain<
-    string,
-    string,
-    TestTransaction<string>,
-    string,
-    string,
-    SerializedTestTransaction<string>
-  >
-> {
-  const strategy = new TestStrategy(new RangeHasher())
-  const chain = new Blockchain({ location: makeDbPath(), strategy })
-
-  await chain.db.open()
-  return chain
-}
-
 /**
  * Make a test chain that contains only the genesis
  * block (one note and nullifier)
@@ -369,7 +359,7 @@ export async function makeInitialTestChain(
   strategy: TestStrategy,
   dbPrefix: string,
 ): Promise<TestBlockchain> {
-  return await makeChainInitial(strategy, dbPrefix)
+  return await makeChainInitial(strategy, { dbPrefix })
 }
 
 /**
@@ -381,7 +371,7 @@ export async function makeChain(
   dbPrefix?: string,
 ): Promise<TestBlockchain> {
   if (!dbPrefix) dbPrefix = makeDbName()
-  return await makeChainFull(strategy, dbPrefix)
+  return await makeChainFull(strategy, { dbPrefix })
 }
 
 /**
@@ -397,10 +387,10 @@ export async function makeChainSyncable(
 ): Promise<TestBlockchain> {
   if (!dbPrefix) dbPrefix = makeDbName()
 
-  const chain = await makeChainGenesis(strategy, dbPrefix)
+  const chain = await makeChainGenesis(strategy, { dbPrefix })
 
   if (addExtraBlocks) {
-    const chainFull = await makeChainFull(strategy, dbPrefix + '-full')
+    const chainFull = await makeChainFull(strategy, { dbPrefix: dbPrefix + '-full' })
     await chain.addBlock(await blockBySequence(chainFull, 8))
     await chain.addBlock(await blockBySequence(chainFull, 7))
     await chainFull.db.close()

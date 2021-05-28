@@ -4,7 +4,6 @@
 import { Blockchain } from '../blockchain'
 import { fakeMaxTarget, makeDbPath } from '../testUtilities/fake'
 import { IJSON } from '../serde'
-import { genesisBlockData } from './genesisBlock'
 import { makeGenesisBlock } from './makeGenesisBlock'
 import { IronfishStrategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
@@ -13,8 +12,7 @@ import { createNodeTest } from '../testUtilities'
 import { SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 
-describe('Genesis block test', () => {
-  const nodeTest = createNodeTest()
+describe('Read genesis block', () => {
   let targetMeetsSpy: jest.SpyInstance
   let targetSpy: jest.SpyInstance
 
@@ -32,23 +30,34 @@ describe('Genesis block test', () => {
     const workerPool = new WorkerPool()
     const strategy = new IronfishStrategy(workerPool)
     const chain = new Blockchain({ location: makeDbPath(), strategy })
-    await chain.db.open()
-
-    const result = IJSON.parse(genesisBlockData) as SerializedBlock<Buffer, Buffer>
-    const block = strategy._blockSerde.deserialize(result)
-    const addedBlock = await chain.addBlock(block)
-    expect(addedBlock.isAdded).toBe(true)
+    await chain.open()
 
     // We should also be able to create new blocks after the genesis block
     // has been added
     const minersfee = await strategy.createMinersFee(
       BigInt(0),
-      block.header.sequence + BigInt(1),
+      chain.head.sequence + BigInt(1),
       generateKey().spending_key,
     )
     const newBlock = await chain.newBlock([], minersfee)
     expect(newBlock).toBeTruthy()
   }, 60000)
+})
+
+describe('Create genesis block', () => {
+  const nodeTest = createNodeTest(false, { autoSeed: false })
+  let targetMeetsSpy: jest.SpyInstance
+  let targetSpy: jest.SpyInstance
+
+  beforeAll(() => {
+    targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
+    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
+  })
+
+  afterAll(() => {
+    targetMeetsSpy.mockClear()
+    targetSpy.mockClear()
+  })
 
   it('Can generate a valid genesis block', async () => {
     // Initialize the database and chain
