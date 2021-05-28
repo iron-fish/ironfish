@@ -204,8 +204,6 @@ export abstract class Database implements IDatabase {
     const created = !transaction
     transaction = transaction || this.transaction(scopes, type)
 
-    // TODO should we combine scopes if tx is not null but more scopes are given?
-
     try {
       const result = await handler(transaction)
       if (created) await transaction.commit()

@@ -12,7 +12,7 @@ export interface ProgressBar {
   progress: VoidFunction
   getTotal(): number
   setTotal(totalValue: number): void
-  start(totalValue?: number, startValue?: number, payload?: { speed: string }): void
+  start(totalValue?: number, startValue?: number, payload?: Record<string, unknown>): void
   stop: VoidFunction
   update(currentValue?: number, payload?: Record<string, unknown>): void
   update(payload?: Record<string, unknown>): void

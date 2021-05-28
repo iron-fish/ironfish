@@ -27,4 +27,9 @@ export interface IDatabaseTransaction {
    * Abort the transaction and release the database lock
    * */
   abort(): Promise<void>
+
+  /**
+   * The number of pending operations
+   */
+  readonly size: number
 }
