@@ -9,21 +9,19 @@ describe('Route chain.getChainInfo', () => {
   const routeTest = createRouteTest()
 
   it('returns the right object with hash', async () => {
-    await routeTest.node.seed()
-
     const response = await routeTest.adapter.request<GetChainInfoResponse>('chain/getChainInfo')
 
     expect(response.content.currentBlockIdentifier.index).toEqual(
-      routeTest.chain.latest?.sequence.toString(),
+      routeTest.chain.latest.sequence.toString(),
     )
     expect(response.content.genesisBlockIdentifier.index).toEqual(
-      routeTest.chain.genesis?.sequence.toString(),
+      routeTest.chain.genesis.sequence.toString(),
     )
     expect(response.content.oldestBlockIdentifier.index).toEqual(
-      routeTest.chain.head?.sequence.toString(),
+      routeTest.chain.head.sequence.toString(),
     )
     expect(response.content.currentBlockTimestamp).toEqual(
-      Number(routeTest.chain.latest?.timestamp),
+      Number(routeTest.chain.latest.timestamp),
     )
-  }, 7000)
+  }, 10000)
 })

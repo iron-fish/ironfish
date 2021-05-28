@@ -7,7 +7,6 @@ import {
   blockHash,
   makeChainInitial,
   makeFakeBlock,
-  makeNextBlock,
   makeNullifier,
   SerializedTestTransaction,
   TestBlockchain,
@@ -42,7 +41,6 @@ describe('Note adding', () => {
     expect(await blockchain.notes.get(0)).toBe('zero')
     expect(await blockchain.notes.get(1)).toBe('one')
     expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it('adds an out of order note only to the loose notes', async () => {
@@ -54,7 +52,6 @@ describe('Note adding', () => {
     expect(blockchain.looseNotes[12]).toBe('twelve')
     expect(await blockchain.notes.size()).toBe(0)
     expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it('syncs loose notes to the tree when the gap fills in', async () => {
@@ -69,7 +66,6 @@ describe('Note adding', () => {
     expect(await blockchain.notes.get(1)).toBe('one')
     expect(await blockchain.notes.get(2)).toBe('two')
     expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it("logs errors if the note doesn't match the previously inserted note that position", async () => {
@@ -106,7 +102,6 @@ describe('Nullifier adding', () => {
     expect(await blockchain.nullifiers.get(0)).toEqualNullifier(nullifier1)
     expect(await blockchain.nullifiers.get(1)).toEqualNullifier(nullifier2)
     expect(await blockchain.notes.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it('adds an out of order nullifier only to the loose nullifiers', async () => {
@@ -121,7 +116,6 @@ describe('Nullifier adding', () => {
     expect(blockchain.looseNullifiers[12]).toEqualNullifier(nullifier3)
     expect(await blockchain.notes.size()).toBe(0)
     expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it('syncs loose nullifiers to the tree when the gap fills in', async () => {
@@ -139,7 +133,6 @@ describe('Nullifier adding', () => {
     expect(await blockchain.nullifiers.get(1)).toEqualNullifier(nullifier1)
     expect(await blockchain.nullifiers.get(2)).toEqualNullifier(nullifier2)
     expect(await blockchain.notes.size()).toBe(0)
-    expect(blockchain.head).toBeNull()
     expect(listener).not.toBeCalled()
   })
   it("warns if the note doesn't match the previously inserted note that position", async () => {
@@ -273,22 +266,6 @@ describe('New block', () => {
     jest.useRealTimers()
     targetSpy.mockClear()
     targetMeetsSpy.mockClear()
-  })
-
-  it('creates a new block on an empty chain without failing', async () => {
-    const chain = await makeChainInitial(strategy)
-    await chain.notes.add('0')
-    await chain.nullifiers.add(makeNullifier(0))
-    const genesis = await makeNextBlock(chain, true)
-    await chain.addBlock(genesis)
-
-    const block = await makeNextBlock(chain)
-    await chain.addBlock(block)
-
-    expect(await blockchain.notes.size()).toBe(0)
-    expect(await blockchain.nullifiers.size()).toBe(0)
-    expect(blockchain.head).toBe(null)
-    expect(listener).not.toBeCalled()
   })
 
   it('throws an error if the provided transactions are invalid', async () => {

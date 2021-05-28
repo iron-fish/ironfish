@@ -36,7 +36,6 @@ describe('start command', () => {
 
   const setConfig = jest.fn()
   const setOverrideConfig = jest.fn()
-  const seed = jest.fn().mockReturnValue(true)
   const start = jest.fn()
   const waitForShutdown = jest.fn()
 
@@ -89,7 +88,6 @@ describe('start command', () => {
       closeDB: jest.fn(),
       accounts: accounts,
       peerNetwork: peerNetwork,
-      seed: seed,
       config: config,
       internal: internal,
       chain: chain,
@@ -106,7 +104,6 @@ describe('start command', () => {
   afterEach(() => {
     setConfig.mockReset()
     setOverrideConfig.mockReset()
-    seed.mockReset()
     start.mockReset()
     ironfishmodule.IronfishSdk.init = ironFishSdkBackup
   })
@@ -124,9 +121,6 @@ describe('start command', () => {
           `To help improve Ironfish, opt in to collecting telemetry`,
         )
         expect(setConfig).toHaveBeenCalledWith('isFirstRun', false)
-        // generate genesis
-        expectCli(ctx.stdout).include(`Initializing the blockchain`)
-        expect(seed).toHaveBeenCalled()
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()
@@ -146,8 +140,6 @@ describe('start command', () => {
         // welcome message
         expectCli(ctx.stdout).include(`Peer Identity`)
         expect(setConfig).toHaveBeenCalledTimes(0)
-        // generate genesis
-        expect(seed).toHaveBeenCalledTimes(0)
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()

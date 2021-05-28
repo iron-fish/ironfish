@@ -13,7 +13,7 @@ describe('Route faucet.giveMe', () => {
     await expect(
       routeTest.adapter.request('faucet/giveMe', { accountName: 'test-notfound' }),
     ).rejects.toThrow('Account test-notfound could not be found')
-  })
+  }, 10000)
 
   describe('With a default account and the db', () => {
     let accountName = 'test' + Math.random().toString()
@@ -38,7 +38,7 @@ describe('Route faucet.giveMe', () => {
         params: { email, publicKey: publicAddress },
       })
       expect(response.content).toMatchObject(apiResponse)
-    })
+    }, 10000)
 
     it('throws an error if the API request fails', async () => {
       const apiResponse = new Error('API failure') as AxiosError
@@ -46,6 +46,6 @@ describe('Route faucet.giveMe', () => {
       await expect(
         routeTest.adapter.request('faucet/giveMe', { accountName, email }),
       ).rejects.toThrow('API failure')
-    })
+    }, 10000)
   })
 })

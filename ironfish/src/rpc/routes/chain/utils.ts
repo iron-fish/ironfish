@@ -73,16 +73,12 @@ export async function renderChain<
 
   content.push(
     '======',
-    `GENESIS: ${chain.genesis?.hash.toString('hex') || '-'}`,
-    `HEAD:    ${chain.head?.hash.toString('hex') || '-'}`,
-    `LATEST:  ${chain.latest?.hash.toString('hex') || '-'}`,
+    `GENESIS: ${chain.genesis.hash.toString('hex') || '-'}`,
+    `HEAD:    ${chain.head.hash.toString('hex') || '-'}`,
+    `LATEST:  ${chain.latest.hash.toString('hex') || '-'}`,
     `TREES:   ${trees.valid ? 'OK' : `ERROR: ${String(trees.reason)}`}`,
     '======',
   )
-
-  if (!chain.genesis || !chain.head || !chain.latest) {
-    return content
-  }
 
   start = start || chain.genesis.sequence
   end = end || chain.latest.sequence

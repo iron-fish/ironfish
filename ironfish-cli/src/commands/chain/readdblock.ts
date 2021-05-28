@@ -32,7 +32,6 @@ export default class ReAddBlock extends IronfishCommand {
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    await node.seed()
     cli.action.stop('done.')
 
     const block = await node.chain.getBlock(hash)
