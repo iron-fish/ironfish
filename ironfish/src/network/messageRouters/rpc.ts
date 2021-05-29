@@ -241,7 +241,9 @@ export class RpcRouter {
         }
       }
 
-      this.peerManager.sendTo(peer, responseMessage)
+      if (peer.state.type === 'CONNECTED') {
+        this.peerManager.sendTo(peer, responseMessage)
+      }
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
