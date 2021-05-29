@@ -433,7 +433,14 @@ export class Peer {
   }
 
   getConnectionRetry(type: ConnectionType, direction: ConnectionDirection.Inbound): null
-  getConnectionRetry(type: ConnectionType, direction: ConnectionDirection): ConnectionRetry
+  getConnectionRetry(
+    type: ConnectionType,
+    direction: ConnectionDirection.Outbound,
+  ): ConnectionRetry
+  getConnectionRetry(
+    type: ConnectionType,
+    direction: ConnectionDirection,
+  ): ConnectionRetry | null
   getConnectionRetry(
     type: ConnectionType,
     direction: ConnectionDirection,
