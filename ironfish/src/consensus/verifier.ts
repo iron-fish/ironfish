@@ -306,8 +306,7 @@ export class Verifier<
   // TODO: Rename to verifyBlock but merge verifyBlock into this
   async verifyBlockAdd(
     block: Block<E, H, T, SE, SH, ST>,
-    prev: BlockHeader<E, H, T, SE, SH, ST> | null,
-    tx: IDatabaseTransaction,
+    prev: BlockHeader<E, H, T, SE, SH, ST> | null
   ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: Validity.Yes }
@@ -332,7 +331,7 @@ export class Verifier<
         return verification
       }
 
-      verification = await this.hasValidSpends(block, tx)
+      verification = await this.hasValidSpends(block)
       if (verification.valid == Validity.No) {
         return verification
       }

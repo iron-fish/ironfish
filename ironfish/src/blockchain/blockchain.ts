@@ -57,6 +57,8 @@ import { BufferMap } from 'buffer-map'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import { BAN_SCORE } from '../network/peers/peer'
 import { genesisBlockData } from '../genesis'
+import { isThisSecond } from 'date-fns'
+import { Mutex } from '../mutex'
 
 export class Blockchain<
   E,
@@ -72,6 +74,7 @@ export class Blockchain<
   verifier: Verifier<E, H, T, SE, SH, ST>
   metrics: MetricsMonitor
 
+  lock: Mutex
   synced = false
   opened = false
   notes: MerkleTree<E, H, SE, SH>
@@ -169,6 +172,7 @@ export class Blockchain<
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
     this.loadGenesisBlock = options.loadGenesisBlock ?? this.loadDefaultGenesisBlock
+    this.lock = new Mutex()
 
     // TODO: Delete
     this.looseNotes = {}
@@ -323,11 +327,11 @@ export class Blockchain<
     reason: VerificationResultReason | null
     score: number | null
   }> {
-    const result = await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+    const result = await this.lock.run(async () => {
       const hash = block.header.recomputeHash()
 
       if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-        return await this.connect(block, null, tx)
+        return await this.connect(block, null)
       }
 
       if (this.isInvalid(block)) {
@@ -351,7 +355,7 @@ export class Blockchain<
         return { isAdded: false, reason: VerificationResultReason.ORPHAN }
       }
 
-      const result = await this.connect(block, previous, tx)
+      const result = await this.connect(block, previous)
 
       if (!result.isAdded) {
         return result
@@ -511,7 +515,6 @@ export class Blockchain<
   private async connect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
-    tx: IDatabaseTransaction,
   ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
     const start = BenchUtils.start()
 
@@ -520,9 +523,9 @@ export class Blockchain<
 
     let result
     if (!this.isEmpty && !isBlockHeavier(block.header, this.head)) {
-      result = await this.addForkToChain(block, prev, tx)
+      result = await this.addForkToChain(block, prev)
     } else {
-      result = await this.addHeadToChain(block, prev, tx)
+      result = await this.addHeadToChain(block, prev)
     }
 
     if (!result.isAdded) {
@@ -547,10 +550,7 @@ export class Blockchain<
     return { isAdded: true, reason: null }
   }
 
-  private async disconnect(
-    block: Block<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
-  ): Promise<void> {
+  private async disconnect(block: Block<E, H, T, SE, SH, ST>): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
@@ -566,17 +566,14 @@ export class Blockchain<
     const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
-    await this.saveDisconnect(block, prev, tx)
+    await this.saveDisconnect(block, prev)
 
     this.head = prev
 
-    await this.onDisconnectBlock.emitAsync(block, tx)
+    await this.onDisconnectBlock.emitAsync(block)
   }
 
-  private async reconnect(
-    block: Block<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
-  ): Promise<void> {
+  private async reconnect(block: Block<E, H, T, SE, SH, ST>): Promise<void> {
     Assert.isTrue(
       block.header.previousBlockHash.equals(this.head.hash),
       `Reconnecting block ${block.header.hash.toString('hex')} (${
@@ -591,18 +588,17 @@ export class Blockchain<
     const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
-    await this.saveReconnect(block, prev, tx)
+    await this.saveReconnect(block, prev)
 
     this.head = block.header
-    await this.onConnectBlock.emitAsync(block, tx)
+    await this.onConnectBlock.emitAsync(block)
   }
 
   private async addForkToChain(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
-    tx: IDatabaseTransaction,
   ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
+    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
     if (valid !== Validity.Yes) {
       Assert.isNotUndefined(reason)
 
@@ -616,7 +612,7 @@ export class Blockchain<
       return { isAdded: false, reason: reason || null }
     }
 
-    await this.saveBlock(block, prev, true, tx)
+    await this.saveBlock(block, prev, true)
 
     this.logger.warn(
       'Added block to fork' +
@@ -635,7 +631,6 @@ export class Blockchain<
   private async addHeadToChain(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
-    tx: IDatabaseTransaction,
   ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
@@ -648,10 +643,10 @@ export class Blockchain<
         })`,
       )
 
-      await this.reorganizeChain(prev, tx)
+      await this.reorganizeChain(prev)
     }
 
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
+    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
     if (valid !== Validity.Yes) {
       Assert.isNotUndefined(reason)
 
@@ -665,14 +660,14 @@ export class Blockchain<
       return { isAdded: false, reason: reason }
     }
 
-    await this.saveBlock(block, prev, false, tx)
+    await this.saveBlock(block, prev, false)
     this.head = block.header
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.genesis = block.header
     }
 
-    await this.onConnectBlock.emitAsync(block, tx)
+    await this.onConnectBlock.emitAsync(block)
 
     return { isAdded: true, reason: null }
   }
@@ -681,15 +676,12 @@ export class Blockchain<
    * Disconnects all blocks on another fork, and reconnects blocks
    * on the new head chain before `head`
    */
-  private async reorganizeChain(
-    newHead: BlockHeader<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
-  ): Promise<void> {
+  private async reorganizeChain(newHead: BlockHeader<E, H, T, SE, SH, ST>): Promise<void> {
     const oldHead = this.head
     Assert.isNotNull(oldHead, 'No genesis block with fork')
 
     // Step 0: Find the fork between the two heads
-    const { fork } = await this.findFork(oldHead, newHead, tx)
+    const { fork } = await this.findFork(oldHead, newHead)
     Assert.isNotNull(fork, 'No fork found')
 
     // Step 1: remove loose notes and loose nullifiers from queue as they are stale
@@ -697,13 +689,13 @@ export class Blockchain<
     this.looseNullifiers = {}
 
     // Step 2: Collect all the blocks from the old head to the fork
-    const removeIter = this.iterateFrom(oldHead, fork, tx)
+    const removeIter = this.iterateFrom(oldHead, fork)
     const removeHeaders = await AsyncUtils.materialize(removeIter)
     const removeBlocks = await Promise.all(
       removeHeaders
         .filter((h) => !h.hash.equals(fork.hash))
         .map(async (h) => {
-          const block = await this.getBlock(h, tx)
+          const block = await this.getBlock(h)
           Assert.isNotNull(block)
           return block
         }),
@@ -711,18 +703,18 @@ export class Blockchain<
 
     // Step 3: Disconnect each block
     for (const block of removeBlocks) {
-      await this.disconnect(block, tx)
+      await this.disconnect(block)
     }
 
     // Step 3. Collect all the blocks from the fork to the new head
-    const addIter = this.iterateFrom(newHead, fork, tx)
+    const addIter = this.iterateFrom(newHead, fork)
     const addHeaders = await AsyncUtils.materialize(addIter)
     const addBlocks = await Promise.all(
       addHeaders
         .filter((h) => !h.hash.equals(fork.hash))
         .reverse()
         .map(async (h) => {
-          const block = await this.getBlock(h, tx)
+          const block = await this.getBlock(h)
           Assert.isNotNull(block)
           return block
         }),
@@ -730,7 +722,7 @@ export class Blockchain<
 
     // Step 4. Add the new blocks to the trees
     for (const block of addBlocks) {
-      await this.reconnect(block, tx)
+      await this.reconnect(block)
     }
 
     this.logger.warn(
@@ -839,102 +831,105 @@ export class Blockchain<
     graffiti?: Buffer,
   ): Promise<Block<E, H, T, SE, SH, ST>> {
     const transactions = userTransactions.concat([minersFee])
-    return await this.db.transaction(
-      [
-        ...this.notes.db.getStores(),
-        ...this.nullifiers.db.getStores(),
-        this.headers,
-        this.transactions,
-        this.sequenceToHashes,
-      ],
-      'readwrite',
-      async (tx) => {
-        const originalNoteSize = await this.notes.size(tx)
-        const originalNullifierSize = await this.nullifiers.size(tx)
 
-        let previousBlockHash
-        let previousSequence
-        let target
-        const timestamp = new Date()
+    return await this.lock.run(() => {
+      return this.db.transaction(
+        [
+          ...this.notes.db.getStores(),
+          ...this.nullifiers.db.getStores(),
+          this.headers,
+          this.transactions,
+          this.sequenceToHashes,
+        ],
+        'readwrite',
+        async (tx) => {
+          const originalNoteSize = await this.notes.size(tx)
+          const originalNullifierSize = await this.nullifiers.size(tx)
 
-        if (!this.hasGenesisBlock) {
-          previousBlockHash = GENESIS_BLOCK_PREVIOUS
-          previousSequence = BigInt(0)
-          target = Target.initialTarget()
-        } else {
-          const heaviestHead = this.head
-          if (
-            originalNoteSize !== heaviestHead.noteCommitment.size ||
-            originalNullifierSize !== heaviestHead.nullifierCommitment.size
-          ) {
-            throw new Error(
-              `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
+          let previousBlockHash
+          let previousSequence
+          let target
+          const timestamp = new Date()
+
+          if (!this.hasGenesisBlock) {
+            previousBlockHash = GENESIS_BLOCK_PREVIOUS
+            previousSequence = BigInt(0)
+            target = Target.initialTarget()
+          } else {
+            const heaviestHead = this.head
+            if (
+              originalNoteSize !== heaviestHead.noteCommitment.size ||
+              originalNullifierSize !== heaviestHead.nullifierCommitment.size
+            ) {
+              throw new Error(
+                `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
+              )
+            }
+            previousBlockHash = heaviestHead.hash
+            previousSequence = heaviestHead.sequence
+            const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
+            if (!previousHeader && previousSequence !== BigInt(1)) {
+              throw new Error('There is no previous block to calculate a target')
+            }
+            target = Target.calculateTarget(
+              timestamp,
+              heaviestHead.timestamp,
+              heaviestHead.target,
             )
           }
-          previousBlockHash = heaviestHead.hash
-          previousSequence = heaviestHead.sequence
-          const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
-          if (!previousHeader && previousSequence !== BigInt(1)) {
-            throw new Error('There is no previous block to calculate a target')
+
+          for (const transaction of transactions) {
+            for (const note of transaction.notes()) {
+              await this.notes.add(note, tx)
+            }
+            for (const spend of transaction.spends()) {
+              await this.nullifiers.add(spend.nullifier, tx)
+            }
           }
-          target = Target.calculateTarget(
+
+          const noteCommitment = {
+            commitment: await this.notes.rootHash(tx),
+            size: await this.notes.size(tx),
+          }
+          const nullifierCommitment = {
+            commitment: await this.nullifiers.rootHash(tx),
+            size: await this.nullifiers.size(tx),
+          }
+
+          graffiti = graffiti ? graffiti : Buffer.alloc(32)
+
+          const header = new BlockHeader(
+            this.strategy,
+            previousSequence + BigInt(1),
+            previousBlockHash,
+            noteCommitment,
+            nullifierCommitment,
+            target,
+            0,
             timestamp,
-            heaviestHead.timestamp,
-            heaviestHead.target,
+            await minersFee.transactionFee(),
+            graffiti,
           )
-        }
 
-        for (const transaction of transactions) {
-          for (const note of transaction.notes()) {
-            await this.notes.add(note, tx)
+          const block = new Block(header, transactions)
+          if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
+            // since we're creating a block that hasn't been mined yet, don't
+            // verify target because it'll always fail target check here
+            const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
+
+            if (verification.valid !== Validity.Yes) {
+              throw new Error(verification.reason)
+            }
           }
-          for (const spend of transaction.spends()) {
-            await this.nullifiers.add(spend.nullifier, tx)
-          }
-        }
 
-        const noteCommitment = {
-          commitment: await this.notes.rootHash(tx),
-          size: await this.notes.size(tx),
-        }
-        const nullifierCommitment = {
-          commitment: await this.nullifiers.rootHash(tx),
-          size: await this.nullifiers.size(tx),
-        }
+          // abort this transaction as we've modified the trees just to get new
+          // merkle roots, but this block isn't mined or accepted yet
+          await tx.abort()
 
-        graffiti = graffiti ? graffiti : Buffer.alloc(32)
-
-        const header = new BlockHeader(
-          this.strategy,
-          previousSequence + BigInt(1),
-          previousBlockHash,
-          noteCommitment,
-          nullifierCommitment,
-          target,
-          0,
-          timestamp,
-          await minersFee.transactionFee(),
-          graffiti,
-        )
-
-        const block = new Block(header, transactions)
-        if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
-          // since we're creating a block that hasn't been mined yet, don't
-          // verify target because it'll always fail target check here
-          const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
-
-          if (verification.valid !== Validity.Yes) {
-            throw new Error(verification.reason)
-          }
-        }
-
-        // abort this transaction as we've modified the trees just to get new
-        // merkle roots, but this block isn't mined or accepted yet
-        await tx.abort()
-
-        return block
-      },
-    )
+          return block
+        },
+      )
+    })
   }
 
   /**
@@ -1130,43 +1125,45 @@ export class Blockchain<
   async removeBlock(hash: Buffer): Promise<void> {
     this.logger.info(`Deleting block ${hash.toString('hex')}`)
 
-    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
-      if (!(await this.hasBlock(hash, tx))) {
-        this.logger.warn(`No block exists at ${hash.toString('hex')}`)
-        return
-      }
+    await this.lock.run(() => {
+      return this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+        if (!(await this.hasBlock(hash, tx))) {
+          this.logger.warn(`No block exists at ${hash.toString('hex')}`)
+          return
+        }
 
-      const header = await this.getHeader(hash, tx)
-      Assert.isNotNull(header)
+        const header = await this.getHeader(hash, tx)
+        Assert.isNotNull(header)
 
-      const block = await this.getBlock(hash, tx)
-      Assert.isNotNull(block)
+        const block = await this.getBlock(hash, tx)
+        Assert.isNotNull(block)
 
-      const next = await this.getHeadersAtSequence(header.sequence + BigInt(1), tx)
-      if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
-        throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
-      }
+        const next = await this.getHeadersAtSequence(header.sequence + BigInt(1), tx)
+        if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
+          throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
+        }
 
-      if (this.head.hash.equals(hash)) {
-        await this.disconnect(block, tx)
-      }
+        if (this.head.hash.equals(hash)) {
+          await this.disconnect(block)
+        }
 
-      let sequences = await this.sequenceToHashes.get(header.sequence, tx)
-      sequences = (sequences || []).filter((h) => !h.equals(hash))
-      if (sequences.length === 0) {
-        await this.sequenceToHashes.del(header.sequence, tx)
-      } else {
-        await this.sequenceToHashes.put(header.sequence, sequences, tx)
-      }
+        let sequences = await this.sequenceToHashes.get(header.sequence, tx)
+        sequences = (sequences || []).filter((h) => !h.equals(hash))
+        if (sequences.length === 0) {
+          await this.sequenceToHashes.del(header.sequence, tx)
+        } else {
+          await this.sequenceToHashes.put(header.sequence, sequences, tx)
+        }
 
-      await this.transactions.del(hash, tx)
-      await this.headers.del(hash, tx)
+        await this.transactions.del(hash, tx)
+        await this.headers.del(hash, tx)
 
-      // TODO: use a new heads table to recalculate this
-      if (this.latest.hash.equals(hash)) {
-        this.latest = this.head
-        await this.meta.put('latest', this.head.hash, tx)
-      }
+        // TODO: use a new heads table to recalculate this
+        if (this.latest.hash.equals(hash)) {
+          this.latest = this.head
+          await this.meta.put('latest', this.head.hash, tx)
+        }
+      })
     })
   }
 
@@ -1231,86 +1228,94 @@ export class Blockchain<
   async saveConnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
-    let notesIndex = prev?.noteCommitment.size || 0
-    let nullifierIndex = prev?.nullifierCommitment.size || 0
+    await this.db.withTransaction(tx, this.db.getStores(), 'readwrite', async (tx) => {
+      let notesIndex = prev?.noteCommitment.size || 0
+      let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    await block.withTransactionReferences(async () => {
-      for (const note of block.allNotes()) {
-        await this.addNote(notesIndex, note, tx)
-        notesIndex++
-      }
+      await block.withTransactionReferences(async () => {
+        for (const note of block.allNotes()) {
+          await this.addNote(notesIndex, note, tx)
+          notesIndex++
+        }
 
-      for (const spend of block.spends()) {
-        await this.addNullifier(nullifierIndex, spend.nullifier, tx)
-        nullifierIndex++
-      }
+        for (const spend of block.spends()) {
+          await this.addNullifier(nullifierIndex, spend.nullifier, tx)
+          nullifierIndex++
+        }
+      })
     })
   }
 
   private async saveReconnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
   ): Promise<void> {
-    await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
-    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
+    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+      await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
+      await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
 
-    await this.saveConnect(block, prev, tx)
-
-    await this.meta.put('head', prev.hash, tx)
+      await this.saveConnect(block, prev, tx)
+      await this.meta.put('head', prev.hash, tx)
+    })
   }
 
   private async saveDisconnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
-    await this.hashToNextHash.del(prev.hash, tx)
-    await this.sequenceToHash.del(block.header.sequence, tx)
+    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+      await this.hashToNextHash.del(prev.hash, tx)
+      await this.sequenceToHash.del(block.header.sequence, tx)
 
-    await Promise.all([
-      this.notes.truncate(prev.noteCommitment.size, tx),
-      this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
-    ])
+      await Promise.all([
+        this.notes.truncate(prev.noteCommitment.size, tx),
+        this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
+      ])
 
-    await this.meta.put('head', prev.hash, tx)
+      await this.meta.put('head', prev.hash, tx)
+    })
   }
 
   private async saveBlock(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     fork: boolean,
-    tx: IDatabaseTransaction,
   ): Promise<void> {
     const hash = block.header.hash
     const sequence = block.header.sequence
     const prevHash = block.header.previousBlockHash
 
-    // Update BlockHash -> BlockHeader
-    await this.headers.put(hash, block.header, tx)
+    let updateLatest = false
 
-    // Update BlockHash -> Transaction
-    await this.transactions.add(hash, block.transactions, tx)
+    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+      // Update BlockHash -> BlockHeader
+      await this.headers.put(hash, block.header, tx)
 
-    // Update Sequence -> BlockHash[]
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
-    await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
+      // Update BlockHash -> Transaction
+      await this.transactions.add(hash, block.transactions, tx)
 
-    if (!fork) {
-      await this.sequenceToHash.put(sequence, hash, tx)
-      await this.hashToNextHash.put(prevHash, hash, tx)
-      await this.meta.put('head', hash, tx)
+      // Update Sequence -> BlockHash[]
+      const hashes = await this.sequenceToHashes.get(sequence, tx)
+      await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
 
-      await this.saveConnect(block, prev, tx)
-    }
+      if (!fork) {
+        await this.sequenceToHash.put(sequence, hash, tx)
+        await this.hashToNextHash.put(prevHash, hash, tx)
+        await this.meta.put('head', hash, tx)
 
-    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+        await this.saveConnect(block, prev, tx)
+      }
+
+      if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+        updateLatest = true
+        await this.meta.put('latest', hash, tx)
+      }
+    })
+
+    if (updateLatest) {
       this.latest = block.header
-      await this.meta.put('latest', hash, tx)
     }
   }
 
