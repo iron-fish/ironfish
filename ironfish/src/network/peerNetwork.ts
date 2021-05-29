@@ -42,7 +42,7 @@ import {
   CannotSatisfyRequestError,
   IncomingGossipGeneric,
 } from './messageRouters'
-import { Peer } from './peers/peer'
+import { BAN_SCORE, Peer } from './peers/peer'
 import { LocalPeer } from './peers/localPeer'
 import { Identity } from './identity'
 import { parseUrl } from './utils/parseUrl'
@@ -652,15 +652,20 @@ export class PeerNetwork {
   ): Promise<GetBlockHashesResponse['payload']> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
 
-    if (request.message.payload.limit === 0) {
-      // TODO: increase banscore LOW
+    if (request.message.payload.limit <= 0) {
+      peer.punish(
+        BAN_SCORE.LOW,
+        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+      )
       return { blocks: [] }
     }
 
     if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
-      // TODO: increase banscore MAX
+      peer.punish(
+        BAN_SCORE.MAX,
+        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+      )
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      peer.close(error)
       throw error
     }
 
@@ -689,14 +694,19 @@ export class PeerNetwork {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
 
     if (request.message.payload.limit === 0) {
-      // TODO: increase banscore LOW
+      peer.punish(
+        BAN_SCORE.LOW,
+        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
+      )
       return { blocks: [] }
     }
 
     if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
-      // TODO: increase banscore MAX
+      peer.punish(
+        BAN_SCORE.MAX,
+        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
+      )
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      peer.close(error)
       throw error
     }
 

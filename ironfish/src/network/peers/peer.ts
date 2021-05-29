@@ -433,7 +433,14 @@ export class Peer {
   }
 
   getConnectionRetry(type: ConnectionType, direction: ConnectionDirection.Inbound): null
-  getConnectionRetry(type: ConnectionType, direction: ConnectionDirection): ConnectionRetry
+  getConnectionRetry(
+    type: ConnectionType,
+    direction: ConnectionDirection.Outbound,
+  ): ConnectionRetry
+  getConnectionRetry(
+    type: ConnectionType,
+    direction: ConnectionDirection,
+  ): ConnectionRetry | null
   getConnectionRetry(
     type: ConnectionType,
     direction: ConnectionDirection,
@@ -607,7 +614,7 @@ export class Peer {
     }
 
     this.logger.info(`Peer ${this.displayName} has been banned: ${reason || 'UNKNOWN'}`)
-    this.close(`BANNED: ${reason || 'UNKNOWN'}`)
+    this.close(new Error(`BANNED: ${reason || 'UNKNOWN'}`))
     this.onBanned.emit()
     return true
   }

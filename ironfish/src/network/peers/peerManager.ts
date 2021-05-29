@@ -900,7 +900,7 @@ export class PeerManager {
     }
 
     if (this.banned.has(identity)) {
-      peer.getConnectionRetry(connection.type, connection.direction).neverRetryConnecting()
+      peer.getConnectionRetry(connection.type, connection.direction)?.neverRetryConnecting()
       peer.close(new Error('banned'))
       return
     }
