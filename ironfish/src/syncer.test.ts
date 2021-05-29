@@ -4,6 +4,7 @@
 
 import { Assert } from './assert'
 import { createNodeTest } from './testUtilities/nodeTest'
+import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
 import { PromiseUtils } from './utils'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
@@ -183,5 +184,32 @@ describe('Syncer', () => {
     expect(getBlocksSpy).toHaveBeenNthCalledWith(2, peer, blockA1.header.hash, 2)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(3, peer, blockA2.header.hash, 2)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(4, peer, blockA3.header.hash, 2)
+  })
+
+  it('should ban peers that send empty responses', async () => {
+    const { strategy, chain, peerNetwork, syncer } = nodeTest
+
+    strategy.disableMiningReward()
+    syncer.blocksPerMessage = 1
+
+    const blockA1 = await makeBlockAfter(chain, chain.genesis)
+
+    const { peer } = getConnectedPeer(peerNetwork.peerManager)
+    peer.sequence = blockA1.header.sequence
+    peer.head = blockA1.header.hash
+    peer.work = BigInt(10)
+
+    const getBlocksSpy = jest
+      .spyOn(peerNetwork, 'getBlocks')
+      .mockImplementation(() => Promise.resolve([]))
+    const peerPunished = jest.spyOn(peer, 'punish')
+
+    syncer.loader = peer
+
+    await syncer.syncBlocks(peer, chain.genesis.hash, chain.genesis.sequence)
+
+    expect(getBlocksSpy).toBeCalledTimes(1)
+    expect(peerPunished).toBeCalledTimes(1)
+    expect(peerPunished).toBeCalledWith(BAN_SCORE.MAX, expect.anything())
   })
 })
