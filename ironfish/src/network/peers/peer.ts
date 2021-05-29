@@ -607,7 +607,7 @@ export class Peer {
     }
 
     this.logger.info(`Peer ${this.displayName} has been banned: ${reason || 'UNKNOWN'}`)
-    this.close(`BANNED: ${reason || 'UNKNOWN'}`)
+    this.close(new Error(`BANNED: ${reason || 'UNKNOWN'}`))
     this.onBanned.emit()
     return true
   }
