@@ -1255,12 +1255,15 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
   ): Promise<void> {
+    // TODO: transaction goes here
     await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
 
     await this.saveConnect(block, prev, tx)
 
     await this.meta.put('head', prev.hash, tx)
+
+    await tx.update()
   }
 
   private async saveDisconnect(
@@ -1278,6 +1281,8 @@ export class Blockchain<
     ])
 
     await this.meta.put('head', prev.hash, tx)
+
+    await tx.update()
   }
 
   private async saveBlock(
@@ -1312,6 +1317,8 @@ export class Blockchain<
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
+
+    await tx.update()
   }
 
   private updateSynced(): void {

@@ -354,6 +354,37 @@ describe('Database', () => {
       expect(await bazStore.get(fooHash)).not.toBeDefined()
     })
 
+    it('should update but not release lock', async () => {
+      await db.open()
+      let locked = false
+
+      // Create 2 transactions
+      const transactionA = db.transaction([testStore], 'readwrite')
+      const transactionB = db.transaction([testStore], 'readwrite')
+
+      // Lock transactionA
+      await testStore.put('hello', 1, transactionA)
+
+      // Attempt to lock B which will hang on A
+      const hanging = testStore.put('hello', 3, transactionB).then(() => {
+        locked = true
+      })
+
+      await transactionA.update()
+      expect(locked).toBe(false)
+      expect(await testStore.get('hello')).toEqual(1)
+
+      await testStore.put('hello', 2, transactionA)
+      await transactionA.commit()
+
+      await hanging
+      expect(locked).toBe(true)
+      expect(await testStore.get('hello')).toEqual(2)
+
+      await transactionB.commit()
+      expect(await testStore.get('hello')).toEqual(3)
+    })
+
     it('should write in transaction automatically', async () => {
       await db.open()
 
