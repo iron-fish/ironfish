@@ -149,16 +149,23 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.cacheDelete.add(cacheKey)
   }
 
-  async commit(): Promise<void> {
+  async update(): Promise<void> {
     try {
       if (!this.aborting) {
         await this.batch.commit()
       }
     } finally {
-      this.releaseLock()
       this.cache.clear()
       this.cacheDelete.clear()
       this.committing = false
+    }
+  }
+
+  async commit(): Promise<void> {
+    try {
+      await this.update()
+    } finally {
+      this.releaseLock()
     }
   }
 
