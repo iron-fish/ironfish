@@ -28,7 +28,7 @@ import { Assert } from '../assert'
 import { Target } from '../primitives/target'
 import { SerializedBlockHeader } from '../primitives/blockheader'
 import { Nullifier } from '../primitives/nullifier'
-import { createNodeTest } from '../testUtilities'
+import { createNodeTest, useMinerBlockFixture } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 
 // Number of notes and nullifiers on the initial chain created by makeFullChain
@@ -299,18 +299,6 @@ describe('successfullyMined', () => {
 
     expect(onNewBlockSpy).not.toBeCalled()
   })
-
-  it('submits a validly mined block', async () => {
-    const onNewBlockSpy = jest.spyOn(director.onNewBlock, 'emit')
-
-    const block = makeFakeBlock(strategy, blockHash(9), blockHash(10), 10, 8, 20)
-    block.header.noteCommitment.size = 53
-    block.header.nullifierCommitment.size = 16
-    director.recentBlocks.set(2, block)
-    await director.successfullyMined(5, 2)
-
-    expect(onNewBlockSpy).toBeCalled()
-  })
 })
 
 describe('Non-fake director tests', () => {
@@ -354,6 +342,19 @@ describe('Non-fake director tests', () => {
         isAdded: false,
       })
       expect(emitSpy).not.toBeCalled()
+    })
+
+    it('submits a validly mined block', async () => {
+      const { strategy, chain, node } = nodeTest
+      strategy.disableMiningReward()
+
+      const onNewBlockSpy = jest.spyOn(node.miningDirector.onNewBlock, 'emit')
+
+      const block = await useMinerBlockFixture(chain, 2)
+      node.miningDirector.recentBlocks.set(1, block)
+      await node.miningDirector.successfullyMined(5, 1)
+
+      expect(onNewBlockSpy).toBeCalledWith(block)
     })
   })
 })

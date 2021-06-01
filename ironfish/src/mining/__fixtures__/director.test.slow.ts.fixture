@@ -1,0 +1,34 @@
+{
+  "Non-fake director tests successfullyMined submits a validly mined block": [
+    {
+      "header": {
+        "sequence": "2",
+        "previousBlockHash": "A1BA91BD54FCFE97D0DF8FE1F66B6217197B96CD52DB97FAD58B275E164600AB",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:aj9unXwnqKhTcfX542xnRCb/ouJJiM6U55cE2gWJ50k="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "78A72F2020CE738CBA3A8995C0EBCA23C83A4CE2ADD7927210EAA2DE6466E0C9",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1622588555810,
+        "minersFee": "0",
+        "work": "0",
+        "hash": "0CDA6748BF24E5FB6A4957612FADA9E9796A2270DDDF7426FA4B8DD156C2EC6C",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAqzKv20nYe2FT2lzspMyjr8Iv6KOOXGm4+ZjXW09ZVkShRi7O+S+O/vn27pm3dlpbh0DUmDYFNyHlqi1eaJYf636MKULKu2SOveslYKI7Qwd2GXAv28QIHdJyFTSqWjC2AGUU8ocC8iIEC5wgVr+gNHYDReJ466I+MPtcJu7Nl98l305FlBIHPLSCOXzBfP3ytKZ07oJC7zDN2NxxKbMXiXaOWU4oEo22a6CkczEJh/PDEGTzVXig7WlG8aOheMaTHY5o/3k4JwrKj6BertCADY2hVC1qKKC8seqCfQxn33A5IbHZTKr3ZuqJZwOiyLpLYPHU51Zt6DpMLUjGGzeXEcs1xFOOUp8JVf3A0g+nfxc7KYeRfuuaZzddX05TBHakmnia27HRiXUwm/t4ovzZB8nzvR4SqfCKzBjhcFlyzKIRpbotQE7ZOeH7brcUmfyynWhmEPwtVcHJ7WzKReQfn6ijOSIwL4RjklahdHzWEPrFnl/cdGq7Zu/DxmAfiubA75tXQmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDu2qehu2p5BgXIqdK48J9DvWHtVXq+olcnWkI2rTnF7rjmH5C4qONCzvjrNuQ+CzXGHvCckemIXithA9FRJiAG"
+        }
+      ]
+    }
+  ]
+}
