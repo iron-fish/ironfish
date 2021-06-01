@@ -354,6 +354,7 @@ export class Blockchain<
       const result = await this.connect(block, previous, tx)
 
       if (!result.isAdded) {
+        await tx.abort()
         return result
       }
 
@@ -512,7 +513,10 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
     const start = BenchUtils.start()
 
     const work = block.header.target.toDifficulty()
@@ -636,7 +640,10 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
@@ -665,7 +672,11 @@ export class Blockchain<
       return { isAdded: false, reason: reason }
     }
 
-    await this.saveBlock(block, prev, false, tx)
+    const result = await this.saveBlock(block, prev, false, tx)
+    if (!result.isAdded) {
+      return result
+    }
+
     this.head = block.header
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -1232,7 +1243,10 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<void> {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
     // TODO: transaction goes here
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
@@ -1248,22 +1262,49 @@ export class Blockchain<
         nullifierIndex++
       }
     })
+
+    const verify = await this.verifier.blockMatchesTrees(block.header, tx)
+
+    if (!verify.valid) {
+      this.addInvalid(block.header)
+
+      return {
+        isAdded: false,
+        reason: verify.reason,
+      }
+    }
+
+    return {
+      isAdded: true,
+      reason: null,
+    }
   }
 
   private async saveReconnect(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
-  ): Promise<void> {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
     // TODO: transaction goes here
     await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
 
-    await this.saveConnect(block, prev, tx)
+    const result = await this.saveConnect(block, prev, tx)
+    if (!result.isAdded) {
+      return result
+    }
 
     await this.meta.put('head', prev.hash, tx)
 
     await tx.update()
+
+    return {
+      isAdded: true,
+      reason: null,
+    }
   }
 
   private async saveDisconnect(
@@ -1290,7 +1331,10 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     fork: boolean,
     tx: IDatabaseTransaction,
-  ): Promise<void> {
+  ): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
     const hash = block.header.hash
     const sequence = block.header.sequence
     const prevHash = block.header.previousBlockHash
@@ -1310,7 +1354,10 @@ export class Blockchain<
       await this.hashToNextHash.put(prevHash, hash, tx)
       await this.meta.put('head', hash, tx)
 
-      await this.saveConnect(block, prev, tx)
+      const result = await this.saveConnect(block, prev, tx)
+      if (!result.isAdded) {
+        return result
+      }
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
@@ -1319,6 +1366,11 @@ export class Blockchain<
     }
 
     await tx.update()
+
+    return {
+      isAdded: true,
+      reason: null,
+    }
   }
 
   private updateSynced(): void {
