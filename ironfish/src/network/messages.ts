@@ -8,6 +8,8 @@ import { SerializedBlock } from '../primitives/block'
 import { Gossip, Rpc } from './messageRouters'
 import { UnwrapPromise } from '../utils'
 import { IronfishVerifier } from '../consensus'
+import { Peer } from './peers/peer'
+import { Connection } from './peers/connections'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -477,3 +479,25 @@ export type NewTransactionMessage = Gossip<
   NodeMessageType.NewTransaction,
   UnwrapPromise<ReturnType<IronfishVerifier['verifyNewTransaction']>>
 >
+
+/**
+ * Used to just try to get an identify version, even if the identify is malformed
+ * because we want to debug why someone sent us a malformed identify.
+ * */
+export function getIdentifyVersion(obj: unknown): string | null {
+  if (!isPayloadMessage(obj)) return null
+
+  const payload = obj.payload as Identify['payload']
+
+  if (
+    obj.type === InternalMessageType.identity &&
+    typeof payload === 'object' &&
+    payload != null &&
+    payload.version != null &&
+    (typeof payload.version === 'string' || typeof payload.version === 'number')
+  ) {
+    return String(payload.version)
+  }
+
+  return null
+}

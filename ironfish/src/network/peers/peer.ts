@@ -99,15 +99,23 @@ export class Peer {
    * try Peer.name or Peer.state.identity.
    */
   get displayName(): string {
-    if (this.state.identity === null) {
-      return 'unidentified'
+    if (this.state.identity !== null) {
+      const identitySlice = this.state.identity.slice(0, 7)
+      if (this.name) {
+        return `${identitySlice} (${this.name})`
+      }
+      return identitySlice
     }
 
-    const identitySlice = this.state.identity.slice(0, 7)
-    if (this.name) {
-      return `${identitySlice} (${this.name})`
+    if (this.address) {
+      const name = this.address
+      if (this.port) {
+        this.name += ':' + String(this.port)
+      }
+      return name
     }
-    return identitySlice
+
+    return 'unidentified'
   }
 
   /**

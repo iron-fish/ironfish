@@ -17,6 +17,7 @@ import {
 import {
   DisconnectingMessage,
   DisconnectingReason,
+  getIdentifyVersion,
   IncomingPeerMessage,
   InternalMessageType,
   isDisconnectingMessage,
@@ -887,10 +888,16 @@ export class PeerManager {
   ): void {
     // If we receive any message other than an Identity message, close the connection
     if (!isIdentify(message)) {
-      this.logger.debug(
-        `Disconnecting from ${peer.displayName} - Sent unexpected message ${message.type} while waiting for identity`,
-      )
-      peer.close()
+      let error = `Disconnecting from ${peer.displayName} - Sent unexpected message ${message.type} while waiting for identity`
+
+      // If we can parse out their old version, lets display that instead
+      const oldVersion = getIdentifyVersion(message)
+      if (oldVersion) {
+        error = `Old peer attempted to connect to us from ${peer.displayName}: ${oldVersion}`
+      }
+
+      this.logger.debug(error)
+      peer.close(error)
       return
     }
 
