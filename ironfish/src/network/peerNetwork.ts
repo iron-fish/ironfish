@@ -748,7 +748,7 @@ export class PeerNetwork {
     if (!peer) return false
 
     try {
-      await this.node.syncer.addNewBlock(peer, block)
+      return await this.node.syncer.addNewBlock(peer, block)
     } catch (error) {
       this.logger.error(
         `Error when adding new block ${block.header.sequence} from ${
@@ -758,8 +758,6 @@ export class PeerNetwork {
 
       return false
     }
-
-    return true
   }
 
   private async onNewTransaction(
