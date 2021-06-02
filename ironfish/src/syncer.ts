@@ -462,26 +462,28 @@ export class Syncer {
     return { added: true, block, reason: reason || null }
   }
 
-  async addNewBlock(peer: Peer, newBlock: IronfishBlockSerialized): Promise<void> {
+  async addNewBlock(peer: Peer, newBlock: IronfishBlockSerialized): Promise<boolean> {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
     if (!this.chain.synced) {
-      return
+      return false
     }
 
     if (this.loader) {
-      return
+      return false
     }
 
     if (whitelist.size && !whitelist.has(peer.name || '')) {
-      return
+      return false
     }
 
-    const { block } = await this.addBlock(peer, newBlock)
+    const { added, block } = await this.addBlock(peer, newBlock)
 
     if (!peer.sequence || block.header.sequence > peer.sequence) {
       peer.sequence = block.header.sequence
     }
+
+    return added
   }
 
   protected async syncOrphan(peer: Peer, hash: BlockHash): Promise<void> {
