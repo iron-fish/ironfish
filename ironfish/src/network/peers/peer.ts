@@ -396,7 +396,7 @@ export class Peer {
   send(message: LooseMessage): Connection | null {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
-      this.logger.warn(
+      this.logger.debug(
         `Attempted to send a ${message.type} message to ${this.displayName} in state ${this.state.type}`,
       )
       return null
