@@ -45,6 +45,12 @@ import { ArrayUtils } from '../../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 
 /**
+ * The maximum number of attempts the client will make to find a brokering peer
+ * that can send signaling messages to another peer.
+ */
+const MAX_WEBRTC_BROKERING_ATTEMPTS = 5
+
+/**
  * PeerManager keeps the state of Peers and their underlying connections up to date,
  * determines how to establish a connection to a given Peer, and provides an event
  * bus for Peers, e.g. for listening to incoming messages from all connected peers.
@@ -212,6 +218,7 @@ export class PeerManager {
       return false
     }
 
+    // Make sure we can find at least one brokering peer before we create the connection
     const brokeringPeer = this.getBrokeringPeer(peer)
 
     if (brokeringPeer === null) {
@@ -229,7 +236,7 @@ export class PeerManager {
     }
 
     if (canInitiateWebRTC(this.localPeer.publicIdentity, peer.state.identity)) {
-      this.initWebRtcConnection(brokeringPeer, peer, true)
+      this.initWebRtcConnection(peer, true)
       return true
     }
 
@@ -241,7 +248,7 @@ export class PeerManager {
       },
     }
 
-    const connection = this.initWebRtcConnection(brokeringPeer, peer, false)
+    const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
     brokeringPeer.send(signal)
     return true
@@ -294,15 +301,10 @@ export class PeerManager {
 
   /**
    * Perform WebRTC-specific connection setup
-   * @param brokeringPeer The peer used to exchange signaling messages between us and `peer`
    * @param peer The peer to establish a connection with
    * @param initiator Set to true if we are initiating a connection with `peer`
    */
-  private initWebRtcConnection(
-    brokeringPeer: Peer,
-    peer: Peer,
-    initiator: boolean,
-  ): WebRtcConnection {
+  private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
     const connection = new WebRtcConnection(
       initiator,
       this.localPeer.webRtc,
@@ -318,20 +320,41 @@ export class PeerManager {
         connection.close(new NetworkError(message))
         return
       }
-      const { nonce, boxedMessage } = this.localPeer.boxMessage(
-        JSON.stringify(data),
-        peer.state.identity,
-      )
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: this.localPeer.publicIdentity,
-          destinationIdentity: peer.state.identity,
-          nonce: nonce,
-          signal: boxedMessage,
-        },
+
+      for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
+        // If at any point we can't find a peer, close the connection
+        const brokeringPeer = this.getBrokeringPeer(peer)
+        if (brokeringPeer == null) {
+          const message = 'Cannot establish a WebRTC connection without a brokering peer'
+          this.logger.debug(message)
+          connection.close(new NetworkError(message))
+          return
+        }
+
+        const { nonce, boxedMessage } = this.localPeer.boxMessage(
+          JSON.stringify(data),
+          peer.state.identity,
+        )
+        const signal: Signal = {
+          type: InternalMessageType.signal,
+          payload: {
+            sourceIdentity: this.localPeer.publicIdentity,
+            destinationIdentity: peer.state.identity,
+            nonce: nonce,
+            signal: boxedMessage,
+          },
+        }
+
+        // If sending the message failed, try again (the brokeringPeer's state may have changed)
+        const sendResult = brokeringPeer.send(signal)
+        if (sendResult != null) {
+          return
+        }
       }
-      brokeringPeer.send(signal)
+
+      const message = `Failed to find a brokering peer after ${MAX_WEBRTC_BROKERING_ATTEMPTS} attempts`
+      this.logger.debug(message)
+      connection.close(new NetworkError(message))
     })
 
     this.initConnectionHandlers(peer, connection)
@@ -1136,7 +1159,7 @@ export class PeerManager {
       return
     }
 
-    this.initWebRtcConnection(messageSender, targetPeer, true)
+    this.initWebRtcConnection(targetPeer, true)
   }
 
   /**
@@ -1221,7 +1244,7 @@ export class PeerManager {
         return
       }
 
-      connection = this.initWebRtcConnection(messageSender, signalingPeer, false)
+      connection = this.initWebRtcConnection(signalingPeer, false)
     } else {
       connection = signalingPeer.state.connections.webRtc
     }

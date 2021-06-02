@@ -1076,7 +1076,8 @@ describe('PeerManager', () => {
 
       peer.onMessage.emit(message, connection)
       expect(initWebRtcConnectionMock).toBeCalledTimes(1)
-      expect(initWebRtcConnectionMock).toBeCalledWith(peer, peer, true)
+      expect(initWebRtcConnectionMock).toBeCalledWith(peer, true)
+      expect(pm['getBrokeringPeer'](peer)).toEqual(peer)
     })
 
     it('Sends a disconnect message if we are at max peers', () => {
