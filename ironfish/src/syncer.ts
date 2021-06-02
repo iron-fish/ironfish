@@ -12,7 +12,7 @@ import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
 import { IronfishStrategy } from './strategy'
-import { BlockHash, IronfishBlockHeader } from './primitives/blockheader'
+import { IronfishBlockHeader } from './primitives/blockheader'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -429,11 +429,13 @@ export class Syncer {
 
     if (reason === VerificationResultReason.ORPHAN) {
       this.logger.info(
-        `Peer ${peer.displayName} sent orphan at ${block.header.sequence}, syncing orphan chain.`,
+        `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
+          block.header,
+        )} (${block.header.sequence}), syncing orphan chain.`,
       )
 
       if (!this.loader) {
-        await this.syncOrphan(peer, block.header.hash)
+        this.startSync(peer)
       }
 
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
@@ -484,13 +486,6 @@ export class Syncer {
     }
 
     return added
-  }
-
-  protected async syncOrphan(peer: Peer, hash: BlockHash): Promise<void> {
-    const hashes = await this.peerNetwork.getBlockHashes(peer, hash, 1)
-    if (!hashes.length) return
-
-    this.startSync(peer)
   }
 
   /**
