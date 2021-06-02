@@ -37,6 +37,11 @@ function getNodes() {
         const nodeOffsetX = (islandOffset * ISLAND_OFFSET) + (childOffset * CHILD_OFFSET)
         const nodeOffsetY = block.seq * LEVEL_OFFSET
 
+        const graffiti = block.graffiti.replace(/\0/g, '').trim()
+
+        // Blocks with no graffiti should be gray
+        const color = graffiti ? undefined : 'rgba(255, 255, 255, 0.7)'
+
         const node = {
             hash: block.hash,
             seq: block.seq,
@@ -44,10 +49,11 @@ function getNodes() {
             main: block.main,
             head: block.head,
             latest: block.latest,
-            graffiti: block.graffiti,
+            graffiti: graffiti,
             work: BigInt(block.work),
             shortHash: renderHash(block.hash),
             diff: 0,
+            color: color,
             x: nodeOffsetX,
             y: nodeOffsetY,
         }
