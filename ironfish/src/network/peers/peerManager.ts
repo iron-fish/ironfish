@@ -863,14 +863,30 @@ export class PeerManager {
       return
     }
 
-    messageSender.peerRequestedDisconnectReason = message.payload.reason
-    messageSender.peerRequestedDisconnectUntil = message.payload.disconnectUntil
+    let disconnectingPeer
+    if (messageSender.state.identity === null) {
+      // If the message sender has no identity yet, assume they requested the disconnect, since
+      // they shouldn't be forwarding messages for other peers before our state is CONNECTED.
+      disconnectingPeer = messageSender
+    } else {
+      // Otherwise, the sourceIdentity on the message requested the disconnect.
+      disconnectingPeer = this.getPeer(message.payload.sourceIdentity)
+      if (!disconnectingPeer) {
+        this.logger.debug(
+          `Received disconnect request from ${message.payload.sourceIdentity} but have no peer with that identity`,
+        )
+        return
+      }
+    }
+
+    disconnectingPeer.peerRequestedDisconnectReason = message.payload.reason
+    disconnectingPeer.peerRequestedDisconnectUntil = message.payload.disconnectUntil
     this.logger.debug(
-      `${messageSender.displayName} requested we disconnect until ${
+      `${disconnectingPeer.displayName} requested we disconnect until ${
         message.payload.disconnectUntil
       }. Current time is ${Date.now()}`,
     )
-    messageSender.close()
+    disconnectingPeer.close()
   }
 
   /**
