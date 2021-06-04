@@ -493,8 +493,9 @@ export class Syncer {
    * with a peer if we should no longer sync from this peer
    */
   protected abort(peer: Peer): void {
-    if (this.loader === peer) return
-    throw new AbortSyncingError('abort syncing')
+    if (this.loader !== peer) {
+      throw new AbortSyncingError('abort syncing')
+    }
   }
 
   /**
