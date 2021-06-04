@@ -471,10 +471,6 @@ export class Syncer {
       return false
     }
 
-    if (this.loader) {
-      return false
-    }
-
     if (whitelist.size && !whitelist.has(peer.name || '')) {
       return false
     }
