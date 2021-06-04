@@ -315,7 +315,7 @@ export class PeerNetwork {
               sourceIdentity: this.localPeer.publicIdentity,
               destinationIdentity: null,
               reason: DisconnectingReason.Congested,
-              disconnectUntil: Date.now() + 1000 * 60 * 5,
+              disconnectUntil: this.peerManager.getCongestedDisconnectUntilTimestamp(),
             },
           }
           connection.send(JSON.stringify(disconnect))
