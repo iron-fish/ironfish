@@ -1517,6 +1517,33 @@ describe('PeerManager', () => {
   })
 
   describe('Message: Disconnect', () => {
+    it('Drops disconnect messages originating from an different peer than sourceIdentity', () => {
+      const peer1Identity = mockIdentity('peer1')
+      const peer2Identity = mockIdentity('peer2')
+      const peer3Identity = mockIdentity('peer3')
+      const pm = new PeerManager(mockLocalPeer())
+
+      const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
+      const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
+      const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm, peer3Identity)
+
+      const signal: DisconnectingMessage = {
+        type: InternalMessageType.disconnecting,
+        payload: {
+          sourceIdentity: peer1Identity,
+          destinationIdentity: peer2Identity,
+          disconnectUntil: Number.MAX_SAFE_INTEGER,
+          reason: DisconnectingReason.ShuttingDown,
+        },
+      }
+
+      const sendSpy1 = jest.spyOn(peer1, 'send')
+      const sendSpy2 = jest.spyOn(peer2, 'send')
+      peer3.onMessage.emit(signal, peer3Connection)
+      expect(sendSpy1).not.toBeCalled()
+      expect(sendSpy2).not.toBeCalled()
+    })
+
     it('Should set peerRequestedDisconnectUntil on unidentified Peer', () => {
       const localPeer = mockLocalPeer()
       const pm = new PeerManager(localPeer)
@@ -1544,7 +1571,38 @@ describe('PeerManager', () => {
       expect(peer.state.type).toEqual('DISCONNECTED')
     })
 
-    it('Should set peerRequestedDisconnectUntil on CONNECTED Peer', () => {
+    it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is not sourceIdentity', () => {
+      const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
+      const pm = new PeerManager(localPeer)
+
+      const { peer, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
+        pm,
+        mockIdentity('brokering'),
+        webRtcCanInitiateIdentity(),
+      )
+
+      const disconnectMessage: DisconnectingMessage = {
+        type: InternalMessageType.disconnecting,
+        payload: {
+          sourceIdentity: webRtcCanInitiateIdentity(),
+          destinationIdentity: localPeer.publicIdentity,
+          disconnectUntil: Number.MAX_SAFE_INTEGER,
+          reason: DisconnectingReason.ShuttingDown,
+        },
+      }
+
+      expect(peer.state.type).toEqual('CONNECTING')
+      expect(brokeringPeer.state.type).toEqual('CONNECTED')
+
+      brokeringConnection.onMessage.emit(disconnectMessage)
+
+      expect(peer.state.type).toEqual('DISCONNECTED')
+      expect(peer.peerRequestedDisconnectReason).toEqual(DisconnectingReason.ShuttingDown)
+      expect(peer.peerRequestedDisconnectUntil).toEqual(Number.MAX_SAFE_INTEGER)
+      expect(brokeringPeer.state.type).toEqual('CONNECTED')
+    })
+
+    it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is sourceIdentity', () => {
       const localPeer = mockLocalPeer()
       const pm = new PeerManager(localPeer)
       const peerIdentity = mockIdentity('peer')
