@@ -110,9 +110,9 @@ function getStatus(node: IronfishNode): GetStatusResponse {
   const status: GetStatusResponse = {
     peerNetwork: {
       peers: peers.length,
-      isReady: false,
-      inboundTraffic: 0,
-      outboundTraffic: 0,
+      isReady: node.peerNetwork.isReady,
+      inboundTraffic: Math.max(node.metrics.p2p_InboundTraffic.rate1s, 0),
+      outboundTraffic: Math.max(node.metrics.p2p_OutboundTraffic.rate1s, 0),
     },
     blockchain: {
       synced: node.chain.synced,
@@ -125,16 +125,11 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     blockSyncer: {
       status: node.syncer.state,
+      syncing: {
+        blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
+        speed: MathUtils.round(node.syncer.speed.rate1m, 2),
+      },
     },
-  }
-
-  status.peerNetwork.isReady = node.peerNetwork.isReady
-  status.peerNetwork.inboundTraffic = node.metrics.p2p_InboundTraffic.rate1s
-  status.peerNetwork.outboundTraffic = node.metrics.p2p_OutboundTraffic.rate1s
-
-  status.blockSyncer.syncing = {
-    blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
-    speed: MathUtils.round(node.syncer.speed.rate1m, 2),
   }
 
   return status
