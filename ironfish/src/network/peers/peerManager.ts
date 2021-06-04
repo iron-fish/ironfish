@@ -438,6 +438,14 @@ export class PeerManager {
   }
 
   /**
+   * Generate a timestamp for use in disconnect messages when the peer has more
+   * connected peers than maxPeers.
+   */
+  getCongestedDisconnectUntilTimestamp(): number {
+    return Date.now() + 1000 * 60 * 5
+  }
+
+  /**
    * Initiate a disconnection from another peer.
    * @param peer The peer to disconnect from
    * @param reason The reason for disconnecting from the peer
@@ -1138,7 +1146,7 @@ export class PeerManager {
             sourceIdentity: this.localPeer.publicIdentity,
             destinationIdentity: message.payload.sourceIdentity,
             reason: DisconnectingReason.Congested,
-            disconnectUntil: 1000 * 60 * 5,
+            disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
           },
         }
         messageSender.send(disconnectingMessage)
@@ -1207,7 +1215,7 @@ export class PeerManager {
             sourceIdentity: this.localPeer.publicIdentity,
             destinationIdentity: message.payload.sourceIdentity,
             reason: DisconnectingReason.Congested,
-            disconnectUntil: 1000 * 60 * 5,
+            disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
           },
         }
         messageSender.send(disconnectingMessage)
