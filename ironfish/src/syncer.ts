@@ -13,6 +13,7 @@ import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
 import { IronfishStrategy } from './strategy'
 import { IronfishBlockHeader } from './primitives/blockheader'
+import { Event } from './event'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -36,6 +37,8 @@ export class Syncer {
   cancelLoop: SetTimeoutToken | null
   loader: Peer | null = null
   blocksPerMessage: number
+
+  onGossip = new Event<[IronfishBlock]>()
 
   constructor(options: {
     peerNetwork: PeerNetwork
@@ -480,6 +483,8 @@ export class Syncer {
     if (!peer.sequence || block.header.sequence > peer.sequence) {
       peer.sequence = block.header.sequence
     }
+
+    this.onGossip.emit(block)
 
     return added
   }

@@ -188,6 +188,7 @@ export class IronfishSdk {
       ApiNamespace.account,
       ApiNamespace.chain,
       ApiNamespace.config,
+      ApiNamespace.event,
       ApiNamespace.faucet,
       ApiNamespace.miner,
       ApiNamespace.node,
