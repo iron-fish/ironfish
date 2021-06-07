@@ -453,7 +453,9 @@ export class Syncer {
           peer.displayName
         } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
           block.header.hash,
-        )}, reason: ${reason}`,
+        )} (
+          ${Number(block.header.sequence)}
+        ), reason: ${reason}`,
       )
 
       peer.punish(score, reason)
