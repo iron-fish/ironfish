@@ -14,6 +14,7 @@ export enum ApiNamespace {
   account = 'account',
   chain = 'chain',
   config = 'config',
+  event = 'event',
   faucet = 'faucet',
   miner = 'miner',
   node = 'node',

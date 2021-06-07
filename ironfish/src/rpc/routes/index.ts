@@ -4,6 +4,7 @@
 export * from './accounts'
 export * from './config'
 export * from './chain'
+export * from './events'
 export * from './node'
 export * from './peers'
 export * from './router'
