@@ -340,11 +340,11 @@ export class Blockchain<
         return { isAdded: false, reason: verify.reason }
       }
 
-      if (await this.hasBlock(hash)) {
+      if (await this.hasBlock(hash, tx)) {
         return { isAdded: false, reason: VerificationResultReason.DUPLICATE }
       }
 
-      const previous = await this.getPrevious(block.header)
+      const previous = await this.getPrevious(block.header, tx)
 
       if (!previous) {
         this.addOrphan(block)
