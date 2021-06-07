@@ -49,6 +49,7 @@ import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
+import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 
 export abstract class IronfishRpcClient {
   readonly logger: Logger
@@ -150,6 +151,10 @@ export abstract class IronfishRpcClient {
 
   getPeersStream(params: GetPeersRequest = undefined): Response<void, GetPeersResponse> {
     return this.request<void, GetPeersResponse>('peer/getPeers', { ...params, stream: true })
+  }
+
+  onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
+    return this.request<void, OnGossipResponse>('event/onGossip', params)
   }
 
   async sendTransaction(
