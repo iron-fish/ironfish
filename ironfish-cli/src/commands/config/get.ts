@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { ConfigOptions } from 'ironfish'
-import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
+import { RemoteFlags } from '../../flags'
 import { IronfishCommand } from '../../command'
 import jsonColorizer from 'json-colorizer'
 import { getConnectedClient } from './show'
@@ -21,8 +21,7 @@ export class GetCommand extends IronfishCommand {
   ]
 
   static flags = {
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
+    ...RemoteFlags,
     user: flags.boolean({
       description: 'only show config from the users datadir and not overrides',
     }),
