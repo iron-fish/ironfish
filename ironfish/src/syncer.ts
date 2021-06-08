@@ -467,7 +467,7 @@ export class Syncer {
   async addNewBlock(peer: Peer, newBlock: IronfishBlockSerialized): Promise<boolean> {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
-    if (!this.chain.synced) {
+    if (!this.chain.synced && this.loader) {
       return false
     }
 
