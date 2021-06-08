@@ -120,10 +120,6 @@ export class Blockchain<
   autoSeed: boolean
   loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
 
-  // TODO: delete this, if anything ends up in here its an error to begin with
-  looseNotes: { [key: number]: E }
-  looseNullifiers: { [key: number]: Nullifier }
-
   // Contains flat fields
   meta: IDatabaseStore<MetaSchema>
   // BlockHash -> BlockHeader
@@ -169,10 +165,6 @@ export class Blockchain<
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
     this.loadGenesisBlock = options.loadGenesisBlock ?? this.loadDefaultGenesisBlock
-
-    // TODO: Delete
-    this.looseNotes = {}
-    this.looseNullifiers = {}
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -703,10 +695,6 @@ export class Blockchain<
     const { fork } = await this.findFork(oldHead, newHead, tx)
     Assert.isNotNull(fork, 'No fork found')
 
-    // Step 1: remove loose notes and loose nullifiers from queue as they are stale
-    this.looseNotes = {}
-    this.looseNullifiers = {}
-
     // Step 2: Collect all the blocks from the old head to the fork
     const removeIter = this.iterateFrom(oldHead, fork, tx)
     const removeHeaders = await AsyncUtils.materialize(removeIter)
@@ -959,43 +947,25 @@ export class Blockchain<
       [this.notes.counter, this.notes.leaves, this.notes.nodes],
       'readwrite',
       async (tx) => {
-        let noteCount = await this.notes.size(tx)
+        const noteCount = await this.notes.size(tx)
 
         // do we have a note at this index already?
         if (index < noteCount) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const oldNote = (await this.notes.get(index, tx))!
           if (!this.strategy.noteSerde.equals(note, oldNote)) {
-            this.logger.error(
-              `Tried to insert a note, but a different note already there for position ${index}`,
-            )
+            const message = `Tried to insert a note, but a different note already there for position ${index}`
+            this.logger.error(message)
+            throw new Error(message)
           }
           return
+        } else if (index > noteCount) {
+          const message = `Can't insert a note at index ${index}. Merkle tree has a count of ${noteCount}`
+          this.logger.error(message)
+          throw new Error(message)
         }
 
-        this.looseNotes[index] = note
-
-        for (;;) {
-          const note = this.looseNotes[noteCount]
-          if (note) {
-            await this.notes.add(note, tx)
-            noteCount++
-          } else {
-            break
-          }
-        }
-
-        // Garbage collecting. We keep notes in looseNotes after they are added
-        // to deal with adding them back after truncation events,
-        // but once the chain is large enough, the oldest notes are not likely to
-        // be truncated. (Truncations happen at forks, which are typically near the head)
-        // TODO replace with LRU cache
-        const indexesToPrune = noteCount - 1000
-        for (const index in this.looseNotes) {
-          if (parseInt(index) < indexesToPrune) {
-            delete this.looseNotes[index]
-          }
-        }
+        await this.notes.add(note, tx)
       },
     )
   }
@@ -1015,39 +985,23 @@ export class Blockchain<
       [this.nullifiers.counter, this.nullifiers.leaves, this.nullifiers.nodes],
       'readwrite',
       async (tx) => {
-        let nullifierCount = await this.nullifiers.size(tx)
+        const nullifierCount = await this.nullifiers.size(tx)
         // do we have a nullifier at this index already?
         if (index < nullifierCount) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const oldNullifier = (await this.nullifiers.get(index, tx))!
           if (!this.strategy.nullifierHasher().elementSerde().equals(nullifier, oldNullifier)) {
-            this.logger.warn(
-              `Tried to insert a nullifier, but a different nullifier already there for position ${index}`,
-            )
-            return
+            const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
+            this.logger.error(message)
+            throw new Error(message)
           }
+          return
+        } else if (index > nullifierCount) {
+          const message = `Can't insert a nullifier at index ${index}. Merkle tree has a count of ${nullifierCount}`
+          this.logger.error(message)
+          throw new Error(message)
         }
-        this.looseNullifiers[index] = nullifier
-        for (;;) {
-          const nullifier = this.looseNullifiers[nullifierCount]
-          if (nullifier) {
-            await this.nullifiers.add(nullifier, tx)
-            nullifierCount++
-          } else {
-            break
-          }
-        }
-        // Garbage collecting. We keep nullifiers in looseNullifiers after they are added
-        // to deal with adding them back after truncation events,
-        // but once the chain is large enough, the oldest nullifiers are not likely to
-        // be truncated. (Truncations happen at forks, which are typically near the head)
-        // TODO replace with LRU cache
-        const indexesToPrune = nullifierCount - 1000
-        for (const index in this.looseNullifiers) {
-          if (parseInt(index) < indexesToPrune) {
-            delete this.looseNullifiers[index]
-          }
-        }
+        await this.nullifiers.add(nullifier, tx)
       },
     )
   }

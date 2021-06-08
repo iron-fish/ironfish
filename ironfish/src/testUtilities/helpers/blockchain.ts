@@ -49,7 +49,7 @@ export async function makeBlockAfter(
 
   const block = new Block(header, [])
 
-  Assert.isTrue((await chain.verifier.verifyBlock(block)).valid === 1)
+  Assert.isUndefined((await chain.verifier.verifyBlock(block)).reason)
   return block
 }
 

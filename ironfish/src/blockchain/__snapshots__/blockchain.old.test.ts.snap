@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Note adding logs errors if the note doesn't match the previously inserted note that position 1`] = `[Error: Tried to insert a note, but a different note already there for position 2]`;
+
+exports[`Nullifier adding warns if the note doesn't match the previously inserted note that position 1`] = `[Error: Tried to insert a nullifier, but a different nullifier already there for position 2]`;
