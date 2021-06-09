@@ -206,7 +206,7 @@ describe('Block matches', () => {
     await addNotes(blockchain, [1, 2, 3, 4, 5])
     await blockchain.nullifiers.add(Buffer.alloc(32))
     header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
-    expect((await blockchain.verifier.blockMatchesTrees(header)).valid).toBe(true)
+    expect((await blockchain.verifier.chainMatchesTree(undefined, header)).valid).toBe(true)
   })
   it("is false if there aren't enough notes in the tree", async () => {
     const anchor = await makeChainInitial(strategy)
@@ -214,7 +214,7 @@ describe('Block matches', () => {
     await addNotes(anchor, [1, 2, 3, 4])
     await anchor.nullifiers.add(Buffer.alloc(32))
     header.nullifierCommitment.commitment = await anchor.nullifiers.rootHash()
-    expect((await anchor.verifier.blockMatchesTrees(header)).valid).toBe(false)
+    expect((await anchor.verifier.chainMatchesTree(undefined, header)).valid).toBe(false)
   })
   it("is false if there aren't enough nullifiers in the tree", async () => {
     const anchor = await makeChainInitial(strategy)
@@ -226,7 +226,7 @@ describe('Block matches', () => {
     await anchor.nullifiers.add(secondNullifier)
     header.nullifierCommitment.commitment = await anchor.nullifiers.rootHash()
     header.nullifierCommitment.size = 8
-    expect((await anchor.verifier.blockMatchesTrees(header)).valid).toBe(false)
+    expect((await anchor.verifier.chainMatchesTree(undefined, header)).valid).toBe(false)
   })
   it('is false if the note hash is incorrect', async () => {
     const anchor = await makeChainInitial(strategy)
@@ -236,14 +236,14 @@ describe('Block matches', () => {
     await anchor.nullifiers.add(Buffer.alloc(32))
     header.nullifierCommitment.commitment = await anchor.nullifiers.rootHash()
     header.noteCommitment.commitment = 'NOOO'
-    expect((await anchor.verifier.blockMatchesTrees(header)).valid).toBe(false)
+    expect((await anchor.verifier.chainMatchesTree(undefined, header)).valid).toBe(false)
   })
   it('is false for block that has incorrect nullifier hash', async () => {
     const anchor = await makeChainInitial(strategy)
     const header = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 3, 5).header
     await addNotes(anchor, [1, 2, 3, 4, 5])
     await anchor.nullifiers.add(Buffer.alloc(32))
-    expect((await anchor.verifier.blockMatchesTrees(header)).valid).toBe(false)
+    expect((await anchor.verifier.chainMatchesTree(undefined, header)).valid).toBe(false)
   })
 })
 

@@ -25,7 +25,12 @@ function renderBlockHash(block: IronfishBlock | null | undefined): string {
   return renderHash(block.header.hash)
 }
 
+function renderGraffiti(graffiti: Buffer): string {
+  return graffiti.toString('utf8').replace(/\0/g, '').trim()
+}
+
 export const HashUtils = {
+  renderGraffiti,
   renderHashHex,
   renderHash,
   renderBlockHeaderHash,

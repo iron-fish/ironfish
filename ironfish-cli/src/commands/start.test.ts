@@ -32,9 +32,7 @@ describe('start command', () => {
   let hasGenesisBlock = false
 
   const verifier = {
-    blockMatchesTrees: jest
-      .fn()
-      .mockReturnValue(Promise.resolve({ valid: true, reason: null })),
+    chainMatchesTree: jest.fn().mockReturnValue(Promise.resolve({ valid: true, reason: null })),
   }
 
   const chain = {

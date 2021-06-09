@@ -166,7 +166,7 @@ export class Blockchain<
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
-    this.logAllBlockAdd = options.logAllBlockAdd || false
+    this.logAllBlockAdd = options.logAllBlockAdd || true
     this.autoSeed = options.autoSeed ?? true
     this.loadGenesisBlock = options.loadGenesisBlock ?? this.loadDefaultGenesisBlock
 
@@ -360,6 +360,14 @@ export class Blockchain<
 
       await this.resolveOrphans(block)
 
+      // TODO: REMOVE
+      const v = await this.verifier.chainMatchesTree(tx)
+      if (!v.valid) {
+        this.logger.warn(
+          'We just added as block and the trees dont match after the transaction has been committed!!',
+        )
+      }
+
       return { isAdded: true, reason: null }
     })
 
@@ -522,6 +530,10 @@ export class Blockchain<
     const work = block.header.target.toDifficulty()
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
+    // TODO: REMOVE
+    const prevNoteSize = prev ? await this.notes.size(tx) : 0
+    const prevNullSize = prev ? await this.nullifiers.size(tx) : 0
+
     let result
     if (!this.isEmpty && !isBlockHeavier(block.header, this.head)) {
       result = await this.addForkToChain(block, prev, tx)
@@ -541,10 +553,20 @@ export class Blockchain<
       this.logger.info(
         'Added block' +
           ` seq: ${Number(block.header.sequence)},` +
-          ` hash: ${HashUtils.renderHash(block.header.hash)},` +
+          ` hash: ${block.header.hash.toString('hex')},` +
           ` txs: ${block.transactions.length},` +
+          ` work: ${block.header.work}%,` +
           ` progress: ${(this.progress * 100).toFixed(2)}%,` +
-          ` time: ${addTime.toFixed(1)}ms`,
+          ` time: ${addTime.toFixed(1)}ms` +
+          // TODO: REMOVE
+          ` prevNoteSize: ${prevNoteSize},` +
+          ` prevNullSize: ${prevNullSize},` +
+          ` blockNoteSize: ${block.header.noteCommitment.size},` +
+          ` blockNullSize: ${block.header.nullifierCommitment.size},` +
+          ` parentNoteSize: ${String(prev?.noteCommitment.size)},` +
+          ` parentNullSize: ${String(prev?.nullifierCommitment.size)},` +
+          ` noteSize: ${await this.notes.size(tx)},` +
+          ` nullSize: ${await this.nullifiers.size(tx)}`,
       )
     }
 
@@ -570,7 +592,26 @@ export class Blockchain<
     const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
+    // TODO: REMOVE
+    const prevNoteSize = await this.notes.size(tx)
+    const prevNullSize = await this.nullifiers.size(tx)
+
     await this.saveDisconnect(block, prev, tx)
+
+    // TODO: REMOVE
+    this.logger.info(
+      'DISCONNECTING BLOCK' +
+        ` seq: ${block.header.sequence},` +
+        ` hash: ${block.header.hash.toString('hex')},` +
+        ` prevNoteSize: ${prevNoteSize},` +
+        ` prevNullSize: ${prevNullSize},` +
+        ` blockNoteSize: ${block.header.noteCommitment.size},` +
+        ` blockNullSize: ${block.header.nullifierCommitment.size},` +
+        ` parentNoteSize: ${prev.noteCommitment.size},` +
+        ` parentNullSize: ${prev.nullifierCommitment.size},` +
+        ` noteSize: ${await this.notes.size(tx)},` +
+        ` nullSize: ${await this.nullifiers.size(tx)}`,
+    )
 
     this.head = prev
 
@@ -592,10 +633,29 @@ export class Blockchain<
       })`,
     )
 
-    const prev = await this.getPrevious(block.header)
+    // TODO: REMOVE
+    const prevNoteSize = await this.notes.size(tx)
+    const prevNullSize = await this.nullifiers.size(tx)
+
+    const prev = await this.getPrevious(block.header, tx)
     Assert.isNotNull(prev)
 
     await this.saveReconnect(block, prev, tx)
+
+    // TODO: REMOVE
+    this.logger.info(
+      'RECONNECTING BLOCK' +
+        ` seq: ${block.header.sequence},` +
+        ` hash: ${block.header.hash.toString('hex')},` +
+        ` prevNoteSize: ${prevNoteSize},` +
+        ` prevNullSize: ${prevNullSize},` +
+        ` parentNoteSize: ${prev.noteCommitment.size},` +
+        ` parentNullSize: ${prev.nullifierCommitment.size},` +
+        ` blockNoteSize: ${block.header.noteCommitment.size},` +
+        ` blockNullSize: ${block.header.nullifierCommitment.size},` +
+        ` noteSize: ${await this.notes.size(tx)},` +
+        ` nullSize: ${await this.nullifiers.size(tx)}`,
+    )
 
     this.head = block.header
     await this.onConnectBlock.emitAsync(block, tx)
@@ -620,17 +680,26 @@ export class Blockchain<
       return { isAdded: false, reason: reason || null }
     }
 
+    // TODO: REMOVE
+    const prevNoteSize = await this.notes.size(tx)
+    const prevNullSize = await this.nullifiers.size(tx)
+
     await this.saveBlock(block, prev, true, tx)
 
     this.logger.warn(
       'Added block to fork' +
         ` seq: ${block.header.sequence},` +
         ` head-seq: ${this.head.sequence || ''},` +
-        ` hash: ${HashUtils.renderHash(block.header.hash)},` +
+        ` hash: ${block.header.hash.toString('hex')},` +
         ` head-hash: ${this.head.hash ? HashUtils.renderHash(this.head.hash) : ''},` +
         ` work: ${block.header.work},` +
         ` head-work: ${this.head.work || ''},` +
-        ` work-diff: ${(this.head.work || BigInt(0)) - block.header.work}`,
+        ` work-diff: ${(this.head.work || BigInt(0)) - block.header.work}` +
+        // TODO: REMOVE
+        ` prevNoteSize: ${prevNoteSize},` +
+        ` prevNullSize: ${prevNullSize},` +
+        ` noteSize: ${await this.notes.size(tx)},` +
+        ` nullSize: ${await this.nullifiers.size(tx)}`,
     )
 
     return { isAdded: true, reason: null }
@@ -657,6 +726,17 @@ export class Blockchain<
 
       await this.reorganizeChain(prev, tx)
     }
+
+    Assert.isTrue(
+      !this._head || block.header.previousBlockHash.equals(this.head.hash),
+      `Saving block ${block.header.hash.toString('hex')} (${
+        block.header.sequence
+      }) does not go on current head ${String(this._head?.hash.toString('hex'))} (${String(
+        this._head ? this._head.sequence - BigInt(1) : 0,
+      )}) expected ${block.header.previousBlockHash.toString('hex')} (${
+        block.header.sequence - BigInt(1)
+      })`,
+    )
 
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
     if (valid !== Validity.Yes) {
@@ -1263,9 +1343,20 @@ export class Blockchain<
       }
     })
 
-    const verify = await this.verifier.blockMatchesTrees(block.header, tx)
+    const verify = await this.verifier.chainMatchesTree(tx, block.header)
 
     if (!verify.valid) {
+      this.logger.error(
+        'TREES ARE BAD: \n' +
+          `${String(new Error().stack)}\n\n` +
+          ` head-seq: ${Number(this.head.sequence)},` +
+          ` head: ${Number(this.head.hash.toString('hex'))},` +
+          ` prev-seq: ${String(prev?.sequence)},` +
+          ` prev-hash: ${String(prev?.hash?.toString('hex'))},` +
+          ` seq: ${Number(block.header.sequence)},` +
+          ` hash: ${block.header.hash.toString('hex')}` +
+          ` work: ${block.header.work}`,
+      )
       this.addInvalid(block.header)
 
       return {

@@ -373,16 +373,18 @@ export class Verifier<
   }
 
   /**
-   * Determine whether our trees match the commitment in the provided block.
+   * Determine whether our trees match the commitment in the chains head.
    *
    * Matching means that the root hash of the tree when the tree is the size
    * specified in the commitment is the same as the commitment,
    * for both notes and nullifiers trees.
    */
-  async blockMatchesTrees(
-    header: BlockHeader<E, H, T, SE, SH, ST>,
+  async chainMatchesTree(
     tx?: IDatabaseTransaction,
+    head?: BlockHeader<E, H, T, SE, SH, ST>,
   ): Promise<{ valid: boolean; reason: VerificationResultReason | null }> {
+    const header = head || this.chain.head
+
     return this.chain.db.withTransaction(
       tx,
       [
@@ -400,11 +402,15 @@ export class Verifier<
         const actualNoteSize = await this.chain.notes.size(tx)
         const actualNullifierSize = await this.chain.nullifiers.size(tx)
 
-        if (noteSize > actualNoteSize) {
+        if (noteSize !== actualNoteSize) {
+          // eslint-disable-next-line no-console
+          console.log('EXPECTED', noteSize, 'GOT', actualNoteSize)
           return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
         }
 
-        if (nullifierSize > actualNullifierSize) {
+        if (nullifierSize !== actualNullifierSize) {
+          // eslint-disable-next-line no-console
+          console.log('EXPECTED', nullifierSize, 'GOT', actualNullifierSize)
           return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
         }
 
@@ -415,6 +421,15 @@ export class Verifier<
             .hashSerde()
             .equals(pastNoteRoot, header.noteCommitment.commitment)
         ) {
+          // TODO: REMOVE
+          // eslint-disable-next-line no-console
+          console.log(
+            'EXPECTED NOTE ROOT',
+            ((pastNoteRoot as unknown) as Buffer)?.toString('hex'),
+            'GOT',
+            ((header.noteCommitment.commitment as unknown) as Buffer)?.toString('hex'),
+          )
+
           return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
         }
 

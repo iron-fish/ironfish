@@ -68,7 +68,7 @@ export async function renderChain<
   const content: string[] = []
 
   const trees = chain.head
-    ? await chain.verifier.blockMatchesTrees(chain.head)
+    ? await chain.verifier.chainMatchesTree()
     : { valid: true, reason: null }
 
   content.push(

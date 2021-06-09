@@ -137,7 +137,7 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
-    const trees = await node.chain.verifier.blockMatchesTrees(node.chain.head)
+    const trees = await node.chain.verifier.chainMatchesTree()
     if (!trees.valid) {
       this.log(
         `Error starting node: your merkle trees are corrupt: ${String(trees.reason)}.` +

@@ -14,6 +14,7 @@ import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
 import { IronfishStrategy } from './strategy'
 import { IronfishBlockHeader } from './primitives/blockheader'
 import { Event } from './event'
+import { IJSON } from './serde'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -135,9 +136,9 @@ export class Syncer {
   startSync(peer: Peer): void {
     if (this.loader) return
 
-    Assert.isNotNull(peer.sequence)
-    Assert.isNotNull(peer.work)
-    Assert.isNotNull(this.chain.head)
+    Assert.isNotNull(peer.sequence, 'sequence')
+    Assert.isNotNull(peer.work, 'work')
+    Assert.isNotNull(this.chain.head, 'head')
 
     this.logger.info(
       `Starting sync from ${peer.displayName}. work: +${(
@@ -452,12 +453,20 @@ export class Syncer {
       Assert.isNotNull(score)
 
       this.logger.warn(
-        `Peer ${
-          peer.displayName
-        } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
-          block.header.hash,
-        )}, reason: ${reason}`,
+        `Peer ${peer.displayName} sent an invalid block` +
+          ` hash: ${HashUtils.renderHash(block.header.hash)},` +
+          ` seq ${Number(block.header.sequence)},` +
+          ` noteSize ${Number(block.header.noteCommitment.size)},` +
+          ` nullSize ${Number(block.header.nullifierCommitment.size)},` +
+          ` graffiti ${HashUtils.renderGraffiti(block.header.graffiti)},` +
+          ` score: ${score}` +
+          `: reason: ${reason}`,
       )
+
+      // TODO: remove this
+      this.logger.warn('')
+      this.logger.warn(IJSON.stringify(serialized))
+      this.logger.warn('')
 
       peer.punish(score, reason)
       return { added: false, block, reason }
