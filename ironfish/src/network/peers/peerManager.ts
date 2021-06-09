@@ -1262,7 +1262,7 @@ export class PeerManager {
       ) {
         this.logger.debug(
           'not handling signal message from',
-          signalingPeer.name,
+          signalingPeer.displayName,
           'because source peer should have requested signaling',
         )
         return
