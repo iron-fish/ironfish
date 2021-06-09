@@ -290,8 +290,10 @@ export class Verifier<
       'read',
       async (tx) => {
         const spendsInThisBlock = Array.from(block.spends())
+
         const previousSpendCount =
           block.header.nullifierCommitment.size - spendsInThisBlock.length
+
         for (const [index, spend] of spendsInThisBlock.entries()) {
           if (!(await this.verifySpend(spend, previousSpendCount + index, tx))) {
             return { valid: Validity.No, reason: VerificationResultReason.INVALID_SPEND }
