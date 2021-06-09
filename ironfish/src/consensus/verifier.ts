@@ -25,6 +25,7 @@ import {
 import { Strategy } from '../strategy'
 import { Target } from '../primitives/target'
 import { WorkerPool } from '../workerPool'
+import { BufferSet } from 'buffer-map'
 
 /**
  * Verifier transctions and blocks
@@ -290,14 +291,25 @@ export class Verifier<
       'read',
       async (tx) => {
         const spendsInThisBlock = Array.from(block.spends())
-
         const previousSpendCount =
           block.header.nullifierCommitment.size - spendsInThisBlock.length
+        const processedSpends = new BufferSet()
 
         for (const [index, spend] of spendsInThisBlock.entries()) {
-          if (!(await this.verifySpend(spend, previousSpendCount + index, tx))) {
-            return { valid: Validity.No, reason: VerificationResultReason.INVALID_SPEND }
+          if (processedSpends.has(spend.nullifier)) {
+            return { valid: Validity.No, reason: VerificationResultReason.DOUBLE_SPEND }
           }
+
+          const verificationResultReason = await this.verifySpend(
+            spend,
+            previousSpendCount + index,
+            tx,
+          )
+          if (verificationResultReason) {
+            return { valid: Validity.No, reason: verificationResultReason }
+          }
+
+          processedSpends.add(spend.nullifier)
         }
 
         return { valid: Validity.Yes }
@@ -357,20 +369,19 @@ export class Verifier<
     spend: Spend<H>,
     size: number,
     tx?: IDatabaseTransaction,
-  ): Promise<boolean> {
+  ): Promise<VerificationResultReason | undefined> {
     if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
-      return false
+      return VerificationResultReason.DOUBLE_SPEND
     }
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
       if (!this.strategy.noteHasher().hashSerde().equals(spend.commitment, realSpendRoot)) {
-        return false
+        return VerificationResultReason.INVALID_SPEND
       }
     } catch {
-      return false
+      return VerificationResultReason.ERROR
     }
 
-    return true
     // TODO (Elena) need to check trees when genesis - heaviest established
   }
 
@@ -465,6 +476,7 @@ export enum VerificationResultReason {
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
+  DOUBLE_SPEND = 'Double spend',
   INVALID_SPEND = 'Invalid spend',
   ORPHAN = 'Block is an orphan',
   DUPLICATE = 'duplicate',

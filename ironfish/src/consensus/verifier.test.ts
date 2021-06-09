@@ -19,6 +19,14 @@ import { Validity, VerificationResultReason } from './verifier'
 import { Target } from '../primitives/target'
 import { BlockHeader } from '../primitives/blockheader'
 import { WorkerPool } from '../workerPool'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockFixture,
+  useMinerBlockFixture,
+} from '../testUtilities'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { generateKey } from 'ironfish-wasm-nodejs'
 
 describe('Verifier', () => {
   describe('Transactions', () => {
@@ -167,16 +175,10 @@ describe('Verifier', () => {
 
   describe('BlockHeader', () => {
     const strategy = new TestStrategy(new RangeHasher())
-    let dateSpy: jest.SpyInstance<number, []>
     let chain: TestBlockchain
     let header: TestBlockHeader
 
-    beforeAll(() => {
-      dateSpy = jest.spyOn(global.Date, 'now').mockImplementation(() => 1598467858637)
-    })
-
     beforeEach(async () => {
-      dateSpy.mockClear()
       chain = await makeChainFull(strategy, { autoSeed: false })
 
       header = new BlockHeader(
@@ -207,6 +209,7 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is in future', () => {
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => 1598467858637)
       header.timestamp = new Date(1598467898637)
 
       expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
@@ -231,6 +234,141 @@ describe('Verifier', () => {
         reason: VerificationResultReason.GRAFFITI,
         valid: 0,
       })
+    })
+  })
+
+  describe('hasValidSpends', () => {
+    const nodeTest = createNodeTest()
+    const performBlockSetup = async () => {
+      const { chain, node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, () =>
+        node.accounts.createAccount('test'),
+      )
+
+      const block1 = await useMinerBlockFixture(node.chain, 2, account)
+      await node.chain.addBlock(block1)
+      await node.accounts.updateHead()
+
+      const block2 = await useBlockFixture(chain, async () => {
+        const transaction = await node.accounts.createTransaction(
+          account,
+          BigInt(1),
+          BigInt(1),
+          '',
+          account.publicAddress,
+        )
+
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(
+            await transaction.transactionFee(),
+            BigInt(3),
+            generateKey().spending_key,
+          ),
+        )
+      })
+
+      return { block1, block2 }
+    }
+
+    describe('a block with no spends', () => {
+      it('says the block is valid', async () => {
+        const { chain, strategy } = nodeTest
+        strategy.disableMiningReward()
+        const block = await makeBlockAfter(chain, chain.head)
+        expect((await chain.verifier.hasValidSpends(block)).valid).toBe(Validity.Yes)
+      })
+    })
+
+    describe('a block with valid spends', () => {
+      it('says the block is valid', async () => {
+        const { chain } = nodeTest
+        const { block2 } = await performBlockSetup()
+        expect((await chain.verifier.hasValidSpends(block2)).valid).toBe(Validity.Yes)
+        expect(Array.from(block2.spends())).toHaveLength(1)
+      }, 60000)
+    })
+
+    describe('a block with double spends', () => {
+      it('is invalid with DOUBLE_SPEND as the reason', async () => {
+        const { chain } = nodeTest
+        const { block2 } = await performBlockSetup()
+
+        const spends = Array.from(block2.spends())
+        jest.spyOn(block2, 'spends').mockImplementationOnce(function* () {
+          for (const spend of spends) {
+            yield spend
+            yield spend
+          }
+        })
+
+        expect(await chain.verifier.hasValidSpends(block2)).toEqual({
+          valid: Validity.No,
+          reason: VerificationResultReason.DOUBLE_SPEND,
+        })
+      }, 60000)
+    })
+
+    describe('a block that throws an error when verifying a spend', () => {
+      it('is invalid with ERROR as the reason', async () => {
+        const { chain } = nodeTest
+        const { block2 } = await performBlockSetup()
+
+        const spends = Array.from(block2.spends())
+        jest.spyOn(block2, 'spends').mockImplementationOnce(function* () {
+          for (const spend of spends) {
+            yield spend
+          }
+        })
+        jest.spyOn(chain.notes, 'getCount').mockImplementationOnce(() => Promise.resolve(0))
+
+        expect(await chain.verifier.hasValidSpends(block2)).toEqual({
+          valid: Validity.No,
+          reason: VerificationResultReason.ERROR,
+        })
+      }, 60000)
+    })
+
+    describe('a block that spends a note in a previous block', () => {
+      it('is invalid with INVALID_SPEND as the reason', async () => {
+        const { chain } = nodeTest
+        const { block1, block2 } = await performBlockSetup()
+
+        const nullifier = Buffer.alloc(32)
+        await chain.nullifiers.add(nullifier)
+        block1.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
+        block1.header.nullifierCommitment.size = 2
+        await chain.nullifiers.add(nullifier)
+        block2.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
+        block2.header.nullifierCommitment.size = 3
+        jest.spyOn(block2, 'spends').mockImplementationOnce(function* () {
+          yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
+          yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
+        })
+
+        expect(await chain.verifier.hasValidSpends(block2)).toEqual({
+          valid: Validity.No,
+          reason: VerificationResultReason.INVALID_SPEND,
+        })
+      }, 60000)
+    })
+
+    describe('a block that spends a note never in the tree', () => {
+      it('is invalid with INVALID_SPEND as the reason', async () => {
+        const { chain } = nodeTest
+        const { block2 } = await performBlockSetup()
+
+        const nullifier = Buffer.alloc(32)
+        jest.spyOn(block2, 'spends').mockImplementationOnce(function* () {
+          yield { nullifier, commitment: Buffer.from('noooo'), size: 1 }
+        })
+
+        expect(await chain.verifier.hasValidSpends(block2)).toEqual({
+          valid: Validity.No,
+          reason: VerificationResultReason.INVALID_SPEND,
+        })
+      }, 60000)
     })
   })
 })
