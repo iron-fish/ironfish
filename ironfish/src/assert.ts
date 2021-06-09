@@ -8,7 +8,8 @@ export class Assert {
   }
 
   static isUndefined<T>(x: undefined | T, message?: string): asserts x is undefined {
-    if (x !== undefined) throw new Error(message || `Expected ${String(x)} to be undefined`)
+    if (x !== undefined)
+      throw new Error(message || `Expected ${JSON.stringify(x)} to be undefined`)
   }
 
   static isNotUndefined<T>(x: undefined | T, message?: string): asserts x is T {

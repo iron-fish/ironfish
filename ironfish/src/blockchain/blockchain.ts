@@ -936,11 +936,6 @@ export class Blockchain<
     )
   }
 
-  /**
-   * Notes may come in any order, so its possible a given note is not
-   * eligible to be added to the merkle tree yet. In this case, the note is
-   * stored in self.looseNotes until the missing note arrives.
-   */
   async addNote(index: number, note: E, tx?: IDatabaseTransaction): Promise<void> {
     return this.db.withTransaction(
       tx,
@@ -970,11 +965,6 @@ export class Blockchain<
     )
   }
 
-  /**
-   * Notes may come in any order, so its possible a given note is not
-   * eligible to be added to the merkle tree yet. In this case, the note is
-   * stored in self.looseNotes until the missing note arrives.
-   */
   async addNullifier(
     index: number,
     nullifier: Nullifier,

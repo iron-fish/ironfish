@@ -41,16 +41,22 @@ describe('Note adding', () => {
     expect(await blockchain.nullifiers.size()).toBe(0)
     expect(listener).not.toBeCalled()
   })
-  it("logs errors if the note doesn't match the previously inserted note that position", async () => {
-    const errorFn = jest.fn()
-    blockchain['logger'].mockTypes((type) => {
-      return type === 'error' ? errorFn : () => {}
-    })
+
+  it("throws if the note doesn't match the previously inserted note that position", async () => {
     await blockchain.addNote(0, 'zero')
     await blockchain.addNote(1, 'one')
     await blockchain.addNote(2, 'two')
     await expect(blockchain.addNote(2, 'not two')).rejects.toThrowError(
       `Tried to insert a note, but a different note already there for position 2`,
+    )
+  })
+
+  it('throws if the position is larger than the number of notes', async () => {
+    await blockchain.addNote(0, 'zero')
+    await blockchain.addNote(1, 'one')
+    await blockchain.addNote(2, 'two')
+    await expect(blockchain.addNote(4, 'not two')).rejects.toThrowError(
+      `Can't insert a note at index 4. Merkle tree has a count of 3`,
     )
   })
 })
@@ -76,11 +82,8 @@ describe('Nullifier adding', () => {
     expect(await blockchain.notes.size()).toBe(0)
     expect(listener).not.toBeCalled()
   })
-  it("warns if the note doesn't match the previously inserted note that position", async () => {
-    const warnFn = jest.fn()
-    blockchain['logger'].mockTypes((type) => {
-      return type === 'warn' ? warnFn : () => {}
-    })
+
+  it("throws if the nullifier doesn't match the previously inserted nullifier in that position", async () => {
     const nullifier0 = Buffer.alloc(32)
     const nullifier1 = makeNullifier(1)
     const nullifier2 = makeNullifier(2)
@@ -89,6 +92,15 @@ describe('Nullifier adding', () => {
     await blockchain.addNullifier(2, nullifier2)
     await expect(blockchain.addNullifier(2, nullifier0)).rejects.toThrowError(
       `Tried to insert a nullifier, but a different nullifier already there for position 2`,
+    )
+  })
+
+  it('throws if the position is larger than the number of nullifiers', async () => {
+    await blockchain.addNullifier(0, makeNullifier(0))
+    await blockchain.addNullifier(1, makeNullifier(1))
+    await blockchain.addNullifier(2, makeNullifier(2))
+    await expect(blockchain.addNullifier(4, makeNullifier(4))).rejects.toThrowError(
+      `Can't insert a nullifier at index 4. Merkle tree has a count of 3`,
     )
   })
 
