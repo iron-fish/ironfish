@@ -7,7 +7,7 @@ import { IronfishBlockchain } from '../../blockchain'
 import { IronfishBlock } from '../../primitives/block'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
-import { makeError } from './utils'
+import { makeError, makeResult } from './utils'
 
 function toEqualHash(
   self: BlockHash | null | undefined,
@@ -54,15 +54,13 @@ async function toAddBlock(
   self: IronfishBlockchain,
   other: IronfishBlock,
 ): Promise<jest.CustomMatcherResult> {
-  let error: string | null = null
-
   const result = await self.addBlock(other)
 
   if (!result.isAdded) {
-    error = `Could not add block: ${String(result.reason)}`
+    return makeResult(false, `Could not add block: ${String(result.reason)}`)
   }
 
-  return makeError(error, `Expected to add block`)
+  return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
 }
 
 expect.extend({

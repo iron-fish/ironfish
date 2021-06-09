@@ -6,6 +6,7 @@ import { Assert } from '../assert'
 import { AsyncUtils } from '../utils'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { VerificationResultReason } from '../consensus'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -346,4 +347,51 @@ describe('Blockchain', () => {
     expect(nodeTest.node.chain.synced).toEqual(true)
     expect(syncedSpy).toHaveBeenCalledTimes(1)
   })
+
+  it('abort reorg after verify error', async () => {
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    // Now run the actual test...
+    const node = nodeTest.node
+    const genesis = nodeTest.chain.genesis
+    expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
+
+    blockB3.header.noteCommitment.size -= 2
+
+    await expect(node.chain).toAddBlock(blockA1)
+    expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
+    await expect(node.chain).toAddBlock(blockA2)
+    expect(node.chain.head?.hash).toEqualBuffer(blockA2.header.hash)
+
+    await expect(node.chain).toAddBlock(blockB1)
+    await expect(node.chain).toAddBlock(blockB2)
+
+    // Should not add blockB3
+    const { isAdded, reason } = await node.chain.addBlock(blockB3)
+    expect(isAdded).toBe(false)
+    expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT_SIZE)
+
+    expect(node.chain.head?.hash).toEqualBuffer(blockB2.header.hash)
+    const result = await node.chain.verifier.blockMatchesTrees(blockB2.header)
+    expect(result.valid).toBe(true)
+
+    await expect(node.chain).toAddBlock(blockA3)
+    expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
+    expect(await node.chain.notes.size()).toBe(blockA3.header.noteCommitment.size)
+  }, 60000)
 })
