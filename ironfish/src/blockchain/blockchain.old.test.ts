@@ -49,7 +49,9 @@ describe('Note adding', () => {
     await blockchain.addNote(0, 'zero')
     await blockchain.addNote(1, 'one')
     await blockchain.addNote(2, 'two')
-    await expect(blockchain.addNote(2, 'not two')).rejects.toMatchSnapshot()
+    await expect(blockchain.addNote(2, 'not two')).rejects.toThrowError(
+      `Tried to insert a note, but a different note already there for position 2`,
+    )
   })
 })
 
@@ -85,7 +87,9 @@ describe('Nullifier adding', () => {
     await blockchain.addNullifier(0, nullifier0)
     await blockchain.addNullifier(1, nullifier1)
     await blockchain.addNullifier(2, nullifier2)
-    await expect(blockchain.addNullifier(2, nullifier0)).rejects.toMatchSnapshot()
+    await expect(blockchain.addNullifier(2, nullifier0)).rejects.toThrowError(
+      `Tried to insert a nullifier, but a different nullifier already there for position 2`,
+    )
   })
 
   it('sixNullifierRoot matches expected rootHash', async () => {
