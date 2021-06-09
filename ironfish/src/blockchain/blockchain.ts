@@ -323,47 +323,49 @@ export class Blockchain<
     reason: VerificationResultReason | null
     score: number | null
   }> {
-    const result = await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
-      const hash = block.header.recomputeHash()
+    try {
+      await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+        const hash = block.header.recomputeHash()
 
-      if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-        return await this.connect(block, null, tx)
+        if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+          await this.connect(block, null, tx)
+          return
+        }
+
+        if (this.isInvalid(block)) {
+          throw new VerifyError(VerificationResultReason.ERROR, BAN_SCORE.MAX)
+        }
+
+        const verify = this.verifier.verifyBlockHeader(block.header)
+        if (verify.valid !== Validity.Yes) {
+          Assert.isNotUndefined(verify.reason)
+          throw new VerifyError(verify.reason, BAN_SCORE.MAX)
+        }
+
+        if (await this.hasBlock(hash, tx)) {
+          throw new VerifyError(VerificationResultReason.DUPLICATE)
+        }
+
+        const previous = await this.getPrevious(block.header, tx)
+
+        if (!previous) {
+          this.addOrphan(block)
+
+          throw new VerifyError(VerificationResultReason.ORPHAN)
+        }
+
+        await this.connect(block, previous, tx)
+
+        await this.resolveOrphans(block)
+      })
+    } catch (e) {
+      if (e instanceof VerifyError) {
+        return { isAdded: false, reason: e.reason, score: e.score }
       }
+      throw e
+    }
 
-      if (this.isInvalid(block)) {
-        return { isAdded: false, reason: VerificationResultReason.ERROR }
-      }
-
-      const verify = this.verifier.verifyBlockHeader(block.header)
-      if (verify.valid !== Validity.Yes) {
-        Assert.isNotUndefined(verify.reason)
-        return { isAdded: false, reason: verify.reason }
-      }
-
-      if (await this.hasBlock(hash, tx)) {
-        return { isAdded: false, reason: VerificationResultReason.DUPLICATE }
-      }
-
-      const previous = await this.getPrevious(block.header, tx)
-
-      if (!previous) {
-        this.addOrphan(block)
-        return { isAdded: false, reason: VerificationResultReason.ORPHAN }
-      }
-
-      const result = await this.connect(block, previous, tx)
-
-      if (!result.isAdded) {
-        await tx.abort()
-        return result
-      }
-
-      await this.resolveOrphans(block)
-
-      return { isAdded: true, reason: null }
-    })
-
-    return { ...result, score: result.reason ? BAN_SCORE.MAX : BAN_SCORE.NO }
+    return { isAdded: true, reason: null, score: null }
   }
 
   /**
@@ -522,15 +524,10 @@ export class Blockchain<
     const work = block.header.target.toDifficulty()
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
-    let result
     if (!this.isEmpty && !isBlockHeavier(block.header, this.head)) {
-      result = await this.addForkToChain(block, prev, tx)
+      await this.addForkToChain(block, prev, tx)
     } else {
-      result = await this.addHeadToChain(block, prev, tx)
-    }
-
-    if (!result.isAdded) {
-      return result
+      await this.addHeadToChain(block, prev, tx)
     }
 
     const addTime = BenchUtils.end(start)
@@ -605,7 +602,7 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<{ isAdded: boolean; reason: VerificationResultReason | null }> {
+  ): Promise<void> {
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
     if (valid !== Validity.Yes) {
       Assert.isNotUndefined(reason)
@@ -617,7 +614,8 @@ export class Blockchain<
       )
 
       this.addInvalid(block.header)
-      return { isAdded: false, reason: reason || null }
+
+      throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
     await this.saveBlock(block, prev, true, tx)
@@ -632,18 +630,13 @@ export class Blockchain<
         ` head-work: ${this.head.work || ''},` +
         ` work-diff: ${(this.head.work || BigInt(0)) - block.header.work}`,
     )
-
-    return { isAdded: true, reason: null }
   }
 
   private async addHeadToChain(
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<{
-    isAdded: boolean
-    reason: VerificationResultReason | null
-  }> {
+  ): Promise<void> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
@@ -669,14 +662,10 @@ export class Blockchain<
       )
 
       this.addInvalid(block.header)
-      return { isAdded: false, reason: reason }
+      throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
-    const result = await this.saveBlock(block, prev, false, tx)
-    if (!result.isAdded) {
-      return result
-    }
-
+    await this.saveBlock(block, prev, false, tx)
     this.head = block.header
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -684,8 +673,6 @@ export class Blockchain<
     }
 
     await this.onConnectBlock.emitAsync(block, tx)
-
-    return { isAdded: true, reason: null }
   }
 
   /**
@@ -1243,10 +1230,7 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
-  ): Promise<{
-    isAdded: boolean
-    reason: VerificationResultReason | null
-  }> {
+  ): Promise<void> {
     // TODO: transaction goes here
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
@@ -1268,15 +1252,8 @@ export class Blockchain<
     if (!verify.valid) {
       this.addInvalid(block.header)
 
-      return {
-        isAdded: false,
-        reason: verify.reason,
-      }
-    }
-
-    return {
-      isAdded: true,
-      reason: null,
+      Assert.isNotNull(verify.reason)
+      throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
   }
 
@@ -1284,27 +1261,16 @@ export class Blockchain<
     block: Block<E, H, T, SE, SH, ST>,
     prev: BlockHeader<E, H, T, SE, SH, ST>,
     tx: IDatabaseTransaction,
-  ): Promise<{
-    isAdded: boolean
-    reason: VerificationResultReason | null
-  }> {
+  ): Promise<void> {
     // TODO: transaction goes here
     await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
 
-    const result = await this.saveConnect(block, prev, tx)
-    if (!result.isAdded) {
-      return result
-    }
+    await this.saveConnect(block, prev, tx)
 
     await this.meta.put('head', prev.hash, tx)
 
     await tx.update()
-
-    return {
-      isAdded: true,
-      reason: null,
-    }
   }
 
   private async saveDisconnect(
@@ -1331,10 +1297,7 @@ export class Blockchain<
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     fork: boolean,
     tx: IDatabaseTransaction,
-  ): Promise<{
-    isAdded: boolean
-    reason: VerificationResultReason | null
-  }> {
+  ): Promise<void> {
     const hash = block.header.hash
     const sequence = block.header.sequence
     const prevHash = block.header.previousBlockHash
@@ -1354,10 +1317,7 @@ export class Blockchain<
       await this.hashToNextHash.put(prevHash, hash, tx)
       await this.meta.put('head', hash, tx)
 
-      const result = await this.saveConnect(block, prev, tx)
-      if (!result.isAdded) {
-        return result
-      }
+      await this.saveConnect(block, prev, tx)
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
@@ -1366,11 +1326,6 @@ export class Blockchain<
     }
 
     await tx.update()
-
-    return {
-      isAdded: true,
-      reason: null,
-    }
   }
 
   private updateSynced(): void {
@@ -1395,3 +1350,15 @@ export type IronfishBlockchain = Blockchain<
   SerializedWasmNoteEncryptedHash,
   SerializedTransaction
 >
+
+export class VerifyError extends Error {
+  reason: VerificationResultReason
+  score: number
+
+  constructor(reason: VerificationResultReason, score = 0) {
+    super()
+
+    this.reason = reason
+    this.score = score
+  }
+}
