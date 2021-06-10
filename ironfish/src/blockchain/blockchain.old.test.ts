@@ -16,7 +16,6 @@ import {
 import { RangeHasher } from '../merkletree'
 import { Target } from '../primitives/target'
 import { Block } from '../primitives/block'
-import { Validity } from '../consensus'
 
 describe('Note adding', () => {
   const strategy = new TestStrategy(new RangeHasher())
@@ -244,79 +243,6 @@ describe('New block', () => {
     await expect(
       blockchain.newBlock(fakeBlock.transactions, minersFee),
     ).rejects.toMatchInlineSnapshot(`[Error: Miner's fee is incorrect]`)
-  })
-})
-
-describe('Calculates valid spends', () => {
-  const strategy = new TestStrategy(new RangeHasher())
-  let blockchain: TestBlockchain
-
-  beforeEach(async () => {
-    blockchain = await makeChainInitial(strategy)
-    await blockchain.notes.add('1')
-    await blockchain.nullifiers.add(Buffer.alloc(32))
-  })
-
-  it('says a block with no spends is valid', async () => {
-    const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 3, 5)
-    await blockchain.addBlock(block)
-    expect((await blockchain.verifier.hasValidSpends(block)).valid).toBe(Validity.Yes)
-  })
-
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('says a block with valid spends is valid', async () => {
-    const block1 = makeFakeBlock(strategy, blockHash(0), blockHash(1), 1, 3, 5)
-    const block2 = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 6, 9)
-    const nullifier = Buffer.alloc(32)
-    block2.transactions[1]._spends.push({ nullifier, commitment: '1-1', size: 1 })
-    await blockchain.addBlock(block1)
-    await blockchain.addBlock(block2)
-    expect((await blockchain.verifier.hasValidSpends(block2)).valid).toBe(Validity.Yes)
-  })
-
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('says a block with double spend in that block is invalid', async () => {
-    const block1 = makeFakeBlock(strategy, blockHash(0), blockHash(1), 1, 3, 5)
-    const block2 = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 6, 9)
-    const nullifier = Buffer.alloc(32)
-    await blockchain.nullifiers.add(nullifier)
-    await blockchain.nullifiers.add(nullifier)
-    block2.header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
-    block2.header.nullifierCommitment.size = 3
-    block2.transactions[1]._spends.push({ nullifier, commitment: '1-1', size: 1 })
-    block2.transactions[2]._spends.push({ nullifier, commitment: '1-1', size: 1 })
-    await blockchain.addBlock(block1)
-    await blockchain.addBlock(block2)
-    expect((await blockchain.verifier.hasValidSpends(block2)).valid).toBe(Validity.No)
-  })
-
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('says a block that spends a note spent in a previous block is invalid', async () => {
-    const block1 = makeFakeBlock(strategy, blockHash(0), blockHash(1), 1, 3, 5)
-    const block2 = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 6, 9)
-    const nullifier = Buffer.alloc(32)
-    await blockchain.nullifiers.add(nullifier)
-    block1.header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
-    block1.header.nullifierCommitment.size = 2
-    await blockchain.nullifiers.add(nullifier)
-    block2.header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
-    block2.header.nullifierCommitment.size = 3
-    block2.transactions[1]._spends.push({ nullifier, commitment: '1-1', size: 1 })
-    block2.transactions[2]._spends.push({ nullifier, commitment: '1-1', size: 1 })
-    await blockchain.addBlock(block1)
-    await blockchain.addBlock(block2)
-    expect((await blockchain.verifier.hasValidSpends(block2)).valid).toBe(Validity.No)
-  })
-
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('says a block that spends a note that was never in the tree is invalid', async () => {
-    const block1 = makeFakeBlock(strategy, blockHash(0), blockHash(1), 1, 3, 5)
-    const block2 = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 6, 9)
-    const nullifier = Buffer.alloc(32)
-    block2.transactions[1]._spends.push({ nullifier, commitment: 'noooo', size: 1 })
-    await blockchain.addBlock(block1)
-    await blockchain.addBlock(block2)
-    expect((await blockchain.verifier.hasValidSpends(block2)).valid).toBe(Validity.No)
   })
 })
 
