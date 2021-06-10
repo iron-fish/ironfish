@@ -1212,7 +1212,7 @@ export class Blockchain<
 
     await this.saveConnect(block, prev, tx)
 
-    await this.meta.put('head', prev.hash, tx)
+    await this.meta.put('head', block.header.hash, tx)
 
     await tx.update()
   }
