@@ -300,13 +300,13 @@ export class Verifier<
             return { valid: Validity.No, reason: VerificationResultReason.DOUBLE_SPEND }
           }
 
-          const verificationResultReason = await this.verifySpend(
+          const verificationError = await this.verifySpend(
             spend,
             previousSpendCount + index,
             tx,
           )
-          if (verificationResultReason) {
-            return { valid: Validity.No, reason: verificationResultReason }
+          if (verificationError) {
+            return { valid: Validity.No, reason: verificationError }
           }
 
           processedSpends.add(spend.nullifier)

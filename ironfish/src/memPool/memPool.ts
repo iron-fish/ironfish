@@ -133,7 +133,8 @@ export class MemPool<
   ): Promise<boolean> {
     // it's faster to check if spends have been seen or not, so do that first
     for (const spend of transaction.spends()) {
-      if (!(await this.chain.verifier.verifySpend(spend, beforeSize))) {
+      const verificationError = await this.chain.verifier.verifySpend(spend, beforeSize)
+      if (verificationError) {
         return false
       }
     }
