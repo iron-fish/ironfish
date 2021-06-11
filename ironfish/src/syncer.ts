@@ -213,7 +213,7 @@ export class Syncer {
    */
   async findAncestor(
     peer: Peer,
-  ): Promise<{ sequence: bigint; ancestor: Buffer; requests: number }> {
+  ): Promise<{ sequence: number; ancestor: Buffer; requests: number }> {
     Assert.isNotNull(peer.head, 'peer.head')
     Assert.isNotNull(peer.sequence, 'peer.sequence')
     Assert.isNotNull(this.chain.head, 'chain.head')
@@ -257,7 +257,7 @@ export class Syncer {
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
       requests++
 
-      const needle = start - BigInt(i * 2)
+      const needle = start - i * 2
       const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       if (!hashes.length) continue
 
@@ -268,7 +268,7 @@ export class Syncer {
         continue
       }
 
-      if (local && local.sequence !== BigInt(needle)) {
+      if (local && local.sequence !== needle) {
         this.logger.warn(
           `Peer ${peer.displayName} sent invalid header for hash. Expected sequence ${needle} but got ${local.sequence}`,
         )
@@ -286,7 +286,7 @@ export class Syncer {
 
     // Then we try a binary search to fine the forking point between us and peer
     let ancestorHash: Buffer | null = null
-    let ancestorSequence: bigint | null = null
+    let ancestorSequence: number | null = null
     let lower = Number(GENESIS_BLOCK_SEQUENCE)
     let upper = Number(peer.sequence)
 
@@ -300,7 +300,7 @@ export class Syncer {
       const start = BenchUtils.start()
 
       const needle = Math.floor((lower + upper) / 2)
-      const hashes = await this.peerNetwork.getBlockHashes(peer, BigInt(needle), 1)
+      const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       const remote = hashes.length === 1 ? hashes[0] : null
 
       const end = BenchUtils.end(start)
@@ -320,7 +320,7 @@ export class Syncer {
         continue
       }
 
-      if (local && local.sequence !== BigInt(needle)) {
+      if (local && local.sequence !== needle) {
         this.logger.warn(`Peer ${peer.displayName} sent invalid header for hash`)
 
         peer.punish(BAN_SCORE.MAX, 'header not match sequence')
@@ -328,7 +328,7 @@ export class Syncer {
       }
 
       ancestorHash = remote
-      ancestorSequence = BigInt(needle)
+      ancestorSequence = needle
 
       lower = needle + 1
     }
@@ -343,7 +343,7 @@ export class Syncer {
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer | null, sequence: bigint): Promise<void> {
+  async syncBlocks(peer: Peer, head: Buffer | null, sequence: number): Promise<void> {
     this.abort(peer)
 
     let count = 0
@@ -372,7 +372,7 @@ export class Syncer {
       this.abort(peer)
 
       for (const addBlock of blocks) {
-        sequence += BigInt(1)
+        sequence += 1
 
         const { added, block } = await this.addBlock(peer, addBlock)
         this.abort(peer)

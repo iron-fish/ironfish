@@ -26,9 +26,9 @@ import {
   HashToNextSchema,
 } from './schema'
 import {
-  BIGINT_ENCODING,
   BUFFER_ARRAY_ENCODING,
   BUFFER_ENCODING,
+  NUMBER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
@@ -194,7 +194,7 @@ export class Blockchain<
     this.sequenceToHashes = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'bs',
-      keyEncoding: BIGINT_ENCODING,
+      keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ARRAY_ENCODING,
     })
 
@@ -202,7 +202,7 @@ export class Blockchain<
     this.sequenceToHash = this.db.addStore({
       version: SCHEMA_VERSION,
       name: 'bS',
-      keyEncoding: BIGINT_ENCODING,
+      keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
 
@@ -575,9 +575,9 @@ export class Blockchain<
       `Reconnecting block ${block.header.hash.toString('hex')} (${
         block.header.sequence
       }) does not go on current head ${this.head.hash.toString('hex')} (${
-        this.head.sequence - BigInt(1)
+        this.head.sequence - 1
       }) expected ${block.header.previousBlockHash.toString('hex')} (${
-        block.header.sequence - BigInt(1)
+        block.header.sequence - 1
       })`,
     )
 
@@ -636,7 +636,7 @@ export class Blockchain<
         }) for ${HashUtils.renderHash(block.header.hash)} (${
           block.header.sequence
         }) on prev ${HashUtils.renderHash(block.header.previousBlockHash)} (${
-          block.header.sequence - BigInt(1)
+          block.header.sequence - 1
         })`,
       )
 
@@ -784,7 +784,7 @@ export class Blockchain<
   /**
    * Returns true if the blockchain has any blocks at the given sequence
    */
-  async hasHashesAtSequence(sequence: bigint, tx?: IDatabaseTransaction): Promise<boolean> {
+  async hasHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<boolean> {
     const hashes = await this.getHashesAtSequence(sequence, tx)
 
     if (!hashes) {
@@ -797,7 +797,7 @@ export class Blockchain<
   /**
    * Returns an array of hashes for any blocks at the given sequence
    */
-  async getHashesAtSequence(sequence: bigint, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
+  async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
     const hashes = await this.sequenceToHashes.get(sequence, tx)
 
     if (!hashes) {
@@ -845,7 +845,7 @@ export class Blockchain<
 
         if (!this.hasGenesisBlock) {
           previousBlockHash = GENESIS_BLOCK_PREVIOUS
-          previousSequence = BigInt(0)
+          previousSequence = 0
           target = Target.initialTarget()
         } else {
           const heaviestHead = this.head
@@ -860,7 +860,7 @@ export class Blockchain<
           previousBlockHash = heaviestHead.hash
           previousSequence = heaviestHead.sequence
           const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
-          if (!previousHeader && previousSequence !== BigInt(1)) {
+          if (!previousHeader && previousSequence !== 1) {
             throw new Error('There is no previous block to calculate a target')
           }
           target = Target.calculateTarget(
@@ -892,7 +892,7 @@ export class Blockchain<
 
         const header = new BlockHeader(
           this.strategy,
-          previousSequence + BigInt(1),
+          previousSequence + 1,
           previousBlockHash,
           noteCommitment,
           nullifierCommitment,
@@ -1005,7 +1005,7 @@ export class Blockchain<
   /**
    * Gets the hash of the block at the sequence on the head chain
    */
-  async getHashAtSequence(sequence: bigint): Promise<BlockHash | null> {
+  async getHashAtSequence(sequence: number): Promise<BlockHash | null> {
     const hash = await this.sequenceToHash.get(sequence)
     return hash || null
   }
@@ -1014,7 +1014,7 @@ export class Blockchain<
    * Gets the header of the block at the sequence on the head chain
    */
   async getHeaderAtSequence(
-    sequence: bigint,
+    sequence: number,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
     const hash = await this.sequenceToHash.get(sequence)
 
@@ -1026,7 +1026,7 @@ export class Blockchain<
   }
 
   async getHeadersAtSequence(
-    sequence: bigint,
+    sequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST>[]> {
     const hashes = await this.sequenceToHashes.get(sequence, tx)
@@ -1084,7 +1084,7 @@ export class Blockchain<
       const block = await this.getBlock(hash, tx)
       Assert.isNotNull(block)
 
-      const next = await this.getHeadersAtSequence(header.sequence + BigInt(1), tx)
+      const next = await this.getHeadersAtSequence(header.sequence + 1, tx)
       if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
         throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
       }
@@ -1119,7 +1119,7 @@ export class Blockchain<
     fromBlockHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: T; initialNoteIndex: number; sequence: BigInt; blockHash: string },
+    { transaction: T; initialNoteIndex: number; sequence: number; blockHash: string },
     void,
     unknown
   > {
@@ -1143,7 +1143,7 @@ export class Blockchain<
     header: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: T; initialNoteIndex: number; sequence: BigInt; blockHash: string },
+    { transaction: T; initialNoteIndex: number; sequence: number; blockHash: string },
     void,
     unknown
   > {

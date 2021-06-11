@@ -85,7 +85,7 @@ export default class Export extends IronfishCommand {
     progress.start(stop - start, 0)
 
     for (let i = start; i <= stop; ++i) {
-      const blocks = await node.chain.getHeadersAtSequence(BigInt(i))
+      const blocks = await node.chain.getHeadersAtSequence(i)
 
       for (const block of blocks) {
         const isMain = await node.chain.isHeadChain(block)

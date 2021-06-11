@@ -51,7 +51,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = BigInt(1)
+    peer.sequence = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
@@ -77,7 +77,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = BigInt(1)
+    peer.sequence = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
@@ -107,7 +107,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = BigInt(1)
+    peer.sequence = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')

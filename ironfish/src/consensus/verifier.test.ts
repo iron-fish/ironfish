@@ -183,7 +183,7 @@ describe('Verifier', () => {
 
       header = new BlockHeader(
         strategy,
-        BigInt(5),
+        5,
         Buffer.alloc(32),
         { commitment: 'header', size: 8 },
         { commitment: Buffer.alloc(32), size: 3 },
@@ -263,7 +263,7 @@ describe('Verifier', () => {
           [transaction],
           await node.strategy.createMinersFee(
             await transaction.transactionFee(),
-            BigInt(3),
+            3,
             generateKey().spending_key,
           ),
         )

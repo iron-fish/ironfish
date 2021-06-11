@@ -18,14 +18,14 @@ import { IronfishNote } from '../primitives/note'
 import { IronfishWitness } from '../merkletree/witness'
 import { IronfishMemPool } from '../memPool'
 
-const REBROADCAST_SEQUENCE_DELTA = BigInt(5)
+const REBROADCAST_SEQUENCE_DELTA = 5
 
 type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
   | { blockHash: string; initialNoteIndex: number }
   // Used if the transaction is not yet part of the chain
-  | { submittedSequence: bigint }
+  | { submittedSequence: number }
   | Record<string, never>
 
 export class Accounts {
@@ -42,7 +42,7 @@ export class Accounts {
     Readonly<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     }>
   >()
   protected readonly noteToNullifier = new Map<
@@ -248,7 +248,7 @@ export class Accounts {
     transaction: Readonly<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     }>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -871,7 +871,7 @@ export class Accounts {
 }
 
 class ScanState {
-  onTransaction = new Event<[sequence: BigInt]>()
+  onTransaction = new Event<[sequence: number]>()
 
   private aborted: boolean
   private runningPromise: Promise<void>

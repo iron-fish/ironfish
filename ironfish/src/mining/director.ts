@@ -352,7 +352,7 @@ export class MiningDirector<
 
     const minersFee = await this.strategy.createMinersFee(
       totalTransactionFees,
-      blockHeader.sequence + BigInt(1),
+      blockHeader.sequence + 1,
       this._minerAccount.spendingKey,
     )
 

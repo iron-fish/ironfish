@@ -25,8 +25,8 @@ export async function logChain<
   ST
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
-  start?: bigint | null,
-  end?: bigint | null,
+  start?: number | null,
+  end?: number | null,
   options: {
     prev?: boolean
     merge?: boolean
@@ -55,8 +55,8 @@ export async function renderChain<
   ST
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
-  start?: bigint | null,
-  end?: bigint | null,
+  start?: number | null,
+  end?: number | null,
   options: {
     prev?: boolean
     seq?: boolean
@@ -102,7 +102,7 @@ export async function renderGraph<
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   header: BlockHeader<E, H, T, SE, SH, ST>,
-  end: bigint,
+  end: number,
   content: string[],
   options: {
     prev?: boolean
@@ -150,7 +150,7 @@ export async function renderGraph<
     return
   }
 
-  const next = await chain.getHeadersAtSequence(header.sequence + BigInt(1))
+  const next = await chain.getHeadersAtSequence(header.sequence + 1)
   const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
   const nesting = children.length >= 2
 

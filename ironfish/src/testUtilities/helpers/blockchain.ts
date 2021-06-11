@@ -20,7 +20,7 @@ export async function makeBlockAfter(
     after = after.header
   }
 
-  const sequence = after.sequence + BigInt(1)
+  const sequence = after.sequence + 1
   const miningReward = BigInt(chain.strategy.miningReward(sequence))
 
   if (miningReward !== BigInt(0)) {
@@ -68,12 +68,7 @@ export async function makeBlockWithTransaction(
 ): Promise<IronfishBlock> {
   const sequence = node.chain.head.sequence
 
-  const block1 = await useMinerBlockFixture(
-    node.chain,
-    sequence + BigInt(1),
-    from,
-    node.accounts,
-  )
+  const block1 = await useMinerBlockFixture(node.chain, sequence + 1, from, node.accounts)
 
   await expect(node.chain).toAddBlock(block1)
   await node.accounts.updateHead()
@@ -91,7 +86,7 @@ export async function makeBlockWithTransaction(
       [transaction],
       await node.chain.strategy.createMinersFee(
         await transaction.transactionFee(),
-        sequence + BigInt(2),
+        sequence + 2,
         from.spendingKey,
       ),
     )

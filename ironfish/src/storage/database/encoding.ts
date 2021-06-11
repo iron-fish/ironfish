@@ -25,9 +25,9 @@ export class StringEncoding<TValues extends string = string>
   }
 }
 
-export class BigIntEncoding implements IDatabaseEncoding<bigint> {
-  serialize = (value: bigint): Buffer => Buffer.from(value.toString(), 'utf8')
-  deserialize = (buffer: Buffer): bigint => BigInt(buffer.toString('utf8'))
+export class NumberEncoding implements IDatabaseEncoding<number> {
+  serialize = (value: number): Buffer => Buffer.from(value.toString(), 'utf8')
+  deserialize = (buffer: Buffer): number => Number(buffer.toString('utf8'))
 
   equals(): boolean {
     throw new Error('You should never use this')
@@ -78,4 +78,4 @@ export default class BufferToStringEncoding implements Serde<Buffer, string> {
 export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
 export const BUFFER_ENCODING = new BufferEncoding()
 export const BUFFER_ARRAY_ENCODING = new BufferArrayEncoding()
-export const BIGINT_ENCODING = new BigIntEncoding()
+export const NUMBER_ENCODING = new NumberEncoding()
