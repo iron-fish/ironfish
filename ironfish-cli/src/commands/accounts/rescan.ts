@@ -4,7 +4,7 @@
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import cli from 'cli-ux'
-import { IronfishRpcClient } from 'ironfish'
+import { IronfishSdk, runRescan } from 'ironfish'
 import { flags } from '@oclif/command'
 import { hasUserResponseError } from '../../utils'
 
@@ -22,33 +22,55 @@ export class RescanCommand extends IronfishCommand {
       description:
         'clear the in-memory and disk caches before rescanning. note that this removes all pending transactions',
     }),
+    offline: flags.boolean({
+      default: false,
+      description: 'Rescan the blockchain without an online node',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = this.parse(RescanCommand)
+    const { follow, reset, offline } = flags
 
-    await this.sdk.client.connect()
-    await rescan(this.sdk.client, flags.follow, flags.reset)
+    await rescan(this.sdk, follow, reset, offline)
   }
 }
 
 export async function rescan(
-  client: IronfishRpcClient,
+  sdk: IronfishSdk,
   follow: boolean,
   reset: boolean,
+  offline: boolean,
 ): Promise<void> {
   cli.action.start('Rescanning Transactions', 'Asking node to start scanning', {
     stdout: true,
   })
 
-  const startedAt = Date.now()
-  const response = client.rescanAccountStream({ follow, reset })
-
   try {
-    for await (const result of response.contentStream()) {
-      cli.action.status = `Scanning Block: ${result.sequence}, ${Math.floor(
+    const updateCliStatus = (startedAt: number) => ({
+      sequence,
+    }: {
+      sequence: number
+    }): void => {
+      cli.action.status = `Scanning Block: ${sequence}, ${Math.floor(
         (Date.now() - startedAt) / 1000,
       )} seconds`
+    }
+    const updateCliStatusWithStartTime = updateCliStatus(Date.now())
+
+    if (offline) {
+      const node = await sdk.node()
+      await node.openDB()
+      await node.chain.open()
+
+      await runRescan(node, follow, reset, updateCliStatusWithStartTime)
+    } else {
+      await sdk.client.connect()
+      const response = sdk.client.rescanAccountStream({ follow, reset })
+
+      for await (const { sequence } of response.contentStream()) {
+        updateCliStatusWithStartTime({ sequence })
+      }
     }
   } catch (error) {
     if (hasUserResponseError(error)) {

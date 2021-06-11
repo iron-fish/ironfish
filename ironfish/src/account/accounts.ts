@@ -184,6 +184,10 @@ export class Accounts {
     return false
   }
 
+  getScan(): ScanState | null {
+    return this.scan
+  }
+
   start(): void {
     if (this.isStarted) return
     this.isStarted = true
@@ -870,7 +874,7 @@ export class Accounts {
   }
 }
 
-class ScanState {
+export class ScanState {
   onTransaction = new Event<[sequence: BigInt]>()
 
   private aborted: boolean

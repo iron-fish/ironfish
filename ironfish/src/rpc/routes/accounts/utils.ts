@@ -4,6 +4,8 @@
 import { ValidationError } from '../../adapters'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../account'
+import { Event } from '../../../event'
+import { RescanAccountResponse } from './rescanAccount'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
@@ -19,4 +21,42 @@ export function getAccount(node: IronfishNode, name?: string): Account {
     `No account is currently active.\n\n` +
       `Use ironfish accounts:create <name> to first create an account`,
   )
+}
+
+export async function runRescan(
+  node: IronfishNode,
+  follow: boolean,
+  reset: boolean,
+  stream: (data: RescanAccountResponse) => void,
+  onClose?: Event<unknown[]>,
+): Promise<void> {
+  let scan = node.accounts.getScan()
+
+  if (scan && !follow) {
+    throw new ValidationError(`A transaction rescan is already running`)
+  }
+
+  if (!scan) {
+    if (reset) {
+      await node.accounts.reset()
+    }
+    void node.accounts.scanTransactions()
+    scan = node.accounts.getScan()
+  }
+
+  if (scan && follow) {
+    const onTransaction = (sequence: BigInt) => {
+      stream({ sequence: Number(sequence) })
+    }
+
+    scan.onTransaction.on(onTransaction)
+
+    if (onClose) {
+      onClose.on(() => {
+        scan?.onTransaction.off(onTransaction)
+      })
+    }
+
+    await scan.wait()
+  }
 }
