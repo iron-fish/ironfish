@@ -16,6 +16,7 @@ import {
   DuplicateKeyError,
 } from './database'
 import { IJsonSerializable } from '../serde'
+import { PromiseUtils } from '../utils'
 
 type FooValue = {
   hash: string
@@ -558,6 +559,35 @@ describe('Database', () => {
 
       await transaction.commit()
       expect(await db.metaStore.get('test')).toBe(2)
+    })
+
+    it('should wait for a lock before executing the handler', async () => {
+      await db.open()
+
+      let value = null
+
+      const [waitingPromise, waitingResolve] = PromiseUtils.split<void>()
+
+      // Queue up two transactions
+      const t1 = db.withTransaction(null, [db.metaStore], 'readwrite', async () => {
+        value = 't1'
+        await waitingPromise
+      })
+
+      const t2 = db.withTransaction(null, [db.metaStore], 'readwrite', async () => {
+        value = 't2'
+        await waitingPromise
+      })
+
+      // t2's handler should not have been called yet
+      expect(value).toEqual('t1')
+
+      // Resolve the promise and wait for the transactions to finish
+      waitingResolve()
+      await Promise.all([t1, t2])
+
+      // t2's handler should have executed
+      expect(value).toEqual('t2')
     })
   })
 
