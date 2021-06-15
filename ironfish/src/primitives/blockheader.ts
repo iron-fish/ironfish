@@ -237,7 +237,7 @@ export class BlockHeader<
 }
 
 export type SerializedBlockHeader<SH> = {
-  sequence: string
+  sequence: number
   previousBlockHash: string
   noteCommitment: {
     commitment: SH
@@ -296,7 +296,7 @@ export class BlockHeaderSerde<
 
   serialize(header: BlockHeader<E, H, T, SE, SH, ST>): SerializedBlockHeader<SH> {
     const serialized = {
-      sequence: header.sequence.toString(),
+      sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
