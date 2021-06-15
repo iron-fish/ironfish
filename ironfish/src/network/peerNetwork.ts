@@ -162,6 +162,7 @@ export class PeerNetwork {
       options.agent,
       VERSION_PROTOCOL,
       options.chain,
+      options.node.workerPool,
       options.webSocket,
       options.webRtc,
     )

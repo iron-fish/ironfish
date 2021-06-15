@@ -313,16 +313,31 @@ export class PeerManager {
       { simulateLatency: this.localPeer.simulateLatency },
     )
 
-    connection.onSignal.on((data) => {
+    connection.onSignal.on(async (data) => {
+      let errorMessage
       if (peer.state.identity === null) {
-        const message = 'Cannot establish a WebRTC connection without a peer identity'
-        this.logger.debug(message)
-        connection.close(new NetworkError(message))
+        errorMessage = 'Cannot establish a WebRTC connection without a peer identity'
+      }
+
+      // Ensure one or more brokering peers exists before encrypting the signaling message,
+      // but discard the brokering peer in case its state changes during encryption
+      if (this.getBrokeringPeer(peer) == null) {
+        errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
+      }
+
+      if (errorMessage != null) {
+        this.logger.debug(errorMessage)
+        connection.close(new NetworkError(errorMessage))
         return
       }
 
+      // Create the message only once, since this is a time-consuming operation
+      const { nonce, boxedMessage } = await this.localPeer.boxMessage(
+        JSON.stringify(data),
+        peer.getIdentityOrThrow(),
+      )
+
       for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
-        // If at any point we can't find a peer, close the connection
         const brokeringPeer = this.getBrokeringPeer(peer)
         if (brokeringPeer == null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
@@ -331,15 +346,11 @@ export class PeerManager {
           return
         }
 
-        const { nonce, boxedMessage } = this.localPeer.boxMessage(
-          JSON.stringify(data),
-          peer.state.identity,
-        )
         const signal: Signal = {
           type: InternalMessageType.signal,
           payload: {
             sourceIdentity: this.localPeer.publicIdentity,
-            destinationIdentity: peer.state.identity,
+            destinationIdentity: peer.getIdentityOrThrow(),
             nonce: nonce,
             signal: boxedMessage,
           },
@@ -657,8 +668,8 @@ export class PeerManager {
     }
 
     // Bind Peer events to PeerManager events
-    peer.onMessage.on((message, connection) => {
-      this.handleMessage(peer, connection, message)
+    peer.onMessage.on(async (message, connection) => {
+      await this.handleMessage(peer, connection, message)
     })
 
     peer.onKnownPeersChanged.on(() => {
@@ -810,7 +821,7 @@ export class PeerManager {
    * Note that the identity on IncomingPeerMessage is the identity of the
    * peer that sent it to us, not the original source.
    */
-  private handleMessage(peer: Peer, connection: Connection, message: LooseMessage) {
+  private async handleMessage(peer: Peer, connection: Connection, message: LooseMessage) {
     if (isDisconnectingMessage(message)) {
       this.handleDisconnectingMessage(peer, message)
     } else if (connection.state.type === 'WAITING_FOR_IDENTITY') {
@@ -822,7 +833,7 @@ export class PeerManager {
     } else if (isSignalRequest(message)) {
       this.handleSignalRequestMessage(peer, message)
     } else if (isSignal(message)) {
-      this.handleSignalMessage(peer, message)
+      await this.handleSignalMessage(peer, message)
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
     } else {
@@ -1190,7 +1201,7 @@ export class PeerManager {
    * Handle a signal message relayed by another peer.
    * @param message An incoming Signal message from a peer.
    */
-  private handleSignalMessage(messageSender: Peer, message: Signal) {
+  private async handleSignalMessage(messageSender: Peer, message: Signal) {
     // Forward the message if it's not destined for us
     if (message.payload.destinationIdentity !== this.localPeer.publicIdentity) {
       // Only forward it if the message was received from the same peer as it originated from
@@ -1274,7 +1285,7 @@ export class PeerManager {
     }
 
     // Try decrypting the message
-    const result = this.localPeer.unboxMessage(
+    const { message: result } = await this.localPeer.unboxMessage(
       message.payload.signal,
       message.payload.nonce,
       message.payload.sourceIdentity,

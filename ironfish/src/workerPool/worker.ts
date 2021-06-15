@@ -18,18 +18,23 @@ import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import type {
+  BoxMessageRequest,
+  BoxMessageResponse,
   CreateMinersFeeRequest,
   CreateMinersFeeResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
   TransactionFeeRequest,
   TransactionFeeResponse,
+  UnboxMessageRequest,
+  UnboxMessageResponse,
   VerifyTransactionRequest,
   VerifyTransactionResponse,
   WorkerRequestMessage,
   WorkerResponse,
   WorkerResponseMessage,
 } from './messages'
+import { boxMessage, unboxMessage } from '../network/peers/encryption'
 
 // Global constants
 // Needed for constructing a witness when creating transactions
@@ -120,6 +125,32 @@ function handleVerify({
   return { type: 'verify', verified }
 }
 
+function handleBoxMessage({
+  message,
+  sender,
+  recipient,
+}: BoxMessageRequest): BoxMessageResponse {
+  const { nonce, boxedMessage } = boxMessage(message, sender, recipient)
+  return {
+    type: 'boxMessage',
+    nonce,
+    boxedMessage,
+  }
+}
+
+function handleUnboxMessage({
+  boxedMessage,
+  nonce,
+  sender,
+  recipient,
+}: UnboxMessageRequest): UnboxMessageResponse {
+  const result = unboxMessage(boxedMessage, nonce, sender, recipient)
+  return {
+    type: 'unboxMessage',
+    message: result === null ? null : Buffer.from(result).toString('utf8'),
+  }
+}
+
 export function handleRequest(request: WorkerRequestMessage): WorkerResponseMessage | null {
   let response: WorkerResponse | null = null
 
@@ -137,6 +168,12 @@ export function handleRequest(request: WorkerRequestMessage): WorkerResponseMess
       break
     case 'verify':
       response = handleVerify(body)
+      break
+    case 'boxMessage':
+      response = handleBoxMessage(body)
+      break
+    case 'unboxMessage':
+      response = handleUnboxMessage(body)
       break
     default: {
       Assert.isNever(body)
