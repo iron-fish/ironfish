@@ -569,7 +569,7 @@ describe('Database', () => {
       const [waitingPromise, waitingResolve] = PromiseUtils.split<void>()
 
       // Queue up two transactions
-      const t1 = db.withTransaction(null, [db.metaStore], 'readwrite', async () => {
+      const t1 = db.transaction([db.metaStore], 'readwrite', async () => {
         value = 't1'
         await waitingPromise
       })
@@ -578,6 +578,8 @@ describe('Database', () => {
         value = 't2'
         await waitingPromise
       })
+
+      await PromiseUtils.sleep(0)
 
       // t2's handler should not have been called yet
       expect(value).toEqual('t1')
