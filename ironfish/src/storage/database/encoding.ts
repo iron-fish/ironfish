@@ -26,8 +26,15 @@ export class StringEncoding<TValues extends string = string>
 }
 
 export class NumberEncoding implements IDatabaseEncoding<number> {
-  serialize = (value: number): Buffer => Buffer.from(value.toString(), 'utf8')
-  deserialize = (buffer: Buffer): number => Number(buffer.toString('utf8'))
+  serialize(value: number): Buffer {
+    const buffer = Buffer.alloc(64)
+    buffer.writeDoubleLE(value)
+    return buffer
+  }
+
+  deserialize(buffer: Buffer): number {
+    return buffer.readDoubleLE(0)
+  }
 
   equals(): boolean {
     throw new Error('You should never use this')
