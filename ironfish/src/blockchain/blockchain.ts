@@ -480,9 +480,9 @@ export class Blockchain<
     if (end && !current?.hash.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
-          ` curr: ${HashUtils.renderHash(current?.hash)},` +
+          ` current: '${HashUtils.renderHash(current?.hash)},'` +
           ` current_sequence: '${Number(current?.sequence)}',` +
-          ` end: ${HashUtils.renderHash(end.hash)}`,
+          ` end: '${HashUtils.renderHash(end.hash)}'`,
       )
     }
   }
