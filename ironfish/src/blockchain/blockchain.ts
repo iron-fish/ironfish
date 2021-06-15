@@ -585,7 +585,8 @@ export class Blockchain<
     const prev = await this.getPrevious(block.header)
     Assert.isNotNull(prev)
 
-    await this.saveReconnect(block, prev, tx)
+    await this.saveConnect(block, prev, tx)
+    await tx.update()
 
     this.head = block.header
     await this.onConnectBlock.emitAsync(block, tx)
@@ -1177,6 +1178,13 @@ export class Blockchain<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     // TODO: transaction goes here
+    if (prev) {
+      await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
+    }
+
+    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
+    await this.meta.put('head', block.header.hash, tx)
+
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
@@ -1200,22 +1208,6 @@ export class Blockchain<
       Assert.isNotNull(verify.reason)
       throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
-  }
-
-  private async saveReconnect(
-    block: Block<E, H, T, SE, SH, ST>,
-    prev: BlockHeader<E, H, T, SE, SH, ST>,
-    tx: IDatabaseTransaction,
-  ): Promise<void> {
-    // TODO: transaction goes here
-    await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
-    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
-
-    await this.saveConnect(block, prev, tx)
-
-    await this.meta.put('head', block.header.hash, tx)
-
-    await tx.update()
   }
 
   private async saveDisconnect(
@@ -1245,7 +1237,6 @@ export class Blockchain<
   ): Promise<void> {
     const hash = block.header.hash
     const sequence = block.header.sequence
-    const prevHash = block.header.previousBlockHash
 
     // Update BlockHash -> BlockHeader
     await this.headers.put(hash, block.header, tx)
@@ -1258,10 +1249,6 @@ export class Blockchain<
     await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
 
     if (!fork) {
-      await this.sequenceToHash.put(sequence, hash, tx)
-      await this.hashToNextHash.put(prevHash, hash, tx)
-      await this.meta.put('head', hash, tx)
-
       await this.saveConnect(block, prev, tx)
     }
 
