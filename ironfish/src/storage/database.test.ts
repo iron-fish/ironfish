@@ -574,8 +574,13 @@ describe('Database', () => {
         await waitingPromise
       })
 
-      const t2 = db.withTransaction(null, [db.metaStore], 'readwrite', async () => {
+      const t2 = db.transaction([db.metaStore], 'readwrite', async () => {
         value = 't2'
+        await waitingPromise
+      })
+
+      const t3 = db.transaction([db.metaStore], 'readwrite', async () => {
+        value = 't3'
         await waitingPromise
       })
 
@@ -586,10 +591,11 @@ describe('Database', () => {
 
       // Resolve the promise and wait for the transactions to finish
       waitingResolve()
-      await Promise.all([t1, t2])
+      await Promise.all([t1, t2, t3])
 
-      // t2's handler should have executed
-      expect(value).toEqual('t2')
+      // t2's handler should have executed,
+      // then t3's handler should have executed
+      expect(value).toEqual('t3')
     })
   })
 
