@@ -205,6 +205,7 @@ export abstract class Database implements IDatabase {
     transaction = transaction || this.transaction(scopes, type)
 
     try {
+      await transaction.acquireLock()
       const result = await handler(transaction)
       if (created) await transaction.commit()
       return result
