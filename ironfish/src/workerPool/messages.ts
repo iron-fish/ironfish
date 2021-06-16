@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
+import { Identity, PrivateIdentity } from '../network'
 
 /**
  * Request and response message types used for communication
@@ -62,6 +63,32 @@ export type VerifyTransactionResponse = {
   verified: boolean
 }
 
+export type BoxMessageRequest = {
+  type: 'boxMessage'
+  message: string
+  sender: PrivateIdentity
+  recipient: Identity
+}
+
+export type BoxMessageResponse = {
+  type: 'boxMessage'
+  nonce: string
+  boxedMessage: string
+}
+
+export type UnboxMessageRequest = {
+  type: 'unboxMessage'
+  boxedMessage: string
+  nonce: string
+  sender: Identity
+  recipient: PrivateIdentity
+}
+
+export type UnboxMessageResponse = {
+  type: 'unboxMessage'
+  message: string | null
+}
+
 export type OmitRequestId<T> = Omit<T, 'requestId'>
 
 export type WorkerRequestMessage = {
@@ -79,9 +106,13 @@ export type WorkerRequest =
   | CreateTransactionRequest
   | TransactionFeeRequest
   | VerifyTransactionRequest
+  | BoxMessageRequest
+  | UnboxMessageRequest
 
 export type WorkerResponse =
   | CreateMinersFeeResponse
   | CreateTransactionResponse
   | TransactionFeeResponse
   | VerifyTransactionResponse
+  | BoxMessageResponse
+  | UnboxMessageResponse

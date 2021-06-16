@@ -10,6 +10,7 @@ import { mockPrivateIdentity } from './mockPrivateIdentity'
 import { VERSION_PROTOCOL } from '../version'
 import { mockChain } from '../../testUtilities/mocks'
 import { IronfishBlockchain } from '../../blockchain'
+import { WorkerPool } from '../../workerPool'
 
 /**
  * Utility to create a fake "keypair" for testing the network layer
@@ -25,5 +26,13 @@ export function mockLocalPeer({
   version?: number
   chain?: IronfishBlockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), ws, wrtc)
+  return new LocalPeer(
+    identity,
+    agent,
+    version,
+    chain || mockChain(),
+    new WorkerPool(),
+    ws,
+    wrtc,
+  )
 }

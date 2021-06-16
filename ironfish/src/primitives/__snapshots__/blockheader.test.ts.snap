@@ -15,7 +15,7 @@ Object {
   },
   "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
   "randomness": 25,
-  "sequence": "5",
+  "sequence": 5,
   "target": "17",
   "timestamp": 1598467858637,
   "work": "0",

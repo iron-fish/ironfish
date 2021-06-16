@@ -14,10 +14,13 @@ import type {
   WorkerResponse,
   WorkerRequestMessage,
   WorkerResponseMessage,
+  BoxMessageRequest,
+  UnboxMessageRequest,
 } from './messages'
 import type { Side } from '../merkletree/merkletree'
 import { IronfishTransaction } from '../primitives/transaction'
 import { IronfishNote } from '../primitives/note'
+import { Identity, PrivateIdentity } from '../network'
 
 const MESSAGE_QUEUE_MAX_LENGTH = 200
 
@@ -224,5 +227,49 @@ export class WorkerPool {
     }
 
     return response.verified
+  }
+
+  async boxMessage(
+    plainTextMessage: string,
+    sender: PrivateIdentity,
+    recipient: Identity,
+  ): Promise<{ nonce: string; boxedMessage: string }> {
+    const request: OmitRequestId<BoxMessageRequest> = {
+      type: 'boxMessage',
+      message: plainTextMessage,
+      sender: sender,
+      recipient: recipient,
+    }
+
+    const response = await this.sendRequest(request)
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return { nonce: response.nonce, boxedMessage: response.boxedMessage }
+  }
+
+  async unboxMessage(
+    boxedMessage: string,
+    nonce: string,
+    sender: Identity,
+    recipient: PrivateIdentity,
+  ): Promise<{ message: string | null }> {
+    const request: OmitRequestId<UnboxMessageRequest> = {
+      type: 'unboxMessage',
+      boxedMessage: boxedMessage,
+      nonce: nonce,
+      recipient: recipient,
+      sender: sender,
+    }
+
+    const response = await this.sendRequest(request)
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return { message: response.message }
   }
 }

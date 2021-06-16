@@ -332,7 +332,7 @@ describe('PeerManager', () => {
       expect(peer.state.connections.webSocket.direction).toEqual(ConnectionDirection.Outbound)
     })
 
-    it('Encrypts signaling data', () => {
+    it('Encrypts signaling data', async () => {
       const brokeringIdentity = mockIdentity('brokering')
 
       const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
@@ -343,7 +343,7 @@ describe('PeerManager', () => {
       )
       const sendSpy = jest.spyOn(brokeringPeer, 'send')
 
-      connection.onSignal.emit({
+      await connection.onSignal.emitAsync({
         type: 'offer',
       })
 
@@ -408,7 +408,7 @@ describe('PeerManager', () => {
       })
     })
 
-    it('Can establish a WebRTC connection to a peer using an existing WebSocket connection to the same peer', () => {
+    it('Can establish a WebRTC connection to a peer using an existing WebSocket connection to the same peer', async () => {
       const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
 
       const { peer, connection } = getConnectedPeer(pm, webRtcCanInitiateIdentity())
@@ -437,7 +437,7 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(pm.peers).toHaveLength(1)
       const sendSpy = jest.spyOn(connection, 'send')
-      peer.state.connections.webRtc.onSignal.emit({ type: 'offer' })
+      await peer.state.connections.webRtc.onSignal.emitAsync({ type: 'offer' })
       expect(sendSpy).toBeCalledTimes(1)
     })
 
@@ -1258,7 +1258,7 @@ describe('PeerManager', () => {
       expect(sendSpy).not.toBeCalled()
     })
 
-    it('Decrypts signaling data intended for local peer', () => {
+    it('Decrypts signaling data intended for local peer', async () => {
       const brokeringPeerIdentity = mockPrivateIdentity('brokering')
 
       const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
@@ -1281,7 +1281,7 @@ describe('PeerManager', () => {
           signal: 'boxMessageMessage',
         },
       }
-      brokeringPeer.onMessage.emit(signal, brokeringConnection)
+      await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).toBeCalledTimes(1)
       expect(signalSpy).toBeCalledWith({
@@ -1289,7 +1289,7 @@ describe('PeerManager', () => {
       })
     })
 
-    it('Disconnects if decrypting signaling data fails', () => {
+    it('Disconnects if decrypting signaling data fails', async () => {
       const brokeringPeerIdentity = mockIdentity('brokering')
 
       // Return null from the unboxMessage function
@@ -1315,13 +1315,13 @@ describe('PeerManager', () => {
           signal: 'boxMessageMessage',
         },
       }
-      brokeringPeer.onMessage.emit(signal, brokeringConnection)
+      await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
       expect(closeSpy).toBeCalled()
     })
 
-    it('Disconnects if decoding signaling data fails', () => {
+    it('Disconnects if decoding signaling data fails', async () => {
       const brokeringPeerIdentity = mockIdentity('brokering')
 
       // Return something that's not JSON from the unboxMessage function
@@ -1347,7 +1347,7 @@ describe('PeerManager', () => {
           signal: 'boxMessageMessage',
         },
       }
-      brokeringPeer.onMessage.emit(signal, brokeringConnection)
+      await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
       expect(closeSpy).toBeCalled()

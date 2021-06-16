@@ -11,7 +11,7 @@ export class IronfishTestStrategy extends IronfishStrategy {
     this._miningReward = 0
   }
 
-  miningReward(sequence: bigint): number {
+  miningReward(sequence: number): number {
     if (this._miningReward !== null) {
       return this._miningReward
     }

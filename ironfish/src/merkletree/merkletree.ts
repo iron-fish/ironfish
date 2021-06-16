@@ -602,7 +602,7 @@ export default class MerkleTree<
       async (tx) => {
         const authenticationPath: WitnessNode<H>[] = []
 
-        const leafCount = await this.size()
+        const leafCount = await this.size(tx)
         if (leafCount === 0 || index >= leafCount) {
           return null
         }

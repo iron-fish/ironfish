@@ -137,7 +137,7 @@ export async function makeNextBlock(
 
   const newHeader = new BlockHeader(
     chain.strategy,
-    BigInt(newSequence),
+    newSequence,
     previousBlockHash,
     {
       size: noteCount,
@@ -299,7 +299,7 @@ export function makeFakeBlock(
     transactions.push(new TestTransaction(true, [String(i)], 1))
   }
 
-  const minersReward = strategy.miningReward(BigInt(sequence))
+  const minersReward = strategy.miningReward(sequence)
   const transactionFee = -1 * (end - start + minersReward)
   const transactionFeeTransaction = new TestTransaction(true, [String(end)], transactionFee)
   transactions.push(transactionFeeTransaction)
@@ -309,7 +309,7 @@ export function makeFakeBlock(
 
   const header = new BlockHeader(
     strategy,
-    BigInt(sequence),
+    sequence,
     previousHash,
     {
       commitment: `1-${end}`,
