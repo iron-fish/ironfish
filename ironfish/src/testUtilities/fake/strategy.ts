@@ -158,7 +158,7 @@ export class TestStrategy
 
   createMinersFee(
     totalTransactionFees: bigint,
-    blockSequence: bigint,
+    blockSequence: number,
     _minerKey: string,
   ): Promise<TestTransaction> {
     const miningReward = this.miningReward(blockSequence)
@@ -172,7 +172,7 @@ export class TestStrategy
     )
   }
 
-  miningReward(_blockSequence: bigint): number {
+  miningReward(_blockSequence: number): number {
     return 10
   }
 }

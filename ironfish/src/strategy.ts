@@ -99,14 +99,14 @@ export interface Strategy<
    */
   createMinersFee(
     totalTransactionFees: bigint,
-    blockSequence: bigint,
+    blockSequence: number,
     minerKey: string,
   ): Promise<T>
 
   /**
    * Calculate the mining reward for a block based on its sequence
    */
-  miningReward(blockSequence: bigint): number
+  miningReward(blockSequence: number): number
 }
 
 /**
@@ -220,7 +220,7 @@ export class IronfishStrategy
    * @param sequence Block sequence
    * @returns mining reward (in ORE) per block given the block sequence
    */
-  miningReward(sequence: bigint): number {
+  miningReward(sequence: number): number {
     const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
     if (reward) {
@@ -244,7 +244,7 @@ export class IronfishStrategy
 
   async createMinersFee(
     totalTransactionFees: bigint,
-    blockSequence: bigint,
+    blockSequence: number,
     minerSpendKey: string,
   ): Promise<IronfishTransaction> {
     // Create a new note with value equal to the inverse of the sum of the

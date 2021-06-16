@@ -532,7 +532,7 @@ export class PeerNetwork {
     return await this.globalRpcRouter.request(message, peer)
   }
 
-  async getBlockHashes(peer: Peer, start: Buffer | bigint, limit: number): Promise<Buffer[]> {
+  async getBlockHashes(peer: Peer, start: Buffer | number, limit: number): Promise<Buffer[]> {
     const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
 
     const message = {
@@ -639,7 +639,7 @@ export class PeerNetwork {
     }
 
     if (typeof start === 'number') {
-      const header = await this.chain.getHeaderAtSequence(BigInt(start))
+      const header = await this.chain.getHeaderAtSequence(start)
       if (header) return header
     }
 

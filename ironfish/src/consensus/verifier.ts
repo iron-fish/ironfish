@@ -241,7 +241,7 @@ export class Verifier<
       return { valid: Validity.No, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
 
-    if (current.header.sequence !== previousHeader.sequence + BigInt(1)) {
+    if (current.header.sequence !== previousHeader.sequence + 1) {
       return { valid: Validity.No, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
     }
 

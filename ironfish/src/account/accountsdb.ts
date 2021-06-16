@@ -70,7 +70,7 @@ export class AccountsDB {
     value: {
       transaction: Buffer
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     }
   }>
 
@@ -127,7 +127,7 @@ export class AccountsDB {
       value: {
         transaction: Buffer
         blockHash: string | null
-        submittedSequence: bigint | null
+        submittedSequence: number | null
       }
     }>({
       version: 1,
@@ -183,7 +183,7 @@ export class AccountsDB {
     transaction: {
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -198,7 +198,7 @@ export class AccountsDB {
     map: BufferMap<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     }>,
   ): Promise<void> {
     await this.transactions.clear()
@@ -218,7 +218,7 @@ export class AccountsDB {
     map: BufferMap<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: bigint | null
+      submittedSequence: number | null
     }>,
   ): Promise<void> {
     for await (const value of this.transactions.getAllValuesIter()) {

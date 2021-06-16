@@ -16,11 +16,7 @@ describe('Worker Pool', () => {
     // Generate a miner's fee transaction
     const emptyPool = new WorkerPool()
     const strategy = new IronfishStrategy(emptyPool)
-    const minersFee = await strategy.createMinersFee(
-      BigInt(0),
-      BigInt(0),
-      generateKey().spending_key,
-    )
+    const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
     expect(emptyPool['workers'].length).toBe(0)
     const promise = emptyPool.transactionFee(minersFee)
@@ -36,11 +32,7 @@ describe('Worker Pool', () => {
     // Generate a miner's fee transaction to create a resolver
     const pool = new WorkerPool()
     const strategy = new IronfishStrategy(pool)
-    const minersFee = await strategy.createMinersFee(
-      BigInt(0),
-      BigInt(0),
-      generateKey().spending_key,
-    )
+    const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
     pool.start(1)
 
@@ -78,7 +70,7 @@ describe('Worker Pool', () => {
 
       const minersFeePromise = strategy.createMinersFee(
         BigInt(0),
-        BigInt(0),
+        0,
         generateKey().spending_key,
       )
       expect(workerPool['resolvers'].size).toBe(1)
@@ -92,11 +84,7 @@ describe('Worker Pool', () => {
       const strategy = new IronfishStrategy(workerPool)
       expect(workerPool['workers'].length).toBeGreaterThan(0)
 
-      const minersFee = await strategy.createMinersFee(
-        BigInt(0),
-        BigInt(0),
-        generateKey().spending_key,
-      )
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee.serialize()).toBeInstanceOf(Buffer)
     }, 60000)

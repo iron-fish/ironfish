@@ -34,7 +34,7 @@ describe('Route chain.getBlock', () => {
   it('responds with a block', async () => {
     const chain = routeTest.node.chain
 
-    const block = await useMinerBlockFixture(chain, BigInt(2))
+    const block = await useMinerBlockFixture(chain, 2)
     const addResult = await chain.addBlock(block)
     expect(addResult).toMatchObject({ isAdded: true })
 
