@@ -19,6 +19,11 @@
  */
 export interface IDatabaseTransaction {
   /**
+   * Lock the database
+   */
+  acquireLock(): Promise<void>
+
+  /**
    * Commit the transaction atomically to the database but do not release the database lock
    * */
   update(): Promise<void>
