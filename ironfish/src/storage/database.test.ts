@@ -564,23 +564,23 @@ describe('Database', () => {
     it('should wait for a lock before executing the handler', async () => {
       await db.open()
 
-      let value = null
+      let value = ''
 
       const [waitingPromise, waitingResolve] = PromiseUtils.split<void>()
 
       // Queue up two transactions
       const t1 = db.transaction([db.metaStore], 'readwrite', async () => {
-        value = 't1'
+        value += 't1'
         await waitingPromise
       })
 
       const t2 = db.transaction([db.metaStore], 'readwrite', async () => {
-        value = 't2'
+        value += 't2'
         await waitingPromise
       })
 
       const t3 = db.transaction([db.metaStore], 'readwrite', async () => {
-        value = 't3'
+        value += 't3'
         await waitingPromise
       })
 
@@ -595,7 +595,7 @@ describe('Database', () => {
 
       // t2's handler should have executed,
       // then t3's handler should have executed
-      expect(value).toEqual('t3')
+      expect(value).toEqual('t1t2t3')
     })
   })
 
