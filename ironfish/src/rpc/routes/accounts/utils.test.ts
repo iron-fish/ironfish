@@ -89,7 +89,7 @@ describe('Accounts utils', () => {
         const { node } = routeTest
         const scan = new ScanState()
         node.accounts.scan = scan
-        const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(() => null!)
+        const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
         await runRescan(node, true, false, stream)
         expect(wait).toHaveBeenCalledTimes(1)
@@ -101,7 +101,7 @@ describe('Accounts utils', () => {
           const { node } = routeTest
           const scan = new ScanState()
           node.accounts.scan = scan
-          jest.spyOn(scan, 'wait').mockImplementationOnce(() => null!)
+          jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
           const off = jest.spyOn(scan.onTransaction, 'off')
 
           await runRescan(node, true, false, stream, onClose)
