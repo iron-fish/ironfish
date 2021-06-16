@@ -305,7 +305,7 @@ describe('Header consistency is valid against previous', () => {
   it('Is invalid when the sequence is wrong', async () => {
     await blockchain.addBlock(block2)
     await blockchain.addBlock(block3)
-    block3.header.sequence = BigInt(99)
+    block3.header.sequence = 99
 
     expect(blockchain.verifier.isValidAgainstPrevious(block3, block3.header))
       .toMatchInlineSnapshot(`

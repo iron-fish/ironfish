@@ -74,11 +74,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Rejects incoming new transactions if fees are negative', async () => {
       // Generate a miner's fee transaction
       const strategy = new IronfishStrategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(
-        BigInt(0),
-        BigInt(0),
-        generateKey().spending_key,
-      )
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       const verifier = strategy.createVerifier(nodeTest.chain)
       const serialized = strategy.transactionSerde().serialize(minersFee)
@@ -163,11 +159,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
       const strategy = new IronfishStrategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(
-        BigInt(0),
-        BigInt(0),
-        generateKey().spending_key,
-      )
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
       expect(await minersFee.verify()).toEqual({ valid: 1 })
@@ -177,11 +169,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
       const strategy = new IronfishStrategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(
-        BigInt(0),
-        BigInt(0),
-        generateKey().spending_key,
-      )
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       minersFee.withReference(() => {
         expect(minersFee['wasmTransactionPosted']).not.toBeNull()
@@ -197,7 +185,7 @@ describe('Demonstrate the Sapling API', () => {
       // Generate a miner's fee transaction
       const key = generateKey()
       const strategy = new IronfishStrategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(BigInt(0), BigInt(0), key.spending_key)
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
       const noteIterator = minersFee.notes()
@@ -288,15 +276,15 @@ describe('Miners reward', () => {
   // see https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
   // for more details
   it('miners reward is properly calculated for year 0-1', () => {
-    let minersReward = strategy.miningReward(BigInt(1))
+    let minersReward = strategy.miningReward(1)
     expect(minersReward).toBe(5 * 10 ** 8)
 
-    minersReward = strategy.miningReward(BigInt(100000))
+    minersReward = strategy.miningReward(100000)
     expect(minersReward).toBe(5 * 10 ** 8)
   })
 
   it('miners reward is properly calculated for year 1-2', () => {
-    const minersReward = strategy.miningReward(BigInt(2100001))
+    const minersReward = strategy.miningReward(2100001)
     expect(minersReward).toBe(475614712)
   })
 })

@@ -20,7 +20,6 @@ import {
 } from './noteEncrypted'
 
 export type BlockHash = Buffer
-export type Sequence = bigint
 
 import { createHash } from 'blake3-wasm'
 
@@ -84,7 +83,7 @@ export class BlockHeader<
    * order of sequence. More than one block may have the same sequence,
    * indicating a fork in the chain, but only one fork is selected at a time.
    */
-  public sequence: Sequence
+  public sequence: number
 
   /**
    * The hash of the previous block in the chain
@@ -153,7 +152,7 @@ export class BlockHeader<
 
   constructor(
     strategy: Strategy<E, H, T, SE, SH, ST>,
-    sequence: bigint,
+    sequence: number,
     previousBlockHash: BlockHash,
     noteCommitment: { commitment: H; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
@@ -238,7 +237,7 @@ export class BlockHeader<
 }
 
 export type SerializedBlockHeader<SH> = {
-  sequence: string
+  sequence: number
   previousBlockHash: string
   noteCommitment: {
     commitment: SH
@@ -297,7 +296,7 @@ export class BlockHeaderSerde<
 
   serialize(header: BlockHeader<E, H, T, SE, SH, ST>): SerializedBlockHeader<SH> {
     const serialized = {
-      sequence: header.sequence.toString(),
+      sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
@@ -330,7 +329,7 @@ export class BlockHeaderSerde<
     // as it can be from untrusted sources
     const header = new BlockHeader(
       this.strategy,
-      BigInt(data.sequence),
+      Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
         commitment: this.strategy

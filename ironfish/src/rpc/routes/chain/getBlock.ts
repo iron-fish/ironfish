@@ -122,7 +122,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     if (request.data.index) {
-      sequence = BigInt(request.data.index)
+      sequence = request.data.index
     }
 
     if (!hashBuffer && !sequence) {

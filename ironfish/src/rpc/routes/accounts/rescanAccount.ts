@@ -40,7 +40,7 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
     }
 
     if (scan && request.data.follow) {
-      const onTransaction = (sequence: BigInt) => {
+      const onTransaction = (sequence: number) => {
         request.stream({ sequence: Number(sequence) })
       }
 

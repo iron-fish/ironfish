@@ -53,11 +53,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await nodeTest.strategy.createMinersFee(
-      BigInt(0),
-      BigInt(2),
-      account.spendingKey,
-    )
+    const minersfee = await nodeTest.strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -94,7 +90,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -149,7 +145,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -174,7 +170,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
       await transaction.transactionFee(),
-      newBlock.header.sequence + BigInt(1),
+      newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
@@ -212,7 +208,7 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), BigInt(2), account.spendingKey)
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -237,7 +233,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
       await transaction.transactionFee(),
-      newBlock.header.sequence + BigInt(1),
+      newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
@@ -293,7 +289,7 @@ describe('Accounts', () => {
         [transaction],
         await nodeA.strategy.createMinersFee(
           await transaction.transactionFee(),
-          BigInt(3),
+          3,
           generateKey().spending_key,
         ),
       )
@@ -417,11 +413,7 @@ describe('Accounts', () => {
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(
-            BigInt(0),
-            BigInt(3),
-            generateKey().spending_key,
-          ),
+          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
         )
       },
       nodeA.accounts,
@@ -517,11 +509,7 @@ describe('Accounts', () => {
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(
-            BigInt(0),
-            BigInt(3),
-            generateKey().spending_key,
-          ),
+          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
         )
       },
       nodeB.accounts,
@@ -534,7 +522,7 @@ describe('Accounts', () => {
     const blockB2 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(3), generateKey().spending_key),
+        await nodeB.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB2)
@@ -544,7 +532,7 @@ describe('Accounts', () => {
     const blockB3 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), BigInt(4), generateKey().spending_key),
+        await nodeB.strategy.createMinersFee(BigInt(0), 4, generateKey().spending_key),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB3)

@@ -12,7 +12,7 @@ export const GENESIS_BLOCK_PREVIOUS = Buffer.alloc(32)
 /**
  * The sequence of the genesis block starts at 1
  */
-export const GENESIS_BLOCK_SEQUENCE = BigInt(1)
+export const GENESIS_BLOCK_SEQUENCE = 1
 
 /**
  * When adding a block, the block can be this amount of seconds into the future

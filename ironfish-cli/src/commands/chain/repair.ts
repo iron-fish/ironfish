@@ -144,9 +144,9 @@ export default class RepairChain extends IronfishCommand {
     let done = 0
 
     let tx: IDatabaseTransaction | null = null
-    let header = await node.chain.getHeaderAtSequence(BigInt(TREE_START))
+    let header = await node.chain.getHeaderAtSequence(TREE_START)
     let block = header ? await node.chain.getBlock(header) : null
-    let prev = await node.chain.getHeaderAtSequence(BigInt(TREE_START - 1))
+    let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
 
     cli.action.start('Clearing notes MerkleTree')
     await node.chain.notes.truncate(prev ? prev.noteCommitment.size : 0)

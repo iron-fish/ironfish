@@ -11,7 +11,7 @@ describe('Block Header Serde', () => {
     const strategy = new TestStrategy()
     const header1 = new BlockHeader(
       strategy,
-      BigInt(5),
+      5,
       Buffer.alloc(32),
       { commitment: 'header', size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
@@ -23,7 +23,7 @@ describe('Block Header Serde', () => {
     )
     const header2 = new BlockHeader(
       new TestStrategy(),
-      BigInt(5),
+      5,
       Buffer.alloc(32),
       { commitment: 'header', size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
@@ -41,7 +41,7 @@ describe('Block Header Serde', () => {
     const serde = new BlockHeaderSerde(strategy)
     const header1 = new BlockHeader(
       strategy,
-      BigInt(5),
+      5,
       Buffer.alloc(32),
       { commitment: 'header', size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
@@ -53,7 +53,7 @@ describe('Block Header Serde', () => {
     )
     const header2 = new BlockHeader(
       new TestStrategy(),
-      BigInt(5),
+      5,
       Buffer.alloc(32),
       { commitment: 'header', size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
@@ -63,9 +63,9 @@ describe('Block Header Serde', () => {
       BigInt(0),
       Buffer.alloc(32),
     )
-    header2.sequence = BigInt(6)
+    header2.sequence = 6
     expect(serde.equals(header1, header2)).toBe(false)
-    header2.sequence = BigInt(5)
+    header2.sequence = 5
     header2.noteCommitment.commitment = 'Not header'
     expect(serde.equals(header1, header2)).toBe(false)
     header2.noteCommitment.commitment = 'header'
@@ -102,7 +102,7 @@ describe('Block Header Serde', () => {
 
     const header1 = new BlockHeader(
       strategy,
-      BigInt(5),
+      5,
       Buffer.alloc(32),
       { commitment: 'header', size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
