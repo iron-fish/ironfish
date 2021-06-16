@@ -27,13 +27,13 @@ export class StringEncoding<TValues extends string = string>
 
 export class NumberEncoding implements IDatabaseEncoding<number> {
   serialize(value: number): Buffer {
-    const buffer = Buffer.alloc(64)
+    const buffer = Buffer.alloc(8)
     buffer.writeDoubleLE(value)
     return buffer
   }
 
   deserialize(buffer: Buffer): number {
-    return buffer.readDoubleLE(0)
+    return buffer.readDoubleLE()
   }
 
   equals(): boolean {
