@@ -45,8 +45,8 @@ export async function runRescan(
   }
 
   if (scan && follow) {
-    const onTransaction = (sequence: BigInt) => {
-      stream({ sequence: Number(sequence) })
+    const onTransaction = (sequence: number) => {
+      stream({ sequence })
     }
 
     scan.onTransaction.on(onTransaction)
