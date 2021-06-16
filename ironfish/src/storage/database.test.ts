@@ -584,6 +584,10 @@ describe('Database', () => {
         await waitingPromise
       })
 
+      // We need this here to flush the pending promises synchronously,
+      // because if you don't, then t1 won't execute eagerly because of
+      // how Mutex is implemented. Mutex.lock depends on deferred promise
+      // execution and cannot execute eagerly.
       await PromiseUtils.sleep(0)
 
       // t2's handler should not have been called yet
