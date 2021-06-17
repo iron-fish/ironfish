@@ -21,7 +21,10 @@ export default class ForksCommand extends IronfishCommand {
     this.logger.pauseLogs()
 
     let connected = false
-    const forks = new Map<string, { block: RpcBlock; time: number; mined: number }>()
+    const forks = new Map<
+      string,
+      { block: RpcBlock; time: number; mined: number; old?: boolean }
+    >()
 
     const screen = blessed.screen({ smartCSR: true })
     screen.focusNext()
@@ -65,9 +68,10 @@ export default class ForksCommand extends IronfishCommand {
         highest = Math.max(highest, block.sequence)
       }
 
-      for (const { block, time, mined } of values) {
+      for (const { block, time, mined, old } of values) {
         const age = now - time
         if (age >= STALE_THRESHOLD) continue
+        if (old) continue
 
         const renderedAge = (age / 1000).toFixed(0).padStart(2, ' ')
         const renderdDiff = (highest - block.sequence).toString().padStart(6)
@@ -85,7 +89,11 @@ export default class ForksCommand extends IronfishCommand {
       const prev = forks.get(block.previousBlockHash)
       const mined = prev ? prev.mined + 1 : 0
 
-      forks.delete(block.previousBlockHash)
+      if (prev) {
+        prev.old = true
+        forks.set(block.previousBlockHash, prev)
+      }
+
       forks.set(block.hash, { block: block, time: Date.now(), mined: mined })
     }
 
