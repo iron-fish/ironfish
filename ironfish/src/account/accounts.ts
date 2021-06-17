@@ -137,7 +137,12 @@ export class Accounts {
 
       // Remove the old fork chain
       if (!isLinear) {
-        for await (const header of this.chain.iterateFrom(accountHead, fork)) {
+        for await (const header of this.chain.iterateFrom(
+          accountHead,
+          fork,
+          undefined,
+          false,
+        )) {
           // Don't remove the fork
           if (!header.hash.equals(fork.hash)) {
             await removeBlock(header)
@@ -147,7 +152,7 @@ export class Accounts {
         }
       }
 
-      for await (const header of this.chain.iterateTo(fork, chainHead)) {
+      for await (const header of this.chain.iterateTo(fork, chainHead, undefined, false)) {
         if (header.hash.equals(fork.hash)) continue
         await addBlock(header)
         await this.updateHeadHash(header.hash.toString('hex'))
