@@ -9,7 +9,7 @@ describe('accounts:rescan', () => {
   })
 
   beforeAll(() => {
-    jest.doMock('ironfish', () => {
+    jest.mock('ironfish', () => {
       const originalModule = jest.requireActual('ironfish')
       const client = {
         connect: jest.fn(),
