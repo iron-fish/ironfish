@@ -21,7 +21,7 @@ See https://ironfish.network
    1. Rust builds also require installing [MinGW-w64 via win-builds](http://win-builds.org/doku.php/download_and_installation_from_windows).
       1. Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
       1. On the next screen, click `Process`.
-      1. Once it finishes, add the `bin` folder containing `cc` to your path.
+      1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
 1. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 1. Run `yarn install` from the root directory to install packages.
 
