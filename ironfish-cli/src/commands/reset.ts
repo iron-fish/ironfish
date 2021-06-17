@@ -54,7 +54,7 @@ export default class Reset extends IronfishCommand {
       fs.rmSync(backupPath)
     }
 
-    let node = await this.sdk.node()
+    let node = await this.sdk.node({ autoSeed: false })
 
     const confirmed =
       flags.confirm ||
