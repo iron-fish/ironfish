@@ -4,9 +4,10 @@
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import cli from 'cli-ux'
-import { IronfishSdk, runRescan } from 'ironfish'
+import { IronfishRpcClient } from 'ironfish'
 import { flags } from '@oclif/command'
 import { hasUserResponseError } from '../../utils'
+import { getConnectedClient } from '../config/show'
 
 export class RescanCommand extends IronfishCommand {
   static description = `Rescan the blockchain for transaction`
@@ -22,7 +23,7 @@ export class RescanCommand extends IronfishCommand {
       description:
         'clear the in-memory and disk caches before rescanning. note that this removes all pending transactions',
     }),
-    offline: flags.boolean({
+    local: flags.boolean({
       default: false,
       description: 'Rescan the blockchain without an online node',
     }),
@@ -30,47 +31,30 @@ export class RescanCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = this.parse(RescanCommand)
-    const { follow, reset, offline } = flags
+    const { follow, reset, local } = flags
+    const client = await getConnectedClient(this.sdk, local)
 
-    await rescan(this.sdk, follow, reset, offline)
+    await rescan(client, follow, reset)
   }
 }
 
 export async function rescan(
-  sdk: IronfishSdk,
+  client: IronfishRpcClient,
   follow: boolean,
   reset: boolean,
-  offline: boolean,
 ): Promise<void> {
   cli.action.start('Rescanning Transactions', 'Asking node to start scanning', {
     stdout: true,
   })
 
   try {
-    const updateCliStatus = (startedAt: number) => ({
-      sequence,
-    }: {
-      sequence: number
-    }): void => {
+    const startedAt = Date.now()
+    const response = client.rescanAccountStream({ follow, reset })
+
+    for await (const { sequence } of response.contentStream()) {
       cli.action.status = `Scanning Block: ${sequence}, ${Math.floor(
         (Date.now() - startedAt) / 1000,
       )} seconds`
-    }
-    const updateCliStatusWithStartTime = updateCliStatus(Date.now())
-
-    if (offline) {
-      const node = await sdk.node()
-      await node.openDB()
-      await node.chain.open()
-
-      await runRescan(node, follow, reset, updateCliStatusWithStartTime)
-    } else {
-      await sdk.client.connect()
-      const response = sdk.client.rescanAccountStream({ follow, reset })
-
-      for await (const { sequence } of response.contentStream()) {
-        updateCliStatusWithStartTime({ sequence })
-      }
     }
   } catch (error) {
     if (hasUserResponseError(error)) {

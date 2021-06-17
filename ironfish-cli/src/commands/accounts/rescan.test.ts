@@ -7,37 +7,31 @@ describe('accounts:rescan', () => {
   const contentStream = jest.fn().mockImplementation(function* () {
     yield 0
   })
-  const runRescan = jest.fn()
 
-  beforeEach(() => {
-    const originalModule = jest.requireActual('ironfish')
-    jest.doMock(
-      'ironfish',
-      () =>
-        ({
-          ...originalModule,
-          runRescan,
-          IronfishSdk: {
-            init: jest.fn().mockImplementation(() => ({
-              client: {
-                connect: jest.fn(),
-                rescanAccountStream: jest.fn().mockImplementationOnce(() => ({
-                  contentStream,
-                })),
-              },
-              node: jest.fn().mockImplementationOnce(() => ({
-                openDB: jest.fn(),
-                chain: {
-                  open: jest.fn(),
-                },
-              })),
-            })),
-          },
-        } as typeof jest),
-    )
+  beforeAll(() => {
+    jest.doMock('ironfish', () => {
+      const originalModule = jest.requireActual('ironfish')
+      const client = {
+        connect: jest.fn(),
+        rescanAccountStream: jest.fn().mockImplementation(() => ({
+          contentStream,
+        })),
+      }
+      const module: typeof jest = {
+        ...originalModule,
+        IronfishSdk: {
+          init: jest.fn().mockImplementation(() => ({
+            client,
+            clientMemory: client,
+            node: jest.fn(),
+          })),
+        },
+      }
+      return module
+    })
   })
 
-  afterEach(() => {
+  afterAll(() => {
     jest.unmock('ironfish')
   })
 
@@ -52,13 +46,13 @@ describe('accounts:rescan', () => {
       })
   })
 
-  describe('with the offline flag', () => {
+  describe('with the local flag', () => {
     test
       .stdout()
-      .command(['accounts:rescan', '--offline'])
+      .command(['accounts:rescan', '--local'])
       .exit(0)
       .it('fetches sequences from the node and scans successfully', (ctx) => {
-        expect(runRescan).toHaveBeenCalledTimes(1)
+        expect(contentStream).toHaveBeenCalled()
         expectCli(ctx.stdout).include('Scanning Complete')
       })
   })

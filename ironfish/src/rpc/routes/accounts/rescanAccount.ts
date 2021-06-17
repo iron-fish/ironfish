@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ApiNamespace, router } from '../router'
 import * as yup from 'yup'
-import { runRescan } from './utils'
+import { ValidationError } from '../../adapters/errors'
 
 export type RescanAccountRequest = { follow?: boolean; reset?: boolean }
 export type RescanAccountResponse = { sequence: number }
@@ -25,11 +25,33 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
   `${ApiNamespace.account}/rescanAccount`,
   RescanAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const { follow = false, reset = false } = request.data
-    const stream = (data: RescanAccountResponse) => {
-      request.stream(data)
+    let scan = node.accounts.scan
+
+    if (scan && !request.data.follow) {
+      throw new ValidationError(`A transaction rescan is already running`)
     }
-    await runRescan(node, follow, reset, stream, request.onClose)
+
+    if (!scan) {
+      if (request.data.reset) {
+        await node.accounts.reset()
+      }
+      void node.accounts.scanTransactions()
+      scan = node.accounts.scan
+    }
+
+    if (scan && request.data.follow) {
+      const onTransaction = (sequence: number) => {
+        request.stream({ sequence: Number(sequence) })
+      }
+
+      scan.onTransaction.on(onTransaction)
+      request.onClose.on(() => {
+        scan?.onTransaction.off(onTransaction)
+      })
+
+      await scan.wait()
+    }
+
     request.end()
   },
 )
