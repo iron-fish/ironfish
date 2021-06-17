@@ -77,6 +77,37 @@ export class Blockchain<
   notes: MerkleTree<E, H, SE, SH>
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
+  addSpeed: Meter
+  invalid: LRU<Buffer, boolean>
+  logAllBlockAdd: boolean
+  // Whether to seed the chain with a genesis block when opening the database.
+  autoSeed: boolean
+  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
+
+  // Contains flat fields
+  meta: IDatabaseStore<MetaSchema>
+  // BlockHash -> BlockHeader
+  headers: IDatabaseStore<HeadersSchema<E, H, T, SE, SH, ST>>
+  // BlockHash -> BlockHeader
+  transactions: IDatabaseStore<TransactionsSchema<T>>
+  // Sequence -> BlockHash[]
+  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
+  // Sequence -> BlockHash
+  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
+  // BlockHash -> BlockHash
+  hashToNextHash: IDatabaseStore<HashToNextSchema>
+
+  // When the heaviest head changes
+  onHeadChange = new Event<[hash: BlockHash]>()
+  // When ever the blockchain becomes synced
+  onSynced = new Event<[]>()
+  // When ever a block is added to the heaviest chain and the trees have been updated
+  onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
+  // When ever a block is removed from the heaviest chain, trees have not been updated yet
+  onDisconnectBlock = new Event<
+    [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
+  >()
+
   private _head: BlockHeader<E, H, T, SE, SH, ST> | null = null
   get head(): BlockHeader<E, H, T, SE, SH, ST> {
     Assert.isNotNull(
@@ -112,37 +143,6 @@ export class Blockchain<
   set genesis(newGenesis: BlockHeader<E, H, T, SE, SH, ST>) {
     this._genesis = newGenesis
   }
-
-  addSpeed: Meter
-  invalid: LRU<Buffer, boolean>
-  logAllBlockAdd: boolean
-  // Whether to seed the chain with a genesis block when opening the database.
-  autoSeed: boolean
-  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
-
-  // Contains flat fields
-  meta: IDatabaseStore<MetaSchema>
-  // BlockHash -> BlockHeader
-  headers: IDatabaseStore<HeadersSchema<E, H, T, SE, SH, ST>>
-  // BlockHash -> BlockHeader
-  transactions: IDatabaseStore<TransactionsSchema<T>>
-  // Sequence -> BlockHash[]
-  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
-  // Sequence -> BlockHash
-  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
-  // BlockHash -> BlockHash
-  hashToNextHash: IDatabaseStore<HashToNextSchema>
-
-  // When the heaviest head changes
-  onHeadChange = new Event<[hash: BlockHash]>()
-  // When ever the blockchain becomes synced
-  onSynced = new Event<[]>()
-  // When ever a block is added to the heaviest chain and the trees have been updated
-  onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
-  // When ever a block is removed from the heaviest chain, trees have not been updated yet
-  onDisconnectBlock = new Event<
-    [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
-  >()
 
   constructor(options: {
     location: string
