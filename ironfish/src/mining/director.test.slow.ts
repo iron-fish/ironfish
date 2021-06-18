@@ -7,7 +7,6 @@ import { RangeHasher } from '../merkletree'
 import { MiningDirector } from './director'
 import { waitForEmit } from '../event'
 import { Account } from '../account'
-import { Validity } from '../consensus/verifier'
 
 import {
   TestStrategy,
@@ -68,7 +67,7 @@ describe('Mining director', () => {
     chain = await makeChainGenesis(strategy, { dbPrefix: makeDbName() })
 
     verifyBlockAddSpy = jest.spyOn(chain.verifier, 'verifyBlockAdd').mockResolvedValue({
-      valid: Validity.Yes,
+      valid: true,
     })
 
     for (let i = 1; i < 8 * 5; i++) {

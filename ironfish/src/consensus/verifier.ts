@@ -134,15 +134,15 @@ export class Verifier<
     // minersFee should match the block header
     // minersFee should be (negative) miningReward + totalTransactionFees
     if (block.header.minersFee !== minersFee) {
-      return { valid: Validity.No, reason: VerificationResultReason.INVALID_MINERS_FEE }
+      return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
     const miningReward = block.header.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
-      return { valid: Validity.No, reason: VerificationResultReason.INVALID_MINERS_FEE }
+      return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
-    return { valid: Validity.Yes }
+    return { valid: true }
   }
 
   /**
@@ -161,18 +161,18 @@ export class Verifier<
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): VerificationResult {
     if (blockHeader.graffiti.byteLength != 32) {
-      return { valid: Validity.No, reason: VerificationResultReason.GRAFFITI }
+      return { valid: false, reason: VerificationResultReason.GRAFFITI }
     }
 
     if (this.enableVerifyTarget && options.verifyTarget && !blockHeader.verifyTarget()) {
-      return { valid: Validity.No, reason: VerificationResultReason.HASH_NOT_MEET_TARGET }
+      return { valid: false, reason: VerificationResultReason.HASH_NOT_MEET_TARGET }
     }
 
     if (blockHeader.timestamp.getTime() > Date.now() + ALLOWED_BLOCK_FUTURE_SECONDS * 1000) {
-      return { valid: Validity.No, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
+      return { valid: false, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
     }
 
-    return { valid: Validity.Yes }
+    return { valid: true }
   }
 
   /**
@@ -224,32 +224,32 @@ export class Verifier<
     const { notes, nullifiers } = current.counts()
 
     if (current.header.noteCommitment.size !== previousHeader.noteCommitment.size + notes) {
-      return { valid: Validity.No, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
+      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
     }
 
     if (
       current.header.nullifierCommitment.size !==
       previousHeader.nullifierCommitment.size + nullifiers
     ) {
-      return { valid: Validity.No, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
+      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
     }
 
     if (
       current.header.timestamp.getTime() <
       previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
     ) {
-      return { valid: Validity.No, reason: VerificationResultReason.BLOCK_TOO_OLD }
+      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
 
     if (current.header.sequence !== previousHeader.sequence + 1) {
-      return { valid: Validity.No, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
+      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
     }
 
     if (!this.isValidTarget(current.header, previousHeader)) {
-      return { valid: Validity.No, reason: VerificationResultReason.INVALID_TARGET }
+      return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
     }
 
-    return { valid: Validity.Yes }
+    return { valid: true }
   }
 
   /**
@@ -297,7 +297,7 @@ export class Verifier<
 
         for (const [index, spend] of spendsInThisBlock.entries()) {
           if (processedSpends.has(spend.nullifier)) {
-            return { valid: Validity.No, reason: VerificationResultReason.DOUBLE_SPEND }
+            return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
           }
 
           const verificationError = await this.verifySpend(
@@ -306,13 +306,13 @@ export class Verifier<
             tx,
           )
           if (verificationError) {
-            return { valid: Validity.No, reason: verificationError }
+            return { valid: false, reason: verificationError }
           }
 
           processedSpends.add(spend.nullifier)
         }
 
-        return { valid: Validity.Yes }
+        return { valid: true }
       },
     )
   }
@@ -324,34 +324,34 @@ export class Verifier<
     tx: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      return { valid: Validity.Yes }
+      return { valid: true }
     }
 
     if (!prev) {
-      return { valid: Validity.No, reason: VerificationResultReason.INVALID_PREV_HASH }
+      return { valid: false, reason: VerificationResultReason.INVALID_PREV_HASH }
     }
 
     if (!block.header.previousBlockHash.equals(prev.hash)) {
-      return { valid: Validity.No, reason: VerificationResultReason.INVALID_PREV_HASH }
+      return { valid: false, reason: VerificationResultReason.INVALID_PREV_HASH }
     }
 
     return block.withTransactionReferences(async () => {
       let verification = this.isValidAgainstPrevious(block, prev)
-      if (verification.valid == Validity.No) {
+      if (!verification.valid) {
         return verification
       }
 
       verification = await this.verifyBlock(block)
-      if (verification.valid == Validity.No) {
+      if (!verification.valid) {
         return verification
       }
 
       verification = await this.hasValidSpends(block, tx)
-      if (verification.valid == Validity.No) {
+      if (!verification.valid) {
         return verification
       }
 
-      return { valid: Validity.Yes }
+      return { valid: true }
     })
   }
 
@@ -447,20 +447,6 @@ export class Verifier<
   }
 }
 
-/**
- * Indicator of whether or not an entity is valid. Note that No maps to zero,
- * so a truthy test will work, but beware of Unknown responses
- *
- * TODO: Remove Unknown, and delete this entire enum. Unknown validity
- * is the same as not valid and therefore this should just be a bool.
- * Validness is binary, there is no tertiary state to validness.
- */
-export enum Validity {
-  No,
-  Yes,
-  Unknown,
-}
-
 export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
   ERROR = 'error',
@@ -487,7 +473,7 @@ export enum VerificationResultReason {
  * hash.
  */
 export interface VerificationResult {
-  valid: Validity
+  valid: boolean
   reason?: VerificationResultReason
   hash?: BlockHash
 }
