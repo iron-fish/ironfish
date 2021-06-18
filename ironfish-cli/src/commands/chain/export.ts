@@ -67,12 +67,21 @@ export default class Export extends IronfishCommand {
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
+    const path = node.files.resolve(flags.path)
+
     const min = Number(GENESIS_BLOCK_SEQUENCE)
     const max = Number(node.chain.latest.sequence)
 
-    const path = node.files.resolve(flags.path)
-    const start = Math.min(Math.max(args.start ? (args.start as number) : min, min), max)
-    const stop = Math.min(Math.max(args.stop ? (args.stop as number) : max, start), max)
+    let start = args.start ? (args.start as number) : min
+    let stop = args.stop ? (args.stop as number) : max
+
+    // Negative numbers start from the end
+    if (start < 0) start = max + start
+    if (stop < 0) stop = max + stop
+
+    // Ensure values are in valid range and start < stop
+    start = Math.min(Math.max(start, min), max)
+    stop = Math.max(Math.min(Math.max(stop, min), max), start)
 
     this.log(`Exporting chain from ${start} -> ${stop} to ${path}`)
 
@@ -82,7 +91,7 @@ export default class Export extends IronfishCommand {
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
     }) as ProgressBar
 
-    progress.start(stop - start, 0)
+    progress.start(stop - start + 1, 0)
 
     for (let i = start; i <= stop; ++i) {
       const blocks = await node.chain.getHeadersAtSequence(i)
