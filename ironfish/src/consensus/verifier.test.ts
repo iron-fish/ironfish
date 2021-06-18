@@ -15,7 +15,7 @@ import {
   TestBlockchain,
   makeChainFull,
 } from '../testUtilities/fake'
-import { Validity, VerificationResultReason } from './verifier'
+import { VerificationResultReason } from './verifier'
 import { Target } from '../primitives/target'
 import { BlockHeader } from '../primitives/blockheader'
 import { WorkerPool } from '../workerPool'
@@ -139,7 +139,7 @@ describe('Verifier', () => {
     it('validates a valid block', async () => {
       const block = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
       const verification = await chain.verifier.verifyBlock(block)
-      expect(verification.valid).toBe(Validity.Yes)
+      expect(verification.valid).toBe(true)
     })
 
     it("doesn't validate a block with an invalid header", async () => {
@@ -148,7 +148,7 @@ describe('Verifier', () => {
 
       expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
-        valid: 0,
+        valid: false,
       })
     })
 
@@ -158,7 +158,7 @@ describe('Verifier', () => {
 
       expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_PROOF,
-        valid: 0,
+        valid: false,
       })
     })
 
@@ -168,7 +168,7 @@ describe('Verifier', () => {
 
       expect(await chain.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
-        valid: 0,
+        valid: false,
       })
     })
   })
@@ -196,7 +196,7 @@ describe('Verifier', () => {
     })
 
     it('validates a valid transaction', () => {
-      expect(chain.verifier.verifyBlockHeader(header).valid).toBe(Validity.Yes)
+      expect(chain.verifier.verifyBlockHeader(header).valid).toBe(true)
     })
 
     it('fails validation when target is invalid', () => {
@@ -204,7 +204,7 @@ describe('Verifier', () => {
 
       expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
-        valid: 0,
+        valid: false,
       })
     })
 
@@ -214,7 +214,7 @@ describe('Verifier', () => {
 
       expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
-        valid: 0,
+        valid: false,
       })
     })
 
@@ -224,7 +224,7 @@ describe('Verifier', () => {
 
       expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
-        valid: 0,
+        valid: false,
       })
 
       header.graffiti = Buffer.alloc(33)
@@ -232,7 +232,7 @@ describe('Verifier', () => {
 
       expect(chain.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
-        valid: 0,
+        valid: false,
       })
     })
   })
@@ -277,7 +277,7 @@ describe('Verifier', () => {
         const { chain, strategy } = nodeTest
         strategy.disableMiningReward()
         const block = await makeBlockAfter(chain, chain.head)
-        expect((await chain.verifier.hasValidSpends(block)).valid).toBe(Validity.Yes)
+        expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
       })
     })
 
@@ -285,7 +285,7 @@ describe('Verifier', () => {
       it('says the block is valid', async () => {
         const { chain } = nodeTest
         const { block2 } = await performBlockSetup()
-        expect((await chain.verifier.hasValidSpends(block2)).valid).toBe(Validity.Yes)
+        expect((await chain.verifier.hasValidSpends(block2)).valid).toBe(true)
         expect(Array.from(block2.spends())).toHaveLength(1)
       }, 60000)
     })
@@ -304,7 +304,7 @@ describe('Verifier', () => {
         })
 
         expect(await chain.verifier.hasValidSpends(block2)).toEqual({
-          valid: Validity.No,
+          valid: false,
           reason: VerificationResultReason.DOUBLE_SPEND,
         })
       }, 60000)
@@ -324,7 +324,7 @@ describe('Verifier', () => {
         jest.spyOn(chain.notes, 'getCount').mockImplementationOnce(() => Promise.resolve(0))
 
         expect(await chain.verifier.hasValidSpends(block2)).toEqual({
-          valid: Validity.No,
+          valid: false,
           reason: VerificationResultReason.ERROR,
         })
       }, 60000)
@@ -348,7 +348,7 @@ describe('Verifier', () => {
         })
 
         expect(await chain.verifier.hasValidSpends(block2)).toEqual({
-          valid: Validity.No,
+          valid: false,
           reason: VerificationResultReason.INVALID_SPEND,
         })
       }, 60000)
@@ -365,7 +365,7 @@ describe('Verifier', () => {
         })
 
         expect(await chain.verifier.hasValidSpends(block2)).toEqual({
-          valid: Validity.No,
+          valid: false,
           reason: VerificationResultReason.INVALID_SPEND,
         })
       }, 60000)

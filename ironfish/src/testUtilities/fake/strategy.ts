@@ -9,7 +9,7 @@ import { TestVerifier } from './verifier'
 import { Blockchain } from '../../blockchain'
 import { BlockHeader, BlockHash, BlockHeaderSerde } from '../../primitives/blockheader'
 import { Strategy } from '../../strategy'
-import { Validity, VerificationResult, VerificationResultReason } from '../../consensus'
+import { VerificationResult, VerificationResultReason } from '../../consensus'
 import { StringUtils } from '../../utils'
 import { Serde, BufferSerde, IJSON, StringSerde } from '../../serde'
 import { Block, BlockSerde } from '../../primitives/block'
@@ -197,7 +197,7 @@ export class TestTransaction<H = string> implements Transaction<string, H> {
 
   verify(): Promise<VerificationResult> {
     return Promise.resolve({
-      valid: this.isValid ? Validity.Yes : Validity.No,
+      valid: this.isValid,
       reason: this.isValid ? undefined : VerificationResultReason.INVALID_TRANSACTION_PROOF,
     })
   }
