@@ -36,7 +36,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(GenesisBlockCommand)
 
-    const node = await this.sdk.node()
+    const node = await this.sdk.node({ autoSeed: false })
     await node.openDB()
 
     if (!node.chain.isEmpty) {

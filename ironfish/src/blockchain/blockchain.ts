@@ -77,6 +77,37 @@ export class Blockchain<
   notes: MerkleTree<E, H, SE, SH>
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
+  addSpeed: Meter
+  invalid: LRU<Buffer, boolean>
+  logAllBlockAdd: boolean
+  // Whether to seed the chain with a genesis block when opening the database.
+  autoSeed: boolean
+  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
+
+  // Contains flat fields
+  meta: IDatabaseStore<MetaSchema>
+  // BlockHash -> BlockHeader
+  headers: IDatabaseStore<HeadersSchema<E, H, T, SE, SH, ST>>
+  // BlockHash -> BlockHeader
+  transactions: IDatabaseStore<TransactionsSchema<T>>
+  // Sequence -> BlockHash[]
+  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
+  // Sequence -> BlockHash
+  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
+  // BlockHash -> BlockHash
+  hashToNextHash: IDatabaseStore<HashToNextSchema>
+
+  // When the heaviest head changes
+  onHeadChange = new Event<[hash: BlockHash]>()
+  // When ever the blockchain becomes synced
+  onSynced = new Event<[]>()
+  // When ever a block is added to the heaviest chain and the trees have been updated
+  onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
+  // When ever a block is removed from the heaviest chain, trees have not been updated yet
+  onDisconnectBlock = new Event<
+    [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
+  >()
+
   private _head: BlockHeader<E, H, T, SE, SH, ST> | null = null
   get head(): BlockHeader<E, H, T, SE, SH, ST> {
     Assert.isNotNull(
@@ -112,37 +143,6 @@ export class Blockchain<
   set genesis(newGenesis: BlockHeader<E, H, T, SE, SH, ST>) {
     this._genesis = newGenesis
   }
-
-  addSpeed: Meter
-  invalid: LRU<Buffer, boolean>
-  logAllBlockAdd: boolean
-  // Whether to seed the chain with a genesis block when opening the database.
-  autoSeed: boolean
-  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
-
-  // Contains flat fields
-  meta: IDatabaseStore<MetaSchema>
-  // BlockHash -> BlockHeader
-  headers: IDatabaseStore<HeadersSchema<E, H, T, SE, SH, ST>>
-  // BlockHash -> BlockHeader
-  transactions: IDatabaseStore<TransactionsSchema<T>>
-  // Sequence -> BlockHash[]
-  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
-  // Sequence -> BlockHash
-  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
-  // BlockHash -> BlockHash
-  hashToNextHash: IDatabaseStore<HashToNextSchema>
-
-  // When the heaviest head changes
-  onHeadChange = new Event<[hash: BlockHash]>()
-  // When ever the blockchain becomes synced
-  onSynced = new Event<[]>()
-  // When ever a block is added to the heaviest chain and the trees have been updated
-  onConnectBlock = new Event<[block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]>()
-  // When ever a block is removed from the heaviest chain, trees have not been updated yet
-  onDisconnectBlock = new Event<
-    [block: Block<E, H, T, SE, SH, ST>, tx?: IDatabaseTransaction]
-  >()
 
   constructor(options: {
     location: string
@@ -413,8 +413,9 @@ export class Blockchain<
     start: BlockHeader<E, H, T, SE, SH, ST>,
     end?: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
+    reachable = true,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
-    for await (const hash of this.iterateToHashes(start, end, tx)) {
+    for await (const hash of this.iterateToHashes(start, end, tx, reachable)) {
       const header = await this.getHeader(hash, tx)
       Assert.isNotNull(header)
       yield header
@@ -425,6 +426,7 @@ export class Blockchain<
     start: BlockHeader<E, H, T, SE, SH, ST>,
     end?: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
+    reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
     let current = start.hash as BlockHash | null
     const max = end ? end.sequence - start.sequence : null
@@ -444,7 +446,7 @@ export class Blockchain<
       current = await this.getNextHash(current, tx)
     }
 
-    if (end && !current?.equals(end.hash)) {
+    if (reachable && end && !current?.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
           ` curr: ${HashUtils.renderHash(current)},` +
@@ -458,6 +460,7 @@ export class Blockchain<
     start: BlockHeader<E, H, T, SE, SH, ST>,
     end?: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
+    reachable = true,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
     let current = start as BlockHeader<E, H, T, SE, SH, ST> | null
     const max = end ? start.sequence - end.sequence : null
@@ -477,7 +480,7 @@ export class Blockchain<
       current = await this.getPrevious(current, tx)
     }
 
-    if (end && !current?.hash.equals(end.hash)) {
+    if (reachable && end && !current?.hash.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
           ` current: '${HashUtils.renderHash(current?.hash)},'` +
