@@ -162,7 +162,7 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
-      expect(await minersFee.verify()).toEqual({ valid: 1 })
+      expect(await minersFee.verify()).toEqual({ valid: true })
       expect(minersFee['wasmTransactionPosted']).toBeNull()
     }, 60000)
 
