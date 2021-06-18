@@ -1,5 +1,0 @@
-{
-  "excludeExternals": true,
-  "mode": "modules",
-  "out": "./build/docs"
-}
