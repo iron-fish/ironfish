@@ -260,7 +260,7 @@ export class Blockchain<
     if (this.opened) return
     this.opened = true
 
-    await this.db.open()
+    await this.db.open({ upgrade: this.forceUpgrade })
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
@@ -1274,6 +1274,21 @@ export class Blockchain<
 
     this.synced = true
     this.onSynced.emit()
+  }
+
+  /**
+   * This is useful for now because we don't have a DB version system that works.
+   * to prevent this. See https://linear.app/ironfish/issue/IRO-706
+   */
+  private forceUpgrade = (db: unknown, oldVersion: number): Promise<void> => {
+    if (oldVersion === 0) return Promise.resolve()
+
+    this.logger.error(
+      `You are running a newer version of ironfish on an older database.\n` +
+        `Wipe your database using "ironfish reset" or delete your data directory at ~/.ironfish\n`,
+    )
+
+    process.exit(1)
   }
 }
 
