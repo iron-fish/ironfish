@@ -82,7 +82,6 @@ export class Blockchain<
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
-  loadGenesisBlock: () => Promise<SerializedBlock<SH, ST>>
 
   // Contains flat fields
   meta: IDatabaseStore<MetaSchema>
@@ -151,7 +150,6 @@ export class Blockchain<
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
     autoSeed?: boolean
-    loadGenesisBlock?: () => Promise<SerializedBlock<SH, ST>>
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -164,7 +162,6 @@ export class Blockchain<
     this.invalid = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
-    this.loadGenesisBlock = options.loadGenesisBlock ?? this.loadDefaultGenesisBlock
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -236,12 +233,8 @@ export class Blockchain<
     return Math.max(Math.min(1, progress), 0)
   }
 
-  private loadDefaultGenesisBlock = () => {
-    return Promise.resolve(IJSON.parse(genesisBlockData) as SerializedBlock<SH, ST>)
-  }
-
   private async seed() {
-    const serialized = await this.loadGenesisBlock()
+    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock<SH, ST>
     const genesis = this.strategy.blockSerde.deserialize(serialized)
 
     const result = await this.addBlock(genesis)
