@@ -19,7 +19,6 @@ import { IronfishMiningDirector } from './mining/director'
 import { IronfishStrategy } from './strategy'
 import { IronfishVerifier } from './consensus/verifier'
 import { Syncer } from './syncer'
-import { IronfishBlockSerialized } from './primitives/block'
 
 export class IronfishNode {
   chain: IronfishBlockchain
@@ -123,7 +122,6 @@ export class IronfishNode {
     dataDir,
     config,
     internal,
-    loadGenesisBlock,
     autoSeed,
     logger = createRootLogger(),
     metrics,
@@ -137,7 +135,6 @@ export class IronfishNode {
     dataDir?: string
     config?: Config
     internal?: InternalStore
-    loadGenesisBlock?: () => Promise<IronfishBlockSerialized>
     autoSeed?: boolean
     databaseName?: string
     logger?: Logger
@@ -175,7 +172,6 @@ export class IronfishNode {
       strategy,
       logger,
       metrics,
-      loadGenesisBlock,
       autoSeed,
     })
 
