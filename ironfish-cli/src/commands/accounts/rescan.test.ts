@@ -23,7 +23,9 @@ describe('accounts:rescan', () => {
           init: jest.fn().mockImplementation(() => ({
             client,
             clientMemory: client,
-            node: jest.fn(),
+            node: jest.fn().mockImplementation(() => ({
+              openDB: jest.fn(),
+            })),
           })),
         },
       }

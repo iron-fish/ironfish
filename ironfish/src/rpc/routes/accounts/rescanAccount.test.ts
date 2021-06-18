@@ -15,6 +15,7 @@ describe('account/rescanAccount', () => {
   let account: Account
 
   beforeEach(async () => {
+    jest.spyOn(routeTest.node.accounts, 'updateHead').mockImplementationOnce(async () => {})
     account = await routeTest.node.accounts.createAccount(uuid())
     await routeTest.node.accounts.setDefaultAccount(account.name)
   })
