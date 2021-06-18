@@ -9,7 +9,7 @@ import {
   Transaction,
 } from '../primitives/transaction'
 import { Block, SerializedBlock } from '../primitives/block'
-import { Verifier, Validity, VerificationResultReason } from '../consensus/verifier'
+import { Verifier, VerificationResultReason } from '../consensus/verifier'
 import { BlockHeader, BlockHash, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import { IJSON, JsonSerializable } from '../serde'
 import { Target } from '../primitives/target'
@@ -329,7 +329,7 @@ export class Blockchain<
         }
 
         const verify = this.verifier.verifyBlockHeader(block.header)
-        if (verify.valid !== Validity.Yes) {
+        if (!verify.valid) {
           Assert.isNotUndefined(verify.reason)
           throw new VerifyError(verify.reason, BAN_SCORE.MAX)
         }
@@ -601,7 +601,7 @@ export class Blockchain<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
-    if (valid !== Validity.Yes) {
+    if (!valid) {
       Assert.isNotUndefined(reason)
 
       this.logger.warn(
@@ -649,7 +649,7 @@ export class Blockchain<
     }
 
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
-    if (valid !== Validity.Yes) {
+    if (!valid) {
       Assert.isNotUndefined(reason)
 
       this.logger.warn(
@@ -914,7 +914,7 @@ export class Blockchain<
           // verify target because it'll always fail target check here
           const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
 
-          if (verification.valid !== Validity.Yes) {
+          if (!verification.valid) {
             throw new Error(verification.reason)
           }
         }

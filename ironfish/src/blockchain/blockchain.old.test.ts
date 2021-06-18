@@ -269,7 +269,7 @@ describe('Header consistency is valid against previous', () => {
       .toMatchInlineSnapshot(`
         Object {
           "reason": "Note commitment sizes do not match",
-          "valid": 0,
+          "valid": false,
         }
       `)
   })
@@ -283,7 +283,7 @@ describe('Header consistency is valid against previous', () => {
       .toMatchInlineSnapshot(`
       Object {
         "reason": "Note commitment sizes do not match",
-        "valid": 0,
+        "valid": false,
       }
     `)
   })
@@ -297,7 +297,7 @@ describe('Header consistency is valid against previous', () => {
       .toMatchInlineSnapshot(`
       Object {
         "reason": "Note commitment sizes do not match",
-        "valid": 0,
+        "valid": false,
       }
     `)
   })
@@ -311,7 +311,7 @@ describe('Header consistency is valid against previous', () => {
       .toMatchInlineSnapshot(`
       Object {
         "reason": "Note commitment sizes do not match",
-        "valid": 0,
+        "valid": false,
       }
     `)
   })
@@ -324,7 +324,7 @@ describe('Header consistency is valid against previous', () => {
       .toMatchInlineSnapshot(`
       Object {
         "reason": "Note commitment sizes do not match",
-        "valid": 0,
+        "valid": false,
       }
     `)
   })

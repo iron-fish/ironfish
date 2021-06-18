@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  Verifier,
-  Validity,
-  VerificationResult,
-  VerificationResultReason,
-} from '../../consensus'
+import { Verifier, VerificationResult, VerificationResultReason } from '../../consensus'
 import {
   SerializedTestTransaction,
   TestBlock,
@@ -33,8 +28,9 @@ export class TestVerifier extends Verifier<
   ): VerificationResult {
     let result = super.isValidAgainstPrevious(current, previousHeader)
 
-    if (result.reason === VerificationResultReason.INVALID_TARGET)
-      result = { valid: Validity.Yes }
+    if (result.reason === VerificationResultReason.INVALID_TARGET) {
+      result = { valid: true }
+    }
 
     return result
   }
