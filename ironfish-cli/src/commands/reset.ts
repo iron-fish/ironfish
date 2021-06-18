@@ -44,18 +44,22 @@ export default class Reset extends IronfishCommand {
 
     if (fs.existsSync(backupPath)) {
       this.log(`There is already an account backup at ${backupPath}`)
-      this.log(
-        `\nThat means this failed to run. Delete it manually, or move it somewhere and try again.`,
+
+      const confirmed = await cli.confirm(
+        `\nThis means this failed to run. Delete the accounts backup?\nAre you sure? (Y)es / (N)o`,
       )
-      this.exit(1)
+
+      if (!confirmed) this.exit(1)
+
+      fs.rmSync(backupPath)
     }
 
-    let node = await this.sdk.node()
+    let node = await this.sdk.node({ autoSeed: false })
 
     const confirmed =
       flags.confirm ||
       (await cli.confirm(
-        `You are about to destroy your node data at ${node.config.dataDir}\nAre you sure? (Y)es / (N)o`,
+        `\nYou are about to destroy your node data at ${node.config.dataDir}\nAre you sure? (Y)es / (N)o`,
       ))
 
     if (!confirmed) return
