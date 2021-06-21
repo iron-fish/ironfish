@@ -19,7 +19,6 @@ import { Platform } from './platform'
 import { IronfishVerifier } from './consensus'
 import { IronfishStrategy } from './strategy'
 import { FileReporter } from './logger/reporters'
-import { IronfishBlockSerialized } from './primitives/block'
 
 export class IronfishSdk {
   agent: string
@@ -158,11 +157,9 @@ export class IronfishSdk {
 
   async node({
     databaseName,
-    loadGenesisBlock,
     autoSeed,
   }: {
     databaseName?: string
-    loadGenesisBlock?: () => Promise<IronfishBlockSerialized>
     autoSeed?: boolean
   } = {}): Promise<IronfishNode> {
     const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
@@ -174,7 +171,6 @@ export class IronfishSdk {
       internal: this.internal,
       files: this.fileSystem,
       databaseName: databaseName,
-      loadGenesisBlock: loadGenesisBlock,
       autoSeed: autoSeed,
       logger: this.logger,
       metrics: this.metrics,

@@ -5,7 +5,7 @@
 import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
 import { Serde } from '../serde'
-import { Validity, VerificationResult, VerificationResultReason } from '../consensus/verifier'
+import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { WorkerPool } from '../workerPool'
 
@@ -137,8 +137,8 @@ export class IronfishTransaction
     const result = await this.workerPool.verify(this)
 
     return result === true
-      ? { valid: Validity.Yes }
-      : { valid: Validity.No, reason: VerificationResultReason.ERROR }
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   notesLength(): number {
