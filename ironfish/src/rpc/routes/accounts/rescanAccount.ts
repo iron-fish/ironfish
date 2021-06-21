@@ -35,7 +35,6 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       if (request.data.reset) {
         await node.accounts.reset()
       }
-      await node.accounts.updateHead()
       void node.accounts.scanTransactions()
       scan = node.accounts.scan
     }

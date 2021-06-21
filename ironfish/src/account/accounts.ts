@@ -468,7 +468,7 @@ export class Accounts {
       return
     }
 
-    if (this.headHash == null) {
+    if (this.headHash === null) {
       this.logger.info('Skipping scan, there is no blocks to scan')
       return
     }
