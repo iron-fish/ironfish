@@ -49,6 +49,7 @@ export async function getConnectedClient(
   if (local) {
     const node = await sdk.node()
     await sdk.clientMemory.connect(node)
+    await node.openDB()
     return sdk.clientMemory
   }
 
