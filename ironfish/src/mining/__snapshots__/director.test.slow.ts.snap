@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Mining director adds transactions from the queue to a new block to be mined 1`] = `
+Object {
+  "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+  "minersFee": "-100",
+  "noteCommitment": Object {
+    "commitment": "0-miners note 100",
+    "size": 45,
+  },
+  "nullifierCommitment": Object {
+    "commitment": "B08D0434ABFFFB68F6374100A5E11553519AB0270FFE18137669AFA18E22B519",
+    "size": 18,
+  },
+  "previousBlockHash": "0900000000000000000000000000000000000000000000000000000000000000",
+  "sequence": "10",
+  "target": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+  "timestamp": Any<Number>,
+}
+`;
+
+exports[`Mining director creates a new block to be mined when chain head changes 2`] = `
+Object {
+  "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+  "minersFee": "-10",
+  "noteCommitment": Object {
+    "commitment": "0-miners note 10",
+    "size": 41,
+  },
+  "nullifierCommitment": Object {
+    "commitment": "1BA8B29F458F6FEBB8EB43097EEFCE7823CB306D56EDF4035B1849E3FECC0687",
+    "size": 16,
+  },
+  "previousBlockHash": "0900000000000000000000000000000000000000000000000000000000000000",
+  "sequence": "10",
+  "target": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+  "timestamp": Any<Number>,
+}
+`;
+
+exports[`Mining director does not add invalid transactions to the block 1`] = `
+Object {
+  "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+  "minersFee": "-10",
+  "noteCommitment": Object {
+    "commitment": "0-miners note 10",
+    "size": 41,
+  },
+  "nullifierCommitment": Object {
+    "commitment": "1BA8B29F458F6FEBB8EB43097EEFCE7823CB306D56EDF4035B1849E3FECC0687",
+    "size": 16,
+  },
+  "previousBlockHash": "0900000000000000000000000000000000000000000000000000000000000000",
+  "sequence": "10",
+  "target": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+  "timestamp": Any<Number>,
+}
+`;
