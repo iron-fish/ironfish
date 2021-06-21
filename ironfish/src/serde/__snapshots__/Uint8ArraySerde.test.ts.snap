@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Uint8ArraySerde constructs a Uint8ArraySerde 1`] = `
+Uint8ArraySerde {
+  "size": 32,
+}
+`;
+
+exports[`Uint8ArraySerde serializes and deserializes an equal array 2`] = `
+Uint8Array [
+  8,
+  18,
+  24,
+  199,
+  255,
+  1,
+  0,
+  127,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+]
+`;
