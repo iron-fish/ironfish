@@ -29,8 +29,12 @@ export async function makeTree({
     )
   }
 
-  if (!name) name = makeDbName()
-  if (!database) database = makeDb(name)
+  if (!name) {
+    name = makeDbName()
+  }
+  if (!database) {
+    database = makeDb(name)
+  }
 
   const tree = new MerkleTree(new StructureHasher(), database, name, depth)
 

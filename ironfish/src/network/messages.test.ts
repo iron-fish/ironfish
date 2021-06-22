@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  isIdentify,
-  Identify,
-  InternalMessageType,
-  Signal,
-  isSignal,
-  PeerList,
-  isPeerList,
   DisconnectingMessage,
   DisconnectingReason,
+  Identify,
+  InternalMessageType,
   isDisconnectingMessage,
+  isIdentify,
+  isPeerList,
+  isSignal,
+  PeerList,
+  Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
 

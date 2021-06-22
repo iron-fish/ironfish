@@ -6,14 +6,6 @@ jest.mock('ws')
 jest.mock('simple-peer')
 
 import { createRootLogger } from '../../logger'
-import { PeerManager } from './peerManager'
-import { PeerConnectionManager } from './peerConnectionManager'
-import {
-  ConnectionDirection,
-  ConnectionType,
-  WebRtcConnection,
-  WebSocketConnection,
-} from './connections'
 import {
   getConnectedPeer,
   mockIdentity,
@@ -21,6 +13,14 @@ import {
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import {
+  ConnectionDirection,
+  ConnectionType,
+  WebRtcConnection,
+  WebSocketConnection,
+} from './connections'
+import { PeerConnectionManager } from './peerConnectionManager'
+import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
 
@@ -126,9 +126,12 @@ describe('maintainOneConnectionPerPeer', () => {
     const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
-    if (peer.state.type === 'DISCONNECTED') throw new Error('Peer should not be DISCONNECTED')
-    if (!peer.state.connections.webSocket)
+    if (peer.state.type === 'DISCONNECTED') {
+      throw new Error('Peer should not be DISCONNECTED')
+    }
+    if (!peer.state.connections.webSocket) {
       throw new Error('Peer should have a WebSocket connection')
+    }
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,
@@ -136,7 +139,9 @@ describe('maintainOneConnectionPerPeer', () => {
 
     pm.connectToWebRTC(peer)
 
-    if (!peer.state.connections.webRtc) throw new Error('Peer should have a WebRTC connection')
+    if (!peer.state.connections.webRtc) {
+      throw new Error('Peer should have a WebRTC connection')
+    }
     peer.state.connections.webRtc.setState({
       type: 'SIGNALING',
     })
@@ -167,9 +172,12 @@ describe('maintainOneConnectionPerPeer', () => {
     const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
-    if (peer.state.type === 'DISCONNECTED') throw new Error('Peer should not be DISCONNECTED')
-    if (!peer.state.connections.webSocket)
+    if (peer.state.type === 'DISCONNECTED') {
+      throw new Error('Peer should not be DISCONNECTED')
+    }
+    if (!peer.state.connections.webSocket) {
       throw new Error('Peer should have a WebSocket connection')
+    }
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,
@@ -177,7 +185,9 @@ describe('maintainOneConnectionPerPeer', () => {
 
     pm.connectToWebRTC(peer)
 
-    if (!peer.state.connections.webRtc) throw new Error('Peer should have a WebRTC connection')
+    if (!peer.state.connections.webRtc) {
+      throw new Error('Peer should have a WebRTC connection')
+    }
     peer.state.connections.webRtc.setState({
       type: 'CONNECTED',
       identity: identity,
@@ -210,9 +220,12 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
     const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
-    if (peer.state.type === 'DISCONNECTED') throw new Error('Peer should not be DISCONNECTED')
-    if (!peer.state.connections.webSocket)
+    if (peer.state.type === 'DISCONNECTED') {
+      throw new Error('Peer should not be DISCONNECTED')
+    }
+    if (!peer.state.connections.webSocket) {
       throw new Error('Peer should have a WebSocket connection')
+    }
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,

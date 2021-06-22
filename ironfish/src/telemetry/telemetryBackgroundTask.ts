@@ -10,10 +10,9 @@
 // WARNING: This file only runs on node and will need to be ported
 // to webworkers to collect metrics in the browser
 
-import { parentPort, workerData, MessagePort } from 'worker_threads'
 import axios, { AxiosError } from 'axios'
+import { MessagePort, parentPort, workerData } from 'worker_threads'
 import { createRootLogger, Logger } from '../logger'
-
 import { Metric } from '.'
 
 /// 5 seconds between sending batches of metrics
@@ -42,7 +41,7 @@ export function handleMetric(metric: Metric, endpoint: string, logger?: Logger):
 }
 
 export function sendMetrics(endpoint: string, logger?: Logger): void {
-  if (metrics.length == 0) {
+  if (metrics.length === 0) {
     return
   }
 
@@ -52,10 +51,14 @@ export function sendMetrics(endpoint: string, logger?: Logger): void {
   axios
     .post(endpoint, toSubmit)
     .then(() => {
-      if (logger) logger.debug(`Submitted batch of ${toSubmit.length} metrics`)
+      if (logger) {
+        logger.debug(`Submitted batch of ${toSubmit.length} metrics`)
+      }
     })
     .catch((err: AxiosError) => {
-      if (logger) logger.warn('Unable to submit metrics', err.code || '')
+      if (logger) {
+        logger.warn('Unable to submit metrics', err.code || '')
+      }
 
       // Put the metrics back on the queue to try again
       // But if metric server is unavailable dump buffer to prevent memory leak

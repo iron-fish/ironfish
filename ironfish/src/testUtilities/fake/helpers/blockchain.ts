@@ -3,21 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../../assert'
+import { Blockchain } from '../../../blockchain'
 import { GENESIS_BLOCK_PREVIOUS } from '../../../consensus'
-import { makeDbName, makeDbPath } from '../../helpers/storage'
 import { RangeHasher } from '../../../merkletree'
+import { Block } from '../../../primitives/block'
+import { BlockHash, BlockHeader } from '../../../primitives/blockheader'
+import { Target } from '../../../primitives/target'
+import { Spend } from '../../../primitives/transaction'
+import { Strategy } from '../../../strategy'
+import { makeDbName, makeDbPath } from '../../helpers/storage'
 import {
   SerializedTestTransaction,
   TestBlockchain,
   TestStrategy,
   TestTransaction,
 } from '../strategy'
-import { Spend } from '../../../primitives/transaction'
-import { Target } from '../../../primitives/target'
-import { Block } from '../../../primitives/block'
-import { Blockchain } from '../../../blockchain'
-import { BlockHeader, BlockHash } from '../../../primitives/blockheader'
-import { Strategy } from '../../../strategy'
 
 /**
  * Add the notes directly to the Blockchain's notes merkle tree
@@ -370,7 +370,9 @@ export async function makeChain(
   strategy: TestStrategy,
   dbPrefix?: string,
 ): Promise<TestBlockchain> {
-  if (!dbPrefix) dbPrefix = makeDbName()
+  if (!dbPrefix) {
+    dbPrefix = makeDbName()
+  }
   return await makeChainFull(strategy, { dbPrefix })
 }
 
@@ -385,7 +387,9 @@ export async function makeChainSyncable(
   dbPrefix?: string,
   addExtraBlocks = true,
 ): Promise<TestBlockchain> {
-  if (!dbPrefix) dbPrefix = makeDbName()
+  if (!dbPrefix) {
+    dbPrefix = makeDbName()
+  }
 
   const chain = await makeChainGenesis(strategy, { dbPrefix })
 
@@ -417,7 +421,9 @@ export async function blockBySequence(
     hash = blockHash(sequence)
   }
 
-  if (!hash) throw new Error(`No hash for ${sequence || ''}`)
+  if (!hash) {
+    throw new Error(`No hash for ${sequence || ''}`)
+  }
 
   const block = await chain.getBlock(hash)
   if (!block) {

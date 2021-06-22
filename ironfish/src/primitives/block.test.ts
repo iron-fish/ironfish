@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest } from '../testUtilities/nodeTest'
+import { blockHash, makeFakeBlock, TestStrategy } from '../testUtilities/fake'
 import { useAccountFixture } from '../testUtilities/fixtures'
-import { IronfishBlockSerialized } from './block'
 import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
-import { TestStrategy, makeFakeBlock, blockHash } from '../testUtilities/fake'
+import { createNodeTest } from '../testUtilities/nodeTest'
+import { IronfishBlockSerialized } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()

@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import 'reflect-metadata'
-import { Repository } from 'typeorm'
-import { Config, Block, Transaction, Note, Spend } from '../entity'
-import { getManager } from 'typeorm'
-import { Transaction as TransactionAPIType } from '../types'
 import { GetBlockResponse } from 'ironfish'
+import { Repository } from 'typeorm'
+import { getManager } from 'typeorm'
+import { Block, Config, Note, Spend, Transaction } from '../entity'
+import { Transaction as TransactionAPIType } from '../types'
 
 export type IndexerConfigOptions = {
   lastBlockHash: string | null

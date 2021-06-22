@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { flags } from '@oclif/command'
+import cli from 'cli-ux'
 import {
   Assert,
   IDatabaseTransaction,
@@ -8,12 +10,10 @@ import {
   IronfishNode,
   TimeUtils,
 } from 'ironfish'
+import { Meter } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from './export'
-import cli from 'cli-ux'
-import { flags } from '@oclif/command'
-import { Meter } from 'ironfish'
 
 const TREE_BATCH = 1000
 const TREE_START = 1
@@ -71,7 +71,9 @@ export default class RepairChain extends IronfishCommand {
           `Are you SURE? (y)es / (n)o`,
       ))
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
     await this.repairChain(node, speed, progress)
     await this.repairTrees(node, speed, progress, flags.force)

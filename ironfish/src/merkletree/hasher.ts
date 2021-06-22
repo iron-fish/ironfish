@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { StringSerde } from '../serde'
-import Serde, { JsonSerializable } from '../serde'
+import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
@@ -11,7 +10,8 @@ import {
   WasmNoteEncryptedHashSerde,
   WasmNoteEncryptedSerde,
 } from '../primitives/noteEncrypted'
-import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
+import { StringSerde } from '../serde'
+import Serde, { JsonSerializable } from '../serde'
 
 /**
  * Interface for objects that can calculate the hashes of elements.

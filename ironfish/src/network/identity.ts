@@ -31,7 +31,7 @@ export const base64IdentityLength = Math.ceil(identityLength / 3) * 4
 export function isIdentity(obj: string): boolean {
   // Should be a base64-encoded string with the expected length
   return (
-    obj.length == base64IdentityLength && Buffer.from(obj, 'base64').toString('base64') === obj
+    obj.length === base64IdentityLength && Buffer.from(obj, 'base64').toString('base64') === obj
   )
 }
 

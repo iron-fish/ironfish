@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockTransactionRequest, BlockTransactionResponse } from '../types'
-import { RequestHandlerParams } from '../middleware'
-import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
 import { getCustomRepository } from 'typeorm'
+import { RequestHandlerParams } from '../middleware'
 import { TransactionRepository } from '../repository/TransactionRepository'
+import { BlockTransactionRequest, BlockTransactionResponse } from '../types'
+import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
 
 export const BlockTransaction = async (
   requestParams: RequestHandlerParams<BlockTransactionRequest>,
@@ -19,8 +19,9 @@ export const BlockTransaction = async (
   } = params
 
   // Verify network identifier
-  if (!isValidNetworkIdentifier(networkIdentifier))
+  if (!isValidNetworkIdentifier(networkIdentifier)) {
     throw new Error(`Network identifier is not valid`)
+  }
 
   const transactionRepository = getCustomRepository(TransactionRepository)
   const transactionData = await transactionRepository.findWithInstances(
@@ -28,7 +29,9 @@ export const BlockTransaction = async (
     blockIdentifier.hash,
   )
 
-  if (!transactionData) throw new Error(`Transaction data not found`)
+  if (!transactionData) {
+    throw new Error(`Transaction data not found`)
+  }
 
   const response: BlockTransactionResponse = {
     transaction: {

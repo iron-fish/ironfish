@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import ws from 'ws'
 import { Identity, isIdentity } from '../identity'
-import { PeerManager } from '../peers/peerManager'
-import { Peer } from '../peers/peer'
 import {
   Connection,
   ConnectionDirection,
@@ -12,8 +11,9 @@ import {
   WebRtcConnection,
   WebSocketConnection,
 } from '../peers/connections'
+import { Peer } from '../peers/peer'
+import { PeerManager } from '../peers/peerManager'
 import { mockIdentity } from './mockIdentity'
-import ws from 'ws'
 
 export function getConnectingPeer(
   pm: PeerManager,
@@ -54,7 +54,7 @@ export function getConnectingPeer(
   if (peer.state.type !== 'CONNECTING') {
     throw new Error('state should be CONNECTING')
   }
-  if (peer.state.connections.webSocket == null) {
+  if (!peer.state.connections.webSocket) {
     throw new Error('WebSocket connection should be defined')
   }
 
@@ -131,13 +131,17 @@ export function getSignalingWebRtcPeer(
     identity: peer.state.identity,
   })
 
-  if (peer.state.type !== 'CONNECTING') throw new Error('Peer state should be CONNECTING')
+  if (peer.state.type !== 'CONNECTING') {
+    throw new Error('Peer state should be CONNECTING')
+  }
   const connection = peer.state.connections.webRtc
 
   // Send a signal to trigger the connection into a SIGNALING state
   connection?.signal({})
   expect(connection?.state.type).toBe('SIGNALING')
-  if (connection?.state.type !== 'SIGNALING') throw new Error('Connection')
+  if (connection?.state.type !== 'SIGNALING') {
+    throw new Error('Connection')
+  }
 
   return { peer, connection: connection, brokeringPeer, brokeringConnection }
 }

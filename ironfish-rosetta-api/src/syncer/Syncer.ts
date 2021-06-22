@@ -47,7 +47,9 @@ export class Syncer {
 
   async start(): Promise<void> {
     Logger.debug('SYNCER START')
-    if (this.isStarted()) return
+    if (this.isStarted()) {
+      return
+    }
 
     this.setState({ type: 'STARTED' })
 

@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ApiNamespace, router } from '../router'
-import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import * as yup from 'yup'
+import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
+import { ApiNamespace, router } from '../router'
 
 export type UploadConfigRequest = { config: Record<string, unknown> }
 export type UploadConfigResponse = Partial<ConfigOptions>
@@ -56,7 +56,9 @@ export function setUnknownConfigValue(
 
   let targetValue: unknown = config.defaults[sourceKey]
   // Support keys that are undefined inside of the config from old config values or third parties adding config values
-  if (targetValue === undefined) targetValue = sourceValue
+  if (targetValue === undefined) {
+    targetValue = sourceValue
+  }
 
   let value = sourceValue
 
@@ -75,7 +77,9 @@ export function setUnknownConfigValue(
 
 // Expects string in CSV format with no brackets
 function stringToStringArray(value: string): string[] | null {
-  if (value === '') return []
+  if (value === '') {
+    return []
+  }
 
   // Strip the brackets and split on commas
   const parsedValue = value.split(',')
@@ -97,14 +101,24 @@ function convertValue(sourceValue: unknown, targetValue: unknown): unknown {
 
   if (typeof targetValue === 'number') {
     const converted = Number(sourceValue)
-    if (!Number.isNaN(converted)) return converted
+    if (!Number.isNaN(converted)) {
+      return converted
+    }
     targetType = 'number'
   } else if (typeof targetValue === 'boolean') {
     const value = sourceValue.toLowerCase().trim()
-    if (value === '1') return true
-    if (value === '0') return false
-    if (value === 'true') return true
-    if (value === 'false') return false
+    if (value === '1') {
+      return true
+    }
+    if (value === '0') {
+      return false
+    }
+    if (value === 'true') {
+      return true
+    }
+    if (value === 'false') {
+      return false
+    }
     targetType = 'boolean'
   } else if (typeof targetValue === 'string') {
     return sourceValue

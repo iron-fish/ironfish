@@ -4,11 +4,11 @@
 
 jest.mock('./rpcId')
 import { mocked } from 'ts-jest/utils'
+import { NetworkError } from '../peers/connections/errors'
 import { PeerManager } from '../peers/peerManager'
+import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
 import { CannotSatisfyRequestError, Direction, RequestTimeoutError, RpcRouter } from './rpc'
 import { nextRpcId, rpcTimeoutMillis } from './rpcId'
-import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
-import { NetworkError } from '../peers/connections/errors'
 
 describe('RPC Router', () => {
   beforeEach(() => {

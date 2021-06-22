@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { fakeMaxTarget } from '../testUtilities/fake'
 import { generateKey } from 'ironfish-wasm-nodejs'
+import { Target } from '../primitives/target'
 import {
   createNodeTest,
   useAccountFixture,
   useBlockFixture,
   useMinerBlockFixture,
 } from '../testUtilities'
-import { Target } from '../primitives/target'
+import { fakeMaxTarget } from '../testUtilities/fake'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()

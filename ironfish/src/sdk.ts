@@ -1,24 +1,24 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { IronfishVerifier } from './consensus'
+import { Config, ConfigOptions } from './fileStores'
+import { InternalStore } from './fileStores'
+import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
-  Logger,
   createRootLogger,
+  Logger,
+  setLogColorEnabledFromConfig,
   setLogLevelFromConfig,
   setLogPrefixFromConfig,
-  setLogColorEnabledFromConfig,
 } from './logger'
-import { MetricsMonitor } from './metrics'
-import { Config, ConfigOptions } from './fileStores'
-import { FileSystem, NodeFileProvider } from './fileSystems'
-import { IronfishNode } from './node'
-import { ApiNamespace, IpcAdapter, IronfishIpcClient, IronfishMemoryClient } from './rpc'
-import { InternalStore } from './fileStores'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
-import { Platform } from './platform'
-import { IronfishVerifier } from './consensus'
-import { IronfishStrategy } from './strategy'
 import { FileReporter } from './logger/reporters'
+import { MetricsMonitor } from './metrics'
+import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
+import { IronfishNode } from './node'
+import { Platform } from './platform'
+import { ApiNamespace, IpcAdapter, IronfishIpcClient, IronfishMemoryClient } from './rpc'
+import { IronfishStrategy } from './strategy'
 
 export class IronfishSdk {
   agent: string
@@ -83,7 +83,9 @@ export class IronfishSdk {
       if (runtime.type === 'node') {
         fileSystem = new NodeFileProvider()
         await fileSystem.init()
-      } else throw new Error(`No default fileSystem for ${String(runtime)}`)
+      } else {
+        throw new Error(`No default fileSystem for ${String(runtime)}`)
+      }
     }
 
     logger = logger.withTag('ironfishsdk')

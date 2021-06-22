@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Command } from '@oclif/command'
 import { IConfig } from '@oclif/config'
-import { createRootLogger, Logger, ConfigOptions, IronfishSdk, ConnectionError } from 'ironfish'
+import { ConfigOptions, ConnectionError, createRootLogger, IronfishSdk, Logger } from 'ironfish'
 import {
-  DataDirFlagKey,
-  DatabaseFlagKey,
   ConfigFlagKey,
-  RpcUseIpcFlagKey,
-  RpcUseTcpFlagKey,
+  DatabaseFlagKey,
+  DataDirFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
+  RpcUseIpcFlagKey,
+  RpcUseTcpFlagKey,
   VerboseFlagKey,
 } from './flags'
 import { hasUserResponseError } from './utils'
@@ -60,7 +60,9 @@ export abstract class IronfishCommand extends Command {
         this.log(error.codeMessage)
       } else if (error instanceof ConnectionError) {
         this.log(`Cannot connect to your node, start your node first.`)
-      } else throw error
+      } else {
+        throw error
+      }
     }
 
     this.exit(0)

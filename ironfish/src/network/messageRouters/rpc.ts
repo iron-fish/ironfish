@@ -3,20 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import {
-  MessageType,
   IncomingPeerMessage,
-  Message,
-  isMessage,
   InternalMessageType,
+  isMessage,
+  Message,
+  MessageType,
   PayloadType,
 } from '../messages'
-import { PeerManager } from '../peers/peerManager'
-import { rpcTimeoutMillis, nextRpcId, RpcId } from './rpcId'
-import { Peer } from '../peers/peer'
-import { NetworkError } from '../peers/connections/errors'
 import { Connection } from '../peers/connections/connection'
-import { ErrorUtils } from '../../utils'
+import { NetworkError } from '../peers/connections/errors'
+import { Peer } from '../peers/peer'
+import { PeerManager } from '../peers/peerManager'
+import { nextRpcId, RpcId, rpcTimeoutMillis } from './rpcId'
 
 export enum Direction {
   request = 'request',
@@ -54,7 +54,9 @@ export type Rpc<T extends MessageType, P extends PayloadType> = Message<T, P> & 
   direction: Direction
 }
 export function isRpc(obj: unknown): obj is Rpc<MessageType, PayloadType> {
-  if (!isMessage(obj)) return false
+  if (!isMessage(obj)) {
+    return false
+  }
   const rpc = obj as Rpc<MessageType, Record<string, unknown>>
 
   if (rpc.type === InternalMessageType.cannotSatisfyRequest) {
@@ -63,7 +65,7 @@ export function isRpc(obj: unknown): obj is Rpc<MessageType, PayloadType> {
 
   return (
     (rpc.direction === Direction.request || rpc.direction === Direction.response) &&
-    typeof rpc.rpcId == 'number' &&
+    typeof rpc.rpcId === 'number' &&
     rpc.payload != null
   )
 }
@@ -121,7 +123,9 @@ export class RpcRouter {
     message: Message<MessageType, Record<string, unknown>>,
   ): Promise<IncomingRpcPeerMessage> {
     const rpcId = nextRpcId()
-    if (typeof rpcId !== 'number') throw new Error(`rpcId mocked: ${typeof rpcId}`)
+    if (typeof rpcId !== 'number') {
+      throw new Error(`rpcId mocked: ${typeof rpcId}`)
+    }
 
     return new Promise<IncomingRpcPeerMessage>((resolve, reject) => {
       const timeoutMs = rpcTimeoutMillis()
@@ -151,7 +155,9 @@ export class RpcRouter {
 
       const timeout = setTimeout(() => {
         const request = this.requests.get(rpcId)
-        if (!request) throw new Error(`Timed out request ${rpcId} not found`)
+        if (!request) {
+          throw new Error(`Timed out request ${rpcId} not found`)
+        }
         const errorMessage = `Closing connections to ${peer.displayName} because RPC message of type ${message.type} timed out after ${timeoutMs} ms in request: ${rpcId}.`
         const error = new RequestTimeoutError(timeoutMs, errorMessage)
         this.logger.debug(errorMessage)
@@ -219,7 +225,9 @@ export class RpcRouter {
 
     if (rpcMessage.direction === Direction.request) {
       const handler = this.handlers.get(rpcMessage.type)
-      if (handler === undefined) return
+      if (handler === undefined) {
+        return
+      }
 
       let responseMessage: IncomingRpcPeerMessage['message']
       try {

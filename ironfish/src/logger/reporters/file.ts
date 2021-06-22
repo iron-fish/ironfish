@@ -5,11 +5,11 @@
 // The reporter intentionally logs to the console, so disable the lint
 /* eslint-disable no-console */
 
+import type fs from 'fs'
 import { ConsolaReporterLogObject } from 'consola'
 import { Assert } from '../../assert'
 import { NodeFileProvider } from '../../fileSystems'
 import { TextReporter } from './text'
-import type fs from 'fs'
 
 export class FileReporter extends TextReporter {
   fs: NonNullable<NodeFileProvider['fsSync']>

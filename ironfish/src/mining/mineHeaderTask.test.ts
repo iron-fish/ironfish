@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { mocked } from 'ts-jest/utils'
 import * as blockHeaderModule from '../primitives/blockheader'
 import mineBatch from './mineHeaderTask'
-import { mocked } from 'ts-jest/utils'
 
 jest.mock('../primitives/blockheader')
 

@@ -2,30 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
-import { Block, SerializedBlock } from '../primitives/block'
+import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
+import { PayloadType } from '../network'
+import { isNewTransactionPayload } from '../network/messages'
+import { Block, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
-import { IDatabaseTransaction } from '../storage'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
-import { isNewTransactionPayload } from '../network/messages'
-import { PayloadType } from '../network'
-import { JsonSerializable } from '../serde'
+import { Target } from '../primitives/target'
 import {
   IronfishTransaction,
   SerializedTransaction,
-  Transaction,
   Spend,
+  Transaction,
 } from '../primitives/transaction'
+import { JsonSerializable } from '../serde'
+import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
-import { Target } from '../primitives/target'
 import { WorkerPool } from '../workerPool'
-import { BufferSet } from 'buffer-map'
+import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 /**
  * Verifier transctions and blocks
@@ -127,8 +127,12 @@ export class Verifier<
     const transactionFees = await Promise.all(block.transactions.map((t) => t.transactionFee()))
 
     for (const transactionFee of transactionFees) {
-      if (transactionFee > 0) totalTransactionFees += transactionFee
-      if (transactionFee < 0) minersFee += transactionFee
+      if (transactionFee > 0) {
+        totalTransactionFees += transactionFee
+      }
+      if (transactionFee < 0) {
+        minersFee += transactionFee
+      }
     }
 
     // minersFee should match the block header
@@ -160,7 +164,7 @@ export class Verifier<
     blockHeader: BlockHeader<E, H, T, SE, SH, ST>,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): VerificationResult {
-    if (blockHeader.graffiti.byteLength != 32) {
+    if (blockHeader.graffiti.byteLength !== 32) {
       return { valid: false, reason: VerificationResultReason.GRAFFITI }
     }
 
@@ -259,7 +263,9 @@ export class Verifier<
     header: BlockHeader<E, H, T, SE, SH, ST>,
     previous: BlockHeader<E, H, T, SE, SH, ST>,
   ): boolean {
-    if (!this.enableVerifyTarget) return true
+    if (!this.enableVerifyTarget) {
+      return true
+    }
 
     const expectedTarget = Target.calculateTarget(
       header.timestamp,

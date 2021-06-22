@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { GENESIS_BLOCK_SEQUENCE, Assert } from 'ironfish'
-import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import cli from 'cli-ux'
 import fs from 'fs'
+import { Assert, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
+import { IronfishCommand } from '../../command'
+import { LocalFlags } from '../../flags'
 
 export interface ProgressBar {
   progress: VoidFunction
@@ -76,8 +76,12 @@ export default class Export extends IronfishCommand {
     let stop = args.stop ? (args.stop as number) : max
 
     // Negative numbers start from the end
-    if (start < 0) start = max + start
-    if (stop < 0) stop = max + stop
+    if (start < 0) {
+      start = max + start
+    }
+    if (stop < 0) {
+      stop = max + stop
+    }
 
     // Ensure values are in valid range and start < stop
     start = Math.min(Math.max(start, min), max)

@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishCommand } from '../../command'
-import { launchEditor } from '../../utils'
-import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
+import { flags } from '@oclif/command'
+import { mkdtemp, readFile, writeFile } from 'fs'
+import { DEFAULT_CONFIG_NAME, JSONUtils } from 'ironfish'
 import os from 'os'
-import { mkdtemp, writeFile, readFile } from 'fs'
 import path from 'path'
 import { promisify } from 'util'
+import { IronfishCommand } from '../../command'
+import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
+import { launchEditor } from '../../utils'
 import { getConnectedClient } from './show'
-import { DEFAULT_CONFIG_NAME, JSONUtils } from 'ironfish'
-import { flags } from '@oclif/command'
 
 const mkdtempAsync = promisify(mkdtemp)
 const writeFileAsync = promisify(writeFile)

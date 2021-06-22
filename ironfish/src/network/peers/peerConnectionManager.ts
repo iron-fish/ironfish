@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createRootLogger, Logger } from '../../logger'
 import type { Peer } from './peer'
+import { createRootLogger, Logger } from '../../logger'
 import { PeerManager } from './peerManager'
 
 /**
@@ -45,7 +45,9 @@ export class PeerConnectionManager {
    * if the event loop has already been started.
    */
   start(): void {
-    if (this.started) return
+    if (this.started) {
+      return
+    }
     this.started = true
     this.eventLoop()
   }
@@ -66,11 +68,19 @@ export class PeerConnectionManager {
     for (const peer of this.peerManager.peers) {
       this.maintainOneConnectionPerPeer(peer)
 
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) continue
-      if (this.connectToEligiblePeers(peer)) connectAttempts++
+      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
+        continue
+      }
+      if (this.connectToEligiblePeers(peer)) {
+        connectAttempts++
+      }
 
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) continue
-      if (this.attemptToEstablishWebRtcConnectionsToWSPeer(peer)) connectAttempts++
+      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
+        continue
+      }
+      if (this.attemptToEstablishWebRtcConnectionsToWSPeer(peer)) {
+        connectAttempts++
+      }
     }
 
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)

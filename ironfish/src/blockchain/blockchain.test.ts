@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../assert'
-import { AsyncUtils } from '../utils'
+import { VerificationResultReason } from '../consensus'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { VerificationResultReason } from '../consensus'
+import { AsyncUtils } from '../utils'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()

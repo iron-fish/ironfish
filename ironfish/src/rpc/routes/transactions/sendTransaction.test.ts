@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
-import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RangeHasher } from '../../../merkletree'
 import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
+import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ResponseError } from '../../adapters'
 
 describe('Transactions sendTransaction', () => {
@@ -35,7 +35,9 @@ describe('Transactions sendTransaction', () => {
         fromAccountName: 'AccountDoesNotExist',
       })
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) throw e
+      if (!(e instanceof ResponseError)) {
+        throw e
+      }
       expect(e.message).toContain('No account found with name AccountDoesNotExist')
     }
   })
@@ -44,7 +46,9 @@ describe('Transactions sendTransaction', () => {
     try {
       await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) throw e
+      if (!(e instanceof ResponseError)) {
+        throw e
+      }
       expect(e.message).toContain(
         'Your node must be connected to the Iron Fish network to send a transaction',
       )
@@ -58,7 +62,9 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) throw e
+        if (!(e instanceof ResponseError)) {
+          throw e
+        }
         expect(e.message).toContain(
           'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
         )
@@ -72,7 +78,9 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) throw e
+        if (!(e instanceof ResponseError)) {
+          throw e
+        }
         expect(e.message).toContain('Your balance is too low. Add funds to your account first')
       }
     })
@@ -88,7 +96,9 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) throw e
+        if (!(e instanceof ResponseError)) {
+          throw e
+        }
         expect(e.message).toContain(
           'Please wait a few seconds for your balance to update and try again',
         )

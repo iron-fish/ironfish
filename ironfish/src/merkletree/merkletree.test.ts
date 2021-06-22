@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import MerkleTree, { depthAtLeafCount, Side } from './merkletree'
 import { makeDb, makeDbName, makeFullTree, makeTree } from '../testUtilities/fake'
+import MerkleTree, { depthAtLeafCount, Side } from './merkletree'
 
 describe('Merkle tree', function () {
   it('initializes database', async () => {
@@ -391,7 +391,9 @@ describe('Merkle tree', function () {
       witnessTree: MerkleTree<string, string, string, string>,
     ) => async (index: number) => {
       const witness = await witnessTree.witness(index)
-      if (witness == null) throw new Error(`Witness at ${index} was unexpectedly null`)
+      if (witness === null) {
+        throw new Error(`Witness at ${index} was unexpectedly null`)
+      }
       return witness
     }
 
@@ -563,7 +565,9 @@ describe('Merkle tree', function () {
     const rootHash = await tree.rootHash()
     for (let i = 0; i < (await tree.size()); i++) {
       const witness = await tree.witness(i)
-      if (witness == null) throw new Error('Witness should not be null')
+      if (witness === null) {
+        throw new Error('Witness should not be null')
+      }
       expect(witness.rootHash).toEqual(rootHash)
     }
   })

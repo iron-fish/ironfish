@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { ConfigOptions } from 'ironfish'
-import { RemoteFlags } from '../../flags'
-import { IronfishCommand } from '../../command'
 import jsonColorizer from 'json-colorizer'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 import { getConnectedClient } from './show'
 
 export class GetCommand extends IronfishCommand {
@@ -48,10 +48,14 @@ export class GetCommand extends IronfishCommand {
     })
 
     const key = name as keyof Partial<ConfigOptions>
-    if (response.content[key] === undefined) this.exit(0)
+    if (response.content[key] === undefined) {
+      this.exit(0)
+    }
 
     let output = JSON.stringify(response.content[key], undefined, '   ')
-    if (flags.color) output = jsonColorizer(output)
+    if (flags.color) {
+      output = jsonColorizer(output)
+    }
 
     this.log(output)
     this.exit(0)

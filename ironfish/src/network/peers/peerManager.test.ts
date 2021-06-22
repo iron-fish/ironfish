@@ -20,37 +20,37 @@ jest.mock('./encryption', () => {
 
 import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
-import { PeerManager } from './peerManager'
+import { Assert } from '../../assert'
+import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
+import {
+  DisconnectingMessage,
+  DisconnectingReason,
+  Identify,
+  InternalMessageType,
+  PeerList,
+  Signal,
+  SignalRequest,
+} from '../messages'
 import {
   getConnectedPeer,
   getConnectingPeer,
   getSignalingWebRtcPeer,
   getWaitingForIdentityPeer,
-  mockLocalPeer,
   mockIdentity,
+  mockLocalPeer,
+  mockPrivateIdentity,
   webRtcCanInitiateIdentity,
   webRtcCannotInitiateIdentity,
-  mockPrivateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
-import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
+import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
   ConnectionDirection,
   ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from './connections'
-import {
-  Identify,
-  InternalMessageType,
-  Signal,
-  PeerList,
-  DisconnectingReason,
-  DisconnectingMessage,
-  SignalRequest,
-} from '../messages'
-import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
-import { Assert } from '../../assert'
+import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
 
@@ -325,9 +325,12 @@ describe('PeerManager', () => {
         connections: { webSocket: expect.any(WebSocketConnection) },
         identity: null,
       })
-      if (peer.state.type !== 'CONNECTING') throw new Error('Peer state must be CONNECTING')
-      if (peer.state.connections.webSocket == null)
+      if (peer.state.type !== 'CONNECTING') {
+        throw new Error('Peer state must be CONNECTING')
+      }
+      if (!peer.state.connections.webSocket) {
         throw new Error('Peer must have a websocket connection')
+      }
       expect(peer.state.connections.webSocket.type).toEqual(ConnectionType.WebSocket)
       expect(peer.state.connections.webSocket.direction).toEqual(ConnectionDirection.Outbound)
     })
@@ -558,9 +561,12 @@ describe('PeerManager', () => {
 
       const { peer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
 
-      if (peer.state.type === 'DISCONNECTED') throw new Error('Peer should not be DISCONNECTED')
-      if (!peer.state.connections.webRtc)
+      if (peer.state.type === 'DISCONNECTED') {
+        throw new Error('Peer should not be DISCONNECTED')
+      }
+      if (!peer.state.connections.webRtc) {
         throw new Error('Peer should have a WebRTC connection')
+      }
       const webRtcConnection = peer.state.connections.webRtc
       webRtcConnection.setState({
         type: 'CONNECTED',
@@ -611,9 +617,12 @@ describe('PeerManager', () => {
 
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
 
-      if (peer.state.type === 'DISCONNECTED') throw new Error('Peer should not be DISCONNECTED')
-      if (!peer.state.connections.webSocket)
+      if (peer.state.type === 'DISCONNECTED') {
+        throw new Error('Peer should not be DISCONNECTED')
+      }
+      if (!peer.state.connections.webSocket) {
         throw new Error('Peer should have a WebRTC connection')
+      }
 
       expect(peer.state).toEqual({
         type: 'CONNECTED',
@@ -729,7 +738,9 @@ describe('PeerManager', () => {
         ConnectionType.WebSocket,
         ConnectionDirection.Outbound,
       )
-      if (retry == null) throw new Error('Retry must not be null')
+      if (retry === null) {
+        throw new Error('Retry must not be null')
+      }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
       const identify: Identify = {
@@ -763,7 +774,9 @@ describe('PeerManager', () => {
         ConnectionType.WebSocket,
         ConnectionDirection.Outbound,
       )
-      if (retry == null) throw new Error('Retry must not be null')
+      if (retry === null) {
+        throw new Error('Retry must not be null')
+      }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
       const identify: Identify = {
@@ -840,7 +853,9 @@ describe('PeerManager', () => {
         ConnectionType.WebSocket,
         ConnectionDirection.Outbound,
       )
-      if (retry === null) throw new Error('Retry must exist')
+      if (retry === null) {
+        throw new Error('Retry must exist')
+      }
 
       const identify: Identify = {
         type: InternalMessageType.identity,
@@ -1447,7 +1462,9 @@ describe('PeerManager', () => {
 
       const newPeer = peer.knownPeers.get(newPeerIdentity)
       expect(newPeer).toBeDefined()
-      if (!newPeer) throw new Error('Peer must be defined')
+      if (!newPeer) {
+        throw new Error('Peer must be defined')
+      }
       expect(newPeer.state).toEqual({
         type: 'DISCONNECTED',
         identity: newPeerIdentity,

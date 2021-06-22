@@ -6,9 +6,9 @@ import { IDatabaseTransaction } from './transaction'
 import {
   DatabaseSchema,
   IDatabaseEncoding,
+  KnownKeys,
   SchemaKey,
   SchemaValue,
-  KnownKeys,
   UpgradeFunction,
 } from './types'
 

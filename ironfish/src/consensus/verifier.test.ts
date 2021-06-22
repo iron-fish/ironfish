@@ -5,28 +5,28 @@
 jest.mock('ws')
 jest.mock('../network')
 
+import { generateKey } from 'ironfish-wasm-nodejs'
 import { RangeHasher } from '../merkletree'
-import {
-  TestStrategy,
-  makeFakeBlock,
-  blockHash,
-  TestBlockHeader,
-  fakeMaxTarget,
-  TestBlockchain,
-  makeChainFull,
-} from '../testUtilities/fake'
-import { VerificationResultReason } from './verifier'
-import { Target } from '../primitives/target'
 import { BlockHeader } from '../primitives/blockheader'
-import { WorkerPool } from '../workerPool'
+import { Target } from '../primitives/target'
 import {
   createNodeTest,
   useAccountFixture,
   useBlockFixture,
   useMinerBlockFixture,
 } from '../testUtilities'
+import {
+  blockHash,
+  fakeMaxTarget,
+  makeChainFull,
+  makeFakeBlock,
+  TestBlockchain,
+  TestBlockHeader,
+  TestStrategy,
+} from '../testUtilities/fake'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { generateKey } from 'ironfish-wasm-nodejs'
+import { WorkerPool } from '../workerPool'
+import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
   describe('Transactions', () => {

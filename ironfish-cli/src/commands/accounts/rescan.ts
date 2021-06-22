@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import { IronfishRpcClient } from 'ironfish'
-import { flags } from '@oclif/command'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 import { hasUserResponseError } from '../../utils'
 import { getConnectedClient } from '../config/show'
 

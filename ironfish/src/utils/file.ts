@@ -11,10 +11,17 @@ const formatFileSize = (
   base = 1000,
   suffix: SizeSuffix = fileSizeSuffix,
 ): string => {
-  if (bytes < Math.pow(base, 1)) return `${bytes.toFixed(0)} ${suffix.B}`
-  if (bytes < Math.pow(base, 2)) return (bytes / Math.pow(base, 1)).toFixed(0) + ` ${suffix.KB}`
-  if (bytes < Math.pow(base, 3)) return (bytes / Math.pow(base, 2)).toFixed(2) + ` ${suffix.MB}`
-  else return (bytes / Math.pow(base, 3)).toFixed(2) + ` ${suffix.GB}`
+  if (bytes < Math.pow(base, 1)) {
+    return `${bytes.toFixed(0)} ${suffix.B}`
+  }
+  if (bytes < Math.pow(base, 2)) {
+    return (bytes / Math.pow(base, 1)).toFixed(0) + ` ${suffix.KB}`
+  }
+  if (bytes < Math.pow(base, 3)) {
+    return (bytes / Math.pow(base, 2)).toFixed(2) + ` ${suffix.MB}`
+  } else {
+    return (bytes / Math.pow(base, 3)).toFixed(2) + ` ${suffix.GB}`
+  }
 }
 
 const formatMemorySize = (bytes: number): string => {

@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as yup from 'yup'
 import { Event } from '../event'
-import { FileStore } from './fileStore'
 import { FileSystem } from '../fileSystems'
 import { PartialRecursive, YupUtils } from '../utils'
-import * as yup from 'yup'
+import { FileStore } from './fileStore'
 
 export class KeyStore<TSchema extends Record<string, unknown>> {
   dataDir: string
@@ -72,7 +72,9 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     Object.setPrototypeOf(this.overrides, this.loaded)
 
     // Write the file out if it doesnt exist
-    if (data === null) await this.save()
+    if (data === null) {
+      await this.save()
+    }
   }
 
   async save(): Promise<void> {

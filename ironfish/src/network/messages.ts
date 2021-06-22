@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Identity, isIdentity } from './identity'
-import { IJSON } from '../serde'
-import { SerializedBlock } from '../primitives/block'
-import { Gossip, Rpc } from './messageRouters'
-import { UnwrapPromise } from '../utils'
 import { IronfishVerifier } from '../consensus'
+import { SerializedBlock } from '../primitives/block'
+import { IJSON } from '../serde'
+import { UnwrapPromise } from '../utils'
+import { Identity, isIdentity } from './identity'
+import { Gossip, Rpc } from './messageRouters'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -44,14 +44,17 @@ export type Message<
 export type MessagePayload<M> = M extends Message<infer _T, infer P> ? P : never
 
 export function isMessage(obj: unknown): obj is Message<MessageType, PayloadType> {
-  if (typeof obj != 'object' || obj == null) return false
+  if (typeof obj !== 'object' || obj === null) {
+    return false
+  }
   if (
     'payload' in obj &&
     (typeof (obj as Message<MessageType, Record<string, unknown>>).payload !== 'object' ||
       obj === null)
-  )
+  ) {
     return false
-  return typeof (obj as Message<MessageType, PayloadType>).type == 'string'
+  }
+  return typeof (obj as Message<MessageType, PayloadType>).type === 'string'
 }
 
 export function isPayloadMessage(
@@ -94,7 +97,9 @@ export type Identify = Message<
 >
 
 export function isIdentify(obj: unknown): obj is Identify {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
 
   const payload = obj.payload as Identify['payload']
 
@@ -126,7 +131,9 @@ export type SignalRequest = Message<
 >
 
 export function isSignalRequest(obj: unknown): obj is SignalRequest {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
 
   const payload = obj.payload as Signal['payload']
   return (
@@ -155,7 +162,9 @@ export type Signal = Message<
 >
 
 export function isSignal(obj: unknown): obj is Signal {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as Signal['payload']
   return (
     obj.type === InternalMessageType.signal &&
@@ -180,7 +189,9 @@ export type PeerList = Message<
 >
 
 export function isPeerList(obj: unknown): obj is PeerList {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as PeerList['payload']
   return (
     obj.type === InternalMessageType.peerList &&
@@ -207,7 +218,9 @@ export type DisconnectingMessage = Message<
 >
 
 export function isDisconnectingMessage(obj: unknown): obj is DisconnectingMessage {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as DisconnectingMessage['payload']
   return (
     obj.type === InternalMessageType.disconnecting &&
@@ -365,7 +378,9 @@ export function isGetBlocksResponse<SH, ST>(
     Array.isArray(obj.payload.blocks)
   ) {
     for (const block of obj.payload.blocks) {
-      if (!isBlock(block)) return false
+      if (!isBlock(block)) {
+        return false
+      }
     }
 
     return true
@@ -392,7 +407,9 @@ export function isGetBlockHashesResponse(obj: LooseMessage): obj is GetBlockHash
     Array.isArray(obj.payload.blocks)
   ) {
     for (const block of obj.payload.blocks) {
-      if (!isBlockHash(block)) return false
+      if (!isBlockHash(block)) {
+        return false
+      }
     }
 
     return true

@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
-import { Request } from '../request'
-import { ResponseError, ValidationError } from '../adapters/errors'
-import { RpcServer } from '../server'
-import { StrEnumUtils } from '../../utils/enums'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
+import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
+import { ResponseError, ValidationError } from '../adapters/errors'
+import { Request } from '../request'
+import { RpcServer } from '../server'
 
 export enum ApiNamespace {
   account = 'account',
@@ -90,15 +90,21 @@ export class Router {
     const { handler, schema } = methodRoute
 
     const { error } = await YupUtils.tryValidate(schema, request.data)
-    if (error) throw new ValidationError(error.message, 400)
+    if (error) {
+      throw new ValidationError(error.message, 400)
+    }
 
     Assert.isNotNull(this.server)
 
     try {
       await handler(request, this.server.node)
     } catch (e: unknown) {
-      if (e instanceof ResponseError) throw e
-      if (e instanceof Error) throw new ResponseError(e)
+      if (e instanceof ResponseError) {
+        throw e
+      }
+      if (e instanceof Error) {
+        throw new ResponseError(e)
+      }
       throw e
     }
   }

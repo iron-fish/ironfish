@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeFileProvider } from './fileSystems'
-import { IronfishSdk } from './sdk'
 import os from 'os'
-import { Config } from './fileStores'
 import { Accounts } from './account'
-import { IronfishIpcClient } from './rpc'
+import { Config } from './fileStores'
+import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
+import { IronfishIpcClient } from './rpc'
+import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
   it('should initialize an SDK', async () => {

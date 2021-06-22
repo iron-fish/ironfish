@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { PromiseUtils, GetStatusResponse, FileUtils } from 'ironfish'
+import blessed from 'blessed'
+import { FileUtils, GetStatusResponse, PromiseUtils } from 'ironfish'
 import { Assert } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
-import blessed from 'blessed'
 
 export default class Status extends IronfishCommand {
   static description = 'Show the status of the node'

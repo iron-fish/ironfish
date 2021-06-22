@@ -4,10 +4,10 @@
 
 import type { SignalData } from 'simple-peer'
 import WSWebSocket from 'ws'
-
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
+import { ArrayUtils } from '../../utils'
 import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
@@ -30,19 +30,18 @@ import {
   Signal,
   SignalRequest,
 } from '../messages'
+import { parseUrl } from '../utils'
+import { VERSION_PROTOCOL_MIN } from '../version'
 import {
-  WebRtcConnection,
-  WebSocketConnection,
   Connection,
   ConnectionDirection,
   ConnectionType,
   NetworkError,
+  WebRtcConnection,
+  WebSocketConnection,
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
-import { parseUrl } from '../utils'
-import { ArrayUtils } from '../../utils'
-import { VERSION_PROTOCOL_MIN } from '../version'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -166,7 +165,9 @@ export class PeerManager {
    * Connect to a peer using WebSockets
    * */
   connectToWebSocket(peer: Peer): boolean {
-    if (!this.canConnectToWebSocket(peer)) return false
+    if (!this.canConnectToWebSocket(peer)) {
+      return false
+    }
 
     // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
     peer.localRequestedDisconnectUntil = null
@@ -200,7 +201,9 @@ export class PeerManager {
    * Connect to a peer using WebRTC through another peer
    * */
   connectToWebRTC(peer: Peer): boolean {
-    if (!this.canConnectToWebRTC(peer)) return false
+    if (!this.canConnectToWebRTC(peer)) {
+      return false
+    }
 
     // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
     peer.localRequestedDisconnectUntil = null
@@ -321,7 +324,7 @@ export class PeerManager {
 
       // Ensure one or more brokering peers exists before encrypting the signaling message,
       // but discard the brokering peer in case its state changes during encryption
-      if (this.getBrokeringPeer(peer) == null) {
+      if (this.getBrokeringPeer(peer) === null) {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
@@ -339,7 +342,7 @@ export class PeerManager {
 
       for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
         const brokeringPeer = this.getBrokeringPeer(peer)
-        if (brokeringPeer == null) {
+        if (brokeringPeer === null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
           this.logger.debug(message)
           connection.close(new NetworkError(message))
@@ -405,7 +408,7 @@ export class PeerManager {
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
 
     const hasNoConnection =
-      peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket == null
+      peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
     const retryOk =
       peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
@@ -433,7 +436,7 @@ export class PeerManager {
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
 
     const hasNoConnection =
-      peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc == null
+      peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === null
 
     const retryOk =
       peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
@@ -556,7 +559,7 @@ export class PeerManager {
    * a peer is connected, meaning it has a connection tht has received an identity
    */
   private updateIdentifiedPeerMap(peer: Peer): void {
-    if (peer.state.identity == null) {
+    if (peer.state.identity === null) {
       this.logger.warn('updateIdentifiedPeerMap called with a Peer with null identity')
       return
     }
@@ -753,11 +756,15 @@ export class PeerManager {
     const connectedPeers = []
 
     for (const p of this.identifiedPeers.values()) {
-      if (p.state.type !== 'CONNECTED') continue
+      if (p.state.type !== 'CONNECTED') {
+        continue
+      }
 
       // Worker nodes are nodes that should not be broadcast because they are
       // meant to connect to a single node and perform one function
-      if (p.isWorker && !this.localPeer.broadcastWorkers) continue
+      if (p.isWorker && !this.localPeer.broadcastWorkers) {
+        continue
+      }
 
       connectedPeers.push({
         identity: p.state.identity,
@@ -837,7 +844,7 @@ export class PeerManager {
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
     } else {
-      if (peer.state.identity == null) {
+      if (peer.state.identity === null) {
         const messageType = isMessage(message) ? message.type : 'Unknown'
         this.logger.debug(
           `Closing connection to unidentified peer that sent an unexpected message: ${messageType}`,
@@ -1061,7 +1068,9 @@ export class PeerManager {
       this.logger.debug(error)
       connectionToClose.close(new NetworkError(error))
 
-      if (connectionToClose === connection) return
+      if (connectionToClose === connection) {
+        return
+      }
     }
 
     // Inbound WebSocket connections come with an address but no port, so we need to
@@ -1261,9 +1270,9 @@ export class PeerManager {
 
     if (
       signalingPeer.state.type === 'DISCONNECTED' ||
-      signalingPeer.state.connections.webRtc == null
+      !signalingPeer.state.connections.webRtc
     ) {
-      if (signalingPeer.state.identity == null) {
+      if (signalingPeer.state.identity === null) {
         this.logger.log('Peer must have an identity to begin signaling')
         return
       }
@@ -1292,7 +1301,7 @@ export class PeerManager {
     )
 
     // Close the connection if decrypting fails
-    if (result == null) {
+    if (result === null) {
       const error = `Failed to decrypt signaling data from ${signalingPeer.displayName}`
       this.logger.debug(error)
       connection.close(new NetworkError(error))
@@ -1385,8 +1394,12 @@ export class PeerManager {
    * @param emitKnownPeersChanged Set this to false if you are adding known peers in bulk and you know you want to emit this yourself
    */
   addKnownPeerTo(peer: Peer, addTo: Peer, emitKnownPeersChanged = true): void {
-    if (!peer.state.identity || !addTo.state.identity) return
-    if (peer.state.identity === addTo.state.identity) return
+    if (!peer.state.identity || !addTo.state.identity) {
+      return
+    }
+    if (peer.state.identity === addTo.state.identity) {
+      return
+    }
 
     if (!addTo.knownPeers.has(peer.state.identity)) {
       addTo.knownPeers.set(peer.state.identity, peer)

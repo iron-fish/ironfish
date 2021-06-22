@@ -53,7 +53,9 @@ export class Response<TEnd = unknown, TStream = unknown> {
     }
 
     await this.promise.catch((e) => {
-      if (e instanceof ConnectionLostError && ignoreClose) return
+      if (e instanceof ConnectionLostError && ignoreClose) {
+        return
+      }
       throw e
     })
   }
