@@ -14,7 +14,7 @@ import {
 } from './logger'
 import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
+import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
 import {
@@ -171,7 +171,6 @@ export class IronfishSdk {
     autoSeed?: boolean
   } = {}): Promise<IronfishNode> {
     const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
-    const webRtc = (await require('wrtc')) as IsomorphicWebRtc | undefined
 
     const node = await IronfishNode.init({
       agent: Platform.getAgent(this.agent),
@@ -184,7 +183,6 @@ export class IronfishSdk {
       metrics: this.metrics,
       verifierClass: this.verifierClass,
       strategyClass: this.strategyClass,
-      webRtc: webRtc,
       webSocket: webSocket,
     })
 

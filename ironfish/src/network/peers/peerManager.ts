@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { SignalData } from 'simple-peer'
+import type { SignalData } from './connections/webRtcConnection'
+import nodeDataChannel from 'node-datachannel'
 import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
@@ -315,13 +316,9 @@ export class PeerManager {
    * @param initiator Set to true if we are initiating a connection with `peer`
    */
   private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
-    const connection = new WebRtcConnection(
-      initiator,
-      this.localPeer.webRtc,
-      this.logger,
-      this.metrics,
-      { simulateLatency: this.localPeer.simulateLatency },
-    )
+    const connection = new WebRtcConnection(initiator, this.logger, this.metrics, {
+      simulateLatency: this.localPeer.simulateLatency,
+    })
 
     connection.onSignal.on(async (data) => {
       let errorMessage
@@ -790,6 +787,7 @@ export class PeerManager {
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
+    nodeDataChannel.cleanup()
   }
 
   /**
