@@ -124,7 +124,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a spend to the transaction', async () => {
       const witness = await tree.witness(0)
-      if (witness == null) {
+      if (witness === null) {
         throw new Error('Witness should not be null')
       }
       const result = simpleTransaction.spend(minerNote, witness)
@@ -251,7 +251,7 @@ describe('Demonstrate the Sapling API', () => {
       transaction = new WasmTransaction()
 
       const witness = await tree.witness(receiverWitnessIndex)
-      if (witness == null) {
+      if (witness === null) {
         throw new Error('Witness must not be null')
       }
 

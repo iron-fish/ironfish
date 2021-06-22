@@ -436,7 +436,7 @@ export class PeerManager {
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
 
     const hasNoConnection =
-      peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === null
+      peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === undefined
 
     const retryOk =
       peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
@@ -1270,7 +1270,7 @@ export class PeerManager {
 
     if (
       signalingPeer.state.type === 'DISCONNECTED' ||
-      !signalingPeer.state.connections.webRtc
+      signalingPeer.state.connections.webRtc === undefined
     ) {
       if (signalingPeer.state.identity === null) {
         this.logger.log('Peer must have an identity to begin signaling')

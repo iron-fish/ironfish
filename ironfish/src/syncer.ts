@@ -370,7 +370,7 @@ export class Syncer {
         this.blocksPerMessage + 1,
       )
 
-      if (headBlock === null) {
+      if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
       }
 
