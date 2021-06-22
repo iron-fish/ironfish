@@ -137,7 +137,14 @@ export function getSignalingWebRtcPeer(
   const connection = peer.state.connections.webRtc
 
   // Send a signal to trigger the connection into a SIGNALING state
-  connection?.signal({})
+  connection?.signal({
+    type: 'candidate',
+    candidate: {
+      candidate: '',
+      sdpMLineIndex: 0,
+      sdpMid: '0',
+    },
+  })
   expect(connection?.state.type).toBe('SIGNALING')
   if (connection?.state.type !== 'SIGNALING') {
     throw new Error('Connection')

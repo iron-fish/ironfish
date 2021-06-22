@@ -3,7 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 jest.mock('ws')
-jest.mock('simple-peer')
+jest.mock('node-datachannel', () => {
+  return {
+    PeerConnection: class {
+      onLocalDescription = () => {}
+      onLocalCandidate = () => {}
+      onDataChannel = () => {}
+      createDataChannel = () => ({
+        onOpen: () => {},
+        onError: () => {},
+        onClosed: () => {},
+        onMessage: () => {},
+        close: () => {},
+      })
+    },
+  }
+})
 
 import { createRootLogger } from '../../logger'
 import {

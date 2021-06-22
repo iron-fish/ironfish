@@ -5,7 +5,24 @@
 import * as encryption from './encryption'
 
 jest.mock('ws')
-jest.mock('simple-peer')
+jest.mock('node-datachannel', () => {
+  return {
+    PeerConnection: class {
+      onLocalDescription = () => {}
+      onLocalCandidate = () => {}
+      onDataChannel = () => {}
+      createDataChannel = () => ({
+        onOpen: () => {},
+        onError: () => {},
+        onClosed: () => {},
+        onMessage: () => {},
+        close: () => {},
+        isOpen: () => {},
+        sendMessage: () => {},
+      })
+    },
+  }
+})
 jest.mock('./encryption', () => {
   const originalModule = jest.requireActual<typeof encryption>('./encryption')
 
@@ -18,7 +35,6 @@ jest.mock('./encryption', () => {
   }
 })
 
-import wrtc from 'wrtc'
 import ws from 'ws'
 import { createRootLogger } from '../../logger'
 import { mockIdentity } from '../testUtilities'
@@ -101,7 +117,7 @@ describe('setWebRtcConnection', () => {
   it('Changes to CONNECTING when in DISCONNECTED', () => {
     const identity = mockIdentity('peer')
     const peer = new Peer(identity)
-    const connection = new WebRtcConnection(false, wrtc, createRootLogger())
+    const connection = new WebRtcConnection(false, createRootLogger())
 
     peer.setWebRtcConnection(connection)
     expect(peer.state).toEqual({
@@ -114,7 +130,7 @@ describe('setWebRtcConnection', () => {
   it('Updates supportedConnectionTypes when CONNECTED', () => {
     const identity = mockIdentity('peer')
     const peer = new Peer(identity)
-    const connection = new WebRtcConnection(true, wrtc, createRootLogger())
+    const connection = new WebRtcConnection(true, createRootLogger())
 
     const retry = peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
     if (retry === null) {
@@ -135,7 +151,7 @@ describe('setWebRtcConnection', () => {
 })
 
 it('Times out WebRTC handshake', () => {
-  const connection = new WebRtcConnection(false, wrtc, createRootLogger())
+  const connection = new WebRtcConnection(false, createRootLogger())
   expect(connection.state.type).toEqual('CONNECTING')
 
   const peer = new Peer(null)
@@ -180,7 +196,7 @@ it('Times out WebRTC handshake', () => {
 
 describe('Handles WebRTC message send failure', () => {
   it('Handles failure if WebRTC is only connection', () => {
-    const connection = new WebRtcConnection(false, wrtc, createRootLogger())
+    const connection = new WebRtcConnection(true, createRootLogger())
     expect(connection.state.type).toEqual('CONNECTING')
 
     const peer = new Peer(null)
@@ -188,9 +204,11 @@ describe('Handles WebRTC message send failure', () => {
     // Time out requesting signaling
     connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
     peer.setWebRtcConnection(connection)
-    jest.spyOn(connection['peer'], 'send').mockImplementation(() => {
+    if (!connection['datachannel']) throw new Error('Should have datachannel')
+    jest.spyOn(connection['datachannel'], 'sendMessage').mockImplementation(() => {
       throw new Error('Error')
     })
+    jest.spyOn(connection['datachannel'], 'isOpen').mockImplementation(() => true)
 
     expect(peer.state.type).toEqual('CONNECTED')
     const result = peer.send({ type: 'test', payload: {} })
@@ -199,7 +217,7 @@ describe('Handles WebRTC message send failure', () => {
   })
 
   it('Falls back to WebSockets if available and WebRTC send fails', () => {
-    const wrtcConnection = new WebRtcConnection(false, wrtc, createRootLogger())
+    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
     const wsConnection = new WebSocketConnection(
       new ws(''),
       ConnectionDirection.Outbound,
@@ -214,9 +232,11 @@ describe('Handles WebRTC message send failure', () => {
     peer.setWebRtcConnection(wrtcConnection)
     peer.setWebSocketConnection(wsConnection)
 
-    jest.spyOn(wrtcConnection['peer'], 'send').mockImplementation(() => {
-      throw new Error('Error')
-    })
+    if (wrtcConnection['datachannel']) {
+      jest.spyOn(wrtcConnection['datachannel'], 'sendMessage').mockImplementation(() => {
+        throw new Error('Error')
+      })
+    }
 
     const wsSendSpy = jest.spyOn(wsConnection, 'send')
     const message = { type: 'test', payload: {} }
@@ -328,7 +348,7 @@ it('Stays in CONNECTED when adding an additional connection', () => {
   connection.setState({ type: 'CONNECTED', identity })
 
   // Add in an additional connection
-  const wrtcConnection = new WebRtcConnection(true, wrtc, createRootLogger())
+  const wrtcConnection = new WebRtcConnection(true, createRootLogger())
   peer.setWebRtcConnection(wrtcConnection)
   expect(wrtcConnection.state.type).not.toBe('CONNECTED')
 
@@ -354,7 +374,7 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
     connection.setState({ type: 'CONNECTED', identity })
 
     // Add a CONNECTED WebRTC connection
-    const wrtcConnection = new WebRtcConnection(true, wrtc, createRootLogger())
+    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
     wrtcConnection.setState({ type: 'CONNECTED', identity })
 
@@ -383,7 +403,7 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
     connection.setState({ type: 'CONNECTED', identity })
 
     // Add a CONNECTED WebRTC connection
-    const wrtcConnection = new WebRtcConnection(true, wrtc, createRootLogger())
+    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
     wrtcConnection.setState({ type: 'CONNECTED', identity })
 
@@ -433,7 +453,7 @@ describe('Updates supportedConnectionTypes when one connection disconnects with 
     }
     const failSpy = jest.spyOn(retry, 'failedConnection')
 
-    const connection = new WebRtcConnection(true, wrtc, createRootLogger())
+    const connection = new WebRtcConnection(true, createRootLogger())
     peer.setWebRtcConnection(connection)
 
     connection['_error'] = new Error('Test')
