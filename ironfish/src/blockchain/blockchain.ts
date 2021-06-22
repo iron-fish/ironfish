@@ -249,11 +249,13 @@ export class Blockchain<
     return genesisHeader
   }
 
-  async open(): Promise<void> {
+  async open(options?: { upgrade?: boolean }): Promise<void> {
     if (this.opened) return
     this.opened = true
 
-    await this.db.open({ upgrade: this.forceUpgrade })
+    const upgrade = options?.upgrade ?? true
+
+    await this.db.open({ upgrade: upgrade ? this.forceUpgrade : undefined })
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
