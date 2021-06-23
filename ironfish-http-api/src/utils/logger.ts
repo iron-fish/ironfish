@@ -10,11 +10,7 @@ import { transports, createLogger, format } from 'winston'
  */
 export const Logger = createLogger({
   level: 'debug',
-  format: format.combine(format.timestamp(), format.json()),
+  format: format.combine(format.errors({ stack: true }), format.timestamp(), format.json()),
   defaultMeta: { service: 'user-service' },
-  transports: [
-    new transports.Console({ format: format.simple() }),
-    new transports.File({ filename: 'error.log', level: 'error' }),
-    new transports.File({ filename: 'combined.log' }),
-  ],
+  transports: [new transports.Console({ format: format.simple() })],
 })
