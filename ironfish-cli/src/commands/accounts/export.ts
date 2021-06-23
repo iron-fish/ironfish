@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../command'
+import { flags } from '@oclif/command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
 import jsonColorizer from 'json-colorizer'
 import fs from 'fs'
+import { getConnectedClient } from '../config/show'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -12,6 +14,10 @@ export class ExportCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
+    local: flags.boolean({
+      default: false,
+      description: 'Export an account without an online node',
+    }),
   }
 
   static args = [
@@ -31,12 +37,12 @@ export class ExportCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = this.parse(ExportCommand)
+    const { color, local } = flags
     const account = args.account as string
     const exportPath = args.path as string | undefined
 
-    await this.sdk.client.connect()
-
-    const response = await this.sdk.client.exportAccount({ account: account })
+    const client = await getConnectedClient(this.sdk, local)
+    const response = await client.exportAccount({ account })
 
     let output = JSON.stringify(response.content.account, undefined, '   ')
 
@@ -47,7 +53,9 @@ export class ExportCommand extends IronfishCommand {
       return
     }
 
-    if (flags.color) output = jsonColorizer(output)
+    if (color) {
+      output = jsonColorizer(output)
+    }
     this.log(output)
   }
 }
