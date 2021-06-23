@@ -2,18 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bodyParser from 'body-parser'
 import express from 'express'
 import * as OpenApiValidator from 'express-openapi-validator'
 import { Express } from 'express-serve-static-core'
+import http from 'http'
 import { connector } from 'swagger-routes-express'
 import swaggerUi from 'swagger-ui-express'
-import bodyParser from 'body-parser'
-
-import { errorHandler } from '../middleware/errorHandler'
 import OpenAPIDefinition from '../config/openapi.json'
 import * as api from '../controllers'
+import { errorHandler } from '../middleware/errorHandler'
 import { Logger } from '../utils/logger'
-import http from 'http'
 
 export class Server {
   app: Express
@@ -65,7 +64,9 @@ export class Server {
   }
 
   async close(): Promise<void> {
-    if (!this.isOpen) return
+    if (!this.isOpen) {
+      return
+    }
     this.isOpen = false
     await this.openPromise
 
@@ -76,8 +77,11 @@ export class Server {
     if (httpServer) {
       await new Promise<void>((resolve, reject) => {
         httpServer.close((err: unknown) => {
-          if (err) reject(err)
-          else resolve()
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
         })
       })
     }

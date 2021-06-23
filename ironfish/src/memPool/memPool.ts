@@ -3,22 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import { Nullifier } from '../primitives/nullifier'
-import { createRootLogger, Logger } from '../logger'
-import { JsonSerializable } from '../serde'
 import { Blockchain } from '../blockchain'
-import { Strategy } from '../strategy'
+import { createRootLogger, Logger } from '../logger'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
+import { Nullifier } from '../primitives/nullifier'
 import {
   IronfishTransaction,
   SerializedTransaction,
   Transaction,
 } from '../primitives/transaction'
+import { JsonSerializable } from '../serde'
+import { Strategy } from '../strategy'
 
 export class MemPool<
   E,

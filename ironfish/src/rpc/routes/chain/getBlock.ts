@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-
-import { ApiNamespace, router } from '../router'
-import { ValidationError } from '../../adapters'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
+import { ValidationError } from '../../adapters'
+import { ApiNamespace, router } from '../router'
 
 export type GetBlockRequest = { index?: number; hash?: string }
 

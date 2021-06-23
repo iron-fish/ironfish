@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishCommand } from '../command'
-import path from 'path'
+import cli from 'cli-ux'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
 import { IronfishNode, PeerNetwork } from 'ironfish'
-import cli from 'cli-ux'
+import path from 'path'
+import { IronfishCommand } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
@@ -52,7 +52,9 @@ export default class Reset extends IronfishCommand {
         `\nThis means this failed to run. Delete the accounts backup?\nAre you sure? (Y)es / (N)o`,
       )
 
-      if (!confirmed) this.exit(1)
+      if (!confirmed) {
+        this.exit(1)
+      }
 
       fs.rmSync(backupPath)
     }
@@ -63,7 +65,9 @@ export default class Reset extends IronfishCommand {
         `\nYou are about to destroy your node data at ${node.config.dataDir}\nAre you sure? (Y)es / (N)o`,
       ))
 
-    if (!confirmed) return
+    if (!confirmed) {
+      return
+    }
 
     const accounts = node.accounts.listAccounts()
     this.log(`Backing up ${accounts.length} accounts to ${backupPath}`)

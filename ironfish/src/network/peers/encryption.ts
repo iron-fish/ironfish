@@ -38,6 +38,8 @@ export function unboxMessage(
     Buffer.from(sender, 'base64'),
     recipient.secretKey,
   )
-  if (!opened) return null
+  if (!opened) {
+    return null
+  }
   return Buffer.from(opened).toString('utf8')
 }

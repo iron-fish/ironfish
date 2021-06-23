@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createRouteTest } from '../../../testUtilities/routeTest'
-import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
-import { GetBlockResponse } from './getBlock'
 import { BlockHashSerdeInstance } from '../../../serde'
+import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { createRouteTest } from '../../../testUtilities/routeTest'
+import { GetBlockResponse } from './getBlock'
 
 describe('Route chain.getBlock', () => {
   const routeTest = createRouteTest()

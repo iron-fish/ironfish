@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IOptionFlag } from '@oclif/command/lib/flags'
-import { DEFAULT_CONFIG_NAME, DEFAULT_DATABASE_NAME, DEFAULT_DATA_DIR } from 'ironfish'
+import { DEFAULT_CONFIG_NAME, DEFAULT_DATA_DIR, DEFAULT_DATABASE_NAME } from 'ironfish'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'

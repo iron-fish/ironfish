@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Strategy } from '../strategy'
-import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
-import { NullifierHash } from './nullifier'
-import { Target, TargetSerdeInstance } from './target'
 import Serde, {
-  JsonSerializable,
-  IJSON,
-  GraffitiSerdeInstance,
   BlockHashSerdeInstance,
+  GraffitiSerdeInstance,
+  IJSON,
+  JsonSerializable,
 } from '../serde'
+import { Strategy } from '../strategy'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from './noteEncrypted'
+import { NullifierHash } from './nullifier'
+import { Target, TargetSerdeInstance } from './target'
+import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
 
 export type BlockHash = Buffer
 

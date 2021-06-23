@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { test } from '@oclif/test'
+import fs from 'fs'
 import { ExportAccountResponse } from 'ironfish/src'
 import identity from 'lodash/identity'
-import fs from 'fs'
 
 describe('accounts:export', () => {
   const responseContent: ExportAccountResponse = {

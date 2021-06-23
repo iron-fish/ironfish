@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
-import { IronfishCommand } from '../command'
 import { spawn } from 'child_process'
-import { v4 as uuid } from 'uuid'
 import cli from 'cli-ux'
 import fsAsync from 'fs/promises'
+import { FileUtils } from 'ironfish'
 import os from 'os'
 import path from 'path'
-import { FileUtils } from 'ironfish'
+import { v4 as uuid } from 'uuid'
+import { IronfishCommand } from '../command'
+import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 
 export default class Backup extends IronfishCommand {
   static hidden = true
@@ -34,7 +34,9 @@ export default class Backup extends IronfishCommand {
 
     let id = uuid().slice(0, 5)
     const name = this.sdk.config.get('nodeName')
-    if (name) id = `${name}.${id}`
+    if (name) {
+      id = `${name}.${id}`
+    }
 
     const source = this.sdk.config.dataDir
     const destDir = await fsAsync.mkdtemp(path.join(os.tmpdir(), `ironfish.backup`))

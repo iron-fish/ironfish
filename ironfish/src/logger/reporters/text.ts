@@ -5,9 +5,9 @@
 // The reporter intentionally logs to the console, so disable the lint
 /* eslint-disable no-console */
 
+import colors from 'colors/safe'
 import { ConsolaReporter, ConsolaReporterLogObject, LogLevel } from 'consola'
 import { format as formatDate } from 'date-fns'
-import colors from 'colors/safe'
 import { StringUtils } from '../../utils/strings'
 
 const COLORS = [
@@ -106,7 +106,9 @@ export class TextReporter implements ConsolaReporter {
   }
 
   log(logObj: ConsolaReporterLogObject): void {
-    if (!this.shouldLog(logObj)) return
+    if (!this.shouldLog(logObj)) {
+      return
+    }
 
     const args = logObj.args
 

@@ -6,9 +6,15 @@
  * This is used to unwrap a message from an error if its possible otherwise just renders the error as JSON
  */
 function extractMessage(error: unknown): string {
-  if (!error) return ''
-  if (error instanceof Error) return error.message
-  if (typeof error === 'string') return error
+  if (!error) {
+    return ''
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
   return JSON.stringify(error)
 }
 

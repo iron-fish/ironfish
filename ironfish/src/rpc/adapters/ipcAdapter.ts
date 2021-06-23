@@ -1,18 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcServer } from '../server'
-import { Assert } from '../../assert'
-import { Logger, createRootLogger } from '../../logger'
 import { IPC, IpcServer, IpcSocket, IpcSocketId } from 'node-ipc'
-import { IronfishNode } from '../../node'
-import { IAdapter } from './adapter'
-import { Request } from '../request'
-import { Router, ApiNamespace } from '../routes'
 import { v4 as uuid } from 'uuid'
-import { YupUtils } from '../../utils/yup'
 import * as yup from 'yup'
-import { ResponseError, ERROR_CODES } from './errors'
+import { Assert } from '../../assert'
+import { createRootLogger, Logger } from '../../logger'
+import { IronfishNode } from '../../node'
+import { YupUtils } from '../../utils/yup'
+import { Request } from '../request'
+import { ApiNamespace, Router } from '../routes'
+import { RpcServer } from '../server'
+import { IAdapter } from './adapter'
+import { ERROR_CODES, ResponseError } from './errors'
 
 export type IpcRequest = {
   mid: number
@@ -101,7 +101,9 @@ export class IpcAdapter implements IAdapter {
   }
 
   async start(): Promise<void> {
-    if (this.started) return
+    if (this.started) {
+      return
+    }
     this.started = true
 
     const { IPC } = await import('node-ipc')
@@ -160,7 +162,9 @@ export class IpcAdapter implements IAdapter {
   }
 
   async waitForAllToDisconnect(): Promise<void> {
-    if (!this.server) return
+    if (!this.server) {
+      return
+    }
 
     const promises = []
 
@@ -190,7 +194,9 @@ export class IpcAdapter implements IAdapter {
   }
 
   onConnect(socket: IpcSocket): void {
-    if (!socket.id) socket.id = uuid()
+    if (!socket.id) {
+      socket.id = uuid()
+    }
     this.logger.debug(`IPC client connected: ${socket.id}`)
   }
 
@@ -201,14 +207,18 @@ export class IpcAdapter implements IAdapter {
       const pending = this.pending.get(socketId)
 
       if (pending) {
-        for (const request of pending) request.close()
+        for (const request of pending) {
+          request.close()
+        }
         this.pending.delete(socketId)
       }
     }
   }
 
   async onMessage(socket: IpcSocket, data: unknown): Promise<void> {
-    if (!socket.id) return
+    if (!socket.id) {
+      return
+    }
 
     const result = await YupUtils.tryValidate(IpcRequestSchema, data)
 
@@ -250,7 +260,9 @@ export class IpcAdapter implements IAdapter {
     } catch (error: unknown) {
       if (error instanceof ResponseError) {
         this.emitResponse(socket, message.mid, error.status, this.renderError(error))
-      } else throw error
+      } else {
+        throw error
+      }
     }
   }
 

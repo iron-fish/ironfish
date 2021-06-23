@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IronfishBlockchain } from '../blockchain'
+import { Verifier } from '../consensus'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
@@ -10,7 +11,6 @@ import {
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { IronfishTransaction, SerializedTransaction } from '../primitives/transaction'
-import { Verifier } from '../consensus'
 
 export class IronfishTestVerifier extends Verifier<
   IronfishNoteEncrypted,

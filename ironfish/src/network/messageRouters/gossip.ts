@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { MessageType, IncomingPeerMessage, Message, isMessage, PayloadType } from '../messages'
-import { v4 as uuid } from 'uuid'
 import { RollingFilter } from 'bfilter'
-import { PeerManager } from '../peers/peerManager'
+import { v4 as uuid } from 'uuid'
+import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
 import { Peer } from '../peers/peer'
+import { PeerManager } from '../peers/peerManager'
 
 /**
  * We store gossips that have already been seen and processed, and ignore them
@@ -28,7 +28,7 @@ export type Gossip<T extends MessageType, P extends PayloadType> = Message<T, P>
 }
 
 export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> {
-  return isMessage(obj) && typeof (obj as Gossip<MessageType, PayloadType>).nonce == 'string'
+  return isMessage(obj) && typeof (obj as Gossip<MessageType, PayloadType>).nonce === 'string'
 }
 
 /**
@@ -88,7 +88,9 @@ export class GossipRouter {
 
   async handle(peer: Peer, gossipMessage: IncomingGossipPeerMessage['message']): Promise<void> {
     const handler = this.handlers.get(gossipMessage.type)
-    if (handler === undefined) return
+    if (handler === undefined) {
+      return
+    }
 
     if (!this.seenGossipFilter.added(gossipMessage.nonce, 'utf-8')) {
       return
@@ -97,7 +99,9 @@ export class GossipRouter {
     const peerIdentity = peer.getIdentityOrThrow()
 
     const gossip = await handler({ peerIdentity, message: gossipMessage })
-    if (!gossip) return
+    if (!gossip) {
+      return
+    }
 
     const peersConnections =
       this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()

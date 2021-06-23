@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  MessageType,
   IncomingPeerMessage,
-  Message,
-  PayloadType,
   LooseMessage,
+  Message,
+  MessageType,
+  PayloadType,
 } from '../messages'
-import { PeerManager } from '../peers/peerManager'
 import { Peer } from '../peers/peer'
+import { PeerManager } from '../peers/peerManager'
 
 export type IncomingFireAndForgetGeneric<T extends MessageType> = IncomingPeerMessage<
   Message<T, PayloadType>
@@ -67,7 +67,9 @@ export class FireAndForgetRouter {
     message: IncomingFireAndForgetPeerMessage['message'],
   ): Promise<void> {
     const handler = this.handlers.get(message.type)
-    if (handler === undefined) return
+    if (handler === undefined) {
+      return
+    }
     const peerIdentity = peer.getIdentityOrThrow()
     await handler({ peerIdentity, message })
   }

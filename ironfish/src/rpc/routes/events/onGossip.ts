@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ApiNamespace, router } from '../router'
-import { IronfishBlock } from '../../../primitives'
-import { RpcBlock, serializeRpcBlock, RpcBlockSchema } from './types'
 import * as yup from 'yup'
+import { IronfishBlock } from '../../../primitives'
+import { ApiNamespace, router } from '../router'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlock } from './types'
 
 export type OnGossipRequest = undefined
 export type OnGossipResponse = { block: RpcBlock }

@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { zip } from 'lodash'
-import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
 import Serde, { JsonSerializable } from '../serde'
 import { Strategy } from '../strategy'
-import { Nullifier } from './nullifier'
+import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from './noteEncrypted'
+import { Nullifier } from './nullifier'
+import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
@@ -121,8 +121,8 @@ export class BlockSerde<
     }
     for (const [transaction1, transaction2] of zip(block1.transactions, block2.transactions)) {
       if (
-        transaction1 == null ||
-        transaction2 == null ||
+        !transaction1 ||
+        !transaction2 ||
         !this.strategy.transactionSerde().equals(transaction1, transaction2)
       ) {
         return false
@@ -141,7 +141,7 @@ export class BlockSerde<
   deserialize(data: SerializedBlock<SH, ST>): Block<E, H, T, SE, SH, ST> {
     if (
       typeof data === 'object' &&
-      data != null &&
+      data !== null &&
       'header' in data &&
       'transactions' in data &&
       Array.isArray(data.transactions)

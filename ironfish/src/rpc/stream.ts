@@ -9,7 +9,9 @@ export class Stream<T> implements AsyncIterable<T> {
   closed = false
 
   write(value: T): void {
-    if (this.closed) return
+    if (this.closed) {
+      return
+    }
 
     if (this.waiting.length) {
       const waiting = this.waiting.shift() as PromiseResolve<IteratorResult<T>>

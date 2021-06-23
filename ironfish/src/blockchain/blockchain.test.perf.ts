@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
-import { IronfishBlock } from '../primitives/block'
 import _ from 'lodash'
-import { MathUtils, UnwrapPromise } from '../utils'
 import { Assert } from '../assert'
+import { IronfishBlock } from '../primitives/block'
+import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import { MathUtils, UnwrapPromise } from '../utils'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()

@@ -13,7 +13,9 @@ export class AsyncUtils {
 
   static async count<T>(iter: AsyncIterable<T>): Promise<number> {
     let count = 0
-    for await (const _result of iter) ++count
+    for await (const _result of iter) {
+      ++count
+    }
     return count
   }
 }

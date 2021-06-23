@@ -8,11 +8,11 @@ jest.mock('ws')
 import { mocked } from 'ts-jest/utils'
 import { v4 as uuid } from 'uuid'
 import ws from 'ws'
-import { PeerNetwork, RoutingStyle } from '../peerNetwork'
-import { GossipRouter } from './gossip'
-import { PeerManager } from '../peers/peerManager'
-import { mockLocalPeer, getConnectedPeer } from '../testUtilities'
 import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
+import { PeerNetwork, RoutingStyle } from '../peerNetwork'
+import { PeerManager } from '../peers/peerManager'
+import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
+import { GossipRouter } from './gossip'
 
 jest.useFakeTimers()
 

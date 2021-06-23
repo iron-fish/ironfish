@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
+import { Account, Accounts, AccountsDB } from './account'
+import { Blockchain, IronfishBlockchain } from './blockchain'
+import { IronfishVerifier } from './consensus/verifier'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { Blockchain, IronfishBlockchain } from './blockchain'
 import { createRootLogger, Logger } from './logger'
-import { RpcServer } from './rpc/server'
-import { MiningDirector } from './mining'
-import { submitMetric, startCollecting, stopCollecting, setDefaultTags } from './telemetry'
-import { MetricsMonitor } from './metrics'
-import { Accounts, Account, AccountsDB } from './account'
 import { IronfishMemPool, MemPool } from './memPool'
+import { MetricsMonitor } from './metrics'
+import { MiningDirector } from './mining'
+import { IronfishMiningDirector } from './mining/director'
 import { PeerNetwork } from './network'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
-import { WorkerPool } from './workerPool'
-import { IronfishMiningDirector } from './mining/director'
+import { RpcServer } from './rpc/server'
 import { IronfishStrategy } from './strategy'
-import { IronfishVerifier } from './consensus/verifier'
 import { Syncer } from './syncer'
+import { setDefaultTags, startCollecting, stopCollecting, submitMetric } from './telemetry'
+import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
   chain: IronfishBlockchain
@@ -320,18 +320,27 @@ export class IronfishNode {
         break
       }
       case 'enableTelemetry': {
-        if (newValue) startCollecting(this.config.get('telemetryApi'))
-        else await stopCollecting()
+        if (newValue) {
+          startCollecting(this.config.get('telemetryApi'))
+        } else {
+          await stopCollecting()
+        }
         break
       }
       case 'enableMetrics': {
-        if (newValue) this.metrics.start()
-        else this.metrics.stop()
+        if (newValue) {
+          this.metrics.start()
+        } else {
+          this.metrics.stop()
+        }
         break
       }
       case 'enableRpc': {
-        if (newValue) await this.rpc.start()
-        else await this.rpc.stop()
+        if (newValue) {
+          await this.rpc.start()
+        } else {
+          await this.rpc.stop()
+        }
         break
       }
       case 'enableMiningDirector': {

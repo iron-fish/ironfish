@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import ws from 'ws'
 import wrtc from 'wrtc'
+import ws from 'ws'
+import { IronfishBlockchain } from '../../blockchain'
+import { mockChain } from '../../testUtilities/mocks'
+import { WorkerPool } from '../../workerPool'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
-import { mockPrivateIdentity } from './mockPrivateIdentity'
 import { VERSION_PROTOCOL } from '../version'
-import { mockChain } from '../../testUtilities/mocks'
-import { IronfishBlockchain } from '../../blockchain'
-import { WorkerPool } from '../../workerPool'
+import { mockPrivateIdentity } from './mockPrivateIdentity'
 
 /**
  * Utility to create a fake "keypair" for testing the network layer

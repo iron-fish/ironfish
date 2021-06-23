@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { errorHandler } from './errorHandler'
 import { Request, Response } from 'express'
+import { errorHandler } from './errorHandler'
 
 const mockResponse = () => {
   const res = {} as Response

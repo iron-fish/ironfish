@@ -1,53 +1,53 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Response, ResponseEnded } from '../response'
 import { Logger } from '../../logger'
+import { Response, ResponseEnded } from '../response'
 import {
+  CreateAccountRequest,
+  CreateAccountResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetBalanceRequest,
   GetBalanceResponse,
-  GetPublicKeyRequest,
-  GetPublicKeyResponse,
+  GetBlockInfoRequest,
+  GetBlockInfoResponse,
   GetBlockRequest,
   GetBlockResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
-  GetPeersRequest,
-  GetPeersResponse,
-  GetStatusRequest,
-  GetStatusResponse,
-  NewBlocksStreamRequest,
-  NewBlocksStreamResponse,
-  SuccessfullyMinedRequest,
-  SuccessfullyMinedResponse,
-  SendTransactionRequest,
-  SendTransactionResponse,
-  CreateAccountRequest,
-  CreateAccountResponse,
-  GiveMeRequest,
-  GiveMeResponse,
-  GetLogStreamResponse,
-  StopNodeResponse,
   GetChainRequest,
   GetChainResponse,
   GetConfigRequest,
   GetConfigResponse,
-  SetConfigRequest,
-  SetConfigResponse,
-  UseAccountRequest,
-  UseAccountResponse,
-  UploadConfigRequest,
-  UploadConfigResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
-  GetBlockInfoRequest,
-  GetBlockInfoResponse,
+  GetLogStreamResponse,
+  GetPeersRequest,
+  GetPeersResponse,
+  GetPublicKeyRequest,
+  GetPublicKeyResponse,
+  GetStatusRequest,
+  GetStatusResponse,
+  GiveMeRequest,
+  GiveMeResponse,
+  NewBlocksStreamRequest,
+  NewBlocksStreamResponse,
+  SendTransactionRequest,
+  SendTransactionResponse,
+  SetConfigRequest,
+  SetConfigResponse,
+  StopNodeResponse,
+  SuccessfullyMinedRequest,
+  SuccessfullyMinedResponse,
+  UploadConfigRequest,
+  UploadConfigResponse,
+  UseAccountRequest,
+  UseAccountResponse,
 } from '../routes'
-import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
+import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 

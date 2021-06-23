@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { router, ApiNamespace } from '../router'
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
+import { ApiNamespace, router } from '../router'
 
 type ConnectionState = Connection['state']['type'] | ''
 
@@ -126,8 +126,12 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       }
     }
 
-    if (connectionWebSocket !== '') connections++
-    if (connectionWebRTC !== '') connections++
+    if (connectionWebSocket !== '') {
+      connections++
+    }
+    if (connectionWebRTC !== '') {
+      connections++
+    }
 
     result.push({
       state: peer.state.type,
@@ -139,9 +143,9 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       agent: peer.agent,
       head: peer.head?.toString('hex') || null,
       work: String(peer.work),
-      sequence: peer.sequence != null ? Number(peer.sequence) : null,
+      sequence: peer.sequence !== null ? Number(peer.sequence) : null,
       connections: connections,
-      error: peer.error != null ? String(peer.error) : null,
+      error: peer.error !== null ? String(peer.error) : null,
       connectionWebSocket: connectionWebSocket,
       connectionWebSocketError: connectionWebSocketError,
       connectionWebRTC: connectionWebRTC,

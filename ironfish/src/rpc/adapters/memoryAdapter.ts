@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { IAdapter } from './adapter'
+import { PromiseUtils, SetTimeoutToken } from '../../utils'
 import { Request } from '../request'
 import { Response, ResponseEnded } from '../response'
-import { Router, ALL_API_NAMESPACES } from '../routes'
+import { ALL_API_NAMESPACES, Router } from '../routes'
 import { RpcServer } from '../server'
-import { PromiseUtils, SetTimeoutToken } from '../../utils'
 import { Stream } from '../stream'
+import { IAdapter } from './adapter'
 
 /**
  * This class provides a way to route requests directly against the routing layer

@@ -1,31 +1,31 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import LeastRecentlyUsed from 'blru'
+import { Account } from '../account'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { Strategy } from '../strategy'
-import { JsonSerializable } from '../serde'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
-import { submitMetric } from '../telemetry'
-import LeastRecentlyUsed from 'blru'
 import { MemPool } from '../memPool'
-import { ErrorUtils } from '../utils'
-import { Account } from '../account'
+import { Block } from '../primitives/block'
+import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
+import { Target } from '../primitives/target'
 import {
   IronfishTransaction,
   SerializedTransaction,
   Transaction,
 } from '../primitives/transaction'
-import { Target } from '../primitives/target'
-import { Block } from '../primitives/block'
-import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
-import { Assert } from '../assert'
+import { JsonSerializable } from '../serde'
+import { Strategy } from '../strategy'
+import { submitMetric } from '../telemetry'
+import { ErrorUtils } from '../utils'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -265,7 +265,9 @@ export class MiningDirector<
 
     // If we're already generating a block, update the next block to generate and exit
     this.nextBlockToConstruct = chainHead
-    if (this.currentBlockUnderConstruction !== null) return
+    if (this.currentBlockUnderConstruction !== null) {
+      return
+    }
 
     // Continue generating while we have a new block to generate
     while (this.nextBlockToConstruct !== null && this.isStarted()) {
@@ -305,7 +307,9 @@ export class MiningDirector<
 
     const canRetry = await this.constructAndMineBlock(minersFee, blockTransactions)
     // The current mining target is already at the initial - no need to try to lower it
-    if (!canRetry) return
+    if (!canRetry) {
+      return
+    }
 
     if (this.miningDifficultyChangeTimeout) {
       clearTimeout(this.miningDifficultyChangeTimeout)
@@ -330,7 +334,9 @@ export class MiningDirector<
 
     // Fetch all transactions for the block
     for await (const transaction of this.memPool.get()) {
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) break
+      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
+        break
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockTransactions.push(transaction)

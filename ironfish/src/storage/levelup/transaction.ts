@@ -1,19 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { LevelupDatabase } from './database'
+import type { LevelupStore } from './store'
+import { MutexUnlockFunction } from '../../mutex'
 import {
+  BUFFER_TO_STRING_ENCODING,
   DatabaseSchema,
   DatabaseStore,
+  DuplicateKeyError,
   IDatabaseStore,
   IDatabaseTransaction,
   SchemaKey,
   SchemaValue,
-  DuplicateKeyError,
-  BUFFER_TO_STRING_ENCODING,
 } from '../database'
-import { MutexUnlockFunction } from '../../mutex'
-import type { LevelupStore } from './store'
-import type { LevelupDatabase } from './database'
 import { LevelupBatch } from './batch'
 
 export class LevelupTransaction implements IDatabaseTransaction {
@@ -50,12 +50,16 @@ export class LevelupTransaction implements IDatabaseTransaction {
   }
 
   async acquireLock(): Promise<void> {
-    if (this.unlock) return
+    if (this.unlock) {
+      return
+    }
 
     if (!this.waiting) {
       this.waiting = new Promise((resolve) => (this.waitingResolve = resolve))
       this.unlock = await this.db.lock.lock()
-      if (this.waitingResolve) this.waitingResolve()
+      if (this.waitingResolve) {
+        this.waitingResolve()
+      }
       this.waiting = null
       this.waitingResolve = null
     } else {
@@ -64,7 +68,9 @@ export class LevelupTransaction implements IDatabaseTransaction {
   }
 
   releaseLock(): void {
-    if (!this.unlock) return
+    if (!this.unlock) {
+      return
+    }
     this.unlock()
   }
 

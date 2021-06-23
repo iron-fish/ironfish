@@ -220,7 +220,7 @@ export class Target {
    * Converts difficulty to Target
    */
   static fromDifficulty(difficulty: BigInt): Target {
-    if (difficulty == BigInt(1)) {
+    if (difficulty === BigInt(1)) {
       return new Target(MAX_256_BIT_NUM)
     }
     return new Target(BigInt(2) ** BigInt(256) / BigInt(difficulty))

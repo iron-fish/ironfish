@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IAdapter } from './adapters'
 import { IronfishNode } from '../node'
-import { Router, router, ApiNamespace } from './routes'
 import { ArrayUtils } from '../utils'
+import { IAdapter } from './adapters'
+import { ApiNamespace, Router, router } from './routes'
 
 export class RpcServer {
   readonly node: IronfishNode
@@ -32,7 +32,9 @@ export class RpcServer {
 
   /** Starts the RPC server and tells any attached adapters to starts serving requests to the routing layer */
   async start(): Promise<void> {
-    if (this._isRunning) return
+    if (this._isRunning) {
+      return
+    }
 
     const promises = this.adapters.map<Promise<void>>((a) => a.start())
     this._startPromise = Promise.all(promises)
@@ -42,7 +44,9 @@ export class RpcServer {
 
   /** Stops the RPC server and tells any attached adapters to stop serving requests to the routing layer */
   async stop(): Promise<void> {
-    if (!this._isRunning) return
+    if (!this._isRunning) {
+      return
+    }
 
     if (this._startPromise) {
       await this._startPromise

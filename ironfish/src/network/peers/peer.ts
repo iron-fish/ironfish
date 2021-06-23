@@ -1,16 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import colors from 'colors/safe'
 import { Event } from '../../event'
-import { Logger, createRootLogger } from '../../logger'
-
+import { createRootLogger, Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason, LooseMessage } from '../messages'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
-import { ErrorUtils } from '../../utils'
-import colors from 'colors/safe'
 
 export enum BAN_SCORE {
   NO = 0,
@@ -306,7 +305,9 @@ export class Peer {
    * @param connection The connection to remove
    */
   removeConnection(connection: Connection): Connection {
-    if (this.state.type === 'DISCONNECTED') return connection
+    if (this.state.type === 'DISCONNECTED') {
+      return connection
+    }
 
     const wsConnection =
       connection === this.state.connections.webSocket
@@ -445,7 +446,9 @@ export class Peer {
     type: ConnectionType,
     direction: ConnectionDirection,
   ): ConnectionRetry | null {
-    if (direction === ConnectionDirection.Inbound) return null
+    if (direction === ConnectionDirection.Inbound) {
+      return null
+    }
     return this.supportedConnections[type]
   }
 
@@ -460,7 +463,9 @@ export class Peer {
   >()
 
   private unbindConnectionEvents(connection?: Connection): void {
-    if (!connection) return
+    if (!connection) {
+      return
+    }
 
     // onMessage
     const messageHandler = this.connectionMessageHandlers.get(connection)
@@ -478,11 +483,13 @@ export class Peer {
   }
 
   private bindConnectionEvents(connection?: Connection): void {
-    if (!connection) return
+    if (!connection) {
+      return
+    }
 
     if (connection.state.type === 'CONNECTED') {
       this.getConnectionRetry(connection.type, connection.direction)?.successfulConnection()
-      if (connection instanceof WebSocketConnection && connection.hostname != null) {
+      if (connection instanceof WebSocketConnection && connection.hostname) {
         this.setWebSocketAddress(connection.hostname, connection.port || null)
       }
     }
@@ -507,7 +514,7 @@ export class Peer {
             ErrorUtils.renderError(connection.error) || 'Reason Unknown',
           )
 
-          if (connection.error != null) {
+          if (connection.error !== null) {
             this._error = connection.error
             this.getConnectionRetry(connection.type, connection.direction)?.failedConnection(
               this.isWhitelisted,
@@ -521,7 +528,7 @@ export class Peer {
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
           this.getConnectionRetry(connection.type, connection.direction)?.successfulConnection()
-          if (connection instanceof WebSocketConnection && connection.hostname != null) {
+          if (connection instanceof WebSocketConnection && connection.hostname) {
             this.setWebSocketAddress(connection.hostname, connection.port || null)
           }
           this.setState(
@@ -592,7 +599,9 @@ export class Peer {
     connections.webRtc && this.removeConnection(connections.webRtc).close(error)
     connections.webSocket && this.removeConnection(connections.webSocket).close(error)
 
-    if (error != undefined) this._error = error
+    if (error !== undefined) {
+      this._error = error
+    }
     this.setState({ type: 'DISCONNECTED', identity: this.state.identity })
   }
 

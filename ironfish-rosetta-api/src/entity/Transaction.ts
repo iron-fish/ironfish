@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Entity, PrimaryColumn, Column, Index, ManyToOne } from 'typeorm'
-import { Hash, Timestamp } from './SharedColumnType'
+import { Column, Entity, Index, ManyToOne, PrimaryColumn } from 'typeorm'
 import { Block } from './Block'
+import { Hash, Timestamp } from './SharedColumnType'
 import { bigint } from './ValueTransformer'
 
 export interface Note {

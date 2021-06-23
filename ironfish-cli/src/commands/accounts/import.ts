@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RemoteFlags } from '../../flags'
-import { IronfishCommand } from '../../command'
-import { JSONUtils, PromiseUtils, Account } from 'ironfish'
-import { cli } from 'cli-ux'
 import { flags } from '@oclif/command'
+import { cli } from 'cli-ux'
+import { Account, JSONUtils, PromiseUtils } from 'ironfish'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`

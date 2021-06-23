@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { LevelupDatabase, LevelupStore } from './levelup'
 import leveldown from 'leveldown'
-import {
-  DatabaseSchema,
-  IDatabase,
-  BufferEncoding,
-  JsonEncoding,
-  StringEncoding,
-  IDatabaseTransaction,
-  ArrayEncoding,
-  SchemaKey,
-  DuplicateKeyError,
-} from './database'
 import { IJsonSerializable } from '../serde'
 import { PromiseUtils } from '../utils'
+import {
+  ArrayEncoding,
+  BufferEncoding,
+  DatabaseSchema,
+  DuplicateKeyError,
+  IDatabase,
+  IDatabaseTransaction,
+  JsonEncoding,
+  SchemaKey,
+  StringEncoding,
+} from './database'
+import { LevelupDatabase, LevelupStore } from './levelup'
 
 type FooValue = {
   hash: string

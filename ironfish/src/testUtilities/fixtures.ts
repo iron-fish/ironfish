@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Accounts, Account } from '../account'
-import { IJSON } from '../serde'
 import fs from 'fs'
-import path from 'path'
-import { getCurrentTestPath } from './utils'
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import path from 'path'
+import { Account, Accounts } from '../account'
 import { IronfishBlockchain } from '../blockchain'
+import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import { IJSON } from '../serde'
+import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
 

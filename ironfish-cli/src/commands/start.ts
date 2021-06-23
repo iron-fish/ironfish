@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishCommand, SIGNALS } from '../command'
 import { IronfishNode, NodeUtils, PromiseUtils } from 'ironfish'
+import { Platform } from 'ironfish'
+import { IronfishCommand, SIGNALS } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
@@ -23,7 +24,6 @@ import {
   VerboseFlagKey,
 } from '../flags'
 import { ONE_FISH_IMAGE, TELEMETRY_BANNER } from '../images'
-import { Platform } from 'ironfish'
 
 const DEFAULT_ACCOUNT_NAME = 'default'
 
@@ -91,26 +91,26 @@ export default class Start extends IronfishCommand {
 
     const { flags } = this.parse(Start)
 
-    if (flags.bootstrap != undefined) {
+    if (flags.bootstrap !== undefined) {
       this.sdk.config.setOverride('bootstrapNodes', flags.bootstrap.filter(Boolean))
     }
-    if (flags.port != undefined && flags.port !== this.sdk.config.get('peerPort')) {
+    if (flags.port !== undefined && flags.port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', flags.port)
     }
-    if (flags.workers != undefined && flags.workers !== this.sdk.config.get('nodeWorkers')) {
+    if (flags.workers !== undefined && flags.workers !== this.sdk.config.get('nodeWorkers')) {
       this.sdk.config.setOverride('nodeWorkers', flags.workers)
     }
-    if (flags.name != undefined && flags.name.trim() !== this.sdk.config.get('nodeName')) {
+    if (flags.name !== undefined && flags.name.trim() !== this.sdk.config.get('nodeName')) {
       this.sdk.config.setOverride('nodeName', flags.name.trim())
     }
-    if (flags.listen != undefined && flags.listen !== this.sdk.config.get('enableListenP2P')) {
+    if (flags.listen !== undefined && flags.listen !== this.sdk.config.get('enableListenP2P')) {
       this.sdk.config.setOverride('enableListenP2P', flags.listen)
     }
-    if (flags.worker != undefined && flags.worker !== this.sdk.config.get('isWorker')) {
+    if (flags.worker !== undefined && flags.worker !== this.sdk.config.get('isWorker')) {
       this.sdk.config.setOverride('isWorker', flags.worker)
     }
     if (
-      flags.forceMining != undefined &&
+      flags.forceMining !== undefined &&
       flags.forceMining !== this.sdk.config.get('miningForce')
     ) {
       this.sdk.config.setOverride('miningForce', flags.forceMining)

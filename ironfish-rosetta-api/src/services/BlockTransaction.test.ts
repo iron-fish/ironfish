@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { mocked } from 'ts-jest/utils'
 import * as typeorm from 'typeorm'
-
 import { networkIdentifier as networkIdentifierConfig } from '../config'
 import { BlockIdentifier, NetworkIdentifier, TransactionIdentifier } from '../types'
 

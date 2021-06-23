@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IDatabaseEncoding } from './types'
-import Serde, { IJSON, IJsonSerializable } from '../../serde'
 import hexArray from 'hex-array'
+import Serde, { IJSON, IJsonSerializable } from '../../serde'
+import { IDatabaseEncoding } from './types'
 
 export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncoding<T> {
   serialize = (value: T): Buffer => Buffer.from(IJSON.stringify(value), 'utf8')

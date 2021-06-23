@@ -6,17 +6,6 @@
  * Handler for Worker messages.
  */
 
-import {
-  generateKey,
-  generateNewPublicAddress,
-  WasmNote,
-  WasmTransaction,
-  WasmTransactionPosted,
-} from 'ironfish-wasm-nodejs'
-import { parentPort, MessagePort } from 'worker_threads'
-import { Assert } from '../assert'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
 import type {
   BoxMessageRequest,
   BoxMessageResponse,
@@ -34,6 +23,17 @@ import type {
   WorkerResponse,
   WorkerResponseMessage,
 } from './messages'
+import {
+  generateKey,
+  generateNewPublicAddress,
+  WasmNote,
+  WasmTransaction,
+  WasmTransactionPosted,
+} from 'ironfish-wasm-nodejs'
+import { MessagePort, parentPort } from 'worker_threads'
+import { Assert } from '../assert'
+import { Witness } from '../merkletree'
+import { NoteHasher } from '../merkletree/hasher'
 import { boxMessage, unboxMessage } from '../network/peers/encryption'
 
 // Global constants

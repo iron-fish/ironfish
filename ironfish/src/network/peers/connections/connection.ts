@@ -1,16 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Event } from '../../../event'
 import type { Logger } from '../../../logger'
+import colors from 'colors/safe'
+import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-
-import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
+import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { InternalMessageType, LooseMessage } from '../../messages'
 import { HandshakeTimeoutError } from './errors'
-import colors from 'colors/safe'
 
 /**
  * The type of peer connection. This should only be used for information
@@ -159,7 +158,9 @@ export abstract class Connection {
    * Replaces the connection.send() function with one that randomly delays outbound messages
    */
   protected addLatencyWrapper(): void {
-    if (!this.simulateLatency) return
+    if (!this.simulateLatency) {
+      return
+    }
     const originalSend = this.send
 
     const wrapper = (
@@ -169,7 +170,9 @@ export abstract class Connection {
       this.simulateLatencyQueue.push(message)
 
       let latency = Math.random() * (this.simulateLatency || 0)
-      if (args[0].type === InternalMessageType.disconnecting) latency = 0
+      if (args[0].type === InternalMessageType.disconnecting) {
+        latency = 0
+      }
 
       setTimeout(() => {
         const toSend = this.simulateLatencyQueue.shift()

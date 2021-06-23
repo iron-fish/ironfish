@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Logger } from '../../../logger'
+import colors from 'colors/safe'
 import SimplePeer, { SignalData } from 'simple-peer'
 import { Event } from '../../../event'
-import type { Logger } from '../../../logger'
+import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
+import { IsomorphicWebRtc } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
-import { IsomorphicWebRtc } from '../../types'
-import { MetricsMonitor } from '../../../metrics'
-import colors from 'colors/safe'
 
 /**
  * Light wrapper of WebRtc SimplePeer that knows how to send and receive
@@ -84,7 +84,9 @@ export class WebRtcConnection extends Connection {
       let stringdata
       if (data instanceof Uint8Array) {
         stringdata = new TextDecoder().decode(data)
-      } else stringdata = data
+      } else {
+        stringdata = data
+      }
 
       // TODO: Switch network traffic to binary only so this can measure bytes and then decode the binary into JSON
       const byteCount = Buffer.from(stringdata).byteLength

@@ -18,8 +18,9 @@ jest.mock('./encryption', () => {
   }
 })
 
-import ws from 'ws'
 import wrtc from 'wrtc'
+import ws from 'ws'
+import { createRootLogger } from '../../logger'
 import { mockIdentity } from '../testUtilities'
 import {
   ConnectionDirection,
@@ -28,7 +29,6 @@ import {
   WebSocketConnection,
 } from './connections'
 import { Peer } from './peer'
-import { createRootLogger } from '../../logger'
 
 jest.useFakeTimers()
 
@@ -80,7 +80,9 @@ describe('setWebSocketConnection', () => {
       ConnectionType.WebSocket,
       ConnectionDirection.Outbound,
     )
-    if (retry == null) throw new Error('Retry should not be null')
+    if (retry === null) {
+      throw new Error('Retry should not be null')
+    }
     const successSpy = jest.spyOn(retry, 'successfulConnection')
 
     connection.setState({ type: 'CONNECTED', identity: identity })
@@ -115,7 +117,9 @@ describe('setWebRtcConnection', () => {
     const connection = new WebRtcConnection(true, wrtc, createRootLogger())
 
     const retry = peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
-    if (retry == null) throw new Error('Retry should not be null')
+    if (retry === null) {
+      throw new Error('Retry should not be null')
+    }
     const successSpy = jest.spyOn(retry, 'successfulConnection')
 
     connection.setState({ type: 'CONNECTED', identity: identity })
@@ -257,7 +261,9 @@ it('Transitions to CONNECTED when a connection receives an identity', () => {
   )
   peer.setWebSocketConnection(connection)
   const retry = peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-  if (retry == null) throw new Error('Retry should not be null')
+  if (retry === null) {
+    throw new Error('Retry should not be null')
+  }
   const successSpy = jest.spyOn(retry, 'successfulConnection')
 
   expect(peer.state).toEqual({
@@ -289,7 +295,9 @@ it('Transitions to CONNECTED when adding a connection with state CONNECTED', () 
     identity,
   })
   const retry = peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-  if (retry == null) throw new Error('Retry should not be null')
+  if (retry === null) {
+    throw new Error('Retry should not be null')
+  }
   const successSpy = jest.spyOn(retry, 'successfulConnection')
 
   peer.setWebSocketConnection(connection)
@@ -399,7 +407,9 @@ describe('Updates supportedConnectionTypes when one connection disconnects with 
       ConnectionType.WebSocket,
       ConnectionDirection.Outbound,
     )
-    if (retry == null) throw new Error('Retry should not be null')
+    if (retry === null) {
+      throw new Error('Retry should not be null')
+    }
     const failSpy = jest.spyOn(retry, 'failedConnection')
 
     const connection = new WebSocketConnection(
@@ -418,7 +428,9 @@ describe('Updates supportedConnectionTypes when one connection disconnects with 
     const peer = new Peer(null)
 
     const retry = peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
-    if (retry == null) throw new Error('Retry should not be null')
+    if (retry === null) {
+      throw new Error('Retry should not be null')
+    }
     const failSpy = jest.spyOn(retry, 'failedConnection')
 
     const connection = new WebRtcConnection(true, wrtc, createRootLogger())

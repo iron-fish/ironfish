@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import { IronfishTransaction } from '../primitives/transaction'
 import { FileSystem } from '../fileSystems'
+import { IronfishTransaction } from '../primitives/transaction'
 import {
   BufferEncoding,
   IDatabase,
@@ -253,7 +253,7 @@ export class AccountsDB {
     for await (const nullifierToNoteKey of this.nullifierToNote.getAllKeysIter()) {
       const value = await this.nullifierToNote.get(nullifierToNoteKey)
 
-      if (value == null) {
+      if (!value) {
         throw new Error('Value must exist if key exists')
       }
 
@@ -298,7 +298,7 @@ export class AccountsDB {
       for await (const noteToNullifierKey of this.noteToNullifier.getAllKeysIter(tx)) {
         const value = await this.noteToNullifier.get(noteToNullifierKey)
 
-        if (value == null) {
+        if (!value) {
           throw new Error('Value must exist if key exists')
         }
 

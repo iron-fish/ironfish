@@ -4,16 +4,16 @@
 
 import { Assert } from './assert'
 import { IronfishBlockchain } from './blockchain'
-import { createRootLogger, Logger } from './logger'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
-import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import { Event } from './event'
+import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
-import { IronfishStrategy } from './strategy'
 import { IronfishBlockHeader } from './primitives/blockheader'
-import { Event } from './event'
+import { IronfishStrategy } from './strategy'
+import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -61,12 +61,13 @@ export class Syncer {
     this.stopping = null
     this.cancelLoop = null
 
-    this.blocksPerMessage =
-      options.blocksPerMessage == null ? REQUEST_BLOCKS_PER_MESSAGE : options.blocksPerMessage
+    this.blocksPerMessage = options.blocksPerMessage ?? REQUEST_BLOCKS_PER_MESSAGE
   }
 
   async start(): Promise<void> {
-    if (this.state != 'stopped') return
+    if (this.state !== 'stopped') {
+      return
+    }
     this.state = 'idle'
 
     this.eventLoop()
@@ -133,7 +134,9 @@ export class Syncer {
   }
 
   startSync(peer: Peer): void {
-    if (this.loader) return
+    if (this.loader) {
+      return
+    }
 
     Assert.isNotNull(peer.sequence)
     Assert.isNotNull(peer.work)
@@ -232,7 +235,7 @@ export class Syncer {
     const hasHash = async (
       hash: Buffer | null,
     ): Promise<{ found: boolean; local: IronfishBlockHeader | null }> => {
-      if (hash == null) {
+      if (hash === null) {
         return { found: false, local: null }
       }
 
@@ -259,7 +262,9 @@ export class Syncer {
 
       const needle = start - i * 2
       const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-      if (!hashes.length) continue
+      if (!hashes.length) {
+        continue
+      }
 
       const hash = hashes[0]
       const { found, local } = await hasHash(hash)
@@ -365,7 +370,7 @@ export class Syncer {
         this.blocksPerMessage + 1,
       )
 
-      if (headBlock == null) {
+      if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
       }
 

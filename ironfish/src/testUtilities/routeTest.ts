@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { IronfishBlockchain } from '../blockchain'
+import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
-import { IronfishSdk } from '../sdk'
 import { MemoryAdapter } from '../rpc/adapters'
 import { IronfishMemoryClient } from '../rpc/clients'
-import { NodeTest } from './nodeTest'
-import { IronfishBlockchain } from '../blockchain'
-import { IronfishTestStrategy } from './strategy'
-import { PeerNetwork } from '../network/peerNetwork'
+import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { NodeTest } from './nodeTest'
+import { IronfishTestStrategy } from './strategy'
 
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
