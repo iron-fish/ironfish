@@ -12,6 +12,7 @@ echo "Building WASM"
 ( cd ironfish-wasm && yarn run build:node )
 
 echo "Installing from lockfile"
+rm -rf ./node_modules
 yarn --non-interactive --frozen-lockfile --ignore-scripts
 
 echo "Building Iron Fish HTTP API project"
