@@ -25,10 +25,10 @@ jest.mock('ironfish', () => ({
   },
 }))
 
-import { NetworkList, NetworkStatus } from './Network'
 import { networkIdentifier as networkIdentifierConfig } from '../config'
-import { NetworkRequest, NetworkIdentifier } from '../types'
 import { RequestHandlerParams } from '../middleware'
+import { NetworkIdentifier, NetworkRequest } from '../types'
+import { NetworkList, NetworkStatus } from './Network'
 
 describe('Network service', () => {
   describe('NetworkList', () => {

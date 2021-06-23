@@ -3,67 +3,67 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import tweetnacl from 'tweetnacl'
+import { Assert } from '../assert'
+import { IronfishBlockchain } from '../blockchain'
+import { MAX_REQUESTED_BLOCKS } from '../consensus'
+import { Event } from '../event'
+import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { PeerConnectionManager } from './peers/peerConnectionManager'
-import { PeerManager } from './peers/peerManager'
-import { PrivateIdentity } from './identity'
-import { WebSocketServer } from './webSocketServer'
-import { Event } from '../event'
-import {
-  MessageType,
-  IncomingPeerMessage,
-  Message,
-  PayloadType,
-  LooseMessage,
-  InternalMessageType,
-  DisconnectingMessage,
-  DisconnectingReason,
-  NewBlockMessage,
-  NodeMessageType,
-  NewTransactionMessage,
-  GetBlockHashesRequest,
-  isGetBlockHashesResponse,
-  isGetBlocksResponse,
-  GetBlocksRequest,
-  isGetBlockHashesRequest,
-} from './messages'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './types'
-import {
-  FireAndForgetRouter,
-  GlobalRpcRouter,
-  GossipRouter,
-  Gossip,
-  isGossip,
-  RpcRouter,
-  IncomingRpcGeneric,
-  isRpc,
-  Rpc,
-  CannotSatisfyRequestError,
-  IncomingGossipGeneric,
-} from './messageRouters'
-import { BAN_SCORE, Peer } from './peers/peer'
-import { LocalPeer } from './peers/localPeer'
-import { Identity } from './identity'
-import { parseUrl } from './utils/parseUrl'
-import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { IronfishNode } from '../node'
-import { IronfishStrategy } from '../strategy'
-import { IronfishBlockchain } from '../blockchain'
+import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import { BlockHash, IronfishBlockHeader } from '../primitives/blockheader'
 import { SerializedWasmNoteEncryptedHash } from '../primitives/noteEncrypted'
 import { SerializedTransaction } from '../primitives/transaction'
-import { VERSION_PROTOCOL } from './version'
-import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import { IronfishStrategy } from '../strategy'
+import { ErrorUtils } from '../utils'
 import {
   GetBlockHashesResponse,
   GetBlocksResponse,
   isGetBlocksRequest,
   isNewBlockPayload,
 } from '.'
-import { Assert } from '../assert'
-import { BlockHash, IronfishBlockHeader } from '../primitives/blockheader'
-import { MAX_REQUESTED_BLOCKS } from '../consensus'
-import { ErrorUtils } from '../utils'
+import { PrivateIdentity } from './identity'
+import { Identity } from './identity'
+import {
+  CannotSatisfyRequestError,
+  FireAndForgetRouter,
+  GlobalRpcRouter,
+  Gossip,
+  GossipRouter,
+  IncomingGossipGeneric,
+  IncomingRpcGeneric,
+  isGossip,
+  isRpc,
+  Rpc,
+  RpcRouter,
+} from './messageRouters'
+import {
+  DisconnectingMessage,
+  DisconnectingReason,
+  GetBlockHashesRequest,
+  GetBlocksRequest,
+  IncomingPeerMessage,
+  InternalMessageType,
+  isGetBlockHashesRequest,
+  isGetBlockHashesResponse,
+  isGetBlocksResponse,
+  LooseMessage,
+  Message,
+  MessageType,
+  NewBlockMessage,
+  NewTransactionMessage,
+  NodeMessageType,
+  PayloadType,
+} from './messages'
+import { LocalPeer } from './peers/localPeer'
+import { BAN_SCORE, Peer } from './peers/peer'
+import { PeerConnectionManager } from './peers/peerConnectionManager'
+import { PeerManager } from './peers/peerManager'
+import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './types'
+import { parseUrl } from './utils/parseUrl'
+import { VERSION_PROTOCOL } from './version'
+import { WebSocketServer } from './webSocketServer'
 
 /**
  * The routing style that should be used for a message of a given type
@@ -285,11 +285,13 @@ export class PeerNetwork {
   }
 
   start(): void {
-    if (this.started) return
+    if (this.started) {
+      return
+    }
     this.started = true
 
     // Start the WebSocket server if possible
-    if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port != null) {
+    if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port !== null) {
       this.webSocketServer = new WebSocketServer(
         this.localPeer.webSocket.Server,
         this.localPeer.port,
@@ -640,7 +642,9 @@ export class PeerNetwork {
 
     if (typeof start === 'number') {
       const header = await this.chain.getHeaderAtSequence(start)
-      if (header) return header
+      if (header) {
+        return header
+      }
     }
 
     return null
@@ -675,13 +679,17 @@ export class PeerNetwork {
     const limit = message.payload.limit
 
     const from = await this.resolveSequenceOrHash(start)
-    if (!from) return { blocks: [] }
+    if (!from) {
+      return { blocks: [] }
+    }
 
     const hashes = []
 
     for await (const hash of this.chain.iterateToHashes(from)) {
       hashes.push(hash)
-      if (hashes.length === limit) break
+      if (hashes.length === limit) {
+        break
+      }
     }
 
     const serialized = hashes.map((h) => h.toString('hex'))
@@ -716,12 +724,16 @@ export class PeerNetwork {
     const limit = message.payload.limit
 
     const from = await this.resolveSequenceOrHash(start)
-    if (!from) return { blocks: [] }
+    if (!from) {
+      return { blocks: [] }
+    }
 
     const hashes = []
     for await (const hash of this.chain.iterateToHashes(from)) {
       hashes.push(hash)
-      if (hashes.length === limit) break
+      if (hashes.length === limit) {
+        break
+      }
     }
 
     const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
@@ -746,7 +758,9 @@ export class PeerNetwork {
   ): Promise<boolean> {
     const block = message.message.payload.block
     const peer = this.peerManager.getPeer(message.peerIdentity)
-    if (!peer) return false
+    if (!peer) {
+      return false
+    }
 
     try {
       return await this.node.syncer.addNewBlock(peer, block)

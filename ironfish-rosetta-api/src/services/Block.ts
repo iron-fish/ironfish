@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockRequest, BlockResponse, Transaction } from '../types'
-import { RequestHandlerParams } from '../middleware'
 import { getCustomRepository } from 'typeorm'
-import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
+import { RequestHandlerParams } from '../middleware'
 import { BlockRepository } from '../repository/BlockRepository'
+import { BlockRequest, BlockResponse, Transaction } from '../types'
+import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
 
 export const Block = async (
   requestParams: RequestHandlerParams<BlockRequest>,
@@ -15,12 +15,14 @@ export const Block = async (
   const { block_identifier: blockIdentifier, network_identifier: networkIdentifier } = params
 
   // Verify network identifier
-  if (!isValidNetworkIdentifier(networkIdentifier))
+  if (!isValidNetworkIdentifier(networkIdentifier)) {
     throw new Error(`Network identifier is not valid`)
+  }
 
   // Verify partial blockIdentifier
-  if (!blockIdentifier.hash && !blockIdentifier.index)
+  if (!blockIdentifier.hash && !blockIdentifier.index) {
     throw new Error(`Block identifier is not valid`)
+  }
 
   const blockRepository = getCustomRepository(BlockRepository)
 
@@ -29,7 +31,9 @@ export const Block = async (
     blockIdentifier.index,
   )
 
-  if (blockData === null) throw new Error(`Block data not found`)
+  if (blockData === null) {
+    throw new Error(`Block data not found`)
+  }
 
   const transactions: Transaction[] = blockData.transactions.map((transaction) => ({
     transaction_identifier: {

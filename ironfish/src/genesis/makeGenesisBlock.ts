@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target } from '../primitives/target'
-import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
-import { Logger } from '../logger'
 import type { Account } from '../account'
-import { WorkerPool } from '../workerPool'
+import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
 import { IronfishBlockchain } from '../blockchain'
+import { Logger } from '../logger'
 import { IronfishBlock } from '../primitives/block'
+import { Target } from '../primitives/target'
 import { IronfishTransaction } from '../primitives/transaction'
+import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
   memo: string
@@ -70,8 +70,9 @@ export async function makeGenesisBlock(
   // Temporarily add the note from the transaction to our merkle tree so we can construct
   // a witness from it. It will be re-added later when the block is constructed.
   logger.info('  Adding the note to the tree...')
-  if (postedInitialTransaction.notesLength() != 1)
+  if (postedInitialTransaction.notesLength() !== 1) {
     throw new Error('Expected postedInitialTransaction to have 1 note')
+  }
   for (const n of postedInitialTransaction.notes()) {
     await chain.notes.add(n)
   }
@@ -79,8 +80,9 @@ export async function makeGenesisBlock(
   // Construct a witness of that note
   logger.info('  Constructing a witness of the note...')
   const witness = await chain.notes.witness(0)
-  if (witness == null)
+  if (witness === null) {
     throw new Error('We must be able to construct a witness in order to generate a spend.')
+  }
 
   // Now that we have the witness, remove the note from the tree
   logger.info('  Removing the note from the tree...')

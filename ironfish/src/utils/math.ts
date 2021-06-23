@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 function arrayAverage(values: number[]): number {
-  if (values.length === 0) return 0
+  if (values.length === 0) {
+    return 0
+  }
 
   let total = 0
   for (const value of values) {
@@ -13,7 +15,9 @@ function arrayAverage(values: number[]): number {
 }
 
 function arraySum(values: number[]): number {
-  if (values.length === 0) return 0
+  if (values.length === 0) {
+    return 0
+  }
 
   let total = 0
   for (const value of values) {

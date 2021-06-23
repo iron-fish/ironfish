@@ -1,17 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode } from '../node'
-import { IronfishSdk } from '../sdk'
-import { v4 as uuid } from 'uuid'
 import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import { IronfishBlockchain } from '../blockchain'
-import { IronfishTestVerifier } from './verifier'
-import { IronfishTestStrategy } from './strategy'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
+import { IronfishNode } from '../node'
+import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { IronfishTestStrategy } from './strategy'
+import { IronfishTestVerifier } from './verifier'
 
 export type NodeTestOptions =
   | {
@@ -58,7 +58,9 @@ export class NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
   }> {
-    if (!options) options = this.options
+    if (!options) {
+      options = this.options
+    }
 
     const dataDir = path.join(os.tmpdir(), uuid())
     const verifierClass = IronfishTestVerifier

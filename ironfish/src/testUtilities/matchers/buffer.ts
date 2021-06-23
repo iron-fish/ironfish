@@ -9,10 +9,7 @@ function toEqualBuffer(
   self: Buffer | null | undefined,
   other: Buffer | null | undefined,
 ): jest.CustomMatcherResult {
-  const pass =
-    self === other ||
-    (self == null && other == null) ||
-    (self != null && other != null && self.equals(other))
+  const pass = self === other || (!self && !other) || (self && other && self.equals(other))
 
   if (!pass) {
     return makeResult(

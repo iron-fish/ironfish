@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BufferSet } from 'buffer-map'
 import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
-import { BlockHeader } from '../../../primitives/blockheader'
-import { BufferSet } from 'buffer-map'
 import { createRootLogger, Logger } from '../../../logger'
-import { HashUtils } from '../../../utils'
-import { JsonSerializable } from '../../../serde'
+import { BlockHeader } from '../../../primitives/blockheader'
 import { Transaction } from '../../../primitives/transaction'
+import { JsonSerializable } from '../../../serde'
+import { HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
   seq: true,
@@ -169,7 +169,7 @@ export async function renderGraph<
       return
     }
 
-    const last = i == children.length - 1
+    const last = i === children.length - 1
     const only = children.length === 1
     await renderGraph(chain, child, end, content, options, logger, last, only, indent, seen)
 

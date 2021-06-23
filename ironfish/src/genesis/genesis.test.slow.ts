@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Blockchain } from '../blockchain'
-import { fakeMaxTarget, makeDbPath } from '../testUtilities/fake'
-import { IJSON } from '../serde'
-import { makeGenesisBlock } from './makeGenesisBlock'
-import { IronfishStrategy } from '../strategy'
-import { WorkerPool } from '../workerPool'
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { createNodeTest } from '../testUtilities'
+import { Blockchain } from '../blockchain'
 import { SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
+import { IJSON } from '../serde'
+import { IronfishStrategy } from '../strategy'
+import { createNodeTest } from '../testUtilities'
+import { fakeMaxTarget, makeDbPath } from '../testUtilities/fake'
+import { WorkerPool } from '../workerPool'
+import { makeGenesisBlock } from './makeGenesisBlock'
 
 describe('Read genesis block', () => {
   let targetMeetsSpy: jest.SpyInstance

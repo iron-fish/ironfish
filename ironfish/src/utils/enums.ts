@@ -14,7 +14,9 @@ export class StrEnumUtils {
 
   static isInEnum<T extends StrEnum<T>>(value: unknown, enumType: T): value is StrEnumValue<T> {
     for (const enumValue of StrEnumUtils.getValues(enumType)) {
-      if (enumValue === value) return true
+      if (enumValue === value) {
+        return true
+      }
     }
 
     return false

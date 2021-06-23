@@ -1,7 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { flags } from '@oclif/command'
 import { IronfishRpcClient, IronfishSdk } from 'ironfish'
+import jsonColorizer from 'json-colorizer'
+import { IronfishCommand } from '../../command'
 import {
   ColorFlag,
   ColorFlagKey,
@@ -10,9 +13,6 @@ import {
   DataDirFlag,
   DataDirFlagKey,
 } from '../../flags'
-import { IronfishCommand } from '../../command'
-import jsonColorizer from 'json-colorizer'
-import { flags } from '@oclif/command'
 
 export class ShowCommand extends IronfishCommand {
   static description = `Print out the entire config`
@@ -37,7 +37,9 @@ export class ShowCommand extends IronfishCommand {
     const response = await client.getConfig({ user: flags.user })
 
     let output = JSON.stringify(response.content, undefined, '   ')
-    if (flags.color) output = jsonColorizer(output)
+    if (flags.color) {
+      output = jsonColorizer(output)
+    }
     this.log(output)
   }
 }

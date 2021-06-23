@@ -4,12 +4,12 @@
 
 import { Worker } from 'worker_threads'
 import {
-  submitMetric,
-  setTelemetry,
   DisabledTelemetry,
   EnabledTelemetry,
   Metric,
   setDefaultTags,
+  setTelemetry,
+  submitMetric,
 } from '.'
 
 jest.mock('worker_threads')

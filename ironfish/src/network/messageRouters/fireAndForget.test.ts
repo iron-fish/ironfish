@@ -8,7 +8,7 @@ import ws from 'ws'
 import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { PeerManager } from '../peers/peerManager'
-import { mockPrivateIdentity, mockLocalPeer, getConnectedPeer } from '../testUtilities'
+import { getConnectedPeer, mockLocalPeer, mockPrivateIdentity } from '../testUtilities'
 import { FireAndForgetRouter, IncomingFireAndForgetGeneric } from './fireAndForget'
 
 jest.useFakeTimers()

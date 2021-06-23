@@ -1,11 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import axios, { AxiosError, AxiosResponse } from 'axios'
 import * as yup from 'yup'
-import axios, { AxiosResponse, AxiosError } from 'axios'
-
+import { ERROR_CODES, ResponseError, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
-import { ValidationError, ResponseError, ERROR_CODES } from '../../adapters'
 
 export type GiveMeRequest = { accountName: string; email?: string }
 export type GiveMeResponse = { message: string }
@@ -28,8 +27,9 @@ router.register<typeof GiveMeRequestSchema, GiveMeResponse>(
   GiveMeRequestSchema,
   async (request, node): Promise<void> => {
     const account = node.accounts.getAccountByName(request.data.accountName)
-    if (!account)
+    if (!account) {
       throw new ValidationError(`Account ${request.data.accountName} could not be found`)
+    }
 
     const getFundsApi = node.config.get('getFundsApi')
     if (!getFundsApi) {

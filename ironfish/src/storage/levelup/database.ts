@@ -2,27 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AbstractLevelDOWN } from 'abstract-leveldown'
+import levelErrors from 'level-errors'
+import levelup, { LevelUp } from 'levelup'
+import { Mutex } from '../../mutex'
+import { IJsonSerializable } from '../../serde'
 import {
-  Database,
   BatchOperation,
+  Database,
+  DatabaseOptions,
   DatabaseSchema,
   IDatabaseStore,
   IDatabaseStoreOptions,
   IDatabaseTransaction,
+  JsonEncoding,
   SchemaKey,
   SchemaValue,
-  DatabaseOptions,
   StringEncoding,
-  JsonEncoding,
   UpgradeFunction,
 } from '../database'
-import { IJsonSerializable } from '../../serde'
-import levelup, { LevelUp } from 'levelup'
-import { Mutex } from '../../mutex'
-import levelErrors from 'level-errors'
 import { DatabaseIsLockedError } from '../database/errors'
-import { LevelupStore } from './store'
 import { LevelupBatch } from './batch'
+import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
 
 type MetaSchema = {
@@ -39,7 +39,9 @@ export class LevelupDatabase extends Database {
   _levelup: LevelUp | null = null
 
   get levelup(): LevelUp {
-    if (!this._levelup) throw new Error('Database is not open. Call IDatabase.open() first')
+    if (!this._levelup) {
+      throw new Error('Database is not open. Call IDatabase.open() first')
+    }
     return this._levelup
   }
 
@@ -103,7 +105,7 @@ export class LevelupDatabase extends Database {
             )
           }
 
-          if (oldVersion == null || newVersion > oldVersion) {
+          if (!oldVersion || newVersion > oldVersion) {
             if (upgrade) {
               await upgrade(this, oldVersion || 0, newVersion, t)
             }
@@ -164,7 +166,9 @@ export class LevelupDatabase extends Database {
   ): LevelupBatch | Promise<void> {
     const batch = new LevelupBatch(this)
 
-    if (!writes) return batch
+    if (!writes) {
+      return batch
+    }
 
     for (const write of writes) {
       const [store, key, value] = write

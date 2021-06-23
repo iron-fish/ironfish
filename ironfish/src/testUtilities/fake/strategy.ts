@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ConcatHasher } from '../../merkletree'
-import { MemPool } from '../../memPool'
-import { NullifierHasher } from '../../primitives/nullifier'
-import { TestVerifier } from './verifier'
 import { Blockchain } from '../../blockchain'
-import { BlockHeader, BlockHash, BlockHeaderSerde } from '../../primitives/blockheader'
-import { Strategy } from '../../strategy'
 import { VerificationResult, VerificationResultReason } from '../../consensus'
-import { StringUtils } from '../../utils'
-import { Serde, BufferSerde, IJSON, StringSerde } from '../../serde'
+import { MemPool } from '../../memPool'
+import { ConcatHasher } from '../../merkletree'
 import { Block, BlockSerde } from '../../primitives/block'
+import { BlockHash, BlockHeader, BlockHeaderSerde } from '../../primitives/blockheader'
+import { NullifierHasher } from '../../primitives/nullifier'
 import { Spend, Transaction } from '../../primitives/transaction'
+import { BufferSerde, IJSON, Serde, StringSerde } from '../../serde'
+import { Strategy } from '../../strategy'
+import { StringUtils } from '../../utils'
+import { TestVerifier } from './verifier'
 
 export type TestBlockchain = Blockchain<
   string,

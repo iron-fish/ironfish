@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishCommand } from '../../command'
-import { PromiseUtils } from 'ironfish'
-import { RemoteFlags } from '../../flags'
-import { RpcBlock } from 'ironfish'
 import blessed from 'blessed'
+import { PromiseUtils } from 'ironfish'
+import { RpcBlock } from 'ironfish'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 const STALE_THRESHOLD = 45000
 
@@ -70,8 +70,12 @@ export default class ForksCommand extends IronfishCommand {
 
       for (const { block, time, mined, old } of values) {
         const age = now - time
-        if (age >= STALE_THRESHOLD) continue
-        if (old) continue
+        if (age >= STALE_THRESHOLD) {
+          continue
+        }
+        if (old) {
+          continue
+        }
 
         const renderedAge = (age / 1000).toFixed(0).padStart(2, ' ')
         const renderdDiff = (highest - block.sequence).toString().padStart(6)

@@ -4,15 +4,15 @@
 
 jest.mock('ws')
 
-import ws from 'ws'
 import type WSWebSocket from 'ws'
 import http from 'http'
 import net from 'net'
+import ws from 'ws'
+import { Assert } from '../assert'
+import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
+import { DisconnectingMessage, NodeMessageType } from './messages'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockPrivateIdentity } from './testUtilities'
-import { Assert } from '../assert'
-import { DisconnectingMessage, NodeMessageType } from './messages'
-import { mockNode, mockStrategy, mockChain } from '../testUtilities/mocks'
 
 jest.useFakeTimers()
 
@@ -212,8 +212,9 @@ describe('enableSyncing option', () => {
       NodeMessageType.NewTransaction,
     )
 
-    if (newTransactionHandler === undefined)
+    if (newTransactionHandler === undefined) {
       throw new Error('Expected newTransactionHandler to be defined')
+    }
 
     await newTransactionHandler({
       peerIdentity: '',
@@ -261,7 +262,9 @@ describe('enableSyncing option', () => {
     const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
       NodeMessageType.NewBlock,
     )
-    if (newBlockHandler === undefined) throw new Error('Expected newBlockHandler to be defined')
+    if (newBlockHandler === undefined) {
+      throw new Error('Expected newBlockHandler to be defined')
+    }
 
     await newBlockHandler({
       peerIdentity: '',
@@ -280,8 +283,9 @@ describe('enableSyncing option', () => {
     const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
       NodeMessageType.NewTransaction,
     )
-    if (newTransactionHandler === undefined)
+    if (newTransactionHandler === undefined) {
       throw new Error('Expected newTransactionHandler to be defined')
+    }
 
     await newTransactionHandler({
       peerIdentity: '',

@@ -56,19 +56,25 @@ export class Meter {
   }
 
   add(count: number): void {
-    if (!this._started) return
+    if (!this._started) {
+      return
+    }
     this._count += count
     this._average.add(count)
   }
 
   start(): void {
-    if (this._started) return
+    if (this._started) {
+      return
+    }
     this._started = true
     this._interval = setInterval(() => this.update(), this._intervalMs)
   }
 
   stop(): void {
-    if (!this._started) return
+    if (!this._started) {
+      return
+    }
     this._started = false
     this._intervalLastMs = null
     this._count = 0

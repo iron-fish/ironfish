@@ -30,7 +30,7 @@ const configToLogLevel: {
 const configLevelToLogLevel = (level: string): LogLevel => {
   level = level.toLowerCase()
   const configLevel = configToLogLevel[level]
-  if (configLevel == null) {
+  if (configLevel === undefined) {
     throw new Error(
       `Log level ${level} should be one of the following: ${Object.keys(configToLogLevel).join(
         ', ',

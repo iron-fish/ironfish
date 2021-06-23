@@ -36,7 +36,7 @@ export default class Uint8ArraySerde implements Serde<Uint8Array, string> {
   }
 
   deserialize(data: string): Uint8Array {
-    if (typeof data != 'string' || data.length != this.size * 2) {
+    if (typeof data !== 'string' || data.length !== this.size * 2) {
       throw new Error(`${JSON.stringify(data)} is not a ${this.size * 2}-character hex string`)
     }
     return hexarray.fromString(data)

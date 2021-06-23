@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { cli, Table } from 'cli-ux'
 import { flags } from '@oclif/command'
-import { IronfishCommand } from '../../command'
-import { PromiseUtils, GetPeersResponse } from 'ironfish'
-import { RemoteFlags } from '../../flags'
 import blessed from 'blessed'
+import { cli, Table } from 'cli-ux'
+import { GetPeersResponse, PromiseUtils } from 'ironfish'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
@@ -157,8 +157,12 @@ function renderTable(
       minWidth: 7,
       get: (row: GetPeerResponsePeer) => {
         let address = ''
-        if (row.address) address += row.address
-        if (row.port) address += ':' + String(row.port)
+        if (row.address) {
+          address += row.address
+        }
+        if (row.port) {
+          address += ':' + String(row.port)
+        }
         return address
       },
     },

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../assert'
+import { IJSON, JsonSerializable } from '../serde'
 import {
   IDatabase,
   IDatabaseEncoding,
@@ -10,11 +12,9 @@ import {
   JsonEncoding,
   SchemaValue,
 } from '../storage'
+import { MerkleHasher } from './hasher'
 import { CounterSchema, LeavesSchema, NodesSchema, NodeValue, SCHEMA_VERSION } from './schema'
 import { Witness, WitnessNode } from './witness'
-import { MerkleHasher } from './hasher'
-import { JsonSerializable, IJSON } from '../serde'
-import { Assert } from '../assert'
 
 /**
  * Represent whether a given node is the left or right subchild in a tree,
@@ -157,7 +157,9 @@ export default class MerkleTree<
     tx?: IDatabaseTransaction,
   ): Promise<SchemaValue<LeavesSchema<E, H>>> {
     const leaf = await this.getLeafOrNull(index, tx)
-    if (!leaf) throw new Error(`No leaf found in tree ${this.treeName} at index ${index}`)
+    if (!leaf) {
+      throw new Error(`No leaf found in tree ${this.treeName} at index ${index}`)
+    }
     return leaf
   }
 
@@ -184,7 +186,9 @@ export default class MerkleTree<
     tx?: IDatabaseTransaction,
   ): Promise<SchemaValue<NodesSchema<H>>> {
     const node = await this.getNodeOrNull(index, tx)
-    if (!node) throw new Error(`No node found in tree ${this.treeName} at index ${index}`)
+    if (!node) {
+      throw new Error(`No node found in tree ${this.treeName} at index ${index}`)
+    }
     return node
   }
 
@@ -206,8 +210,9 @@ export default class MerkleTree<
    */
   async getCount(countType: 'Leaves' | 'Nodes', tx?: IDatabaseTransaction): Promise<LeafIndex> {
     const count = await this.counter.get(countType, tx)
-    if (count === undefined)
+    if (count === undefined) {
       throw new Error(`No counts found in tree ${this.treeName} for type ${countType}`)
+    }
     return count
   }
 
@@ -346,13 +351,15 @@ export default class MerkleTree<
               // previous parent is a right node, gotta go up a step
               myHash = this.merkleHasher.combineHash(depth, myHash, myHash)
 
-              if (previousParent.leftIndex === undefined)
+              if (previousParent.leftIndex === undefined) {
                 throw new UnexpectedDatabaseError(`Parent has no left sibling`)
+              }
 
               const leftSibling = await this.getNode(previousParent.leftIndex, tx)
 
-              if (leftSibling.parentIndex === undefined)
+              if (leftSibling.parentIndex === undefined) {
                 throw new UnexpectedDatabaseError(`Left sibling has no parent`)
+              }
               const leftSiblingParentIndex = leftSibling.parentIndex
 
               const newNode = {
@@ -704,8 +711,9 @@ export default class MerkleTree<
           // since this is a new right node, we know that we have the correct
           // hash because we set it correctly when we inserted it. But the left
           // node needs to have its hashOfSibling set to our current hash.
-          if (node.leftIndex === undefined)
+          if (node.leftIndex === undefined) {
             throw new Error(`Expected node ${node.index} to have left node`)
+          }
 
           const leftNode = await this.getNode(node.leftIndex, tx)
 

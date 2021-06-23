@@ -5,8 +5,8 @@
 // TODO: This file depends on nodejs librarys (piscina, path) and will not
 // work with browser workers. This will need to be abstracted in future.
 
-import Piscina from 'piscina'
 import path from 'path'
+import Piscina from 'piscina'
 
 /**
  * The number of tasks to run in each thread batch
@@ -151,7 +151,9 @@ async function miner(
   numTasks: number,
 ): Promise<void> {
   let blockToMineResult = await newBlocksIterator.next()
-  if (blockToMineResult.done) return
+  if (blockToMineResult.done) {
+    return
+  }
   let blockPromise = newBlocksIterator.next()
 
   const piscina = new Piscina({

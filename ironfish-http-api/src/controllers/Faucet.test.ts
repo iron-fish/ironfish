@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import request from 'supertest'
 import { Express } from 'express-serve-static-core'
+import request from 'supertest'
 
 const NodeFileProvider = jest.fn()
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

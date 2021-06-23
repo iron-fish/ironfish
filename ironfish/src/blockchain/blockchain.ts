@@ -2,61 +2,61 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Strategy } from '../strategy'
-import {
-  IronfishTransaction,
-  SerializedTransaction,
-  Transaction,
-} from '../primitives/transaction'
-import { Block, SerializedBlock } from '../primitives/block'
-import { Verifier, VerificationResultReason } from '../consensus/verifier'
-import { BlockHeader, BlockHash, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
-import { IJSON, JsonSerializable } from '../serde'
-import { Target } from '../primitives/target'
-import { Meter, MetricsMonitor } from '../metrics'
-import { Nullifier, NullifierHash } from '../primitives/nullifier'
-import { Event } from '../event'
-import {
-  HeadersSchema,
-  SCHEMA_VERSION,
-  SequenceToHashesSchema,
-  TransactionsSchema,
-  SequenceToHashSchema,
-  MetaSchema,
-  HashToNextSchema,
-} from './schema'
-import {
-  BUFFER_ARRAY_ENCODING,
-  BUFFER_ENCODING,
-  NUMBER_ENCODING,
-  IDatabase,
-  IDatabaseStore,
-  IDatabaseTransaction,
-  JsonEncoding,
-  StringEncoding,
-} from '../storage'
-import { createRootLogger, Logger } from '../logger'
+import LRU from 'blru'
+import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import {
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_MS,
 } from '../consensus'
+import { VerificationResultReason, Verifier } from '../consensus/verifier'
+import { Event } from '../event'
+import { genesisBlockData } from '../genesis'
+import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
-import { Assert } from '../assert'
-import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { Meter, MetricsMonitor } from '../metrics'
+import { BAN_SCORE } from '../network/peers/peer'
+import { Block, SerializedBlock } from '../primitives/block'
+import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
+import { Nullifier, NullifierHash } from '../primitives/nullifier'
+import { Target } from '../primitives/target'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+} from '../primitives/transaction'
+import { IJSON, JsonSerializable } from '../serde'
+import {
+  BUFFER_ARRAY_ENCODING,
+  BUFFER_ENCODING,
+  IDatabase,
+  IDatabaseStore,
+  IDatabaseTransaction,
+  JsonEncoding,
+  NUMBER_ENCODING,
+  StringEncoding,
+} from '../storage'
 import { createDB } from '../storage/utils'
-import LRU from 'blru'
-import { BufferMap } from 'buffer-map'
+import { Strategy } from '../strategy'
+import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
-import { BAN_SCORE } from '../network/peers/peer'
-import { genesisBlockData } from '../genesis'
+import {
+  HashToNextSchema,
+  HeadersSchema,
+  MetaSchema,
+  SCHEMA_VERSION,
+  SequenceToHashesSchema,
+  SequenceToHashSchema,
+  TransactionsSchema,
+} from './schema'
 
 export class Blockchain<
   E,
@@ -250,7 +250,9 @@ export class Blockchain<
   }
 
   async open(options?: { upgrade?: boolean }): Promise<void> {
-    if (this.opened) return
+    if (this.opened) {
+      return
+    }
     this.opened = true
 
     const upgrade = options?.upgrade ?? true
@@ -298,7 +300,9 @@ export class Blockchain<
   }
 
   async close(): Promise<void> {
-    if (!this.opened) return
+    if (!this.opened) {
+      return
+    }
     this.opened = false
     await this.db.close()
   }
@@ -1130,7 +1134,9 @@ export class Blockchain<
       to = this.head
     }
 
-    if (!to) return
+    if (!to) {
+      return
+    }
 
     for await (const header of this.iterateFrom(this.genesis, to, tx)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
@@ -1276,7 +1282,9 @@ export class Blockchain<
    * to prevent this. See https://linear.app/ironfish/issue/IRO-706
    */
   private forceUpgrade = (db: unknown, oldVersion: number): Promise<void> => {
-    if (oldVersion === 0) return Promise.resolve()
+    if (oldVersion === 0) {
+      return Promise.resolve()
+    }
 
     this.logger.error(
       `You are running a newer version of ironfish on an older database.\n` +

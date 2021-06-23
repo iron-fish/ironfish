@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IDatabase, LevelupDatabase } from '../../storage'
 import leveldown from 'leveldown'
+import { IDatabase, LevelupDatabase } from '../../storage'
 
 /** Generate a test database name from the given test if not provided*/
 export function makeDbName(): string {
@@ -13,11 +13,15 @@ export function makeDbName(): string {
 
 /**Init a database with the given name, or generate one from the current test */
 export function makeDb(name?: string): IDatabase {
-  if (!name) name = makeDbName()
+  if (!name) {
+    name = makeDbName()
+  }
   return new LevelupDatabase(leveldown(`./testdbs/${name}`))
 }
 
 export function makeDbPath(name?: string): string {
-  if (!name) name = makeDbName()
+  if (!name) {
+    name = makeDbName()
+  }
   return `./testdbs/${name}`
 }

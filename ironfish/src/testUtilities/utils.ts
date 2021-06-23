@@ -40,7 +40,9 @@ export function mockImplementationShuffle<TArgs extends unknown[], TResult>(
   mock.mockImplementation(
     (...args: TArgs): Promise<TResult> => {
       const promise = new Promise<Promise<TResult>>((resolve) => {
-        if (lastTimeout) clearTimeout(lastTimeout)
+        if (lastTimeout) {
+          clearTimeout(lastTimeout)
+        }
 
         buffer.push([args, resolve])
 
@@ -70,6 +72,8 @@ export function mockImplementationShuffle<TArgs extends unknown[], TResult>(
   )
 
   return () => {
-    if (lastTimeout) clearTimeout(lastTimeout)
+    if (lastTimeout) {
+      clearTimeout(lastTimeout)
+    }
   }
 }

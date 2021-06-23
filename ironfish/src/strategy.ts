@@ -2,29 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { MerkleHasher } from './merkletree'
-import { NullifierHash, Nullifier } from './primitives/nullifier'
-import {
-  IronfishTransaction,
-  SerializedTransaction,
-  Transaction,
-  TransactionSerde,
-} from './primitives/transaction'
-import { IronfishVerifier, Verifier } from './consensus/verifier'
 import { Blockchain, IronfishBlockchain } from './blockchain'
-import { Serde, JsonSerializable } from './serde'
 import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
-import { WorkerPool } from './workerPool'
+import { IronfishVerifier, Verifier } from './consensus/verifier'
+import { MerkleHasher } from './merkletree'
+import { NoteHasher } from './merkletree/hasher'
+import { BlockSerde } from './primitives/block'
+import { BlockHash, BlockHeaderSerde, hashBlockHeader } from './primitives/blockheader'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
 } from './primitives/noteEncrypted'
-import { NoteHasher } from './merkletree/hasher'
+import { Nullifier, NullifierHash } from './primitives/nullifier'
 import { NullifierHasher } from './primitives/nullifier'
-import { BlockSerde } from './primitives/block'
-import { hashBlockHeader, BlockHash, BlockHeaderSerde } from './primitives/blockheader'
+import {
+  IronfishTransaction,
+  SerializedTransaction,
+  Transaction,
+  TransactionSerde,
+} from './primitives/transaction'
+import { JsonSerializable, Serde } from './serde'
+import { WorkerPool } from './workerPool'
 
 /**
  * Strategy to allow Blockchain to remain

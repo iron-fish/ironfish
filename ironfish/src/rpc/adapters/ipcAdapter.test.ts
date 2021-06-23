@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
+import os from 'os'
+import * as yup from 'yup'
+import { IronfishSdk } from '../../sdk'
+import { IronfishIpcClient, RequestError } from '../clients'
 import { ALL_API_NAMESPACES } from '../routes'
 import { ERROR_CODES, ValidationError } from './errors'
 import { IpcAdapter } from './ipcAdapter'
-import { IronfishIpcClient, RequestError } from '../clients'
-import { IronfishSdk } from '../../sdk'
-import * as yup from 'yup'
-import os from 'os'
 
 describe('IpcAdapter', () => {
   let ipc: IpcAdapter
@@ -93,7 +93,9 @@ describe('IpcAdapter', () => {
       expect.assertions(3)
       await response.waitForEnd()
     } catch (error: unknown) {
-      if (!(error instanceof RequestError)) throw error
+      if (!(error instanceof RequestError)) {
+        throw error
+      }
       expect(error.status).toBe(402)
       expect(error.code).toBe('hello-error')
       expect(error.codeMessage).toBe('hello error')
@@ -117,7 +119,9 @@ describe('IpcAdapter', () => {
       expect.assertions(3)
       await response.waitForEnd()
     } catch (error: unknown) {
-      if (!(error instanceof RequestError)) throw error
+      if (!(error instanceof RequestError)) {
+        throw error
+      }
       expect(error.status).toBe(400)
       expect(error.code).toBe(ERROR_CODES.VALIDATION)
       expect(error.codeMessage).toContain('must be defined')

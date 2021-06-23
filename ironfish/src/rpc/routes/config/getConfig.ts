@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ApiNamespace, router } from '../router'
-import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import * as yup from 'yup'
+import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
+import { ApiNamespace, router } from '../router'
 
 export type GetConfigRequest = { user?: boolean; name?: string } | undefined
 export type GetConfigResponse = Partial<ConfigOptions>
@@ -27,8 +27,12 @@ router.register<typeof GetConfigRequestSchema, GetConfigResponse>(
     }
 
     let pickKeys: string[] | undefined = undefined
-    if (!request.data?.user) pickKeys = Object.keys(node.config.defaults)
-    if (request.data?.name) pickKeys = [request.data.name]
+    if (!request.data?.user) {
+      pickKeys = Object.keys(node.config.defaults)
+    }
+    if (request.data?.name) {
+      pickKeys = [request.data.name]
+    }
 
     const data = (request.data?.user
       ? JSON.parse(JSON.stringify(node.config.loaded))

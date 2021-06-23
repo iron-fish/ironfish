@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import consola, { LogLevel } from 'consola'
 import type { Consola } from 'consola'
-
-import { ConsoleReporter } from './reporters/console'
+import consola, { LogLevel } from 'consola'
 import { parseLogLevelConfig } from './logLevelParser'
+import { ConsoleReporter } from './reporters/console'
 export * from './reporters/intercept'
 
 export type Logger = Consola

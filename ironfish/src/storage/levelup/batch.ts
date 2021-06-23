@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AbstractBatch, PutBatch, DelBatch } from 'abstract-leveldown'
+import type { LevelupDatabase } from './database'
+import { AbstractBatch, DelBatch, PutBatch } from 'abstract-leveldown'
 import {
   DatabaseSchema,
   IDatabaseBatch,
@@ -9,7 +10,6 @@ import {
   SchemaKey,
   SchemaValue,
 } from '../database'
-import type { LevelupDatabase } from './database'
 
 export class LevelupBatch implements IDatabaseBatch {
   db: LevelupDatabase
@@ -47,7 +47,9 @@ export class LevelupBatch implements IDatabaseBatch {
   }
 
   async commit(): Promise<void> {
-    if (this.queue.length === 0) return
+    if (this.queue.length === 0) {
+      return
+    }
     await this.db.levelup.batch(this.queue)
     this.queue.length = 0
   }

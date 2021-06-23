@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger, Logger } from '../../logger'
 import { IronfishNode } from '../../node'
-import { IronfishRpcClient } from './rpcClient'
 import { MemoryAdapter } from '../adapters'
 import { Response } from '../response'
+import { IronfishRpcClient } from './rpcClient'
 
 export class IronfishMemoryClient extends IronfishRpcClient {
   node: IronfishNode | null = null
@@ -17,7 +17,9 @@ export class IronfishMemoryClient extends IronfishRpcClient {
   }
 
   async connect(node: IronfishNode): Promise<void> {
-    if (node === this.node) return
+    if (node === this.node) {
+      return
+    }
     this.node = node
     await node.rpc.mount(this.adapter)
   }
@@ -35,7 +37,9 @@ export class IronfishMemoryClient extends IronfishRpcClient {
       timeoutMs?: number | null
     } = {},
   ): Response<TEnd, TStream> {
-    if (options.timeoutMs) throw new Error(`MemoryAdapter does not support timeoutMs`)
+    if (options.timeoutMs) {
+      throw new Error(`MemoryAdapter does not support timeoutMs`)
+    }
     return this.adapter.requestStream<TEnd, TStream>(route, data)
   }
 }

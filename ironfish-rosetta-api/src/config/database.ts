@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import 'reflect-metadata'
 import { createConnection } from 'typeorm'
-
 import ormConfig from '../../ormconfig'
 import { Block, Config, Transaction } from '../entity'
 

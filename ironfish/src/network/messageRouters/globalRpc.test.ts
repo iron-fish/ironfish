@@ -5,14 +5,14 @@
 jest.mock('./rpcId')
 jest.mock('ws')
 
-import { mocked } from 'ts-jest/utils'
-import { nextRpcId } from './rpcId'
-import { CannotSatisfyRequestError, Direction, RpcRouter } from './rpc'
-import { PeerManager } from '../peers/peerManager'
-import { mockLocalPeer, getConnectedPeer } from '../testUtilities'
-import { GlobalRpcRouter } from './globalRpc'
-import { InternalMessageType, MessageType } from '../messages'
 import '../testUtilities'
+import { mocked } from 'ts-jest/utils'
+import { InternalMessageType, MessageType } from '../messages'
+import { PeerManager } from '../peers/peerManager'
+import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
+import { GlobalRpcRouter } from './globalRpc'
+import { CannotSatisfyRequestError, Direction, RpcRouter } from './rpc'
+import { nextRpcId } from './rpcId'
 
 jest.useFakeTimers()
 
@@ -139,7 +139,9 @@ describe('Global Rpc', () => {
     expect(router.rpcRouter['handlers'].size).toBe(1)
     const rpcHandler = router.rpcRouter['handlers'].get('test')
     expect(rpcHandler).toBeDefined()
-    if (!rpcHandler) throw new Error('rpcHandler should be defined')
+    if (!rpcHandler) {
+      throw new Error('rpcHandler should be defined')
+    }
     await rpcHandler({
       peerIdentity: 'peer',
       message: {

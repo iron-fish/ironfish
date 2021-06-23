@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishCommand } from '../command'
 import { ConnectionError, IronfishNode } from 'ironfish'
+import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 export default class StopCommand extends IronfishCommand {
@@ -18,7 +18,9 @@ export default class StopCommand extends IronfishCommand {
     this.parse(StopCommand)
 
     await this.sdk.client.connect({ retryConnect: false }).catch((e) => {
-      if (e instanceof ConnectionError) this.exit(0)
+      if (e instanceof ConnectionError) {
+        this.exit(0)
+      }
       throw e
     })
 

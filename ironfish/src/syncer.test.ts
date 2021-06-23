@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from './assert'
-import { createNodeTest } from './testUtilities/nodeTest'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
-import { PromiseUtils } from './utils'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
+import { createNodeTest } from './testUtilities/nodeTest'
+import { PromiseUtils } from './utils'
 
 describe('Syncer', () => {
   const nodeTest = createNodeTest()
