@@ -215,12 +215,12 @@ export class IronfishNode {
     })
   }
 
-  async openDB(): Promise<void> {
+  async openDB(options?: { upgrade?: boolean }): Promise<void> {
     await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
 
     try {
-      await this.chain.open()
-      await this.accounts.db.open()
+      await this.chain.open(options)
+      await this.accounts.db.open(options)
     } catch (e) {
       await this.chain.close()
       await this.accounts.db.close()

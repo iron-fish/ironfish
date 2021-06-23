@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IronfishCommand, SIGNALS } from '../command'
-import { DatabaseIsLockedError, IronfishNode, PromiseUtils } from 'ironfish'
+import { IronfishNode, NodeUtils, PromiseUtils } from 'ironfish'
 import {
   ConfigFlag,
   ConfigFlagKey,
@@ -131,7 +131,7 @@ export default class Start extends IronfishCommand {
     this.log(`Node Name     ${name || 'NONE'}`)
     this.log(` `)
 
-    await this.waitForOpenDatabase(node)
+    await NodeUtils.waitForOpen(node, () => this.closing)
 
     if (this.closing) {
       return startDoneResolve()
@@ -165,33 +165,6 @@ export default class Start extends IronfishCommand {
     await this.startDonePromise
     await this.node?.shutdown()
     await this.node?.closeDB()
-  }
-
-  /**
-   * Wait for when we can open connections to the databases because another node can be using it
-   */
-  async waitForOpenDatabase(node: IronfishNode): Promise<void> {
-    let warnDatabaseInUse = false
-    const OPEN_DB_RETRY_TIME = 500
-
-    while (!this.closing) {
-      try {
-        await node.openDB()
-        return
-      } catch (e) {
-        if (e instanceof DatabaseIsLockedError) {
-          if (!warnDatabaseInUse) {
-            this.log('Another node is using the database, waiting for that node to close.')
-            warnDatabaseInUse = true
-          }
-
-          await new Promise((r) => setTimeout(r, OPEN_DB_RETRY_TIME))
-          continue
-        }
-
-        throw e
-      }
-    }
   }
 
   /**
