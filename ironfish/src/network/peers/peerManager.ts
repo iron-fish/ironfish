@@ -328,7 +328,7 @@ export class PeerManager {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
-      if (errorMessage !== null) {
+      if (errorMessage !== undefined) {
         this.logger.debug(errorMessage)
         connection.close(new NetworkError(errorMessage))
         return
