@@ -23,7 +23,9 @@ export class ParseJsonError extends Error {
 
 function parse<T = unknown>(data: string, fileName?: string): T {
   const [result, error] = tryParse<T>(data, fileName)
-  if (error) throw error
+  if (error) {
+    throw error
+  }
   Assert.isNotNull(result)
   return result
 }

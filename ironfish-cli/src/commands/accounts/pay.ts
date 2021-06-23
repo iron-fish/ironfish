@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import cli from 'cli-ux'
 import { flags } from '@oclif/command'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import cli from 'cli-ux'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
-  oreToIron,
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
+  oreToIron,
 } from 'ironfish'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 interface ProgressBar {
   progress: VoidFunction
@@ -77,7 +77,9 @@ export class Pay extends IronfishCommand {
           required: true,
         },
       )) as number
-      if (Number.isNaN(amount)) this.error(`A valid amount is required`)
+      if (Number.isNaN(amount)) {
+        this.error(`A valid amount is required`)
+      }
     }
 
     if (!fee || Number.isNaN(Number(fee))) {
@@ -86,7 +88,9 @@ export class Pay extends IronfishCommand {
         default: '0.00000001',
       })) as number
 
-      if (Number.isNaN(fee)) this.error(`A valid fee amount is required`)
+      if (Number.isNaN(fee)) {
+        this.error(`A valid fee amount is required`)
+      }
     }
 
     if (!to) {
@@ -95,18 +99,21 @@ export class Pay extends IronfishCommand {
       })) as string
 
       // Todo: need better validation for public address
-      if (to.length != 86) this.error(`A valid public address is required`)
+      if (to.length !== 86) {
+        this.error(`A valid public address is required`)
+      }
     }
 
     if (!from) {
       const response = await this.sdk.client.getDefaultAccount()
       const defaultAccount = response.content.account
 
-      if (!defaultAccount)
+      if (!defaultAccount) {
         this.error(
           `No account is currently active.
            Use ironfish accounts:create <name> to first create an account`,
         )
+      }
 
       from = defaultAccount.name
     }
@@ -202,7 +209,9 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while sending the transaction.`)
-      if (error instanceof Error) this.error(error.message)
+      if (error instanceof Error) {
+        this.error(error.message)
+      }
       this.exit(2)
     }
   }

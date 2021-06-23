@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import os from 'os'
 import { miner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
+import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 

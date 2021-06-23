@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { getCustomRepository, LessThan, Like } from 'typeorm'
+import { RequestHandlerParams } from '../middleware'
+import { BlockRepository } from '../repository/BlockRepository'
+import { TransactionRepository } from '../repository/TransactionRepository'
 import {
   SearchBlocksRequest,
   SearchBlocksResponse,
   SearchTransactionsRequest,
   SearchTransactionsResponse,
 } from '../types'
-import { RequestHandlerParams } from '../middleware'
-import { getCustomRepository, LessThan, Like } from 'typeorm'
 import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
-import { BlockRepository } from '../repository/BlockRepository'
-import { TransactionRepository } from '../repository/TransactionRepository'
 
 export const SearchBlocks = async (
   requestParams: RequestHandlerParams<SearchBlocksRequest>,
@@ -21,8 +21,9 @@ export const SearchBlocks = async (
   const { query, limit, seek, network_identifier: networkIdentifier } = params
 
   // Verify network identifier
-  if (!isValidNetworkIdentifier(networkIdentifier))
+  if (!isValidNetworkIdentifier(networkIdentifier)) {
     throw new Error(`Network identifier is not valid`)
+  }
 
   // Search filters:
   // - by hash if the query has 4+ characters
@@ -83,14 +84,19 @@ export const SearchTransactions = async (
   } = params
 
   // Verify network identifier
-  if (!isValidNetworkIdentifier(networkIdentifier))
+  if (!isValidNetworkIdentifier(networkIdentifier)) {
     throw new Error(`Network identifier is not valid`)
+  }
 
-  if (!transactionIdentifier) throw new Error(`Transaction identifier is not valid`)
+  if (!transactionIdentifier) {
+    throw new Error(`Transaction identifier is not valid`)
+  }
 
   const { hash } = transactionIdentifier
 
-  if (!hash && hash.length <= 3) throw new Error(`Transaction identifier hash is not valid`)
+  if (!hash && hash.length <= 3) {
+    throw new Error(`Transaction identifier hash is not valid`)
+  }
 
   const transactionRepository = getCustomRepository(TransactionRepository)
   const transactionsData = await transactionRepository.findByHashWithInstances(hash, limit || 5)

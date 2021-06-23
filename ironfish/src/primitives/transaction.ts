@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
+import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
+import { Serde } from '../serde'
+import { WorkerPool } from '../workerPool'
 import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
-import { Serde } from '../serde'
-import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
-import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
-import { WorkerPool } from '../workerPool'
 
 export type TransactionHash = Buffer
 export type SerializedTransaction = Buffer

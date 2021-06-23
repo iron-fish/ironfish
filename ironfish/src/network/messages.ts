@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Identity, isIdentity } from './identity'
-import { IJSON } from '../serde'
-import { SerializedBlock } from '../primitives/block'
-import { Gossip, Rpc } from './messageRouters'
-import { UnwrapPromise } from '../utils'
 import { IronfishVerifier } from '../consensus'
+import { SerializedBlock } from '../primitives/block'
+import { IJSON } from '../serde'
+import { UnwrapPromise } from '../utils'
+import { Identity, isIdentity } from './identity'
+import { Gossip, Rpc } from './messageRouters'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -44,21 +44,27 @@ export type Message<
 export type MessagePayload<M> = M extends Message<infer _T, infer P> ? P : never
 
 export function isMessage(obj: unknown): obj is Message<MessageType, PayloadType> {
-  if (typeof obj != 'object' || obj == null) return false
+  if (typeof obj !== 'object' || obj === null) {
+    return false
+  }
   if (
     'payload' in obj &&
     (typeof (obj as Message<MessageType, Record<string, unknown>>).payload !== 'object' ||
       obj === null)
-  )
+  ) {
     return false
-  return typeof (obj as Message<MessageType, PayloadType>).type == 'string'
+  }
+  return typeof (obj as Message<MessageType, PayloadType>).type === 'string'
 }
 
 export function isPayloadMessage(
   obj: unknown,
 ): obj is Message<MessageType, Record<string, unknown>> {
   return (
-    isMessage(obj) && 'payload' in obj && typeof obj.payload === 'object' && obj.payload != null
+    isMessage(obj) &&
+    'payload' in obj &&
+    typeof obj.payload === 'object' &&
+    obj.payload !== null
   )
 }
 
@@ -94,14 +100,16 @@ export type Identify = Message<
 >
 
 export function isIdentify(obj: unknown): obj is Identify {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
 
   const payload = obj.payload as Identify['payload']
 
   return (
     obj.type === InternalMessageType.identity &&
     typeof payload === 'object' &&
-    payload != null &&
+    payload !== null &&
     typeof payload.identity === 'string' &&
     typeof payload.agent === 'string' &&
     typeof payload.version === 'number' &&
@@ -126,12 +134,14 @@ export type SignalRequest = Message<
 >
 
 export function isSignalRequest(obj: unknown): obj is SignalRequest {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
 
   const payload = obj.payload as Signal['payload']
   return (
     obj.type === InternalMessageType.signalRequest &&
-    payload != null &&
+    payload !== null &&
     typeof payload.sourceIdentity === 'string' &&
     typeof payload.destinationIdentity === 'string'
   )
@@ -155,11 +165,13 @@ export type Signal = Message<
 >
 
 export function isSignal(obj: unknown): obj is Signal {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as Signal['payload']
   return (
     obj.type === InternalMessageType.signal &&
-    payload != null &&
+    payload !== null &&
     typeof payload.sourceIdentity === 'string' &&
     typeof payload.destinationIdentity === 'string' &&
     typeof payload.nonce === 'string' &&
@@ -180,11 +192,13 @@ export type PeerList = Message<
 >
 
 export function isPeerList(obj: unknown): obj is PeerList {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as PeerList['payload']
   return (
     obj.type === InternalMessageType.peerList &&
-    payload != null &&
+    payload !== null &&
     Array.isArray(payload.connectedPeers) &&
     payload.connectedPeers.every((v) => isIdentity(v.identity))
   )
@@ -207,11 +221,13 @@ export type DisconnectingMessage = Message<
 >
 
 export function isDisconnectingMessage(obj: unknown): obj is DisconnectingMessage {
-  if (!isPayloadMessage(obj)) return false
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
   const payload = obj.payload as DisconnectingMessage['payload']
   return (
     obj.type === InternalMessageType.disconnecting &&
-    payload != null &&
+    payload !== null &&
     typeof payload.sourceIdentity === 'string' &&
     (typeof payload.destinationIdentity === 'string' || payload.destinationIdentity === null) &&
     typeof payload.reason === 'number' &&
@@ -255,7 +271,7 @@ export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
  * Type narrowing to confirm a `NoteRequest` has the requisite type and position field.
  */
 export function isNoteRequestPayload(obj: PayloadType): obj is MessagePayload<NoteRequest> {
-  return obj != null && 'position' in obj && typeof obj.position === 'number'
+  return obj !== undefined && 'position' in obj && typeof obj.position === 'number'
 }
 
 /**
@@ -272,7 +288,9 @@ export type NoteResponse<SE> = Rpc<NodeMessageType.Note, { note: SE; position: n
 export function isNoteResponsePayload<SE>(
   obj: PayloadType,
 ): obj is MessagePayload<NoteResponse<SE>> {
-  return obj != null && 'note' in obj && 'position' in obj && typeof obj.position === 'number'
+  return (
+    obj !== undefined && 'note' in obj && 'position' in obj && typeof obj.position === 'number'
+  )
 }
 
 /**
@@ -296,7 +314,7 @@ export type NullifierRequest = Message<NodeMessageType.Nullifier, { position: nu
 export function isNullifierRequestPayload(
   obj: PayloadType,
 ): obj is MessagePayload<NullifierRequest> {
-  return obj != null && 'position' in obj && typeof obj.position === 'number'
+  return obj !== undefined && 'position' in obj && typeof obj.position === 'number'
 }
 
 /**
@@ -322,7 +340,7 @@ export function isNullifierResponse(obj: LooseMessage): obj is NullifierResponse
 export function isNullifierResponsePayload(
   obj: PayloadType,
 ): obj is MessagePayload<NullifierResponse> {
-  return obj != null && 'nullifier' in obj && typeof obj.nullifier === 'string'
+  return obj !== undefined && 'nullifier' in obj && typeof obj.nullifier === 'string'
 }
 
 export type GetBlockHashesRequest = Message<
@@ -365,7 +383,9 @@ export function isGetBlocksResponse<SH, ST>(
     Array.isArray(obj.payload.blocks)
   ) {
     for (const block of obj.payload.blocks) {
-      if (!isBlock(block)) return false
+      if (!isBlock(block)) {
+        return false
+      }
     }
 
     return true
@@ -376,7 +396,7 @@ export function isGetBlocksResponse<SH, ST>(
 
 export function isGetBlocksRequest(obj: PayloadType): obj is GetBlocksRequest['payload'] {
   return (
-    obj != null &&
+    obj !== undefined &&
     'start' in obj &&
     (typeof obj.start === 'string' || typeof obj.start === 'number') &&
     'limit' in obj &&
@@ -392,7 +412,9 @@ export function isGetBlockHashesResponse(obj: LooseMessage): obj is GetBlockHash
     Array.isArray(obj.payload.blocks)
   ) {
     for (const block of obj.payload.blocks) {
-      if (!isBlockHash(block)) return false
+      if (!isBlockHash(block)) {
+        return false
+      }
     }
 
     return true
@@ -404,7 +426,7 @@ export function isGetBlockHashesRequest(
   obj: PayloadType,
 ): obj is GetBlockHashesRequest['payload'] {
   return (
-    obj != null &&
+    obj !== undefined &&
     'start' in obj &&
     (typeof obj.start === 'string' || typeof obj.start === 'number') &&
     'limit' in obj &&
@@ -420,10 +442,10 @@ function isBlock<SH, ST>(
   obj: Record<string, unknown> | undefined,
 ): obj is SerializedBlock<SH, ST> {
   return (
-    obj != null &&
+    obj !== undefined &&
     'header' in obj &&
     typeof obj.header === 'object' &&
-    obj.header != null &&
+    obj.header !== null &&
     'hash' in obj.header
   )
 }
@@ -440,7 +462,9 @@ export type NewBlock<SH, ST> = Message<'NewBlock', { block: SerializedBlock<SH, 
 export function isNewBlockPayload<SH, ST>(
   obj: PayloadType,
 ): obj is NewBlock<SH, ST>['payload'] {
-  return obj != null && 'block' in obj && typeof obj.block === 'object' && obj.block != null
+  return (
+    obj !== undefined && 'block' in obj && typeof obj.block === 'object' && obj.block !== null
+  )
 }
 
 /**
@@ -461,10 +485,10 @@ export function isNewTransactionPayload<ST>(
   obj: PayloadType,
 ): obj is NewTransaction<ST>['payload'] {
   return (
-    obj != null &&
+    obj !== undefined &&
     'transaction' in obj &&
     typeof obj.transaction === 'object' &&
-    obj.transaction != null
+    obj.transaction !== null
   )
 }
 

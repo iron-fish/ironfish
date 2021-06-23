@@ -5,9 +5,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { ERROR_CODES, ResponseError } from '../../adapters'
-import { createRouteTest } from '../../../testUtilities/routeTest'
 import { v4 as uuid } from 'uuid'
+import { createRouteTest } from '../../../testUtilities/routeTest'
+import { ERROR_CODES, ResponseError } from '../../adapters'
 
 describe('Route account/create', () => {
   jest.setTimeout(15000)
@@ -51,7 +51,9 @@ describe('Route account/create', () => {
       expect.assertions(3)
       await routeTest.adapter.request('account/create')
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) throw e
+      if (!(e instanceof ResponseError)) {
+        throw e
+      }
       expect(e.status).toBe(400)
       expect(e.code).toBe(ERROR_CODES.VALIDATION)
       expect(e.message).toContain('name')
@@ -67,7 +69,9 @@ describe('Route account/create', () => {
       expect.assertions(2)
       await routeTest.adapter.request('account/create', { name: name })
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) throw e
+      if (!(e instanceof ResponseError)) {
+        throw e
+      }
       expect(e.status).toBe(400)
       expect(e.code).toBe(ERROR_CODES.ACCOUNT_EXISTS)
     }

@@ -9,7 +9,7 @@ export type RouteError = {
 }
 
 export const isRouteErrorType = (error: RequestError): error is RouteError =>
-  error != null &&
+  error !== null &&
   'status' in error &&
   typeof error.status === 'number' &&
   (!('message' in error) || typeof error.message === 'string')

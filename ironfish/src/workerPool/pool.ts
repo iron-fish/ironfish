@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import * as worker from './worker'
-import { Worker } from 'worker_threads'
+import type { Side } from '../merkletree/merkletree'
 import type {
-  CreateTransactionRequest,
+  BoxMessageRequest,
   CreateMinersFeeRequest,
+  CreateTransactionRequest,
   OmitRequestId,
   TransactionFeeRequest,
+  UnboxMessageRequest,
   VerifyTransactionRequest,
   WorkerRequest,
-  WorkerResponse,
   WorkerRequestMessage,
+  WorkerResponse,
   WorkerResponseMessage,
-  BoxMessageRequest,
-  UnboxMessageRequest,
 } from './messages'
-import type { Side } from '../merkletree/merkletree'
-import { IronfishTransaction } from '../primitives/transaction'
-import { IronfishNote } from '../primitives/note'
+import { Worker } from 'worker_threads'
 import { Identity, PrivateIdentity } from '../network'
+import { IronfishNote } from '../primitives/note'
+import { IronfishTransaction } from '../primitives/transaction'
+import * as worker from './worker'
 
 const MESSAGE_QUEUE_MAX_LENGTH = 200
 

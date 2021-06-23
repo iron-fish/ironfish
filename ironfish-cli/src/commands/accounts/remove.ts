@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { flags } from '@oclif/command'
+import { cli } from 'cli-ux'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { cli } from 'cli-ux'
 
 export class RemoveCommand extends IronfishCommand {
   static description = `Permanently remove an account`

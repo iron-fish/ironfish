@@ -32,7 +32,9 @@ export function parseUrl(
   if (portSepIndex !== -1) {
     const value = Number(url.slice(portSepIndex + PORT_SEPARATOR.length).trim())
     url = url.slice(0, portSepIndex).trim()
-    if (!isNaN(value)) port = value
+    if (!isNaN(value)) {
+      port = value
+    }
   }
 
   if (url) {

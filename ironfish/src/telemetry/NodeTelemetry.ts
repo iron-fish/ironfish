@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Worker } from 'worker_threads'
 import DisabledTelemetry from './DisabledTelemetry'
-import { Telemetry, Metric } from './index'
+import { Metric, Telemetry } from './index'
 
 /**
  * Telemetry implementation that sends metrics to a node worker thread

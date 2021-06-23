@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GetChainInfoResponse, ResponseEnded } from 'ironfish'
-
 import { networkIdentifier } from '../config'
 import { RequestHandlerParams } from '../middleware/requestHandler'
-import { NetworkRequest, NetworkListResponse, NetworkStatusResponse, Peer } from '../types'
 import { RPCClient } from '../rpc'
+import { NetworkListResponse, NetworkRequest, NetworkStatusResponse, Peer } from '../types'
 import { isValidNetworkIdentifier } from '../utils/networkIdentifierUtil'
 
 export const NetworkList = async (): Promise<NetworkListResponse> => {
@@ -24,8 +23,9 @@ export const NetworkStatus = async (
   const { network_identifier: networkIdentifier } = params
 
   // Verify network identifier
-  if (!isValidNetworkIdentifier(networkIdentifier))
+  if (!isValidNetworkIdentifier(networkIdentifier)) {
     throw new Error(`Network identifier is not valid`)
+  }
 
   const rpc = await RPCClient.init()
   await rpc.sdk.client.connect()
@@ -41,7 +41,9 @@ export const NetworkStatus = async (
 
   if (peers.content.peers && Array.isArray(peers.content.peers)) {
     peers.content.peers.forEach((peer) => {
-      if (!peer.identity) return
+      if (!peer.identity) {
+        return
+      }
 
       peersResponse.push({
         peer_id: peer.identity,

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type LevelDOWN from 'leveldown'
 import { Platform } from '../platform'
 import { IDatabase } from './database'
 import { LevelupDatabase } from './levelup'
-import type LevelDOWN from 'leveldown'
 
 export function createDB(options: { location: string }): IDatabase {
   const runtime = Platform.getRuntime()

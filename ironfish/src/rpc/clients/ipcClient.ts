@@ -1,21 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../assert'
 import { IPC, IpcClient } from 'node-ipc'
-import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema, IpcRequest } from '../adapters'
-import { isResponseError, Response } from '../response'
-import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
-import {
-  ConnectionLostError,
-  ConnectionRefusedError,
-  RequestTimeoutError,
-  RequestError,
-  ConnectionError,
-} from './errors'
-import { Stream } from '../stream'
+import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
+import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
+import { IpcErrorSchema, IpcRequest, IpcResponseSchema, IpcStreamSchema } from '../adapters'
+import { isResponseError, Response } from '../response'
+import { Stream } from '../stream'
+import {
+  ConnectionError,
+  ConnectionLostError,
+  ConnectionRefusedError,
+  RequestError,
+  RequestTimeoutError,
+} from './errors'
 import { IronfishRpcClient } from './rpcClient'
 
 const CONNECT_RETRY_MS = 2000
@@ -148,7 +148,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
     return this.connect({ retryConnect: false })
       .then(() => true)
       .catch((e: unknown) => {
-        if (e instanceof ConnectionError) return false
+        if (e instanceof ConnectionError) {
+          return false
+        }
         throw e
       })
   }
@@ -190,14 +192,18 @@ export class IronfishIpcClient extends IronfishRpcClient {
 
     const resolveRequest = (...args: Parameters<typeof resolve>): void => {
       this.pending.delete(messageId)
-      if (timeout) clearTimeout(timeout)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
       stream.close()
       resolve(...args)
     }
 
     const rejectRequest = (...args: Parameters<typeof reject>): void => {
       this.pending.delete(messageId)
-      if (timeout) clearTimeout(timeout)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
       stream.close()
       reject(...args)
     }
@@ -246,8 +252,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
     this.client.off('error', this.onClientError)
     this.client = null
 
-    for (const request of this.pending.values())
+    for (const request of this.pending.values()) {
       request.reject(new ConnectionLostError(request.type))
+    }
     this.pending.clear()
   }
 
@@ -269,20 +276,28 @@ export class IronfishIpcClient extends IronfishRpcClient {
 
   protected handleStream = async (data: unknown): Promise<void> => {
     const { result, error } = await YupUtils.tryValidate(IpcStreamSchema, data)
-    if (!result) throw error
+    if (!result) {
+      throw error
+    }
 
     const pending = this.pending.get(result.id)
-    if (!pending) return
+    if (!pending) {
+      return
+    }
 
     pending.stream.write(result.data)
   }
 
   protected handleEnd = async (data: unknown): Promise<void> => {
     const { result, error } = await YupUtils.tryValidate(IpcResponseSchema, data)
-    if (!result) throw error
+    if (!result) {
+      throw error
+    }
 
     const pending = this.pending.get(result.id)
-    if (!pending) return
+    if (!pending) {
+      return
+    }
 
     pending.response.status = result.status
 

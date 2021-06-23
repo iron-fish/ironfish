@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_DATA_DIR } from './fileStore'
-import { FileSystem } from '../fileSystems'
-import { KeyStore } from './keyStore'
 import * as yup from 'yup'
+import { FileSystem } from '../fileSystems'
+import { DEFAULT_DATA_DIR } from './fileStore'
+import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'

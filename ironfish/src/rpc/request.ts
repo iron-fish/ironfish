@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishNode } from '../node'
 import { Event } from '../event'
+import { IronfishNode } from '../node'
 
 export class Request<TRequest = unknown, TResponse = unknown> {
   data: TRequest
@@ -33,16 +33,24 @@ export class Request<TRequest = unknown, TResponse = unknown> {
   }
 
   end(data?: TResponse, status?: number): void {
-    if (this.ended) throw new Error(`Request has already ended`)
+    if (this.ended) {
+      throw new Error(`Request has already ended`)
+    }
     this.ended = true
-    if (this.closed) return
+    if (this.closed) {
+      return
+    }
     this.onClose.clear()
     this.onEnd(status || this.code || 200, data)
   }
 
   stream(data: TResponse): void {
-    if (this.closed) return
-    if (this.ended) throw new Error(`Request has already ended`)
+    if (this.closed) {
+      return
+    }
+    if (this.ended) {
+      throw new Error(`Request has already ended`)
+    }
     this.onStream(data)
   }
 

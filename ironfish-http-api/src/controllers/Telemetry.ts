@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { InfluxDB, Point } from '@influxdata/influxdb-client'
 import { Request, Response } from 'express'
 import { Logger } from '../utils/logger'
-import { InfluxDB, Point } from '@influxdata/influxdb-client'
 
 // Requires three environment variables to be set:
 // INFLUX_DB_TOKEN, INFLUX_DB_ORG, and INFLUX_DB_BUCKET

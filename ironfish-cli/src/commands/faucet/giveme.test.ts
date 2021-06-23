@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
 import cli from 'cli-ux'
-
 import * as ironfishmodule from 'ironfish'
 
 describe('faucet:giveme command', () => {

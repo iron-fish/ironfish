@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Routes, SERVER_PORT } from './config'
+import { connection } from './config/database'
 import { Server } from './server/server'
-import { Logger } from './utils/logger'
 import {
-  NetworkList,
-  NetworkStatus,
   Block,
   BlockTransaction,
+  NetworkList,
+  NetworkStatus,
   SearchBlocks,
   SearchTransactions,
 } from './services'
-import { connection } from './config/database'
+import { Logger } from './utils/logger'
 
 const server = new Server()
 

@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import diff from 'jest-diff'
-
-import { MerkleTree, WitnessSide, Witness } from '../../../merkletree'
+import { MerkleTree, Witness, WitnessSide } from '../../../merkletree'
 import { NodeValue } from '../../../merkletree/schema'
 import { makeError } from '../../matchers/utils'
 

@@ -2,21 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bodyParser from 'body-parser'
+import cors from 'cors'
 import express from 'express'
 import * as OpenApiValidator from 'express-openapi-validator'
 import { Express } from 'express-serve-static-core'
+import http from 'http'
 import { connector } from 'swagger-routes-express'
 import swaggerUi from 'swagger-ui-express'
-import http from 'http'
-import bodyParser from 'body-parser'
-import { OpenAPIDefinition } from '../config/openapi'
-
-import { errorHandler } from '../middleware/errorHandler'
-import * as api from '../controllers'
-import { Logger } from '../utils/logger'
-import { Routes } from '../config/routes'
-import cors from 'cors'
 import { API_HOST } from '../config'
+import { OpenAPIDefinition } from '../config/openapi'
+import { Routes } from '../config/routes'
+import * as api from '../controllers'
+import { errorHandler } from '../middleware/errorHandler'
+import { Logger } from '../utils/logger'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type RouteHandlerMap = Record<Routes, { service: Function }>
@@ -97,7 +96,9 @@ export class Server {
   }
 
   async close(): Promise<void> {
-    if (!this.isOpen) return
+    if (!this.isOpen) {
+      return
+    }
     this.isOpen = false
     await this.openPromise
 
@@ -108,8 +109,11 @@ export class Server {
     if (httpServer) {
       await new Promise<void>((resolve, reject) => {
         httpServer.close((err: unknown) => {
-          if (err) reject(err)
-          else resolve()
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
         })
       })
     }

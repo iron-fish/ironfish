@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Metric } from '.'
-import { handleMetric, sendMetrics, MAX_QUEUE_BEFORE_SUBMIT } from './telemetryBackgroundTask'
 import axios from 'axios'
+import { Metric } from '.'
+import { handleMetric, MAX_QUEUE_BEFORE_SUBMIT, sendMetrics } from './telemetryBackgroundTask'
 
 jest.mock('worker_threads')
 jest.mock('axios')

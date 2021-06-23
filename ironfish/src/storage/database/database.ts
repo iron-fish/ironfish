@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
+import { BatchOperation, IDatabaseBatch } from './batch'
 import { DatabaseIsOpenError } from './errors'
 import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
-import { BatchOperation, IDatabaseBatch } from './batch'
+import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
 
 /**
  * A database interface to represent a wrapper for a key value store database. The database is the entry point for creating stores, batches, transactions.
@@ -181,7 +181,9 @@ export abstract class Database implements IDatabase {
       )
     }
     const existing = this.stores.get(options.name)
-    if (existing) return existing as IDatabaseStore<Schema>
+    if (existing) {
+      return existing as IDatabaseStore<Schema>
+    }
 
     const store = this._createStore<Schema>(options)
     this.stores.set(options.name, store)
@@ -207,10 +209,14 @@ export abstract class Database implements IDatabase {
     try {
       await transaction.acquireLock()
       const result = await handler(transaction)
-      if (created) await transaction.commit()
+      if (created) {
+        await transaction.commit()
+      }
       return result
     } catch (error: unknown) {
-      if (created) await transaction.abort()
+      if (created) {
+        await transaction.abort()
+      }
       throw error
     }
   }

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
+import { GenesisBlockInfo, IJSON, makeGenesisBlock } from 'ironfish'
 import { IronfishCommand } from '../../command'
-import { GenesisBlockInfo, makeGenesisBlock, IJSON } from 'ironfish'
 import { LocalFlags } from '../../flags'
 
 export default class GenesisBlockCommand extends IronfishCommand {
@@ -49,11 +49,11 @@ export default class GenesisBlockCommand extends IronfishCommand {
     }
 
     let account = null
-    if (flags.account != null) {
+    if (flags.account !== null) {
       account = node.accounts.getAccountByName(flags.account)
     }
 
-    if (account == null) {
+    if (account === null) {
       const name = `IronFishGenesisAccount` // Faucet depends on the name
       account = await node.accounts.createAccount(name)
       this.log(`Creating account ${account.name} to assign the genesis block to.`)

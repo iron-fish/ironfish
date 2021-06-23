@@ -16,7 +16,9 @@ describe('Mocks', () => {
     })
 
     const promises = []
-    for (let i = 0; i < 10; ++i) promises.push(mock(i))
+    for (let i = 0; i < 10; ++i) {
+      promises.push(mock(i))
+    }
     await Promise.all(promises)
 
     expect(results).toHaveLength(10)

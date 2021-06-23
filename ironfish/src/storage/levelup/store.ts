@@ -1,19 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { LevelupDatabase } from './database'
+import MurmurHash3 from 'imurmurhash'
+import { AsyncUtils } from '../../utils/async'
 import {
   DatabaseSchema,
   DatabaseStore,
+  DuplicateKeyError,
   IDatabaseStoreOptions,
   IDatabaseTransaction,
   SchemaKey,
   SchemaValue,
-  DuplicateKeyError,
 } from '../database'
-import { AsyncUtils } from '../../utils/async'
 import { BUFFER_TO_STRING_ENCODING } from '../database/encoding'
-import MurmurHash3 from 'imurmurhash'
-import type { LevelupDatabase } from './database'
 import { LevelupTransaction } from './transaction'
 
 const ENABLE_TRANSACTIONS = true
@@ -75,11 +75,17 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
 
     try {
       const data = (await this.db.levelup.get(encodedKey)) as unknown
-      if (data === undefined) return undefined
-      if (!(data instanceof Buffer)) return undefined
+      if (data === undefined) {
+        return undefined
+      }
+      if (!(data instanceof Buffer)) {
+        return undefined
+      }
       return this.valueEncoding.deserialize(data)
     } catch (error: unknown) {
-      if (isNotFoundError(error)) return undefined
+      if (isNotFoundError(error)) {
+        return undefined
+      }
       throw error
     }
   }
@@ -100,8 +106,9 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
           .equals(this.prefixBuffer)
 
         if (isFromStore) {
-          if (value !== undefined)
+          if (value !== undefined) {
             yield [this.decodeKey(keyBuffer), value as SchemaValue<Schema>]
+          }
           seen.add(key)
         }
       }
@@ -204,7 +211,9 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     const keyBuffer = this.keyEncoding.serialize(key)
     const encodedKey = Buffer.concat([this.prefixBuffer, keyBuffer])
 
-    if (value === undefined) return [encodedKey]
+    if (value === undefined) {
+      return [encodedKey]
+    }
     return [encodedKey, this.valueEncoding.serialize(value)]
   }
 
@@ -223,24 +232,27 @@ function parsePut<Schema extends DatabaseSchema>(
   value?: SchemaValue<Schema>
   transaction?: IDatabaseTransaction
 } {
-  if (transaction instanceof LevelupTransaction)
+  if (transaction instanceof LevelupTransaction) {
     return {
       key: keyOrValue as SchemaKey<Schema>,
       value: valueOrTransaction as SchemaValue<Schema>,
       transaction: transaction,
     }
+  }
 
-  if (valueOrTransaction instanceof LevelupTransaction)
+  if (valueOrTransaction instanceof LevelupTransaction) {
     return {
       value: keyOrValue as SchemaValue<Schema>,
       transaction: valueOrTransaction,
     }
+  }
 
-  if (valueOrTransaction !== undefined)
+  if (valueOrTransaction !== undefined) {
     return {
       key: keyOrValue as SchemaKey<Schema>,
       value: valueOrTransaction as SchemaValue<Schema>,
     }
+  }
 
   return {
     value: keyOrValue as SchemaValue<Schema>,

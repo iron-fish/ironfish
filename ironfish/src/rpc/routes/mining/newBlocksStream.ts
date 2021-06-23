@@ -4,7 +4,7 @@
 
 import * as yup from 'yup'
 import { ValidationError } from '../../adapters'
-import { router, ApiNamespace } from '../router'
+import { ApiNamespace, router } from '../router'
 
 export type NewBlocksStreamRequest = Record<string, never> | undefined
 export type NewBlocksStreamResponse = {

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { JobHelpers } from 'graphile-worker'
-
+import { FAUCET_ACCOUNT_NAME, FAUCET_AMOUNT, FAUCET_FEE } from '../config'
 import { RPCClient } from '../rpc/rpc'
-import { FAUCET_AMOUNT, FAUCET_ACCOUNT_NAME, FAUCET_FEE } from '../config'
 
 const MEMO = 'Welcome to Iron Fish!'
 const MAX_ATTEMPT = 3

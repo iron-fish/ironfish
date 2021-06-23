@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { RangeHasher } from '../merkletree'
+import { Block } from '../primitives/block'
+import { Target } from '../primitives/target'
 import {
   addNotes,
   blockHash,
@@ -13,9 +16,6 @@ import {
   TestStrategy,
   TestTransaction,
 } from '../testUtilities/fake'
-import { RangeHasher } from '../merkletree'
-import { Target } from '../primitives/target'
-import { Block } from '../primitives/block'
 
 describe('Note adding', () => {
   const strategy = new TestStrategy(new RangeHasher())

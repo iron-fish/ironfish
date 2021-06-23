@@ -3,32 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { RangeHasher } from '../merkletree'
-import { MiningDirector } from './director'
-import { waitForEmit } from '../event'
 import { Account } from '../account'
-
-import {
-  TestStrategy,
-  TestTransaction,
-  SerializedTestTransaction,
-  makeNullifier,
-  makeFakeBlock,
-  makeDbName,
-  makeNextBlock,
-  blockHash,
-  makeChainGenesis,
-  TestMemPool,
-  TestBlockchain,
-  makeChainFull,
-} from '../testUtilities/fake'
-import { MemPool } from '../memPool'
 import { Assert } from '../assert'
-import { Target } from '../primitives/target'
+import { waitForEmit } from '../event'
+import { MemPool } from '../memPool'
+import { RangeHasher } from '../merkletree'
 import { SerializedBlockHeader } from '../primitives/blockheader'
 import { Nullifier } from '../primitives/nullifier'
+import { Target } from '../primitives/target'
 import { createNodeTest, useMinerBlockFixture } from '../testUtilities'
+import {
+  blockHash,
+  makeChainFull,
+  makeChainGenesis,
+  makeDbName,
+  makeFakeBlock,
+  makeNextBlock,
+  makeNullifier,
+  SerializedTestTransaction,
+  TestBlockchain,
+  TestMemPool,
+  TestStrategy,
+  TestTransaction,
+} from '../testUtilities/fake'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { MiningDirector } from './director'
 
 // Number of notes and nullifiers on the initial chain created by makeFullChain
 const TEST_CHAIN_NUM_NOTES = 40

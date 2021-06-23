@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Logger } from '../../../logger'
-import { Connection, ConnectionDirection, ConnectionType } from './connection'
-import { NetworkError } from './errors'
+import colors from 'colors/safe'
+import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
-import { MetricsMonitor } from '../../../metrics'
-import colors from 'colors/safe'
+import { Connection, ConnectionDirection, ConnectionType } from './connection'
+import { NetworkError } from './errors'
 
 /**
  * Light wrapper of node+browser WebSockets that knows how to send and receive

@@ -3,23 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  WasmSimpleTransaction,
   generateKey,
   generateNewPublicAddress,
+  Key,
   WasmNote,
+  WasmSimpleTransaction,
   WasmTransaction,
   WasmTransactionPosted,
-  Key,
 } from 'ironfish-wasm-nodejs'
 import { MerkleTree } from './merkletree'
-import { IDatabase } from './storage'
-import { IronfishStrategy } from './strategy'
-import { makeDb, makeDbName } from './testUtilities/fake'
-import { WorkerPool } from './workerPool'
-import { createNodeTest } from './testUtilities'
-import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteEncrypted'
 import { NoteHasher } from './merkletree/hasher'
 import { IronfishNote } from './primitives/note'
+import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteEncrypted'
+import { IDatabase } from './storage'
+import { IronfishStrategy } from './strategy'
+import { createNodeTest } from './testUtilities'
+import { makeDb, makeDbName } from './testUtilities/fake'
+import { WorkerPool } from './workerPool'
 
 async function makeWasmStrategyTree({
   depth,
@@ -32,8 +32,12 @@ async function makeWasmStrategyTree({
 } = {}): Promise<MerkleTree<IronfishNoteEncrypted, WasmNoteEncryptedHash, Buffer, Buffer>> {
   const openDb = !database
 
-  if (!name) name = makeDbName()
-  if (!database) database = makeDb(name)
+  if (!name) {
+    name = makeDbName()
+  }
+  if (!database) {
+    database = makeDb(name)
+  }
 
   const tree = new MerkleTree(new NoteHasher(), database, name, depth)
 
@@ -120,7 +124,9 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a spend to the transaction', async () => {
       const witness = await tree.witness(0)
-      if (witness == null) throw new Error('Witness should not be null')
+      if (witness === null) {
+        throw new Error('Witness should not be null')
+      }
       const result = simpleTransaction.spend(minerNote, witness)
       expect(result).toEqual('')
     })
@@ -195,14 +201,18 @@ describe('Demonstrate the Sapling API', () => {
       for (const n of noteIterator) {
         note = n
       }
-      if (note === null) throw new Error('Must have at least one note')
+      if (note === null) {
+        throw new Error('Must have at least one note')
+      }
 
       expect(note['wasmNoteEncrypted']).toBeNull()
       const decryptedNote = note.decryptNoteForOwner(key.incoming_view_key)
       expect(decryptedNote).toBeDefined()
       expect(note['wasmNoteEncrypted']).toBeNull()
 
-      if (decryptedNote === undefined) throw new Error('Note must be decryptable')
+      if (decryptedNote === undefined) {
+        throw new Error('Note must be decryptable')
+      }
 
       expect(decryptedNote['wasmNote']).toBeNull()
       expect(decryptedNote.value()).toBe(BigInt(500000000))
@@ -222,7 +232,9 @@ describe('Demonstrate the Sapling API', () => {
       // We should be able to decrypt the note as owned by the receiver
       const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incoming_view_key)
       expect(decryptedNote).toBeTruthy()
-      if (!decryptedNote) throw new Error('DecryptedNote should be truthy')
+      if (!decryptedNote) {
+        throw new Error('DecryptedNote should be truthy')
+      }
       receiverNote = decryptedNote
 
       // If we can decrypt a note as owned by the receiver, the spender should not be able to decrypt it as owned
@@ -239,7 +251,9 @@ describe('Demonstrate the Sapling API', () => {
       transaction = new WasmTransaction()
 
       const witness = await tree.witness(receiverWitnessIndex)
-      if (witness == null) throw new Error('Witness must not be null')
+      if (witness === null) {
+        throw new Error('Witness must not be null')
+      }
 
       // The `transaction.spend` method is used to spend the note. The owner needs to sign the transaction
       // with their private key; this is how the note gets authorized to spend.

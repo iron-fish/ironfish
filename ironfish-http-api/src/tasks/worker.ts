@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { run } from 'graphile-worker'
-
-import { Logger } from '../utils/logger'
-
 import { DATABASE_CONNECTION_STRING } from '../config'
+import { Logger } from '../utils/logger'
 import { getFundsTask } from './FaucetTask'
 
 async function main() {

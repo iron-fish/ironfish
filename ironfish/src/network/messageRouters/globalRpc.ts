@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { ArrayUtils } from '../../utils'
+import { Identity } from '../identity'
+import { InternalMessageType, Message, MessageType, PayloadType } from '../messages'
+import { Peer } from '../peers/peer'
 import {
   CannotSatisfyRequestError,
   IncomingRpcGeneric,
   IncomingRpcPeerMessage,
   RpcRouter,
 } from './rpc'
-import { MessageType, Message, InternalMessageType, PayloadType } from '../messages'
-import { Identity } from '../identity'
-import { Peer } from '../peers/peer'
-import { ArrayUtils } from '../../utils'
 
 /**
  * Number of times to attempt a request with another peer before giving up.
@@ -44,7 +44,7 @@ export class GlobalRpcRouter {
 
     // Clear failures when a peer disconnects to avoid memory leaks
     this.rpcRouter.peerManager.onDisconnect.on((peer: Peer) => {
-      if (peer.state.identity != null) {
+      if (peer.state.identity !== null) {
         this.requestFails.delete(peer.state.identity)
       }
     })
@@ -134,7 +134,7 @@ export class GlobalRpcRouter {
   private selectPeer(type: MessageType, peerIdentity?: Identity): Peer | null {
     if (peerIdentity) {
       const peer = this.rpcRouter.peerManager.getPeer(peerIdentity)
-      if (peer && peer.state.type == 'CONNECTED') {
+      if (peer && peer.state.type === 'CONNECTED') {
         return peer
       }
     }
@@ -148,14 +148,18 @@ export class GlobalRpcRouter {
     peers = peers.sort((a, b) => a.pendingRPC - b.pendingRPC)
 
     // We have no peers to try
-    if (!peers.length) return null
+    if (!peers.length) {
+      return null
+    }
 
     // find a peer that hasn't failed this MessageType
     for (const peer of peers) {
       const identity = peer.getIdentityOrThrow()
       const peerFails = this.requestFails.get(identity)
       const failed = peerFails?.has(type)
-      if (!failed) return peer
+      if (!failed) {
+        return peer
+      }
     }
 
     // reset each peers failed state for this MessageType
