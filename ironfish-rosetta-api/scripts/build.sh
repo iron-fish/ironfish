@@ -3,16 +3,25 @@ set -euo pipefail
 cd "$(dirname "$0")"
 cd ../../
 
+if ! command -v jq &> /dev/null; then
+    echo "jq is not installed but is required"
+    exit 1
+fi
+
 if ! command -v rsync &> /dev/null; then
     echo "rsync is not installed but is required"
     exit 1
 fi
 
+echo "Removing lifecycle scripts"
+cat <<< "$(jq 'del(.scripts.prebuild)' < package.json)" > package.json
+cat <<< "$(jq 'del(.scripts.preinstall)' < package.json)" > package.json
+
 echo "Building WASM"
 ( cd ironfish-wasm && yarn run build:node )
 
 echo "Installing from lockfile"
-yarn --non-interactive --frozen-lockfile --ignore-scripts
+yarn --non-interactive --frozen-lockfile
 
 echo "Building Rosetta project"
 cd ironfish-rosetta-api

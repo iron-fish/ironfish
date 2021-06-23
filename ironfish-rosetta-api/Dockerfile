@@ -5,7 +5,7 @@ COPY ./ ./
 
 RUN \
     apt-get update && \
-    apt-get install rsync -y && \
+    apt-get install jq rsync -y && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y && \
     ./ironfish-rosetta-api/scripts/build.sh
