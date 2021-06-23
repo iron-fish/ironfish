@@ -137,7 +137,7 @@ export class AccountsDB {
     })
   }
 
-  async open(): Promise<void> {
+  async open(_options?: { upgrade?: boolean }): Promise<void> {
     await this.files.mkdir(this.location, { recursive: true })
     await this.database.open()
   }
