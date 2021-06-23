@@ -40,6 +40,9 @@ export default class Reset extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(Reset)
 
+    let node = await this.sdk.node({ autoSeed: false })
+    await node.openDB({ upgrade: false })
+
     const backupPath = path.join(this.sdk.config.dataDir, 'accounts.backup.json')
 
     if (fs.existsSync(backupPath)) {
@@ -54,8 +57,6 @@ export default class Reset extends IronfishCommand {
       fs.rmSync(backupPath)
     }
 
-    let node = await this.sdk.node({ autoSeed: false })
-
     const confirmed =
       flags.confirm ||
       (await cli.confirm(
@@ -64,7 +65,6 @@ export default class Reset extends IronfishCommand {
 
     if (!confirmed) return
 
-    await node.openDB()
     const accounts = node.accounts.listAccounts()
     this.log(`Backing up ${accounts.length} accounts to ${backupPath}`)
     const backup = JSON.stringify(accounts, undefined, '  ')
