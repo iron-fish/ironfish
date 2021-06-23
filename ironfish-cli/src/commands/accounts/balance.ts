@@ -28,7 +28,7 @@ export class BalanceCommand extends IronfishCommand {
     await this.sdk.client.connect()
 
     const response = await this.sdk.client.getAccountBalance({
-      account: account,
+      account,
     })
 
     const { confirmedBalance, unconfirmedBalance } = response.content
