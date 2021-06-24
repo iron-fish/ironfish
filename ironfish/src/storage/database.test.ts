@@ -111,7 +111,7 @@ describe('Database', () => {
 
     await db.open({ upgrade: runMigrations })
     expect(await testStore.get('oldVersion')).toBe(0)
-    expect(await testStore.get('newVersion')).toBe(8)
+    expect(await testStore.get('newVersion')).toBe(7)
   })
 
   it('should run store migrations', async () => {
