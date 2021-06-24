@@ -13,7 +13,6 @@ import {
   IDatabase,
   IDatabaseTransaction,
   JsonEncoding,
-  SchemaKey,
   StringEncoding,
 } from './database'
 import { LevelupDatabase, LevelupStore } from './levelup'
@@ -48,11 +47,6 @@ interface ArrayKeySchema extends DatabaseSchema {
   value: boolean
 }
 
-interface KeypathSchema extends DatabaseSchema {
-  key: [string, number, boolean]
-  value: { a: string; b: number; c: boolean }
-}
-
 describe('Database', () => {
   const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
   const db = new LevelupDatabase(leveldown(id))
@@ -62,7 +56,6 @@ describe('Database', () => {
     name: 'Foo',
     keyEncoding: new StringEncoding(),
     valueEncoding: new JsonEncoding<FooValue>(),
-    keyPath: 'hash',
   })
 
   const barStore = db.addStore<BarSchema>({
@@ -99,14 +92,6 @@ describe('Database', () => {
     name: 'ArrayKey',
     keyEncoding: new ArrayEncoding<[string, number, boolean]>(),
     valueEncoding: new JsonEncoding<boolean>(),
-  })
-
-  const keypathStore = db.addStore<KeypathSchema>({
-    version: 1,
-    name: 'Keypath',
-    keyEncoding: new ArrayEncoding<[string, number, boolean]>(),
-    valueEncoding: new JsonEncoding<{ a: string; b: number; c: boolean }>(),
-    keyPath: ['a', 'b', 'c'],
   })
 
   afterEach(async () => {
@@ -600,38 +585,6 @@ describe('Database', () => {
       // t2's handler should have executed,
       // then t3's handler should have executed
       expect(value).toEqual('t1t2t3')
-    })
-  })
-
-  describe('DatabaseStore: keyPath', () => {
-    it('should create key from value', async () => {
-      await db.open()
-
-      const foo = { hash: 'keypath', name: '' }
-      await fooStore.put(foo)
-      expect(await fooStore.get('keypath')).toMatchObject(foo)
-    })
-
-    it('should create array key from value', async () => {
-      await db.open()
-
-      const value = { a: '', b: 3, c: true }
-      await keypathStore.put(value)
-      expect(await keypathStore.get(['', 3, true])).toMatchObject(value)
-    })
-
-    it('should create array key with transaction', async () => {
-      await db.open()
-
-      const key = ['key', 3, true] as SchemaKey<KeypathSchema>
-      const value = { a: 'key', b: 3, c: true }
-
-      await db.transaction([keypathStore], 'readwrite', async (t) => {
-        await keypathStore.put(value, t)
-        expect(await keypathStore.get(key)).toBeUndefined()
-      })
-
-      expect(await keypathStore.get(key)).toMatchObject(value)
     })
   })
 
