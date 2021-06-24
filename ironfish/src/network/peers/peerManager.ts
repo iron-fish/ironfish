@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { SignalData } from './connections/webRtcConnection'
-import nodeDataChannel from 'node-datachannel'
 import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
@@ -787,7 +786,6 @@ export class PeerManager {
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
-    nodeDataChannel.cleanup()
   }
 
   /**

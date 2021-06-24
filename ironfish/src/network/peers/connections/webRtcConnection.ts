@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import nodeDataChannel from 'node-datachannel'
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
+import nodeDataChannel from 'node-datachannel'
+import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
-import { Assert } from '../../../assert'
 
 export type SignalData =
   | {
@@ -187,7 +187,9 @@ export class WebRtcConnection extends Connection {
    * Encode the message to json and send it to the peer
    */
   send = (message: LooseMessage): boolean => {
-    if (!this.datachannel) return false
+    if (!this.datachannel) {
+      return false
+    }
 
     if (message.type === NodeMessageType.NewBlock && this.datachannel.bufferedAmount() > 0) {
       return false
@@ -236,7 +238,9 @@ export class WebRtcConnection extends Connection {
     }
 
     this.setState({ type: 'DISCONNECTED' })
+
     this.datachannel?.close()
+
     try {
       this.peer.close()
     } catch (e) {

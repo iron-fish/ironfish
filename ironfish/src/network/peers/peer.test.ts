@@ -5,24 +5,6 @@
 import * as encryption from './encryption'
 
 jest.mock('ws')
-jest.mock('node-datachannel', () => {
-  return {
-    PeerConnection: class {
-      onLocalDescription = () => {}
-      onLocalCandidate = () => {}
-      onDataChannel = () => {}
-      createDataChannel = () => ({
-        onOpen: () => {},
-        onError: () => {},
-        onClosed: () => {},
-        onMessage: () => {},
-        close: () => {},
-        isOpen: () => {},
-        sendMessage: () => {},
-      })
-    },
-  }
-})
 jest.mock('./encryption', () => {
   const originalModule = jest.requireActual<typeof encryption>('./encryption')
 
@@ -204,7 +186,9 @@ describe('Handles WebRTC message send failure', () => {
     // Time out requesting signaling
     connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
     peer.setWebRtcConnection(connection)
-    if (!connection['datachannel']) throw new Error('Should have datachannel')
+    if (!connection['datachannel']) {
+      throw new Error('Should have datachannel')
+    }
     jest.spyOn(connection['datachannel'], 'sendMessage').mockImplementation(() => {
       throw new Error('Error')
     })

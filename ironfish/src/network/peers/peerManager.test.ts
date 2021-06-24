@@ -5,22 +5,7 @@
 import * as encryption from './encryption'
 
 jest.mock('ws')
-jest.mock('node-datachannel', () => {
-  return {
-    PeerConnection: class {
-      onLocalDescription = () => {}
-      onLocalCandidate = () => {}
-      onDataChannel = () => {}
-      createDataChannel = () => ({
-        onOpen: () => {},
-        onError: () => {},
-        onClosed: () => {},
-        onMessage: () => {},
-        close: () => {},
-      })
-    },
-  }
-})
+
 jest.mock('./encryption', () => {
   const originalModule = jest.requireActual<typeof encryption>('./encryption')
 
