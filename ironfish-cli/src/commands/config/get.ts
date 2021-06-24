@@ -6,7 +6,6 @@ import { ConfigOptions } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { getConnectedClient } from './show'
 
 export class GetCommand extends IronfishCommand {
   static description = `Print out one config value`
@@ -40,7 +39,7 @@ export class GetCommand extends IronfishCommand {
     const { args, flags } = this.parse(GetCommand)
     const name = (args.name as string).trim()
 
-    const client = await getConnectedClient(this.sdk, flags.local)
+    const client = await this.sdk.getConnectedClient(flags.local)
 
     const response = await client.getConfig({
       user: flags.user,

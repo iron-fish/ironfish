@@ -6,7 +6,6 @@ import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import { getConnectedClient } from '../config/show'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -41,7 +40,7 @@ export class ExportCommand extends IronfishCommand {
     const account = args.account as string
     const exportPath = args.path as string | undefined
 
-    const client = await getConnectedClient(this.sdk, local)
+    const client = await this.sdk.getConnectedClient(local)
     const response = await client.exportAccount({ account })
 
     let output = JSON.stringify(response.content.account, undefined, '   ')

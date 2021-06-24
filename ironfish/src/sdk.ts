@@ -17,7 +17,13 @@ import { MetricsMonitor } from './metrics'
 import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
-import { ApiNamespace, IpcAdapter, IronfishIpcClient, IronfishMemoryClient } from './rpc'
+import {
+  ApiNamespace,
+  IpcAdapter,
+  IronfishIpcClient,
+  IronfishMemoryClient,
+  IronfishRpcClient,
+} from './rpc'
 import { IronfishStrategy } from './strategy'
 
 export class IronfishSdk {
@@ -223,5 +229,17 @@ export class IronfishSdk {
     }
 
     return node
+  }
+
+  async getConnectedClient(local: boolean): Promise<IronfishRpcClient> {
+    if (local) {
+      const node = await this.node()
+      await this.clientMemory.connect(node)
+      await node.openDB()
+      return this.clientMemory
+    }
+
+    await this.client.connect()
+    return this.client
   }
 }
