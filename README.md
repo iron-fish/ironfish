@@ -24,6 +24,10 @@ See https://ironfish.network
       1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
 1. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 1. Run `yarn install` from the root directory to install packages.
+   * If `yarn install` fails with an error that includes "Could NOT find OpenSSL", you may need to first install OpenSSL and add an environment variable. For example, on macOS:
+      1. Run `brew install openssl`
+      1. Run ``export OPENSSL_ROOT_DIR=`brew --prefix openssl` ``
+      1. Run `yarn install` again.
 
 ## Usage
 
