@@ -156,15 +156,16 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     await this.db.levelup.clear(this.allKeysRange)
   }
 
-  async put(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
   async put(
     key: SchemaKey<Schema>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
   async put(a: unknown, b: unknown, c?: unknown): Promise<void> {
-    const { key: rawKey, value, transaction } = parsePut<Schema>(a, b, c)
-    const key = rawKey === undefined ? this.makeKey(value) : rawKey
+    const { key, value, transaction } = parsePut<Schema>(a, b, c)
+    if (key === undefined) {
+      throw new Error('No key defined')
+    }
 
     if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
       return transaction.put(this, key, value)
@@ -174,15 +175,16 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     await this.db.levelup.put(encodedKey, encodedValue)
   }
 
-  async add(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
   async add(
     key: SchemaKey<Schema>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
   async add(a: unknown, b: unknown, c?: unknown): Promise<void> {
-    const { key: rawKey, value, transaction } = parsePut<Schema>(a, b, c)
-    const key = rawKey === undefined ? this.makeKey(value) : rawKey
+    const { key, value, transaction } = parsePut<Schema>(a, b, c)
+    if (key === undefined) {
+      throw new Error('No key defined')
+    }
 
     if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
       return transaction.add(this, key, value)

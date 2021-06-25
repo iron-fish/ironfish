@@ -113,7 +113,6 @@ export default class MerkleTree<
       name: `${treeName}l`,
       keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
       valueEncoding: new LeafEncoding(),
-      keyPath: 'index',
     })
 
     this.nodes = db.addStore({
@@ -121,7 +120,6 @@ export default class MerkleTree<
       name: `${treeName}n`,
       keyEncoding: new JsonEncoding<NodesSchema<H>['key']>(),
       valueEncoding: new NodeEncoding(),
-      keyPath: 'index',
     })
   }
 
@@ -262,6 +260,7 @@ export default class MerkleTree<
           )
 
           await this.nodes.put(
+            newParentIndex,
             {
               side: Side.Left,
               parentIndex: 0,
@@ -272,6 +271,7 @@ export default class MerkleTree<
           )
 
           await this.leaves.put(
+            leftLeafIndex,
             {
               element: leftLeaf.element,
               merkleHash: leftLeaf.merkleHash,
@@ -313,7 +313,7 @@ export default class MerkleTree<
                 index: nextNodeIndex,
               }
 
-              await this.nodes.put(newNode, tx)
+              await this.nodes.put(nextNodeIndex, newNode, tx)
               nextNodeIndex += 1
 
               await this.counter.put('Nodes', nextNodeIndex, tx)
@@ -330,9 +330,10 @@ export default class MerkleTree<
                   index: nextNodeIndex,
                 }
 
-                await this.nodes.put(newParent, tx)
+                await this.nodes.put(nextNodeIndex, newParent, tx)
 
                 await this.nodes.put(
+                  previousParentIndex,
                   {
                     side: Side.Left,
                     hashOfSibling: previousParent.hashOfSibling,
@@ -368,7 +369,7 @@ export default class MerkleTree<
                 hashOfSibling: myHash,
                 index: nextNodeIndex,
               }
-              await this.nodes.put(newNode, tx)
+              await this.nodes.put(nextNodeIndex, newNode, tx)
 
               nextNodeIndex += 1
 
@@ -383,6 +384,7 @@ export default class MerkleTree<
         await this.counter.put('Leaves', indexOfNewLeaf + 1, tx)
 
         await this.leaves.put(
+          indexOfNewLeaf,
           {
             element,
             merkleHash,
@@ -430,7 +432,7 @@ export default class MerkleTree<
           await this.counter.put('Nodes', 1, tx)
           const firstLeaf = await this.getLeaf(0, tx)
           firstLeaf.parentIndex = 0
-          await this.leaves.put(firstLeaf, tx)
+          await this.leaves.put(firstLeaf.index, firstLeaf, tx)
           return
         }
 
@@ -463,7 +465,7 @@ export default class MerkleTree<
         }
 
         parent.parentIndex = 0
-        await this.nodes.put(parent, tx)
+        await this.nodes.put(parent.index, parent, tx)
         await this.counter.put('Nodes', maxParentIndex + 1, tx)
         await this.rehashRightPath(tx)
       },
@@ -693,6 +695,7 @@ export default class MerkleTree<
           // own hash and its parent hash is set to the combination of that hash
           // with itself
           await this.nodes.put(
+            parentIndex,
             {
               side: Side.Left,
               hashOfSibling: parentHash,
@@ -718,6 +721,7 @@ export default class MerkleTree<
           const leftNode = await this.getNode(node.leftIndex, tx)
 
           await this.nodes.put(
+            node.leftIndex,
             {
               side: Side.Left,
               parentIndex: leftNode.parentIndex,
