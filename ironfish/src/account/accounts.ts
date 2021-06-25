@@ -574,10 +574,10 @@ export class Accounts {
     let confirmedBalance = BigInt(0)
 
     for (const note of notes) {
-      const value = note.note.value()
-      unconfirmedBalance += BigInt(value)
+      const value = note.note.value().valueOf()
+      unconfirmedBalance += value
       if (note.index !== null) {
-        confirmedBalance += BigInt(value)
+        confirmedBalance += value
       }
     }
 
@@ -678,7 +678,7 @@ export class Accounts {
           unspentNote.note.value(),
         )
         notesToSpend.push({ note: unspentNote.note, witness: witness })
-        amountNeeded -= BigInt(unspentNote.note.value())
+        amountNeeded -= unspentNote.note.value().valueOf()
       }
 
       if (amountNeeded <= 0) {
