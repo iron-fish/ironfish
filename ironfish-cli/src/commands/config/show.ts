@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishRpcClient, IronfishSdk } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import {
@@ -33,7 +32,7 @@ export class ShowCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(ShowCommand)
 
-    const client = await getConnectedClient(this.sdk, flags.local)
+    const client = await this.sdk.getConnectedClient(flags.local)
     const response = await client.getConfig({ user: flags.user })
 
     let output = JSON.stringify(response.content, undefined, '   ')
@@ -42,19 +41,4 @@ export class ShowCommand extends IronfishCommand {
     }
     this.log(output)
   }
-}
-
-export async function getConnectedClient(
-  sdk: IronfishSdk,
-  local: boolean,
-): Promise<IronfishRpcClient> {
-  if (local) {
-    const node = await sdk.node()
-    await sdk.clientMemory.connect(node)
-    await node.openDB()
-    return sdk.clientMemory
-  }
-
-  await sdk.client.connect()
-  return sdk.client
 }
