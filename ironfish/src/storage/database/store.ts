@@ -6,7 +6,6 @@ import { IDatabaseTransaction } from './transaction'
 import {
   DatabaseSchema,
   IDatabaseEncoding,
-  KnownKeys,
   SchemaKey,
   SchemaValue,
   UpgradeFunction,
@@ -22,7 +21,6 @@ export type IDatabaseStoreOptions<Schema extends DatabaseSchema> = {
   /** The encoding used to encode and decode values in the database */
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>
   /** Used to auto construct a key from a value inside the store if specified. It can either be a field from the value, or an array of fields from the value */
-  keyPath?: KnownKeys<SchemaValue<Schema>> | KnownKeys<SchemaValue<Schema>>[]
   upgrade?: UpgradeFunction
 }
 
@@ -117,17 +115,6 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   ): Promise<void>
 
   /**
-   * Add a value to the database and calculate it's key using the `keyPath` specified for the IDataStore. See the documentation on specifying keyPaths in {@link IDatabase.addStore} for more info.
-   *
-   * @param value - The value to insert
-   * @param transaction - If provided, the operation will be executed atomically when the transaction is {@link IDatabaseTransaction.commit | committed}.
-   *
-   * @returns A promise that resolves when the operation has been either executed, or added to the transaction.
-   * @throws {@link DuplicateKeyError} if the key already exists in the transaction or database
-   */
-  put(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
-
-  /**
    * Add a value to the database with the given key.
    *
    * If the key already exists, an {@link DuplicateKeyError} will be thrown. If you do not want to throw an error on insert, use {@link IDatabaseStore.put}
@@ -144,19 +131,6 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
-
-  /**
-   * Add a value to the database and calculate it's key using the `keyPath` specified for the IDataStore. See the documentation on specifying keypaths in {@link IDatabase.addStore} for more info.
-   *
-   * If the key already exists, an {@link DuplicateKeyError} will be thrown. If you do not want to throw an error on insert, use {@link IDatabaseStore.put}
-   *
-   * @param value - The value to insert
-   * @param transaction - If provided, the operation will be executed atomically when the transaction is {@link IDatabaseTransaction.commit | committed}.
-   *
-   * @returns A promise that resolves when the operation has been either executed, or added to the transaction.
-   * @throws {@link DuplicateKeyError} if the key already exists in the transaction or database
-   */
-  add(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
 
   /**
    * Delete a value with the given key.
@@ -176,7 +150,6 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
   upgrade: UpgradeFunction | null
   keyEncoding: IDatabaseEncoding<SchemaKey<Schema>>
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>
-  keyPath: KnownKeys<SchemaValue<Schema>> | KnownKeys<SchemaValue<Schema>>[] | null
 
   constructor(options: IDatabaseStoreOptions<Schema>) {
     this.version = options.version
@@ -184,7 +157,6 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
     this.upgrade = options.upgrade || null
     this.keyEncoding = options.keyEncoding
     this.valueEncoding = options.valueEncoding
-    this.keyPath = options.keyPath || null
   }
 
   abstract encode(key: SchemaKey<Schema>): [Buffer]
@@ -217,27 +189,11 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
     transaction?: IDatabaseTransaction,
   ): Promise<void>
 
-  abstract put(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
-
   abstract add(
     key: SchemaKey<Schema>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
 
-  abstract add(value: SchemaValue<Schema>, transaction?: IDatabaseTransaction): Promise<void>
-
   abstract del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void>
-
-  protected makeKey(value: SchemaValue<Schema>): SchemaKey<Schema> {
-    if (this.keyPath === null) {
-      throw new Error(`No keypath defined`)
-    }
-
-    if (Array.isArray(this.keyPath)) {
-      return this.keyPath.map((path) => value[path])
-    }
-
-    return value[this.keyPath]
-  }
 }
