@@ -10,7 +10,6 @@ import { promisify } from 'util'
 import { IronfishCommand } from '../../command'
 import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
 import { launchEditor } from '../../utils'
-import { getConnectedClient } from './show'
 
 const mkdtempAsync = promisify(mkdtemp)
 const writeFileAsync = promisify(writeFile)
@@ -40,7 +39,7 @@ export class EditCommand extends IronfishCommand {
       this.exit(code || undefined)
     }
 
-    const client = await getConnectedClient(this.sdk, !flags.remote)
+    const client = await this.sdk.getConnectedClient(!flags.remote)
     const response = await client.getConfig({ user: true })
     const output = JSON.stringify(response.content, undefined, '   ')
 

@@ -7,7 +7,6 @@ import { IronfishRpcClient } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { hasUserResponseError } from '../../utils'
-import { getConnectedClient } from '../config/show'
 
 export class RescanCommand extends IronfishCommand {
   static description = `Rescan the blockchain for transaction`
@@ -32,7 +31,7 @@ export class RescanCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(RescanCommand)
     const { follow, reset, local } = flags
-    const client = await getConnectedClient(this.sdk, local)
+    const client = await this.sdk.getConnectedClient(local)
 
     await rescan(client, follow, reset)
   }
