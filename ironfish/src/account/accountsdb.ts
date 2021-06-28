@@ -92,14 +92,12 @@ export class AccountsDB {
       key: keyof AccountsDBMeta
       value: AccountsDBMeta[keyof AccountsDBMeta]
     }>({
-      version: 1,
       name: 'meta',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
       valueEncoding: new JsonEncoding(),
     })
 
     this.accounts = this.database.addStore<{ key: string; value: Account }>({
-      version: 1,
       name: 'accounts',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
@@ -109,14 +107,12 @@ export class AccountsDB {
       key: string
       value: { nullifierHash: string; noteIndex: number | null; spent: boolean }
     }>({
-      version: 1,
       name: 'noteToNullifier',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
-      version: 1,
       name: 'nullifierToNote',
       keyEncoding: new StringEncoding(),
       valueEncoding: new StringEncoding(),
@@ -130,16 +126,20 @@ export class AccountsDB {
         submittedSequence: number | null
       }
     }>({
-      version: 1,
       name: 'transactions',
       keyEncoding: new BufferEncoding(),
       valueEncoding: new JsonEncoding(),
     })
   }
 
-  async open(_options?: { upgrade?: boolean }): Promise<void> {
+  async open(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
     await this.files.mkdir(this.location, { recursive: true })
+
     await this.database.open()
+
+    if (options.upgrade) {
+      await this.database.upgrade(1)
+    }
   }
 
   async close(): Promise<void> {

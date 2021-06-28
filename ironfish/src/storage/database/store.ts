@@ -3,25 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IDatabaseTransaction } from './transaction'
-import {
-  DatabaseSchema,
-  IDatabaseEncoding,
-  SchemaKey,
-  SchemaValue,
-  UpgradeFunction,
-} from './types'
+import { DatabaseSchema, IDatabaseEncoding, SchemaKey, SchemaValue } from './types'
 
 export type IDatabaseStoreOptions<Schema extends DatabaseSchema> = {
-  /** The schema version of the store. @see {@link IDatabase.addStore} for more information*/
-  version: number
   /** The unique name of the store inside of the database */
   name: string
   /** The encoding used to encode and decode keys in the database */
   keyEncoding: IDatabaseEncoding<SchemaKey<Schema>>
   /** The encoding used to encode and decode values in the database */
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>
-  /** Used to auto construct a key from a value inside the store if specified. It can either be a field from the value, or an array of fields from the value */
-  upgrade?: UpgradeFunction
 }
 
 /**
@@ -34,12 +24,8 @@ export type IDatabaseStoreOptions<Schema extends DatabaseSchema> = {
  * You can operate on one or more stores atomically using {@link IDatabase.transaction}
  */
 export interface IDatabaseStore<Schema extends DatabaseSchema> {
-  /** The schema version of the store. @see {@link IDatabase.addStore} for more information*/
-  version: number
-  /** The name of the store inside of the {@link IDatabase} */
+  /** The unique name of the store inside of the database */
   name: string
-  /** Run when when {@link IDatabaseStore.version} changes */
-  upgrade: UpgradeFunction | null
   /** The [[`IDatabaseEncoding`]] used to serialize keys to store in the database */
   keyEncoding: IDatabaseEncoding<SchemaKey<Schema>>
   /** The [[`IDatabaseEncoding`]] used to serialize values to store in the database */
@@ -145,16 +131,12 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
 
 export abstract class DatabaseStore<Schema extends DatabaseSchema>
   implements IDatabaseStore<Schema> {
-  version: number
   name: string
-  upgrade: UpgradeFunction | null
   keyEncoding: IDatabaseEncoding<SchemaKey<Schema>>
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>
 
   constructor(options: IDatabaseStoreOptions<Schema>) {
-    this.version = options.version
     this.name = options.name
-    this.upgrade = options.upgrade || null
     this.keyEncoding = options.keyEncoding
     this.valueEncoding = options.valueEncoding
   }
