@@ -167,7 +167,7 @@ export default class RepairChain extends IronfishCommand {
 
     while (block) {
       if (tx === null) {
-        tx = node.chain.db.transaction(node.chain.db.getStores(), 'readwrite')
+        tx = node.chain.db.transaction()
       }
 
       await node.chain.saveConnect(block, prev || null, tx)

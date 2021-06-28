@@ -203,7 +203,7 @@ export class AccountsDB {
   ): Promise<void> {
     await this.transactions.clear()
 
-    await this.database.transaction([this.transactions], 'readwrite', async (tx) => {
+    await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
         const serialized = {
           ...value,
@@ -242,7 +242,7 @@ export class AccountsDB {
   async replaceNullifierToNoteMap(map: Map<string, string>): Promise<void> {
     await this.nullifierToNote.clear()
 
-    await this.database.transaction([this.nullifierToNote], 'readwrite', async (tx) => {
+    await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
         await this.nullifierToNote.put(key, value, tx)
       }
@@ -281,7 +281,7 @@ export class AccountsDB {
   ): Promise<void> {
     await this.noteToNullifier.clear()
 
-    await this.database.transaction([this.noteToNullifier], 'readwrite', async (tx) => {
+    await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
         await this.noteToNullifier.put(key, value, tx)
       }
@@ -294,7 +294,7 @@ export class AccountsDB {
       { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
     >,
   ): Promise<void> {
-    await this.database.transaction([this.noteToNullifier], 'read', async (tx) => {
+    await this.database.transaction(async (tx) => {
       for await (const noteToNullifierKey of this.noteToNullifier.getAllKeysIter(tx)) {
         const value = await this.noteToNullifier.get(noteToNullifierKey)
 

@@ -284,43 +284,27 @@ export class Verifier<
     block: Block<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(
-      tx,
-      [
-        this.chain.notes.counter,
-        this.chain.notes.leaves,
-        this.chain.notes.nodes,
-        this.chain.nullifiers.counter,
-        this.chain.nullifiers.leaves,
-        this.chain.nullifiers.nodes,
-      ],
-      'read',
-      async (tx) => {
-        const spendsInThisBlock = Array.from(block.spends())
-        const previousSpendCount =
-          block.header.nullifierCommitment.size - spendsInThisBlock.length
-        const processedSpends = new BufferSet()
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      const spendsInThisBlock = Array.from(block.spends())
+      const previousSpendCount =
+        block.header.nullifierCommitment.size - spendsInThisBlock.length
+      const processedSpends = new BufferSet()
 
-        for (const [index, spend] of spendsInThisBlock.entries()) {
-          if (processedSpends.has(spend.nullifier)) {
-            return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-          }
-
-          const verificationError = await this.verifySpend(
-            spend,
-            previousSpendCount + index,
-            tx,
-          )
-          if (verificationError) {
-            return { valid: false, reason: verificationError }
-          }
-
-          processedSpends.add(spend.nullifier)
+      for (const [index, spend] of spendsInThisBlock.entries()) {
+        if (processedSpends.has(spend.nullifier)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        return { valid: true }
-      },
-    )
+        const verificationError = await this.verifySpend(spend, previousSpendCount + index, tx)
+        if (verificationError) {
+          return { valid: false, reason: verificationError }
+        }
+
+        processedSpends.add(spend.nullifier)
+      }
+
+      return { valid: true }
+    })
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
@@ -402,54 +386,42 @@ export class Verifier<
     header: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): Promise<{ valid: boolean; reason: VerificationResultReason | null }> {
-    return this.chain.db.withTransaction(
-      tx,
-      [
-        this.chain.notes.counter,
-        this.chain.notes.leaves,
-        this.chain.notes.nodes,
-        this.chain.nullifiers.counter,
-        this.chain.nullifiers.leaves,
-        this.chain.nullifiers.nodes,
-      ],
-      'read',
-      async (tx) => {
-        const noteSize = header.noteCommitment.size
-        const nullifierSize = header.nullifierCommitment.size
-        const actualNoteSize = await this.chain.notes.size(tx)
-        const actualNullifierSize = await this.chain.nullifiers.size(tx)
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      const noteSize = header.noteCommitment.size
+      const nullifierSize = header.nullifierCommitment.size
+      const actualNoteSize = await this.chain.notes.size(tx)
+      const actualNullifierSize = await this.chain.nullifiers.size(tx)
 
-        if (noteSize > actualNoteSize) {
-          return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-        }
+      if (noteSize > actualNoteSize) {
+        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
+      }
 
-        if (nullifierSize > actualNullifierSize) {
-          return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-        }
+      if (nullifierSize > actualNullifierSize) {
+        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
+      }
 
-        const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-        if (
-          !this.strategy
-            .noteHasher()
-            .hashSerde()
-            .equals(pastNoteRoot, header.noteCommitment.commitment)
-        ) {
-          return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
-        }
+      const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
+      if (
+        !this.strategy
+          .noteHasher()
+          .hashSerde()
+          .equals(pastNoteRoot, header.noteCommitment.commitment)
+      ) {
+        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
+      }
 
-        const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-        if (
-          !this.strategy
-            .nullifierHasher()
-            .hashSerde()
-            .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
-        ) {
-          return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
-        }
+      const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
+      if (
+        !this.strategy
+          .nullifierHasher()
+          .hashSerde()
+          .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
+      ) {
+        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
+      }
 
-        return { valid: true, reason: null }
-      },
-    )
+      return { valid: true, reason: null }
+    })
   }
 }
 

@@ -82,45 +82,41 @@ export class LevelupDatabase extends Database {
 
     await this._levelup.open()
 
-    await this.transaction(
-      [this.metaStore, ...this.stores.values()],
-      'readwrite',
-      async (t) => {
-        const upgrade = async (
-          versionKey: string,
-          newVersion: number,
-          upgrade: UpgradeFunction | null = null,
-        ): Promise<void> => {
-          const oldVersion = await this.metaStore.get(versionKey)
+    await this.transaction(async (t) => {
+      const upgrade = async (
+        versionKey: string,
+        newVersion: number,
+        upgrade: UpgradeFunction | null = null,
+      ): Promise<void> => {
+        const oldVersion = await this.metaStore.get(versionKey)
 
-          if (oldVersion !== undefined && typeof oldVersion !== 'number') {
-            throw new Error(
-              `Corrupted meta store version for ${versionKey} is at: ${String(oldVersion)}`,
-            )
-          }
-
-          if (oldVersion !== undefined && newVersion < oldVersion) {
-            throw new Error(
-              `Cannot open database: The database version (${oldVersion}) is newer than the provided schema version (${newVersion})`,
-            )
-          }
-
-          if (!oldVersion || newVersion > oldVersion) {
-            if (upgrade) {
-              await upgrade(this, oldVersion || 0, newVersion, t)
-            }
-
-            await this.metaStore.put(versionKey, newVersion, t)
-          }
+        if (oldVersion !== undefined && typeof oldVersion !== 'number') {
+          throw new Error(
+            `Corrupted meta store version for ${versionKey} is at: ${String(oldVersion)}`,
+          )
         }
 
-        for (const store of this.stores.values()) {
-          await upgrade(`version_${store.name}`, store.version, store.upgrade)
+        if (oldVersion !== undefined && newVersion < oldVersion) {
+          throw new Error(
+            `Cannot open database: The database version (${oldVersion}) is newer than the provided schema version (${newVersion})`,
+          )
         }
 
-        await upgrade('version', this.getVersion(), options.upgrade)
-      },
-    )
+        if (!oldVersion || newVersion > oldVersion) {
+          if (upgrade) {
+            await upgrade(this, oldVersion || 0, newVersion, t)
+          }
+
+          await this.metaStore.put(versionKey, newVersion, t)
+        }
+      }
+
+      for (const store of this.stores.values()) {
+        await upgrade(`version_${store.name}`, store.version, store.upgrade)
+      }
+
+      await upgrade('version', this.getVersion(), options.upgrade)
+    })
   }
 
   async close(): Promise<void> {
@@ -129,24 +125,17 @@ export class LevelupDatabase extends Database {
   }
 
   transaction<TResult>(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
+  transaction(): IDatabaseTransaction
   transaction(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
-  ): IDatabaseTransaction
-  transaction(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler?: (transaction: IDatabaseTransaction) => Promise<unknown>,
   ): IDatabaseTransaction | Promise<unknown> {
     if (handler === undefined) {
-      return new LevelupTransaction(this, scopes, type)
+      return new LevelupTransaction(this)
     }
 
-    return this.withTransaction(null, scopes, type, handler)
+    return this.withTransaction(null, handler)
   }
 
   batch(
