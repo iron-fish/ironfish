@@ -73,6 +73,11 @@ export default class Start extends IronfishCommand {
       description: 'force mining even if we are not synced',
       hidden: true,
     }),
+    graffiti: flags.string({
+      char: 'g',
+      default: undefined,
+      description: 'Set the graffiti for the node',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -90,45 +95,46 @@ export default class Start extends IronfishCommand {
     this.startDonePromise = startDonePromise
 
     const { flags } = this.parse(Start)
+    const { bootstrap, forceMining, graffiti, listen, name, port, worker, workers } = flags
 
-    if (flags.bootstrap !== undefined) {
-      this.sdk.config.setOverride('bootstrapNodes', flags.bootstrap.filter(Boolean))
+    if (bootstrap !== undefined) {
+      this.sdk.config.setOverride('bootstrapNodes', bootstrap.filter(Boolean))
     }
-    if (flags.port !== undefined && flags.port !== this.sdk.config.get('peerPort')) {
-      this.sdk.config.setOverride('peerPort', flags.port)
+    if (port !== undefined && port !== this.sdk.config.get('peerPort')) {
+      this.sdk.config.setOverride('peerPort', port)
     }
-    if (flags.workers !== undefined && flags.workers !== this.sdk.config.get('nodeWorkers')) {
-      this.sdk.config.setOverride('nodeWorkers', flags.workers)
+    if (workers !== undefined && workers !== this.sdk.config.get('nodeWorkers')) {
+      this.sdk.config.setOverride('nodeWorkers', workers)
     }
-    if (flags.name !== undefined && flags.name.trim() !== this.sdk.config.get('nodeName')) {
-      this.sdk.config.setOverride('nodeName', flags.name.trim())
+    if (name !== undefined && name.trim() !== this.sdk.config.get('nodeName')) {
+      this.sdk.config.setOverride('nodeName', name.trim())
     }
-    if (flags.listen !== undefined && flags.listen !== this.sdk.config.get('enableListenP2P')) {
-      this.sdk.config.setOverride('enableListenP2P', flags.listen)
+    if (listen !== undefined && listen !== this.sdk.config.get('enableListenP2P')) {
+      this.sdk.config.setOverride('enableListenP2P', listen)
     }
-    if (flags.worker !== undefined && flags.worker !== this.sdk.config.get('isWorker')) {
-      this.sdk.config.setOverride('isWorker', flags.worker)
+    if (worker !== undefined && worker !== this.sdk.config.get('isWorker')) {
+      this.sdk.config.setOverride('isWorker', worker)
     }
-    if (
-      flags.forceMining !== undefined &&
-      flags.forceMining !== this.sdk.config.get('miningForce')
-    ) {
-      this.sdk.config.setOverride('miningForce', flags.forceMining)
+    if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
+      this.sdk.config.setOverride('miningForce', forceMining)
+    }
+    if (graffiti !== undefined && graffiti) {
+      this.sdk.config.setOverride('blockGraffiti', graffiti)
     }
 
     const node = await this.sdk.node()
 
     const version = Platform.getAgent('cli')
-    const name = this.sdk.config.get('nodeName').trim() || null
-    const port = this.sdk.config.get('peerPort')
+    const nodeName = this.sdk.config.get('nodeName').trim() || null
+    const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${version}`)
-    this.log(`Port          ${port}`)
+    this.log(`Port          ${peerPort}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
-    this.log(`Node Name     ${name || 'NONE'}`)
+    this.log(`Node Name     ${nodeName || 'NONE'}`)
     this.log(` `)
 
     await NodeUtils.waitForOpen(node, () => this.closing)
