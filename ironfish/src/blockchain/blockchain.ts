@@ -52,7 +52,6 @@ import {
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
-  SCHEMA_VERSION,
   SequenceToHashesSchema,
   SequenceToHashSchema,
   TransactionsSchema,
@@ -165,7 +164,6 @@ export class Blockchain<
 
     // Flat Fields
     this.meta = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bm',
       keyEncoding: new StringEncoding<'head' | 'latest'>(),
       valueEncoding: new JsonEncoding<Buffer>(),
@@ -173,7 +171,6 @@ export class Blockchain<
 
     // BlockHash -> BlockHeader
     this.headers = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new BlockHeaderEncoding(this.strategy.blockHeaderSerde),
@@ -181,7 +178,6 @@ export class Blockchain<
 
     // BlockHash -> Transaction[]
     this.transactions = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bt',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new TransactionArrayEncoding(this.strategy.transactionSerde()),
@@ -189,7 +185,6 @@ export class Blockchain<
 
     // BigInt -> BlockHash[]
     this.sequenceToHashes = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bs',
       keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ARRAY_ENCODING,
@@ -197,14 +192,12 @@ export class Blockchain<
 
     // BigInt -> BlockHash
     this.sequenceToHash = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bS',
       keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
 
     this.hashToNextHash = this.db.addStore({
-      version: SCHEMA_VERSION,
       name: 'bH',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
@@ -249,15 +242,19 @@ export class Blockchain<
     return genesisHeader
   }
 
-  async open(options?: { upgrade?: boolean }): Promise<void> {
+  async open(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
     if (this.opened) {
       return
     }
     this.opened = true
 
-    const upgrade = options?.upgrade ?? true
+    await this.db.open()
 
-    await this.db.open({ upgrade: upgrade ? this.forceUpgrade : undefined })
+    if (options.upgrade) {
+      await this.db.upgrade(1)
+      await this.notes.upgrade()
+      await this.nullifiers.upgrade()
+    }
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
@@ -1244,23 +1241,6 @@ export class Blockchain<
 
     this.synced = true
     this.onSynced.emit()
-  }
-
-  /**
-   * This is useful for now because we don't have a DB version system that works.
-   * to prevent this. See https://linear.app/ironfish/issue/IRO-706
-   */
-  private forceUpgrade = (db: unknown, oldVersion: number): Promise<void> => {
-    if (oldVersion === 0) {
-      return Promise.resolve()
-    }
-
-    this.logger.error(
-      `You are running a newer version of ironfish on an older database.\n` +
-        `Wipe your database using "ironfish reset" or delete your data directory at ~/.ironfish\n`,
-    )
-
-    process.exit(1)
   }
 }
 

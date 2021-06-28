@@ -10,8 +10,6 @@ import {
   BufferEncoding,
   DatabaseSchema,
   DuplicateKeyError,
-  IDatabase,
-  IDatabaseTransaction,
   JsonEncoding,
   StringEncoding,
 } from './database'
@@ -52,21 +50,18 @@ describe('Database', () => {
   const db = new LevelupDatabase(leveldown(id))
 
   const fooStore = db.addStore<FooSchema>({
-    version: 1,
     name: 'Foo',
     keyEncoding: new StringEncoding(),
     valueEncoding: new JsonEncoding<FooValue>(),
   })
 
   const barStore = db.addStore<BarSchema>({
-    version: 1,
     name: 'Bar',
     keyEncoding: new StringEncoding(),
     valueEncoding: new BufferEncoding(),
   })
 
   const bazStore = db.addStore<BazSchema>({
-    version: 1,
     name: 'Baz',
     keyEncoding: new BufferEncoding(),
     valueEncoding: new StringEncoding(),
@@ -74,21 +69,18 @@ describe('Database', () => {
 
   // Prefix key is modified during tests, don't use in other tests
   const testPrefixKeyStore = db.addStore<BazSchema>({
-    version: 1,
     name: 'PrefixKey',
     keyEncoding: new BufferEncoding(),
     valueEncoding: new StringEncoding(),
   })
 
   const testStore = db.addStore<TestSchema>({
-    version: 1,
     name: 'Test',
     keyEncoding: new StringEncoding(),
     valueEncoding: new JsonEncoding(),
   })
 
   const arrayKeyStore = db.addStore<ArrayKeySchema>({
-    version: 1,
     name: 'ArrayKey',
     keyEncoding: new ArrayEncoding<[string, number, boolean]>(),
     valueEncoding: new JsonEncoding<boolean>(),
@@ -98,47 +90,14 @@ describe('Database', () => {
     await db.close()
   })
 
-  it('should run database migrations', async () => {
-    async function runMigrations(
-      db: IDatabase,
-      oldVersion: number,
-      newVersion: number,
-      t: IDatabaseTransaction,
-    ): Promise<void> {
-      await testStore.put('oldVersion', oldVersion, t)
-      await testStore.put('newVersion', newVersion, t)
-    }
-
-    await db.open({ upgrade: runMigrations })
-    expect(await testStore.get('oldVersion')).toBe(0)
-    expect(await testStore.get('newVersion')).toBe(7)
-  })
-
-  it('should run store migrations', async () => {
-    interface EmptySchema extends DatabaseSchema {
-      key: string
-      value: number
-    }
-
-    const store = db.addStore<EmptySchema>({
-      version: 8,
-      name: 'Nested',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding<number>(),
-      upgrade: async (
-        db: IDatabase,
-        oldVersion: number,
-        newVersion: number,
-        t: IDatabaseTransaction,
-      ): Promise<void> => {
-        await store.put('oldVersion', oldVersion, t)
-        await store.put('newVersion', newVersion, t)
-      },
-    })
-
+  it('should upgrade and throw upgrade error', async () => {
     await db.open()
-    expect(await store.get('oldVersion')).toBe(0)
-    expect(await store.get('newVersion')).toBe(8)
+    expect(await db.metaStore.get('version')).toBe(undefined)
+
+    await db.upgrade(1)
+    expect(await db.metaStore.get('version')).toBe(1)
+
+    await expect(db.upgrade(3)).rejects.toThrowError('You are running a newer')
   })
 
   it('should store and get values', async () => {
@@ -228,7 +187,6 @@ describe('Database', () => {
     }
 
     const store = db.addStore<NestedSchema>({
-      version: 1,
       name: 'Nested',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding<{ buffer: Buffer }>(),

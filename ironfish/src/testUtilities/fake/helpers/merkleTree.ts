@@ -40,6 +40,7 @@ export async function makeTree({
 
   if (openDb) {
     await database.open()
+    await tree.upgrade()
   }
 
   if (characters) {
