@@ -4,7 +4,7 @@
 
 import type Serde from '../serde'
 
-function max(a: BigInt, b: BigInt): BigInt {
+function max(a: bigint, b: bigint): bigint {
   if (a > b) {
     return a
   } else {
@@ -203,7 +203,7 @@ export class Target {
     const difficulty = max(
       BigInt(previousBlockDifficulty) + offset * sign,
       Target.minDifficulty(),
-    ).valueOf()
+    )
 
     return difficulty
   }
