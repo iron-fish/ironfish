@@ -714,6 +714,10 @@ export class Accounts {
       return
     }
 
+    if (!this.chain.synced) {
+      return
+    }
+
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       return
