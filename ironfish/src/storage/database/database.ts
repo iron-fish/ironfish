@@ -36,6 +36,11 @@ export interface IDatabase {
   close(): Promise<void>
 
   /**
+   * Check if the database needs to be upgraded and warn the use
+   */
+  upgrade(version: number): Promise<void>
+
+  /**
    * Add an {@link IDatabaseStore} to the database
    *
    * You can only add a store to the database if the database is not open. This is because some databases only
@@ -124,6 +129,7 @@ export abstract class Database implements IDatabase {
 
   abstract open(options?: DatabaseOptions): Promise<void>
   abstract close(): Promise<void>
+  abstract upgrade(version: number): Promise<void>
 
   abstract transaction(): IDatabaseTransaction
 
