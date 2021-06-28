@@ -30,6 +30,7 @@ jest.mock('ironfish', () => {
 describe('start command', () => {
   let isFirstRun = true
   let hasGenesisBlock = false
+  const defaultGraffiti = 'default-graffiti'
 
   const verifier = {
     blockMatchesTrees: jest
@@ -55,6 +56,7 @@ describe('start command', () => {
       nodeName: '',
       isWorker: false,
       bootstrapNodes: [],
+      blockGraffiti: defaultGraffiti,
     }
 
     const internalOptions = {
@@ -169,14 +171,25 @@ describe('start command', () => {
   })
 
   describe('with the graffiti override', () => {
-    const graffiti = 'some-graffiti'
+    describe('when the graffiti is the same as the config graffiti', () => {
+      test
+        .stdout()
+        .command(['start', '-g', defaultGraffiti])
+        .exit(0)
+        .it('calls setOverride with the graffiti', () => {
+          expect(setOverrideConfig).not.toHaveBeenCalled()
+        })
+    })
 
-    test
-      .stdout()
-      .command(['start', '-g', graffiti])
-      .exit(0)
-      .it('calls setOverride with the graffiti', () => {
-        expect(setOverrideConfig).toHaveBeenCalledWith('blockGraffiti', graffiti)
-      })
+    describe('when the graffiti is different as the config graffiti', () => {
+      const graffiti = 'some-graffiti'
+      test
+        .stdout()
+        .command(['start', '-g', graffiti])
+        .exit(0)
+        .it('calls setOverride with the graffiti', () => {
+          expect(setOverrideConfig).toHaveBeenCalledWith('blockGraffiti', graffiti)
+        })
+    })
   })
 })

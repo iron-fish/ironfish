@@ -118,7 +118,7 @@ export default class Start extends IronfishCommand {
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
     }
-    if (graffiti !== undefined && graffiti) {
+    if (graffiti !== undefined && graffiti !== this.sdk.config.get('blockGraffiti')) {
       this.sdk.config.setOverride('blockGraffiti', graffiti)
     }
 
