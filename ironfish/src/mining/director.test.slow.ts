@@ -358,7 +358,7 @@ describe('Non-fake director tests', () => {
 })
 
 describe('Recalculating target', () => {
-  const minDifficulty = Target.minDifficulty() as bigint
+  const minDifficulty = Target.minDifficulty()
   const strategy = new TestStrategy(new RangeHasher())
   let chain: TestBlockchain
   let memPool: TestMemPool

@@ -289,14 +289,26 @@ export class Peer {
       }
     }
 
-    // The remaining states are CONNECTING
-    return {
-      type: 'CONNECTING',
-      identity: this.state.identity,
-      connections: {
-        ...(webRtcConnection ? { webRtc: webRtcConnection } : {}),
-        ...(wsConnection ? { webSocket: wsConnection } : {}),
-      },
+    if (webRtcConnection) {
+      return {
+        type: 'CONNECTING',
+        identity: this.state.identity,
+        connections: {
+          webRtc: webRtcConnection,
+          webSocket: wsConnection,
+        },
+      }
+    } else if (wsConnection) {
+      return {
+        type: 'CONNECTING',
+        identity: this.state.identity,
+        connections: {
+          webRtc: webRtcConnection,
+          webSocket: wsConnection,
+        },
+      }
+    } else {
+      throw new Error('At least one of webRtcConnection or wsConnection must be defined')
     }
   }
 

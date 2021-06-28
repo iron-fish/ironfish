@@ -147,8 +147,16 @@ export class TestStrategy
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     const headerWithoutRandomness = Buffer.from(serializedHeader.slice(8))
     const header = JSON.parse(headerWithoutRandomness.toString()) as Record<string, unknown>
+    const headerSequence = header['sequence']
+    if (
+      typeof headerSequence !== 'bigint' &&
+      typeof headerSequence !== 'string' &&
+      typeof headerSequence !== 'number'
+    ) {
+      throw new Error(`Invalid sequence type in header`)
+    }
 
-    const sequence = BigInt(header['sequence'])
+    const sequence = BigInt(headerSequence)
     const bigIntArray = BigInt64Array.from([sequence])
     const byteArray = Buffer.from(bigIntArray.buffer)
     const result = Buffer.alloc(32)
