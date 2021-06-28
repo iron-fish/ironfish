@@ -34,10 +34,10 @@ export class IronfishNote {
     }
   }
 
-  value(): BigInt {
+  value(): bigint {
     const value = this.takeReference().value
     this.returnReference()
-    return value
+    return value.valueOf()
   }
 
   memo(): string {

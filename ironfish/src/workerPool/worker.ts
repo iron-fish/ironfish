@@ -104,7 +104,7 @@ function handleTransactionFee({
   const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
   const fee = transaction.transactionFee
   transaction.free()
-  return { type: 'transactionFee', transactionFee: BigInt(fee) }
+  return { type: 'transactionFee', transactionFee: fee.valueOf() }
 }
 
 function handleVerify({

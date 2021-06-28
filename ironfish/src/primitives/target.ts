@@ -4,7 +4,7 @@
 
 import type Serde from '../serde'
 
-function max(a: BigInt, b: BigInt): BigInt {
+function max(a: bigint, b: bigint): bigint {
   if (a > b) {
     return a
   } else {
@@ -101,7 +101,7 @@ const MAX_256_BIT_NUM = BigInt(
 
 export class Target {
   targetValue: bigint
-  constructor(targetValue: bigint | BigInt | Buffer | string | number | undefined = undefined) {
+  constructor(targetValue: bigint | Buffer | string | number | undefined = undefined) {
     if (targetValue === undefined) {
       this.targetValue = BigInt(0)
     } else {
@@ -180,8 +180,8 @@ export class Target {
   static calculateDifficulty(
     time: Date,
     previousBlockTimestamp: Date,
-    previousBlockDifficulty: BigInt,
-  ): BigInt {
+    previousBlockDifficulty: bigint,
+  ): bigint {
     // We are taking in large part Ethereum's dynamic difficulty calculation,
     // with the exeption of 'uncles' and 'difficulty bomb' as a concept
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
@@ -212,18 +212,18 @@ export class Target {
    * Returns the minimum difficulty that can be used for Iron Fish blocks
    * To be used in calculateTarget for easier mocking
    */
-  static minDifficulty(): BigInt {
+  static minDifficulty(): bigint {
     return MIN_DIFFICULTY
   }
 
   /**
    * Converts difficulty to Target
    */
-  static fromDifficulty(difficulty: BigInt): Target {
+  static fromDifficulty(difficulty: bigint): Target {
     if (difficulty === BigInt(1)) {
       return new Target(MAX_256_BIT_NUM)
     }
-    return new Target(BigInt(2) ** BigInt(256) / BigInt(difficulty))
+    return new Target((BigInt(2) ** BigInt(256) / BigInt(difficulty)).valueOf())
   }
 
   /**
