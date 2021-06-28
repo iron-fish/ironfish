@@ -167,4 +167,16 @@ describe('start command', () => {
         expect(setOverrideConfig).toHaveBeenCalledWith('bootstrapNodes', [])
       })
   })
+
+  describe('with the graffiti override', () => {
+    const graffiti = 'some-graffiti'
+
+    test
+      .stdout()
+      .command(['start', '-g', graffiti])
+      .exit(0)
+      .it('calls setOverride with the graffiti', () => {
+        expect(setOverrideConfig).toHaveBeenCalledWith('blockGraffiti', graffiti)
+      })
+  })
 })
