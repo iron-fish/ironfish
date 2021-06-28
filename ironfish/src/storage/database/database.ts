@@ -56,15 +56,9 @@ export interface IDatabase {
    * You should not forget to call [[`IDatabaseTransaction.commit`]] or [[`IDatabaseTransaction.abort`]].
    * If you don't you will deadlock the database. This is why it's better and safer to use [[`IDatabase.transaction::OVERLOAD_2`]]
    *
-   * @param scopes The stores you intend to access. Your operation will fail if it's not a store that is not specified here.
-   * @param type Indicates which type of access you are going to perform. You can only do writes in readwrite.
-   *
    * @returns A new transaction
    */
-  transaction(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
-  ): IDatabaseTransaction
+  transaction(): IDatabaseTransaction
 
   /**
    * Starts a {@link IDatabaseTransaction} and executes your handler with it
@@ -73,10 +67,6 @@ export interface IDatabase {
    * code finishes, the transaction will be either committed or aborted if an
    * exception has been thrown.
    *
-   * @param scopes The stores you intend to access Your operation will fail if
-   * it's not a store that is not specified here.
-   * @param type Indicates which type of access you are going to perform. You
-   * can only do writes in readwrite.
    * @param handler You should pass in a function with your code that you want
    * to run in the transaction. The handler accepts a transaction and any returns
    * are forwarded out.
@@ -84,8 +74,6 @@ export interface IDatabase {
    * @returns Forwards the result of your handler to it's return value
    */
   transaction<TResult>(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
 
@@ -97,10 +85,6 @@ export interface IDatabase {
    * Use this when you are given an optional transaction, where you may want
    * to create one if one has not been created.
    *
-   * @param scopes The stores you intend to access Your operation will fail if
-   * it's not a store that is not specified here.
-   * @param type Indicates which type of access you are going to perform. You
-   * can only do writes in readwrite.
    * @param handler You should pass in a function with your code that you want
    * to run in the transaction. The handler accepts a transaction and any returns
    * are forwarded out.
@@ -109,8 +93,6 @@ export interface IDatabase {
    */
   withTransaction<TResult>(
     transaction: IDatabaseTransaction | undefined | null,
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
 
@@ -143,14 +125,9 @@ export abstract class Database implements IDatabase {
   abstract open(options?: DatabaseOptions): Promise<void>
   abstract close(): Promise<void>
 
-  abstract transaction(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
-  ): IDatabaseTransaction
+  abstract transaction(): IDatabaseTransaction
 
   abstract transaction<TResult>(
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
 
@@ -199,12 +176,10 @@ export abstract class Database implements IDatabase {
   */
   async withTransaction<TResult>(
     transaction: IDatabaseTransaction | undefined | null,
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult> {
     const created = !transaction
-    transaction = transaction || this.transaction(scopes, type)
+    transaction = transaction || this.transaction()
 
     try {
       await transaction.acquireLock()

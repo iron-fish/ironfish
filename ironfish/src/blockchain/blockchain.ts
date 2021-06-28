@@ -315,7 +315,7 @@ export class Blockchain<
     score: number | null
   }> {
     try {
-      await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+      await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -750,31 +750,24 @@ export class Blockchain<
     const blockHeader = hashOrHeader instanceof BlockHeader ? hashOrHeader : null
     const blockHash = hashOrHeader instanceof BlockHeader ? hashOrHeader.hash : hashOrHeader
 
-    return this.db.withTransaction(
-      tx,
-      [this.headers, this.transactions],
-      'read',
-      async (tx) => {
-        const [header, transactions] = await Promise.all([
-          blockHeader || this.headers.get(blockHash, tx),
-          this.transactions.get(blockHash, tx),
-        ])
+    return this.db.withTransaction(tx, async (tx) => {
+      const [header, transactions] = await Promise.all([
+        blockHeader || this.headers.get(blockHash, tx),
+        this.transactions.get(blockHash, tx),
+      ])
 
-        if (!header && !transactions) {
-          return null
-        }
+      if (!header && !transactions) {
+        return null
+      }
 
-        if (!header || !transactions) {
-          throw new Error(
-            `DB has inconsistent state header/transaction state for ${blockHash.toString(
-              'hex',
-            )}`,
-          )
-        }
+      if (!header || !transactions) {
+        throw new Error(
+          `DB has inconsistent state header/transaction state for ${blockHash.toString('hex')}`,
+        )
+      }
 
-        return new Block(header, transactions)
-      },
-    )
+      return new Block(header, transactions)
+    })
   }
 
   /**
@@ -829,131 +822,112 @@ export class Blockchain<
     graffiti?: Buffer,
   ): Promise<Block<E, H, T, SE, SH, ST>> {
     const transactions = userTransactions.concat([minersFee])
-    return await this.db.transaction(
-      [
-        ...this.notes.db.getStores(),
-        ...this.nullifiers.db.getStores(),
-        this.headers,
-        this.transactions,
-        this.sequenceToHashes,
-      ],
-      'readwrite',
-      async (tx) => {
-        const originalNoteSize = await this.notes.size(tx)
-        const originalNullifierSize = await this.nullifiers.size(tx)
+    return await this.db.transaction(async (tx) => {
+      const originalNoteSize = await this.notes.size(tx)
+      const originalNullifierSize = await this.nullifiers.size(tx)
 
-        let previousBlockHash
-        let previousSequence
-        let target
-        const timestamp = new Date()
+      let previousBlockHash
+      let previousSequence
+      let target
+      const timestamp = new Date()
 
-        if (!this.hasGenesisBlock) {
-          previousBlockHash = GENESIS_BLOCK_PREVIOUS
-          previousSequence = 0
-          target = Target.initialTarget()
-        } else {
-          const heaviestHead = this.head
-          if (
-            originalNoteSize !== heaviestHead.noteCommitment.size ||
-            originalNullifierSize !== heaviestHead.nullifierCommitment.size
-          ) {
-            throw new Error(
-              `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
-            )
-          }
-          previousBlockHash = heaviestHead.hash
-          previousSequence = heaviestHead.sequence
-          const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
-          if (!previousHeader && previousSequence !== 1) {
-            throw new Error('There is no previous block to calculate a target')
-          }
-          target = Target.calculateTarget(
-            timestamp,
-            heaviestHead.timestamp,
-            heaviestHead.target,
+      if (!this.hasGenesisBlock) {
+        previousBlockHash = GENESIS_BLOCK_PREVIOUS
+        previousSequence = 0
+        target = Target.initialTarget()
+      } else {
+        const heaviestHead = this.head
+        if (
+          originalNoteSize !== heaviestHead.noteCommitment.size ||
+          originalNullifierSize !== heaviestHead.nullifierCommitment.size
+        ) {
+          throw new Error(
+            `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
           )
         }
-
-        for (const transaction of transactions) {
-          for (const note of transaction.notes()) {
-            await this.notes.add(note, tx)
-          }
-          for (const spend of transaction.spends()) {
-            await this.nullifiers.add(spend.nullifier, tx)
-          }
+        previousBlockHash = heaviestHead.hash
+        previousSequence = heaviestHead.sequence
+        const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
+        if (!previousHeader && previousSequence !== 1) {
+          throw new Error('There is no previous block to calculate a target')
         }
+        target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
+      }
 
-        const noteCommitment = {
-          commitment: await this.notes.rootHash(tx),
-          size: await this.notes.size(tx),
+      for (const transaction of transactions) {
+        for (const note of transaction.notes()) {
+          await this.notes.add(note, tx)
         }
-        const nullifierCommitment = {
-          commitment: await this.nullifiers.rootHash(tx),
-          size: await this.nullifiers.size(tx),
+        for (const spend of transaction.spends()) {
+          await this.nullifiers.add(spend.nullifier, tx)
         }
+      }
 
-        graffiti = graffiti ? graffiti : Buffer.alloc(32)
+      const noteCommitment = {
+        commitment: await this.notes.rootHash(tx),
+        size: await this.notes.size(tx),
+      }
+      const nullifierCommitment = {
+        commitment: await this.nullifiers.rootHash(tx),
+        size: await this.nullifiers.size(tx),
+      }
 
-        const header = new BlockHeader(
-          this.strategy,
-          previousSequence + 1,
-          previousBlockHash,
-          noteCommitment,
-          nullifierCommitment,
-          target,
-          0,
-          timestamp,
-          await minersFee.transactionFee(),
-          graffiti,
-        )
+      graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
-        const block = new Block(header, transactions)
-        if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
-          // since we're creating a block that hasn't been mined yet, don't
-          // verify target because it'll always fail target check here
-          const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
+      const header = new BlockHeader(
+        this.strategy,
+        previousSequence + 1,
+        previousBlockHash,
+        noteCommitment,
+        nullifierCommitment,
+        target,
+        0,
+        timestamp,
+        await minersFee.transactionFee(),
+        graffiti,
+      )
 
-          if (!verification.valid) {
-            throw new Error(verification.reason)
-          }
+      const block = new Block(header, transactions)
+      if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
+        // since we're creating a block that hasn't been mined yet, don't
+        // verify target because it'll always fail target check here
+        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
+
+        if (!verification.valid) {
+          throw new Error(verification.reason)
         }
+      }
 
-        // abort this transaction as we've modified the trees just to get new
-        // merkle roots, but this block isn't mined or accepted yet
-        await tx.abort()
+      // abort this transaction as we've modified the trees just to get new
+      // merkle roots, but this block isn't mined or accepted yet
+      await tx.abort()
 
-        return block
-      },
-    )
+      return block
+    })
   }
 
   async addNote(index: number, note: E, tx?: IDatabaseTransaction): Promise<void> {
-    return this.db.withTransaction(
-      tx,
-      [this.notes.counter, this.notes.leaves, this.notes.nodes],
-      'readwrite',
-      async (tx) => {
-        const noteCount = await this.notes.size(tx)
+    return this.db.withTransaction(tx, async (tx) => {
+      const noteCount = await this.notes.size(tx)
 
-        // do we have a note at this index already?
-        if (index < noteCount) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const oldNote = (await this.notes.get(index, tx))!
-          if (!this.strategy.noteSerde.equals(note, oldNote)) {
-            const message = `Tried to insert a note, but a different note already there for position ${index}`
-            this.logger.error(message)
-            throw new Error(message)
-          }
-          return
-        } else if (index > noteCount) {
-          const message = `Can't insert a note at index ${index}. Merkle tree has a count of ${noteCount}`
+      // do we have a note at this index already?
+      if (index < noteCount) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const oldNote = (await this.notes.get(index, tx))!
+        if (!this.strategy.noteSerde.equals(note, oldNote)) {
+          const message = `Tried to insert a note, but a different note already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
         }
+        return
+      } else if (index > noteCount) {
+        const message = `Can't insert a note at index ${index}. Merkle tree has a count of ${noteCount}`
+        this.logger.error(message)
+        throw new Error(message)
+      }
 
-        await this.notes.add(note, tx)
-      },
-    )
+      await this.notes.add(note, tx)
+    })
   }
 
   async addNullifier(
@@ -961,30 +935,25 @@ export class Blockchain<
     nullifier: Nullifier,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    return this.db.withTransaction(
-      tx,
-      [this.nullifiers.counter, this.nullifiers.leaves, this.nullifiers.nodes],
-      'readwrite',
-      async (tx) => {
-        const nullifierCount = await this.nullifiers.size(tx)
-        // do we have a nullifier at this index already?
-        if (index < nullifierCount) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const oldNullifier = (await this.nullifiers.get(index, tx))!
-          if (!this.strategy.nullifierHasher().elementSerde().equals(nullifier, oldNullifier)) {
-            const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
-            this.logger.error(message)
-            throw new Error(message)
-          }
-          return
-        } else if (index > nullifierCount) {
-          const message = `Can't insert a nullifier at index ${index}. Merkle tree has a count of ${nullifierCount}`
+    return this.db.withTransaction(tx, async (tx) => {
+      const nullifierCount = await this.nullifiers.size(tx)
+      // do we have a nullifier at this index already?
+      if (index < nullifierCount) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const oldNullifier = (await this.nullifiers.get(index, tx))!
+        if (!this.strategy.nullifierHasher().elementSerde().equals(nullifier, oldNullifier)) {
+          const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
         }
-        await this.nullifiers.add(nullifier, tx)
-      },
-    )
+        return
+      } else if (index > nullifierCount) {
+        const message = `Can't insert a nullifier at index ${index}. Merkle tree has a count of ${nullifierCount}`
+        this.logger.error(message)
+        throw new Error(message)
+      }
+      await this.nullifiers.add(nullifier, tx)
+    })
   }
 
   async getHeader(
@@ -1076,7 +1045,7 @@ export class Blockchain<
   async removeBlock(hash: Buffer): Promise<void> {
     this.logger.info(`Deleting block ${hash.toString('hex')}`)
 
-    await this.db.transaction(this.db.getStores(), 'readwrite', async (tx) => {
+    await this.db.transaction(async (tx) => {
       if (!(await this.hasBlock(hash, tx))) {
         this.logger.warn(`No block exists at ${hash.toString('hex')}`)
         return
