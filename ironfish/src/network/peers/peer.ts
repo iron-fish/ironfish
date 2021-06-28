@@ -303,6 +303,7 @@ export class Peer {
         type: 'CONNECTING',
         identity: this.state.identity,
         connections: {
+          webRtc: webRtcConnection,
           webSocket: wsConnection,
         },
       }
