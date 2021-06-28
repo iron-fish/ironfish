@@ -7,9 +7,7 @@ import { MutexUnlockFunction } from '../../mutex'
 import {
   BUFFER_TO_STRING_ENCODING,
   DatabaseSchema,
-  DatabaseStore,
   DuplicateKeyError,
-  IDatabaseStore,
   IDatabaseTransaction,
   SchemaKey,
   SchemaValue,
@@ -18,8 +16,6 @@ import { LevelupBatch } from './batch'
 
 export class LevelupTransaction implements IDatabaseTransaction {
   db: LevelupDatabase
-  scopes: Set<string>
-  type: 'readwrite' | 'read'
   batch: LevelupBatch
   committing = false
   aborting = false
@@ -32,16 +28,9 @@ export class LevelupTransaction implements IDatabaseTransaction {
 
   static id = 0
 
-  constructor(
-    db: LevelupDatabase,
-    scopes: IDatabaseStore<DatabaseSchema>[],
-    type: 'readwrite' | 'read',
-  ) {
+  constructor(db: LevelupDatabase) {
     this.db = db
-    this.type = type
     this.id = ++LevelupTransaction.id
-
-    this.scopes = new Set(scopes.map((s) => s.name))
     this.batch = new LevelupBatch(db)
   }
 
@@ -87,7 +76,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     key: SchemaKey<Schema>,
   ): Promise<SchemaValue<Schema> | undefined> {
     await this.acquireLock()
-    this.assertCanRead(store)
+    this.assertCanRead()
 
     const [encodedKey] = store.encode(key)
     const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
@@ -112,7 +101,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     value: SchemaValue<Schema>,
   ): Promise<void> {
     await this.acquireLock()
-    this.assertCanWrite(store)
+    this.assertCanWrite()
 
     const [encodedKey, encodedValue] = store.encode(key, value)
     const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
@@ -128,7 +117,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     value: SchemaValue<Schema>,
   ): Promise<void> {
     await this.acquireLock()
-    this.assertCanWrite(store)
+    this.assertCanWrite()
 
     if (await this.has(store, key)) {
       throw new DuplicateKeyError(`Key already exists ${String(key)}`)
@@ -146,7 +135,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     key: SchemaKey<Schema>,
   ): Promise<void> {
     await this.acquireLock()
-    this.assertCanWrite(store)
+    this.assertCanWrite()
 
     const [encodedKey] = store.encode(key)
     const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
@@ -181,21 +170,13 @@ export class LevelupTransaction implements IDatabaseTransaction {
     return Promise.resolve()
   }
 
-  private assertCanRead(store: DatabaseStore<DatabaseSchema>): void {
-    this.assertCanWrite(store)
+  private assertCanRead(): void {
+    this.assertCanWrite()
   }
 
-  private assertCanWrite(store: DatabaseStore<DatabaseSchema>): void {
+  private assertCanWrite(): void {
     if (this.committing) {
       throw new Error(`Transaction is being committed`)
-    }
-
-    if (!this.scopes.has(store.name)) {
-      throw new Error(
-        `Store ${store.name} is not in transaction scopes: ${Array.from(
-          this.scopes.values(),
-        ).join(', ')}`,
-      )
     }
   }
 }

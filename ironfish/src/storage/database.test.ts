@@ -195,7 +195,7 @@ describe('Database', () => {
     await db.open()
     await db.metaStore.clear()
 
-    await db.transaction([db.metaStore], 'readwrite', async (tx) => {
+    await db.transaction(async (tx) => {
       // db=undefined, tx=1
       await db.metaStore.add('a', 1, tx)
       await expect(db.metaStore.get('a', tx)).resolves.toBe(1)
@@ -313,7 +313,7 @@ describe('Database', () => {
       const foo = { hash: 'hello', name: 'ironfish' }
       const fooHash = Buffer.from(JSON.stringify(foo))
 
-      let transaction = db.transaction([fooStore, barStore, bazStore], 'readwrite')
+      let transaction = db.transaction()
       await fooStore.put('hello', foo, transaction)
       await barStore.put('hello', fooHash, transaction)
       await bazStore.put(fooHash, 'hello', transaction)
@@ -323,7 +323,7 @@ describe('Database', () => {
       expect(await barStore.get('hello')).toEqual(fooHash)
       expect(await bazStore.get(fooHash)).toEqual('hello')
 
-      transaction = db.transaction([fooStore, barStore, bazStore], 'readwrite')
+      transaction = db.transaction()
       await fooStore.del('hello', transaction)
       await barStore.del('hello', transaction)
       await bazStore.del(fooHash, transaction)
@@ -345,8 +345,8 @@ describe('Database', () => {
       let locked = false
 
       // Create 2 transactions
-      const transactionA = db.transaction([testStore], 'readwrite')
-      const transactionB = db.transaction([testStore], 'readwrite')
+      const transactionA = db.transaction()
+      const transactionB = db.transaction()
 
       // Lock transactionA
       await testStore.put('hello', 1, transactionA)
@@ -378,46 +378,34 @@ describe('Database', () => {
       const fooHash = Buffer.from(JSON.stringify(foo))
 
       await expect(() =>
-        db.transaction<void>(
-          [fooStore, barStore, bazStore],
-          'readwrite',
-          async (transaction) => {
-            await fooStore.put('hello', foo, transaction)
-            await barStore.put('hello', fooHash, transaction)
-            await bazStore.put(fooHash, 'hello', transaction)
-            throw new Error('Aborted Transaction!')
-          },
-        ),
+        db.transaction<void>(async (transaction) => {
+          await fooStore.put('hello', foo, transaction)
+          await barStore.put('hello', fooHash, transaction)
+          await bazStore.put(fooHash, 'hello', transaction)
+          throw new Error('Aborted Transaction!')
+        }),
       ).rejects.toThrowError('Aborted')
 
       expect(await fooStore.get('hello')).not.toBeDefined()
       expect(await barStore.get('hello')).not.toBeDefined()
       expect(await bazStore.get(fooHash)).not.toBeDefined()
 
-      await db.transaction<void>(
-        [fooStore, barStore, bazStore],
-        'readwrite',
-        async (transaction) => {
-          await fooStore.put('hello', foo, transaction)
-          await barStore.put('hello', fooHash, transaction)
-          await bazStore.put(fooHash, 'hello', transaction)
-        },
-      )
+      await db.transaction<void>(async (transaction) => {
+        await fooStore.put('hello', foo, transaction)
+        await barStore.put('hello', fooHash, transaction)
+        await bazStore.put(fooHash, 'hello', transaction)
+      })
 
-      await db.transaction<void>(
-        [fooStore, barStore, bazStore],
-        'readwrite',
-        async (transaction) => {
-          await fooStore.del('hello', transaction)
-          await barStore.del('hello', transaction)
-          await bazStore.del(fooHash, transaction)
+      await db.transaction<void>(async (transaction) => {
+        await fooStore.del('hello', transaction)
+        await barStore.del('hello', transaction)
+        await bazStore.del(fooHash, transaction)
 
-          // Should not be commited until this function returns
-          expect(await fooStore.get('hello')).toMatchObject(foo)
-          expect(await barStore.get('hello')).toEqual(fooHash)
-          expect(await bazStore.get(fooHash)).toEqual('hello')
-        },
-      )
+        // Should not be commited until this function returns
+        expect(await fooStore.get('hello')).toMatchObject(foo)
+        expect(await barStore.get('hello')).toEqual(fooHash)
+        expect(await bazStore.get(fooHash)).toEqual('hello')
+      })
 
       expect(await fooStore.get('hello')).not.toBeDefined()
       expect(await barStore.get('hello')).not.toBeDefined()
@@ -431,7 +419,7 @@ describe('Database', () => {
       const bar = { hash: 'hello', name: 'world' }
 
       // With an automatic transaction
-      await db.transaction<void>([fooStore], 'readwrite', async (transaction) => {
+      await db.transaction<void>(async (transaction) => {
         await fooStore.put('cache', bar)
         await fooStore.del('cache', transaction)
 
@@ -455,7 +443,7 @@ describe('Database', () => {
       await db.open()
       await db.metaStore.clear()
 
-      await db.transaction([db.metaStore], 'readwrite', async (tx) => {
+      await db.transaction(async (tx) => {
         // db=undefined, tx=undefined
         expect(await db.metaStore.get('a', tx)).toBeUndefined()
 
@@ -479,7 +467,7 @@ describe('Database', () => {
       await db.open()
       await db.metaStore.put('test', 0)
 
-      await db.withTransaction(null, [db.metaStore], 'readwrite', async (transaction) => {
+      await db.withTransaction(null, async (transaction) => {
         await db.metaStore.put('test', 1, transaction)
         expect(await db.metaStore.get('test')).toBe(0)
       })
@@ -492,7 +480,7 @@ describe('Database', () => {
       await db.metaStore.put('test', 0)
 
       await expect(
-        db.withTransaction(null, [db.metaStore], 'readwrite', async (transaction) => {
+        db.withTransaction(null, async (transaction) => {
           await db.metaStore.put('test', 1, transaction)
           throw new Error('test')
         }),
@@ -505,7 +493,7 @@ describe('Database', () => {
       await db.open()
       await db.metaStore.put('test', 0)
 
-      await db.withTransaction(null, [db.metaStore], 'readwrite', async (transaction) => {
+      await db.withTransaction(null, async (transaction) => {
         await db.metaStore.put('test', 1, transaction)
         await transaction.abort()
       })
@@ -516,28 +504,18 @@ describe('Database', () => {
     it('should properly nest transactions', async () => {
       await db.open()
       await db.metaStore.put('test', 0)
-      const transaction = db.transaction([db.metaStore], 'readwrite')
+      const transaction = db.transaction()
 
-      await db.withTransaction(
-        transaction,
-        [db.metaStore],
-        'readwrite',
-        async (transaction) => {
-          await db.metaStore.put('test', 1, transaction)
+      await db.withTransaction(transaction, async (transaction) => {
+        await db.metaStore.put('test', 1, transaction)
 
-          await db.withTransaction(
-            transaction,
-            [db.metaStore],
-            'readwrite',
-            async (transaction) => {
-              await db.metaStore.put('test', 2, transaction)
-            },
-          )
+        await db.withTransaction(transaction, async (transaction) => {
+          await db.metaStore.put('test', 2, transaction)
+        })
 
-          // Should not commit after inner withTransaction
-          expect(await db.metaStore.get('test')).toBe(0)
-        },
-      )
+        // Should not commit after inner withTransaction
+        expect(await db.metaStore.get('test')).toBe(0)
+      })
 
       // Should not commit after outer withTransaction
       expect(await db.metaStore.get('test')).toBe(0)
@@ -554,17 +532,17 @@ describe('Database', () => {
       const [waitingPromise, waitingResolve] = PromiseUtils.split<void>()
 
       // Queue up two transactions
-      const t1 = db.transaction([db.metaStore], 'readwrite', async () => {
+      const t1 = db.transaction(async () => {
         value += 't1'
         await waitingPromise
       })
 
-      const t2 = db.transaction([db.metaStore], 'readwrite', async () => {
+      const t2 = db.transaction(async () => {
         value += 't2'
         await waitingPromise
       })
 
-      const t3 = db.transaction([db.metaStore], 'readwrite', async () => {
+      const t3 = db.transaction(async () => {
         value += 't3'
         await waitingPromise
       })
@@ -621,7 +599,7 @@ describe('Database', () => {
       const hash = Buffer.from([0x54, 0x57, 0xf6, 0x2c])
 
       // in a transaction
-      await db.transaction([bazStore], 'readwrite', async (tx) => {
+      await db.transaction(async (tx) => {
         await bazStore.add(hash, 'VALUE', tx)
         const keys = await bazStore.getAllKeys(tx)
         expect(keys.length).toBe(1)
@@ -638,7 +616,7 @@ describe('Database', () => {
       await db.open()
       await db.metaStore.clear()
 
-      await db.transaction([db.metaStore], 'readwrite', async (tx) => {
+      await db.transaction(async (tx) => {
         // a, db=1000, tx=undefined
         await db.metaStore.put('a', 1000)
         let values = await db.metaStore.getAllValues(tx)
@@ -665,7 +643,7 @@ describe('Database', () => {
       await db.metaStore.clear()
       await db.metaStore.put('a', 1)
 
-      await db.transaction([db.metaStore], 'readwrite', async (tx) => {
+      await db.transaction(async (tx) => {
         expect(await db.metaStore.get('a', tx)).toBe(1)
 
         let values = await db.metaStore.getAllValues(tx)
