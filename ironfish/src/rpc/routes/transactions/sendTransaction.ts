@@ -5,8 +5,6 @@ import * as yup from 'yup'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
-const LATEST_HEAVIEST_TIMESTAMP_AGO = 1000 * 60 * 20
-
 export type SendTransactionRequest = {
   fromAccountName: string
   toPublicKey: string
@@ -59,12 +57,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const heaviestHead = node.chain.head
-    // latest heaviest head must be a block mined in the past minute
-    if (
-      !heaviestHead ||
-      heaviestHead.timestamp < new Date(Date.now() - LATEST_HEAVIEST_TIMESTAMP_AGO)
-    ) {
+    if (!node.chain.synced) {
       throw new ValidationError(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
