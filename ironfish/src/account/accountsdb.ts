@@ -16,6 +16,8 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 
+const DATABASE_VERSION = 1
+
 export type Account = {
   name: string
   spendingKey: string
@@ -138,7 +140,7 @@ export class AccountsDB {
     await this.database.open()
 
     if (options.upgrade) {
-      await this.database.upgrade(1)
+      await this.database.upgrade(DATABASE_VERSION)
     }
   }
 
