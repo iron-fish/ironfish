@@ -70,7 +70,7 @@ export function sendMetrics(endpoint: string, logger?: Logger): void {
 
 export function startTelemetryWorker(port: MessagePort): void {
   const logger = createRootLogger().withTag('telemetryWorker')
-  const { endpoint } = (workerData as unknown) as { endpoint: string }
+  const { endpoint } = workerData as unknown as { endpoint: string }
   port.on('message', (metric: Metric) => handleMetric(metric, endpoint, logger))
   setInterval(() => sendMetrics(endpoint, logger), BATCH_INTERVAL)
 }

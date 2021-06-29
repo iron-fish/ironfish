@@ -62,10 +62,10 @@ export const RpcTcpPortFlag = flags.integer({
 })
 
 const localFlags: Record<string, IOptionFlag<unknown>> = {}
-localFlags[VerboseFlagKey] = (VerboseFlag as unknown) as IOptionFlag<unknown>
-localFlags[ConfigFlagKey] = (ConfigFlag as unknown) as IOptionFlag<unknown>
-localFlags[DataDirFlagKey] = (DataDirFlag as unknown) as IOptionFlag<unknown>
-localFlags[DatabaseFlagKey] = (DatabaseFlag as unknown) as IOptionFlag<unknown>
+localFlags[VerboseFlagKey] = VerboseFlag as unknown as IOptionFlag<unknown>
+localFlags[ConfigFlagKey] = ConfigFlag as unknown as IOptionFlag<unknown>
+localFlags[DataDirFlagKey] = DataDirFlag as unknown as IOptionFlag<unknown>
+localFlags[DatabaseFlagKey] = DatabaseFlag as unknown as IOptionFlag<unknown>
 
 /**
  * These flags should usually be used on any command that starts a node,
@@ -74,13 +74,13 @@ localFlags[DatabaseFlagKey] = (DatabaseFlag as unknown) as IOptionFlag<unknown>
 export const LocalFlags = localFlags
 
 const remoteFlags: Record<string, IOptionFlag<unknown>> = {}
-remoteFlags[VerboseFlagKey] = (VerboseFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[ConfigFlagKey] = (ConfigFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[DataDirFlagKey] = (DataDirFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[RpcUseTcpFlagKey] = (RpcUseTcpFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[RpcUseIpcFlagKey] = (RpcUseIpcFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[RpcTcpHostFlagKey] = (RpcTcpHostFlag as unknown) as IOptionFlag<unknown>
-remoteFlags[RpcTcpPortFlagKey] = (RpcTcpPortFlag as unknown) as IOptionFlag<unknown>
+remoteFlags[VerboseFlagKey] = VerboseFlag as unknown as IOptionFlag<unknown>
+remoteFlags[ConfigFlagKey] = ConfigFlag as unknown as IOptionFlag<unknown>
+remoteFlags[DataDirFlagKey] = DataDirFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as IOptionFlag<unknown>
 
 /**
  * These flags should usually be used on any command that uses an

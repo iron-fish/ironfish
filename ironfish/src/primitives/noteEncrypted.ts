@@ -71,7 +71,8 @@ export class IronfishNoteEncrypted {
  * Serde implementation to convert an encrypted note to its serialized form and back.
  */
 export class WasmNoteEncryptedSerde
-  implements Serde<IronfishNoteEncrypted, SerializedWasmNoteEncrypted> {
+  implements Serde<IronfishNoteEncrypted, SerializedWasmNoteEncrypted>
+{
   equals(note1: IronfishNoteEncrypted, note2: IronfishNoteEncrypted): boolean {
     return note1.serialize().equals(note2.serialize())
   }
@@ -89,7 +90,8 @@ export class WasmNoteEncryptedSerde
  * Serde implementation to convert an encrypted note's hash to its serialized form and back.
  */
 export class WasmNoteEncryptedHashSerde
-  implements Serde<WasmNoteEncryptedHash, SerializedWasmNoteEncryptedHash> {
+  implements Serde<WasmNoteEncryptedHash, SerializedWasmNoteEncryptedHash>
+{
   equals(hash1: WasmNoteEncryptedHash, hash2: WasmNoteEncryptedHash): boolean {
     return hash1.equals(hash2)
   }

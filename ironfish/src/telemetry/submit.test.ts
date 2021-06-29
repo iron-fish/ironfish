@@ -14,7 +14,7 @@ import {
 
 jest.mock('worker_threads')
 // Tell typescript to treat it as a mock
-const MockWorker = (Worker as unknown) as jest.Mock<Worker>
+const MockWorker = Worker as unknown as jest.Mock<Worker>
 
 describe('Enabled and disabled telemetry', () => {
   const metric: Metric = {
@@ -115,7 +115,7 @@ describe('Telemetry submitMetric function', () => {
 
   it('submits with default date if unspecified', () => {
     const now = new Date('1999-12-31')
-    jest.spyOn(global, 'Date').mockImplementation(() => (now as unknown) as string)
+    jest.spyOn(global, 'Date').mockImplementation(() => now as unknown as string)
     const datelessMetric = { ...metric }
     delete datelessMetric.timestamp
     submitMetric(datelessMetric)

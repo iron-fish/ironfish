@@ -194,9 +194,8 @@ export class Peer {
    * Event fired when the peer changes state. The event may fire when connections change, even if the
    * state type stays the same.
    */
-  readonly onStateChanged: Event<
-    [{ peer: Peer; state: PeerState; prevState: PeerState }]
-  > = new Event()
+  readonly onStateChanged: Event<[{ peer: Peer; state: PeerState; prevState: PeerState }]> =
+    new Event()
 
   constructor(
     identity: Identity | null,
@@ -464,10 +463,8 @@ export class Peer {
     return this.supportedConnections[type]
   }
 
-  private readonly connectionMessageHandlers: Map<
-    Connection,
-    (message: LooseMessage) => void
-  > = new Map<Connection, (message: LooseMessage) => void>()
+  private readonly connectionMessageHandlers: Map<Connection, (message: LooseMessage) => void> =
+    new Map<Connection, (message: LooseMessage) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,

@@ -44,7 +44,7 @@ describe('Block', () => {
     const serde = nodeTest.strategy.blockSerde
 
     expect(() =>
-      serde.deserialize(({ bad: 'data' } as unknown) as IronfishBlockSerialized),
+      serde.deserialize({ bad: 'data' } as unknown as IronfishBlockSerialized),
     ).toThrowError('Unable to deserialize')
   })
 

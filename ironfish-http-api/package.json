@@ -33,9 +33,6 @@
     "ts-jest": "^26.4.0",
     "typescript": "4.3.4"
   },
-  "resolutions": {
-    "object-path": "^0.11.4"
-  },
   "homepage": "https://github.com/iron-fish/ironfish",
   "keywords": [
     "http",

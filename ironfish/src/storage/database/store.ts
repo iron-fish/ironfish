@@ -144,7 +144,8 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
 }
 
 export abstract class DatabaseStore<Schema extends DatabaseSchema>
-  implements IDatabaseStore<Schema> {
+  implements IDatabaseStore<Schema>
+{
   version: number
   name: string
   upgrade: UpgradeFunction | null

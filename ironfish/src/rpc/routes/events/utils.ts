@@ -22,7 +22,7 @@ export async function logChain<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   start?: number | null,
@@ -52,7 +52,7 @@ export async function renderChain<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   start?: number | null,
@@ -98,7 +98,7 @@ export async function renderGraph<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   header: BlockHeader<E, H, T, SE, SH, ST>,

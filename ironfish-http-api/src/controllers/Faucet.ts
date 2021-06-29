@@ -6,7 +6,7 @@ import { FaucetJob } from '../jobs/FaucetJob'
 import { Logger } from '../utils/logger'
 
 export async function getFunds(request: Request, response: Response): Promise<Response> {
-  const qs = (request.query as unknown) as Paths.GetFunds.QueryParameters
+  const qs = request.query as unknown as Paths.GetFunds.QueryParameters
 
   const { email, publicKey } = qs
 

@@ -108,7 +108,7 @@ function primePool(
     miningRequestId: number
   },
 ): number {
-  const bytes = Buffer.from(newBlockData.bytes)
+  const bytes = Buffer.from(newBlockData.bytes.data)
 
   for (let i = 0; i < numTasks; i++) {
     tasks[randomness] = enqueue(
@@ -179,7 +179,7 @@ async function miner(
 
       tasks[randomness] = enqueue(
         piscina,
-        Buffer.from(blockToMineResult.value.bytes),
+        Buffer.from(blockToMineResult.value.bytes.data),
         blockToMineResult.value.miningRequestId,
         randomness,
         blockToMineResult.value.target,

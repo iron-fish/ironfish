@@ -387,15 +387,14 @@ describe('Merkle tree', function () {
   })
 
   it('calculates correct witnesses', async () => {
-    const witnessOrThrowFactory = (
-      witnessTree: MerkleTree<string, string, string, string>,
-    ) => async (index: number) => {
-      const witness = await witnessTree.witness(index)
-      if (witness === null) {
-        throw new Error(`Witness at ${index} was unexpectedly null`)
+    const witnessOrThrowFactory =
+      (witnessTree: MerkleTree<string, string, string, string>) => async (index: number) => {
+        const witness = await witnessTree.witness(index)
+        if (witness === null) {
+          throw new Error(`Witness at ${index} was unexpectedly null`)
+        }
+        return witness
       }
-      return witness
-    }
 
     const tree = await makeTree({ depth: 3 })
     const witnessOrThrow = witnessOrThrowFactory(tree)

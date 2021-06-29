@@ -6,7 +6,7 @@ import miner from './miner'
 
 jest.mock('piscina')
 // Tell typescript to treat it as a mock
-const MockPiscina = (Piscina as unknown) as jest.Mock<Piscina>
+const MockPiscina = Piscina as unknown as jest.Mock<Piscina>
 
 /**
  * Make an iterable of blocks suitable for async generation
@@ -48,7 +48,7 @@ describe('Miner', () => {
       runTask: jest.fn(async () => pending()),
       destroy: jest.fn(async () => Promise.resolve()),
     }
-    MockPiscina.mockImplementation(() => (mock as unknown) as Piscina)
+    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
     await miner(
       makeAsync([
         {
@@ -73,7 +73,7 @@ describe('Miner', () => {
       ),
       destroy: jest.fn(async () => Promise.resolve()),
     }
-    MockPiscina.mockImplementation(() => (mock as unknown) as Piscina)
+    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
     await miner(
       makeAsync([
         {
@@ -119,7 +119,7 @@ describe('Miner', () => {
     // Exit the generator only after a block has mined
     successfullyMined.mockImplementation(() => successfulPromiseCallback())
 
-    MockPiscina.mockImplementation(() => (mock as unknown) as Piscina)
+    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
     await miner(
       makeAsync(
         [

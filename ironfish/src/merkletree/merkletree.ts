@@ -32,7 +32,7 @@ export default class MerkleTree<
   E,
   H,
   SE extends JsonSerializable,
-  SH extends JsonSerializable
+  SH extends JsonSerializable,
 > {
   counter: IDatabaseStore<CounterSchema>
   leaves: IDatabaseStore<LeavesSchema<E, H>>

@@ -41,5 +41,5 @@ export interface IDatabaseBatch {
 export type BatchOperation<
   Schema extends DatabaseSchema,
   Key extends SchemaKey<Schema>,
-  Value extends SchemaValue<Schema>
+  Value extends SchemaValue<Schema>,
 > = [IDatabaseStore<Schema>, Key, Value] | [IDatabaseStore<Schema>, Key]
