@@ -43,7 +43,7 @@ describe('accounts:rescan', () => {
       .stdout()
       .command(['accounts:rescan'])
       .exit(0)
-      .it('fetches sequences from the client and scans successfully', (ctx) => {
+      .it('fetches heights from the client and scans successfully', (ctx) => {
         expect(contentStream).toHaveBeenCalled()
         expectCli(ctx.stdout).include('Scanning Complete')
       })
@@ -54,7 +54,7 @@ describe('accounts:rescan', () => {
       .stdout()
       .command(['accounts:rescan', '--local'])
       .exit(0)
-      .it('fetches sequences from the node and scans successfully', (ctx) => {
+      .it('fetches heights from the node and scans successfully', (ctx) => {
         expect(contentStream).toHaveBeenCalled()
         expectCli(ctx.stdout).include('Scanning Complete')
       })

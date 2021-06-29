@@ -79,7 +79,7 @@ export class LocalPeer {
         port: this.port,
         head: this.chain.head.hash.toString('hex'),
         work: this.chain.head.work.toString(),
-        sequence: Number(this.chain.head.sequence),
+        height: Number(this.chain.head.height),
       },
     }
   }

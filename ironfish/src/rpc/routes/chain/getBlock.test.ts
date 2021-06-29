@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import '../../../testUtilities/matchers'
+import { GENESIS_BLOCK_HEIGHT } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
@@ -11,9 +12,9 @@ import { GetBlockResponse } from './getBlock'
 describe('Route chain.getBlock', () => {
   const routeTest = createRouteTest()
 
-  it('should fail if no sequence or hash provided', async () => {
+  it('should fail if no height or hash provided', async () => {
     await expect(routeTest.adapter.request('chain/getBlock', {})).rejects.toThrow(
-      'Missing hash or sequence',
+      'Missing hash or height',
     )
   }, 10000)
 
@@ -25,7 +26,7 @@ describe('Route chain.getBlock', () => {
     )
   }, 10000)
 
-  it(`should fail if block can't be found with sequence`, async () => {
+  it(`should fail if block can't be found with height`, async () => {
     await expect(routeTest.adapter.request('chain/getBlock', { index: 5 })).rejects.toThrow(
       'No block found',
     )
@@ -35,8 +36,7 @@ describe('Route chain.getBlock', () => {
     const chain = routeTest.node.chain
 
     const block = await useMinerBlockFixture(chain, 2)
-    const addResult = await chain.addBlock(block)
-    expect(addResult).toMatchObject({ isAdded: true })
+    await expect(chain).toAddBlock(block)
 
     // by hash first
     const hash = BlockHashSerdeInstance.serialize(block.header.hash)
@@ -45,11 +45,11 @@ describe('Route chain.getBlock', () => {
     expect(response.content).toMatchObject({
       timestamp: block.header.timestamp.valueOf(),
       blockIdentifier: {
-        index: Number(block.header.sequence).toString(),
+        index: Number(block.header.height).toString(),
         hash: block.header.hash.toString('hex').toUpperCase(),
       },
       parentBlockIdentifier: {
-        index: Number(GENESIS_BLOCK_SEQUENCE).toString(),
+        index: Number(GENESIS_BLOCK_HEIGHT).toString(),
         hash: block.header.previousBlockHash.toString('hex').toUpperCase(),
       },
       metadata: {
@@ -59,7 +59,7 @@ describe('Route chain.getBlock', () => {
     })
     expect(response.content.transactions).toHaveLength(1)
 
-    // now by sequence
+    // now by height
     response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { index: 2 })
     expect(response.content.blockIdentifier.hash).toEqual(
       block.header.hash.toString('hex').toUpperCase(),

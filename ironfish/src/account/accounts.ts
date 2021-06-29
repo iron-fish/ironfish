@@ -4,7 +4,7 @@
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
 import { IronfishBlockchain } from '../blockchain'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
+import { GENESIS_BLOCK_HEIGHT } from '../consensus'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishMemPool } from '../memPool'
@@ -18,14 +18,14 @@ import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 
-const REBROADCAST_SEQUENCE_DELTA = 5
+const REBROADCAST_HEIGHT_DELTA = 5
 
 type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
   | { blockHash: string; initialNoteIndex: number }
   // Used if the transaction is not yet part of the chain
-  | { submittedSequence: number }
+  | { submittedHeight: number }
   | Record<string, never>
 
 export class Accounts {
@@ -42,7 +42,7 @@ export class Accounts {
     Readonly<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: number | null
+      submittedHeight: number | null
     }>
   >()
   protected readonly noteToNullifier = new Map<
@@ -87,9 +87,7 @@ export class Accounts {
 
     try {
       const addBlock = async (header: IronfishBlockHeader): Promise<void> => {
-        this.logger.debug(
-          `AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`,
-        )
+        this.logger.debug(`AccountHead ADD: ${Number(header.height) - 1} => ${header.height}`)
 
         for await (const {
           transaction,
@@ -104,9 +102,7 @@ export class Accounts {
       }
 
       const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
-        this.logger.debug(
-          `AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`,
-        )
+        this.logger.debug(`AccountHead DEL: ${header.height} => ${Number(header.height) - 1}`)
 
         for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
           await this.syncTransaction(transaction, {})
@@ -165,7 +161,7 @@ export class Accounts {
       this.logger.debug(
         '\nUpdated Head: \n',
         `Fork: ${fork.hash.toString('hex')} (${
-          fork.sequence === GENESIS_BLOCK_SEQUENCE ? 'GENESIS' : '???'
+          fork.height === GENESIS_BLOCK_HEIGHT ? 'GENESIS' : '???'
         })`,
         '\n',
         'Account:',
@@ -263,7 +259,7 @@ export class Accounts {
     transaction: Readonly<{
       transaction: IronfishTransaction
       blockHash: string | null
-      submittedSequence: number | null
+      submittedHeight: number | null
     }>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -390,9 +386,9 @@ export class Accounts {
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
     const blockHash = 'blockHash' in params ? params.blockHash : null
-    const submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
+    const submittedHeight = 'submittedHeight' in params ? params.submittedHeight : null
 
-    let newSequence = submittedSequence
+    let newHeight = submittedHeight
 
     await transaction.withReference(() => {
       const notes = this.decryptNotes(transaction, initialNoteIndex)
@@ -402,11 +398,12 @@ export class Accounts {
           const transactionHash = transaction.transactionHash()
 
           const existingT = this.transactionMap.get(transactionHash)
-          // If we passed in a submittedSequence, set submittedSequence to that value.
-          // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          //   submittedSequence was passed in.
-          // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
-          newSequence = submittedSequence || existingT?.submittedSequence || null
+
+          // If we passed in a submittedHeight, set submittedHeight to that value.
+          // Otherwise, if we already have a submittedHeight, keep that value regardless of whether
+          //   submittedHeight was passed in.
+          // Otherwise, we don't have an existing height or new height, so set submittedHeight null
+          newHeight = submittedHeight || existingT?.submittedHeight || null
 
           // The transaction is useful if we want to display transaction history,
           // but since we spent the note, we don't need to put it in the nullifierToNote mappings
@@ -415,7 +412,7 @@ export class Accounts {
             {
               transaction,
               blockHash,
-              submittedSequence: newSequence,
+              submittedHeight: newHeight,
             },
             tx,
           )
@@ -441,9 +438,9 @@ export class Accounts {
           }
         }
 
-        // If newSequence is null and blockHash is null, we're removing the transaction from
+        // If newHeight is null and blockHash is null, we're removing the transaction from
         // the chain and it wasn't created by us, so unmark notes as spent
-        const isRemovingTransaction = newSequence === null && blockHash === null
+        const isRemovingTransaction = newHeight === null && blockHash === null
 
         for (const spend of transaction.spends()) {
           const nullifier = spend.nullifier.toString('hex')
@@ -500,7 +497,7 @@ export class Accounts {
       blockHash,
       transaction,
       initialNoteIndex,
-      sequence,
+      height,
     } of this.chain.iterateAllTransactions(accountHeadHash)) {
       if (this.scan.isAborted) {
         this.scan.signalComplete()
@@ -509,7 +506,7 @@ export class Accounts {
       }
 
       await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
-      this.scan.onTransaction.emit(sequence)
+      this.scan.onTransaction.emit(height)
     }
 
     this.logger.info(
@@ -601,7 +598,7 @@ export class Accounts {
       receiverPublicAddress,
     )
 
-    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
+    await this.syncTransaction(transaction, { submittedHeight: heaviestHead.height })
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
 
@@ -723,33 +720,33 @@ export class Accounts {
       return
     }
 
-    const headSequence = heaviestHead.sequence
+    const headHeight = heaviestHead.height
 
     for (const [transactionHash, tx] of this.transactionMap) {
-      const { transaction, blockHash, submittedSequence } = tx
+      const { transaction, blockHash, submittedHeight: submittedHeight } = tx
 
       // Skip transactions that are already added to a block
       if (blockHash) {
         continue
       }
 
-      // TODO: Submitted sequence is only set from transactions generated by this node and we don't rebroadcast
+      // TODO: Submitted height is only set from transactions generated by this node and we don't rebroadcast
       // transactions to us, or from us and generated from another node, but we should do this later. It
-      // will require us to set submittedSequence in syncTransaction to the current head if it's null
-      if (!submittedSequence) {
+      // will require us to set submittedHeight in syncTransaction to the current head if it's null
+      if (!submittedHeight) {
         continue
       }
 
       // TODO: This algorithm suffers a deanonim attack where you can watch to see what transactions node continously
       // send out, then you can know those transactions are theres. This should be randomized and made less,
       // predictable later to help prevent that attack.
-      if (headSequence - submittedSequence < REBROADCAST_SEQUENCE_DELTA) {
+      if (headHeight - submittedHeight < REBROADCAST_HEIGHT_DELTA) {
         continue
       }
 
       await this.updateTransactionMap(transactionHash, {
         ...tx,
-        submittedSequence: headSequence,
+        submittedHeight: headHeight,
       })
 
       this.broadcastTransaction(transaction)
@@ -900,7 +897,7 @@ export class Accounts {
 }
 
 export class ScanState {
-  onTransaction = new Event<[sequence: number]>()
+  onTransaction = new Event<[height: number]>()
 
   private aborted: boolean
   private runningPromise: Promise<void>

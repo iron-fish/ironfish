@@ -20,8 +20,8 @@ export async function makeBlockAfter(
     after = after.header
   }
 
-  const sequence = after.sequence + 1
-  const miningReward = BigInt(chain.strategy.miningReward(sequence))
+  const height = after.height + 1
+  const miningReward = BigInt(chain.strategy.miningReward(height))
 
   if (miningReward !== BigInt(0)) {
     throw new Error(`Must have mining reward disabled but was ${miningReward}`)
@@ -35,7 +35,7 @@ export async function makeBlockAfter(
 
   const header = new BlockHeader(
     chain.strategy,
-    sequence,
+    height,
     after.hash,
     after.noteCommitment,
     after.nullifierCommitment,
@@ -66,9 +66,9 @@ export async function makeBlockWithTransaction(
   from: Account,
   to: Account,
 ): Promise<IronfishBlock> {
-  const sequence = node.chain.head.sequence
+  const height = node.chain.head.height
 
-  const block1 = await useMinerBlockFixture(node.chain, sequence + 1, from, node.accounts)
+  const block1 = await useMinerBlockFixture(node.chain, height + 1, from, node.accounts)
 
   await expect(node.chain).toAddBlock(block1)
   await node.accounts.updateHead()
@@ -86,7 +86,7 @@ export async function makeBlockWithTransaction(
       [transaction],
       await node.chain.strategy.createMinersFee(
         await transaction.transactionFee(),
-        sequence + 2,
+        height + 2,
         from.spendingKey,
       ),
     )
