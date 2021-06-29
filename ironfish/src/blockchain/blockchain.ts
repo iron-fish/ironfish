@@ -57,6 +57,8 @@ import {
   TransactionsSchema,
 } from './schema'
 
+const DATABASE_VERSION = 1
+
 export class Blockchain<
   E,
   H,
@@ -251,7 +253,7 @@ export class Blockchain<
     await this.db.open()
 
     if (options.upgrade) {
-      await this.db.upgrade(1)
+      await this.db.upgrade(DATABASE_VERSION)
       await this.notes.upgrade()
       await this.nullifiers.upgrade()
     }
