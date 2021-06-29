@@ -89,6 +89,22 @@ export type UnboxMessageResponse = {
   message: string | null
 }
 
+export type MineHeaderRequest = {
+  type: 'mineHeader'
+  batchSize: number
+  headerBytesWithoutRandomness: Uint8Array
+  initialRandomness: number
+  miningRequestId: number
+  targetValue: string
+}
+
+export type MineHeaderResponse = {
+  type: 'mineHeader'
+  initialRandomness: number
+  miningRequestId?: number
+  randomness?: number
+}
+
 export type OmitRequestId<T> = Omit<T, 'requestId'>
 
 export type WorkerRequestMessage = {
@@ -108,6 +124,7 @@ export type WorkerRequest =
   | VerifyTransactionRequest
   | BoxMessageRequest
   | UnboxMessageRequest
+  | MineHeaderRequest
 
 export type WorkerResponse =
   | CreateMinersFeeResponse
@@ -116,3 +133,4 @@ export type WorkerResponse =
   | VerifyTransactionResponse
   | BoxMessageResponse
   | UnboxMessageResponse
+  | MineHeaderResponse
