@@ -25,7 +25,7 @@ describe('isIdentify', () => {
         version: VERSION_PROTOCOL,
         agent: '',
         head: '',
-        sequence: 1,
+        height: 1,
         work: BigInt(0).toString(),
         port: null,
       },

@@ -29,13 +29,13 @@ function getNodes() {
         let childOffset = 0
 
         if(!block.main) {
-            childOffset = childOffsets.get(block.seq)
+            childOffset = childOffsets.get(block.height)
             childOffset = childOffset === undefined ? 1 : ++childOffset
-            childOffsets.set(block.seq, childOffset)
+            childOffsets.set(block.height, childOffset)
         }
 
         const nodeOffsetX = (islandOffset * ISLAND_OFFSET) + (childOffset * CHILD_OFFSET)
-        const nodeOffsetY = block.seq * LEVEL_OFFSET
+        const nodeOffsetY = block.height * LEVEL_OFFSET
 
         const graffiti = block.graffiti.replace(/\0/g, '').trim()
 
@@ -44,7 +44,7 @@ function getNodes() {
 
         const node = {
             hash: block.hash,
-            seq: block.seq,
+            height: block.height,
             prev: block.prev,
             main: block.main,
             head: block.head,
@@ -61,11 +61,11 @@ function getNodes() {
         map.set(node.hash, node)
         nodes.push(node)
 
-        if(!lowest || node.seq < lowest.seq) {
+        if(!lowest || node.height < lowest.height) {
             lowest = node
         }
 
-        if(!highest || node.seq > highest.seq) {
+        if(!highest || node.height > highest.height) {
             highest = node
         }
     }
@@ -99,7 +99,7 @@ function renderHash(hash) {
 }
 
 function makeLabel(node) {
-    return `${node.shortHash} - ${node.seq}`
+    return `${node.shortHash} - ${node.height}`
 }
 
 function makeGraph() {
@@ -115,7 +115,7 @@ function makeGraph() {
         nodeElement.innerHTML = (
             `<b>HASH</b>   ${node.hash}<br>` +
             `<b>PREV</b>   ${node.prev}<br>` +
-            `<b>SEQ</b>    ${node.seq}<br>` +
+            `<b>HEIGHT</b> ${node.height}<br>` +
             `<b>GRAFF</b>  ${node.graffiti}<br>` +
             `<b>WORK</b>   ${node.work} (+${node.diff})<br>` +
             `<b>MAIN</b>   ${node.main}<br>` +
@@ -212,7 +212,7 @@ function makeGraph() {
         location: 0,
         threshold: 0.1,
         distance: 1000,
-        keys: [ "shortHash", "hash", "seq"]
+        keys: [ "shortHash", "hash", "height"]
     })
 
     function onNextResult() {

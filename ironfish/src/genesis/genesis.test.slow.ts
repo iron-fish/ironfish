@@ -36,7 +36,7 @@ describe('Read genesis block', () => {
     // has been added
     const minersfee = await strategy.createMinersFee(
       BigInt(0),
-      chain.head.sequence + 1,
+      chain.head.height + 1,
       generateKey().spending_key,
     )
     const newBlock = await chain.newBlock([], minersfee)
@@ -111,7 +111,7 @@ describe('Create genesis block', () => {
     // Ensure we can construct blocks after that block
     const minersfee = await strategy.createMinersFee(
       BigInt(0),
-      block.header.sequence + 1,
+      block.header.height + 1,
       generateKey().spending_key,
     )
     const additionalBlock = await chain.newBlock([], minersfee)
@@ -149,7 +149,7 @@ describe('Create genesis block', () => {
     // Ensure we can construct blocks after that block
     const newMinersfee = await strategy.createMinersFee(
       BigInt(0),
-      deserializedBlock.header.sequence + 1,
+      deserializedBlock.header.height + 1,
       generateKey().spending_key,
     )
     const newBlock = await newChain.newBlock([], newMinersfee)

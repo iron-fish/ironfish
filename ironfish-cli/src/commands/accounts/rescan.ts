@@ -50,8 +50,8 @@ export async function rescan(
   const response = client.rescanAccountStream({ follow, reset })
 
   try {
-    for await (const { sequence } of response.contentStream()) {
-      cli.action.status = `Scanning Block: ${sequence}, ${Math.floor(
+    for await (const { height } of response.contentStream()) {
+      cli.action.status = `Scanning Block: ${height}, ${Math.floor(
         (Date.now() - startedAt) / 1000,
       )} seconds`
     }

@@ -31,13 +31,13 @@ export interface TransactionsSchema<T> extends DatabaseSchema {
   value: T[]
 }
 
-export interface SequenceToHashesSchema extends DatabaseSchema {
+export interface HeightToHashesSchema extends DatabaseSchema {
   key: number
   value: BlockHash[]
 }
 
 // Main Chain
-export interface SequenceToHashSchema extends DatabaseSchema {
+export interface HeightToHashSchema extends DatabaseSchema {
   key: number
   value: BlockHash
 }

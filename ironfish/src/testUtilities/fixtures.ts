@@ -143,7 +143,7 @@ export async function restoreBlockFixtureToAccounts(
   accounts: Accounts,
 ): Promise<void> {
   for (const transaction of block.transactions) {
-    await accounts.syncTransaction(transaction, { submittedSequence: 1 })
+    await accounts.syncTransaction(transaction, { submittedHeight: 1 })
   }
 }
 
@@ -176,7 +176,7 @@ export async function useBlockFixture(
  */
 export async function useMinerBlockFixture(
   chain: IronfishBlockchain,
-  sequence: number,
+  height: number,
   account?: Account,
   addTransactionsTo?: Accounts,
 ): Promise<IronfishBlock> {
@@ -185,10 +185,7 @@ export async function useMinerBlockFixture(
   return await useBlockFixture(
     chain,
     async () =>
-      chain.newBlock(
-        [],
-        await chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
-      ),
+      chain.newBlock([], await chain.strategy.createMinersFee(BigInt(0), height, spendingKey)),
     addTransactionsTo,
   )
 }
