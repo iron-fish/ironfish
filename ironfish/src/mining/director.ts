@@ -358,7 +358,7 @@ export class MiningDirector<
 
     const minersFee = await this.strategy.createMinersFee(
       totalTransactionFees,
-      blockHeader.sequence + 1,
+      blockHeader.height + 1,
       this._minerAccount.spendingKey,
     )
 
@@ -388,7 +388,7 @@ export class MiningDirector<
       throw Error(`newBlock produced an invalid block: ${message || ''}`)
     }
     this.logger.debug(
-      `Current block  ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
+      `Current block  ${newBlock.header.height}, has ${newBlock.transactions.length} transactions`,
     )
 
     // For mining, we want a serialized form of the header without the randomness on it
@@ -398,7 +398,7 @@ export class MiningDirector<
     this.miningRequestId++
 
     this.logger.debug(
-      `Emitting a new block ${newBlock.header.sequence} to mine as request ${this.miningRequestId}`,
+      `Emitting a new block ${newBlock.header.height} to mine as request ${this.miningRequestId}`,
     )
     await this.onBlockToMine.emitAsync({
       bytes: asBuffer,
@@ -446,7 +446,7 @@ export class MiningDirector<
 
     this.logger.info(
       `Successfully mined block ${block.header.hash.toString('hex')} (${
-        block.header.sequence
+        block.header.height
       }) has ${block.transactions.length} transactions`,
     )
 
@@ -456,7 +456,7 @@ export class MiningDirector<
       name: 'minedBlock',
       fields: [
         { name: 'difficulty', type: 'integer', value: Number(header.target.toDifficulty()) },
-        { name: 'sequence', type: 'integer', value: Number(header.sequence) },
+        { name: 'height', type: 'integer', value: Number(header.height) },
       ],
     })
 

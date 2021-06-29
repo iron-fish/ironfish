@@ -60,12 +60,12 @@ export default class ForksCommand extends IronfishCommand {
       list.clearBaseLine(0)
       list.setContent('')
 
-      const values = [...forks.values()].sort((a, b) => b.block.sequence - a.block.sequence)
+      const values = [...forks.values()].sort((a, b) => b.block.height - a.block.height)
       let count = 0
 
       let highest = 0
       for (const { block } of values) {
-        highest = Math.max(highest, block.sequence)
+        highest = Math.max(highest, block.height)
       }
 
       for (const { block, time, mined, old } of values) {
@@ -78,7 +78,7 @@ export default class ForksCommand extends IronfishCommand {
         }
 
         const renderedAge = (age / 1000).toFixed(0).padStart(2, ' ')
-        const renderdDiff = (highest - block.sequence).toString().padStart(6)
+        const renderdDiff = (highest - block.height).toString().padStart(6)
 
         list.pushLine(`${block.hash} | ${renderdDiff} | ${renderedAge}s | ${mined}`)
         count++

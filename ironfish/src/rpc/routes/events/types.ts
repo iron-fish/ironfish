@@ -6,7 +6,7 @@ import { IronfishBlock } from '../../../primitives'
 
 export type RpcBlock = {
   hash: string
-  sequence: number
+  height: number
   previousBlockHash: string
   timestamp: number
   transactions: Array<unknown>
@@ -15,7 +15,7 @@ export type RpcBlock = {
 export function serializeRpcBlock(block: IronfishBlock): RpcBlock {
   return {
     hash: block.header.hash.toString('hex'),
-    sequence: Number(block.header.sequence),
+    height: Number(block.header.height),
     previousBlockHash: block.header.previousBlockHash.toString('hex'),
     timestamp: block.header.timestamp.valueOf(),
     transactions: [],
@@ -25,7 +25,7 @@ export function serializeRpcBlock(block: IronfishBlock): RpcBlock {
 export const RpcBlockSchema: yup.ObjectSchema<RpcBlock> = yup
   .object({
     hash: yup.string().defined(),
-    sequence: yup.number().defined(),
+    height: yup.number().defined(),
     previousBlockHash: yup.string().defined(),
     timestamp: yup.number().defined(),
     transactions: yup.array().defined(),

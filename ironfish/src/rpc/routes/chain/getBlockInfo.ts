@@ -12,7 +12,7 @@ export type GetBlockInfoResponse = {
     graffiti: string
     hash: string
     previousBlockHash: string
-    sequence: number
+    height: number
     timestamp: number
   }
 }
@@ -30,7 +30,7 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
         graffiti: yup.string().defined(),
         hash: yup.string().defined(),
         previousBlockHash: yup.string().defined(),
-        sequence: yup.number().defined(),
+        height: yup.number().defined(),
         timestamp: yup.number().defined(),
       })
       .defined(),
@@ -53,7 +53,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         graffiti: header.graffiti.toString('hex'),
         hash: request.data.hash,
         previousBlockHash: header.previousBlockHash.toString('hex'),
-        sequence: Number(header.sequence),
+        height: Number(header.height),
         timestamp: header.timestamp.valueOf(),
       },
     })

@@ -17,7 +17,7 @@ export function mockAccounts(): any {
 
 export function mockChain(): any {
   return {
-    head: { hash: 'mockhash', sequence: 1, work: BigInt(0) },
+    head: { hash: 'mockhash', height: 1, work: BigInt(0) },
     synced: true,
   }
 }

@@ -11,7 +11,7 @@ import { JsonSerializable } from '../../../serde'
 import { HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
-  seq: true,
+  height: true,
   work: true,
   indent: '|',
 }
@@ -30,7 +30,7 @@ export async function logChain<
   options: {
     prev?: boolean
     merge?: boolean
-    seq?: boolean
+    height?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -59,7 +59,7 @@ export async function renderChain<
   end?: number | null,
   options: {
     prev?: boolean
-    seq?: boolean
+    height?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -80,10 +80,10 @@ export async function renderChain<
     '======',
   )
 
-  start = start || chain.genesis.sequence
-  end = end || chain.latest.sequence
+  start = start || chain.genesis.height
+  end = end || chain.latest.height
 
-  const roots = await chain.getHeadersAtSequence(start)
+  const roots = await chain.getHeadersAtHeight(start)
 
   for (const root of roots) {
     await renderGraph(chain, root, end, content, options, logger)
@@ -106,7 +106,7 @@ export async function renderGraph<
   content: string[],
   options: {
     prev?: boolean
-    seq?: boolean
+    height?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -124,8 +124,8 @@ export async function renderGraph<
 
   let rendered = `+- Block ${HashUtils.renderHash(header.hash)}`
 
-  if (options.seq) {
-    rendered += ` (${header.sequence})`
+  if (options.height) {
+    rendered += ` (${header.height})`
   }
   if (options.prev) {
     rendered += ` prev: ${HashUtils.renderHash(header.previousBlockHash)}`
@@ -146,11 +146,11 @@ export async function renderGraph<
 
   content.push(indent + rendered)
 
-  if (header.sequence === end) {
+  if (header.height === end) {
     return
   }
 
-  const next = await chain.getHeadersAtSequence(header.sequence + 1)
+  const next = await chain.getHeadersAtHeight(header.height + 1)
   const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
   const nesting = children.length >= 2
 
