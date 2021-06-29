@@ -89,24 +89,20 @@ export interface Strategy<
    * zero spends. It's receipt value must be the total transaction fees
    * in the block plus the mining reward for the block.
    *
-   * The mining reward may change over time, so we accept the block sequence
+   * The mining reward may change over time, so we accept the block height
    * to calculate the mining reward from.
    *
    * @param totalTransactionFees is the sum of the transaction fees intended to go
    * in this block.
-   * @param blockSequence the sequence of the block for which the miner's fee is being created
+   * @param height the height of the block for which the miner's fee is being created
    * @param minerKey the spending key for the miner.
    */
-  createMinersFee(
-    totalTransactionFees: bigint,
-    blockSequence: number,
-    minerKey: string,
-  ): Promise<T>
+  createMinersFee(totalTransactionFees: bigint, height: number, minerKey: string): Promise<T>
 
   /**
-   * Calculate the mining reward for a block based on its sequence
+   * Calculate the mining reward for a block based on its height
    */
-  miningReward(blockSequence: number): number
+  miningReward(height: number): number
 }
 
 /**
@@ -217,11 +213,11 @@ export class IronfishStrategy
    * (genesisSupply / 4) * e ^(-.05 * yearsAfterLaunch)
    * Where e is the natural number e (Euler's number), and -.05 is a decay function constant
    *
-   * @param sequence Block sequence
-   * @returns mining reward (in ORE) per block given the block sequence
+   * @param height Block height
+   * @returns mining reward (in ORE) per block given the block height
    */
-  miningReward(sequence: number): number {
-    const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
+  miningReward(height: number): number {
+    const yearsAfterLaunch = Math.floor(height / IRON_FISH_YEAR_IN_BLOCKS)
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
     if (reward) {
       return reward

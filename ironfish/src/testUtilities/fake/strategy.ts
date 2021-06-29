@@ -142,22 +142,22 @@ export class TestStrategy
   }
 
   /**
-   * Generate a hash from the block's sequence.
+   * Generate a hash from the block's height.
    */
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     const headerWithoutRandomness = Buffer.from(serializedHeader.slice(8))
     const header = JSON.parse(headerWithoutRandomness.toString()) as Record<string, unknown>
-    const headerSequence = header['sequence']
+    const headerHeight = header['height']
     if (
-      typeof headerSequence !== 'bigint' &&
-      typeof headerSequence !== 'string' &&
-      typeof headerSequence !== 'number'
+      typeof headerHeight !== 'bigint' &&
+      typeof headerHeight !== 'string' &&
+      typeof headerHeight !== 'number'
     ) {
-      throw new Error(`Invalid sequence type in header`)
+      throw new Error(`Invalid height type in header`)
     }
 
-    const sequence = BigInt(headerSequence)
-    const bigIntArray = BigInt64Array.from([sequence])
+    const height = BigInt(headerHeight)
+    const bigIntArray = BigInt64Array.from([height])
     const byteArray = Buffer.from(bigIntArray.buffer)
     const result = Buffer.alloc(32)
     result.set(byteArray)

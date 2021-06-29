@@ -80,8 +80,8 @@ export async function renderChain<
     '======',
   )
 
-  start = start || chain.genesis.sequence
-  end = end || chain.latest.sequence
+  start = start || chain.genesis.height
+  end = end || chain.latest.height
 
   const roots = await chain.getHeadersAtSequence(start)
 
@@ -125,7 +125,7 @@ export async function renderGraph<
   let rendered = `+- Block ${HashUtils.renderHash(header.hash)}`
 
   if (options.seq) {
-    rendered += ` (${header.sequence})`
+    rendered += ` (${header.height})`
   }
   if (options.prev) {
     rendered += ` prev: ${HashUtils.renderHash(header.previousBlockHash)}`
@@ -146,11 +146,11 @@ export async function renderGraph<
 
   content.push(indent + rendered)
 
-  if (header.sequence === end) {
+  if (header.height === end) {
     return
   }
 
-  const next = await chain.getHeadersAtSequence(header.sequence + 1)
+  const next = await chain.getHeadersAtSequence(header.height + 1)
   const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
   const nesting = children.length >= 2
 

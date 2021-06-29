@@ -25,7 +25,7 @@ import { JsonSerializable } from '../serde'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
+import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_HEIGHT } from './consensus'
 
 /**
  * Verifier transctions and blocks
@@ -141,7 +141,7 @@ export class Verifier<
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
-    const miningReward = block.header.strategy.miningReward(block.header.sequence)
+    const miningReward = block.header.strategy.miningReward(block.header.height)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
@@ -219,7 +219,7 @@ export class Verifier<
    *     commitment sizes
    *  -  The timestamp of the block is within a threshold of not being before
    *     the previous block
-   *  -  The block sequence has incremented by one
+   *  -  The block height has incremented by one
    */
   isValidAgainstPrevious(
     current: Block<E, H, T, SE, SH, ST>,
@@ -245,8 +245,8 @@ export class Verifier<
       return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
 
-    if (current.header.sequence !== previousHeader.sequence + 1) {
-      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
+    if (current.header.height !== previousHeader.height + 1) {
+      return { valid: false, reason: VerificationResultReason.HEIGHT_OUT_OF_ORDER }
     }
 
     if (!this.isValidTarget(current.header, previousHeader)) {
@@ -313,7 +313,7 @@ export class Verifier<
     prev: BlockHeader<E, H, T, SE, SH, ST> | null,
     tx: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+    if (block.header.height === GENESIS_BLOCK_HEIGHT) {
       return { valid: true }
     }
 
@@ -437,7 +437,7 @@ export enum VerificationResultReason {
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NULLIFIER_COMMITMENT = 'nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
-  SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
+  HEIGHT_OUT_OF_ORDER = 'Block height is out of order',
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   DOUBLE_SPEND = 'Double spend',

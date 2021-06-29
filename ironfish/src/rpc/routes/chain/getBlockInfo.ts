@@ -53,7 +53,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         graffiti: header.graffiti.toString('hex'),
         hash: request.data.hash,
         previousBlockHash: header.previousBlockHash.toString('hex'),
-        sequence: Number(header.sequence),
+        sequence: Number(header.height),
         timestamp: header.timestamp.valueOf(),
       },
     })

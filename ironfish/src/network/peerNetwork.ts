@@ -766,7 +766,7 @@ export class PeerNetwork {
       return await this.node.syncer.addNewBlock(peer, block)
     } catch (error) {
       this.logger.error(
-        `Error when adding new block ${block.header.sequence} from ${
+        `Error when adding new block ${block.header.height} from ${
           peer.displayName
         }: ${ErrorUtils.renderError(error, true)}`,
       )
