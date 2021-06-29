@@ -8,7 +8,7 @@ import { createRootLogger, Logger } from '../../../logger'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { Transaction } from '../../../primitives/transaction'
 import { JsonSerializable } from '../../../serde'
-import { HashUtils } from '../../../utils'
+import { BlockchainUtils, HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
   seq: true,
@@ -56,7 +56,7 @@ export async function renderChain<
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   start?: number | null,
-  end?: number | null,
+  stop?: number | null,
   options: {
     prev?: boolean
     seq?: boolean
@@ -80,13 +80,15 @@ export async function renderChain<
     '======',
   )
 
-  start = start || chain.genesis.sequence
-  end = end || chain.latest.sequence
+  const { start: startHeight, stop: stopHeight } = BlockchainUtils.getBlockRange(chain, {
+    start,
+    stop,
+  })
 
-  const roots = await chain.getHeadersAtSequence(start)
+  const roots = await chain.getHeadersAtSequence(startHeight)
 
   for (const root of roots) {
-    await renderGraph(chain, root, end, content, options, logger)
+    await renderGraph(chain, root, stopHeight, content, options, logger)
   }
 
   return content

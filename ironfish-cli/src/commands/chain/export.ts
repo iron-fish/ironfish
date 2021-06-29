@@ -4,7 +4,8 @@
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import fs from 'fs'
-import { Assert, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
+import { Assert, BlockchainUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
+import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -18,11 +19,6 @@ export interface ProgressBar {
   update(payload?: Record<string, unknown>): void
   increment(delta?: number, payload?: Record<string, unknown>): void
   increment(payload?: Record<string, unknown>): void
-}
-
-function parseNumber(input: string): number | null {
-  const parsed = Number(input)
-  return isNaN(parsed) ? null : parsed
 }
 
 export default class Export extends IronfishCommand {
@@ -69,23 +65,10 @@ export default class Export extends IronfishCommand {
 
     const path = node.files.resolve(flags.path)
 
-    const min = Number(GENESIS_BLOCK_SEQUENCE)
-    const max = Number(node.chain.latest.sequence)
-
-    let start = args.start ? (args.start as number) : min
-    let stop = args.stop ? (args.stop as number) : max
-
-    // Negative numbers start from the end
-    if (start < 0) {
-      start = max + start
-    }
-    if (stop < 0) {
-      stop = max + stop
-    }
-
-    // Ensure values are in valid range and start < stop
-    start = Math.min(Math.max(start, min), max)
-    stop = Math.max(Math.min(Math.max(stop, min), max), start)
+    const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
+      start: args.start as number | null,
+      stop: args.stop as number | null,
+    })
 
     this.log(`Exporting chain from ${start} -> ${stop} to ${path}`)
 

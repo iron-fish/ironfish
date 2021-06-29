@@ -16,8 +16,6 @@ import {
   GetBlockResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
-  GetChainRequest,
-  GetChainResponse,
   GetConfigRequest,
   GetConfigResponse,
   GetDefaultAccountRequest,
@@ -37,6 +35,8 @@ import {
   SendTransactionResponse,
   SetConfigRequest,
   SetConfigResponse,
+  ShowChainRequest,
+  ShowChainResponse,
   StopNodeResponse,
   SuccessfullyMinedRequest,
   SuccessfullyMinedResponse,
@@ -196,10 +196,10 @@ export abstract class IronfishRpcClient {
     return this.request<GetBlockInfoResponse>('chain/getBlockInfo', params).waitForEnd()
   }
 
-  async getChain(
-    params: GetChainRequest = undefined,
-  ): Promise<ResponseEnded<GetChainResponse>> {
-    return this.request<GetChainResponse>('chain/getChain', params).waitForEnd()
+  async showChain(
+    params: ShowChainRequest = undefined,
+  ): Promise<ResponseEnded<ShowChainResponse>> {
+    return this.request<ShowChainResponse>('chain/showChain', params).waitForEnd()
   }
 
   async getConfig(
