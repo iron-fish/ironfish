@@ -34,7 +34,7 @@ export default class PartialBlockHeaderSerde<
     // absolutely aweful, and we will fix it.
 
     const serialized: SerializedPartialBlockHeader<E, H, T, SE, SH, ST> = {
-      sequence: header.sequence.toString(),
+      height: header.height,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
@@ -70,7 +70,7 @@ export default class PartialBlockHeaderSerde<
     >
 
     return {
-      sequence: Number(deserialized.sequence),
+      height: deserialized.height,
       previousBlockHash: BlockHashSerdeInstance.deserialize(deserialized.previousBlockHash),
       target: TargetSerdeInstance.deserialize(deserialized.target),
       timestamp: new Date(deserialized.timestamp),
@@ -106,7 +106,7 @@ type PartialBlockHeader<
   _SH extends JsonSerializable,
   _ST,
 > = {
-  sequence: number
+  height: number
   previousBlockHash: Buffer
   noteCommitment: {
     commitment: H
@@ -130,7 +130,7 @@ type SerializedPartialBlockHeader<
   SH extends JsonSerializable,
   _ST,
 > = {
-  sequence: string
+  height: string
   previousBlockHash: string
   target: string
   timestamp: number

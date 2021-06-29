@@ -45,7 +45,7 @@ export async function addNotes(
  * that were added to the Blockchain (using chain.notes.add, not chain.AddNote)
  * since the head of the chain are entered as transactions
  * into the fake block. The last note in the tree becomes the miner's fee.
- * The hash and previous hash are all derived from the sequence.
+ * The hash and previous hash are all derived from the height.
  *
  * Warning: This will not work if you don't add at least one note to the blockchain
  * using chain.notes.add.
@@ -67,17 +67,17 @@ export async function makeNextBlock(
   const nullifierCount = await chain.nullifiers.size()
   const nullifierHash = await chain.nullifiers.rootHash()
 
-  let newSequence = 1
+  let newHeight = 1
   let previousBlockHash
 
   if (isGenesis) {
-    newSequence = 1
+    newHeight = 1
     oldNoteCount = 0
     oldNullifierCount = 0
     previousBlockHash = GENESIS_BLOCK_PREVIOUS
   } else {
     const head = chain.head
-    newSequence = Number(head.sequence) + 1
+    newHeight = Number(head.height) + 1
     oldNoteCount = oldNoteCount ? oldNoteCount : head.noteCommitment.size
     oldNullifierCount = oldNullifierCount ? oldNullifierCount : head.nullifierCommitment.size
     previousBlockHash = head.hash
@@ -106,7 +106,7 @@ export async function makeNextBlock(
 
   const newHeader = new BlockHeader(
     chain.strategy,
-    newSequence,
+    newHeight,
     previousBlockHash,
     {
       size: noteCount,
@@ -118,7 +118,7 @@ export async function makeNextBlock(
     },
     fakeMaxTarget(),
     0,
-    new Date(1598970000000 + Number(newSequence)),
+    new Date(1598970000000 + Number(newHeight)),
     minersFee,
     graffiti,
   )
@@ -243,7 +243,7 @@ export async function makeChainFull(
 /**
  * Make a block with a hash consisting of the given digit,
  * the previous hash consisting of the next digit, and the start and
- * end numbers of a sequence of notes in the block.
+ * end numbers of a height of notes in the block.
  *
  * Note: The resulting block is suitable for use on a blockchain.BlockChain,
  * but will fail if you try adding it to a blockchain without some extra
@@ -261,7 +261,7 @@ export function makeFakeBlock(
   strategy: TestStrategy,
   previousHash: BlockHash,
   hash: BlockHash,
-  sequence: number,
+  height: number,
   start: number,
   end: number,
   timestamp?: Date,
@@ -271,7 +271,7 @@ export function makeFakeBlock(
     transactions.push(new TestTransaction(true, [String(i)], 1))
   }
 
-  const minersReward = strategy.miningReward(sequence)
+  const minersReward = strategy.miningReward(height)
   const transactionFee = -1 * (end - start + minersReward)
   const transactionFeeTransaction = new TestTransaction(true, [String(end)], transactionFee)
   transactions.push(transactionFeeTransaction)
@@ -281,7 +281,7 @@ export function makeFakeBlock(
 
   const header = new BlockHeader(
     strategy,
-    sequence,
+    height,
     previousHash,
     {
       commitment: `1-${end}`,

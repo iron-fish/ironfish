@@ -51,7 +51,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = 1
+    peer.height = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
@@ -77,7 +77,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = 1
+    peer.height = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
@@ -107,7 +107,7 @@ describe('Syncer', () => {
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = BigInt(1)
-    peer.sequence = 1
+    peer.height = 1
     peer.head = Buffer.from('')
 
     const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
@@ -150,7 +150,7 @@ describe('Syncer', () => {
     const blockA4 = await makeBlockAfter(chain, blockA3)
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.sequence = blockA4.header.sequence
+    peer.height = blockA4.header.height
     peer.head = blockA4.header.hash
     peer.work = BigInt(10)
 
@@ -177,7 +177,7 @@ describe('Syncer', () => {
       .mockImplementationOnce(() => Promise.resolve([strategy.blockSerde.serialize(blockA3)]))
 
     syncer.loader = peer
-    await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
+    await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.height)
 
     expect(getBlocksSpy).toBeCalledTimes(4)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(1, peer, genesis.header.hash, 2)
@@ -195,7 +195,7 @@ describe('Syncer', () => {
     const blockA1 = await makeBlockAfter(chain, chain.genesis)
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.sequence = blockA1.header.sequence
+    peer.height = blockA1.header.height
     peer.head = blockA1.header.hash
     peer.work = BigInt(10)
 
@@ -206,7 +206,7 @@ describe('Syncer', () => {
 
     syncer.loader = peer
 
-    await syncer.syncBlocks(peer, chain.genesis.hash, chain.genesis.sequence)
+    await syncer.syncBlocks(peer, chain.genesis.hash, chain.genesis.height)
 
     expect(getBlocksSpy).toBeCalledTimes(1)
     expect(peerPunished).toBeCalledTimes(1)

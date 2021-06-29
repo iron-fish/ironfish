@@ -1089,7 +1089,7 @@ export class PeerManager {
     peer.version = version
     peer.agent = agent
     peer.head = Buffer.from(message.payload.head, 'hex')
-    peer.sequence = message.payload.sequence
+    peer.height = message.payload.height
     peer.work = BigInt(message.payload.work)
 
     // If we've told the peer to stay disconnected, repeat

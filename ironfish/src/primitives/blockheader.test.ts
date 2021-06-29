@@ -63,9 +63,9 @@ describe('Block Header Serde', () => {
       BigInt(0),
       Buffer.alloc(32),
     )
-    header2.sequence = 6
+    header2.height = 6
     expect(serde.equals(header1, header2)).toBe(false)
-    header2.sequence = 5
+    header2.height = 5
     header2.noteCommitment.commitment = 'Not header'
     expect(serde.equals(header1, header2)).toBe(false)
     header2.noteCommitment.commitment = 'header'

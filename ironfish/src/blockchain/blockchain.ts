@@ -6,8 +6,8 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import {
+  GENESIS_BLOCK_HEIGHT,
   GENESIS_BLOCK_PREVIOUS,
-  GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_MS,
 } from '../consensus'
@@ -51,9 +51,9 @@ import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import {
   HashToNextSchema,
   HeadersSchema,
+  HeightToHashesSchema,
+  HeightToHashSchema,
   MetaSchema,
-  SequenceToHashesSchema,
-  SequenceToHashSchema,
   TransactionsSchema,
 } from './schema'
 
@@ -90,10 +90,10 @@ export class Blockchain<
   headers: IDatabaseStore<HeadersSchema<E, H, T, SE, SH, ST>>
   // BlockHash -> BlockHeader
   transactions: IDatabaseStore<TransactionsSchema<T>>
-  // Sequence -> BlockHash[]
-  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
-  // Sequence -> BlockHash
-  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
+  // Height -> BlockHash[]
+  heightToHashes: IDatabaseStore<HeightToHashesSchema>
+  // Height -> BlockHash
+  heightToHash: IDatabaseStore<HeightToHashSchema>
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
 
@@ -184,14 +184,14 @@ export class Blockchain<
     })
 
     // BigInt -> BlockHash[]
-    this.sequenceToHashes = this.db.addStore({
+    this.heightToHashes = this.db.addStore({
       name: 'bs',
       keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ARRAY_ENCODING,
     })
 
     // BigInt -> BlockHash
-    this.sequenceToHash = this.db.addStore({
+    this.heightToHash = this.db.addStore({
       name: 'bS',
       keyEncoding: NUMBER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
@@ -233,7 +233,7 @@ export class Blockchain<
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
 
-    const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    const genesisHeader = await this.getHeaderAtHeight(GENESIS_BLOCK_HEIGHT)
     Assert.isNotNull(
       genesisHeader,
       'Added the genesis block to the chain, but could not fetch the header',
@@ -256,7 +256,7 @@ export class Blockchain<
       await this.nullifiers.upgrade()
     }
 
-    let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    let genesisHeader = await this.getHeaderAtHeight(GENESIS_BLOCK_HEIGHT)
     if (!genesisHeader && this.autoSeed) {
       genesisHeader = await this.seed()
     }
@@ -313,7 +313,7 @@ export class Blockchain<
       await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
-        if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+        if (!this.hasGenesisBlock && block.header.height === GENESIS_BLOCK_HEIGHT) {
           await this.connect(block, null, tx)
           return
         }
@@ -378,12 +378,11 @@ export class Blockchain<
 
     let linear = true
 
-    let [base, fork] =
-      headerA.sequence < headerB.sequence ? [headerA, headerB] : [headerB, headerA]
+    let [base, fork] = headerA.height < headerB.height ? [headerA, headerB] : [headerB, headerA]
 
     while (!base.hash.equals(fork.hash)) {
       // Move
-      while (fork.sequence > base.sequence) {
+      while (fork.height > base.height) {
         const prev = await this.getPrevious(fork, tx)
         Assert.isNotNull(prev)
         fork = prev
@@ -423,7 +422,7 @@ export class Blockchain<
     reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
     let current = start.hash as BlockHash | null
-    const max = end ? end.sequence - start.sequence : null
+    const max = end ? end.height - start.height : null
     let count = 0
 
     while (current) {
@@ -457,7 +456,7 @@ export class Blockchain<
     reachable = true,
   ): AsyncGenerator<BlockHeader<E, H, T, SE, SH, ST>, void, void> {
     let current = start as BlockHeader<E, H, T, SE, SH, ST> | null
-    const max = end ? start.sequence - end.sequence : null
+    const max = end ? start.height - end.height : null
     let count = 0
 
     while (current) {
@@ -477,8 +476,8 @@ export class Blockchain<
     if (reachable && end && !current?.hash.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
-          ` current: '${HashUtils.renderHash(current?.hash)}',` +
-          ` current_sequence: '${Number(current?.sequence)}',` +
+          ` curr-hash: '${HashUtils.renderHash(current?.hash)}',` +
+          ` curr-height: '${Number(current?.height)}',` +
           ` end: '${HashUtils.renderHash(end.hash)}'`,
       )
     }
@@ -524,10 +523,10 @@ export class Blockchain<
     this.addSpeed.add(addTime)
     this.updateSynced()
 
-    if (this.logAllBlockAdd || Number(block.header.sequence) % 20 === 0) {
+    if (this.logAllBlockAdd || Number(block.header.height) % 20 === 0) {
       this.logger.info(
         'Added block' +
-          ` seq: ${Number(block.header.sequence)},` +
+          ` height: ${Number(block.header.height)},` +
           ` hash: ${HashUtils.renderHash(block.header.hash)},` +
           ` txs: ${block.transactions.length},` +
           ` progress: ${(this.progress * 100).toFixed(2)}%,` +
@@ -550,7 +549,7 @@ export class Blockchain<
     )
 
     Assert.isFalse(
-      block.header.sequence === GENESIS_BLOCK_SEQUENCE,
+      block.header.height === GENESIS_BLOCK_HEIGHT,
       'You cannot disconnect the genesisBlock',
     )
 
@@ -571,11 +570,11 @@ export class Blockchain<
     Assert.isTrue(
       block.header.previousBlockHash.equals(this.head.hash),
       `Reconnecting block ${block.header.hash.toString('hex')} (${
-        block.header.sequence
+        block.header.height
       }) does not go on current head ${this.head.hash.toString('hex')} (${
-        this.head.sequence - 1
+        this.head.height - 1
       }) expected ${block.header.previousBlockHash.toString('hex')} (${
-        block.header.sequence - 1
+        block.header.height - 1
       })`,
     )
 
@@ -600,7 +599,7 @@ export class Blockchain<
 
       this.logger.warn(
         `Invalid block adding to fork ${HashUtils.renderHash(block.header.hash)} (${
-          block.header.sequence
+          block.header.height
         }): ${reason}`,
       )
 
@@ -613,8 +612,8 @@ export class Blockchain<
 
     this.logger.warn(
       'Added block to fork' +
-        ` seq: ${block.header.sequence},` +
-        ` head-seq: ${this.head.sequence || ''},` +
+        ` height: ${block.header.height},` +
+        ` head-height: ${this.head.height || ''},` +
         ` hash: ${HashUtils.renderHash(block.header.hash)},` +
         ` head-hash: ${this.head.hash ? HashUtils.renderHash(this.head.hash) : ''},` +
         ` work: ${block.header.work},` +
@@ -631,11 +630,11 @@ export class Blockchain<
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
         `Reorganizing chain from ${HashUtils.renderHash(this.head.hash)} (${
-          this.head.sequence
+          this.head.height
         }) for ${HashUtils.renderHash(block.header.hash)} (${
-          block.header.sequence
+          block.header.height
         }) on prev ${HashUtils.renderHash(block.header.previousBlockHash)} (${
-          block.header.sequence - 1
+          block.header.height - 1
         })`,
       )
 
@@ -648,7 +647,7 @@ export class Blockchain<
 
       this.logger.warn(
         `Invalid block adding to head chain ${HashUtils.renderHash(block.header.hash)} (${
-          block.header.sequence
+          block.header.height
         }): ${reason}`,
       )
 
@@ -659,7 +658,7 @@ export class Blockchain<
     await this.saveBlock(block, prev, false, tx)
     this.head = block.header
 
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+    if (block.header.height === GENESIS_BLOCK_HEIGHT) {
       this.genesis = block.header
     }
 
@@ -720,10 +719,10 @@ export class Blockchain<
 
     this.logger.warn(
       'Reorganized chain.' +
-        ` blocks: ${oldHead.sequence - fork.sequence + (newHead.sequence - fork.sequence)},` +
-        ` old: ${HashUtils.renderHash(oldHead.hash)} (${oldHead.sequence}),` +
-        ` new: ${HashUtils.renderHash(newHead.hash)} (${newHead.sequence}),` +
-        ` fork: ${HashUtils.renderHash(fork.hash)} (${fork.sequence})`,
+        ` blocks: ${oldHead.height - fork.height + (newHead.height - fork.height)},` +
+        ` old: ${HashUtils.renderHash(oldHead.hash)} (${oldHead.height}),` +
+        ` new: ${HashUtils.renderHash(newHead.hash)} (${newHead.height}),` +
+        ` fork: ${HashUtils.renderHash(fork.hash)} (${fork.height})`,
     )
   }
 
@@ -774,10 +773,10 @@ export class Blockchain<
   }
 
   /**
-   * Returns true if the blockchain has any blocks at the given sequence
+   * Returns true if the blockchain has any blocks at the given height
    */
-  async hasHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<boolean> {
-    const hashes = await this.getHashesAtSequence(sequence, tx)
+  async hasHashesAtHeight(height: number, tx?: IDatabaseTransaction): Promise<boolean> {
+    const hashes = await this.getHashesAtHeight(height, tx)
 
     if (!hashes) {
       return false
@@ -787,10 +786,10 @@ export class Blockchain<
   }
 
   /**
-   * Returns an array of hashes for any blocks at the given sequence
+   * Returns an array of hashes for any blocks at the given height
    */
-  async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
+  async getHashesAtHeight(height: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
+    const hashes = await this.heightToHashes.get(height, tx)
 
     if (!hashes) {
       return []
@@ -822,13 +821,13 @@ export class Blockchain<
       const originalNullifierSize = await this.nullifiers.size(tx)
 
       let previousBlockHash
-      let previousSequence
+      let previousHeight
       let target
       const timestamp = new Date(Date.now())
 
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
-        previousSequence = 0
+        previousHeight = 0
         target = Target.initialTarget()
       } else {
         const heaviestHead = this.head
@@ -841,9 +840,9 @@ export class Blockchain<
           )
         }
         previousBlockHash = heaviestHead.hash
-        previousSequence = heaviestHead.sequence
+        previousHeight = heaviestHead.height
         const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
-        if (!previousHeader && previousSequence !== 1) {
+        if (!previousHeader && previousHeight !== 1) {
           throw new Error('There is no previous block to calculate a target')
         }
         target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
@@ -871,7 +870,7 @@ export class Blockchain<
 
       const header = new BlockHeader(
         this.strategy,
-        previousSequence + 1,
+        previousHeight + 1,
         previousBlockHash,
         noteCommitment,
         nullifierCommitment,
@@ -971,20 +970,18 @@ export class Blockchain<
   }
 
   /**
-   * Gets the hash of the block at the sequence on the head chain
+   * Gets the hash of the block at the height on the head chain
    */
-  async getHashAtSequence(sequence: number): Promise<BlockHash | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+  async getHashAtHeight(height: number): Promise<BlockHash | null> {
+    const hash = await this.heightToHash.get(height)
     return hash || null
   }
 
   /**
-   * Gets the header of the block at the sequence on the head chain
+   * Gets the header of the block at the height on the head chain
    */
-  async getHeaderAtSequence(
-    sequence: number,
-  ): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+  async getHeaderAtHeight(height: number): Promise<BlockHeader<E, H, T, SE, SH, ST> | null> {
+    const hash = await this.heightToHash.get(height)
 
     if (!hash) {
       return null
@@ -993,11 +990,11 @@ export class Blockchain<
     return this.getHeader(hash)
   }
 
-  async getHeadersAtSequence(
-    sequence: number,
+  async getHeadersAtHeight(
+    height: number,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHeader<E, H, T, SE, SH, ST>[]> {
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
+    const hashes = await this.heightToHashes.get(height, tx)
 
     if (!hashes) {
       return []
@@ -1015,7 +1012,7 @@ export class Blockchain<
   }
 
   async isHeadChain(header: BlockHeader<E, H, T, SE, SH, ST>): Promise<boolean> {
-    const hash = await this.getHashAtSequence(header.sequence)
+    const hash = await this.getHashAtHeight(header.height)
 
     if (!hash) {
       return false
@@ -1052,7 +1049,7 @@ export class Blockchain<
       const block = await this.getBlock(hash, tx)
       Assert.isNotNull(block)
 
-      const next = await this.getHeadersAtSequence(header.sequence + 1, tx)
+      const next = await this.getHeadersAtHeight(header.height + 1, tx)
       if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
         throw new Error(`Cannot delete block when ${next.length} blocks are connected`)
       }
@@ -1061,12 +1058,13 @@ export class Blockchain<
         await this.disconnect(block, tx)
       }
 
-      let sequences = await this.sequenceToHashes.get(header.sequence, tx)
-      sequences = (sequences || []).filter((h) => !h.equals(hash))
-      if (sequences.length === 0) {
-        await this.sequenceToHashes.del(header.sequence, tx)
+      let heights = await this.heightToHashes.get(header.height, tx)
+      heights = (heights || []).filter((h) => !h.equals(hash))
+
+      if (heights.length === 0) {
+        await this.heightToHashes.del(header.height, tx)
       } else {
-        await this.sequenceToHashes.put(header.sequence, sequences, tx)
+        await this.heightToHashes.put(header.height, heights, tx)
       }
 
       await this.transactions.del(hash, tx)
@@ -1087,7 +1085,7 @@ export class Blockchain<
     fromBlockHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: T; initialNoteIndex: number; sequence: number; blockHash: string },
+    { transaction: T; initialNoteIndex: number; height: number; blockHash: string },
     void,
     unknown
   > {
@@ -1113,7 +1111,7 @@ export class Blockchain<
     header: BlockHeader<E, H, T, SE, SH, ST>,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: T; initialNoteIndex: number; sequence: number; blockHash: string },
+    { transaction: T; initialNoteIndex: number; height: number; blockHash: string },
     void,
     unknown
   > {
@@ -1135,7 +1133,7 @@ export class Blockchain<
         transaction,
         initialNoteIndex: noteIndex,
         blockHash: header.hash.toString('hex'),
-        sequence: header.sequence,
+        height: header.height,
       }
     }
   }
@@ -1150,7 +1148,7 @@ export class Blockchain<
       await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     }
 
-    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
+    await this.heightToHash.put(block.header.height, block.header.hash, tx)
     await this.meta.put('head', block.header.hash, tx)
 
     let notesIndex = prev?.noteCommitment.size || 0
@@ -1185,7 +1183,7 @@ export class Blockchain<
   ): Promise<void> {
     // TODO: transaction goes here
     await this.hashToNextHash.del(prev.hash, tx)
-    await this.sequenceToHash.del(block.header.sequence, tx)
+    await this.heightToHash.del(block.header.height, tx)
 
     await Promise.all([
       this.notes.truncate(prev.noteCommitment.size, tx),
@@ -1204,7 +1202,7 @@ export class Blockchain<
     tx: IDatabaseTransaction,
   ): Promise<void> {
     const hash = block.header.hash
-    const sequence = block.header.sequence
+    const height = block.header.height
 
     // Update BlockHash -> BlockHeader
     await this.headers.put(hash, block.header, tx)
@@ -1212,9 +1210,9 @@ export class Blockchain<
     // Update BlockHash -> Transaction
     await this.transactions.add(hash, block.transactions, tx)
 
-    // Update Sequence -> BlockHash[]
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
-    await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
+    // Update Height -> BlockHash[]
+    const hashes = await this.heightToHashes.get(height, tx)
+    await this.heightToHashes.put(height, (hashes || []).concat(hash), tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)
