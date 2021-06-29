@@ -17,7 +17,7 @@ export class BalanceCommand extends IronfishCommand {
       name: 'account',
       parse: (input: string): string => input.trim(),
       required: false,
-      description: 'name of the account to export',
+      description: 'name of the account to get balance for',
     },
   ]
 
