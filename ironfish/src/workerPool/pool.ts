@@ -7,6 +7,7 @@ import type {
   BoxMessageRequest,
   CreateMinersFeeRequest,
   CreateTransactionRequest,
+  MineHeaderRequest,
   OmitRequestId,
   TransactionFeeRequest,
   UnboxMessageRequest,
@@ -271,5 +272,34 @@ export class WorkerPool {
     }
 
     return { message: response.message }
+  }
+
+  async mineHeader(
+    miningRequestId: number,
+    headerBytesWithoutRandomness: Buffer,
+    initialRandomness: number,
+    targetValue: string,
+    batchSize: number,
+  ): Promise<{ initialRandomness: number; miningRequestId?: number; randomness?: number }> {
+    const request: OmitRequestId<MineHeaderRequest> = {
+      type: 'mineHeader',
+      headerBytesWithoutRandomness,
+      miningRequestId,
+      initialRandomness,
+      targetValue,
+      batchSize,
+    }
+
+    const response = await this.sendRequest(request)
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return {
+      initialRandomness: response.initialRandomness,
+      miningRequestId: response.miningRequestId,
+      randomness: response.randomness,
+    }
   }
 }
