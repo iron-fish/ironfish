@@ -9,6 +9,10 @@ const PORT = 8000
 
 const server = new Server()
 
+if (process.env.DOCKER_VERIFY) {
+  process.exit(0)
+}
+
 server
   .open(PORT)
   .then(() => {
