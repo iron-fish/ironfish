@@ -13,7 +13,7 @@ import {
   SchemaValue,
 } from '../storage'
 import { MerkleHasher } from './hasher'
-import { CounterSchema, LeavesSchema, NodesSchema, NodeValue, SCHEMA_VERSION } from './schema'
+import { CounterSchema, LeavesSchema, NodesSchema, NodeValue } from './schema'
 import { Witness, WitnessNode } from './witness'
 
 /**
@@ -96,31 +96,32 @@ export default class MerkleTree<
     }
 
     this.counter = db.addStore({
-      version: SCHEMA_VERSION,
       name: `${treeName}c`,
       keyEncoding: new JsonEncoding<CounterSchema['key']>(),
       valueEncoding: new JsonEncoding<CounterSchema['value']>(),
-      upgrade: async (db, oldVersion, newVersion, tx): Promise<void> => {
-        if (oldVersion === 0) {
-          await this.counter.put('Leaves', 0, tx)
-          await this.counter.put('Nodes', 1, tx)
-        }
-      },
     })
 
     this.leaves = db.addStore({
-      version: SCHEMA_VERSION,
       name: `${treeName}l`,
       keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
       valueEncoding: new LeafEncoding(),
     })
 
     this.nodes = db.addStore({
-      version: SCHEMA_VERSION,
       name: `${treeName}n`,
       keyEncoding: new JsonEncoding<NodesSchema<H>['key']>(),
       valueEncoding: new NodeEncoding(),
     })
+  }
+
+  async upgrade(): Promise<void> {
+    if ((await this.counter.get('Leaves')) === undefined) {
+      await this.counter.put('Leaves', 0)
+    }
+
+    if ((await this.counter.get('Nodes')) === undefined) {
+      await this.counter.put('Nodes', 1)
+    }
   }
 
   /**

@@ -3,6 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './getBlock'
-export * from './getChain'
+export * from './showChain'
 export * from './getChainInfo'
 export * from './getBlockInfo'

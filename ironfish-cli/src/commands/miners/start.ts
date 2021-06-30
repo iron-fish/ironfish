@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import { miner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
+import { Miner as IronfishMiner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -72,7 +72,8 @@ export class Miner extends IronfishCommand {
       const blocksStream = client.newBlocksStream().contentStream()
 
       cli.action.start('Mining a block')
-      await miner(nextBlock(blocksStream), successfullyMined, threads)
+      const miner = new IronfishMiner()
+      await miner.mine(nextBlock(blocksStream), successfullyMined, threads)
       cli.action.stop('Mining interrupted')
     }
   }

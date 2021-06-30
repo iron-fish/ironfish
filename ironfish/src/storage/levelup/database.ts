@@ -4,12 +4,12 @@
 import { AbstractLevelDOWN } from 'abstract-leveldown'
 import levelErrors from 'level-errors'
 import levelup, { LevelUp } from 'levelup'
+import { Assert } from '../../assert'
 import { Mutex } from '../../mutex'
 import { IJsonSerializable } from '../../serde'
 import {
   BatchOperation,
   Database,
-  DatabaseOptions,
   DatabaseSchema,
   IDatabaseStore,
   IDatabaseStoreOptions,
@@ -18,7 +18,6 @@ import {
   SchemaKey,
   SchemaValue,
   StringEncoding,
-  UpgradeFunction,
 } from '../database'
 import { DatabaseIsLockedError } from '../database/errors'
 import { LevelupBatch } from './batch'
@@ -51,7 +50,6 @@ export class LevelupDatabase extends Database {
 
     this.metaStore = this.addStore<MetaSchema>({
       name: 'Meta',
-      version: 1,
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
     }) as LevelupStore<MetaSchema>
@@ -61,11 +59,7 @@ export class LevelupDatabase extends Database {
     return this._levelup?.isOpen() || false
   }
 
-  getVersion(): number {
-    return this.getStores().reduce((memo, s) => memo + s.version, 0)
-  }
-
-  async open(options: DatabaseOptions = {}): Promise<void> {
+  async open(): Promise<void> {
     this._levelup = await new Promise<LevelUp>((resolve, reject) => {
       const opened = levelup(this.db, (error?: unknown) => {
         if (error) {
@@ -81,47 +75,33 @@ export class LevelupDatabase extends Database {
     })
 
     await this._levelup.open()
-
-    await this.transaction(async (t) => {
-      const upgrade = async (
-        versionKey: string,
-        newVersion: number,
-        upgrade: UpgradeFunction | null = null,
-      ): Promise<void> => {
-        const oldVersion = await this.metaStore.get(versionKey)
-
-        if (oldVersion !== undefined && typeof oldVersion !== 'number') {
-          throw new Error(
-            `Corrupted meta store version for ${versionKey} is at: ${String(oldVersion)}`,
-          )
-        }
-
-        if (oldVersion !== undefined && newVersion < oldVersion) {
-          throw new Error(
-            `Cannot open database: The database version (${oldVersion}) is newer than the provided schema version (${newVersion})`,
-          )
-        }
-
-        if (!oldVersion || newVersion > oldVersion) {
-          if (upgrade) {
-            await upgrade(this, oldVersion || 0, newVersion, t)
-          }
-
-          await this.metaStore.put(versionKey, newVersion, t)
-        }
-      }
-
-      for (const store of this.stores.values()) {
-        await upgrade(`version_${store.name}`, store.version, store.upgrade)
-      }
-
-      await upgrade('version', this.getVersion(), options.upgrade)
-    })
   }
 
   async close(): Promise<void> {
     await this._levelup?.close()
     this._levelup = null
+  }
+
+  async upgrade(version: number): Promise<void> {
+    Assert.isTrue(this.isOpen, 'Database needs to be open')
+
+    const current = await this.metaStore.get('version')
+
+    if (current === undefined) {
+      await this.metaStore.put('version', version)
+      return
+    }
+
+    if (typeof current !== 'number') {
+      throw new Error(`Corrupted database version ${typeof current}: ${String(current)}`)
+    }
+
+    if (current !== version) {
+      throw new Error(
+        `You are running a newer version of ironfish on an older database.\n` +
+          `Wipe your database using "ironfish reset" or delete your data directory at ~/.ironfish\n`,
+      )
+    }
   }
 
   transaction<TResult>(

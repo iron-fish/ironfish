@@ -437,6 +437,7 @@ export class MiningDirector<
     }
 
     block.header.randomness = randomness
+    this.logger.debug('Adding randomness', randomness)
     const validation = await this.chain.verifier.verifyBlock(block)
     if (!validation.valid) {
       this.logger.warn('Discarding invalid block', validation.reason)

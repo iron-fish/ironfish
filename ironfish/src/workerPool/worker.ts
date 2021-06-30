@@ -13,6 +13,8 @@ import type {
   CreateMinersFeeResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
+  MineHeaderRequest,
+  MineHeaderResponse,
   TransactionFeeRequest,
   TransactionFeeResponse,
   UnboxMessageRequest,
@@ -34,6 +36,7 @@ import { MessagePort, parentPort } from 'worker_threads'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
+import { mineHeader } from '../mining/miner'
 import { boxMessage, unboxMessage } from '../network/peers/encryption'
 
 // Global constants
@@ -151,6 +154,24 @@ function handleUnboxMessage({
   }
 }
 
+function handleMineHeader({
+  batchSize,
+  headerBytesWithoutRandomness,
+  initialRandomness,
+  miningRequestId,
+  targetValue,
+}: MineHeaderRequest): MineHeaderResponse {
+  const result = mineHeader({
+    batchSize,
+    headerBytesWithoutRandomness: Buffer.from(headerBytesWithoutRandomness),
+    initialRandomness,
+    miningRequestId,
+    targetValue,
+  })
+
+  return { type: 'mineHeader', ...result }
+}
+
 export function handleRequest(request: WorkerRequestMessage): WorkerResponseMessage | null {
   let response: WorkerResponse | null = null
 
@@ -174,6 +195,9 @@ export function handleRequest(request: WorkerRequestMessage): WorkerResponseMess
       break
     case 'unboxMessage':
       response = handleUnboxMessage(body)
+      break
+    case 'mineHeader':
+      response = handleMineHeader(body)
       break
     default: {
       Assert.isNever(body)

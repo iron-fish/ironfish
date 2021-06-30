@@ -31,6 +31,9 @@ describe('Merkle tree', function () {
     const tree2 = await makeTree({ depth: 4, database: database })
     await database.open()
 
+    await tree1.upgrade()
+    await tree2.upgrade()
+
     await tree1.add('a')
     await tree2.add('A')
     await tree2.add('B')

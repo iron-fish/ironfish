@@ -73,7 +73,7 @@ describe('Transactions sendTransaction', () => {
 
     it('throws if not enough funds', async () => {
       routeTest.node.peerNetwork['_isReady'] = true
-      heaviestHeader.timestamp = new Date()
+      routeTest.chain.synced = true
 
       try {
         await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
@@ -87,7 +87,8 @@ describe('Transactions sendTransaction', () => {
 
     it('throws if the confirmed balance is too low', async () => {
       routeTest.node.peerNetwork['_isReady'] = true
-      heaviestHeader.timestamp = new Date()
+      routeTest.chain.synced = true
+
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
         unconfirmedBalance: BigInt(11),
         confirmedBalance: BigInt(0),
@@ -107,8 +108,9 @@ describe('Transactions sendTransaction', () => {
 
     it('calls the pay method on the node', async () => {
       routeTest.node.peerNetwork['_isReady'] = true
-      heaviestHeader.timestamp = new Date()
+      routeTest.chain.synced = true
       routeTest.node.accounts.pay = jest.fn()
+
       const paySpy = jest.spyOn(routeTest.node.accounts, 'pay')
 
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({

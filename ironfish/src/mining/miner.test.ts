@@ -1,12 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import Piscina from 'piscina'
-import miner from './miner'
 
-jest.mock('piscina')
-// Tell typescript to treat it as a mock
-const MockPiscina = Piscina as unknown as jest.Mock<Piscina>
+import { mocked } from 'ts-jest/utils'
+import * as blockHeaderModule from '../primitives/blockheader'
+import Miner, { mineHeader } from './miner'
+jest.mock('../primitives/blockheader')
 
 /**
  * Make an iterable of blocks suitable for async generation
@@ -30,26 +29,16 @@ async function* makeAsync(
   await waitAfter
 }
 
-/**
- * Create a promise that never resolves.
- */
-function pending(): Promise<void> {
-  return new Promise(() => {})
-}
-
 describe('Miner', () => {
-  const successfullyMined = jest.fn()
-  beforeEach(() => {
-    MockPiscina.mockReset()
-    successfullyMined.mockReset()
-  })
-  it('constructs a miner', async () => {
-    const mock = {
-      runTask: jest.fn(async () => pending()),
-      destroy: jest.fn(async () => Promise.resolve()),
-    }
-    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
-    await miner(
+  it('mines', async () => {
+    const miner = new Miner()
+
+    const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
+    const stopSpy = jest.spyOn(miner.workerPool, 'stop')
+
+    const successfullyMined = jest.fn()
+
+    await miner.mine(
       makeAsync([
         {
           bytes: { type: 'Buffer', data: [] },
@@ -60,21 +49,21 @@ describe('Miner', () => {
       successfullyMined,
       1,
     )
-    expect(MockPiscina).toHaveBeenCalledTimes(1)
-    expect(mock.runTask).toHaveBeenCalledTimes(1)
-    expect(mock.destroy).toHaveBeenCalledTimes(1)
+
+    expect(mineHeaderSpy).toBeCalled()
+    expect(stopSpy).toBeCalled()
     expect(successfullyMined).not.toBeCalled()
   })
 
   it('reschedules on new block', async () => {
-    const mock = {
-      runTask: jest.fn(async () =>
-        Promise.resolve({ randomness: 5, initialRandomness: 10, miningRequestId: 10 }),
-      ),
-      destroy: jest.fn(async () => Promise.resolve()),
-    }
-    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
-    await miner(
+    const miner = new Miner()
+
+    const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
+    const stopSpy = jest.spyOn(miner.workerPool, 'stop')
+
+    const successfullyMined = jest.fn()
+
+    await miner.mine(
       makeAsync([
         {
           bytes: { type: 'Buffer', data: [] },
@@ -95,48 +84,105 @@ describe('Miner', () => {
       successfullyMined,
       1,
     )
-    expect(MockPiscina).toHaveBeenCalledTimes(1)
-    expect(mock.runTask).toHaveBeenCalledTimes(3)
-    expect(mock.destroy).toHaveBeenCalledTimes(1)
+
+    expect(mineHeaderSpy).toBeCalledTimes(3)
+    expect(stopSpy).toBeCalled()
     expect(successfullyMined).not.toBeCalled()
   })
 
   it('calls successfullyMined', async () => {
-    jest.spyOn(global.Math, 'floor').mockReturnValue(10)
-    const mock = {
-      runTask: jest.fn(async () =>
-        Promise.resolve({ randomness: 5, initialRandomness: 10, miningRequestId: 10 }),
-      ),
-      destroy: jest.fn(async () => Promise.resolve()),
-    }
+    const miner = new Miner()
+    jest
+      .spyOn(miner.workerPool, 'mineHeader')
+      .mockImplementation((_id, _bytes, initialRandomness, _targetValue, _batchSize) => {
+        return Promise.resolve({
+          initialRandomness: initialRandomness,
+          randomness: 5,
+          miningRequestId: 10,
+        })
+      })
 
-    // Used to keep the generator from returning until a block has a chance to mine
-    let successfulPromiseCallback: () => void
-    const successfulPromise: Promise<void> = new Promise(
-      (resolve) => (successfulPromiseCallback = resolve),
-    )
+    const successfullyMined = jest.fn()
 
-    // Exit the generator only after a block has mined
-    successfullyMined.mockImplementation(() => successfulPromiseCallback())
-
-    MockPiscina.mockImplementation(() => mock as unknown as Piscina)
-    await miner(
-      makeAsync(
-        [
-          {
-            bytes: { type: 'Buffer', data: [] },
-            target: '0',
-            miningRequestId: 2,
-          },
-        ],
-        successfulPromise,
-      ),
+    await miner.mine(
+      makeAsync([
+        {
+          bytes: { type: 'Buffer', data: [] },
+          target: '0',
+          miningRequestId: 2,
+        },
+      ]),
       successfullyMined,
       1,
     )
     expect(successfullyMined).toBeCalledTimes(1)
-    expect(MockPiscina).toHaveBeenCalledTimes(1)
-    expect(mock.runTask).toHaveBeenCalledTimes(1)
-    expect(mock.destroy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('mineHeader', () => {
+  beforeEach(() => {
+    mocked(blockHeaderModule.hashBlockHeader).mockReset()
+  })
+
+  it('attempt batch size times', () => {
+    const targetTooBig = Buffer.alloc(8)
+    targetTooBig[0] = 10
+    mocked(blockHeaderModule.hashBlockHeader).mockReturnValue(targetTooBig)
+
+    const result = mineHeader({
+      headerBytesWithoutRandomness: Buffer.alloc(8),
+      initialRandomness: 42,
+      targetValue: '0',
+      batchSize: 10,
+      miningRequestId: 1,
+    })
+
+    expect(result).toStrictEqual({ initialRandomness: 42 })
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(10)
+  })
+  it('finds the randomness', () => {
+    const targetTooBig = Buffer.alloc(8)
+    targetTooBig[0] = 10
+    mocked(blockHeaderModule.hashBlockHeader)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValue(Buffer.alloc(0))
+
+    const result = mineHeader({
+      headerBytesWithoutRandomness: Buffer.alloc(0),
+      initialRandomness: 42,
+      targetValue: '100',
+      batchSize: 10,
+      miningRequestId: 2,
+    })
+
+    expect(result).toStrictEqual({ initialRandomness: 42, randomness: 45, miningRequestId: 2 })
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(4)
+  })
+  it('wraps the randomness', () => {
+    const targetTooBig = Buffer.alloc(8)
+    targetTooBig[0] = 10
+    mocked(blockHeaderModule.hashBlockHeader)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValueOnce(targetTooBig)
+      .mockReturnValue(Buffer.alloc(0))
+
+    const result = mineHeader({
+      headerBytesWithoutRandomness: Buffer.alloc(0),
+      initialRandomness: Number.MAX_SAFE_INTEGER - 1,
+      targetValue: '0',
+      batchSize: 10,
+      miningRequestId: 3,
+    })
+
+    expect(result).toStrictEqual({
+      initialRandomness: Number.MAX_SAFE_INTEGER - 1,
+      randomness: 2,
+      miningRequestId: 3,
+    })
+    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(5)
   })
 })

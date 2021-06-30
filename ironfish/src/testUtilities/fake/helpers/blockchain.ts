@@ -181,6 +181,9 @@ export async function makeChainInitial(
   })
 
   await chain.db.open()
+  await chain.notes.upgrade()
+  await chain.nullifiers.upgrade()
+
   return chain
 }
 

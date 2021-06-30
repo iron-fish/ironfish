@@ -43,6 +43,7 @@ async function makeWasmStrategyTree({
 
   if (openDb) {
     await database.open()
+    await tree.upgrade()
   }
 
   return tree

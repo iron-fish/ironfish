@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// TODO: This file depends on nodejs librarys (piscina, path) and will not
-// work with browser workers. This will need to be abstracted in future.
-
-import path from 'path'
-import Piscina from 'piscina'
+import { hashBlockHeader } from '../primitives/blockheader'
+import { Target } from '../primitives/target'
+import { WorkerPool } from '../workerPool'
 
 /**
  * The number of tasks to run in each thread batch
@@ -23,6 +21,128 @@ const BATCH_SIZE = 10000
  * in this task created a valid header
  */
 type MineResult = { initialRandomness: number; randomness?: number; miningRequestId?: number }
+
+export default class Miner {
+  workerPool: WorkerPool
+
+  constructor() {
+    this.workerPool = new WorkerPool()
+  }
+
+  /**
+   * Prime the pool of mining tasks with several jobs for the given block.
+   * The main miner will create new jobs one at a time as each of these
+   * complete.
+   *
+   * @param randomness the initial randomness. Each task will try BATCH_SIZE
+   * variations on this randomness before returning.
+   * @param tasks The list of promises to add the new tasks to
+   * @param numTasks The number of new tasks to enqueue
+   * @param bytes The bytes of the header to be mined by these tasks
+   * @param target The target value that this batch needs to meet
+   * @param hashFunction the strategy's hash function, serialized to a string
+   */
+  private primePool(
+    randomness: number,
+    tasks: Record<number, PromiseLike<MineResult>>,
+    numTasks: number,
+    newBlockData: {
+      bytes: { type: 'Buffer'; data: number[] }
+      target: string
+      miningRequestId: number
+    },
+  ): number {
+    const bytes = Buffer.from(newBlockData.bytes.data)
+
+    for (let i = 0; i < numTasks; i++) {
+      tasks[randomness] = this.workerPool.mineHeader(
+        newBlockData.miningRequestId,
+        bytes,
+        randomness,
+        newBlockData.target,
+        BATCH_SIZE,
+      )
+      randomness += BATCH_SIZE
+    }
+
+    return randomness
+  }
+
+  /**
+   * The miner task.
+   *
+   * This will probably be started from the RPC layer, which will
+   * also need to subscribe to mining director tasks and emit them.
+   *
+   * @param newBlocksIterator Async iterator of new blocks coming in from
+   * the network
+   * @param successfullyMined function to call when a block has been successfully
+   * mined. The glue code will presumably send this to the mining director
+   * over RPC.
+   * @param numTasks The number of worker tasks to run in parallel threads.
+   */
+  async mine(
+    newBlocksIterator: AsyncIterator<{
+      bytes: { type: 'Buffer'; data: number[] }
+      target: string
+      miningRequestId: number
+    }>,
+    successfullyMined: (randomness: number, miningRequestId: number) => void,
+    numTasks: number,
+  ): Promise<void> {
+    let blockToMineResult = await newBlocksIterator.next()
+    if (blockToMineResult.done) {
+      return
+    }
+    let blockPromise = newBlocksIterator.next()
+
+    this.workerPool.start(numTasks)
+
+    let tasks: Record<number, Promise<MineResult>> = {}
+
+    let randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+
+    this.primePool(randomness, tasks, numTasks, blockToMineResult.value)
+
+    for (;;) {
+      const result = await Promise.race([blockPromise, ...Object.values(tasks)])
+
+      if (isMineResult(result)) {
+        delete tasks[result.initialRandomness]
+
+        if (result.randomness !== undefined && result.miningRequestId !== undefined) {
+          successfullyMined(result.randomness, result.miningRequestId)
+          continue
+        }
+
+        tasks[randomness] = this.workerPool.mineHeader(
+          blockToMineResult.value.miningRequestId,
+          Buffer.from(blockToMineResult.value.bytes.data),
+          randomness,
+          blockToMineResult.value.target,
+          BATCH_SIZE,
+        )
+
+        randomness += BATCH_SIZE
+      } else {
+        tasks = {} // We don't care about the discarded tasks; they will exit soon enough
+
+        blockToMineResult = result
+
+        if (blockToMineResult.done) {
+          break
+        }
+
+        randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+        this.primePool(randomness, tasks, numTasks, blockToMineResult.value)
+
+        blockPromise = newBlocksIterator.next()
+      }
+    }
+
+    await this.workerPool.stop()
+  }
+}
 
 /**
  * Typeguard to check if an object is a result
@@ -42,167 +162,52 @@ function isMineResult(obj: unknown): obj is MineResult {
 }
 
 /**
- * Type of the spawned task.
+ * Given header bytes and a target value, attempts to find a randomness
+ * value that causes the header hash to meet the target.
  *
- * Only used to keep typescript happy when constructing the pool
+ * @param headerBytesWithoutRandomness The bytes to be appended to randomness to generate a header
+ * @param miningRequestId An identifier that is passed back to the miner when returning a
+ *        successfully mined block
+ * @param initialRandomness The first randomness value to attempt. Will try the next
+ *        batchSize randomness values after that
+ * @param targetValue The target value that a block hash must meet.
+ * @param batchSize The number of attempts to mine that should be made in this batch.
+ *        Each attempt increments the randomness starting from initialRandomness
  */
-export type MiningTask = (
-  headerBytesWithoutRandomness: Buffer,
-  initialRandomness: number,
-  target: bigint,
-  hashFunction: string,
-) => number | undefined
+export function mineHeader({
+  miningRequestId,
+  headerBytesWithoutRandomness,
+  initialRandomness,
+  targetValue,
+  batchSize,
+}: {
+  miningRequestId: number
+  headerBytesWithoutRandomness: Buffer
+  initialRandomness: number
+  targetValue: string
+  batchSize: number
+}): { initialRandomness: number; randomness?: number; miningRequestId?: number } {
+  const target = new Target(targetValue)
+  const randomnessBytes = new ArrayBuffer(8)
 
-/**
- * Add a new job to the pool of mining tasks.
- *
- * Called when a new block has been discovered to be mined,
- * and when an existing batch exits unsuccessfully
- *
- * @param pool The pool of workers
- * @param bytes The bytes of the header to be mined by this task
- * @param randomness The initial randomness value the worker should test
- *        it will increment this value until it finds a match or has
- *        tried all the values in its batch
- * @param target The target value that this batch needs to meet
- * @param hashFunction the strategy's hash function, serialized to a string
- */
-function enqueue(
-  piscina: Piscina,
-  bytes: Buffer,
-  miningRequestId: number,
-  randomness: number,
-  target: string,
-): PromiseLike<MineResult> {
-  return piscina.runTask({
-    miningRequestId,
-    headerBytesWithoutRandomness: bytes,
-    initialRandomness: randomness,
-    targetValue: target,
-    batchSize: BATCH_SIZE,
-  })
-}
+  for (let i = 0; i < batchSize; i++) {
+    // The intention here is to wrap randomness between 0 inclusive and Number.MAX_SAFE_INTEGER inclusive
+    const randomness =
+      i > Number.MAX_SAFE_INTEGER - initialRandomness
+        ? i - (Number.MAX_SAFE_INTEGER - initialRandomness) - 1
+        : initialRandomness + i
+    new DataView(randomnessBytes).setFloat64(0, randomness, false)
 
-/**
- * Prime the pool of mining tasks with several jobs for the given block.
- * The main miner will create new jobs one at a time as each of these
- * complete.
- *
- * @param randomness the inital randomness. Each task will try BATCH_SIZE
- * variations on this randomness before returning.
- * @param pool The pool of workers
- * @param tasks The list of promises to add the new tasks to
- * @param numTasks The number of new tasks to enqueue
- * @param bytes The bytes of the header to be mined by these tasks
- * @param target The target value that this batch needs to meet
- * @param hashFunction the strategy's hash function, serialized to a string
- */
-function primePool(
-  randomness: number,
-  piscina: Piscina,
-  tasks: Record<number, PromiseLike<MineResult>>,
-  numTasks: number,
-  newBlockData: {
-    bytes: { type: 'Buffer'; data: number[] }
-    target: string
-    miningRequestId: number
-  },
-): number {
-  const bytes = Buffer.from(newBlockData.bytes.data)
+    const headerBytes = Buffer.concat([
+      Buffer.from(randomnessBytes),
+      headerBytesWithoutRandomness,
+    ])
 
-  for (let i = 0; i < numTasks; i++) {
-    tasks[randomness] = enqueue(
-      piscina,
-      bytes,
-      newBlockData.miningRequestId,
-      randomness,
-      newBlockData.target,
-    )
-    randomness += BATCH_SIZE
-  }
+    const blockHash = hashBlockHeader(headerBytes)
 
-  return randomness
-}
-
-/**
- * The miner task.
- *
- * This will probably be started from the RPC layer, which will
- * also need to subscribe to mining director tasks and emit them.
- *
- * @param strategy The strategy that contains the hashBlockHeader function
- * Note that hashBlockHeader must be serializable as a string so that it
- * can be eval'd. Specifically, it must not use any global values
- * from its containing scope, including `this` or any imported modules.
- * @param newBlocksIterator Async iterator of new blocks coming in from
- * the network
- * @param successfullyMined function to call when a block has been successfully
- * mined. The glue code will presumably send this to the mining director
- * over RPC.
- * @param numTasks The number of worker tasks to run in parallel threads.
- */
-async function miner(
-  newBlocksIterator: AsyncIterator<{
-    bytes: { type: 'Buffer'; data: number[] }
-    target: string
-    miningRequestId: number
-  }>,
-  successfullyMined: (randomness: number, miningRequestId: number) => void,
-  numTasks: number,
-): Promise<void> {
-  let blockToMineResult = await newBlocksIterator.next()
-  if (blockToMineResult.done) {
-    return
-  }
-  let blockPromise = newBlocksIterator.next()
-
-  const piscina = new Piscina({
-    filename: path.resolve(__dirname, 'mineHeaderTask.js'),
-  })
-
-  let tasks: Record<number, PromiseLike<MineResult>> = {}
-
-  let randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
-
-  primePool(randomness, piscina, tasks, numTasks, blockToMineResult.value)
-
-  for (;;) {
-    const result = await Promise.race([blockPromise, ...Object.values(tasks)])
-
-    if (isMineResult(result)) {
-      delete tasks[result.initialRandomness]
-
-      if (result.randomness !== undefined && result.miningRequestId !== undefined) {
-        successfullyMined(result.randomness, result.miningRequestId)
-        continue
-      }
-
-      tasks[randomness] = enqueue(
-        piscina,
-        Buffer.from(blockToMineResult.value.bytes.data),
-        blockToMineResult.value.miningRequestId,
-        randomness,
-        blockToMineResult.value.target,
-      )
-
-      randomness += BATCH_SIZE
-    } else {
-      tasks = {} // We don't care about the discarded tasks; they will exit soon enough
-
-      blockToMineResult = result
-
-      if (blockToMineResult.done) {
-        break
-      }
-
-      randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
-      primePool(randomness, piscina, tasks, numTasks, blockToMineResult.value)
-
-      blockPromise = newBlocksIterator.next()
+    if (Target.meets(new Target(blockHash).asBigInt(), target)) {
+      return { initialRandomness, randomness, miningRequestId }
     }
   }
-
-  await piscina.destroy()
+  return { initialRandomness }
 }
-
-export default miner
