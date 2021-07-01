@@ -35,7 +35,7 @@ export function isBlockLater<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
   if (a.sequence !== b.sequence) {
     return a.sequence > b.sequence
@@ -50,7 +50,7 @@ export function isBlockHeavier<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
   if (a.work !== b.work) {
     return a.work > b.work
@@ -73,7 +73,7 @@ export class BlockHeader<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   // Strategy for hashing block and tree nodes and calculating targets
   public strategy: Strategy<E, H, T, SE, SH, ST>
@@ -263,8 +263,9 @@ export class BlockHeaderSerde<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
-> implements Serde<BlockHeader<E, H, T, SE, SH, ST>, SerializedBlockHeader<SH>> {
+  ST,
+> implements Serde<BlockHeader<E, H, T, SE, SH, ST>, SerializedBlockHeader<SH>>
+{
   constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {}
 
   equals(

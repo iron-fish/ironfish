@@ -48,7 +48,8 @@ export class NoteHasher
       WasmNoteEncryptedHash,
       SerializedWasmNoteEncrypted,
       SerializedWasmNoteEncryptedHash
-    > {
+    >
+{
   _merkleNoteSerde: WasmNoteEncryptedSerde
   _merkleNoteHashSerde: WasmNoteEncryptedHashSerde
 

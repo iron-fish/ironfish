@@ -37,39 +37,37 @@ export function mockImplementationShuffle<TArgs extends unknown[], TResult>(
   let lastTimeout: number | null = null
   let lastSend: number | null = null
 
-  mock.mockImplementation(
-    (...args: TArgs): Promise<TResult> => {
-      const promise = new Promise<Promise<TResult>>((resolve) => {
-        if (lastTimeout) {
-          clearTimeout(lastTimeout)
+  mock.mockImplementation((...args: TArgs): Promise<TResult> => {
+    const promise = new Promise<Promise<TResult>>((resolve) => {
+      if (lastTimeout) {
+        clearTimeout(lastTimeout)
+      }
+
+      buffer.push([args, resolve])
+
+      function send() {
+        lastSend = Date.now()
+
+        const shuffled = buffer.slice().sort(() => Math.random() - 0.5)
+        buffer.length = 0
+
+        for (const [args, resolve] of shuffled) {
+          resolve(mocked(...args))
         }
+      }
 
-        buffer.push([args, resolve])
+      // Force a send if the maximum amount of time has elapsed
+      if (lastSend !== null && Date.now() - lastSend > time) {
+        send()
+        return
+      }
 
-        function send() {
-          lastSend = Date.now()
+      // Start the debounce timer
+      lastTimeout = setTimeout(send, time) as unknown as number
+    })
 
-          const shuffled = buffer.slice().sort(() => Math.random() - 0.5)
-          buffer.length = 0
-
-          for (const [args, resolve] of shuffled) {
-            resolve(mocked(...args))
-          }
-        }
-
-        // Force a send if the maximum amount of time has elapsed
-        if (lastSend !== null && Date.now() - lastSend > time) {
-          send()
-          return
-        }
-
-        // Start the debounce timer
-        lastTimeout = (setTimeout(send, time) as unknown) as number
-      })
-
-      return promise.then((r) => r)
-    },
-  )
+    return promise.then((r) => r)
+  })
 
   return () => {
     if (lastTimeout) {

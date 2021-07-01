@@ -13,7 +13,7 @@ export function getBlockRange<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 >(
   chain: Blockchain<E, H, T, SE, SH, ST>,
   range?: {

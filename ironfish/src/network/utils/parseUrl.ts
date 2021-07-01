@@ -9,9 +9,7 @@ const PORT_SEPARATOR = ':'
  * Liberally parses a URL into its components and returns
  * null for a component if it is not present or invalid
  */
-export function parseUrl(
-  url: string,
-): {
+export function parseUrl(url: string): {
   protocol: string | null
   hostname: string | null
   port: number | null

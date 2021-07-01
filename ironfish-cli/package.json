@@ -10,11 +10,11 @@
     "@oclif/dev-cli": "^1",
     "@oclif/test": "^1",
     "@types/blessed": "0.1.17",
-    "@types/ws": "^7.2.6",
+    "@types/ws": "7.4.5",
     "chai": "4.2.0",
     "cross-env": "7.0.3",
     "eslint-config-ironfish": "*",
-    "jest": "~26.6.3",
+    "jest": "26.6.3",
     "oclif": "1.16.1",
     "tsc-watch": "4.2.9",
     "typescript": "4.3.4",
@@ -40,9 +40,9 @@
   },
   "license": "MPL-2.0",
   "dependencies": {
-    "@oclif/command": "^1",
-    "@oclif/config": "^1",
-    "@oclif/plugin-help": "3",
+    "@oclif/command": "1.8.0",
+    "@oclif/config": "1.17.0",
+    "@oclif/plugin-help": "3.2.2",
     "@oclif/plugin-not-found": "1.2.4",
     "blessed": "0.1.81",
     "cli-ux": "^5.5.0",
@@ -53,10 +53,7 @@
     "tweetnacl": "1.0.3",
     "uuid": "8.3.2",
     "wrtc": "0.4.7",
-    "ws": "^7.3.1"
-  },
-  "resolutions": {
-    "object-path": "^0.11.4"
+    "ws": "7.5.1"
   },
   "oclif": {
     "macos": {

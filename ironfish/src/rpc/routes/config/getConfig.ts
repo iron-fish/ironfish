@@ -34,9 +34,11 @@ router.register<typeof GetConfigRequestSchema, GetConfigResponse>(
       pickKeys = [request.data.name]
     }
 
-    const data = (request.data?.user
-      ? JSON.parse(JSON.stringify(node.config.loaded))
-      : JSON.parse(JSON.stringify(node.config.config, pickKeys))) as GetConfigResponse
+    const data = (
+      request.data?.user
+        ? JSON.parse(JSON.stringify(node.config.loaded))
+        : JSON.parse(JSON.stringify(node.config.config, pickKeys))
+    ) as GetConfigResponse
 
     request.end(data)
   },

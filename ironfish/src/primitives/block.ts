@@ -26,7 +26,7 @@ export class Block<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   header: BlockHeader<E, H, T, SE, SH, ST>
   transactions: T[]
@@ -104,8 +104,9 @@ export class BlockSerde<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
-> implements Serde<Block<E, H, T, SE, SH, ST>, SerializedBlock<SH, ST>> {
+  ST,
+> implements Serde<Block<E, H, T, SE, SH, ST>, SerializedBlock<SH, ST>>
+{
   blockHeaderSerde: BlockHeaderSerde<E, H, T, SE, SH, ST>
 
   constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {

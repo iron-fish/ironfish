@@ -52,7 +52,7 @@ export default class Miner {
       miningRequestId: number
     },
   ): number {
-    const bytes = Buffer.from(newBlockData.bytes)
+    const bytes = Buffer.from(newBlockData.bytes.data)
 
     for (let i = 0; i < numTasks; i++) {
       tasks[randomness] = this.workerPool.mineHeader(
@@ -117,7 +117,7 @@ export default class Miner {
 
         tasks[randomness] = this.workerPool.mineHeader(
           blockToMineResult.value.miningRequestId,
-          Buffer.from(blockToMineResult.value.bytes),
+          Buffer.from(blockToMineResult.value.bytes.data),
           randomness,
           blockToMineResult.value.target,
           BATCH_SIZE,

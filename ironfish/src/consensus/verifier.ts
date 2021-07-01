@@ -49,7 +49,7 @@ export class Verifier<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   strategy: Strategy<E, H, T, SE, SH, ST>
   chain: Blockchain<E, H, T, SE, SH, ST>

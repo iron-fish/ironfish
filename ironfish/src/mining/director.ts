@@ -54,7 +54,7 @@ export class MiningDirector<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   readonly chain: Blockchain<E, H, T, SE, SH, ST>
   readonly memPool: MemPool<E, H, T, SE, SH, ST>
