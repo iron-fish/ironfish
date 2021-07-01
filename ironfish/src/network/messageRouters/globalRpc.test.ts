@@ -150,11 +150,7 @@ describe('Global Rpc', () => {
     await expect(promise).toRejectErrorInstance(CannotSatisfyRequestError)
   })
 
-  // TODO: It looks like in Jest 27.0.3, there is a regression introduced when
-  // using `setTimeout` and `setImmediate`. We should re-enable this test once
-  // that regression has been addressed.
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('throws when peers available but none respond', async () => {
+  it('throws when peers available but none respond', async () => {
     mocked(nextRpcId).mockReturnValue(44)
 
     const router = new GlobalRpcRouter(new RpcRouter(new PeerManager(mockLocalPeer())))
