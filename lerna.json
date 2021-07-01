@@ -5,6 +5,7 @@
     "config/monorepo-template-library",
     "ironfish-cli",
     "ironfish-http-api",
+    "ironfish-http-api-v2",
     "ironfish-rosetta-api",
     "ironfish",
     "ironfish-wasm/nodejs",

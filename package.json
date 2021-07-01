@@ -8,6 +8,7 @@
   "workspaces": [
     "ironfish-cli",
     "ironfish-http-api",
+    "ironfish-http-api-v2",
     "ironfish-rosetta-api",
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
