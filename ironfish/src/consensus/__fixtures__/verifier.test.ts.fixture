@@ -10,7 +10,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -40,7 +40,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "7C6CD5B83620E0592E49DEA881BE2E310001D65F662B46BFB9D7A00C9D785D36",
         "noteCommitment": {
           "commitment": {
@@ -84,7 +84,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -114,7 +114,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "909DA74507BA8558B67F712134461BFA5CE2F91978077EA8CA5F8B6DDA0DBD15",
         "noteCommitment": {
           "commitment": {
@@ -158,7 +158,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -188,7 +188,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "EC7BF51F63A0666938D67CD149C737829F34E352C8A08D604237778636B9E86B",
         "noteCommitment": {
           "commitment": {
@@ -232,7 +232,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -262,7 +262,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "2B448F4E05A88A0112764D38B7AE7AEB977A334EB19081F7D055388E8FDC4754",
         "noteCommitment": {
           "commitment": {
@@ -306,7 +306,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -336,7 +336,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "6ABC6DF7A563808BABEC417402DC0AE9139BEF36918D6B71654583068B097DF8",
         "noteCommitment": {
           "commitment": {

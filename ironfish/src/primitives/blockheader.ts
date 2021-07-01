@@ -185,8 +185,11 @@ export class BlockHeader<
    * This is used for calculating the hash in miners and for verifying it.[]
    */
   serializePartial(): Buffer {
+    // TODO Jason: We serialize the old sequence here for backwards
+    // compatability or else all the hashes will change. We should
+    // change this when we're ready to reset the network
     const serialized = {
-      height: this.height.toString(),
+      sequence: this.height.toString(),
       previousBlockHash: BlockHashSerdeInstance.serialize(this.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy

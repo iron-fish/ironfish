@@ -2,7 +2,7 @@
   "Non-fake director tests successfullyMined submits a validly mined block": [
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
