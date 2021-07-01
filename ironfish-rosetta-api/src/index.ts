@@ -17,6 +17,10 @@ import { Logger } from './utils/logger'
 
 const server = new Server()
 
+if (process.env.DOCKER_VERIFY) {
+  process.exit(0)
+}
+
 server
   .open(SERVER_PORT)
   .then(() => {
