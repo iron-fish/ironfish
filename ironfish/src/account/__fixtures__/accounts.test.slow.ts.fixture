@@ -26,7 +26,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -56,7 +56,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "C00456F9E5A67324844F982446B66763E68FB3E30CB8304EB617BA25D165D9DD",
         "noteCommitment": {
           "commitment": {
@@ -108,7 +108,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -138,7 +138,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -168,7 +168,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "422F8EE5F7EF66D535C4A7EB9CC09D34F22051F48F5F9347A0F5C8E0F3B69B4C",
         "noteCommitment": {
           "commitment": {
@@ -216,7 +216,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -246,7 +246,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "1DE3636FD641A37CDAB4656023E46BDC508DE955706497A5BFBF16A9BD747F79",
         "noteCommitment": {
           "commitment": {
@@ -280,7 +280,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "1DE3636FD641A37CDAB4656023E46BDC508DE955706497A5BFBF16A9BD747F79",
         "noteCommitment": {
           "commitment": {
@@ -310,7 +310,7 @@
     },
     {
       "header": {
-        "sequence": 4,
+        "height": 4,
         "previousBlockHash": "491A15AE22740D13753C4BA22FC8DD422C2977615EF1049970C526C7B83EA626",
         "noteCommitment": {
           "commitment": {
@@ -358,7 +358,7 @@
     },
     {
       "header": {
-        "sequence": 2,
+        "height": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -388,7 +388,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "3252884274B53CCC0DB01E5CE2A761F1B64505E56D6061122161421E35C5155A",
         "noteCommitment": {
           "commitment": {
@@ -422,7 +422,7 @@
     },
     {
       "header": {
-        "sequence": 3,
+        "height": 3,
         "previousBlockHash": "3252884274B53CCC0DB01E5CE2A761F1B64505E56D6061122161421E35C5155A",
         "noteCommitment": {
           "commitment": {
@@ -452,7 +452,7 @@
     },
     {
       "header": {
-        "sequence": 4,
+        "height": 4,
         "previousBlockHash": "2D159CE11D2437A066C28415AAE8A1F0C79420D42A8D4CF375A26621322CDDD5",
         "noteCommitment": {
           "commitment": {

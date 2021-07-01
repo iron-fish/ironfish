@@ -148,13 +148,14 @@ export class TestStrategy
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     const headerWithoutRandomness = Buffer.from(serializedHeader.slice(8))
     const header = JSON.parse(headerWithoutRandomness.toString()) as Record<string, unknown>
-    const headerHeight = header['height']
+
+    const headerHeight = header['sequence']
     if (
       typeof headerHeight !== 'bigint' &&
       typeof headerHeight !== 'string' &&
       typeof headerHeight !== 'number'
     ) {
-      throw new Error(`Invalid height type in header`)
+      throw new Error(`Invalid sequence type in header`)
     }
 
     const height = BigInt(headerHeight)
