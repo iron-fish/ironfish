@@ -20,7 +20,7 @@ export interface HeadersSchema<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > extends DatabaseSchema {
   key: BlockHash
   value: BlockHeader<E, H, T, SE, SH, ST>

@@ -117,7 +117,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     const stream = this.db.levelup.createReadStream(this.allKeysRange)
 
     for await (const pair of stream) {
-      const { key, value } = (pair as unknown) as { key: Buffer; value: Buffer }
+      const { key, value } = pair as unknown as { key: Buffer; value: Buffer }
       if (!seen.has(BUFFER_TO_STRING_ENCODING.serialize(key))) {
         yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
       }

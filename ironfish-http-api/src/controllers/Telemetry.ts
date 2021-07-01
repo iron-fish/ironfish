@@ -58,7 +58,7 @@ async function writeTelemetryController(
 }
 
 export async function writeTelemetry(request: Request, response: Response): Promise<Response> {
-  const body = (request.body as unknown) as Components.Schemas.WriteTelemetryRequest
+  const body = request.body as unknown as Components.Schemas.WriteTelemetryRequest
   await writeTelemetryController(body)
   response.sendStatus(200)
   return response

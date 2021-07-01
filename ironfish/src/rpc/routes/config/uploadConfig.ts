@@ -13,7 +13,8 @@ export const UploadConfigRequestSchema: yup.ObjectSchema<UploadConfigRequest> = 
   .object({ config: yup.mixed().required() })
   .defined()
 
-export const UploadConfigResponseSchema: yup.ObjectSchema<UploadConfigResponse> = ConfigOptionsSchema
+export const UploadConfigResponseSchema: yup.ObjectSchema<UploadConfigResponse> =
+  ConfigOptionsSchema
 
 router.register<typeof UploadConfigRequestSchema, UploadConfigResponse>(
   `${ApiNamespace.config}/uploadConfig`,

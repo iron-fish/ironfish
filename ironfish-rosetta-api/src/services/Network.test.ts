@@ -41,8 +41,8 @@ describe('Network service', () => {
   })
 
   describe('NetworkStatus service', () => {
-    const request = (jest.fn() as unknown) as Request
-    const response = (jest.fn() as unknown) as Response
+    const request = jest.fn() as unknown as Request
+    const response = jest.fn() as unknown as Response
 
     const getRequestHander = (
       networkIdentifier: NetworkIdentifier,

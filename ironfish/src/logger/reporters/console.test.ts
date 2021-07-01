@@ -148,11 +148,11 @@ describe('getConsoleLogger', () => {
     ['start', console.info],
   ])('returns the right console logger for %s', (type, expected) => {
     const reporter = new ConsoleReporter()
-    expect(reporter['getConsoleLogger']((type as unknown) as logType)).toEqual(expected)
+    expect(reporter['getConsoleLogger'](type as unknown as logType)).toEqual(expected)
   })
 
   it('should throw an error when passing an invalid logType', () => {
     const reporter = new ConsoleReporter()
-    expect(() => reporter['getConsoleLogger'](('test' as unknown) as logType)).toThrowError()
+    expect(() => reporter['getConsoleLogger']('test' as unknown as logType)).toThrowError()
   })
 })

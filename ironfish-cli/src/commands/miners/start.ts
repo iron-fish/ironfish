@@ -47,9 +47,8 @@ export class Miner extends IronfishCommand {
 
     async function* nextBlock(blocksStream: AsyncGenerator<unknown, void>) {
       for (;;) {
-        const blocksResult = (await blocksStream.next()) as IteratorResult<
-          NewBlocksStreamResponse
-        >
+        const blocksResult =
+          (await blocksStream.next()) as IteratorResult<NewBlocksStreamResponse>
 
         if (blocksResult.done) {
           return

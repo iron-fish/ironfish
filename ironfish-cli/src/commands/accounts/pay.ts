@@ -56,8 +56,8 @@ export class Pay extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = this.parse(Pay)
-    let amount = (flags.amount as unknown) as number
-    let fee = (flags.fee as unknown) as number
+    let amount = flags.amount as unknown as number
+    let fee = flags.fee as unknown as number
     let to = flags.to
     let from = flags.account
 

@@ -115,10 +115,8 @@ describe('Verifier', () => {
       const block = makeFakeBlock(strategy, blockHash(1), blockHash(2), 2, 5, 6)
       const serializedBlock = chain.strategy.blockSerde.serialize(block)
 
-      const {
-        block: newBlock,
-        serializedBlock: newSerializedBlock,
-      } = await chain.verifier.verifyNewBlock(serializedBlock, new WorkerPool())
+      const { block: newBlock, serializedBlock: newSerializedBlock } =
+        await chain.verifier.verifyNewBlock(serializedBlock, new WorkerPool())
 
       expect(newBlock.header.hash.equals(block.header.hash)).toBe(true)
       expect(newSerializedBlock.header.previousBlockHash).toEqual(

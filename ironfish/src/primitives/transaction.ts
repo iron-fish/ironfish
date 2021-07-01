@@ -89,7 +89,8 @@ export interface Transaction<E, H> {
 }
 
 export class IronfishTransaction
-  implements Transaction<IronfishNoteEncrypted, WasmNoteEncryptedHash> {
+  implements Transaction<IronfishNoteEncrypted, WasmNoteEncryptedHash>
+{
   private readonly wasmTransactionPostedSerialized: Buffer
   private readonly workerPool: WorkerPool
 

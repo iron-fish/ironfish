@@ -48,9 +48,7 @@ export class NodeTest {
     this.options = options
   }
 
-  async createSetup(
-    options?: NodeTestOptions,
-  ): Promise<{
+  async createSetup(options?: NodeTestOptions): Promise<{
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy

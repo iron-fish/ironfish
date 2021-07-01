@@ -26,7 +26,7 @@ export class MemPool<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   transactions = new BufferMap<T>()
   chain: Blockchain<E, H, T, SE, SH, ST>

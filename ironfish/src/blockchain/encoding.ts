@@ -13,8 +13,9 @@ export class BlockHeaderEncoding<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
-> implements IDatabaseEncoding<BlockHeader<E, H, T, SE, SH, ST>> {
+  ST,
+> implements IDatabaseEncoding<BlockHeader<E, H, T, SE, SH, ST>>
+{
   jsonSerializer: JsonEncoding<SerializedBlockHeader<SH>>
   headerSerializer: BlockHeaderSerde<E, H, T, SE, SH, ST>
 
@@ -41,7 +42,8 @@ export class BlockHeaderEncoding<
 }
 
 export class TransactionArrayEncoding<E, H, T extends Transaction<E, H>, ST>
-  implements IDatabaseEncoding<T[]> {
+  implements IDatabaseEncoding<T[]>
+{
   jsonSerializer: JsonEncoding<ST[]>
   transactionSerializer: Serde<T, ST>
 
