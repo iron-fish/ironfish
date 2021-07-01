@@ -6,5 +6,4 @@ module.exports = {
   coverageProvider: "v8",
   coverageReporters: ["text-summary", "json", "clover", "text"],
   testPathIgnorePatterns: ['.*\\.test\\.slow\\.ts$', '.*\\.test\\.perf\\.ts$'],
-  testRunner: "jest-jasmine2",
 };

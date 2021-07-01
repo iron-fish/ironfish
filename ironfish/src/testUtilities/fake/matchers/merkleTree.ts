@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { diff } from 'jest-diff'
+import diff from 'jest-diff'
 import { MerkleTree, Witness, WitnessSide } from '../../../merkletree'
 import { NodeValue } from '../../../merkletree/schema'
 import { makeError } from '../../matchers/utils'
