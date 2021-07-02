@@ -40,16 +40,8 @@ export class RouteTest extends NodeTest {
   }
 
   async setup(): Promise<void> {
-    const {
-      sdk,
-      node,
-      strategy,
-      chain,
-      peerNetwork,
-      syncer,
-      client,
-      adapter,
-    } = await this.createSetup()
+    const { sdk, node, strategy, chain, peerNetwork, syncer, client, adapter } =
+      await this.createSetup()
 
     this.sdk = sdk
     this.node = node

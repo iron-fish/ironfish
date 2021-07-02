@@ -10,10 +10,7 @@
   ],
   "peerDependencies": {
     "eslint-config-ironfish": "*",
-    "eslint-plugin-react": "7.20.6",
-    "eslint-plugin-react-hooks": "4.1.2"
-  },
-  "resolutions": {
-    "object-path": "^0.11.4"
+    "eslint-plugin-react": "7.24.0",
+    "eslint-plugin-react-hooks": "4.2.0"
   }
 }

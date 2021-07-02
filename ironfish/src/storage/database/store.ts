@@ -130,7 +130,8 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
 }
 
 export abstract class DatabaseStore<Schema extends DatabaseSchema>
-  implements IDatabaseStore<Schema> {
+  implements IDatabaseStore<Schema>
+{
   name: string
   keyEncoding: IDatabaseEncoding<SchemaKey<Schema>>
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>

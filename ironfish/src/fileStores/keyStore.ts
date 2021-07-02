@@ -18,9 +18,8 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
   keysLoaded = new Set<keyof TSchema>()
   schema: yup.ObjectSchema<Partial<TSchema>> | undefined
 
-  readonly onConfigChange: Event<
-    [key: keyof TSchema, value: TSchema[keyof TSchema]]
-  > = new Event()
+  readonly onConfigChange: Event<[key: keyof TSchema, value: TSchema[keyof TSchema]]> =
+    new Event()
 
   constructor(
     files: FileSystem,

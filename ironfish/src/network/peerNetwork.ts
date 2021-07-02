@@ -422,7 +422,7 @@ export class PeerNetwork {
   registerHandler<
     P extends PayloadType,
     S extends RoutingStyle = RoutingStyle,
-    T extends MessageType = MessageType
+    T extends MessageType = MessageType,
   >(
     type: T,
     style: S,

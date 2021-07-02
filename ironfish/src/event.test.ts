@@ -25,12 +25,10 @@ describe('Event', () => {
 
     let fired = false
 
-    event.on(
-      async (): Promise<void> => {
-        await new Promise((resolve) => setTimeout(resolve, 10))
-        fired = true
-      },
-    )
+    event.on(async (): Promise<void> => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      fired = true
+    })
 
     await event.emitAsync()
     expect(fired).toBe(true)

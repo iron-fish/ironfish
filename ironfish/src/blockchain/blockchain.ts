@@ -65,7 +65,7 @@ export class Blockchain<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   db: IDatabase
   logger: Logger
@@ -306,9 +306,7 @@ export class Blockchain<
     await this.db.close()
   }
 
-  async addBlock(
-    block: Block<E, H, T, SE, SH, ST>,
-  ): Promise<{
+  async addBlock(block: Block<E, H, T, SE, SH, ST>): Promise<{
     isAdded: boolean
     reason: VerificationResultReason | null
     score: number | null

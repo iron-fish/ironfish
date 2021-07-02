@@ -39,7 +39,7 @@ export interface Strategy<
   T extends Transaction<E, H>,
   SE extends JsonSerializable,
   SH extends JsonSerializable,
-  ST
+  ST,
 > {
   /**
    * Create a verifier used to validate conensus
@@ -121,7 +121,8 @@ export class IronfishStrategy
       SerializedWasmNoteEncrypted,
       SerializedWasmNoteEncryptedHash,
       SerializedTransaction
-    > {
+    >
+{
   _noteHasher: NoteHasher
 
   _nullifierHasher: NullifierHasher

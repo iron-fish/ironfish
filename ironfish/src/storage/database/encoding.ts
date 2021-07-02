@@ -16,7 +16,8 @@ export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncod
 }
 
 export class StringEncoding<TValues extends string = string>
-  implements IDatabaseEncoding<TValues> {
+  implements IDatabaseEncoding<TValues>
+{
   serialize = (value: TValues): Buffer => Buffer.from(value, 'utf8')
   deserialize = (buffer: Buffer): TValues => buffer.toString('utf8') as TValues
 

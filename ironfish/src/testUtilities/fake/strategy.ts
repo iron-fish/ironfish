@@ -67,7 +67,8 @@ export type SerializedTestTransaction<H = string> = {
  */
 export class TestStrategy
   implements
-    Strategy<string, string, TestTransaction, string, string, SerializedTestTransaction> {
+    Strategy<string, string, TestTransaction, string, string, SerializedTestTransaction>
+{
   _noteHasher: ConcatHasher
   _nullifierHasher: NullifierHasher
 

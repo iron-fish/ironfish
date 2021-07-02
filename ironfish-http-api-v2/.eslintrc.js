@@ -7,4 +7,12 @@ module.exports = {
     tsconfigRootDir: __dirname,
   },
   ignorePatterns: ['build'],
+  rules: {
+    'jest/expect-expect': [
+      'error',
+      {
+        assertFunctionNames: ['expect', 'request.**.expect'],
+      },
+    ],
+  },
 }

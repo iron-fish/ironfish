@@ -64,10 +64,7 @@ describe('select peers', () => {
     peer1.pendingRPC = 0
     peer2.pendingRPC = 1
 
-    router.requestFails.set(
-      peer1.getIdentityOrThrow(),
-      new Set<MessageType>(['take']),
-    )
+    router.requestFails.set(peer1.getIdentityOrThrow(), new Set<MessageType>(['take']))
 
     router.register('take', jest.fn())
     expect(router['selectPeer']('take')).toBe(peer2)
@@ -86,14 +83,8 @@ describe('select peers', () => {
     peer1.pendingRPC = 0
     peer2.pendingRPC = 1
 
-    router.requestFails.set(
-      peer1.getIdentityOrThrow(),
-      new Set<MessageType>(['take']),
-    )
-    router.requestFails.set(
-      peer2.getIdentityOrThrow(),
-      new Set<MessageType>(['take']),
-    )
+    router.requestFails.set(peer1.getIdentityOrThrow(), new Set<MessageType>(['take']))
+    router.requestFails.set(peer2.getIdentityOrThrow(), new Set<MessageType>(['take']))
 
     expect(router.requestFails.get(peer1.getIdentityOrThrow())?.has('take')).toBe(true)
     expect(router.requestFails.get(peer2.getIdentityOrThrow())?.has('take')).toBe(true)
@@ -113,10 +104,7 @@ describe('select peers', () => {
     const { peer } = getConnectedPeer(pm)
 
     router.register('take', jest.fn())
-    router.requestFails.set(
-      peer.getIdentityOrThrow(),
-      new Set<MessageType>(['take']),
-    )
+    router.requestFails.set(peer.getIdentityOrThrow(), new Set<MessageType>(['take']))
 
     expect(router.requestFails.has(peer.getIdentityOrThrow())).toBe(true)
     pm.onDisconnect.emit(peer)

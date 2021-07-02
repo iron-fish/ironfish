@@ -9,15 +9,12 @@
     "prettierrc"
   ],
   "peerDependencies": {
-    "@typescript-eslint/eslint-plugin": "4.9.0",
-    "@typescript-eslint/parser": "4.9.0",
-    "eslint": "7.12.0",
-    "eslint-config-prettier": "6.11.0",
-    "eslint-plugin-jest": "24.0.1",
-    "eslint-plugin-prettier": "3.1.4",
-    "prettier": "2.1.2"
-  },
-  "resolutions": {
-    "object-path": "^0.11.4"
+    "@typescript-eslint/eslint-plugin": "4.28.1",
+    "@typescript-eslint/parser": "4.28.1",
+    "eslint": "7.29.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-jest": "24.3.6",
+    "eslint-plugin-prettier": "3.4.0",
+    "prettier": "2.3.2"
   }
 }
