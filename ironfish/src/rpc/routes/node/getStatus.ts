@@ -117,7 +117,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     blockchain: {
       synced: node.chain.synced,
       head: `${node.chain.head.hash.toString('hex') || ''} (${
-        node.chain.head.height.toString() || ''
+        node.chain.head.sequence.toString() || ''
       })`,
     },
     node: {

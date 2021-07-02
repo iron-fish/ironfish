@@ -11,11 +11,11 @@ export class IronfishTestStrategy extends IronfishStrategy {
     this._miningReward = 0
   }
 
-  miningReward(height: number): number {
+  miningReward(sequence: number): number {
     if (this._miningReward !== null) {
       return this._miningReward
     }
 
-    return super.miningReward(height)
+    return super.miningReward(sequence)
   }
 }

@@ -159,7 +159,7 @@ describe('PeerManager', () => {
         agent: '',
 
         head: '',
-        height: 1,
+        sequence: 1,
         work: BigInt(0).toString(),
         port: null,
       },
@@ -272,7 +272,7 @@ describe('PeerManager', () => {
         port: null,
         agent: pm.localPeer.agent,
         head: pm.localPeer.chain.head.hash,
-        height: Number(pm.localPeer.chain.head.height),
+        sequence: Number(pm.localPeer.chain.head.sequence),
         work: pm.localPeer.chain.head.work.toString(),
       },
     })
@@ -707,7 +707,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
         },
       }
@@ -750,7 +750,7 @@ describe('PeerManager', () => {
           version: VERSION_PROTOCOL_MIN - 1,
           agent: '',
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
           port: peer.port,
         },
@@ -787,7 +787,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
           port: peer.port,
         },
@@ -817,7 +817,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
         },
       }
@@ -866,7 +866,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
         },
       }
@@ -915,7 +915,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
         },
       }
@@ -968,7 +968,7 @@ describe('PeerManager', () => {
           agent: '',
 
           head: '',
-          height: 1,
+          sequence: 1,
           work: BigInt(0).toString(),
           port: 9033,
         },

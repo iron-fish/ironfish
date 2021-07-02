@@ -90,9 +90,9 @@ export class Peer {
    */
   work: bigint | null = null
   /**
-   * The peers heaviest head height
+   * The peers heaviest head sequence
    */
-  height: number | null = null
+  sequence: number | null = null
   /**
    * The loggable name of the peer. For a more specific value,
    * try Peer.name or Peer.state.identity.

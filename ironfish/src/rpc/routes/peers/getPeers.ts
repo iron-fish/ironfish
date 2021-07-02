@@ -12,7 +12,7 @@ type PeerResponse = {
   identity: string | null
   version: number | null
   head: string | null
-  height: number | null
+  sequence: number | null
   work: string | null
   agent: string | null
   name: string | null
@@ -57,7 +57,7 @@ export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
             name: yup.string().nullable().defined(),
             head: yup.string().nullable().defined(),
             work: yup.string().nullable().defined(),
-            height: yup.number().nullable().defined(),
+            sequence: yup.number().nullable().defined(),
             version: yup.number().nullable().defined(),
             agent: yup.string().nullable().defined(),
             error: yup.string().nullable().defined(),
@@ -143,7 +143,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       agent: peer.agent,
       head: peer.head?.toString('hex') || null,
       work: String(peer.work),
-      height: peer.height !== null ? Number(peer.height) : null,
+      sequence: peer.sequence !== null ? Number(peer.sequence) : null,
       connections: connections,
       error: peer.error !== null ? String(peer.error) : null,
       connectionWebSocket: connectionWebSocket,

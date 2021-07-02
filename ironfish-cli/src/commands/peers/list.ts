@@ -41,10 +41,10 @@ export class ListCommand extends IronfishCommand {
       default: false,
       description: 'display peer agents',
     }),
-    height: flags.boolean({
-      char: 'h',
+    sequence: flags.boolean({
+      char: 's',
       default: false,
-      description: 'display peer head height',
+      description: 'display peer head sequence',
     }),
     names: flags.boolean({
       char: 'n',
@@ -101,7 +101,7 @@ function renderTable(
     all: boolean
     sort: string
     agents: boolean
-    height: boolean
+    sequence: boolean
   },
 ): string {
   let columns: Table.table.Columns<GetPeerResponsePeer> = {
@@ -133,12 +133,12 @@ function renderTable(
     }
   }
 
-  if (flags.height) {
-    columns['height'] = {
+  if (flags.sequence) {
+    columns['sequence'] = {
       header: 'SEQ',
       minWidth: 2,
       get: (row: GetPeerResponsePeer) => {
-        return row.height || '-'
+        return row.sequence || '-'
       },
     }
   }

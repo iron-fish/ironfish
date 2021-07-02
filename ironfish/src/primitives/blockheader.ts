@@ -37,8 +37,8 @@ export function isBlockLater<
   SH extends JsonSerializable,
   ST,
 >(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
-  if (a.height !== b.height) {
-    return a.height > b.height
+  if (a.sequence !== b.sequence) {
+    return a.sequence > b.sequence
   }
 
   return a.hash < b.hash
@@ -56,8 +56,8 @@ export function isBlockHeavier<
     return a.work > b.work
   }
 
-  if (a.height !== b.height) {
-    return a.height > b.height
+  if (a.sequence !== b.sequence) {
+    return a.sequence > b.sequence
   }
 
   if (a.target.toDifficulty() !== b.target.toDifficulty()) {
@@ -79,11 +79,11 @@ export class BlockHeader<
   public strategy: Strategy<E, H, T, SE, SH, ST>
 
   /**
-   * The height number of the block. Blocks in a chain increase in ascending
-   * order of height. More than one block may have the same height,
+   * The sequence number of the block. Blocks in a chain increase in ascending
+   * order of sequence. More than one block may have the same sequence,
    * indicating a fork in the chain, but only one fork is selected at a time.
    */
-  public height: number
+  public sequence: number
 
   /**
    * The hash of the previous block in the chain
@@ -152,7 +152,7 @@ export class BlockHeader<
 
   constructor(
     strategy: Strategy<E, H, T, SE, SH, ST>,
-    height: number,
+    sequence: number,
     previousBlockHash: BlockHash,
     noteCommitment: { commitment: H; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
@@ -165,7 +165,7 @@ export class BlockHeader<
     hash?: Buffer,
   ) {
     this.strategy = strategy
-    this.height = height
+    this.sequence = sequence
     this.previousBlockHash = previousBlockHash
     this.noteCommitment = noteCommitment
     this.nullifierCommitment = nullifierCommitment
@@ -186,7 +186,7 @@ export class BlockHeader<
    */
   serializePartial(): Buffer {
     const serialized = {
-      height: this.height.toString(),
+      sequence: this.sequence.toString(),
       previousBlockHash: BlockHashSerdeInstance.serialize(this.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
@@ -237,7 +237,7 @@ export class BlockHeader<
 }
 
 export type SerializedBlockHeader<SH> = {
-  height: number
+  sequence: number
   previousBlockHash: string
   noteCommitment: {
     commitment: SH
@@ -273,7 +273,7 @@ export class BlockHeaderSerde<
     element2: BlockHeader<E, H, T, SE, SH, ST>,
   ): boolean {
     return (
-      element1.height === element2.height &&
+      element1.sequence === element2.sequence &&
       this.strategy
         .noteHasher()
         .hashSerde()
@@ -297,7 +297,7 @@ export class BlockHeaderSerde<
 
   serialize(header: BlockHeader<E, H, T, SE, SH, ST>): SerializedBlockHeader<SH> {
     const serialized = {
-      height: header.height,
+      sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: this.strategy
@@ -330,7 +330,7 @@ export class BlockHeaderSerde<
     // as it can be from untrusted sources
     const header = new BlockHeader(
       this.strategy,
-      Number(data.height),
+      Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
         commitment: this.strategy

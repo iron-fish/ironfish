@@ -95,7 +95,7 @@ export type Identify = Message<
     port: number | null
     head: string
     work: string
-    height: number
+    sequence: number
   }
 >
 
@@ -115,7 +115,7 @@ export function isIdentify(obj: unknown): obj is Identify {
     typeof payload.version === 'number' &&
     typeof payload.head === 'string' &&
     typeof payload.work === 'string' &&
-    typeof payload.height === 'number'
+    typeof payload.sequence === 'number'
   )
 }
 

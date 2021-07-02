@@ -62,7 +62,7 @@ const searchBlockEndpointComponents = {
         $ref: '#/components/schemas/Operator',
       },
       seek: {
-        description: 'seek parameter to offset the pagination at a previous block height.',
+        description: 'seek parameter to offset the pagination at a previous block sequence.',
         type: 'integer',
         format: 'int64',
         minimum: 0,
@@ -78,7 +78,7 @@ const searchBlockEndpointComponents = {
         example: 5,
       },
       query: {
-        description: 'query to filter blocks on hash or height\n',
+        description: 'query to filter blocks on hash or sequence\n',
         type: 'string',
       },
     },

@@ -12,13 +12,13 @@ describe('Route chain.getChainInfo', () => {
     const response = await routeTest.adapter.request<GetChainInfoResponse>('chain/getChainInfo')
 
     expect(response.content.currentBlockIdentifier.index).toEqual(
-      routeTest.chain.latest.height.toString(),
+      routeTest.chain.latest.sequence.toString(),
     )
     expect(response.content.genesisBlockIdentifier.index).toEqual(
-      routeTest.chain.genesis.height.toString(),
+      routeTest.chain.genesis.sequence.toString(),
     )
     expect(response.content.oldestBlockIdentifier.index).toEqual(
-      routeTest.chain.head.height.toString(),
+      routeTest.chain.head.sequence.toString(),
     )
     expect(response.content.currentBlockTimestamp).toEqual(
       Number(routeTest.chain.latest.timestamp),

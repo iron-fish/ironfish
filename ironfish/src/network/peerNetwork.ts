@@ -632,7 +632,7 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveHeightOrHash(
+  private async resolveSequenceOrHash(
     start: string | number,
   ): Promise<IronfishBlockHeader | null> {
     if (typeof start === 'string') {
@@ -641,7 +641,7 @@ export class PeerNetwork {
     }
 
     if (typeof start === 'number') {
-      const header = await this.chain.getHeaderAtHeight(start)
+      const header = await this.chain.getHeaderAtSequence(start)
       if (header) {
         return header
       }
@@ -678,7 +678,7 @@ export class PeerNetwork {
     const start = message.payload.start
     const limit = message.payload.limit
 
-    const from = await this.resolveHeightOrHash(start)
+    const from = await this.resolveSequenceOrHash(start)
     if (!from) {
       return { blocks: [] }
     }
@@ -723,7 +723,7 @@ export class PeerNetwork {
     const start = message.payload.start
     const limit = message.payload.limit
 
-    const from = await this.resolveHeightOrHash(start)
+    const from = await this.resolveSequenceOrHash(start)
     if (!from) {
       return { blocks: [] }
     }
@@ -766,7 +766,7 @@ export class PeerNetwork {
       return await this.node.syncer.addNewBlock(peer, block)
     } catch (error) {
       this.logger.error(
-        `Error when adding new block ${block.header.height} from ${
+        `Error when adding new block ${block.header.sequence} from ${
           peer.displayName
         }: ${ErrorUtils.renderError(error, true)}`,
       )

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_HEIGHT } from '../../../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -114,34 +114,33 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   GetBlockRequestSchema,
   async (request, node): Promise<void> => {
     let hashBuffer = null
-    let height = null
+    let sequence = null
 
     if (request.data.hash) {
       hashBuffer = BlockHashSerdeInstance.deserialize(request.data.hash)
     }
 
     if (request.data.index) {
-      height = request.data.index
+      sequence = request.data.index
     }
 
-    if (!hashBuffer && !height) {
-      throw new ValidationError(`Missing hash or height`)
+    if (!hashBuffer && !sequence) {
+      throw new ValidationError(`Missing hash or sequence`)
     }
 
-    // Get a block hash for the specific height
+    // Get a block hash for the specific sequence
     // You must assume that the block returned will not be idempotent
     // Given that a chain reorg event might cause the specific block
-    // at that height can be set to a different one
-    if (!hashBuffer && height) {
-      const hashBuffers = await node.chain.getHashesAtHeight(height)
-
+    // at that sequence can be set to a different one
+    if (!hashBuffer && sequence) {
+      const hashBuffers = await node.chain.getHashesAtSequence(sequence)
       if (Array.isArray(hashBuffers) && hashBuffers.length > 0) {
         hashBuffer = hashBuffers[0]
       }
     }
 
     if (!hashBuffer) {
-      throw new ValidationError(`No block found at provided height`)
+      throw new ValidationError(`No block found at provided sequence`)
     }
 
     const block = await node.chain.getBlock(hashBuffer)
@@ -150,7 +149,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     let parentBlock
-    if (block.header.height === GENESIS_BLOCK_HEIGHT) {
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       parentBlock = block
     } else {
       parentBlock = await node.chain.getBlock(block.header.previousBlockHash)
@@ -193,11 +192,11 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
     request.end({
       blockIdentifier: {
-        index: block.header.height.toString(),
+        index: block.header.sequence.toString(),
         hash: BlockHashSerdeInstance.serialize(block.header.hash),
       },
       parentBlockIdentifier: {
-        index: parentBlock.header.height.toString(),
+        index: parentBlock.header.sequence.toString(),
         hash: BlockHashSerdeInstance.serialize(parentBlock.header.hash),
       },
       timestamp: block.header.timestamp.getTime(),

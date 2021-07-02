@@ -59,7 +59,7 @@ export default class RepairChain extends IronfishCommand {
     }
 
     Assert.isNotNull(node.chain.head)
-    const total = Number(node.chain.head.height)
+    const total = Number(node.chain.head.sequence)
     const estimate = TimeUtils.renderEstimate(0, total, SPEED_ESTIMATE)
 
     const confirmed =
@@ -89,10 +89,10 @@ export default class RepairChain extends IronfishCommand {
     cli.action.stop()
 
     cli.action.start('Clearing Sequence to hash table')
-    await node.chain.heightToHash.clear()
+    await node.chain.sequenceToHash.clear()
     cli.action.stop()
 
-    const total = Number(node.chain.head.height)
+    const total = Number(node.chain.head.sequence)
     let done = 0
     let head = node.chain.head as IronfishBlockHeader | null
 
@@ -103,8 +103,8 @@ export default class RepairChain extends IronfishCommand {
       estimate: '-',
     })
 
-    while (head && head.height > BigInt(0)) {
-      await node.chain.heightToHash.put(head.height, head.hash)
+    while (head && head.sequence > BigInt(0)) {
+      await node.chain.sequenceToHash.put(head.sequence, head.hash)
       await node.chain.hashToNextHash.put(head.previousBlockHash, head.hash)
 
       head = await node.chain.getHeader(head.previousBlockHash)
@@ -142,13 +142,13 @@ export default class RepairChain extends IronfishCommand {
 
     this.log('\nRepairing MerkleTrees')
 
-    const total = TREE_END ? TREE_END - TREE_START : Number(node.chain.head.height)
+    const total = TREE_END ? TREE_END - TREE_START : Number(node.chain.head.sequence)
     let done = 0
 
     let tx: IDatabaseTransaction | null = null
-    let header = await node.chain.getHeaderAtHeight(TREE_START)
+    let header = await node.chain.getHeaderAtSequence(TREE_START)
     let block = header ? await node.chain.getBlock(header) : null
-    let prev = await node.chain.getHeaderAtHeight(TREE_START - 1)
+    let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
 
     cli.action.start('Clearing notes MerkleTree')
     await node.chain.notes.truncate(prev ? prev.noteCommitment.size : 0)
@@ -183,7 +183,7 @@ export default class RepairChain extends IronfishCommand {
         const error =
           `\n❗ ERROR adding notes from block` +
           `\nreason: ${String(verify.reason)}` +
-          `\nblock:  ${block.header.hash.toString('hex')} (${block.header.height})` +
+          `\nblock:  ${block.header.hash.toString('hex')} (${block.header.sequence})` +
           `\n\nThis means your database is corrupt and needs to be deleted.` +
           `\nDelete your database at ${node.config.chainDatabasePath}\n`
 
@@ -193,7 +193,7 @@ export default class RepairChain extends IronfishCommand {
 
       done++
 
-      if (TREE_END !== null && Number(block.header.height) >= TREE_END) {
+      if (TREE_END !== null && Number(block.header.sequence) >= TREE_END) {
         break
       }
 

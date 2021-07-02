@@ -11,7 +11,7 @@ import { JsonSerializable } from '../../../serde'
 import { BlockchainUtils, HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
-  height: true,
+  seq: true,
   work: true,
   indent: '|',
 }
@@ -30,7 +30,7 @@ export async function logChain<
   options: {
     prev?: boolean
     merge?: boolean
-    height?: boolean
+    seq?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -59,7 +59,7 @@ export async function renderChain<
   stop?: number | null,
   options: {
     prev?: boolean
-    height?: boolean
+    seq?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -85,7 +85,7 @@ export async function renderChain<
     stop,
   })
 
-  const roots = await chain.getHeadersAtHeight(startHeight)
+  const roots = await chain.getHeadersAtSequence(startHeight)
 
   for (const root of roots) {
     await renderGraph(chain, root, stopHeight, content, options, logger)
@@ -108,7 +108,7 @@ export async function renderGraph<
   content: string[],
   options: {
     prev?: boolean
-    height?: boolean
+    seq?: boolean
     work?: boolean
     indent?: string
   } = DEFAULT_OPTIONS,
@@ -126,8 +126,8 @@ export async function renderGraph<
 
   let rendered = `+- Block ${HashUtils.renderHash(header.hash)}`
 
-  if (options.height) {
-    rendered += ` (${header.height})`
+  if (options.seq) {
+    rendered += ` (${header.sequence})`
   }
   if (options.prev) {
     rendered += ` prev: ${HashUtils.renderHash(header.previousBlockHash)}`
@@ -148,11 +148,11 @@ export async function renderGraph<
 
   content.push(indent + rendered)
 
-  if (header.height === end) {
+  if (header.sequence === end) {
     return
   }
 
-  const next = await chain.getHeadersAtHeight(header.height + 1)
+  const next = await chain.getHeadersAtSequence(header.sequence + 1)
   const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
   const nesting = children.length >= 2
 

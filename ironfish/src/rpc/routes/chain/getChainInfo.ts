@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { GENESIS_BLOCK_HEIGHT } from '../../../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 
@@ -52,7 +52,7 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
 
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
-      oldestBlockIdentifier.index = heaviestHeader.height.toString()
+      oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
       oldestBlockIdentifier.hash = BlockHashSerdeInstance.serialize(heaviestHeader.hash)
     }
 
@@ -60,12 +60,12 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     const currentBlockIdentifier = {} as BlockIdentifier
     if (latestHeader) {
       currentBlockTimestamp = Number(latestHeader.timestamp)
-      currentBlockIdentifier.index = latestHeader.height.toString()
+      currentBlockIdentifier.index = latestHeader.sequence.toString()
       currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
     }
 
     const genesisBlockIdentifier = {} as BlockIdentifier
-    genesisBlockIdentifier.index = GENESIS_BLOCK_HEIGHT.toString()
+    genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
     genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
     request.end({

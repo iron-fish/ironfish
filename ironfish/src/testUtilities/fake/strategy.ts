@@ -143,22 +143,22 @@ export class TestStrategy
   }
 
   /**
-   * Generate a hash from the block's height.
+   * Generate a hash from the block's sequence.
    */
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     const headerWithoutRandomness = Buffer.from(serializedHeader.slice(8))
     const header = JSON.parse(headerWithoutRandomness.toString()) as Record<string, unknown>
-    const headerHeight = header['height']
+    const headerSequence = header['sequence']
     if (
-      typeof headerHeight !== 'bigint' &&
-      typeof headerHeight !== 'string' &&
-      typeof headerHeight !== 'number'
+      typeof headerSequence !== 'bigint' &&
+      typeof headerSequence !== 'string' &&
+      typeof headerSequence !== 'number'
     ) {
-      throw new Error(`Invalid height type in header`)
+      throw new Error(`Invalid sequence type in header`)
     }
 
-    const height = BigInt(headerHeight)
-    const bigIntArray = BigInt64Array.from([height])
+    const sequence = BigInt(headerSequence)
+    const bigIntArray = BigInt64Array.from([sequence])
     const byteArray = Buffer.from(bigIntArray.buffer)
     const result = Buffer.alloc(32)
     result.set(byteArray)
@@ -167,10 +167,10 @@ export class TestStrategy
 
   createMinersFee(
     totalTransactionFees: bigint,
-    blockHeight: number,
+    blockSequence: number,
     _minerKey: string,
   ): Promise<TestTransaction> {
-    const miningReward = this.miningReward(blockHeight)
+    const miningReward = this.miningReward(blockSequence)
     return Promise.resolve(
       new TestTransaction(
         true,
@@ -181,7 +181,7 @@ export class TestStrategy
     )
   }
 
-  miningReward(_blockHeight: number): number {
+  miningReward(_blockSequence: number): number {
     return 10
   }
 }

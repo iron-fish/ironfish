@@ -4,7 +4,7 @@
 
 import { Assert } from './assert'
 import { IronfishBlockchain } from './blockchain'
-import { GENESIS_BLOCK_HEIGHT, VerificationResultReason } from './consensus'
+import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
@@ -138,14 +138,14 @@ export class Syncer {
       return
     }
 
-    Assert.isNotNull(peer.height)
+    Assert.isNotNull(peer.sequence)
     Assert.isNotNull(peer.work)
     Assert.isNotNull(this.chain.head)
 
     this.logger.info(
       `Starting sync from ${peer.displayName}. work: +${(
         peer.work - this.chain.head.work
-      ).toString()}, ours: ${this.chain.head.height.toString()}, theirs: ${peer.height.toString()}`,
+      ).toString()}, ours: ${this.chain.head.sequence.toString()}, theirs: ${peer.sequence.toString()}`,
     )
 
     this.state = 'syncing'
@@ -193,38 +193,40 @@ export class Syncer {
   }
 
   async syncFrom(peer: Peer): Promise<void> {
-    Assert.isNotNull(peer.height)
+    Assert.isNotNull(peer.sequence)
 
-    const { ancestor, height, requests } = await this.findAncestor(peer)
+    const { ancestor, sequence, requests } = await this.findAncestor(peer)
     this.abort(peer)
 
     this.logger.info(
       `Found peer ${peer.displayName} ancestor ${HashUtils.renderHash(
         ancestor,
-      )}, syncing from ${height}${
-        height !== peer.height ? ` -> ${String(peer.height)} (${peer.height - height})` : ''
+      )}, syncing from ${sequence}${
+        sequence !== peer.sequence
+          ? ` -> ${String(peer.sequence)} (${peer.sequence - sequence})`
+          : ''
       } after ${requests} requests`,
     )
 
-    await this.syncBlocks(peer, ancestor, height)
+    await this.syncBlocks(peer, ancestor, sequence)
   }
 
   /**
-   * Find the height of the ancestor block between you and peer
+   * Find the sequence of the ancestor block between you and peer
    */
   async findAncestor(
     peer: Peer,
-  ): Promise<{ height: number; ancestor: Buffer; requests: number }> {
+  ): Promise<{ sequence: number; ancestor: Buffer; requests: number }> {
     Assert.isNotNull(peer.head, 'peer.head')
-    Assert.isNotNull(peer.height, 'peer.height')
+    Assert.isNotNull(peer.sequence, 'peer.sequence')
     Assert.isNotNull(this.chain.head, 'chain.head')
 
     let requests = 0
 
     // If we only added the genesis block, we'll just start from there
-    if (this.chain.head.height === GENESIS_BLOCK_HEIGHT) {
+    if (this.chain.head.sequence === GENESIS_BLOCK_SEQUENCE) {
       return {
-        height: GENESIS_BLOCK_HEIGHT,
+        sequence: GENESIS_BLOCK_SEQUENCE,
         ancestor: this.chain.head.hash,
         requests: requests,
       }
@@ -247,12 +249,12 @@ export class Syncer {
     }
 
     // First we search linearly backwards in case we are on the main chain already
-    const start = MathUtils.min(peer.height, this.chain.head.height)
+    const start = MathUtils.min(peer.sequence, this.chain.head.sequence)
 
     this.logger.info(
       `Finding ancestor using linear search on last ${LINEAR_ANCESTOR_SEARCH} blocks starting at ${HashUtils.renderHash(
         this.chain.head.hash,
-      )} (${this.chain.head.height}) from peer ${peer.displayName} at ${peer.height}`,
+      )} (${this.chain.head.sequence}) from peer ${peer.displayName} at ${peer.sequence}`,
     )
 
     for (let i = 0; i < LINEAR_ANCESTOR_SEARCH; ++i) {
@@ -271,9 +273,9 @@ export class Syncer {
         continue
       }
 
-      if (local && local.height !== needle) {
+      if (local && local.sequence !== needle) {
         this.logger.warn(
-          `Peer ${peer.displayName} sent invalid header for hash. Expected height ${needle} but got ${local.height}`,
+          `Peer ${peer.displayName} sent invalid header for hash. Expected sequence ${needle} but got ${local.sequence}`,
         )
 
         peer.punish(BAN_SCORE.MAX, 'invalid header')
@@ -281,7 +283,7 @@ export class Syncer {
       }
 
       return {
-        height: needle,
+        sequence: needle,
         ancestor: hash,
         requests: requests,
       }
@@ -289,9 +291,9 @@ export class Syncer {
 
     // Then we try a binary search to fine the forking point between us and peer
     let ancestorHash: Buffer | null = null
-    let ancestorHeight: number | null = null
-    let lower = Number(GENESIS_BLOCK_HEIGHT)
-    let upper = Number(peer.height)
+    let ancestorSequence: number | null = null
+    let lower = Number(GENESIS_BLOCK_SEQUENCE)
+    let upper = Number(peer.sequence)
 
     this.logger.info(
       `Finding ancestor using binary search from ${peer.displayName}, lower: ${lower}, upper: ${upper}`,
@@ -323,30 +325,30 @@ export class Syncer {
         continue
       }
 
-      if (local && local.height !== needle) {
+      if (local && local.sequence !== needle) {
         this.logger.warn(`Peer ${peer.displayName} sent invalid header for hash`)
 
-        peer.punish(BAN_SCORE.MAX, 'header not match height')
+        peer.punish(BAN_SCORE.MAX, 'header not match sequence')
         this.abort(peer)
       }
 
       ancestorHash = remote
-      ancestorHeight = needle
+      ancestorSequence = needle
 
       lower = needle + 1
     }
 
     Assert.isNotNull(ancestorHash)
-    Assert.isNotNull(ancestorHeight)
+    Assert.isNotNull(ancestorSequence)
 
     return {
       ancestor: ancestorHash,
-      height: ancestorHeight,
+      sequence: ancestorSequence,
       requests: requests,
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer | null, height: number): Promise<void> {
+  async syncBlocks(peer: Peer, head: Buffer | null, sequence: number): Promise<void> {
     this.abort(peer)
 
     let count = 0
@@ -356,7 +358,7 @@ export class Syncer {
       this.logger.info(
         `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
           head,
-        )} (${height}) from ${peer.displayName}`,
+        )} (${sequence}) from ${peer.displayName}`,
       )
 
       const [headBlock, ...blocks]: IronfishBlockSerialized[] =
@@ -369,23 +371,23 @@ export class Syncer {
       this.abort(peer)
 
       for (const addBlock of blocks) {
-        height += 1
+        sequence += 1
 
         const { added, block } = await this.addBlock(peer, addBlock)
         this.abort(peer)
 
-        if (block.header.height !== height) {
+        if (block.header.sequence !== sequence) {
           this.logger.warn(
-            `Peer ${peer.displayName} sent block out of orderd. Expected ${height} but got ${block.header.height}`,
+            `Peer ${peer.displayName} sent block out of sequence. Expected ${sequence} but got ${block.header.sequence}`,
           )
 
-          peer.punish(BAN_SCORE.MAX, 'out of order')
+          peer.punish(BAN_SCORE.MAX, 'out of sequence')
           this.abort(peer)
           return
         }
 
-        if (!peer.height || block.header.height > peer.height) {
-          peer.height = block.header.height
+        if (!peer.sequence || block.header.sequence > peer.sequence) {
+          peer.sequence = block.header.sequence
           peer.head = block.header.hash
           peer.work = block.header.work
         }
@@ -431,7 +433,7 @@ export class Syncer {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
           block.header,
-        )} (${block.header.height}), syncing orphan chain.`,
+        )} (${block.header.sequence}), syncing orphan chain.`,
       )
 
       if (!this.loader) {
@@ -454,7 +456,7 @@ export class Syncer {
         } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
           block.header.hash,
         )} (
-          ${Number(block.header.height)}
+          ${Number(block.header.sequence)}
         ), reason: ${reason}`,
       )
 
@@ -479,8 +481,8 @@ export class Syncer {
 
     const { added, block } = await this.addBlock(peer, newBlock)
 
-    if (!peer.height || block.header.height > peer.height) {
-      peer.height = block.header.height
+    if (!peer.sequence || block.header.sequence > peer.sequence) {
+      peer.sequence = block.header.sequence
     }
 
     this.onGossip.emit(block)
