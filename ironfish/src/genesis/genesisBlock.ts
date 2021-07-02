@@ -10,7 +10,7 @@ export const GENESIS_HASH = Buffer.from(
 export const genesisBlockData = `
 {
   "header": {
-    "height": 1,
+    "sequence": 1,
     "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
     "noteCommitment": {
       "commitment": {

@@ -4,7 +4,7 @@
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import fs from 'fs'
-import { Assert, BlockchainUtils, GENESIS_BLOCK_HEIGHT } from 'ironfish'
+import { Assert, BlockchainUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -39,15 +39,15 @@ export default class Export extends IronfishCommand {
     {
       name: 'start',
       parse: parseNumber,
-      default: Number(GENESIS_BLOCK_HEIGHT),
+      default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
-      description: 'the height to start at (inclusive, genesis block is 1)',
+      description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
       parse: parseNumber,
       required: false,
-      description: 'the height to end at (inclusive)',
+      description: 'the sequence to end at (inclusive)',
     },
   ]
 
@@ -81,14 +81,14 @@ export default class Export extends IronfishCommand {
     progress.start(stop - start + 1, 0)
 
     for (let i = start; i <= stop; ++i) {
-      const blocks = await node.chain.getHeadersAtHeight(i)
+      const blocks = await node.chain.getHeadersAtSequence(i)
 
       for (const block of blocks) {
         const isMain = await node.chain.isHeadChain(block)
 
         result.push({
           hash: block.hash.toString('hex'),
-          height: Number(block.height),
+          seq: Number(block.sequence),
           prev: block.previousBlockHash.toString('hex'),
           main: isMain,
           graffiti: block.graffiti.toString('ascii'),

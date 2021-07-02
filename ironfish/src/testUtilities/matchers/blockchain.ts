@@ -60,7 +60,7 @@ async function toAddBlock(
     return makeResult(false, `Could not add block: ${String(result.reason)}`)
   }
 
-  return makeResult(true, `Expected to not add block at ${String(other.header.height)}`)
+  return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
 }
 
 expect.extend({

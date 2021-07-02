@@ -18,7 +18,7 @@
     },
     {
       "header": {
-        "height": 2,
+        "sequence": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -48,7 +48,7 @@
     },
     {
       "header": {
-        "height": 3,
+        "sequence": 3,
         "previousBlockHash": "B78FDEC6832115B07A4177BC7679AF157BCE79F44619149769A308E720CD003A",
         "noteCommitment": {
           "commitment": {

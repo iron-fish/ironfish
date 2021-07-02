@@ -81,11 +81,11 @@ describe('Blockchain', () => {
     expect((await chain.getPrevious(headerB2))?.hash?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getPrevious(headerB3))?.hash?.equals(headerB2.hash)).toBe(true)
 
-    // getAtHeight
-    expect((await chain.getHashAtHeight(1))?.equals(genesis.header.hash)).toBe(true)
-    expect((await chain.getHashAtHeight(2))?.equals(headerA1.hash)).toBe(true)
-    expect((await chain.getHashAtHeight(3))?.equals(headerB2.hash)).toBe(true)
-    expect((await chain.getHashAtHeight(4))?.equals(headerB3.hash)).toBe(true)
+    // getAtSequence
+    expect((await chain.getHashAtSequence(1))?.equals(genesis.header.hash)).toBe(true)
+    expect((await chain.getHashAtSequence(2))?.equals(headerA1.hash)).toBe(true)
+    expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
+    expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
   }, 10000)
 
   it('iterate', async () => {

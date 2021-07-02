@@ -18,7 +18,7 @@
     },
     {
       "header": {
-        "height": 2,
+        "sequence": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -48,7 +48,7 @@
     },
     {
       "header": {
-        "height": 2,
+        "sequence": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -78,7 +78,7 @@
     },
     {
       "header": {
-        "height": 3,
+        "sequence": 3,
         "previousBlockHash": "ECA09D603527312E4EEF8670DBB3822BBD14A3B186EE223D9E45F957A2335E0A",
         "noteCommitment": {
           "commitment": {
@@ -110,7 +110,7 @@
   "Blockchain abort reorg after verify error": [
     {
       "header": {
-        "height": 2,
+        "sequence": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -140,7 +140,7 @@
     },
     {
       "header": {
-        "height": 3,
+        "sequence": 3,
         "previousBlockHash": "9FE8B3F549684771140004098301443539E2E9D7C7B8C25EFCA537DB9FF360F1",
         "noteCommitment": {
           "commitment": {
@@ -170,7 +170,7 @@
     },
     {
       "header": {
-        "height": 4,
+        "sequence": 4,
         "previousBlockHash": "EB2BB6808A0F6B143D216E4C1CF07BF56D463323F8B769033EF59AC30DB72128",
         "noteCommitment": {
           "commitment": {
@@ -200,7 +200,7 @@
     },
     {
       "header": {
-        "height": 2,
+        "sequence": 2,
         "previousBlockHash": "E12B43E9DE68F8FF6F7225AD18C321F2AF123B233F9D54BBDD414DF67CD5978C",
         "noteCommitment": {
           "commitment": {
@@ -230,7 +230,7 @@
     },
     {
       "header": {
-        "height": 3,
+        "sequence": 3,
         "previousBlockHash": "FAC57A8C497B4CFEAC8FBD78EE5F6D32026C012BBC85C6ECA65864A7908C6F66",
         "noteCommitment": {
           "commitment": {
@@ -260,7 +260,7 @@
     },
     {
       "header": {
-        "height": 4,
+        "sequence": 4,
         "previousBlockHash": "5B7E04DCB1661B6DEBFEE025167F7BDB8D897958CC5CCBA19D16A18EB61D902A",
         "noteCommitment": {
           "commitment": {

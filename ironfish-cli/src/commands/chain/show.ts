@@ -18,13 +18,13 @@ export default class Show extends IronfishCommand {
       parse: parseNumber,
       default: -50,
       required: false,
-      description: 'the height to start at (inclusive, genesis block is 1)',
+      description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
       parse: parseNumber,
       required: false,
-      description: 'the height to end at (inclusive)',
+      description: 'the sequence to end at (inclusive)',
     },
   ]
 

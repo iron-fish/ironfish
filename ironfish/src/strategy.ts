@@ -89,20 +89,24 @@ export interface Strategy<
    * zero spends. It's receipt value must be the total transaction fees
    * in the block plus the mining reward for the block.
    *
-   * The mining reward may change over time, so we accept the block height
+   * The mining reward may change over time, so we accept the block sequence
    * to calculate the mining reward from.
    *
    * @param totalTransactionFees is the sum of the transaction fees intended to go
    * in this block.
-   * @param height the height of the block for which the miner's fee is being created
+   * @param blockSequence the sequence of the block for which the miner's fee is being created
    * @param minerKey the spending key for the miner.
    */
-  createMinersFee(totalTransactionFees: bigint, height: number, minerKey: string): Promise<T>
+  createMinersFee(
+    totalTransactionFees: bigint,
+    blockSequence: number,
+    minerKey: string,
+  ): Promise<T>
 
   /**
-   * Calculate the mining reward for a block based on its height
+   * Calculate the mining reward for a block based on its sequence
    */
-  miningReward(height: number): number
+  miningReward(blockSequence: number): number
 }
 
 /**
@@ -214,11 +218,11 @@ export class IronfishStrategy
    * (genesisSupply / 4) * e ^(-.05 * yearsAfterLaunch)
    * Where e is the natural number e (Euler's number), and -.05 is a decay function constant
    *
-   * @param height Block height
-   * @returns mining reward (in ORE) per block given the block height
+   * @param sequence Block sequence
+   * @returns mining reward (in ORE) per block given the block sequence
    */
-  miningReward(height: number): number {
-    const yearsAfterLaunch = Math.floor(height / IRON_FISH_YEAR_IN_BLOCKS)
+  miningReward(sequence: number): number {
+    const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
     if (reward) {
       return reward
@@ -241,12 +245,12 @@ export class IronfishStrategy
 
   async createMinersFee(
     totalTransactionFees: bigint,
-    blockHeight: number,
+    blockSequence: number,
     minerSpendKey: string,
   ): Promise<IronfishTransaction> {
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward
-    const amount = totalTransactionFees + BigInt(this.miningReward(blockHeight))
+    const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))
 
     return this.workerPool.createMinersFee(minerSpendKey, amount, '')
   }
