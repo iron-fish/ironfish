@@ -11,7 +11,7 @@ import { BlockHash, BlockHeader } from '../../../primitives/blockheader'
 import { Target } from '../../../primitives/target'
 import { Spend } from '../../../primitives/transaction'
 import { Strategy } from '../../../strategy'
-import { makeDbName, makeDbPath } from '../../helpers/storage'
+import { makeDbPath } from '../../helpers/storage'
 import {
   SerializedTestTransaction,
   TestBlockchain,
@@ -38,37 +38,6 @@ export async function addNotes(
   for (const note of notes) {
     await blockchain.notes.add(`${note}`)
   }
-}
-
-/**
- * Set the note and nullifier commitments of the given block to the size and root
- * hash of the notes and nullifiers trees on the given chain.
- *
- * There is a chance this functionality could be useful for more than testing.
- * It could be moved to a method on Blockchain.
- */
-export async function syncCommitments(
-  header: BlockHeader<
-    string,
-    string,
-    TestTransaction,
-    string,
-    string,
-    SerializedTestTransaction
-  >,
-  blockchain: Blockchain<
-    string,
-    string,
-    TestTransaction,
-    string,
-    string,
-    SerializedTestTransaction
-  >,
-): Promise<void> {
-  header.noteCommitment.size = await blockchain.notes.size()
-  header.noteCommitment.commitment = await blockchain.notes.rootHash()
-  header.nullifierCommitment.size = await blockchain.nullifiers.size()
-  header.nullifierCommitment.commitment = await blockchain.nullifiers.rootHash()
 }
 
 /**
@@ -352,85 +321,4 @@ export function makeNullifier(digit: number): BlockHash {
   const hash = Buffer.alloc(32)
   hash[0] = digit
   return hash
-}
-
-/**
- * Make a test chain that contains only the genesis
- * block (one note and nullifier)
- */
-export async function makeInitialTestChain(
-  strategy: TestStrategy,
-  dbPrefix: string,
-): Promise<TestBlockchain> {
-  return await makeChainInitial(strategy, { dbPrefix })
-}
-
-/**
- * Make a test chain that contains several valid blocks,
- * notes, and nullifiers.
- */
-export async function makeChain(
-  strategy: TestStrategy,
-  dbPrefix?: string,
-): Promise<TestBlockchain> {
-  if (!dbPrefix) {
-    dbPrefix = makeDbName()
-  }
-  return await makeChainFull(strategy, { dbPrefix })
-}
-
-/**
- * Make a test chain that has an initial block followed by
- * a gap and then two blocks at the head. This is the kind of chain that
- * requires syncing. It is designed such that if the chain becomes fully
- * synced, it will be the same as that returned by `makeChainFull`.
- */
-export async function makeChainSyncable(
-  strategy: TestStrategy,
-  dbPrefix?: string,
-  addExtraBlocks = true,
-): Promise<TestBlockchain> {
-  if (!dbPrefix) {
-    dbPrefix = makeDbName()
-  }
-
-  const chain = await makeChainGenesis(strategy, { dbPrefix })
-
-  if (addExtraBlocks) {
-    const chainFull = await makeChainFull(strategy, { dbPrefix: dbPrefix + '-full' })
-    await chain.addBlock(await blockByHeight(chainFull, 8))
-    await chain.addBlock(await blockByHeight(chainFull, 7))
-    await chainFull.db.close()
-  }
-
-  return chain
-}
-
-/**
- * Extract a block from the given chain by its height.
- * Throw an error if the block is null.
- *
- * This is just for removing typescript non-null assertions.
- */
-export async function blockByHeight(
-  chain: TestBlockchain,
-  height: number | null,
-): Promise<Block<string, string, TestTransaction, string, string, SerializedTestTransaction>> {
-  let hash: Buffer | null
-  if (height === null) {
-    const heaviestHead = chain.head
-    hash = heaviestHead ? heaviestHead.hash : null
-  } else {
-    hash = blockHash(height)
-  }
-
-  if (!hash) {
-    throw new Error(`No hash for ${height || ''}`)
-  }
-
-  const block = await chain.getBlock(hash)
-  if (!block) {
-    throw new Error(`Block ${height || ''} does not exist`)
-  }
-  return block
 }
