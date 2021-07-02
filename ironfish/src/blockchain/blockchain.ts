@@ -57,7 +57,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 2
+const DATABASE_VERSION = 1
 
 export class Blockchain<
   E,
