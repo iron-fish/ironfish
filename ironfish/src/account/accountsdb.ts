@@ -16,7 +16,7 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
 
 export type Account = {
   name: string
