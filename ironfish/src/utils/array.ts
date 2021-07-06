@@ -4,8 +4,19 @@
 
 import { Assert } from '../assert'
 
-function shuffle<T>(array: Array<T>): Array<T> {
-  return array.slice().sort(() => Math.random() - 0.5)
+/**
+ * Randomizes the order of elements in a given array and returns a new array.
+ */
+function shuffle<T>(array: ReadonlyArray<T>): Array<T> {
+  // From https://stackoverflow.com/a/12646864
+  const sliceArr = array.slice()
+
+  for (let i = sliceArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[sliceArr[i], sliceArr[j]] = [sliceArr[j], sliceArr[i]]
+  }
+
+  return sliceArr
 }
 
 function sampleOrThrow<T>(array: Array<T>): T {
