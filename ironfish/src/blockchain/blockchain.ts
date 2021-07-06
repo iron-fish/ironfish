@@ -97,8 +97,6 @@ export class Blockchain<
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
 
-  // When the heaviest head changes
-  onHeadChange = new Event<[hash: BlockHash]>()
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
   // When ever a block is added to the heaviest chain and the trees have been updated
