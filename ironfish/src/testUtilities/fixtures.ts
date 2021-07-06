@@ -7,6 +7,7 @@ import path from 'path'
 import { Account, Accounts } from '../account'
 import { IronfishBlockchain } from '../blockchain'
 import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
+import { IronfishTransaction, SerializedTransaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { getCurrentTestPath } from './utils'
 
@@ -143,8 +144,15 @@ export async function restoreBlockFixtureToAccounts(
   accounts: Accounts,
 ): Promise<void> {
   for (const transaction of block.transactions) {
-    await accounts.syncTransaction(transaction, { submittedSequence: 1 })
+    await restoreTransactionFixtureToAccounts(transaction, accounts)
   }
+}
+
+export async function restoreTransactionFixtureToAccounts(
+  transaction: IronfishTransaction,
+  accounts: Accounts,
+): Promise<void> {
+  await accounts.syncTransaction(transaction, { submittedSequence: 1 })
 }
 
 /**
@@ -176,7 +184,7 @@ export async function useBlockFixture(
  */
 export async function useMinerBlockFixture(
   chain: IronfishBlockchain,
-  sequence: number,
+  sequence?: number,
   account?: Account,
   addTransactionsTo?: Accounts,
 ): Promise<IronfishBlock> {
@@ -187,8 +195,51 @@ export async function useMinerBlockFixture(
     async () =>
       chain.newBlock(
         [],
-        await chain.strategy.createMinersFee(BigInt(0), sequence, spendingKey),
+        await chain.strategy.createMinersFee(
+          BigInt(0),
+          sequence || chain.head.sequence + 1,
+          spendingKey,
+        ),
       ),
     addTransactionsTo,
+  )
+}
+
+export async function useTransactionFixture(
+  accounts: Accounts,
+  from: Account,
+  to: Account,
+  generate?: FixtureGenerate<IronfishTransaction>,
+): Promise<IronfishTransaction> {
+  generate =
+    generate ||
+    (() => {
+      return accounts.createTransaction(from, BigInt(1), BigInt(0), '', to.publicAddress)
+    })
+
+  return useFixture(generate, {
+    process: async (tx: IronfishTransaction): Promise<void> => {
+      await restoreTransactionFixtureToAccounts(tx, accounts)
+    },
+    serialize: (tx: IronfishTransaction): SerializedTransaction => {
+      return tx.serialize()
+    },
+    deserialize: (tx: SerializedTransaction): IronfishTransaction => {
+      return new IronfishTransaction(tx, accounts.workerPool)
+    },
+  })
+}
+
+export async function useMinersFeeFixture(
+  accounts: Accounts,
+  to: Account,
+  sequence?: number,
+): Promise<IronfishTransaction> {
+  return useTransactionFixture(accounts, to, to, () =>
+    accounts.chain.strategy.createMinersFee(
+      BigInt(0),
+      sequence || accounts.chain.head.sequence + 1,
+      to.spendingKey,
+    ),
   )
 }

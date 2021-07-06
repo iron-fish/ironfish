@@ -53,8 +53,8 @@ export class Accounts {
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
   protected readonly logger: Logger
-  protected readonly workerPool: WorkerPool
-  protected readonly chain: IronfishBlockchain
+  readonly workerPool: WorkerPool
+  readonly chain: IronfishBlockchain
 
   protected defaultAccount: string | null = null
   protected headHash: string | null = null

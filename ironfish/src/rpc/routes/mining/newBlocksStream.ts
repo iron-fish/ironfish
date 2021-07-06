@@ -60,7 +60,7 @@ router.register<typeof NewBlocksStreamRequestSchema, NewBlocksStreamResponse>(
 
     // 'prime' the stream with the current block
     if (node.chain.head) {
-      await node.miningDirector.onChainHeadChange(node.chain.head.hash)
+      await node.miningDirector.onChainHeadChange(node.chain.head)
     }
   },
 )

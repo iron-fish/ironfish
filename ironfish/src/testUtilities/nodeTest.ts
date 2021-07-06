@@ -6,6 +6,7 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { IronfishBlockchain } from '../blockchain'
 import { ConfigOptions } from '../fileStores/config'
+import { IronfishMiningDirector } from '../mining/director'
 import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
@@ -34,6 +35,7 @@ export class NodeTest {
   chain!: IronfishBlockchain
   peerNetwork!: PeerNetwork
   syncer!: Syncer
+  miningDirector!: IronfishMiningDirector
 
   setups = new Array<{
     sdk: IronfishSdk
@@ -42,6 +44,7 @@ export class NodeTest {
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
     syncer: Syncer
+    miningDirector: IronfishMiningDirector
   }>()
 
   constructor(options: NodeTestOptions = {}) {
@@ -55,6 +58,7 @@ export class NodeTest {
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
     syncer: Syncer
+    miningDirector: IronfishMiningDirector
   }> {
     if (!options) {
       options = this.options
@@ -70,6 +74,7 @@ export class NodeTest {
     const chain = node.chain
     const peerNetwork = node.peerNetwork
     const syncer = node.syncer
+    const miningDirector = node.miningDirector
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
@@ -86,13 +91,14 @@ export class NodeTest {
 
     await node.openDB()
 
-    const setup = { sdk, node, strategy, chain, peerNetwork, syncer }
+    const setup = { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector }
     this.setups.push(setup)
     return setup
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, peerNetwork, syncer } = await this.createSetup()
+    const { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector } =
+      await this.createSetup()
 
     this.sdk = sdk
     this.node = node
@@ -100,6 +106,7 @@ export class NodeTest {
     this.chain = chain
     this.peerNetwork = peerNetwork
     this.syncer = syncer
+    this.miningDirector = miningDirector
   }
 
   async teardownEach(): Promise<void> {
