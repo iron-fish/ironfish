@@ -4,6 +4,7 @@
 
 import type { Peer } from './peer'
 import { createRootLogger, Logger } from '../../logger'
+import { ArrayUtils } from '../../utils'
 import { PeerManager } from './peerManager'
 
 /**
@@ -65,7 +66,9 @@ export class PeerConnectionManager {
   private eventLoop() {
     let connectAttempts = 0
 
-    for (const peer of this.peerManager.peers) {
+    const shuffledPeers = ArrayUtils.shuffle(this.peerManager.peers)
+
+    for (const peer of shuffledPeers) {
       this.maintainOneConnectionPerPeer(peer)
 
       if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
