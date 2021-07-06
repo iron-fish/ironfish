@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import '../../../testUtilities/matchers'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
@@ -35,8 +36,7 @@ describe('Route chain.getBlock', () => {
     const chain = routeTest.node.chain
 
     const block = await useMinerBlockFixture(chain, 2)
-    const addResult = await chain.addBlock(block)
-    expect(addResult).toMatchObject({ isAdded: true })
+    await expect(chain).toAddBlock(block)
 
     // by hash first
     const hash = BlockHashSerdeInstance.serialize(block.header.hash)
