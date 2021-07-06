@@ -181,8 +181,8 @@ export class MiningDirector<
       this.setMinerAccount(options.account)
     }
 
-    this.chain.onHeadChange.on((newChainHead: BlockHash) => {
-      void this.onChainHeadChange(newChainHead).catch((err) => {
+    this.chain.onConnectBlock.on((head: Block<E, H, T, SE, SH, ST>) => {
+      void this.onChainHeadChange(head.header.hash).catch((err) => {
         this.logger.error(err)
       })
     })

@@ -26,7 +26,7 @@ describe('Note adding', () => {
     targetSpy = jest.spyOn(Target, 'minDifficulty').mockReturnValue(BigInt(1))
     blockchain = await makeChainInitial(strategy)
     listener = jest.fn()
-    blockchain.onHeadChange.on(listener)
+    blockchain.onConnectBlock.on(listener)
   })
 
   afterAll(() => [targetSpy.mockClear()])
@@ -67,7 +67,7 @@ describe('Nullifier adding', () => {
   beforeEach(async () => {
     blockchain = await makeChainInitial(strategy)
     listener = jest.fn()
-    blockchain.onHeadChange.on(listener)
+    blockchain.onConnectBlock.on(listener)
   })
 
   it('immediately adds in order nullifiers to the tree', async () => {
@@ -182,7 +182,7 @@ describe('New block', () => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
     blockchain = await makeChainInitial(strategy)
     listener = jest.fn()
-    blockchain.onHeadChange.on(listener)
+    blockchain.onConnectBlock.on(listener)
   })
 
   afterAll(() => {

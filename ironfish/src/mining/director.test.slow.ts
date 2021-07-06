@@ -112,10 +112,11 @@ describe('Mining director', () => {
   })
 
   it('creates a new block to be mined when chain head changes', async () => {
-    const chainHead = chain.head
+    const chainHead = await chain.getBlock(chain.head)
+    Assert.isNotNull(chainHead)
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
+    await chain.onConnectBlock.emitAsync(chainHead)
     const [data] = await listenPromise
     const buffer = Buffer.from(data.bytes)
     const block = JSON.parse(buffer.toString()) as Partial<SerializedBlockHeader<string>>
@@ -139,11 +140,12 @@ describe('Mining director', () => {
         { nullifier: makeNullifier(9), commitment: '0-3', size: 4 },
       ]),
     )
-    const chainHead = chain.head
-    expect(chainHead).toBeDefined()
+    const chainHead = await chain.getBlock(chain.head.hash)
+    Assert.isNotNull(chainHead)
+
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
+    await chain.onConnectBlock.emitAsync(chainHead)
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
@@ -169,11 +171,12 @@ describe('Mining director', () => {
       ]),
     )
 
-    const chainHead = chain.head
-    expect(chainHead).toBeDefined()
+    const chainHead = await chain.getBlock(chain.head.hash)
+    Assert.isNotNull(chainHead)
+
     const listenPromise = waitForEmit(director.onBlockToMine)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    await chain.onHeadChange.emitAsync(chainHead.recomputeHash())
+    await chain.onConnectBlock.emitAsync(chainHead)
 
     const result = (await listenPromise)[0]
     const buffer = Buffer.from(result.bytes)
