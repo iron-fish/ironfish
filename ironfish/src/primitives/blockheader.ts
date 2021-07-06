@@ -5,7 +5,6 @@
 import Serde, {
   BlockHashSerdeInstance,
   GraffitiSerdeInstance,
-  IJSON,
   JsonSerializable,
 } from '../serde'
 import { Strategy } from '../strategy'
@@ -22,6 +21,7 @@ import { IronfishTransaction, SerializedTransaction, Transaction } from './trans
 export type BlockHash = Buffer
 
 import { createHash } from 'blake3-wasm'
+import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   const hash = createHash()
@@ -182,33 +182,19 @@ export class BlockHeader<
    * Construct a partial block header without the randomness and convert
    * it to buffer.
    *
-   * This is used for calculating the hash in miners and for verifying it.[]
+   * This is used for calculating the hash in miners and for verifying it.
    */
   serializePartial(): Buffer {
-    const serialized = {
-      sequence: this.sequence.toString(),
-      previousBlockHash: BlockHashSerdeInstance.serialize(this.previousBlockHash),
-      noteCommitment: {
-        commitment: this.strategy
-          .noteHasher()
-          .hashSerde()
-          .serialize(this.noteCommitment.commitment),
-        size: this.noteCommitment.size,
-      },
-      nullifierCommitment: {
-        commitment: this.strategy
-          .nullifierHasher()
-          .hashSerde()
-          .serialize(this.nullifierCommitment.commitment),
-        size: this.nullifierCommitment.size,
-      },
-      target: TargetSerdeInstance.serialize(this.target),
-      timestamp: this.timestamp.getTime(),
-      minersFee: this.minersFee.toString(),
-      graffiti: GraffitiSerdeInstance.serialize(this.graffiti),
-    }
-
-    return Buffer.from(IJSON.stringify(serialized))
+    return new PartialBlockHeaderSerde(this.strategy).serialize({
+      sequence: this.sequence,
+      previousBlockHash: this.previousBlockHash,
+      noteCommitment: this.noteCommitment,
+      nullifierCommitment: this.nullifierCommitment,
+      target: this.target,
+      timestamp: this.timestamp,
+      minersFee: this.minersFee,
+      graffiti: this.graffiti,
+    })
   }
 
   /**
