@@ -1,0 +1,20 @@
+name: Deploy HTTP API
+on:
+  push:
+    branches:
+      - beta
+
+jobs:
+  deploy:
+    name: Staging API Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: Add Heroku remote
+        run: heroku git:remote --app $HEROKU_APP_NAME
+        env:
+          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+      - name: Push to Heroku
+        run: git push heroku -f `git subtree split --prefix ironfish-http-api-v2 HEAD`:master
