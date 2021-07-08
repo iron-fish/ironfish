@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.HEROKU_SSH_PRIVATE_KEY }}
       - name: Update known hosts
         run: ssh-keyscan -H heroku.com >> ~/.ssh/known_hosts
       - name: SSH Git with Heroku
