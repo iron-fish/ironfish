@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishBlockchain } from '../blockchain'
+import { IronfishMiningDirector } from '../mining/director'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -27,6 +28,7 @@ export class RouteTest extends NodeTest {
     chain: IronfishBlockchain
     peerNetwork: PeerNetwork
     syncer: Syncer
+    miningDirector: IronfishMiningDirector
     adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
@@ -40,7 +42,7 @@ export class RouteTest extends NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, peerNetwork, syncer, client, adapter } =
+    const { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector, client, adapter } =
       await this.createSetup()
 
     this.sdk = sdk
@@ -51,6 +53,7 @@ export class RouteTest extends NodeTest {
     this.peerNetwork = peerNetwork
     this.client = client
     this.adapter = adapter
+    this.miningDirector = miningDirector
   }
 }
 

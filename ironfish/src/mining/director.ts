@@ -9,7 +9,7 @@ import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { Block } from '../primitives/block'
-import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
+import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import {
   IronfishNoteEncrypted,
   SerializedWasmNoteEncrypted,
@@ -181,12 +181,12 @@ export class MiningDirector<
       this.setMinerAccount(options.account)
     }
 
-    this.chain.onConnectBlock.on((head: Block<E, H, T, SE, SH, ST>) => {
-      void this.onChainHeadChange(head.header.hash).catch((err) => {
-        this.logger.error(err)
+    this.chain.onConnectBlock.on((block) => {
+      // setTimeout for deadlock from newBlock()
+      setTimeout(() => {
+        void this.onChainHeadChange(block.header)
       })
     })
-
     this.chain.onSynced.on(() => this.onChainSynced())
   }
 
@@ -231,9 +231,7 @@ export class MiningDirector<
    * @param newChainHead The hash of the new head of the chain
    * @event onBlockToMine header of a new block that needs to have its randomness mined
    */
-  async onChainHeadChange(newChainHead: BlockHash): Promise<void> {
-    this.logger.debug('New chain head', newChainHead.toString('hex'))
-
+  async onChainHeadChange(head: BlockHeader<E, H, T, SE, SH, ST>): Promise<void> {
     if (!this.isStarted()) {
       return
     }
@@ -242,7 +240,11 @@ export class MiningDirector<
       return
     }
 
-    await this.generateBlockToMine(newChainHead)
+    try {
+      await this.generateBlockToMine(head.hash)
+    } catch (err: unknown) {
+      this.logger.error(err)
+    }
   }
 
   async onChainSynced(): Promise<void> {
@@ -324,7 +326,6 @@ export class MiningDirector<
    *
    * @param newChainHead The hash of the new head of the chain
    */
-
   async constructTransactionsAndFees(newChainHead: BlockHash): Promise<[T, T[]]> {
     if (!this._minerAccount) {
       throw Error('No miner account found to construct the transaction')
@@ -377,16 +378,11 @@ export class MiningDirector<
    * true if mining that block can be retried with a lower difficulty
    */
   async constructAndMineBlock(minersFee: T, blockTransactions: T[]): Promise<boolean> {
-    let newBlock
-    try {
-      const graffiti = Buffer.alloc(32)
-      graffiti.write(this.blockGraffiti)
+    const graffiti = Buffer.alloc(32)
+    graffiti.write(this.blockGraffiti)
 
-      newBlock = await this.chain.newBlock(blockTransactions, minersFee, graffiti)
-    } catch (e: unknown) {
-      const message = (e as { message?: string }).message
-      throw Error(`newBlock produced an invalid block: ${message || ''}`)
-    }
+    const newBlock = await this.chain.newBlock(blockTransactions, minersFee, graffiti)
+
     this.logger.debug(
       `Current block  ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
@@ -400,11 +396,13 @@ export class MiningDirector<
     this.logger.debug(
       `Emitting a new block ${newBlock.header.sequence} to mine as request ${this.miningRequestId}`,
     )
+
     await this.onBlockToMine.emitAsync({
       bytes: asBuffer,
       target,
       miningRequestId: this.miningRequestId,
     })
+
     this.recentBlocks.set(this.miningRequestId, newBlock)
 
     const canRetry = target.asBigInt() < Target.maxTarget().asBigInt()
@@ -422,26 +420,26 @@ export class MiningDirector<
    *
    * @param randomness The randomness to be set for the new block
    */
-  async successfullyMined(randomness: number, miningRequestId: number): Promise<void> {
+  async successfullyMined(randomness: number, miningRequestId: number): Promise<MINED_RESULT> {
     const block = this.recentBlocks.get(miningRequestId)
     if (!block) {
       this.logger.debug(
         'Received randomness for a block with unknown request ID (it may have expired)',
       )
-      return
+      return MINED_RESULT.UNKNOWN_REQUEST
     }
 
     if (!this.chain.head || !block.header.previousBlockHash.equals(this.chain.head.hash)) {
       this.logger.debug('Discarding block that no longer attaches to heaviest head')
-      return
+      return MINED_RESULT.CHAIN_CHANGED
     }
 
     block.header.randomness = randomness
-    this.logger.debug('Adding randomness', randomness)
     const validation = await this.chain.verifier.verifyBlock(block)
+
     if (!validation.valid) {
       this.logger.warn('Discarding invalid block', validation.reason)
-      return
+      return MINED_RESULT.INVALID_BLOCK
     }
 
     this.logger.info(
@@ -450,22 +448,32 @@ export class MiningDirector<
       }) has ${block.transactions.length} transactions`,
     )
 
-    const header = block.header
+    const { isAdded, reason } = await this.chain.addBlock(block)
+
+    if (!isAdded) {
+      this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
+      return MINED_RESULT.ADD_FAILED
+    }
+
+    this.onNewBlock.emit(block)
 
     submitMetric({
       name: 'minedBlock',
       fields: [
-        { name: 'difficulty', type: 'integer', value: Number(header.target.toDifficulty()) },
-        { name: 'sequence', type: 'integer', value: Number(header.sequence) },
+        {
+          name: 'difficulty',
+          type: 'integer',
+          value: Number(block.header.target.toDifficulty()),
+        },
+        {
+          name: 'sequence',
+          type: 'integer',
+          value: Number(block.header.sequence),
+        },
       ],
     })
 
-    const { isAdded, reason } = await this.chain.addBlock(block)
-    if (isAdded) {
-      this.onNewBlock.emit(block)
-    } else {
-      this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
-    }
+    return MINED_RESULT.SUCCESS
   }
 
   /**
@@ -488,3 +496,11 @@ export type IronfishMiningDirector = MiningDirector<
   SerializedWasmNoteEncryptedHash,
   SerializedTransaction
 >
+
+export enum MINED_RESULT {
+  UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
+  CHAIN_CHANGED = 'CHAIN_CHANGED',
+  INVALID_BLOCK = 'INVALID_BLOCK',
+  ADD_FAILED = 'ADD_FAILED',
+  SUCCESS = 'SUCCESS',
+}
