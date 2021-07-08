@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { blockHash, makeFakeBlock, TestStrategy } from '../testUtilities/fake'
-import { useAccountFixture } from '../testUtilities/fixtures'
+import { useAccountFixture, useMinersFeeFixture } from '../testUtilities/fixtures'
 import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { IronfishBlockSerialized } from './block'
@@ -48,26 +47,42 @@ describe('Block', () => {
     ).toThrowError('Unable to deserialize')
   })
 
-  it('check block equality', () => {
-    const strategy = new TestStrategy()
-    const serde = strategy.blockSerde
+  it('check block equality', async () => {
+    const account = await useAccountFixture(nodeTest.node.accounts, 'account')
+    const tx = await useMinersFeeFixture(nodeTest.node.accounts, account)
+    const block1 = await makeBlockWithTransaction(nodeTest.node, account, account)
 
-    const block1 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
-    const block2 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
-
-    block2.header.timestamp = block1.header.timestamp
-    expect(serde.equals(block1, block2)).toBe(true)
-
+    // Header change
+    const block2 = nodeTest.node.strategy.blockSerde.deserialize(
+      nodeTest.node.strategy.blockSerde.serialize(block1),
+    )
+    expect(block1.equals(block2)).toBe(true)
     block2.header.randomness = 400
-    expect(serde.equals(block1, block2)).toBe(false)
+    expect(block1.equals(block2)).toBe(false)
+    block2.header.randomness = block1.header.randomness
+    expect(block1.equals(block2)).toBe(true)
+    block2.header.sequence += 1
+    expect(block1.equals(block2)).toBe(false)
+    block2.header.sequence = block1.header.sequence
+    expect(block1.equals(block2)).toBe(true)
+    block2.header.timestamp = new Date(block2.header.timestamp.valueOf() + 1)
+    expect(block1.equals(block2)).toBe(false)
 
-    const block3 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 8)
-    block3.header.timestamp = block1.header.timestamp
-    expect(serde.equals(block1, block3)).toBe(false)
+    // Transactions length
+    const block3 = nodeTest.node.strategy.blockSerde.deserialize(
+      nodeTest.node.strategy.blockSerde.serialize(block1),
+    )
+    expect(block1.equals(block3)).toBe(true)
+    block3.transactions.pop()
+    expect(block1.equals(block3)).toBe(false)
 
-    const block4 = makeFakeBlock(strategy, blockHash(4), blockHash(5), 5, 5, 9)
-    block4.header.timestamp = block1.header.timestamp
-    block4.transactions[0].totalFees = BigInt(999)
-    expect(serde.equals(block1, block4)).toBe(false)
-  })
+    // Transaction equality
+    const block4 = nodeTest.node.strategy.blockSerde.deserialize(
+      nodeTest.node.strategy.blockSerde.serialize(block1),
+    )
+    expect(block1.equals(block4)).toBe(true)
+    block4.transactions.pop()
+    block4.transactions.push(tx)
+    expect(block1.equals(block4)).toBe(false)
+  }, 60000)
 })
