@@ -1,8 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model accounts {
+  id             String   @id @db.VarChar
+  public_address String   @db.VarChar
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([public_address], name: "index_accounts_on_public_address")
 }
