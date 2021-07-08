@@ -12,9 +12,11 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
+      - name: SSH Git with Heroku
+        run: git config --global url.ssh://git@heroku.com/.insteadOf https://git.heroku.com/
       - name: Add Heroku remote
-        run: heroku git:remote --app $HEROKU_APP_NAME
+        run: git remote add heroku $HEROKU_REMOTE
         env:
-          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+          HEROKU_REMOTE: ${{ secrets.HEROKU_REMOTE }}
       - name: Push to Heroku
         run: git push heroku -f `git subtree split --prefix ironfish-http-api-v2 HEAD`:master
