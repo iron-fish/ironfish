@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
+      - name: Update known hosts
+        run: ssh-keyscan -H heroku.com >> ~/.ssh/known_hosts
       - name: SSH Git with Heroku
         run: git config --global url.ssh://git@heroku.com/.insteadOf https://git.heroku.com/
       - name: Add Heroku remote
