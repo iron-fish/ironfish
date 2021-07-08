@@ -11,6 +11,7 @@ import { BlockHash, BlockHeader } from '../../../primitives/blockheader'
 import { Target } from '../../../primitives/target'
 import { Spend } from '../../../primitives/transaction'
 import { Strategy } from '../../../strategy'
+import { GraffitiUtils } from '../../../utils'
 import { makeDbPath } from '../../helpers/storage'
 import {
   SerializedTestTransaction,
@@ -101,8 +102,6 @@ export async function makeNextBlock(
 
   const minersFee = BigInt(-10)
   const minerTransaction = new TestTransaction(true, notes, minersFee, spends)
-  const graffiti = Buffer.alloc(32)
-  graffiti.write('fake block')
 
   const newHeader = new BlockHeader(
     chain.strategy,
@@ -120,7 +119,7 @@ export async function makeNextBlock(
     0,
     new Date(1598970000000 + Number(newSequence)),
     minersFee,
-    graffiti,
+    GraffitiUtils.fromString('fake block'),
   )
 
   return new Block(newHeader, [minerTransaction])
@@ -276,9 +275,6 @@ export function makeFakeBlock(
   const transactionFeeTransaction = new TestTransaction(true, [String(end)], transactionFee)
   transactions.push(transactionFeeTransaction)
 
-  const graffiti = Buffer.alloc(32)
-  graffiti.write('fake block')
-
   const header = new BlockHeader(
     strategy,
     sequence,
@@ -292,7 +288,7 @@ export function makeFakeBlock(
     0,
     timestamp ? timestamp : new Date(1598970000000 + hash[0]),
     BigInt(transactionFee),
-    graffiti,
+    GraffitiUtils.fromString('fake block'),
   )
 
   return new Block(header, transactions)

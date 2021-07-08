@@ -9,6 +9,7 @@ import { Logger } from '../logger'
 import { IronfishBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IronfishTransaction } from '../primitives/transaction'
+import { GraffitiUtils } from '../utils/graffiti'
 import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
@@ -139,9 +140,12 @@ export async function makeGenesisBlock(
   // Create the block. We expect this to add notes and nullifiers on the block
   // into the database for the purpose of generating note and nullifier commitments
   // on the block header.
-  const graffiti = Buffer.alloc(32)
-  graffiti.write('genesis')
-  const block = await chain.newBlock(transactionList, postedMinersFeeTransaction, graffiti)
+  const block = await chain.newBlock(
+    transactionList,
+    postedMinersFeeTransaction,
+    GraffitiUtils.fromString('genesis'),
+  )
+
   // Modify the block with any custom properties.
   block.header.target = Target.initialTarget()
   block.header.timestamp = new Date(info.timestamp)

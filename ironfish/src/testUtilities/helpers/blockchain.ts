@@ -11,6 +11,7 @@ import { Block, IronfishBlock } from '../../primitives/block'
 import { BlockHeader } from '../../primitives/blockheader'
 import { IronfishBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
+import { GraffitiUtils } from '../../utils/graffiti'
 import { useBlockFixture, useMinerBlockFixture } from '../fixtures'
 
 export async function makeBlockAfter(
@@ -31,8 +32,7 @@ export async function makeBlockAfter(
   const timestamp = new Date()
   const target = Target.calculateTarget(timestamp, after.timestamp, after.target)
   const randomness = Math.random()
-  const graffiti = Buffer.alloc(32)
-  graffiti.write('fake block')
+  const graffiti = GraffitiUtils.fromString('fake block')
 
   const header = new BlockHeader(
     chain.strategy,

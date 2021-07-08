@@ -183,6 +183,7 @@ describe('start command', () => {
 
     describe('when the graffiti is different as the config graffiti', () => {
       const graffiti = 'some-graffiti'
+
       test
         .stdout()
         .command(['start', '-g', graffiti])
