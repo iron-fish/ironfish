@@ -42,12 +42,14 @@ export class Block<
   counts(): SerializedCounts {
     let notes = 0
     let nullifiers = 0
+
     for (const transaction of this.transactions) {
       transaction.withReference(() => {
         notes += transaction.notesLength()
         nullifiers += transaction.spendsLength()
       })
     }
+
     return { notes, nullifiers }
   }
 
@@ -89,6 +91,10 @@ export class Block<
       }
     }
   }
+
+  equals(block: Block<E, H, T, SE, SH, ST>): boolean {
+    return block === this || this.header.strategy.blockSerde.equals(this, block)
+  }
 }
 
 export type SerializedBlock<SH, ST> = {
@@ -117,9 +123,11 @@ export class BlockSerde<
     if (!this.blockHeaderSerde.equals(block1.header, block2.header)) {
       return false
     }
+
     if (block1.transactions.length !== block2.transactions.length) {
       return false
     }
+
     for (const [transaction1, transaction2] of zip(block1.transactions, block2.transactions)) {
       if (
         !transaction1 ||
@@ -129,8 +137,10 @@ export class BlockSerde<
         return false
       }
     }
+
     return true
   }
+
   serialize(block: Block<E, H, T, SE, SH, ST>): SerializedBlock<SH, ST> {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
@@ -139,6 +149,7 @@ export class BlockSerde<
       ),
     }
   }
+
   deserialize(data: SerializedBlock<SH, ST>): Block<E, H, T, SE, SH, ST> {
     if (
       typeof data === 'object' &&

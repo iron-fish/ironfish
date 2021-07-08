@@ -203,8 +203,8 @@ export class IronfishTransaction
 export class TransactionSerde implements Serde<IronfishTransaction, SerializedTransaction> {
   constructor(private readonly workerPool: WorkerPool) {}
 
-  equals(): boolean {
-    throw new Error(`Not implemented`)
+  equals(tx1: IronfishTransaction, tx2: IronfishTransaction): boolean {
+    return tx1.transactionHash().equals(tx2.transactionHash())
   }
 
   serialize(transaction: IronfishTransaction): SerializedTransaction {
