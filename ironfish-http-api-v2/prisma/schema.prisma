@@ -12,6 +12,27 @@ model accounts {
   public_address String   @db.VarChar
   created_at     DateTime @default(now()) @db.Timestamp(6)
   updated_at     DateTime @default(now()) @db.Timestamp(6)
+  events         events[]
 
   @@index([public_address], name: "index_accounts_on_public_address")
+}
+
+model events {
+  id         Int        @id @default(autoincrement())
+  created_at DateTime   @default(now()) @db.Timestamp(6)
+  updated_at DateTime   @default(now()) @db.Timestamp(6)
+  account_id Int
+  type       event_type
+  accounts   accounts   @relation(fields: [account_id], references: [id])
+
+  @@index([account_id], name: "index_events_on_account_id")
+}
+
+enum event_type {
+  BLOCK_MINED
+  BUG_CAUGHT
+  COMMUNITY_CONTRIBUTION
+  NODE_HOSTED
+  PULL_REQUEST_MERGED
+  SOCIAL_MEDIA_PROMOTION
 }
