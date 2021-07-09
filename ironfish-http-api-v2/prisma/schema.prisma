@@ -8,7 +8,7 @@ datasource db {
 }
 
 model accounts {
-  id             String   @id @default(cuid()) @db.VarChar
+  id             Int      @id @default(autoincrement())
   public_address String   @db.VarChar
   created_at     DateTime @default(now()) @db.Timestamp(6)
   updated_at     DateTime @default(now()) @db.Timestamp(6)
