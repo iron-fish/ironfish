@@ -1,1 +1,2 @@
+release: cd build && node db:migrate
 web: cd build && node main.js
