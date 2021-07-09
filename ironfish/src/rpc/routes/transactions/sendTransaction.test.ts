@@ -1,54 +1,49 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-jest.mock('ws')
 
-import { RangeHasher } from '../../../merkletree'
-import { blockHash, makeFakeBlock, TestStrategy } from '../../../testUtilities/fake'
+import { useAccountFixture, useMinersFeeFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ResponseError } from '../../adapters'
 
+const TEST_PARAMS = {
+  amount: BigInt(10).toString(),
+  fromAccountName: 'existingAccount',
+  memo: '',
+  toPublicKey: 'test2',
+  transactionFee: BigInt(1).toString(),
+}
+
 describe('Transactions sendTransaction', () => {
   const routeTest = createRouteTest()
-  const strategy = new TestStrategy(new RangeHasher())
-  const heaviestHeader = makeFakeBlock(strategy, blockHash(2), blockHash(3), 1, 1, 1).header
-
-  const paymentsParams = {
-    amount: 10,
-    fromAccountName: 'existingAccount',
-    memo: '',
-    toPublicKey: 'test2',
-    transactionFee: BigInt(1).toString(),
-  }
 
   beforeAll(async () => {
     await routeTest.node.accounts.createAccount('existingAccount', true)
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    routeTest.node.chain.head = heaviestHeader as any
   })
 
   it('throws if account does not exist', async () => {
     try {
-      await routeTest.adapter.request('transaction/sendTransaction', {
-        ...paymentsParams,
+      await routeTest.client.sendTransaction({
+        ...TEST_PARAMS,
         fromAccountName: 'AccountDoesNotExist',
       })
     } catch (e: unknown) {
       if (!(e instanceof ResponseError)) {
         throw e
       }
+
       expect(e.message).toContain('No account found with name AccountDoesNotExist')
     }
   })
 
   it('throws if not connected to network', async () => {
     try {
-      await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
+      await routeTest.client.sendTransaction(TEST_PARAMS)
     } catch (e: unknown) {
       if (!(e instanceof ResponseError)) {
         throw e
       }
+
       expect(e.message).toContain(
         'Your node must be connected to the Iron Fish network to send a transaction',
       )
@@ -60,7 +55,7 @@ describe('Transactions sendTransaction', () => {
       routeTest.node.peerNetwork['_isReady'] = true
 
       try {
-        await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
+        await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
         if (!(e instanceof ResponseError)) {
           throw e
@@ -76,7 +71,7 @@ describe('Transactions sendTransaction', () => {
       routeTest.chain.synced = true
 
       try {
-        await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
+        await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
         if (!(e instanceof ResponseError)) {
           throw e
@@ -95,11 +90,12 @@ describe('Transactions sendTransaction', () => {
       })
 
       try {
-        await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
+        await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
         if (!(e instanceof ResponseError)) {
           throw e
         }
+
         expect(e.message).toContain(
           'Please wait a few seconds for your balance to update and try again',
         )
@@ -111,20 +107,18 @@ describe('Transactions sendTransaction', () => {
       routeTest.chain.synced = true
       routeTest.node.accounts.pay = jest.fn()
 
-      const paySpy = jest.spyOn(routeTest.node.accounts, 'pay')
+      const account = await useAccountFixture(routeTest.node.accounts, 'account')
+      const tx = await useMinersFeeFixture(routeTest.node.accounts, account)
+
+      jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
 
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
         unconfirmedBalance: BigInt(11),
         confirmedBalance: BigInt(11),
       })
 
-      try {
-        await routeTest.adapter.request('transaction/sendTransaction', paymentsParams)
-      } catch {
-        // payment is mocked
-      }
-
-      expect(paySpy).toHaveBeenCalled()
-    })
+      const result = await routeTest.client.sendTransaction(TEST_PARAMS)
+      expect(result.content.transactionHash).toEqual(tx.transactionHash().toString('hex'))
+    }, 30000)
   })
 })
