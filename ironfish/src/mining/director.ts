@@ -25,7 +25,7 @@ import {
 import { JsonSerializable } from '../serde'
 import { Strategy } from '../strategy'
 import { submitMetric } from '../telemetry'
-import { ErrorUtils } from '../utils'
+import { ErrorUtils, GraffitiUtils } from '../utils'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -378,10 +378,11 @@ export class MiningDirector<
    * true if mining that block can be retried with a lower difficulty
    */
   async constructAndMineBlock(minersFee: T, blockTransactions: T[]): Promise<boolean> {
-    const graffiti = Buffer.alloc(32)
-    graffiti.write(this.blockGraffiti)
-
-    const newBlock = await this.chain.newBlock(blockTransactions, minersFee, graffiti)
+    const newBlock = await this.chain.newBlock(
+      blockTransactions,
+      minersFee,
+      GraffitiUtils.fromString(this.blockGraffiti),
+    )
 
     this.logger.debug(
       `Current block  ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
