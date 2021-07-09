@@ -1,2 +1,2 @@
-release: cd build && node db:migrate
+release: npx prisma migrate deploy
 web: cd build && node main.js
