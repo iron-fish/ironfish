@@ -15,7 +15,6 @@
     "build": "tsc -b",
     "build:tests": "tsc -b tsconfig.test.json",
     "clean": "rm -rf ./build",
-    "db:migrate": "prisma migrate deploy",
     "docker:start": "docker-compose up -d",
     "docker:stop": "docker-compose down",
     "lint": "eslint .",
