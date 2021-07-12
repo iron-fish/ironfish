@@ -3,7 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import leveldown from 'leveldown'
+import os from 'os'
+import path from 'path'
+import { v4 as uuid } from 'uuid'
 import { IDatabase, LevelupDatabase } from '../../storage'
+import { createDB as createDBStorage } from '../../storage/utils'
 
 /** Generate a test database name from the given test if not provided*/
 export function makeDbName(): string {
@@ -11,7 +15,6 @@ export function makeDbName(): string {
   return expect.getState().currentTestName + '-' + id
 }
 
-/**Init a database with the given name, or generate one from the current test */
 export function makeDb(name?: string): IDatabase {
   if (!name) {
     name = makeDbName()
@@ -24,4 +27,17 @@ export function makeDbPath(name?: string): string {
     name = makeDbName()
   }
   return `./testdbs/${name}`
+}
+
+export async function createDB(open = false): Promise<IDatabase> {
+  const location = path.join(os.tmpdir(), uuid())
+  const database = createDBStorage({ location })
+
+  afterEach(async () => database?.close())
+
+  if (open) {
+    await database.open()
+  }
+
+  return database
 }
