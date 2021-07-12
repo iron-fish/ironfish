@@ -131,6 +131,8 @@ jobs:
 
       - name: Run migrations
         run: cd ironfish-http-api-v2 && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/test
 
       - name: Build Wasm packages
         run: cd ironfish-wasm && yarn build
