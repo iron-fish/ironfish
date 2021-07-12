@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import diff from 'jest-diff'
-import { MerkleTree, Witness, WitnessSide } from '../../../merkletree'
-import { NodeValue } from '../../../merkletree/schema'
-import { makeError } from '../../matchers/utils'
+import { MerkleTree, Witness, WitnessSide } from '../../merkletree'
+import { NodeValue } from '../../merkletree/schema'
+import { makeError } from './utils'
 
 declare global {
   namespace jest {
@@ -116,9 +116,9 @@ expect.extend({
     const otherNodeCount = await other.getCount('Nodes')
 
     if (treeLeafCount !== otherLeafCount) {
-      error = `tree ${tree.treeName} has ${treeLeafCount} leaves, but expected ${otherLeafCount}`
+      error = `tree ${tree.name} has ${treeLeafCount} leaves, but expected ${otherLeafCount}`
     } else if (treeNodeCount !== otherNodeCount) {
-      error = `tree ${tree.treeName} has ${treeNodeCount} nodes, but expected ${otherNodeCount}`
+      error = `tree ${tree.name} has ${treeNodeCount} nodes, but expected ${otherNodeCount}`
     }
 
     for (let index = 0; index < treeLeafCount; index++) {

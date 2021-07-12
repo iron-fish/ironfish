@@ -18,7 +18,7 @@ import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteE
 import { IDatabase } from './storage'
 import { IronfishStrategy } from './strategy'
 import { createNodeTest } from './testUtilities'
-import { makeDb, makeDbName } from './testUtilities/fake'
+import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
 
 async function makeWasmStrategyTree({
@@ -39,7 +39,12 @@ async function makeWasmStrategyTree({
     database = makeDb(name)
   }
 
-  const tree = new MerkleTree(new NoteHasher(), database, name, depth)
+  const tree = new MerkleTree({
+    hasher: new NoteHasher(),
+    db: database,
+    name: name,
+    depth: depth,
+  })
 
   if (openDb) {
     await database.open()

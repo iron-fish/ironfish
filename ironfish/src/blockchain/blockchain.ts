@@ -203,8 +203,19 @@ export class Blockchain<
       valueEncoding: BUFFER_ENCODING,
     })
 
-    this.notes = new MerkleTree(this.strategy.noteHasher(), this.db, 'n', 32)
-    this.nullifiers = new MerkleTree(this.strategy.nullifierHasher(), this.db, 'u', 32)
+    this.notes = new MerkleTree({
+      hasher: this.strategy.noteHasher(),
+      db: this.db,
+      name: 'n',
+      depth: 32,
+    })
+
+    this.nullifiers = new MerkleTree({
+      hasher: this.strategy.nullifierHasher(),
+      db: this.db,
+      name: 'u',
+      depth: 32,
+    })
   }
 
   get isEmpty(): boolean {
