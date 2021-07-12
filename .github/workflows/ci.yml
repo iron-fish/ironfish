@@ -8,6 +8,9 @@ on:
     branches:
       - master
 
+env:
+  DATABASE_URL: postgres://postgres:password@localhost:5432/ironfish_api_test
+
 jobs:
   lint:
     name: Lint
@@ -72,20 +75,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: password 
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
@@ -129,10 +118,11 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Start Docker 
+        run: cd ironfish-http-api-v2 && yarn docker:start
+
       - name: Run migrations
         run: cd ironfish-http-api-v2 && npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/test
 
       - name: Build Wasm packages
         run: cd ironfish-wasm && yarn build
@@ -143,11 +133,12 @@ jobs:
 
       - name: Run tests
         run: yarn test:coverage
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/test
 
       - name: Upload coverage
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
+
+      - name: Stop Docker
+        run: cd ironfish-http-api-v2 && yarn docker:stop
 
   testslow:
     name: Slow Tests
