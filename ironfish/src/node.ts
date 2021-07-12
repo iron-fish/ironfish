@@ -94,6 +94,7 @@ export class IronfishNode {
       targetPeers: config.get('targetPeers'),
       isWorker: config.get('isWorker'),
       broadcastWorkers: config.get('broadcastWorkers'),
+      logPeerMessages: config.get('logPeerMessages'),
       simulateLatency: config.get('p2pSimulateLatency'),
       bootstrapNodes: config.getArray('bootstrapNodes'),
       webSocket: webSocket,

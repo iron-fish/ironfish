@@ -46,6 +46,10 @@ export type ConfigOptions = {
    */
   miningForce: boolean
   /**
+   * If true, track all sent and received network messages per-peer.
+   */
+  logPeerMessages: boolean
+  /**
    * True if you want to send worker peers out to other clients or not
    * */
   broadcastWorkers: boolean
@@ -146,6 +150,7 @@ export class Config extends KeyStore<ConfigOptions> {
       ipcPath: files.resolve(files.join(dataDir || DEFAULT_DATA_DIR, 'ironfish.ipc')),
       isWorker: false,
       logLevel: '*:info',
+      logPeerMessages: false,
       logPrefix: '',
       miningForce: false,
       blockGraffiti: '',

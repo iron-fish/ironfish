@@ -7,7 +7,7 @@ import { ApiNamespace, router } from '../router'
 
 type ConnectionState = Connection['state']['type'] | ''
 
-type PeerResponse = {
+export type PeerResponse = {
   state: string
   identity: string | null
   version: number | null
