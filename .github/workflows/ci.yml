@@ -129,6 +129,9 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Run migrations
+        run: cd ironfish-http-api-v2 && npx prisma migrate deploy
+
       - name: Build Wasm packages
         run: cd ironfish-wasm && yarn build
 
