@@ -72,6 +72,18 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
@@ -124,6 +136,8 @@ jobs:
 
       - name: Run tests
         run: yarn test:coverage
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/test
 
       - name: Upload coverage
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
