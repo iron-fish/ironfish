@@ -5,3 +5,4 @@
 import './blockchain'
 import './buffer'
 import './error'
+import './merkletree'

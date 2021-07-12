@@ -3,114 +3,62 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../assert'
-import { IJSON, JsonSerializable } from '../serde'
+import { JsonSerializable } from '../serde'
 import {
   IDatabase,
-  IDatabaseEncoding,
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
   SchemaValue,
 } from '../storage'
+import { LeafEncoding, NodeEncoding } from './encoding'
 import { MerkleHasher } from './hasher'
-import { CounterSchema, LeavesSchema, NodesSchema, NodeValue } from './schema'
+import { CounterSchema, LeavesSchema, NodesSchema } from './schema'
+import { depthAtLeafCount, isEmpty, isRight } from './utils'
 import { Witness, WitnessNode } from './witness'
 
-/**
- * Represent whether a given node is the left or right subchild in a tree,
- * or an empty node with a known hash.
- */
-export enum Side {
-  Left = 'Left',
-  Right = 'Right',
-}
+export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerializable> {
+  readonly hasher: MerkleHasher<E, H, SE, SH>
+  readonly db: IDatabase
+  readonly name: string = ''
+  readonly depth: number = 32
 
-export type LeafIndex = number
-export type NodeIndex = number
+  readonly counter: IDatabaseStore<CounterSchema>
+  readonly leaves: IDatabaseStore<LeavesSchema<E, H>>
+  readonly nodes: IDatabaseStore<NodesSchema<H>>
 
-export default class MerkleTree<
-  E,
-  H,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-> {
-  counter: IDatabaseStore<CounterSchema>
-  leaves: IDatabaseStore<LeavesSchema<E, H>>
-  nodes: IDatabaseStore<NodesSchema<H>>
-
-  constructor(
-    readonly merkleHasher: MerkleHasher<E, H, SE, SH>,
-    readonly db: IDatabase,
-    readonly treeName: string,
-    readonly treeDepth: number = 32,
-  ) {
-    class LeafEncoding implements IDatabaseEncoding<LeavesSchema<E, H>['value']> {
-      serialize = (value: LeavesSchema<E, H>['value']): Buffer => {
-        const intermediate = {
-          ...value,
-          element: merkleHasher.elementSerde().serialize(value.element),
-          merkleHash: merkleHasher.hashSerde().serialize(value.merkleHash),
-        }
-        return Buffer.from(IJSON.stringify(intermediate), 'utf8')
-      }
-      deserialize = (buffer: Buffer): LeavesSchema<E, H>['value'] => {
-        const intermediate = IJSON.parse(buffer.toString('utf8')) as Omit<
-          LeavesSchema<E, H>['value'],
-          'element' | 'merkleHash'
-        > & { element: SE; merkleHash: SH }
-        return {
-          ...intermediate,
-          element: merkleHasher.elementSerde().deserialize(intermediate.element),
-          merkleHash: merkleHasher.hashSerde().deserialize(intermediate.merkleHash),
-        }
-      }
-
-      equals(): boolean {
-        throw new Error('You should never use this')
-      }
-    }
-
-    class NodeEncoding implements IDatabaseEncoding<NodeValue<H>> {
-      serialize = (value: NodeValue<H>): Buffer => {
-        const intermediate = {
-          ...value,
-          hashOfSibling: merkleHasher.hashSerde().serialize(value.hashOfSibling),
-        }
-        return Buffer.from(IJSON.stringify(intermediate), 'utf8')
-      }
-      deserialize = (buffer: Buffer): NodeValue<H> => {
-        const intermediate = IJSON.parse(buffer.toString('utf8')) as Omit<
-          NodeValue<H>,
-          'hashOfSibling'
-        > & { hashOfSibling: SH }
-
-        return {
-          ...intermediate,
-          hashOfSibling: merkleHasher.hashSerde().deserialize(intermediate.hashOfSibling),
-        }
-      }
-
-      equals(): boolean {
-        throw new Error('You should never use this')
-      }
-    }
+  constructor({
+    hasher,
+    db,
+    name = '',
+    depth = 32,
+  }: {
+    hasher: MerkleHasher<E, H, SE, SH>
+    db: IDatabase
+    name?: string
+    depth?: number
+  }) {
+    this.hasher = hasher
+    this.db = db
+    this.name = name
+    this.depth = depth
 
     this.counter = db.addStore({
-      name: `${treeName}c`,
+      name: `${name}c`,
       keyEncoding: new JsonEncoding<CounterSchema['key']>(),
       valueEncoding: new JsonEncoding<CounterSchema['value']>(),
     })
 
     this.leaves = db.addStore({
-      name: `${treeName}l`,
+      name: `${name}l`,
       keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
-      valueEncoding: new LeafEncoding(),
+      valueEncoding: new LeafEncoding<E, H, SE, SH>(hasher),
     })
 
     this.nodes = db.addStore({
-      name: `${treeName}n`,
+      name: `${name}n`,
       keyEncoding: new JsonEncoding<NodesSchema<H>['key']>(),
-      valueEncoding: new NodeEncoding(),
+      valueEncoding: new NodeEncoding(hasher),
     })
   }
 
@@ -132,7 +80,7 @@ export default class MerkleTree<
       const value = await this.counter.get('Leaves', tx)
 
       if (value === undefined) {
-        throw new Error(`No counter record found for tree ${this.treeName}`)
+        throw new Error(`No counter record found for tree ${this.name}`)
       }
 
       return value
@@ -157,7 +105,7 @@ export default class MerkleTree<
   ): Promise<SchemaValue<LeavesSchema<E, H>>> {
     const leaf = await this.getLeafOrNull(index, tx)
     if (!leaf) {
-      throw new Error(`No leaf found in tree ${this.treeName} at index ${index}`)
+      throw new Error(`No leaf found in tree ${this.name} at index ${index}`)
     }
     return leaf
   }
@@ -186,7 +134,7 @@ export default class MerkleTree<
   ): Promise<SchemaValue<NodesSchema<H>>> {
     const node = await this.getNodeOrNull(index, tx)
     if (!node) {
-      throw new Error(`No node found in tree ${this.treeName} at index ${index}`)
+      throw new Error(`No node found in tree ${this.name} at index ${index}`)
     }
     return node
   }
@@ -210,7 +158,7 @@ export default class MerkleTree<
   async getCount(countType: 'Leaves' | 'Nodes', tx?: IDatabaseTransaction): Promise<LeafIndex> {
     const count = await this.counter.get(countType, tx)
     if (count === undefined) {
-      throw new Error(`No counts found in tree ${this.treeName} for type ${countType}`)
+      throw new Error(`No counts found in tree ${this.name} for type ${countType}`)
     }
     return count
   }
@@ -236,7 +184,7 @@ export default class MerkleTree<
    */
   async add(element: E, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      const merkleHash = this.merkleHasher.merkleHash(element)
+      const merkleHash = this.hasher.merkleHash(element)
       const indexOfNewLeaf = await this.getCount('Leaves', tx)
 
       let newParentIndex: NodeIndex
@@ -250,7 +198,7 @@ export default class MerkleTree<
 
         const leftLeafIndex = 0
         const leftLeaf = await this.getLeaf(leftLeafIndex, tx)
-        const hashOfSibling = this.merkleHasher.combineHash(0, leftLeaf.merkleHash, merkleHash)
+        const hashOfSibling = this.hasher.combineHash(0, leftLeaf.merkleHash, merkleHash)
 
         await this.nodes.put(
           newParentIndex,
@@ -288,7 +236,7 @@ export default class MerkleTree<
         let previousParentIndex = previousLeaf.parentIndex
 
         let nextNodeIndex = await this.getCount('Nodes', tx)
-        let myHash = this.merkleHasher.combineHash(0, merkleHash, merkleHash)
+        let myHash = this.hasher.combineHash(0, merkleHash, merkleHash)
         let depth = 1
         let shouldContinue = true
 
@@ -315,7 +263,7 @@ export default class MerkleTree<
               const newParent = {
                 side: Side.Left,
                 parentIndex: 0,
-                hashOfSibling: this.merkleHasher.combineHash(
+                hashOfSibling: this.hasher.combineHash(
                   depth,
                   previousParent.hashOfSibling,
                   myHash,
@@ -343,16 +291,16 @@ export default class MerkleTree<
             shouldContinue = false
           } else {
             // previous parent is a right node, gotta go up a step
-            myHash = this.merkleHasher.combineHash(depth, myHash, myHash)
+            myHash = this.hasher.combineHash(depth, myHash, myHash)
 
             if (previousParent.leftIndex === undefined) {
-              throw new UnexpectedDatabaseError(`Parent has no left sibling`)
+              throw new Error(`Parent has no left sibling`)
             }
 
             const leftSibling = await this.getNode(previousParent.leftIndex, tx)
 
             if (leftSibling.parentIndex === undefined) {
-              throw new UnexpectedDatabaseError(`Left sibling has no parent`)
+              throw new Error(`Left sibling has no parent`)
             }
             const leftSiblingParentIndex = leftSibling.parentIndex
 
@@ -474,7 +422,7 @@ export default class MerkleTree<
       }
 
       const rootDepth = depthAtLeafCount(pastSize)
-      const minTreeDepth = Math.min(rootDepth, this.treeDepth)
+      const minTreeDepth = Math.min(rootDepth, this.depth)
       const leafIndex = pastSize - 1
       const leaf = await this.getLeaf(leafIndex, tx)
 
@@ -484,9 +432,9 @@ export default class MerkleTree<
       if (isRight(leafIndex)) {
         const sibling = await this.getLeaf(leafIndex - 1, tx)
         const siblingHash = sibling.merkleHash
-        currentHash = this.merkleHasher.combineHash(0, siblingHash, currentHash)
+        currentHash = this.hasher.combineHash(0, siblingHash, currentHash)
       } else {
-        currentHash = this.merkleHasher.combineHash(0, currentHash, currentHash)
+        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
       }
 
       for (let depth = 1; depth < minTreeDepth; depth++) {
@@ -496,7 +444,7 @@ export default class MerkleTree<
           case Side.Left:
             Assert.isNotUndefined(node.parentIndex)
             currentNodeIndex = node.parentIndex
-            currentHash = this.merkleHasher.combineHash(depth, currentHash, currentHash)
+            currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
             break
 
           case Side.Right: {
@@ -504,7 +452,7 @@ export default class MerkleTree<
             const leftNode = await this.getNode(node.leftIndex, tx)
             Assert.isNotUndefined(leftNode.parentIndex)
             currentNodeIndex = leftNode.parentIndex
-            currentHash = this.merkleHasher.combineHash(depth, node.hashOfSibling, currentHash)
+            currentHash = this.hasher.combineHash(depth, node.hashOfSibling, currentHash)
             break
           }
 
@@ -513,8 +461,8 @@ export default class MerkleTree<
         }
       }
 
-      for (let depth = rootDepth; depth < this.treeDepth; depth++) {
-        currentHash = this.merkleHasher.combineHash(depth, currentHash, currentHash)
+      for (let depth = rootDepth; depth < this.depth; depth++) {
+        currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
       }
 
       return currentHash
@@ -543,7 +491,7 @@ export default class MerkleTree<
           break
         }
 
-        if (this.merkleHasher.elementSerde().equals(value, leaf.element)) {
+        if (this.hasher.elementSerde().equals(value, leaf.element)) {
           return true
         }
       }
@@ -590,39 +538,39 @@ export default class MerkleTree<
       if (isRight(index)) {
         const hashOfSibling = (await this.getLeaf(index - 1, tx)).merkleHash
         authenticationPath.push({ side: Side.Right, hashOfSibling })
-        currentHash = this.merkleHasher.combineHash(0, hashOfSibling, currentHash)
+        currentHash = this.hasher.combineHash(0, hashOfSibling, currentHash)
       } else if (index < leafCount - 1) {
         // Left leaf and have a right sibling
         const hashOfSibling = (await this.getLeaf(index + 1, tx)).merkleHash
         authenticationPath.push({ side: Side.Left, hashOfSibling })
-        currentHash = this.merkleHasher.combineHash(0, currentHash, hashOfSibling)
+        currentHash = this.hasher.combineHash(0, currentHash, hashOfSibling)
       } else {
         // Left leaf and rightmost node
         authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
-        currentHash = this.merkleHasher.combineHash(0, currentHash, currentHash)
+        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
       }
 
-      for (let depth = 1; depth < this.treeDepth; depth++) {
+      for (let depth = 1; depth < this.depth; depth++) {
         const node =
           currentPosition !== undefined ? await this.getNodeOrNull(currentPosition, tx) : null
 
         if (node === null) {
           authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
-          currentHash = this.merkleHasher.combineHash(depth, currentHash, currentHash)
+          currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
         } else if (node.side === Side.Left) {
           authenticationPath.push({ side: Side.Left, hashOfSibling: node.hashOfSibling })
-          currentHash = this.merkleHasher.combineHash(depth, currentHash, node.hashOfSibling)
+          currentHash = this.hasher.combineHash(depth, currentHash, node.hashOfSibling)
           currentPosition = node.parentIndex
         } else {
           authenticationPath.push({ side: Side.Right, hashOfSibling: node.hashOfSibling })
-          currentHash = this.merkleHasher.combineHash(depth, node.hashOfSibling, currentHash)
+          currentHash = this.hasher.combineHash(depth, node.hashOfSibling, currentHash)
           Assert.isNotUndefined(node.leftIndex)
           const leftSibling = await this.getNode(node.leftIndex, tx)
           currentPosition = leftSibling.parentIndex
         }
       }
 
-      return new Witness(leafCount, currentHash, authenticationPath, this.merkleHasher)
+      return new Witness(leafCount, currentHash, authenticationPath, this.hasher)
     })
   }
 
@@ -645,9 +593,9 @@ export default class MerkleTree<
       const leftSiblingIndex = leafIndex - 1
       const leftSibling = await this.getLeaf(leftSiblingIndex, tx)
       const leftSiblingHash = leftSibling.merkleHash
-      parentHash = this.merkleHasher.combineHash(depth, leftSiblingHash, leafHash)
+      parentHash = this.hasher.combineHash(depth, leftSiblingHash, leafHash)
     } else {
-      parentHash = this.merkleHasher.combineHash(depth, leafHash, leafHash)
+      parentHash = this.hasher.combineHash(depth, leafHash, leafHash)
     }
 
     while (!isEmpty(parentIndex)) {
@@ -672,7 +620,7 @@ export default class MerkleTree<
           )
 
           parentIndex = node.parentIndex
-          parentHash = this.merkleHasher.combineHash(depth, parentHash, parentHash)
+          parentHash = this.hasher.combineHash(depth, parentHash, parentHash)
           break
         }
 
@@ -698,7 +646,7 @@ export default class MerkleTree<
           )
 
           parentIndex = leftNode.parentIndex
-          parentHash = this.merkleHasher.combineHash(depth, node.hashOfSibling, parentHash)
+          parentHash = this.hasher.combineHash(depth, node.hashOfSibling, parentHash)
           break
         }
       }
@@ -706,38 +654,10 @@ export default class MerkleTree<
   }
 }
 
-/**
- * Is the given leaf a right child or left child of its parent node.
- *
- * Leaves are added in order, so this is the same as asking if the index
- * is an od number
- */
-function isRight(index: LeafIndex) {
-  return index % 2 === 1
+export enum Side {
+  Left = 'Left',
+  Right = 'Right',
 }
 
-/**
- * Is the given node index the empty node above the root node?
- */
-function isEmpty(index: NodeIndex | undefined): index is undefined | 0 {
-  return index === 0 || index === undefined
-}
-
-/**
- * The depth of the tree when it contains a certain number of leaf nodes
- */
-export function depthAtLeafCount(size: number): number {
-  if (size === 0) {
-    return 0
-  }
-  if (size === 1) {
-    return 1
-  }
-  return Math.floor(Math.log2(size - 1)) + 2
-}
-
-export class UnexpectedDatabaseError extends Error {
-  constructor(message?: string) {
-    super(message || 'Inconsistent db state detected: Database was in an unexpected statef')
-  }
-}
+export type LeafIndex = number
+export type NodeIndex = number
