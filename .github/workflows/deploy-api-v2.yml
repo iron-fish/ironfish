@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - beta
-  paths:
-    - 'ironfish-http-api-v2/**'
+    paths:
+      - 'ironfish-http-api-v2/**'
 
 jobs:
   deploy:
