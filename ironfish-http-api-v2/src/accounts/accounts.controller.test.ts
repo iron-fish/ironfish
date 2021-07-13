@@ -9,11 +9,11 @@ import { bootstrapTestApp } from '../test/test-app'
 
 describe('AccountsController', () => {
   let app: INestApplication
-  let prismaService: PrismaService
+  let prisma: PrismaService
 
   beforeAll(async () => {
     app = await bootstrapTestApp()
-    prismaService = app.get(PrismaService)
+    prisma = app.get(PrismaService)
     await app.init()
   })
 
@@ -24,7 +24,7 @@ describe('AccountsController', () => {
   describe('GET /accounts/:id', () => {
     describe('with a valid id', () => {
       it('returns the account', async () => {
-        const account = await prismaService.account.create({
+        const account = await prisma.account.create({
           data: {
             public_address: uuid(),
           },

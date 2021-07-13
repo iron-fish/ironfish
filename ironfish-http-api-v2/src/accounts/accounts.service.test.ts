@@ -10,12 +10,12 @@ import { AccountsService } from './accounts.service'
 describe('AccountsService', () => {
   let app: INestApplication
   let accountsService: AccountsService
-  let prismaService: PrismaService
+  let prisma: PrismaService
 
   beforeAll(async () => {
     app = await bootstrapTestApp()
-    prismaService = app.get(PrismaService)
     accountsService = app.get(AccountsService)
+    prisma = app.get(PrismaService)
     await app.init()
   })
 
@@ -26,7 +26,7 @@ describe('AccountsService', () => {
   describe('find', () => {
     describe('with a valid id', () => {
       it('returns the record', async () => {
-        const account = await prismaService.account.create({
+        const account = await prisma.account.create({
           data: {
             public_address: uuid(),
           },
