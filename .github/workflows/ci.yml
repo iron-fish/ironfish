@@ -8,6 +8,10 @@ on:
     branches:
       - master
 
+env:
+  DATABASE_URL: postgres://postgres:password@localhost:5432/ironfish_api_test
+  IRONFISH_POSTGRES_CONTAINER: ironfish_postgres
+
 jobs:
   lint:
     name: Lint
@@ -115,6 +119,15 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Start Docker 
+        run: cd ironfish-http-api-v2 && yarn docker:start
+
+      - name: Wait for Postgres
+        run: until docker exec $IRONFISH_POSTGRES_CONTAINER pg_isready; do sleep 5; done
+
+      - name: Run migrations
+        run: cd ironfish-http-api-v2 && npx prisma migrate deploy
+
       - name: Build Wasm packages
         run: cd ironfish-wasm && yarn build
 
@@ -127,6 +140,9 @@ jobs:
 
       - name: Upload coverage
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
+
+      - name: Stop Docker
+        run: cd ironfish-http-api-v2 && yarn docker:stop
 
   testslow:
     name: Slow Tests
