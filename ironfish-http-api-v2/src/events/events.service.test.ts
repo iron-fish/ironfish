@@ -11,12 +11,12 @@ import { EventType } from '.prisma/client'
 describe('EventsService', () => {
   let app: INestApplication
   let eventsService: EventsService
-  let prismaService: PrismaService
+  let prisma: PrismaService
 
   beforeAll(async () => {
     app = await bootstrapTestApp()
-    prismaService = app.get(PrismaService)
     eventsService = app.get(EventsService)
+    prisma = app.get(PrismaService)
     await app.init()
   })
 
@@ -27,12 +27,12 @@ describe('EventsService', () => {
   describe('find', () => {
     describe('with a valid id', () => {
       it('returns the record', async () => {
-        const account = await prismaService.account.create({
+        const account = await prisma.account.create({
           data: {
             public_address: uuid(),
           },
         })
-        const event = await prismaService.event.create({
+        const event = await prisma.event.create({
           data: {
             type: EventType.BUG_CAUGHT,
             account_id: account.id,
