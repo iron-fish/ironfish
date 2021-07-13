@@ -7,32 +7,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model accounts {
+model Account {
   id             Int      @id @default(autoincrement())
   public_address String   @db.VarChar
   created_at     DateTime @default(now()) @db.Timestamp(6)
   updated_at     DateTime @default(now()) @db.Timestamp(6)
-  events         events[]
+  events         Event[]
 
   @@index([public_address], name: "index_accounts_on_public_address")
+  @@map("accounts")
 }
 
-model events {
-  id         Int        @id @default(autoincrement())
-  created_at DateTime   @default(now()) @db.Timestamp(6)
-  updated_at DateTime   @default(now()) @db.Timestamp(6)
+model Event {
+  id         Int       @id @default(autoincrement())
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @default(now()) @db.Timestamp(6)
   account_id Int
-  type       event_type
-  accounts   accounts   @relation(fields: [account_id], references: [id])
+  type       EventType
+  account    Account   @relation(fields: [account_id], references: [id])
 
   @@index([account_id], name: "index_events_on_account_id")
+  @@map("events")
 }
 
-enum event_type {
+enum EventType {
   BLOCK_MINED
   BUG_CAUGHT
   COMMUNITY_CONTRIBUTION
   NODE_HOSTED
   PULL_REQUEST_MERGED
   SOCIAL_MEDIA_PROMOTION
+
+  @@map("event_type")
 }
