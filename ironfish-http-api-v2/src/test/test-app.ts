@@ -5,6 +5,7 @@ import { INestApplication } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { Test } from '@nestjs/testing'
 import { AccountsModule } from '../accounts/accounts.module'
+import { EventsModule } from '../events/events.module'
 import { HealthModule } from '../health/health.module'
 
 export async function bootstrapTestApp(): Promise<INestApplication> {
@@ -14,6 +15,7 @@ export async function bootstrapTestApp(): Promise<INestApplication> {
       ConfigModule.forRoot({
         isGlobal: true,
       }),
+      EventsModule,
       HealthModule,
     ],
   }).compile()
