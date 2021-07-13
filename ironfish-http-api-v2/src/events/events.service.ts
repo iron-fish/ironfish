@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { Account, Prisma } from '.prisma/client'
+import { Event, Prisma } from '.prisma/client'
 
 @Injectable()
-export class AccountsService {
+export class EventsService {
   constructor(private prisma: PrismaService) {}
 
-  async find(input: Prisma.AccountWhereUniqueInput): Promise<Account | null> {
-    return this.prisma.account.findUnique({
+  async find(input: Prisma.EventWhereUniqueInput): Promise<Event | null> {
+    return this.prisma.event.findUnique({
       where: input,
     })
   }
