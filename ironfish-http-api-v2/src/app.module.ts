@@ -4,8 +4,8 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { AccountsModule } from './accounts/accounts.module'
+import { EventsModule } from './events/events.module'
 import { HealthModule } from './health/health.module'
-import { PrismaModule } from './prisma/prisma.module'
 
 @Module({
   imports: [
@@ -13,8 +13,8 @@ import { PrismaModule } from './prisma/prisma.module'
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventsModule,
     HealthModule,
-    PrismaModule,
   ],
 })
 export class AppModule {}
