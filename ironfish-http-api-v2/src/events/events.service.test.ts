@@ -51,4 +51,101 @@ describe('EventsService', () => {
       })
     })
   })
+
+  describe('list', () => {
+    const setup = async () => {
+      const account = await prisma.account.create({
+        data: {
+          public_address: uuid(),
+        },
+      })
+      const firstEvent = await prisma.event.create({
+        data: {
+          type: EventType.BUG_CAUGHT,
+          account_id: account.id,
+        },
+      })
+      const secondEvent = await prisma.event.create({
+        data: {
+          type: EventType.COMMUNITY_CONTRIBUTION,
+          account_id: account.id,
+        },
+      })
+      const thirdEvent = await prisma.event.create({
+        data: {
+          type: EventType.SOCIAL_MEDIA_PROMOTION,
+          account_id: account.id,
+        },
+      })
+      const events = [firstEvent, secondEvent, thirdEvent]
+      return { account, events }
+    }
+
+    describe('with an account with no events', () => {
+      it('returns no records', async () => {
+        const account = await prisma.account.create({
+          data: {
+            public_address: uuid(),
+          },
+        })
+        const records = await eventsService.list({ accountId: account.id })
+        expect(records).toHaveLength(0)
+      })
+    })
+
+    describe('with an account with events', () => {
+      describe('with no limit', () => {
+        it('returns all the available records', async () => {
+          const { account, events } = await setup()
+          const records = await eventsService.list({ accountId: account.id })
+          const eventIds = new Set(events.map((event) => event.id))
+          const recordIds = new Set(records.map((record) => record.id))
+          expect(eventIds).toEqual(recordIds)
+        })
+      })
+
+      describe('with a limit lower than the number of total records', () => {
+        it('returns a paginated chunk equal to the limit', async () => {
+          const { account } = await setup()
+          const limit = 2
+          const records = await eventsService.list({ accountId: account.id, limit })
+          expect(records).toHaveLength(limit)
+          for (const record of records) {
+            expect(record.account_id).toBe(account.id)
+          }
+        })
+      })
+
+      describe('with the before cursor', () => {
+        it('returns records before the cursor', async () => {
+          const { account, events } = await setup()
+          events.reverse()
+          const lastEventId = events[0].id
+          const records = await eventsService.list({
+            accountId: account.id,
+            before: lastEventId,
+          })
+          for (const record of records) {
+            expect(record.id).toBeLessThan(lastEventId)
+            expect(record.account_id).toBe(account.id)
+          }
+        })
+      })
+
+      describe('with the after cursor', () => {
+        it('returns records after the cursor', async () => {
+          const { account, events } = await setup()
+          const firstEventId = events[0].id
+          const records = await eventsService.list({
+            accountId: account.id,
+            after: firstEventId,
+          })
+          for (const record of records) {
+            expect(record.id).toBeGreaterThan(firstEventId)
+            expect(record.account_id).toBe(account.id)
+          }
+        })
+      })
+    })
+  })
 })
