@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountsController GET /accounts/:id/metrics with a TOTAL request and no time range returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": "Must provide time range for \\"TOTAL\\" requests",
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with a missing granularity returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": Array [
+    "granularity must be a valid enum value",
+  ],
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with a time range for a LIFETIME request returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": "Cannot provide time range for \\"LIFETIME\\" requests",
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with a time range longer than the supported range returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": "Time range too long",
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with end but no start returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": Array [
+    "start must be a Date instance",
+  ],
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with start after end returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": "\\"start\\" must be stricly less than \\"end\\"",
+  "statusCode": 422,
+}
+`;
+
+exports[`AccountsController GET /accounts/:id/metrics with start but no end returns a 422 1`] = `
+Object {
+  "error": "Unprocessable Entity",
+  "message": Array [
+    "end must be a Date instance",
+  ],
+  "statusCode": 422,
+}
+`;
