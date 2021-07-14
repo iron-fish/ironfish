@@ -78,10 +78,19 @@ export class WebRtcConnection extends Connection {
     this.peer.onLocalDescription((sdp, type) => {
       // The TypeScript types for "type" in this callback might not be accurate.
       // They should be https://www.w3.org/TR/webrtc/#dom-rtcsdptype
+
+      if (this.state.type !== 'CONNECTED' && this.state.type !== 'WAITING_FOR_IDENTITY') {
+        this.setState({ type: 'SIGNALING' })
+      }
+
       this.onSignal.emit({ type, sdp })
     })
 
     this.peer.onLocalCandidate((candidate, mid) => {
+      if (this.state.type !== 'CONNECTED' && this.state.type !== 'WAITING_FOR_IDENTITY') {
+        this.setState({ type: 'SIGNALING' })
+      }
+
       this.onSignal.emit({
         type: 'candidate',
         candidate: {
