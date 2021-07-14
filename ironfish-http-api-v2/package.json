@@ -40,6 +40,8 @@
     "@nestjs/core": "7.6.18",
     "@nestjs/platform-express": "7.6.18",
     "@prisma/client": "2.27.0",
+    "class-transformer": "0.4.0",
+    "class-validator": "0.13.1",
     "compression": "1.7.4",
     "express": "4.17.1",
     "helmet": "4.6.0",
