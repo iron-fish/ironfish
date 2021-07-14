@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Accounts } from '../account'
 import { IronfishBlockchain } from '../blockchain'
 import { IronfishMiningDirector } from '../mining/director'
 import { PeerNetwork } from '../network/peerNetwork'
@@ -11,6 +12,7 @@ import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { NodeTest } from './nodeTest'
 import { IronfishTestStrategy } from './strategy'
+import { IronfishTestVerifier } from './verifier'
 
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
@@ -25,7 +27,9 @@ export class RouteTest extends NodeTest {
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy
+    verifier: IronfishTestVerifier
     chain: IronfishBlockchain
+    accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: IronfishMiningDirector
@@ -42,13 +46,24 @@ export class RouteTest extends NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector, client, adapter } =
-      await this.createSetup()
+    const {
+      sdk,
+      node,
+      strategy,
+      chain,
+      accounts,
+      peerNetwork,
+      syncer,
+      miningDirector,
+      client,
+      adapter,
+    } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
     this.chain = chain
+    this.accounts = accounts
     this.syncer = syncer
     this.peerNetwork = peerNetwork
     this.client = client

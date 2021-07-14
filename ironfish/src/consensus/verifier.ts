@@ -57,7 +57,7 @@ export class Verifier<
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
    */
-  protected enableVerifyTarget = true
+  enableVerifyTarget = true
 
   constructor(chain: Blockchain<E, H, T, SE, SH, ST>) {
     this.strategy = chain.strategy
@@ -113,7 +113,9 @@ export class Verifier<
     }
 
     // Verify the transactions
-    const verificationResults = await Promise.all(block.transactions.map((t) => t.verify()))
+    const verificationResults = await Promise.all(
+      block.transactions.map((t) => this.verifyTransaction(t)),
+    )
 
     const invalidResult = verificationResults.find((f) => !f.valid)
     if (invalidResult !== undefined) {
@@ -191,22 +193,44 @@ export class Verifier<
     payload: PayloadType,
   ): Promise<{ transaction: T; serializedTransaction: ST }> {
     if (!isNewTransactionPayload<ST>(payload)) {
-      return Promise.reject('Payload is not a serialized transaction')
+      throw new Error('Payload is not a serialized transaction')
     }
-    const serde = this.strategy.transactionSerde()
-    let transaction
+
+    const transaction = this.strategy.transactionSerde().deserialize(payload.transaction)
+
     try {
-      transaction = serde.deserialize(payload.transaction)
+      // Transaction is lazily deserialized, so we use takeReference()
+      // to force deserialization errors here
+      transaction.takeReference()
     } catch {
-      return Promise.reject('Could not deserialize transaction')
+      transaction.returnReference()
+      throw new Error('Transaction cannot deserialize')
     }
-    if ((await transaction.transactionFee()) < 0) {
-      return Promise.reject('Transaction has negative fees')
+
+    try {
+      if ((await transaction.transactionFee()) < 0) {
+        throw new Error('Transaction has negative fees')
+      }
+
+      if (!(await this.verifyTransaction(transaction)).valid) {
+        throw new Error('Transaction is invalid')
+      }
+    } finally {
+      transaction.returnReference()
     }
-    if (!(await transaction.verify()).valid) {
-      return Promise.reject('Transaction is invalid')
+
+    return {
+      transaction: transaction,
+      serializedTransaction: payload.transaction,
     }
-    return Promise.resolve({ transaction, serializedTransaction: payload.transaction })
+  }
+
+  async verifyTransaction(transaction: T): Promise<VerificationResult> {
+    try {
+      return await transaction.verify()
+    } catch {
+      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
+    }
   }
 
   /**
@@ -429,6 +453,7 @@ export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
   ERROR = 'error',
   HASH_NOT_MEET_TARGET = 'hash does not meet target',
+  VERIFY_TRANSACTION = 'verify_transaction',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
