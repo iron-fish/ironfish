@@ -6,7 +6,7 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { DisconnectingReason, LooseMessage } from '../messages'
+import { DisconnectingReason, InternalMessageType, LooseMessage } from '../messages'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
@@ -16,6 +16,22 @@ export enum BAN_SCORE {
   LOW = 1,
   MED = 5,
   MAX = 10,
+}
+
+/**
+ * Message types that should be excluded from loggedMessages (unless overridden).
+ */
+const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
+  InternalMessageType.peerList,
+  InternalMessageType.signal,
+]
+
+type LoggedMessage = {
+  brokeringPeerDisplayName?: string
+  direction: 'send' | 'receive'
+  message: LooseMessage
+  timestamp: number
+  type: ConnectionType
 }
 
 /**
@@ -173,6 +189,10 @@ export class Peer {
    */
   localRequestedDisconnectUntil: number | null = null
 
+  shouldLogMessages = false
+
+  loggedMessages: Array<LoggedMessage> = []
+
   /**
    * Event fired for every new incoming message that needs to be processed
    * by the application layer. Includes the connection from which the message
@@ -203,15 +223,18 @@ export class Peer {
       logger = createRootLogger(),
       maxPending = 5,
       maxBanScore = BAN_SCORE.MAX,
+      shouldLogMessages = false,
     }: {
       logger?: Logger
       maxPending?: number
       maxBanScore?: number
+      shouldLogMessages?: boolean
     } = {},
   ) {
     this.logger = logger.withTag('Peer')
     this.pendingRPCMax = maxPending
     this.maxBanScore = maxBanScore
+    this.shouldLogMessages = shouldLogMessages
     this._error = null
     this._state = {
       type: 'DISCONNECTED',
@@ -419,6 +442,12 @@ export class Peer {
       this.state.connections.webRtc?.state.type === 'CONNECTED'
     ) {
       if (this.state.connections.webRtc.send(message)) {
+        this.pushLoggedMessage({
+          direction: 'send',
+          message: message,
+          timestamp: Date.now(),
+          type: ConnectionType.WebRtc,
+        })
         return this.state.connections.webRtc
       }
     }
@@ -430,6 +459,12 @@ export class Peer {
       this.state.connections.webSocket?.state.type === 'CONNECTED'
     ) {
       if (this.state.connections.webSocket.send(message)) {
+        this.pushLoggedMessage({
+          direction: 'send',
+          message: message,
+          timestamp: Date.now(),
+          type: ConnectionType.WebSocket,
+        })
         return this.state.connections.webSocket
       }
     }
@@ -505,7 +540,15 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage) => this.onMessage.emit(message, connection)
+      const messageHandler = (message: LooseMessage) => {
+        this.pushLoggedMessage({
+          direction: 'receive',
+          message: message,
+          timestamp: Date.now(),
+          type: connection.type,
+        })
+        this.onMessage.emit(message, connection)
+      }
       this.connectionMessageHandlers.set(connection, messageHandler)
       connection.onMessage.on(messageHandler)
     }
@@ -635,5 +678,15 @@ export class Peer {
     this.close(new Error(`BANNED: ${reason || 'UNKNOWN'}`))
     this.onBanned.emit()
     return true
+  }
+
+  pushLoggedMessage(loggedMessage: LoggedMessage, forceLogMessage = false): void {
+    if (!this.shouldLogMessages) {
+      return
+    }
+
+    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(loggedMessage.message.type)) {
+      this.loggedMessages.push(loggedMessage)
+    }
   }
 }

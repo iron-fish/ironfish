@@ -50,6 +50,11 @@ import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
+import {
+  GetPeerMessagesRequest,
+  GetPeerMessagesResponse,
+} from '../routes/peers/getPeerMessages'
 
 export abstract class IronfishRpcClient {
   readonly logger: Logger
@@ -151,6 +156,29 @@ export abstract class IronfishRpcClient {
 
   getPeersStream(params: GetPeersRequest = undefined): Response<void, GetPeersResponse> {
     return this.request<void, GetPeersResponse>('peer/getPeers', { ...params, stream: true })
+  }
+
+  async getPeer(params: GetPeerRequest): Promise<ResponseEnded<GetPeerResponse>> {
+    return this.request<GetPeerResponse>('peer/getPeer', params).waitForEnd()
+  }
+
+  getPeerStream(params: GetPeerRequest): Response<void, GetPeerResponse> {
+    return this.request<void, GetPeerResponse>('peer/getPeer', { ...params, stream: true })
+  }
+
+  async getPeerMessages(
+    params: GetPeerMessagesRequest,
+  ): Promise<ResponseEnded<GetPeerMessagesResponse>> {
+    return this.request<GetPeerMessagesResponse>('peer/getPeerMessages', params).waitForEnd()
+  }
+
+  getPeerMessagesStream(
+    params: GetPeerMessagesRequest,
+  ): Response<void, GetPeerMessagesResponse> {
+    return this.request<void, GetPeerMessagesResponse>('peer/getPeerMessages', {
+      ...params,
+      stream: true,
+    })
   }
 
   onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {

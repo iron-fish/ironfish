@@ -52,6 +52,11 @@ export default class Start extends IronfishCommand {
       description:
         'number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
     }),
+    graffiti: flags.string({
+      char: 'g',
+      default: undefined,
+      description: 'Set the graffiti for the node',
+    }),
     name: flags.string({
       char: 'n',
       description: 'name for the node',
@@ -73,10 +78,10 @@ export default class Start extends IronfishCommand {
       description: 'force mining even if we are not synced',
       hidden: true,
     }),
-    graffiti: flags.string({
-      char: 'g',
+    logPeerMessages: flags.boolean({
       default: undefined,
-      description: 'Set the graffiti for the node',
+      description: 'track all messages sent and received by peers',
+      hidden: true,
     }),
   }
 
@@ -95,7 +100,17 @@ export default class Start extends IronfishCommand {
     this.startDonePromise = startDonePromise
 
     const { flags } = this.parse(Start)
-    const { bootstrap, forceMining, graffiti, listen, name, port, worker, workers } = flags
+    const {
+      bootstrap,
+      forceMining,
+      graffiti,
+      listen,
+      logPeerMessages,
+      name,
+      port,
+      worker,
+      workers,
+    } = flags
 
     if (bootstrap !== undefined) {
       this.sdk.config.setOverride('bootstrapNodes', bootstrap.filter(Boolean))
@@ -105,6 +120,9 @@ export default class Start extends IronfishCommand {
     }
     if (workers !== undefined && workers !== this.sdk.config.get('nodeWorkers')) {
       this.sdk.config.setOverride('nodeWorkers', workers)
+    }
+    if (graffiti !== undefined && graffiti !== this.sdk.config.get('blockGraffiti')) {
+      this.sdk.config.setOverride('blockGraffiti', graffiti)
     }
     if (name !== undefined && name.trim() !== this.sdk.config.get('nodeName')) {
       this.sdk.config.setOverride('nodeName', name.trim())
@@ -118,8 +136,11 @@ export default class Start extends IronfishCommand {
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
     }
-    if (graffiti !== undefined && graffiti !== this.sdk.config.get('blockGraffiti')) {
-      this.sdk.config.setOverride('blockGraffiti', graffiti)
+    if (
+      logPeerMessages !== undefined &&
+      logPeerMessages !== this.sdk.config.get('logPeerMessages')
+    ) {
+      this.sdk.config.setOverride('logPeerMessages', logPeerMessages)
     }
 
     const node = await this.sdk.node()
