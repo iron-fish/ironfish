@@ -140,6 +140,7 @@ export class PeerNetwork {
     enableSyncing?: boolean
     isWorker?: boolean
     broadcastWorkers?: boolean
+    logPeerMessages?: boolean
     simulateLatency?: number
     logger?: Logger
     metrics?: MetricsMonitor
@@ -176,6 +177,7 @@ export class PeerNetwork {
 
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50
+    const logPeerMessages = options.logPeerMessages ?? false
 
     this.peerManager = new PeerManager(
       this.localPeer,
@@ -183,6 +185,7 @@ export class PeerNetwork {
       this.metrics,
       maxPeers,
       targetPeers,
+      logPeerMessages,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => this.updateIsReady())
