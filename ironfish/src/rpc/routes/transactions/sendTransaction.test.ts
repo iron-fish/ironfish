@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { useAccountFixture, useMinersFeeFixture } from '../../../testUtilities/fixtures'
+import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ResponseError } from '../../adapters'
 
@@ -108,7 +108,7 @@ describe('Transactions sendTransaction', () => {
       routeTest.node.accounts.pay = jest.fn()
 
       const account = await useAccountFixture(routeTest.node.accounts, 'account')
-      const tx = await useMinersFeeFixture(routeTest.node.accounts, account)
+      const tx = await useMinersTxFixture(routeTest.node.accounts, account)
 
       jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
 
