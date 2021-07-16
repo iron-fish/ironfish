@@ -129,6 +129,10 @@ export class Target {
     return new Target(MAX_TARGET)
   }
 
+  static minTarget(): Target {
+    return new Target(0)
+  }
+
   /**
    * The initial target on the genesis block.
    *
@@ -156,6 +160,7 @@ export class Target {
     previousBlockTarget: Target,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
+
     const difficulty = Target.calculateDifficulty(
       time,
       previousBlockTimestamp,

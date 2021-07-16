@@ -296,6 +296,7 @@ export class Verifier<
       previous.timestamp,
       previous.target,
     )
+
     return header.target.targetValue === expectedTarget.targetValue
   }
 

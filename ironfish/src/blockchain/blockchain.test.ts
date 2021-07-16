@@ -4,7 +4,14 @@
 
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTx,
+  useMinerBlockFixture,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { AsyncUtils } from '../utils'
 
@@ -252,75 +259,6 @@ describe('Blockchain', () => {
     expect(isLinear6).toBe(false)
   })
 
-  it('should notes to trees', async () => {
-    /**
-     * This test will check that notes are added linearly, and also the trees
-     * are reorganized for a heavier fork when a heavier fork appears
-     *
-     * G -> A1
-     *   -> B1 -> B2
-     */
-    const { node: nodeA } = nodeTest
-    const { node: nodeB } = await nodeTest.createSetup()
-
-    const notes = await nodeA.chain.notes.size()
-    const nullifiers = await nodeB.chain.nullifiers.size()
-
-    const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
-    const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
-
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
-    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
-
-    await nodeA.chain.addBlock(blockA1)
-    await nodeB.chain.addBlock(blockB1)
-
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
-
-    expect(blockA1.transactions.length).toBe(1)
-    expect(blockB1.transactions.length).toBe(1)
-    expect(blockB2.transactions.length).toBe(1)
-    const minersFeeA1 = blockA1.transactions[0]
-    const minersFeeB1 = blockB1.transactions[0]
-    const minersFeeB2 = blockB2.transactions[0]
-    expect(minersFeeA1.notesLength()).toBe(1)
-    expect(minersFeeB1.notesLength()).toBe(1)
-    expect(minersFeeB2.notesLength()).toBe(1)
-
-    // Check nodeA's chain has notes from blockA1
-    expect(await nodeA.chain.notes.size()).toBe(notes + 1)
-    expect(await nodeA.chain.nullifiers.size()).toBe(nullifiers)
-    const addedNoteA1 = (await nodeA.chain.notes.getLeaf(notes)).element
-    expect(minersFeeA1.getNote(0).serialize().equals(addedNoteA1.serialize())).toBe(true)
-
-    // Check nodeB's chain has notes from blockB1
-    expect(await nodeB.chain.notes.size()).toBe(notes + 1)
-    expect(await nodeB.chain.nullifiers.size()).toBe(nullifiers)
-    let addedNoteB1 = (await nodeB.chain.notes.getLeaf(notes)).element
-    expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
-
-    // Now add blockB2 to nodeB
-    await nodeB.chain.addBlock(blockB2)
-
-    // Check nodeB's chain has notes from blockB2
-    expect(await nodeB.chain.notes.size()).toBe(notes + 2)
-    expect(await nodeB.chain.nullifiers.size()).toBe(nullifiers)
-    let addedNoteB2 = (await nodeB.chain.notes.getLeaf(notes + 1)).element
-    expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
-
-    // Now cause reorg on nodeA
-    await nodeA.chain.addBlock(blockB1)
-    await nodeA.chain.addBlock(blockB2)
-
-    // Check nodeA's chain has removed blockA1 notes and added blockB1 + blockB2 note
-    expect(await nodeA.chain.notes.size()).toBe(notes + 2)
-    expect(await nodeA.chain.nullifiers.size()).toBe(nullifiers)
-    addedNoteB1 = (await nodeA.chain.notes.getLeaf(notes)).element
-    addedNoteB2 = (await nodeA.chain.notes.getLeaf(notes + 1)).element
-    expect(minersFeeB1.getNote(0).serialize().equals(addedNoteB1.serialize())).toBe(true)
-    expect(minersFeeB2.getNote(0).serialize().equals(addedNoteB2.serialize())).toBe(true)
-  }, 20000)
-
   it('should update synced', () => {
     const nowSpy = jest.spyOn(Date, 'now')
     const syncedSpy = jest.spyOn(nodeTest.node.chain.onSynced, 'emit')
@@ -346,6 +284,8 @@ describe('Blockchain', () => {
     nodeTest.node.chain['updateSynced']()
     expect(nodeTest.node.chain.synced).toEqual(true)
     expect(syncedSpy).toHaveBeenCalledTimes(1)
+
+    nowSpy.mockRestore()
   })
 
   it('abort reorg after verify error', async () => {
@@ -393,5 +333,187 @@ describe('Blockchain', () => {
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
     expect(await node.chain.notes.size()).toBe(blockA3.header.noteCommitment.size)
+  }, 60000)
+
+  describe('MerkleTrees', () => {
+    it('should add notes and nullifiers to trees', async () => {
+      /**
+       * This test will check that notes are added linearly, and also the trees
+       * are reorganized for a heavier fork when a heavier fork appears
+       *
+       * G -> A1 -> A2
+       *   -> B1 -> B2 -> B3
+       */
+      const { node: nodeA } = nodeTest
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
+      const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
+
+      // Counts before adding any blocks
+      const countNoteA = await nodeA.chain.notes.size()
+      const countNullifierA = await nodeA.chain.nullifiers.size()
+      const countNoteB = await nodeB.chain.notes.size()
+      const countNullifierB = await nodeB.chain.nullifiers.size()
+
+      // Create nodeA blocks
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      await expect(nodeA.chain).toAddBlock(blockA1)
+      await nodeA.accounts.updateHead()
+
+      const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountA, false)
+      await expect(nodeA.chain).toAddBlock(blockA2)
+
+      // Create nodeB blocks
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB1)
+      await nodeB.accounts.updateHead()
+
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB2)
+      await nodeB.accounts.updateHead()
+
+      const { block: blockB3 } = await useBlockWithTx(nodeB, accountB, accountB, false)
+      await expect(nodeB.chain).toAddBlock(blockB3)
+
+      expect(blockA1.transactions.length).toBe(1)
+      expect(blockA2.transactions.length).toBe(2)
+      expect(blockB1.transactions.length).toBe(1)
+      expect(blockB2.transactions.length).toBe(1)
+      expect(blockB3.transactions.length).toBe(2)
+
+      const minersFeeA1 = blockA1.transactions[0]
+      const minersFeeA2 = blockA2.transactions[1]
+      const minersFeeB1 = blockB1.transactions[0]
+      const minersFeeB2 = blockB2.transactions[0]
+      const minersFeeB3 = blockB3.transactions[1]
+      const txA2 = blockA2.transactions[0]
+      const txB3 = blockB3.transactions[0]
+
+      expect(minersFeeA1.notesLength()).toBe(1)
+      expect(minersFeeA2.notesLength()).toBe(1)
+      expect(minersFeeB1.notesLength()).toBe(1)
+      expect(minersFeeB2.notesLength()).toBe(1)
+      expect(minersFeeB3.notesLength()).toBe(1)
+      expect(txA2.notesLength()).toBe(2)
+      expect(txA2.spendsLength()).toBe(1)
+      expect(txB3.notesLength()).toBe(2)
+      expect(txB3.spendsLength()).toBe(1)
+
+      // Check nodeA has notes from blockA1, blockA2
+      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)
+      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
+      let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
+      let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
+      let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
+      expect(addedNoteA1.serialize().equals(minersFeeA1.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA2.serialize().equals(txA2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA3.serialize().equals(txA2.getNote(1).serialize())).toBe(true)
+      expect(addedNoteA4.serialize().equals(minersFeeA2.getNote(0).serialize())).toBe(true)
+
+      // Check nodeA has nullifiers from blockA2
+      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
+      let addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
+      expect(addedNullifierA1.equals(txA2.getSpend(0).nullifier)).toBe(true)
+
+      // Check nodeB has notes from blockB1, blockB2, blockB3
+      expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
+      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).element
+      const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).element
+      const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).element
+      const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).element
+      const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).element
+      expect(addedNoteB1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB3.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB4.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      expect(addedNoteB5.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+
+      // Check nodeB has nullifiers from blockB3
+      expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
+      const addedNullifierB1 = (await nodeB.chain.nullifiers.getLeaf(countNullifierB + 0))
+        .element
+      expect(addedNullifierB1.equals(txB3.getSpend(0).nullifier)).toBe(true)
+
+      // Now cause reorg on nodeA
+      await nodeA.chain.addBlock(blockB1)
+      await nodeA.chain.addBlock(blockB2)
+      await nodeA.chain.addBlock(blockB3)
+
+      // Check nodeA's chain has removed blockA1 notes and added blockB1, blockB2, blockB3
+      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 5)
+      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
+      addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
+      addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
+      addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
+      const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).element
+      expect(addedNoteA1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA3.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA4.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      expect(addedNoteA5.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+
+      // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
+      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
+      addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
+      expect(addedNullifierA1.equals(txB3.getSpend(0).nullifier)).toBe(true)
+    }, 300000)
+
+    it("throws if the note doesn't match the previously inserted note that position", async () => {
+      const account = await useAccountFixture(nodeTest.accounts)
+      const tx1 = await useMinersTxFixture(nodeTest.accounts, account)
+      const tx2 = await useMinersTxFixture(nodeTest.accounts, account)
+      const size = await nodeTest.chain.notes.size()
+
+      await nodeTest.chain.addNote(size, tx1.getNote(0))
+
+      await expect(nodeTest.chain.addNote(size, tx2.getNote(0))).rejects.toThrowError(
+        `Tried to insert a note, but a different note already there for position 3`,
+      )
+    }, 30000)
+
+    it('throws if the position is larger than the number of notes', async () => {
+      const account = await useAccountFixture(nodeTest.accounts)
+      const tx = await useMinersTxFixture(nodeTest.accounts, account)
+      const size = await nodeTest.chain.notes.size()
+
+      await expect(nodeTest.chain.addNote(size + 1, tx.getNote(0))).rejects.toThrowError(
+        `Can't insert a note at index 4. Merkle tree has a count of 3`,
+      )
+    }, 30000)
+
+    it("throws if the nullifier doesn't match the previously inserted note that position", async () => {
+      const { transaction } = await useTxSpendsFixture(nodeTest.node)
+
+      await expect(
+        nodeTest.chain.addNullifier(0, transaction.getSpend(0).nullifier),
+      ).rejects.toThrowError(
+        `Tried to insert a nullifier, but a different nullifier already there for position 0`,
+      )
+    }, 60000)
+
+    it('throws if the position is larger than the number of nullifiers', async () => {
+      const { transaction } = await useTxSpendsFixture(nodeTest.node)
+      const size = await nodeTest.chain.nullifiers.size()
+
+      await expect(
+        nodeTest.chain.addNullifier(size + 1, transaction.getSpend(0).nullifier),
+      ).rejects.toThrowError(
+        `Can't insert a nullifier at index 2. Merkle tree has a count of 1`,
+      )
+    }, 30000)
+  })
+
+  it('newBlock throws an error if the provided transactions are invalid', async () => {
+    const minersFee = await useMinersTxFixture(nodeTest.accounts)
+
+    jest.spyOn(nodeTest.verifier, 'verifyTransaction').mockResolvedValue({
+      valid: false,
+      reason: VerificationResultReason.INVALID_MINERS_FEE,
+    })
+
+    await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrowError(
+      `Miner's fee is incorrect`,
+    )
   }, 60000)
 })
