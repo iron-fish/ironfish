@@ -195,6 +195,10 @@ export class IronfishTransaction
   transactionHash(): TransactionHash {
     return this.withReference((t) => Buffer.from(t.transactionHash))
   }
+
+  equals(other: IronfishTransaction): boolean {
+    return this.transactionHash().equals(other.transactionHash())
+  }
 }
 
 /**
@@ -204,7 +208,7 @@ export class TransactionSerde implements Serde<IronfishTransaction, SerializedTr
   constructor(private readonly workerPool: WorkerPool) {}
 
   equals(tx1: IronfishTransaction, tx2: IronfishTransaction): boolean {
-    return tx1.transactionHash().equals(tx2.transactionHash())
+    return tx1.equals(tx2)
   }
 
   serialize(transaction: IronfishTransaction): SerializedTransaction {

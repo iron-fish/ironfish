@@ -9,8 +9,8 @@ import {
   createNodeTest,
   useAccountFixture,
   useMinerBlockFixture,
-  useMinersFeeFixture,
-  useTransactionFixture,
+  useMinersTxFixture,
+  useTxFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { flushTimeout } from '../testUtilities/helpers/tests'
@@ -74,7 +74,7 @@ describe('Mining director', () => {
       await expect(chain).toAddBlock(previous)
       await node.accounts.updateHead()
 
-      const transaction = await useTransactionFixture(node.accounts, account, account)
+      const transaction = await useTxFixture(node.accounts, account, account)
 
       expect(node.memPool.size()).toBe(0)
       miningDirector.memPool.acceptTransaction(transaction)
@@ -142,7 +142,7 @@ describe('Mining director', () => {
     it('should recalculate block after interval', async () => {
       const { node, miningDirector } = nodeTest
       const account = await useAccountFixture(node.accounts, 'a')
-      const tx = await useMinersFeeFixture(nodeTest.node.accounts, account)
+      const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
 
       const spy = jest.spyOn(miningDirector, 'constructAndMineBlock').mockResolvedValue(false)
       expect(spy).toBeCalledTimes(0)
@@ -166,7 +166,7 @@ describe('Mining director', () => {
     it('retries calculating target if target is not at max', async () => {
       const { node, miningDirector } = nodeTest
       const account = await useAccountFixture(node.accounts, 'a')
-      const tx = await useMinersFeeFixture(nodeTest.node.accounts, account)
+      const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
 
       const targetSpy = jest.spyOn(Target, 'calculateTarget')
 

@@ -4,6 +4,7 @@
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
+import { Accounts } from '../account'
 import { IronfishBlockchain } from '../blockchain'
 import { ConfigOptions } from '../fileStores/config'
 import { IronfishMiningDirector } from '../mining/director'
@@ -32,7 +33,9 @@ export class NodeTest {
   sdk!: IronfishSdk
   node!: IronfishNode
   strategy!: IronfishTestStrategy
+  verifier!: IronfishTestVerifier
   chain!: IronfishBlockchain
+  accounts!: Accounts
   peerNetwork!: PeerNetwork
   syncer!: Syncer
   miningDirector!: IronfishMiningDirector
@@ -42,6 +45,7 @@ export class NodeTest {
     node: IronfishNode
     strategy: IronfishTestStrategy
     chain: IronfishBlockchain
+    accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: IronfishMiningDirector
@@ -55,7 +59,9 @@ export class NodeTest {
     sdk: IronfishSdk
     node: IronfishNode
     strategy: IronfishTestStrategy
+    verifier: IronfishTestVerifier
     chain: IronfishBlockchain
+    accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: IronfishMiningDirector
@@ -72,9 +78,11 @@ export class NodeTest {
     const node = await sdk.node({ autoSeed: this.options?.autoSeed })
     const strategy = node.strategy as IronfishTestStrategy
     const chain = node.chain
+    const accounts = node.accounts
     const peerNetwork = node.peerNetwork
     const syncer = node.syncer
     const miningDirector = node.miningDirector
+    const verifier = node.chain.verifier as IronfishTestVerifier
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
@@ -91,19 +99,41 @@ export class NodeTest {
 
     await node.openDB()
 
-    const setup = { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector }
+    const setup = {
+      sdk,
+      node,
+      strategy,
+      verifier,
+      chain,
+      accounts,
+      peerNetwork,
+      syncer,
+      miningDirector,
+    }
+
     this.setups.push(setup)
     return setup
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, peerNetwork, syncer, miningDirector } =
-      await this.createSetup()
+    const {
+      sdk,
+      node,
+      strategy,
+      verifier,
+      chain,
+      accounts,
+      peerNetwork,
+      syncer,
+      miningDirector,
+    } = await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
+    this.verifier = verifier
     this.chain = chain
+    this.accounts = accounts
     this.peerNetwork = peerNetwork
     this.syncer = syncer
     this.miningDirector = miningDirector

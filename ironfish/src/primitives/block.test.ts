@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { useAccountFixture, useMinersFeeFixture } from '../testUtilities/fixtures'
+import { useAccountFixture, useMinersTxFixture } from '../testUtilities/fixtures'
 import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { IronfishBlockSerialized } from './block'
@@ -49,7 +49,7 @@ describe('Block', () => {
 
   it('check block equality', async () => {
     const account = await useAccountFixture(nodeTest.node.accounts, 'account')
-    const tx = await useMinersFeeFixture(nodeTest.node.accounts, account)
+    const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
     const block1 = await makeBlockWithTransaction(nodeTest.node, account, account)
 
     // Header change
