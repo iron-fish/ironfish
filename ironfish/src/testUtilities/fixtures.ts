@@ -5,6 +5,7 @@ import fs from 'fs'
 import { generateKey } from 'ironfish-wasm-nodejs'
 import path from 'path'
 import { Account, Accounts } from '../account'
+import { Assert } from '../assert'
 import { IronfishBlockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
@@ -233,17 +234,23 @@ export async function useTxFixture(
 
 export async function useMinersTxFixture(
   accounts: Accounts,
-  to: Account,
+  to?: Account,
   sequence?: number,
   amount = 0,
 ): Promise<IronfishTransaction> {
-  return useTxFixture(accounts, to, to, () =>
-    accounts.chain.strategy.createMinersFee(
+  if (!to) {
+    to = await useAccountFixture(accounts)
+  }
+
+  return useTxFixture(accounts, to, to, () => {
+    Assert.isNotUndefined(to)
+
+    return accounts.chain.strategy.createMinersFee(
       BigInt(amount),
       sequence || accounts.chain.head.sequence + 1,
       to.spendingKey,
-    ),
-  )
+    )
+  })
 }
 
 export async function useTxSpendsFixture(
@@ -266,29 +273,47 @@ export async function useTxSpendsFixture(
 }
 
 /**
- * Produces blocks A -> B, and 1 account
- * block A generates money using miners fee, and
- * block B is a new block that hasen't been added yet
- * with a transaction using the account
+ * Produces a block with a transaction that has 1 spend, and 3 notes
+ * By default first produces a block with a mining fee to fund the
+ * {@link from} account and adds it to the chain.
+ *
+ * Returned block has 1 spend, 3 notes
  */
-export async function useBlockTxFixture(
+export async function useBlockWithTx(
   node: IronfishNode,
+  from?: Account,
+  to?: Account,
+  useFee = true,
 ): Promise<{ account: Account; previous: IronfishBlock; block: IronfishBlock }> {
-  const account = await useAccountFixture(node.accounts, () =>
-    node.accounts.createAccount('test'),
-  )
+  if (!from) {
+    from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
+  }
 
-  const previous = await useMinerBlockFixture(node.chain, 2, account)
-  await node.chain.addBlock(previous)
-  await node.accounts.updateHead()
+  if (!to) {
+    to = from
+  }
+
+  let previous: IronfishBlock
+  if (useFee) {
+    previous = await useMinerBlockFixture(node.chain, 2, from)
+    await node.chain.addBlock(previous)
+    await node.accounts.updateHead()
+  } else {
+    const head = await node.chain.getBlock(node.chain.head)
+    Assert.isNotNull(head)
+    previous = head
+  }
 
   const block = await useBlockFixture(node.chain, async () => {
+    Assert.isNotUndefined(from)
+    Assert.isNotUndefined(to)
+
     const transaction = await node.accounts.createTransaction(
-      account,
+      from,
       BigInt(1),
       BigInt(1),
       '',
-      account.publicAddress,
+      to.publicAddress,
     )
 
     return node.chain.newBlock(
@@ -301,5 +326,5 @@ export async function useBlockTxFixture(
     )
   })
 
-  return { account, block, previous }
+  return { block, previous, account: from }
 }
