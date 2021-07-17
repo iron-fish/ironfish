@@ -7,10 +7,11 @@ jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
 import { IronfishBlockHeader } from '../primitives/blockheader'
+import { Target } from '../primitives/target'
 import {
   createNodeTest,
   useAccountFixture,
-  useBlockTxFixture,
+  useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxSpendsFixture,
@@ -215,14 +216,14 @@ describe('Verifier', () => {
 
     it('says the block with spends is valid', async () => {
       const { chain } = nodeTest
-      const { block } = await useBlockTxFixture(nodeTest.node)
+      const { block } = await useBlockWithTx(nodeTest.node)
       expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
       expect(Array.from(block.spends())).toHaveLength(1)
     }, 60000)
 
     it('is invalid with DOUBLE_SPEND as the reason', async () => {
       const { chain } = nodeTest
-      const { block } = await useBlockTxFixture(nodeTest.node)
+      const { block } = await useBlockWithTx(nodeTest.node)
 
       const spends = Array.from(block.spends())
       jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
@@ -239,7 +240,7 @@ describe('Verifier', () => {
     }, 60000)
 
     it('is invalid with ERROR as the reason', async () => {
-      const { block } = await useBlockTxFixture(nodeTest.node)
+      const { block } = await useBlockWithTx(nodeTest.node)
 
       const spends = Array.from(block.spends())
       jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
@@ -260,7 +261,7 @@ describe('Verifier', () => {
 
     it('a block that spends a note in a previous block is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
-      const { block, previous } = await useBlockTxFixture(nodeTest.node)
+      const { block, previous } = await useBlockWithTx(nodeTest.node)
 
       const nullifier = Buffer.alloc(32)
 
@@ -285,7 +286,7 @@ describe('Verifier', () => {
 
     it('a block that spends a note never in the tree is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
-      const { block } = await useBlockTxFixture(nodeTest.node)
+      const { block } = await useBlockWithTx(nodeTest.node)
 
       const nullifier = Buffer.alloc(32)
       jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
@@ -297,5 +298,142 @@ describe('Verifier', () => {
         reason: VerificationResultReason.INVALID_SPEND,
       })
     }, 60000)
+  })
+
+  describe('validAgainstPrevious', () => {
+    const nodeTest = createNodeTest()
+
+    it('is valid', async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: true,
+      })
+    }, 30000)
+
+    it('is invalid when the target is wrong', async () => {
+      nodeTest.verifier.enableVerifyTarget = true
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      block.header.target = Target.minTarget()
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.INVALID_TARGET,
+      })
+    }, 30000)
+
+    it("is invalid when the note commitments aren't the same size", async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      block.header.noteCommitment.size = 1000
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
+      })
+    }, 30000)
+
+    it("is invalid when the nullifier commitments aren't the same size", async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      block.header.nullifierCommitment.size = 1000
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
+      })
+    }, 30000)
+
+    it('Is invalid when the timestamp is in past', async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      block.header.timestamp = new Date(0)
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.BLOCK_TOO_OLD,
+      })
+    }, 30000)
+
+    it('Is invalid when the sequence is wrong', async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      block.header.sequence = 9999
+
+      expect(
+        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+      ).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER,
+      })
+    }, 30000)
+  })
+
+  describe('blockMatchesTree', () => {
+    const nodeTest = createNodeTest()
+
+    it('is true for block that passes all checks', async () => {
+      await expect(
+        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
+      ).resolves.toMatchObject({
+        valid: true,
+      })
+    })
+
+    it("is false if there aren't enough notes in the tree", async () => {
+      await nodeTest.chain.notes.truncate((await nodeTest.chain.notes.size()) - 1)
+
+      await expect(
+        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
+      ).resolves.toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
+      })
+    })
+
+    it("is false if there aren't enough nullifiers in the tree", async () => {
+      await nodeTest.chain.nullifiers.truncate((await nodeTest.chain.nullifiers.size()) - 1)
+
+      await expect(
+        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
+      ).resolves.toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
+      })
+    })
+
+    it('is false if the note hash is incorrect', async () => {
+      nodeTest.chain.genesis.noteCommitment.commitment = Buffer.alloc(
+        nodeTest.chain.genesis.noteCommitment.commitment.length,
+        'NOOO',
+      )
+
+      await expect(
+        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
+      ).resolves.toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NOTE_COMMITMENT,
+      })
+    })
+
+    it('is false for block that has incorrect nullifier hash', async () => {
+      nodeTest.chain.genesis.nullifierCommitment.commitment = Buffer.alloc(
+        nodeTest.chain.genesis.nullifierCommitment.commitment.length,
+        'NOOO',
+      )
+
+      await expect(
+        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
+      ).resolves.toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NULLIFIER_COMMITMENT,
+      })
+    })
   })
 })
