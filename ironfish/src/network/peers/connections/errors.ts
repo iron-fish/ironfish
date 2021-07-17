@@ -23,7 +23,7 @@ export class TimeoutError extends NetworkError {
 }
 
 export class HandshakeTimeoutError extends TimeoutError {
-  readonly state: 'REQUEST_SIGNALING' | 'SIGNALING' | 'WAITING_FOR_IDENTITY'
+  readonly state: 'CONNECTING' | 'REQUEST_SIGNALING' | 'SIGNALING' | 'WAITING_FOR_IDENTITY'
 
   constructor(state: HandshakeTimeoutError['state'], timeoutMs: number, message?: string) {
     super(timeoutMs, message || `${state} timed out after ${timeoutMs}ms`)

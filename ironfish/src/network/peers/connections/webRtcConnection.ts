@@ -71,9 +71,11 @@ export class WebRtcConnection extends Connection {
     }
 
     // TODO: Use our own STUN servers
-    this.peer = new nodeDataChannel.PeerConnection('Peer1', {
+    this.peer = new nodeDataChannel.PeerConnection('peer', {
       iceServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
     })
+
+    this.setState({ type: 'CONNECTING' })
 
     this.peer.onLocalDescription((sdp, type) => {
       // The TypeScript types for "type" in this callback might not be accurate.
@@ -178,6 +180,7 @@ export class WebRtcConnection extends Connection {
       } else {
         this.peer.setRemoteDescription(data.sdp, data.type)
         this.receivedDescription = true
+
         while (this.candidateQueue.length > 0) {
           const data = this.candidateQueue.shift()
           if (data) {
