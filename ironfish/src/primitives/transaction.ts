@@ -170,18 +170,25 @@ export class IronfishTransaction
 
   *spends(): Iterable<Spend<WasmNoteEncryptedHash>> {
     const spendsLength = this.spendsLength()
+
     for (let i = 0; i < spendsLength; i++) {
-      yield this.withReference((t) => {
-        const wasmSpend = t.getSpend(i)
-        const spend: Spend<WasmNoteEncryptedHash> = {
-          size: wasmSpend.treeSize,
-          nullifier: Buffer.from(wasmSpend.nullifier),
-          commitment: Buffer.from(wasmSpend.rootHash),
-        }
-        wasmSpend.free()
-        return spend
-      })
+      yield this.getSpend(i)
     }
+  }
+
+  getSpend(index: number): Spend<WasmNoteEncryptedHash> {
+    return this.withReference((t) => {
+      const wasmSpend = t.getSpend(index)
+
+      const spend: Spend<WasmNoteEncryptedHash> = {
+        size: wasmSpend.treeSize,
+        nullifier: Buffer.from(wasmSpend.nullifier),
+        commitment: Buffer.from(wasmSpend.rootHash),
+      }
+
+      wasmSpend.free()
+      return spend
+    })
   }
 
   transactionFee(): Promise<bigint> {

@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { useAccountFixture, useMinersTxFixture } from '../testUtilities/fixtures'
-import { makeBlockAfter, makeBlockWithTransaction } from '../testUtilities/helpers/blockchain'
+import {
+  useAccountFixture,
+  useBlockWithTx,
+  useMinersTxFixture,
+} from '../testUtilities/fixtures'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { IronfishBlockSerialized } from './block'
 
@@ -13,7 +17,7 @@ describe('Block', () => {
   it('correctly counts notes and nullifiers', async () => {
     const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeTest.node.accounts, 'accountB')
-    const block = await makeBlockWithTransaction(nodeTest.node, accountA, accountB)
+    const { block } = await useBlockWithTx(nodeTest.node, accountA, accountB)
 
     expect(block.counts()).toMatchObject({
       nullifiers: 1,
@@ -50,7 +54,7 @@ describe('Block', () => {
   it('check block equality', async () => {
     const account = await useAccountFixture(nodeTest.node.accounts, 'account')
     const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
-    const block1 = await makeBlockWithTransaction(nodeTest.node, account, account)
+    const { block: block1 } = await useBlockWithTx(nodeTest.node, account, account)
 
     // Header change
     const block2 = nodeTest.node.strategy.blockSerde.deserialize(
