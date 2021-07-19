@@ -9,7 +9,7 @@ import {
   useBlockFixture,
   useMinerBlockFixture,
 } from '../testUtilities'
-import { fakeMaxTarget } from '../testUtilities/fake'
+import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -18,7 +18,8 @@ describe('Accounts', () => {
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
-    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
+
+    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(acceptsAllTarget)
   })
 
   afterEach(async () => {
