@@ -48,6 +48,8 @@ export class WebSocketConnection extends Connection {
 
     if (this.socket.readyState === this.socket.OPEN) {
       this.setState({ type: 'WAITING_FOR_IDENTITY' })
+    } else {
+      this.setState({ type: 'CONNECTING' })
     }
 
     this.socket.onerror = (...args: unknown[]) => {

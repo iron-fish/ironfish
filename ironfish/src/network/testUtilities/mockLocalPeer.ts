@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import wrtc from 'wrtc'
 import ws from 'ws'
 import { IronfishBlockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
@@ -26,13 +25,5 @@ export function mockLocalPeer({
   version?: number
   chain?: IronfishBlockchain
 } = {}): LocalPeer {
-  return new LocalPeer(
-    identity,
-    agent,
-    version,
-    chain || mockChain(),
-    new WorkerPool(),
-    ws,
-    wrtc,
-  )
+  return new LocalPeer(identity, agent, version, chain || mockChain(), new WorkerPool(), ws)
 }

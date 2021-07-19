@@ -13,7 +13,7 @@ import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { IronfishMiningDirector } from './mining/director'
 import { PeerNetwork } from './network'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './network/types'
+import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { IronfishStrategy } from './strategy'
 import { Syncer } from './syncer'
@@ -52,7 +52,6 @@ export class IronfishNode {
     memPool,
     workerPool,
     logger,
-    webRtc,
     webSocket,
   }: {
     agent: string
@@ -67,7 +66,6 @@ export class IronfishNode {
     memPool: IronfishMemPool
     workerPool: WorkerPool
     logger: Logger
-    webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
   }) {
     this.files = files
@@ -98,7 +96,6 @@ export class IronfishNode {
       simulateLatency: config.get('p2pSimulateLatency'),
       bootstrapNodes: config.getArray('bootstrapNodes'),
       webSocket: webSocket,
-      webRtc: webRtc,
       node: this,
       chain: chain,
       strategy: strategy,
@@ -129,7 +126,6 @@ export class IronfishNode {
     files,
     verifierClass,
     strategyClass,
-    webRtc,
     webSocket,
   }: {
     agent: string
@@ -143,7 +139,6 @@ export class IronfishNode {
     files: FileSystem
     verifierClass: typeof IronfishVerifier | null
     strategyClass: typeof IronfishStrategy | null
-    webRtc?: IsomorphicWebRtc
     webSocket: IsomorphicWebSocketConstructor
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
@@ -211,7 +206,6 @@ export class IronfishNode {
       memPool,
       workerPool,
       logger,
-      webRtc,
       webSocket,
     })
   }
