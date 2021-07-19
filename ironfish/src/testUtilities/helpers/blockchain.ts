@@ -50,3 +50,7 @@ export async function makeBlockAfter(
   Assert.isUndefined((await chain.verifier.verifyBlock(block)).reason)
   return block
 }
+
+export function acceptsAllTarget(): Target {
+  return new Target(BigInt(2) ** BigInt(256) - BigInt(1))
+}

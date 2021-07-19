@@ -8,7 +8,7 @@ import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
 import { IronfishStrategy } from '../strategy'
 import { createNodeTest } from '../testUtilities'
-import { fakeMaxTarget } from '../testUtilities/fake'
+import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 import { makeDbPath } from '../testUtilities/helpers/storage'
 import { WorkerPool } from '../workerPool'
 import { makeGenesisBlock } from './makeGenesisBlock'
@@ -19,7 +19,7 @@ describe('Read genesis block', () => {
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
-    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
+    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(acceptsAllTarget)
   })
 
   afterAll(() => {
@@ -52,7 +52,7 @@ describe('Create genesis block', () => {
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
-    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(() => fakeMaxTarget())
+    targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(acceptsAllTarget)
   })
 
   afterAll(() => {
