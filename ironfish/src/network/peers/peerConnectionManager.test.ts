@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 jest.mock('ws')
-jest.mock('simple-peer')
 
 import { createRootLogger } from '../../logger'
 import {

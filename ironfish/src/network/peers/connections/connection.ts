@@ -63,7 +63,7 @@ export abstract class Connection {
   /**
    * Indicates the current state of the connection.
    */
-  private _state: Readonly<ConnectionState> = { type: 'CONNECTING' }
+  private _state: Readonly<ConnectionState> = { type: 'DISCONNECTED' }
   get state(): Readonly<ConnectionState> {
     return this._state
   }
@@ -129,6 +129,7 @@ export abstract class Connection {
       }
 
       if (
+        state.type === 'CONNECTING' ||
         state.type === 'REQUEST_SIGNALING' ||
         state.type === 'SIGNALING' ||
         state.type === 'WAITING_FOR_IDENTITY'

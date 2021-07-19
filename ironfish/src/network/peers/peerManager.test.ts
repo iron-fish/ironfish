@@ -5,7 +5,7 @@
 import * as encryption from './encryption'
 
 jest.mock('ws')
-jest.mock('simple-peer')
+
 jest.mock('./encryption', () => {
   const originalModule = jest.requireActual<typeof encryption>('./encryption')
 
@@ -14,7 +14,16 @@ jest.mock('./encryption', () => {
     boxMessage: jest
       .fn()
       .mockReturnValue({ nonce: 'boxMessageNonce', boxedMessage: 'boxMessageMessage' }),
-    unboxMessage: jest.fn().mockReturnValue(JSON.stringify({ type: 'offer' })),
+    unboxMessage: jest.fn().mockReturnValue(
+      JSON.stringify({
+        type: 'candidate',
+        candidate: {
+          candidate: '',
+          sdpMLineIndex: 0,
+          sdpMid: '0',
+        },
+      }),
+    ),
   }
 })
 
@@ -347,7 +356,12 @@ describe('PeerManager', () => {
       const sendSpy = jest.spyOn(brokeringPeer, 'send')
 
       await connection.onSignal.emitAsync({
-        type: 'offer',
+        type: 'candidate',
+        candidate: {
+          candidate: '',
+          sdpMLineIndex: 0,
+          sdpMid: '0',
+        },
       })
 
       expect(sendSpy).toBeCalledTimes(1)
@@ -440,7 +454,14 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(pm.peers).toHaveLength(1)
       const sendSpy = jest.spyOn(connection, 'send')
-      await peer.state.connections.webRtc.onSignal.emitAsync({ type: 'offer' })
+      await peer.state.connections.webRtc.onSignal.emitAsync({
+        type: 'candidate',
+        candidate: {
+          candidate: '',
+          sdpMLineIndex: 0,
+          sdpMid: '0',
+        },
+      })
       expect(sendSpy).toBeCalledTimes(1)
     })
 
@@ -1300,7 +1321,12 @@ describe('PeerManager', () => {
 
       expect(signalSpy).toBeCalledTimes(1)
       expect(signalSpy).toBeCalledWith({
-        type: 'offer',
+        type: 'candidate',
+        candidate: {
+          candidate: '',
+          sdpMLineIndex: 0,
+          sdpMid: '0',
+        },
       })
     })
 

@@ -6,7 +6,7 @@ import { IronfishBlockchain } from '../../blockchain'
 import { WorkerPool } from '../../workerPool'
 import { Identity, PrivateIdentity, privateIdentityToIdentity } from '../identity'
 import { Identify, InternalMessageType } from '../messages'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from '../types'
+import { IsomorphicWebSocketConstructor } from '../types'
 
 /**
  * Wraps configuration needed for establishing connections with other peers
@@ -25,8 +25,6 @@ export class LocalPeer {
   readonly version: number
   // constructor for either a Node WebSocket or a browser WebSocket
   readonly webSocket: IsomorphicWebSocketConstructor
-  // optional object containing a Node implementation of WebRTC
-  readonly webRtc: IsomorphicWebRtc
 
   // optional port the local peer is listening on
   port: number | null
@@ -46,7 +44,6 @@ export class LocalPeer {
     chain: IronfishBlockchain,
     workerPool: WorkerPool,
     webSocket: IsomorphicWebSocketConstructor,
-    webRtc?: IsomorphicWebRtc,
   ) {
     this.privateIdentity = identity
     this.publicIdentity = privateIdentityToIdentity(identity)
@@ -56,7 +53,6 @@ export class LocalPeer {
     this.version = version
 
     this.webSocket = webSocket
-    this.webRtc = webRtc
     this.port = null
     this.name = null
     this.isWorker = false

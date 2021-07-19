@@ -60,7 +60,7 @@ import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
-import { IsomorphicWebRtc, IsomorphicWebSocketConstructor } from './types'
+import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
 import { VERSION_PROTOCOL } from './version'
 import { WebSocketServer } from './webSocketServer'
@@ -129,7 +129,6 @@ export class PeerNetwork {
     identity?: PrivateIdentity
     agent: string
     webSocket: IsomorphicWebSocketConstructor
-    webRtc?: IsomorphicWebRtc
     listen?: boolean
     port?: number
     bootstrapNodes?: string[]
@@ -165,7 +164,6 @@ export class PeerNetwork {
       options.chain,
       options.node.workerPool,
       options.webSocket,
-      options.webRtc,
     )
 
     this.localPeer.port = options.port === undefined ? null : options.port

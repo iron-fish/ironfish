@@ -4,6 +4,27 @@
 const consola = require('consola')
 const { generateKey } = require('ironfish-wasm-nodejs')
 
+jest.mock('node-datachannel', () => {
+  return {
+    PeerConnection: class {
+      onLocalDescription() {}
+      onLocalCandidate() {}
+      onDataChannel() {}
+      createDataChannel() {
+        return {
+          onOpen: () => {},
+          onError: () => {},
+          onClosed: () => {},
+          onMessage: () => {},
+          close: () => {},
+          isOpen: () => {},
+          sendMessage: () => {},
+        }
+      }
+    },
+  }
+})
+
 beforeAll(() => {
   // This causes the WASM to be initialized, which is 1 time 2 second cost for each test suite
   if (process.env.TEST_INIT_WASM) {
