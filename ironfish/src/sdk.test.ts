@@ -60,7 +60,7 @@ describe('IronfishSdk', () => {
     })
   })
 
-  describe('getConnectedClient', () => {
+  describe('connectRpc', () => {
     describe('when local is true', () => {
       it('returns and connects `clientMemory` to a node', async () => {
         const sdk = await IronfishSdk.init()
@@ -69,7 +69,7 @@ describe('IronfishSdk', () => {
         const openDb = jest.spyOn(node, 'openDB').mockImplementationOnce(async () => {})
         jest.spyOn(sdk, 'node').mockResolvedValueOnce(node)
 
-        const client = await sdk.getConnectedClient(true)
+        const client = await sdk.connectRpc(true)
 
         expect(connect).toHaveBeenCalledTimes(1)
         expect(connect).toBeCalledWith(node)
@@ -83,7 +83,7 @@ describe('IronfishSdk', () => {
         const sdk = await IronfishSdk.init()
         const connect = jest.spyOn(sdk.client, 'connect').mockImplementationOnce(async () => {})
 
-        const client = await sdk.getConnectedClient(false)
+        const client = await sdk.connectRpc(false)
 
         expect(connect).toHaveBeenCalledTimes(1)
         expect(client).toMatchObject(sdk.client)

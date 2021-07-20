@@ -26,7 +26,7 @@ describe('accounts:rescan', () => {
             node: jest.fn().mockImplementation(() => ({
               openDB: jest.fn(),
             })),
-            getConnectedClient: jest.fn().mockResolvedValue(client),
+            connectRpc: jest.fn().mockResolvedValue(client),
           })),
         },
       }

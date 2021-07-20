@@ -40,7 +40,7 @@ export class SetCommand extends IronfishCommand {
     const name = args.name as string
     const value = args.value as string
 
-    const client = await this.sdk.getConnectedClient(flags.local)
+    const client = await this.sdk.connectRpc(flags.local)
     await client.setConfig({ name, value })
 
     this.exit(0)

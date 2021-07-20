@@ -13,13 +13,18 @@ describe('accounts:pay command', () => {
   beforeEach(() => {
     sendTransaction = jest.fn().mockReturnValue({ content: {} })
 
-    ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({
-      client: {
+    ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => {
+      const client = {
         connect: jest.fn(),
         getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmedBalance: 1000 } }),
         sendTransaction,
-      },
-    }))
+      }
+
+      return {
+        client: client,
+        connectRpc: jest.fn().mockResolvedValue(client),
+      }
+    })
   })
 
   afterEach(() => {

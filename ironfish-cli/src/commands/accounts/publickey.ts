@@ -30,9 +30,9 @@ export class PublicKeyCommand extends IronfishCommand {
     const { args, flags } = this.parse(PublicKeyCommand)
     const account = args.account as string | undefined
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
-    const response = await this.sdk.client.getAccountPublicKey({
+    const response = await client.getAccountPublicKey({
       account: account,
       generate: flags.generate,
     })

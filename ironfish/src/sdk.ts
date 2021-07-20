@@ -24,6 +24,7 @@ import {
   IronfishRpcClient,
 } from './rpc'
 import { Strategy } from './strategy'
+import { NodeUtils } from './utils'
 
 export class IronfishSdk {
   agent: string
@@ -221,15 +222,24 @@ export class IronfishSdk {
     return node
   }
 
-  async getConnectedClient(local: boolean): Promise<IronfishRpcClient> {
-    if (local) {
-      const node = await this.node()
-      await this.clientMemory.connect(node)
-      await node.openDB()
-      return this.clientMemory
+  async connectRpc(forceLocal = false, forceRemote = false): Promise<IronfishRpcClient> {
+    forceRemote = forceRemote || this.config.get('enableRpcTcp')
+
+    if (!forceLocal) {
+      if (forceRemote) {
+        await this.client.connect()
+        return this.client
+      }
+
+      const connected = await this.client.tryConnect()
+      if (connected) {
+        return this.client
+      }
     }
 
-    await this.client.connect()
-    return this.client
+    const node = await this.node()
+    await this.clientMemory.connect(node)
+    await NodeUtils.waitForOpen(node)
+    return this.clientMemory
   }
 }
