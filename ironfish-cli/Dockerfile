@@ -4,8 +4,9 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 COPY ./ ./
 
 RUN \
+    echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install jq rsync cmake -y && \
+    apt-get install jq rsync gcc cmake -y && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y && \
     ./ironfish-cli/scripts/build.sh
@@ -16,7 +17,10 @@ EXPOSE 9033:9033
 VOLUME /root/.ironfish
 ENV NODE_ENV production
 
-RUN apt-get update && apt-get install curl -y
+RUN \
+    echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install curl libc6 -y
 
 WORKDIR /usr/src
 COPY --from=build /ironfish-cli/build.cli/ironfish-cli ./app
