@@ -32,10 +32,10 @@ export class CreateCommand extends IronfishCommand {
       })) as string
     }
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
     this.log(`Creating account ${name}`)
-    const result = await this.sdk.client.createAccount({ name })
+    const result = await client.createAccount({ name })
 
     const { publicAddress, isDefaultAccount } = result.content
 

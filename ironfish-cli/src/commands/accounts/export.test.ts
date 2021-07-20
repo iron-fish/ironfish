@@ -46,7 +46,7 @@ describe('accounts:export', () => {
             fileSystem: {
               resolve: identity,
             },
-            getConnectedClient: jest.fn().mockResolvedValue(client),
+            connectRpc: jest.fn().mockResolvedValue(client),
           })),
         },
       }

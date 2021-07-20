@@ -9,12 +9,17 @@ describe('accounts:which', () => {
   const name = 'default'
 
   beforeEach(() => {
-    ironfish.IronfishSdk.init = jest.fn().mockImplementationOnce(() => ({
-      client: {
+    ironfish.IronfishSdk.init = jest.fn().mockImplementationOnce(() => {
+      const client = {
         connect: jest.fn(),
         getAccounts,
-      },
-    }))
+      }
+
+      return {
+        client: client,
+        connectRpc: jest.fn().mockResolvedValue(client),
+      }
+    })
   })
 
   describe('without a default account', () => {

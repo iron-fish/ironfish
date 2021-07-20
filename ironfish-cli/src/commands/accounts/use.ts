@@ -23,8 +23,8 @@ export class UseCommand extends IronfishCommand {
     const { args } = this.parse(UseCommand)
     const name = (args.name as string).trim()
 
-    await this.sdk.client.connect()
-    await this.sdk.client.useAccount({ name })
+    const client = await this.sdk.connectRpc()
+    await client.useAccount({ name })
     this.log(`The default account is now: ${name}`)
   }
 }

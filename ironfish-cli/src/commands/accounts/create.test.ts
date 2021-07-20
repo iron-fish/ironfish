@@ -13,15 +13,19 @@ describe('accounts:create command', () => {
 
   beforeEach(() => {
     createAccount = jest.fn().mockReturnValue({ content: {} })
+
+    const client = {
+      connect: jest.fn(),
+      createAccount,
+    }
+
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({
       accounts: {
         use,
         storage: { configPath: '' },
       },
-      client: {
-        connect: jest.fn(),
-        createAccount,
-      },
+      client: client,
+      connectRpc: jest.fn().mockResolvedValue(client),
     }))
   })
 

@@ -68,12 +68,14 @@ export class Strategy {
    */
   miningReward(sequence: number): number {
     const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
+
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
     if (reward) {
       return reward
     }
 
     const annualReward = (GENESIS_SUPPLY_IN_IRON / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
+
     reward = this.convertIronToOre(annualReward / IRON_FISH_YEAR_IN_BLOCKS)
     this.miningRewardCachedByYear.set(yearsAfterLaunch, reward)
 

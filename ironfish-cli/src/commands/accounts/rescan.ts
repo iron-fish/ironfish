@@ -31,7 +31,7 @@ export class RescanCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(RescanCommand)
     const { follow, reset, local } = flags
-    const client = await this.sdk.getConnectedClient(local)
+    const client = await this.sdk.connectRpc(local)
 
     await rescan(client, follow, reset)
   }

@@ -18,13 +18,13 @@ export class WhichCommand extends IronfishCommand {
   async start(): Promise<void> {
     this.parse(WhichCommand)
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
     const {
       content: {
         accounts: [accountName],
       },
-    } = await this.sdk.client.getAccounts({ default: true })
+    } = await client.getAccounts({ default: true })
 
     if (!accountName) {
       this.log(
