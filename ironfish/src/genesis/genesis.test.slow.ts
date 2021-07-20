@@ -6,7 +6,7 @@ import { Blockchain } from '../blockchain'
 import { SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
-import { IronfishStrategy } from '../strategy'
+import { Strategy } from '../strategy'
 import { createNodeTest } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 import { makeDbPath } from '../testUtilities/helpers/storage'
@@ -29,7 +29,7 @@ describe('Read genesis block', () => {
 
   it('Can start a chain with the existing genesis block', async () => {
     const workerPool = new WorkerPool()
-    const strategy = new IronfishStrategy(workerPool)
+    const strategy = new Strategy(workerPool)
     const chain = new Blockchain({ location: makeDbPath(), strategy })
     await chain.open()
 
@@ -119,7 +119,7 @@ describe('Create genesis block', () => {
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
-    const serialized = strategy._blockSerde.serialize(block)
+    const serialized = strategy.blockSerde.serialize(block)
     const jsonedBlock = IJSON.stringify(serialized, '  ')
 
     // Now start from scratch with a clean database and make sure the block
@@ -127,8 +127,8 @@ describe('Create genesis block', () => {
     const { node: newNode, chain: newChain } = await nodeTest.createSetup()
 
     // Deserialize the block and add it to the new chain
-    const result = IJSON.parse(jsonedBlock) as SerializedBlock<Buffer, Buffer>
-    const deserializedBlock = strategy._blockSerde.deserialize(result)
+    const result = IJSON.parse(jsonedBlock) as SerializedBlock
+    const deserializedBlock = strategy.blockSerde.deserialize(result)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Serde from '.'
+import { Serde } from '.'
 /**
  * Very simple serializer and equality checker for strings. Used for the test
  * hasher, which uses strings for both elements and hashes.

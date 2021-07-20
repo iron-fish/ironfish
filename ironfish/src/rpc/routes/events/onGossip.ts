@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { IronfishBlock } from '../../../primitives'
+import { Block } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 import { RpcBlock, RpcBlockSchema, serializeRpcBlock } from './types'
 
@@ -23,7 +23,7 @@ router.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
   (request, node): void => {
-    function onGossip(block: IronfishBlock) {
+    function onGossip(block: Block) {
       const serialized = serializeRpcBlock(block)
       request.stream({ block: serialized })
     }

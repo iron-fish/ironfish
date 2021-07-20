@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishBlock } from '../primitives/block'
-import { IronfishBlockHeader } from '../primitives/blockheader'
+import { Block } from '../primitives/block'
+import { BlockHeader } from '../primitives/blockheader'
 
 function renderHashHex(hashHex: string | null | undefined): string {
   if (!hashHex) {
@@ -19,14 +19,14 @@ function renderHash(hash: Buffer | null | undefined): string {
   return renderHashHex(hash.toString('hex'))
 }
 
-function renderBlockHeaderHash(header: IronfishBlockHeader | null | undefined): string {
+function renderBlockHeaderHash(header: BlockHeader | null | undefined): string {
   if (!header) {
     return ''
   }
   return renderHash(header.hash)
 }
 
-function renderBlockHash(block: IronfishBlock | null | undefined): string {
+function renderBlockHash(block: Block | null | undefined): string {
   if (!block) {
     return ''
   }

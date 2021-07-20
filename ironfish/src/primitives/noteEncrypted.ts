@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
-import Serde from '../serde'
-import { IronfishNote } from './note'
+import { Serde } from '../serde'
+import { Note } from './note'
 
 export type WasmNoteEncryptedHash = Buffer
 export type SerializedWasmNoteEncryptedHash = Buffer
 export type SerializedWasmNoteEncrypted = Buffer
 
-export class IronfishNoteEncrypted {
+export class NoteEncrypted {
   private readonly wasmNoteEncryptedSerialized: Buffer
   private wasmNoteEncrypted: WasmNoteEncrypted | null = null
   private referenceCount = 0
@@ -40,23 +40,23 @@ export class IronfishNoteEncrypted {
     }
   }
 
-  decryptNoteForOwner(ownerHexKey: string): IronfishNote | undefined {
+  decryptNoteForOwner(ownerHexKey: string): Note | undefined {
     const note = this.takeReference().decryptNoteForOwner(ownerHexKey)
     this.returnReference()
     if (note) {
       const serializedNote = note.serialize()
       note.free()
-      return new IronfishNote(Buffer.from(serializedNote))
+      return new Note(Buffer.from(serializedNote))
     }
   }
 
-  decryptNoteForSpender(spenderHexKey: string): IronfishNote | undefined {
+  decryptNoteForSpender(spenderHexKey: string): Note | undefined {
     const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
     this.returnReference()
     if (note) {
       const serializedNote = note.serialize()
       note.free()
-      return new IronfishNote(Buffer.from(serializedNote))
+      return new Note(Buffer.from(serializedNote))
     }
   }
 
@@ -71,18 +71,18 @@ export class IronfishNoteEncrypted {
  * Serde implementation to convert an encrypted note to its serialized form and back.
  */
 export class WasmNoteEncryptedSerde
-  implements Serde<IronfishNoteEncrypted, SerializedWasmNoteEncrypted>
+  implements Serde<NoteEncrypted, SerializedWasmNoteEncrypted>
 {
-  equals(note1: IronfishNoteEncrypted, note2: IronfishNoteEncrypted): boolean {
+  equals(note1: NoteEncrypted, note2: NoteEncrypted): boolean {
     return note1.serialize().equals(note2.serialize())
   }
 
-  serialize(note: IronfishNoteEncrypted): SerializedWasmNoteEncrypted {
+  serialize(note: NoteEncrypted): SerializedWasmNoteEncrypted {
     return note.serialize()
   }
 
-  deserialize(serializedNote: SerializedWasmNoteEncrypted): IronfishNoteEncrypted {
-    return new IronfishNoteEncrypted(serializedNote)
+  deserialize(serializedNote: SerializedWasmNoteEncrypted): NoteEncrypted {
+    return new NoteEncrypted(serializedNote)
   }
 }
 

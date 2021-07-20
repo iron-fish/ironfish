@@ -6,91 +6,14 @@ import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
-import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
-import { Nullifier } from './nullifier'
+import { NoteEncrypted } from './noteEncrypted'
+import { Spend } from './spend'
 
 export type TransactionHash = Buffer
+
 export type SerializedTransaction = Buffer
 
-export interface Spend<H> {
-  nullifier: Nullifier
-  commitment: H
-  size: number
-}
-
-export interface Transaction<E, H> {
-  /**
-   * Verify whether the transaction has valid proofs.
-   */
-  verify(): Promise<VerificationResult>
-
-  /**
-   * The number of notes in the transaction.
-   */
-  notesLength(): number
-
-  /**
-   * Iterate over all the notes created by this transaction.
-   */
-  notes(): Iterable<E>
-
-  /**
-   * The number of spends in the transaction.
-   */
-  spendsLength(): number
-
-  /**
-   * Iterate over all the spends in the transaction. A spend includes a nullifier,
-   * indicating that a note was spent, and a commitment committing to
-   * the root hash and tree size at the time the note was spent.
-   */
-  spends(): Iterable<Spend<H>>
-
-  /**
-   * Preallocate any resources necessary for using the transaction.
-   */
-  takeReference(): unknown
-
-  /**
-   * Return any resources necessary for using the transaction.
-   */
-  returnReference(): void
-
-  /**
-   * Wraps the given callback in takeReference and returnReference.
-   */
-  withReference<R>(callback: (transaction: unknown) => R): R
-
-  /**
-   * Get the transaction fee for this transactions.
-   *
-   * In general, each transaction has outputs lower than the amount spent; the
-   * miner can collect the difference as a transaction fee.
-   *
-   * In a block header's minersFee transaction, the opposite happens;
-   * the miner creates a block with zero spends and output equal to the sum
-   * of the miner's fee for the block's transaction, plus the block chain's
-   * mining reward.
-   *
-   * The transaction fee is the difference between outputs and spends on the
-   * transaction.
-   */
-  transactionFee(): Promise<bigint>
-
-  /**
-   * Get transaction signature for this transaction.
-   */
-  transactionSignature(): Buffer
-
-  /**
-   * Get the transaction hash.
-   */
-  transactionHash(): Buffer
-}
-
-export class IronfishTransaction
-  implements Transaction<IronfishNoteEncrypted, WasmNoteEncryptedHash>
-{
+export class Transaction {
   private readonly wasmTransactionPostedSerialized: Buffer
   private readonly workerPool: WorkerPool
 
@@ -106,6 +29,9 @@ export class IronfishTransaction
     return this.wasmTransactionPostedSerialized
   }
 
+  /**
+   * Preallocate any resources necessary for using the transaction.
+   */
   takeReference(): WasmTransactionPosted {
     this.referenceCount++
     if (this.wasmTransactionPosted === null) {
@@ -116,6 +42,9 @@ export class IronfishTransaction
     return this.wasmTransactionPosted
   }
 
+  /**
+   * Return any resources necessary for using the transaction.
+   */
   returnReference(): void {
     this.referenceCount--
     if (this.referenceCount <= 0) {
@@ -125,6 +54,9 @@ export class IronfishTransaction
     }
   }
 
+  /**
+   * Wraps the given callback in takeReference and returnReference.
+   */
   withReference<R>(callback: (transaction: WasmTransactionPosted) => R): R {
     const transaction = this.takeReference()
     try {
@@ -134,6 +66,9 @@ export class IronfishTransaction
     }
   }
 
+  /**
+   * Verify whether the transaction has valid proofs.
+   */
   async verify(): Promise<VerificationResult> {
     const result = await this.workerPool.verify(this)
 
@@ -142,21 +77,24 @@ export class IronfishTransaction
       : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
+  /**
+   * The number of notes in the transaction.
+   */
   notesLength(): number {
     return this.withReference((t) => t.notesLength)
   }
 
-  getNote(index: number): IronfishNoteEncrypted {
+  getNote(index: number): NoteEncrypted {
     return this.withReference((t) => {
-      // Get the note
       const serializedNote = Buffer.from(t.getNote(index))
-
-      // Convert it to an IronfishNoteEncrypted
-      return new IronfishNoteEncrypted(serializedNote)
+      return new NoteEncrypted(serializedNote)
     })
   }
 
-  *notes(): Iterable<IronfishNoteEncrypted> {
+  /**
+   * Iterate over all the notes created by this transaction.
+   */
+  *notes(): Iterable<NoteEncrypted> {
     const notesLength = this.notesLength()
 
     for (let i = 0; i < notesLength; i++) {
@@ -164,11 +102,19 @@ export class IronfishTransaction
     }
   }
 
+  /**
+   * The number of spends in the transaction.
+   */
   spendsLength(): number {
     return this.withReference((t) => t.spendsLength)
   }
 
-  *spends(): Iterable<Spend<WasmNoteEncryptedHash>> {
+  /**
+   * Iterate over all the spends in the transaction. A spend includes a nullifier,
+   * indicating that a note was spent, and a commitment committing to
+   * the root hash and tree size at the time the note was spent.
+   */
+  *spends(): Iterable<Spend> {
     const spendsLength = this.spendsLength()
 
     for (let i = 0; i < spendsLength; i++) {
@@ -176,11 +122,11 @@ export class IronfishTransaction
     }
   }
 
-  getSpend(index: number): Spend<WasmNoteEncryptedHash> {
+  getSpend(index: number): Spend {
     return this.withReference((t) => {
       const wasmSpend = t.getSpend(index)
 
-      const spend: Spend<WasmNoteEncryptedHash> = {
+      const spend = {
         size: wasmSpend.treeSize,
         nullifier: Buffer.from(wasmSpend.nullifier),
         commitment: Buffer.from(wasmSpend.rootHash),
@@ -191,19 +137,39 @@ export class IronfishTransaction
     })
   }
 
+  /**
+   * Get the transaction fee for this transactions.
+   *
+   * In general, each transaction has outputs lower than the amount spent; the
+   * miner can collect the difference as a transaction fee.
+   *
+   * In a block header's minersFee transaction, the opposite happens;
+   * the miner creates a block with zero spends and output equal to the sum
+   * of the miner's fee for the block's transaction, plus the block chain's
+   * mining reward.
+   *
+   * The transaction fee is the difference between outputs and spends on the
+   * transaction.
+   */
   transactionFee(): Promise<bigint> {
     return this.workerPool.transactionFee(this)
   }
 
+  /**
+   * Get transaction signature for this transaction.
+   */
   transactionSignature(): Buffer {
     return this.withReference((t) => Buffer.from(t.transactionSignature))
   }
 
+  /**
+   * Get the transaction hash.
+   */
   transactionHash(): TransactionHash {
     return this.withReference((t) => Buffer.from(t.transactionHash))
   }
 
-  equals(other: IronfishTransaction): boolean {
+  equals(other: Transaction): boolean {
     return this.transactionHash().equals(other.transactionHash())
   }
 }
@@ -211,18 +177,18 @@ export class IronfishTransaction
 /**
  * Serializer and equality checker for Transaction wrappers.
  */
-export class TransactionSerde implements Serde<IronfishTransaction, SerializedTransaction> {
+export class TransactionSerde implements Serde<Transaction, SerializedTransaction> {
   constructor(private readonly workerPool: WorkerPool) {}
 
-  equals(tx1: IronfishTransaction, tx2: IronfishTransaction): boolean {
+  equals(tx1: Transaction, tx2: Transaction): boolean {
     return tx1.equals(tx2)
   }
 
-  serialize(transaction: IronfishTransaction): SerializedTransaction {
+  serialize(transaction: Transaction): SerializedTransaction {
     return transaction.serialize()
   }
 
-  deserialize(data: SerializedTransaction): IronfishTransaction {
-    return new IronfishTransaction(data, this.workerPool)
+  deserialize(data: SerializedTransaction): Transaction {
+    return new Transaction(data, this.workerPool)
   }
 }

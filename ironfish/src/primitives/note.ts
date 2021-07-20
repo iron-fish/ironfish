@@ -4,7 +4,7 @@
 
 import { WasmNote } from 'ironfish-wasm-nodejs'
 
-export class IronfishNote {
+export class Note {
   private readonly wasmNoteSerialized: Buffer
   private wasmNote: WasmNote | null = null
   private referenceCount = 0

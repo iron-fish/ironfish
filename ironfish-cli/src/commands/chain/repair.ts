@@ -3,13 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import {
-  Assert,
-  IDatabaseTransaction,
-  IronfishBlockHeader,
-  IronfishNode,
-  TimeUtils,
-} from 'ironfish'
+import { Assert, BlockHeader, IDatabaseTransaction, IronfishNode, TimeUtils } from 'ironfish'
 import { Meter } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -94,7 +88,7 @@ export default class RepairChain extends IronfishCommand {
 
     const total = Number(node.chain.head.sequence)
     let done = 0
-    let head = node.chain.head as IronfishBlockHeader | null
+    let head = node.chain.head as BlockHeader | null
 
     speed.start()
     progress.start(total, 0, {

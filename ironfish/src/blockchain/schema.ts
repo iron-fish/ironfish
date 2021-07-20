@@ -4,7 +4,6 @@
 
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
-import { JsonSerializable } from '../serde'
 import { DatabaseSchema } from '../storage'
 
 export const SCHEMA_VERSION = 2
@@ -14,21 +13,14 @@ export interface MetaSchema extends DatabaseSchema {
   value: BlockHash
 }
 
-export interface HeadersSchema<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> extends DatabaseSchema {
+export interface HeadersSchema extends DatabaseSchema {
   key: BlockHash
-  value: BlockHeader<E, H, T, SE, SH, ST>
+  value: BlockHeader
 }
 
-export interface TransactionsSchema<T> extends DatabaseSchema {
+export interface TransactionsSchema extends DatabaseSchema {
   key: BlockHash
-  value: T[]
+  value: Transaction[]
 }
 
 export interface SequenceToHashesSchema extends DatabaseSchema {

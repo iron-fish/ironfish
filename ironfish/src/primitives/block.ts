@@ -3,35 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { zip } from 'lodash'
-import Serde, { JsonSerializable } from '../serde'
+import { Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import {
-  IronfishNoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from './noteEncrypted'
+import { NoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
-import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
+import { SerializedTransaction, Transaction } from './transaction'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
  * and the list of transactions that were added to the tree between the
  * previous block and the ones committed to in this header.
  */
-export class Block<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> {
-  header: BlockHeader<E, H, T, SE, SH, ST>
-  transactions: T[]
+export class Block {
+  header: BlockHeader
+  transactions: Transaction[]
 
-  constructor(header: BlockHeader<E, H, T, SE, SH, ST>, transactions: T[]) {
+  constructor(header: BlockHeader, transactions: Transaction[]) {
     this.header = header
     this.transactions = transactions
   }
@@ -72,7 +60,11 @@ export class Block<
    *
    * Note: there is no spend on a miner's fee transaction in the header
    */
-  *spends(): Generator<{ nullifier: Nullifier; commitment: H; size: number }> {
+  *spends(): Generator<{
+    nullifier: Nullifier
+    commitment: WasmNoteEncryptedHash
+    size: number
+  }> {
     for (const transaction of this.transactions) {
       for (const spend of transaction.spends()) {
         yield spend
@@ -84,7 +76,7 @@ export class Block<
    * Get a list of all notes created in this block including the miner's fee
    * note on the header.
    */
-  *allNotes(): Generator<E> {
+  *allNotes(): Generator<NoteEncrypted> {
     for (const transaction of this.transactions) {
       for (const note of transaction.notes()) {
         yield note
@@ -92,34 +84,26 @@ export class Block<
     }
   }
 
-  equals(block: Block<E, H, T, SE, SH, ST>): boolean {
+  equals(block: Block): boolean {
     return block === this || this.header.strategy.blockSerde.equals(this, block)
   }
 }
 
-export type SerializedBlock<SH, ST> = {
-  header: SerializedBlockHeader<SH>
-  transactions: ST[]
+export type SerializedBlock = {
+  header: SerializedBlockHeader
+  transactions: SerializedTransaction[]
 }
 
 export type SerializedCounts = { notes: number; nullifiers: number }
 
-export class BlockSerde<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> implements Serde<Block<E, H, T, SE, SH, ST>, SerializedBlock<SH, ST>>
-{
-  blockHeaderSerde: BlockHeaderSerde<E, H, T, SE, SH, ST>
+export class BlockSerde implements Serde<Block, SerializedBlock> {
+  blockHeaderSerde: BlockHeaderSerde
 
-  constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {
+  constructor(readonly strategy: Strategy) {
     this.blockHeaderSerde = new BlockHeaderSerde(strategy)
   }
 
-  equals(block1: Block<E, H, T, SE, SH, ST>, block2: Block<E, H, T, SE, SH, ST>): boolean {
+  equals(block1: Block, block2: Block): boolean {
     if (!this.blockHeaderSerde.equals(block1.header, block2.header)) {
       return false
     }
@@ -132,7 +116,7 @@ export class BlockSerde<
       if (
         !transaction1 ||
         !transaction2 ||
-        !this.strategy.transactionSerde().equals(transaction1, transaction2)
+        !this.strategy.transactionSerde.equals(transaction1, transaction2)
       ) {
         return false
       }
@@ -141,16 +125,14 @@ export class BlockSerde<
     return true
   }
 
-  serialize(block: Block<E, H, T, SE, SH, ST>): SerializedBlock<SH, ST> {
+  serialize(block: Block): SerializedBlock {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
-      transactions: block.transactions.map((t) =>
-        this.strategy.transactionSerde().serialize(t),
-      ),
+      transactions: block.transactions.map((t) => this.strategy.transactionSerde.serialize(t)),
     }
   }
 
-  deserialize(data: SerializedBlock<SH, ST>): Block<E, H, T, SE, SH, ST> {
+  deserialize(data: SerializedBlock): Block {
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -160,24 +142,10 @@ export class BlockSerde<
     ) {
       const header = this.blockHeaderSerde.deserialize(data.header)
       const transactions = data.transactions.map((t) =>
-        this.strategy.transactionSerde().deserialize(t),
+        this.strategy.transactionSerde.deserialize(t),
       )
       return new Block(header, transactions)
     }
     throw new Error('Unable to deserialize')
   }
 }
-
-export type IronfishBlock = Block<
-  IronfishNoteEncrypted,
-  WasmNoteEncryptedHash,
-  IronfishTransaction,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
->
-
-export type IronfishBlockSerialized = SerializedBlock<
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
->

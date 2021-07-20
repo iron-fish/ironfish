@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { IronfishBlockchain } from '../../blockchain'
+import { Blockchain } from '../../blockchain'
 import { WorkerPool } from '../../workerPool'
 import { Identity, PrivateIdentity, privateIdentityToIdentity } from '../identity'
 import { Identify, InternalMessageType } from '../messages'
@@ -13,7 +13,7 @@ import { IsomorphicWebSocketConstructor } from '../types'
  * and maintains references to all known peers.
  */
 export class LocalPeer {
-  readonly chain: IronfishBlockchain
+  readonly chain: Blockchain
   readonly workerPool: WorkerPool
   // our keypair for encrypting messages
   private readonly privateIdentity: PrivateIdentity
@@ -41,7 +41,7 @@ export class LocalPeer {
     identity: PrivateIdentity,
     agent: string,
     version: number,
-    chain: IronfishBlockchain,
+    chain: Blockchain,
     workerPool: WorkerPool,
     webSocket: IsomorphicWebSocketConstructor,
   ) {

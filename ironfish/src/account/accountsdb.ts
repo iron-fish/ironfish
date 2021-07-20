@@ -4,7 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
-import { IronfishTransaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transaction'
 import {
   BufferEncoding,
   IDatabase,
@@ -183,7 +183,7 @@ export class AccountsDB {
   async saveTransaction(
     transactionHash: Buffer,
     transaction: {
-      transaction: IronfishTransaction
+      transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
     },
@@ -198,7 +198,7 @@ export class AccountsDB {
 
   async replaceTransactions(
     map: BufferMap<{
-      transaction: IronfishTransaction
+      transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
     }>,
@@ -218,7 +218,7 @@ export class AccountsDB {
 
   async loadTransactionsIntoMap(
     map: BufferMap<{
-      transaction: IronfishTransaction
+      transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
     }>,
@@ -226,7 +226,7 @@ export class AccountsDB {
     for await (const value of this.transactions.getAllValuesIter()) {
       const deserialized = {
         ...value,
-        transaction: new IronfishTransaction(value.transaction, this.workerPool),
+        transaction: new Transaction(value.transaction, this.workerPool),
       }
 
       map.set(deserialized.transaction.transactionHash(), deserialized)
