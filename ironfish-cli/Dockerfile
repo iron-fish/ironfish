@@ -16,6 +16,7 @@ EXPOSE 8020:8020
 EXPOSE 9033:9033
 VOLUME /root/.ironfish
 ENV NODE_ENV production
+ENV PATH="/usr/src/app/bin:${PATH}"
 
 RUN \
     echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list && \
@@ -26,7 +27,6 @@ WORKDIR /usr/src
 COPY --from=build /ironfish-cli/build.cli/ironfish-cli ./app
 COPY --from=build /ironfish-cli/scripts/entrypoint.sh ./app/
 RUN chmod +x ./app/entrypoint.sh
-
 # TODO: use environment variables for this
 WORKDIR /usr/src/app
 ENTRYPOINT ["./entrypoint.sh"]
