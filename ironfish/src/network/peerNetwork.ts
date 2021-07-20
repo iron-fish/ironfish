@@ -4,18 +4,17 @@
 
 import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
-import { IronfishBlockchain } from '../blockchain'
+import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
-import { IronfishBlock, IronfishBlockSerialized } from '../primitives/block'
-import { BlockHash, IronfishBlockHeader } from '../primitives/blockheader'
-import { SerializedWasmNoteEncryptedHash } from '../primitives/noteEncrypted'
-import { SerializedTransaction } from '../primitives/transaction'
-import { IronfishStrategy } from '../strategy'
+import { Block } from '../primitives'
+import { SerializedBlock } from '../primitives/block'
+import { BlockHeader } from '../primitives/blockheader'
+import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import {
   GetBlockHashesResponse,
@@ -114,8 +113,8 @@ export class PeerNetwork {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
-  private readonly strategy: IronfishStrategy
-  private readonly chain: IronfishBlockchain
+  private readonly strategy: Strategy
+  private readonly chain: Blockchain
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -144,8 +143,8 @@ export class PeerNetwork {
     logger?: Logger
     metrics?: MetricsMonitor
     node: IronfishNode
-    strategy: IronfishStrategy
-    chain: IronfishBlockchain
+    strategy: Strategy
+    chain: Blockchain
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -210,7 +209,7 @@ export class PeerNetwork {
         NodeMessageType.NewBlock,
         RoutingStyle.gossip,
         (p) => {
-          if (!isNewBlockPayload<SerializedWasmNoteEncryptedHash, SerializedTransaction>(p)) {
+          if (!isNewBlockPayload(p)) {
             throw 'Payload is not a serialized block'
           }
 
@@ -265,7 +264,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = this.strategy.transactionSerde().serialize(transaction)
+      const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
       this.gossip({
         type: NodeMessageType.NewTransaction,
@@ -274,7 +273,7 @@ export class PeerNetwork {
     })
   }
 
-  gossipBlock(block: IronfishBlock): void {
+  gossipBlock(block: Block): void {
     const serializedBlock = this.strategy.blockSerde.serialize(block)
 
     this.gossip({
@@ -560,7 +559,7 @@ export class PeerNetwork {
     peer: Peer,
     start: Buffer | bigint,
     limit: number,
-  ): Promise<IronfishBlockSerialized[]> {
+  ): Promise<SerializedBlock[]> {
     const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
 
     const message = {
@@ -573,7 +572,7 @@ export class PeerNetwork {
 
     const response = await this.requestFrom(peer, message)
 
-    if (!isGetBlocksResponse<BlockHash, SerializedTransaction>(response.message)) {
+    if (!isGetBlocksResponse(response.message)) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
     }
@@ -633,9 +632,7 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(
-    start: string | number,
-  ): Promise<IronfishBlockHeader | null> {
+  private async resolveSequenceOrHash(start: string | number): Promise<BlockHeader | null> {
     if (typeof start === 'string') {
       const hash = Buffer.from(start, 'hex')
       return await this.chain.getHeader(hash)
@@ -700,7 +697,7 @@ export class PeerNetwork {
 
   private async onGetBlocksRequest(
     request: IncomingPeerMessage<Rpc<NodeMessageType.GetBlocks, GetBlocksRequest['payload']>>,
-  ): Promise<GetBlocksResponse<BlockHash, SerializedTransaction>['payload']> {
+  ): Promise<GetBlocksResponse['payload']> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
 
     if (request.message.payload.limit === 0) {
@@ -750,12 +747,7 @@ export class PeerNetwork {
   }
 
   private async onNewBlock(
-    message: IncomingPeerMessage<
-      Gossip<
-        NodeMessageType.NewBlock,
-        NewBlockMessage<SerializedWasmNoteEncryptedHash, SerializedTransaction>['payload']
-      >
-    >,
+    message: IncomingPeerMessage<Gossip<NodeMessageType.NewBlock, NewBlockMessage['payload']>>,
   ): Promise<boolean> {
     const block = message.message.payload.block
     const peer = this.peerManager.getPeer(message.peerIdentity)

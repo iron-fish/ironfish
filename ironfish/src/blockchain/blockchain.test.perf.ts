@@ -5,7 +5,7 @@
 /* eslint-disable no-console */
 import _ from 'lodash'
 import { Assert } from '../assert'
-import { IronfishBlock } from '../primitives/block'
+import { Block } from '../primitives'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 import { MathUtils, UnwrapPromise } from '../utils'
 
@@ -19,8 +19,8 @@ describe('Blockchain', () => {
     const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
     const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
 
-    const blocksA = new Array<IronfishBlock>()
-    const blocksB = new Array<IronfishBlock>()
+    const blocksA = new Array<Block>()
+    const blocksB = new Array<Block>()
 
     // Create 100 blocks each on nodeA and nodeB
     for (let i = 0; i < 100; ++i) {

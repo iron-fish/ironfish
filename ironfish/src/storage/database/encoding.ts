@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import hexArray from 'hex-array'
-import Serde, { IJSON, IJsonSerializable } from '../../serde'
+import { IJSON, IJsonSerializable, Serde } from '../../serde'
 import { IDatabaseEncoding } from './types'
 
 export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncoding<T> {

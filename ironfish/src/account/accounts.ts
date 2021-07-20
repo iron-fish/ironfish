@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
-import { IronfishBlockchain } from '../blockchain'
+import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
-import { IronfishMemPool } from '../memPool'
-import { IronfishWitness } from '../merkletree/witness'
-import { IronfishBlockHeader } from '../primitives/blockheader'
-import { IronfishNote } from '../primitives/note'
-import { IronfishTransaction } from '../primitives/transaction'
+import { MemPool } from '../memPool'
+import { NoteWitness } from '../merkletree/witness'
+import { BlockHeader } from '../primitives'
+import { Note } from '../primitives/note'
+import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
@@ -33,14 +33,14 @@ export class Accounts {
     [account: Account | null, oldAccount: Account | null]
   >()
 
-  readonly onBroadcastTransaction = new Event<[transaction: IronfishTransaction]>()
+  readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
 
   protected readonly transactionMap = new BufferMap<
     Readonly<{
-      transaction: IronfishTransaction
+      transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
     }>
@@ -54,7 +54,7 @@ export class Accounts {
   readonly db: AccountsDB
   protected readonly logger: Logger
   readonly workerPool: WorkerPool
-  readonly chain: IronfishBlockchain
+  readonly chain: Blockchain
 
   protected defaultAccount: string | null = null
   protected headHash: string | null = null
@@ -67,7 +67,7 @@ export class Accounts {
     database,
     logger = createRootLogger(),
   }: {
-    chain: IronfishBlockchain
+    chain: Blockchain
     workerPool: WorkerPool
     database: AccountsDB
     logger?: Logger
@@ -86,7 +86,7 @@ export class Accounts {
     this.updateHeadState = new ScanState()
 
     try {
-      const addBlock = async (header: IronfishBlockHeader): Promise<void> => {
+      const addBlock = async (header: BlockHeader): Promise<void> => {
         this.logger.debug(
           `AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`,
         )
@@ -103,7 +103,7 @@ export class Accounts {
         }
       }
 
-      const removeBlock = async (header: IronfishBlockHeader): Promise<void> => {
+      const removeBlock = async (header: BlockHeader): Promise<void> => {
         this.logger.debug(
           `AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`,
         )
@@ -261,7 +261,7 @@ export class Accounts {
   async updateTransactionMap(
     transactionHash: Buffer,
     transaction: Readonly<{
-      transaction: IronfishTransaction
+      transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
     }>,
@@ -306,7 +306,7 @@ export class Accounts {
   }
 
   private decryptNotes(
-    transaction: IronfishTransaction,
+    transaction: Transaction,
     initialNoteIndex: number | null,
   ): Array<{
     noteIndex: number | null
@@ -385,7 +385,7 @@ export class Accounts {
    *  - Called when transactions are added to a block on the genesis chain
    */
   async syncTransaction(
-    transaction: IronfishTransaction,
+    transaction: Transaction,
     params: SyncTransactionParams,
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
@@ -531,7 +531,7 @@ export class Accounts {
 
   private getUnspentNotes(
     account: Account,
-  ): ReadonlyArray<{ hash: string; note: IronfishNote; index: number | null }> {
+  ): ReadonlyArray<{ hash: string; note: Note; index: number | null }> {
     const unspentNotes = []
 
     for (const transactionMapValue of this.transactionMap.values()) {
@@ -581,13 +581,13 @@ export class Accounts {
   }
 
   async pay(
-    memPool: IronfishMemPool,
+    memPool: MemPool,
     sender: Account,
     amount: bigint,
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
-  ): Promise<IronfishTransaction> {
+  ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
@@ -614,12 +614,12 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
-  ): Promise<IronfishTransaction> {
+  ): Promise<Transaction> {
     this.assertHasAccount(sender)
 
     let amountNeeded = amount + transactionFee
 
-    const notesToSpend: Array<{ note: IronfishNote; witness: IronfishWitness }> = []
+    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
     const unspentNotes = this.getUnspentNotes(sender)
 
     for (const unspentNote of unspentNotes) {
@@ -705,7 +705,7 @@ export class Accounts {
     )
   }
 
-  broadcastTransaction(transaction: IronfishTransaction): void {
+  broadcastTransaction(transaction: Transaction): void {
     this.onBroadcastTransaction.emit(transaction)
   }
 

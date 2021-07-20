@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
 import {
-  IronfishNoteEncrypted,
+  NoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
@@ -11,7 +11,7 @@ import {
   WasmNoteEncryptedSerde,
 } from '../primitives/noteEncrypted'
 import { StringSerde } from '../serde'
-import Serde, { JsonSerializable } from '../serde'
+import { JsonSerializable, Serde } from '../serde'
 
 /**
  * Interface for objects that can calculate the hashes of elements.
@@ -44,7 +44,7 @@ export interface MerkleHasher<E, H, SE extends JsonSerializable, SH extends Json
 export class NoteHasher
   implements
     MerkleHasher<
-      IronfishNoteEncrypted,
+      NoteEncrypted,
       WasmNoteEncryptedHash,
       SerializedWasmNoteEncrypted,
       SerializedWasmNoteEncryptedHash
@@ -58,7 +58,7 @@ export class NoteHasher
     this._merkleNoteHashSerde = new WasmNoteEncryptedHashSerde()
   }
 
-  elementSerde(): Serde<IronfishNoteEncrypted, SerializedWasmNoteEncrypted> {
+  elementSerde(): Serde<NoteEncrypted, SerializedWasmNoteEncrypted> {
     return this._merkleNoteSerde
   }
 
@@ -66,7 +66,7 @@ export class NoteHasher
     return this._merkleNoteHashSerde
   }
 
-  merkleHash(note: IronfishNoteEncrypted): Buffer {
+  merkleHash(note: NoteEncrypted): Buffer {
     return note.merkleHash()
   }
 

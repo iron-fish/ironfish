@@ -4,7 +4,7 @@
 
 import hexarray from 'hex-array'
 import { zip } from 'lodash'
-import Serde from '.'
+import { Serde } from '.'
 
 /**
  * General-purpose uint8array serializer and equality checker

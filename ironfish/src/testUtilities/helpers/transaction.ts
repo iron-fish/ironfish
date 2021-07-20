@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Account } from '../../account'
-import { IronfishTransaction } from '../../primitives/transaction'
+import { Transaction } from '../../primitives/transaction'
 
-export function isTransactionMine(transaction: IronfishTransaction, account: Account): boolean {
+export function isTransactionMine(transaction: Transaction, account: Account): boolean {
   for (const note of transaction.notes()) {
     const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
     if (receivedNote) {

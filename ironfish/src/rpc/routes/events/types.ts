@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { IronfishBlock } from '../../../primitives'
+import { Block } from '../../../primitives'
 
 export type RpcBlock = {
   hash: string
@@ -12,7 +12,7 @@ export type RpcBlock = {
   transactions: Array<unknown>
 }
 
-export function serializeRpcBlock(block: IronfishBlock): RpcBlock {
+export function serializeRpcBlock(block: Block): RpcBlock {
   return {
     hash: block.header.hash.toString('hex'),
     sequence: Number(block.header.sequence),

@@ -5,15 +5,15 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Accounts } from '../account'
-import { IronfishBlockchain } from '../blockchain'
+import { Blockchain } from '../blockchain'
+import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
-import { IronfishMiningDirector } from '../mining/director'
+import { MiningDirector } from '../mining'
 import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
-import { IronfishTestStrategy } from './strategy'
-import { IronfishTestVerifier } from './verifier'
+import { TestStrategy } from './strategy'
 
 export type NodeTestOptions =
   | {
@@ -32,23 +32,23 @@ export class NodeTest {
 
   sdk!: IronfishSdk
   node!: IronfishNode
-  strategy!: IronfishTestStrategy
-  verifier!: IronfishTestVerifier
-  chain!: IronfishBlockchain
+  strategy!: TestStrategy
+  verifier!: Verifier
+  chain!: Blockchain
   accounts!: Accounts
   peerNetwork!: PeerNetwork
   syncer!: Syncer
-  miningDirector!: IronfishMiningDirector
+  miningDirector!: MiningDirector
 
   setups = new Array<{
     sdk: IronfishSdk
     node: IronfishNode
-    strategy: IronfishTestStrategy
-    chain: IronfishBlockchain
+    strategy: TestStrategy
+    chain: Blockchain
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: IronfishMiningDirector
+    miningDirector: MiningDirector
   }>()
 
   constructor(options: NodeTestOptions = {}) {
@@ -58,31 +58,32 @@ export class NodeTest {
   async createSetup(options?: NodeTestOptions): Promise<{
     sdk: IronfishSdk
     node: IronfishNode
-    strategy: IronfishTestStrategy
-    verifier: IronfishTestVerifier
-    chain: IronfishBlockchain
+    strategy: TestStrategy
+    verifier: Verifier
+    chain: Blockchain
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: IronfishMiningDirector
+    miningDirector: MiningDirector
   }> {
     if (!options) {
       options = this.options
     }
 
     const dataDir = path.join(os.tmpdir(), uuid())
-    const verifierClass = IronfishTestVerifier
-    const strategyClass = IronfishTestStrategy
+    const strategyClass = TestStrategy
 
-    const sdk = await IronfishSdk.init({ dataDir, verifierClass, strategyClass })
+    const sdk = await IronfishSdk.init({ dataDir, strategyClass })
     const node = await sdk.node({ autoSeed: this.options?.autoSeed })
-    const strategy = node.strategy as IronfishTestStrategy
+    const strategy = node.strategy as TestStrategy
     const chain = node.chain
     const accounts = node.accounts
     const peerNetwork = node.peerNetwork
     const syncer = node.syncer
     const miningDirector = node.miningDirector
-    const verifier = node.chain.verifier as IronfishTestVerifier
+    const verifier = node.chain.verifier
+
+    verifier.enableVerifyTarget = false
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)

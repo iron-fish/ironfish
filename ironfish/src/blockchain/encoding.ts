@@ -3,34 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from '../primitives/blockheader'
-import { Transaction } from '../primitives/transaction'
-import Serde, { JsonSerializable } from '../serde'
+import { SerializedTransaction, Transaction, TransactionSerde } from '../primitives/transaction'
 import { IDatabaseEncoding, JsonEncoding } from '../storage'
 
-export class BlockHeaderEncoding<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> implements IDatabaseEncoding<BlockHeader<E, H, T, SE, SH, ST>>
-{
-  jsonSerializer: JsonEncoding<SerializedBlockHeader<SH>>
-  headerSerializer: BlockHeaderSerde<E, H, T, SE, SH, ST>
+export class BlockHeaderEncoding implements IDatabaseEncoding<BlockHeader> {
+  jsonSerializer: JsonEncoding<SerializedBlockHeader>
+  headerSerializer: BlockHeaderSerde
 
-  constructor(serde: BlockHeaderSerde<E, H, T, SE, SH, ST>) {
+  constructor(serde: BlockHeaderSerde) {
     this.jsonSerializer = new JsonEncoding()
     this.headerSerializer = serde
   }
 
-  serialize(value: BlockHeader<E, H, T, SE, SH, ST>): Buffer {
+  serialize(value: BlockHeader): Buffer {
     const serialized = this.headerSerializer.serialize(value)
     const buffer = this.jsonSerializer.serialize(serialized)
     return buffer
   }
 
-  deserialize(data: Buffer): BlockHeader<E, H, T, SE, SH, ST> {
+  deserialize(data: Buffer): BlockHeader {
     const json = this.jsonSerializer.deserialize(data)
     const deserialized = this.headerSerializer.deserialize(json)
     return deserialized
@@ -41,24 +32,22 @@ export class BlockHeaderEncoding<
   }
 }
 
-export class TransactionArrayEncoding<E, H, T extends Transaction<E, H>, ST>
-  implements IDatabaseEncoding<T[]>
-{
-  jsonSerializer: JsonEncoding<ST[]>
-  transactionSerializer: Serde<T, ST>
+export class TransactionArrayEncoding implements IDatabaseEncoding<Transaction[]> {
+  jsonSerializer: JsonEncoding<SerializedTransaction[]>
+  transactionSerializer: TransactionSerde
 
-  constructor(serde: Serde<T, ST>) {
+  constructor(serde: TransactionSerde) {
     this.jsonSerializer = new JsonEncoding()
     this.transactionSerializer = serde
   }
 
-  serialize(value: T[]): Buffer {
+  serialize(value: Transaction[]): Buffer {
     const serialized = value.map((t) => this.transactionSerializer.serialize(t))
     const buffer = this.jsonSerializer.serialize(serialized)
     return buffer
   }
 
-  deserialize(data: Buffer): T[] {
+  deserialize(data: Buffer): Transaction[] {
     const json = this.jsonSerializer.deserialize(data)
     const deserialized = json.map((st) => this.transactionSerializer.deserialize(st))
     return deserialized

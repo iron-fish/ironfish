@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import ws from 'ws'
-import { IronfishBlockchain } from '../../blockchain'
+import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
 import { WorkerPool } from '../../workerPool'
 import { PrivateIdentity } from '../identity'
@@ -23,7 +23,7 @@ export function mockLocalPeer({
   identity?: PrivateIdentity
   agent?: string
   version?: number
-  chain?: IronfishBlockchain
+  chain?: Blockchain
 } = {}): LocalPeer {
   return new LocalPeer(identity, agent, version, chain || mockChain(), new WorkerPool(), ws)
 }

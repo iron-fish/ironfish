@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from './assert'
-import { IronfishBlockchain } from './blockchain'
+import { Blockchain } from './blockchain'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { IronfishBlock, IronfishBlockSerialized } from './primitives/block'
-import { IronfishBlockHeader } from './primitives/blockheader'
-import { IronfishStrategy } from './strategy'
+import { Block, SerializedBlock } from './primitives/block'
+import { BlockHeader } from './primitives/blockheader'
+import { Strategy } from './strategy'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 
 const SYNCER_TICK_MS = 4 * 1000
@@ -26,8 +26,8 @@ const whitelist = new Set<string>([])
 
 export class Syncer {
   readonly peerNetwork: PeerNetwork
-  readonly chain: IronfishBlockchain
-  readonly strategy: IronfishStrategy
+  readonly chain: Blockchain
+  readonly strategy: Strategy
   readonly metrics: MetricsMonitor
   readonly logger: Logger
   readonly speed: Meter
@@ -38,12 +38,12 @@ export class Syncer {
   loader: Peer | null = null
   blocksPerMessage: number
 
-  onGossip = new Event<[IronfishBlock]>()
+  onGossip = new Event<[Block]>()
 
   constructor(options: {
     peerNetwork: PeerNetwork
-    chain: IronfishBlockchain
-    strategy: IronfishStrategy
+    chain: Blockchain
+    strategy: Strategy
     metrics?: MetricsMonitor
     logger?: Logger
     blocksPerMessage?: number
@@ -234,7 +234,7 @@ export class Syncer {
 
     const hasHash = async (
       hash: Buffer | null,
-    ): Promise<{ found: boolean; local: IronfishBlockHeader | null }> => {
+    ): Promise<{ found: boolean; local: BlockHeader | null }> => {
       if (hash === null) {
         return { found: false, local: null }
       }
@@ -361,8 +361,11 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
-      const [headBlock, ...blocks]: IronfishBlockSerialized[] =
-        await this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
+      const [headBlock, ...blocks]: SerializedBlock[] = await this.peerNetwork.getBlocks(
+        peer,
+        head,
+        this.blocksPerMessage + 1,
+      )
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
@@ -416,10 +419,10 @@ export class Syncer {
 
   async addBlock(
     peer: Peer,
-    serialized: IronfishBlockSerialized,
+    serialized: SerializedBlock,
   ): Promise<{
     added: boolean
-    block: IronfishBlock
+    block: Block
     reason: VerificationResultReason | null
   }> {
     Assert.isNotNull(this.chain.head)
@@ -468,7 +471,7 @@ export class Syncer {
     return { added: true, block, reason: reason || null }
   }
 
-  async addNewBlock(peer: Peer, newBlock: IronfishBlockSerialized): Promise<boolean> {
+  async addNewBlock(peer: Peer, newBlock: SerializedBlock): Promise<boolean> {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
     if (!this.chain.synced && this.loader) {

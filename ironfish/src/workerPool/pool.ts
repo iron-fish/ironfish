@@ -19,8 +19,8 @@ import type {
 } from './messages'
 import { Worker } from 'worker_threads'
 import { Identity, PrivateIdentity } from '../network'
-import { IronfishNote } from '../primitives/note'
-import { IronfishTransaction } from '../primitives/transaction'
+import { Note } from '../primitives/note'
+import { Transaction } from '../primitives/transaction'
 import * as worker from './worker'
 
 const MESSAGE_QUEUE_MAX_LENGTH = 200
@@ -141,11 +141,7 @@ export class WorkerPool {
     return
   }
 
-  async createMinersFee(
-    spendKey: string,
-    amount: bigint,
-    memo: string,
-  ): Promise<IronfishTransaction> {
+  async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
     const request: OmitRequestId<CreateMinersFeeRequest> = {
       type: 'createMinersFee',
       spendKey,
@@ -159,7 +155,7 @@ export class WorkerPool {
       throw new Error('Response type must match request type')
     }
 
-    return new IronfishTransaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   isMessageQueueFull(): boolean {
@@ -170,7 +166,7 @@ export class WorkerPool {
     spendKey: string,
     transactionFee: bigint,
     spends: {
-      note: IronfishNote
+      note: Note
       treeSize: number
       rootHash: Buffer
       authPath: {
@@ -179,7 +175,7 @@ export class WorkerPool {
       }[]
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-  ): Promise<IronfishTransaction> {
+  ): Promise<Transaction> {
     const request: OmitRequestId<CreateTransactionRequest> = {
       type: 'createTransaction',
       spendKey,
@@ -197,10 +193,10 @@ export class WorkerPool {
       throw new Error('Response type must match request type')
     }
 
-    return new IronfishTransaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
-  async transactionFee(transaction: IronfishTransaction): Promise<bigint> {
+  async transactionFee(transaction: Transaction): Promise<bigint> {
     const request: OmitRequestId<TransactionFeeRequest> = {
       type: 'transactionFee',
       serializedTransactionPosted: transaction.serialize(),
@@ -215,7 +211,7 @@ export class WorkerPool {
     return response.transactionFee
   }
 
-  async verify(transaction: IronfishTransaction): Promise<boolean> {
+  async verify(transaction: Transaction): Promise<boolean> {
     const request: OmitRequestId<VerifyTransactionRequest> = {
       type: 'verify',
       serializedTransactionPosted: transaction.serialize(),

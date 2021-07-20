@@ -6,7 +6,7 @@ jest.mock('ws')
 jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
-import { IronfishBlockHeader } from '../primitives/blockheader'
+import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -46,7 +46,7 @@ describe('Verifier', () => {
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = nodeTest.strategy.transactionSerde().serialize(tx)
+      const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
       const { transaction, serializedTransaction } =
         await nodeTest.chain.verifier.verifyNewTransaction({
@@ -59,7 +59,7 @@ describe('Verifier', () => {
 
     it('rejects if the transaction is not valid', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = nodeTest.strategy.transactionSerde().serialize(transaction)
+      const serialized = nodeTest.strategy.transactionSerde.serialize(transaction)
 
       jest.spyOn(nodeTest.chain.verifier, 'verifyTransaction').mockResolvedValue({
         valid: false,
@@ -74,7 +74,7 @@ describe('Verifier', () => {
     it('rejects if the transaction has negative fees', async () => {
       const account = await useAccountFixture(nodeTest.accounts)
       const tx = await useMinersTxFixture(nodeTest.accounts, account, 2, -100)
-      const serialized = nodeTest.strategy.transactionSerde().serialize(tx)
+      const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
       await expect(
         nodeTest.chain.verifier.verifyNewTransaction({ transaction: serialized }),
@@ -158,7 +158,7 @@ describe('Verifier', () => {
 
   describe('BlockHeader', () => {
     const nodeTest = createNodeTest()
-    let header: IronfishBlockHeader
+    let header: BlockHeader
 
     beforeEach(async () => {
       header = (await useMinerBlockFixture(nodeTest.chain)).header

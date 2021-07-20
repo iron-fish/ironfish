@@ -4,18 +4,9 @@
 
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
-import { Transaction } from '../primitives/transaction'
-import { JsonSerializable } from '../serde'
 
-export function getBlockRange<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(
-  chain: Blockchain<E, H, T, SE, SH, ST>,
+export function getBlockRange(
+  chain: Blockchain,
   range?: {
     start?: number | null
     stop?: number | null

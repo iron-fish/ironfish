@@ -4,17 +4,16 @@
 
 import '../matchers/blockchain'
 import { Assert } from '../../assert'
-import { IronfishBlockchain } from '../../blockchain'
-import { Block, IronfishBlock } from '../../primitives/block'
+import { Blockchain } from '../../blockchain'
+import { Block } from '../../primitives/block'
 import { BlockHeader } from '../../primitives/blockheader'
-import { IronfishBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { GraffitiUtils } from '../../utils/graffiti'
 
 export async function makeBlockAfter(
-  chain: IronfishBlockchain,
-  after: IronfishBlockHeader | IronfishBlock,
-): Promise<IronfishBlock> {
+  chain: Blockchain,
+  after: BlockHeader | Block,
+): Promise<Block> {
   if (after instanceof Block) {
     after = after.header
   }

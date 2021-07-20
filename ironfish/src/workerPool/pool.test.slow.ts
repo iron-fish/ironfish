@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { IronfishStrategy } from '../strategy'
+import { Strategy } from '../strategy'
 import { WorkerPool } from './pool'
 
 describe('Worker Pool', () => {
@@ -15,7 +15,7 @@ describe('Worker Pool', () => {
   it('If pool is empty, executes on main thread', async () => {
     // Generate a miner's fee transaction
     const emptyPool = new WorkerPool()
-    const strategy = new IronfishStrategy(emptyPool)
+    const strategy = new Strategy(emptyPool)
     const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
     expect(emptyPool['workers'].length).toBe(0)
@@ -31,7 +31,7 @@ describe('Worker Pool', () => {
   it('Terminates all workers when stop is called', async () => {
     // Generate a miner's fee transaction to create a resolver
     const pool = new WorkerPool()
-    const strategy = new IronfishStrategy(pool)
+    const strategy = new Strategy(pool)
     const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
     pool.start(1)
@@ -65,7 +65,7 @@ describe('Worker Pool', () => {
     })
 
     it('Resolves promises created by the pool on a worker thread', async () => {
-      const strategy = new IronfishStrategy(workerPool)
+      const strategy = new Strategy(workerPool)
       expect(workerPool['workers'].length).toBeGreaterThan(0)
 
       const minersFeePromise = strategy.createMinersFee(
@@ -80,8 +80,8 @@ describe('Worker Pool', () => {
       expect(workerPool['resolvers'].size).toBe(0)
     }, 60000)
 
-    it('Returns an IronfishTransaction with a Buffer', async () => {
-      const strategy = new IronfishStrategy(workerPool)
+    it('Returns a Transaction with a Buffer', async () => {
+      const strategy = new Strategy(workerPool)
       expect(workerPool['workers'].length).toBeGreaterThan(0)
 
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
