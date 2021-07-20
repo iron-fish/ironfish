@@ -24,15 +24,9 @@ export default class Status extends IronfishCommand {
     const { flags } = this.parse(Status)
 
     if (!flags.follow) {
-      const connected = await this.sdk.client.tryConnect()
-
-      if (!connected) {
-        this.log('Node: STOPPED')
-      } else {
-        const response = await this.sdk.client.status()
-        this.log(renderStatus(response.content))
-      }
-
+      const client = await this.sdk.connectRpc()
+      const response = await client.status()
+      this.log(renderStatus(response.content))
       this.exit(0)
     }
 
@@ -94,9 +88,14 @@ function renderStatus(content: GetStatusResponse): string {
     content.blockchain.head
   }`
 
+  const miningDirectorStatus = `${content.miningDirector.status.toUpperCase()}, ${
+    content.miningDirector.miners
+  } miners, ${content.miningDirector.blocks} mined`
+
   return `
 Node:                 ${nodeStatus}
 P2P Network:          ${peerNetworkStatus}
+Mining:               ${miningDirectorStatus}
 Blocks syncing:       ${blockSyncerStatus}
 Blockchain:           ${blockchainStatus}`
 }
