@@ -3,33 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
 import { Account, Accounts, AccountsDB } from './account'
-import { Blockchain, IronfishBlockchain } from './blockchain'
-import { IronfishVerifier } from './consensus/verifier'
+import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
-import { IronfishMemPool, MemPool } from './memPool'
+import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
-import { IronfishMiningDirector } from './mining/director'
 import { PeerNetwork } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
-import { IronfishStrategy } from './strategy'
+import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { setDefaultTags, startCollecting, stopCollecting, submitMetric } from './telemetry'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
-  chain: IronfishBlockchain
-  strategy: IronfishStrategy
+  chain: Blockchain
+  strategy: Strategy
   config: Config
   internal: InternalStore
   accounts: Accounts
   logger: Logger
-  miningDirector: IronfishMiningDirector
+  miningDirector: MiningDirector
   metrics: MetricsMonitor
-  memPool: IronfishMemPool
+  memPool: MemPool
   workerPool: WorkerPool
   files: FileSystem
   rpc: RpcServer
@@ -59,11 +57,11 @@ export class IronfishNode {
     config: Config
     internal: InternalStore
     accounts: Accounts
-    chain: IronfishBlockchain
-    strategy: IronfishStrategy
+    chain: Blockchain
+    strategy: Strategy
     metrics: MetricsMonitor
-    miningDirector: IronfishMiningDirector
-    memPool: IronfishMemPool
+    miningDirector: MiningDirector
+    memPool: MemPool
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
@@ -124,7 +122,6 @@ export class IronfishNode {
     logger = createRootLogger(),
     metrics,
     files,
-    verifierClass,
     strategyClass,
     webSocket,
   }: {
@@ -137,8 +134,7 @@ export class IronfishNode {
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
-    verifierClass: typeof IronfishVerifier | null
-    strategyClass: typeof IronfishStrategy | null
+    strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
@@ -160,8 +156,8 @@ export class IronfishNode {
 
     const workerPool = new WorkerPool()
 
-    strategyClass = strategyClass || IronfishStrategy
-    const strategy = new strategyClass(workerPool, verifierClass)
+    strategyClass = strategyClass || Strategy
+    const strategy = new strategyClass(workerPool)
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -171,7 +167,7 @@ export class IronfishNode {
       autoSeed,
     })
 
-    const memPool = new MemPool({ chain: chain, strategy: strategy, logger: logger })
+    const memPool = new MemPool({ chain: chain, strategy, logger: logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,

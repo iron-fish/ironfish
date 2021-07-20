@@ -2,74 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Blockchain, IronfishBlockchain } from './blockchain'
 import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
-import { IronfishVerifier, Verifier } from './consensus/verifier'
-import { MerkleHasher } from './merkletree'
 import { NoteHasher } from './merkletree/hasher'
 import { BlockSerde } from './primitives/block'
 import { BlockHash, BlockHeaderSerde, hashBlockHeader } from './primitives/blockheader'
-import {
-  IronfishNoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from './primitives/noteEncrypted'
-import { Nullifier, NullifierHash } from './primitives/nullifier'
+import { NoteEncrypted } from './primitives/noteEncrypted'
 import { NullifierHasher } from './primitives/nullifier'
-import {
-  IronfishTransaction,
-  SerializedTransaction,
-  Transaction,
-  TransactionSerde,
-} from './primitives/transaction'
-import { JsonSerializable, Serde } from './serde'
+import { Transaction, TransactionSerde } from './primitives/transaction'
+import { Serde } from './serde'
 import { WorkerPool } from './workerPool'
 
 /**
- * Strategy to allow Blockchain to remain
- * generic across computations.
- * Methods give access to the hasher and nullifier hasher
- * and custom calculations for block hash, target,
- * and miner's fee.
+ * Implementation of a Blockchain Strategy using the Wasm zero-knowledge proofs.
  */
-export interface Strategy<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> {
-  /**
-   * Create a verifier used to validate conensus
-   */
-  createVerifier(chain: Blockchain<E, H, T, SE, SH, ST>): Verifier<E, H, T, SE, SH, ST>
+export class Strategy {
+  readonly workerPool: WorkerPool
+  readonly noteHasher: NoteHasher
+  readonly nullifierHasher: NullifierHasher
+  readonly blockSerde: BlockSerde
+  readonly blockHeaderSerde: BlockHeaderSerde
+  readonly noteSerde: Serde<NoteEncrypted, Buffer>
+  readonly transactionSerde: TransactionSerde
 
-  /**
-   * Get the hasher used to calculate hashes of notes in the tree.
-   */
-  noteHasher(): MerkleHasher<E, H, SE, SH>
+  private miningRewardCachedByYear: Map<number, number>
 
-  /**
-   * Get the hasher used to calculate hashes of nullifiers. Note that you
-   * probably want to use a NullifierHasher here.
-   */
-  nullifierHasher(): MerkleHasher<Nullifier, NullifierHash, string, string>
-
-  /**
-   * Get the object that can serialize and deserialize lists of transactions.
-   */
-  transactionSerde(): Serde<T, ST>
-
-  /**
-   * Get the object that can serialize and deserialize blocks
-   */
-  readonly blockSerde: BlockSerde<E, H, T, SE, SH, ST>
-
-  readonly blockHeaderSerde: BlockHeaderSerde<E, H, T, SE, SH, ST>
-
-  readonly noteSerde: Serde<E, SE>
+  constructor(workerPool: WorkerPool) {
+    this.noteHasher = new NoteHasher()
+    this.nullifierHasher = new NullifierHasher()
+    this.transactionSerde = new TransactionSerde(workerPool)
+    this.blockSerde = new BlockSerde(this)
+    this.blockHeaderSerde = new BlockHeaderSerde(this)
+    this.noteSerde = this.noteHasher.elementSerde()
+    this.miningRewardCachedByYear = new Map<number, number>()
+    this.workerPool = workerPool
+  }
 
   /**
    * Given the serialized bytes of a block header, return a 32-byte hash of that block.
@@ -80,134 +46,13 @@ export interface Strategy<
    * Ideally we could remove this method altogether, but unit tests rely
    * on it heavily.
    */
-  hashBlockHeader(header: Buffer): BlockHash
-
-  /**
-   * Create the miner's fee transaction for a given block.
-   *
-   * The miner's fee is a special transaction with one receipt and
-   * zero spends. It's receipt value must be the total transaction fees
-   * in the block plus the mining reward for the block.
-   *
-   * The mining reward may change over time, so we accept the block sequence
-   * to calculate the mining reward from.
-   *
-   * @param totalTransactionFees is the sum of the transaction fees intended to go
-   * in this block.
-   * @param blockSequence the sequence of the block for which the miner's fee is being created
-   * @param minerKey the spending key for the miner.
-   */
-  createMinersFee(
-    totalTransactionFees: bigint,
-    blockSequence: number,
-    minerKey: string,
-  ): Promise<T>
-
-  /**
-   * Calculate the mining reward for a block based on its sequence
-   */
-  miningReward(blockSequence: number): number
-}
-
-/**
- * Implementation of a Blockchain Strategy using the Wasm zero-knowledge proofs.
- */
-export class IronfishStrategy
-  implements
-    Strategy<
-      IronfishNoteEncrypted,
-      WasmNoteEncryptedHash,
-      IronfishTransaction,
-      SerializedWasmNoteEncrypted,
-      SerializedWasmNoteEncryptedHash,
-      SerializedTransaction
-    >
-{
-  _noteHasher: NoteHasher
-
-  _nullifierHasher: NullifierHasher
-
-  _blockSerde: BlockSerde<
-    IronfishNoteEncrypted,
-    WasmNoteEncryptedHash,
-    IronfishTransaction,
-    SerializedWasmNoteEncrypted,
-    SerializedWasmNoteEncryptedHash,
-    SerializedTransaction
-  >
-
-  _blockHeaderSerde: BlockHeaderSerde<
-    IronfishNoteEncrypted,
-    WasmNoteEncryptedHash,
-    IronfishTransaction,
-    SerializedWasmNoteEncrypted,
-    SerializedWasmNoteEncryptedHash,
-    SerializedTransaction
-  >
-
-  _noteSerde: Serde<IronfishNoteEncrypted, Buffer>
-
-  _transactionSerde: TransactionSerde
-
-  private _verifierClass: typeof IronfishVerifier
-  private miningRewardCachedByYear: Map<number, number>
-  private readonly workerPool: WorkerPool
-
-  constructor(workerPool: WorkerPool, verifierClass: typeof IronfishVerifier | null = null) {
-    this._noteHasher = new NoteHasher()
-    this._nullifierHasher = new NullifierHasher()
-    this._transactionSerde = new TransactionSerde(workerPool)
-    this._blockSerde = new BlockSerde(this)
-    this._blockHeaderSerde = new BlockHeaderSerde(this)
-    this._noteSerde = this._noteHasher.elementSerde()
-    this._verifierClass = verifierClass || Verifier
-    this.miningRewardCachedByYear = new Map<number, number>()
-    this.workerPool = workerPool
-  }
-
-  noteHasher(): NoteHasher {
-    return this._noteHasher
-  }
-
-  nullifierHasher(): NullifierHasher {
-    return this._nullifierHasher
-  }
-
-  transactionSerde(): TransactionSerde {
-    return this._transactionSerde
-  }
-
-  get noteSerde(): Serde<IronfishNoteEncrypted, Buffer> {
-    return this._noteSerde
-  }
-
-  get blockHeaderSerde(): BlockHeaderSerde<
-    IronfishNoteEncrypted,
-    WasmNoteEncryptedHash,
-    IronfishTransaction,
-    SerializedWasmNoteEncrypted,
-    SerializedWasmNoteEncryptedHash,
-    SerializedTransaction
-  > {
-    return this._blockHeaderSerde
-  }
-
-  get blockSerde(): BlockSerde<
-    IronfishNoteEncrypted,
-    WasmNoteEncryptedHash,
-    IronfishTransaction,
-    SerializedWasmNoteEncrypted,
-    SerializedWasmNoteEncryptedHash,
-    SerializedTransaction
-  > {
-    return this._blockSerde
-  }
-
   hashBlockHeader(serializedHeader: Buffer): BlockHash {
     return hashBlockHeader(serializedHeader)
   }
 
   /**
+   * Calculate the mining reward for a block based on its sequence
+   *
    * See https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
    *
    * Annual coin issuance from mining goes down every year. Year is defined here by the
@@ -239,15 +84,26 @@ export class IronfishStrategy
     return Math.round(iron * 10 ** 8)
   }
 
-  createVerifier(chain: IronfishBlockchain): IronfishVerifier {
-    return new this._verifierClass(chain)
-  }
-
+  /**
+   * Create the miner's fee transaction for a given block.
+   *
+   * The miner's fee is a special transaction with one receipt and
+   * zero spends. It's receipt value must be the total transaction fees
+   * in the block plus the mining reward for the block.
+   *
+   * The mining reward may change over time, so we accept the block sequence
+   * to calculate the mining reward from.
+   *
+   * @param totalTransactionFees is the sum of the transaction fees intended to go
+   * in this block.
+   * @param blockSequence the sequence of the block for which the miner's fee is being created
+   * @param minerKey the spending key for the miner.
+   */
   async createMinersFee(
     totalTransactionFees: bigint,
     blockSequence: number,
     minerSpendKey: string,
-  ): Promise<IronfishTransaction> {
+  ): Promise<Transaction> {
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward
     const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))

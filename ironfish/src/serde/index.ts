@@ -49,5 +49,3 @@ export interface Serde<E, SE = JsonSerializable> {
    */
   deserialize(data: SE): E
 }
-
-export default Serde

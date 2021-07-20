@@ -9,7 +9,7 @@ import {
 } from '../testUtilities/fixtures'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { IronfishBlockSerialized } from './block'
+import { SerializedBlock } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()
@@ -46,9 +46,9 @@ describe('Block', () => {
   it('throws when deserializing invalid block', () => {
     const serde = nodeTest.strategy.blockSerde
 
-    expect(() =>
-      serde.deserialize({ bad: 'data' } as unknown as IronfishBlockSerialized),
-    ).toThrowError('Unable to deserialize')
+    expect(() => serde.deserialize({ bad: 'data' } as unknown as SerializedBlock)).toThrowError(
+      'Unable to deserialize',
+    )
   })
 
   it('check block equality', async () => {

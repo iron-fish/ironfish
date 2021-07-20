@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  IronfishNoteEncrypted,
+  NoteEncrypted,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash,
   WasmNoteEncryptedHash,
@@ -28,7 +28,6 @@ export class SerializedWitnessNode<SH> {
  * Commitment that a leaf node exists in the tree with an authentication path
  * and the rootHash of the tree at the time the authentication path was calculated.
  */
-
 export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializable> {
   constructor(
     readonly _treeSize: number,
@@ -69,8 +68,8 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
   }
 }
 
-export type IronfishWitness = Witness<
-  IronfishNoteEncrypted,
+export type NoteWitness = Witness<
+  NoteEncrypted,
   WasmNoteEncryptedHash,
   SerializedWasmNoteEncrypted,
   SerializedWasmNoteEncryptedHash

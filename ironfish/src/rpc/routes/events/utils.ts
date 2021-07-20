@@ -6,8 +6,6 @@ import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { createRootLogger, Logger } from '../../../logger'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { Transaction } from '../../../primitives/transaction'
-import { JsonSerializable } from '../../../serde'
 import { HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
@@ -16,15 +14,8 @@ const DEFAULT_OPTIONS = {
   indent: '|',
 }
 
-export async function logChain<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(
-  chain: Blockchain<E, H, T, SE, SH, ST>,
+export async function logChain(
+  chain: Blockchain,
   start?: number | null,
   end?: number | null,
   options: {
@@ -46,15 +37,8 @@ export async function logChain<
   }
 }
 
-export async function renderChain<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(
-  chain: Blockchain<E, H, T, SE, SH, ST>,
+export async function renderChain(
+  chain: Blockchain,
   start?: number | null,
   end?: number | null,
   options: {
@@ -92,16 +76,9 @@ export async function renderChain<
   return content
 }
 
-export async function renderGraph<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(
-  chain: Blockchain<E, H, T, SE, SH, ST>,
-  header: BlockHeader<E, H, T, SE, SH, ST>,
+export async function renderGraph(
+  chain: Blockchain,
+  header: BlockHeader,
   end: number,
   content: string[],
   options: {

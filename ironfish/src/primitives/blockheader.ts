@@ -2,21 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Serde, {
-  BlockHashSerdeInstance,
-  GraffitiSerdeInstance,
-  JsonSerializable,
-} from '../serde'
+import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
 import { Strategy } from '../strategy'
-import {
-  IronfishNoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from './noteEncrypted'
+import { SerializedWasmNoteEncryptedHash, WasmNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
 import { Target, TargetSerdeInstance } from './target'
-import { IronfishTransaction, SerializedTransaction, Transaction } from './transaction'
 
 export type BlockHash = Buffer
 
@@ -29,14 +19,7 @@ export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   return hash.digest()
 }
 
-export function isBlockLater<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
+export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
   if (a.sequence !== b.sequence) {
     return a.sequence > b.sequence
   }
@@ -44,14 +27,7 @@ export function isBlockLater<
   return a.hash < b.hash
 }
 
-export function isBlockHeavier<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
->(a: BlockHeader<E, H, T, SE, SH, ST>, b: BlockHeader<E, H, T, SE, SH, ST>): boolean {
+export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
   if (a.work !== b.work) {
     return a.work > b.work
   }
@@ -67,16 +43,9 @@ export function isBlockHeavier<
   return a.hash < b.hash
 }
 
-export class BlockHeader<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> {
+export class BlockHeader {
   // Strategy for hashing block and tree nodes and calculating targets
-  public strategy: Strategy<E, H, T, SE, SH, ST>
+  public strategy: Strategy
 
   /**
    * The sequence number of the block. Blocks in a chain increase in ascending
@@ -95,7 +64,7 @@ export class BlockHeader<
    * block have been added to it. Stored as the hash and the size of the tree
    * at the time the hash was calculated.
    */
-  public noteCommitment: { commitment: H; size: number }
+  public noteCommitment: { commitment: WasmNoteEncryptedHash; size: number }
 
   /**
    * Commitment to the nullifier set after all the spends in this block have
@@ -151,10 +120,10 @@ export class BlockHeader<
   public hash: Buffer
 
   constructor(
-    strategy: Strategy<E, H, T, SE, SH, ST>,
+    strategy: Strategy,
     sequence: number,
     previousBlockHash: BlockHash,
-    noteCommitment: { commitment: H; size: number },
+    noteCommitment: { commitment: WasmNoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
     randomness = 0,
@@ -222,11 +191,11 @@ export class BlockHeader<
   }
 }
 
-export type SerializedBlockHeader<SH> = {
+export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
   noteCommitment: {
-    commitment: SH
+    commitment: SerializedWasmNoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
@@ -243,30 +212,17 @@ export type SerializedBlockHeader<SH> = {
   graffiti: string
 }
 
-export class BlockHeaderSerde<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> implements Serde<BlockHeader<E, H, T, SE, SH, ST>, SerializedBlockHeader<SH>>
-{
-  constructor(readonly strategy: Strategy<E, H, T, SE, SH, ST>) {}
+export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeader> {
+  constructor(readonly strategy: Strategy) {}
 
-  equals(
-    element1: BlockHeader<E, H, T, SE, SH, ST>,
-    element2: BlockHeader<E, H, T, SE, SH, ST>,
-  ): boolean {
+  equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
-      this.strategy
-        .noteHasher()
+      this.strategy.noteHasher
         .hashSerde()
         .equals(element1.noteCommitment.commitment, element2.noteCommitment.commitment) &&
       element1.noteCommitment.size === element2.noteCommitment.size &&
-      this.strategy
-        .nullifierHasher()
+      this.strategy.nullifierHasher
         .hashSerde()
         .equals(
           element1.nullifierCommitment.commitment,
@@ -281,20 +237,18 @@ export class BlockHeaderSerde<
     )
   }
 
-  serialize(header: BlockHeader<E, H, T, SE, SH, ST>): SerializedBlockHeader<SH> {
+  serialize(header: BlockHeader): SerializedBlockHeader {
     const serialized = {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
-        commitment: this.strategy
-          .noteHasher()
+        commitment: this.strategy.noteHasher
           .hashSerde()
           .serialize(header.noteCommitment.commitment),
         size: header.noteCommitment.size,
       },
       nullifierCommitment: {
-        commitment: this.strategy
-          .nullifierHasher()
+        commitment: this.strategy.nullifierHasher
           .hashSerde()
           .serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
@@ -311,7 +265,7 @@ export class BlockHeaderSerde<
     return serialized
   }
 
-  deserialize(data: SerializedBlockHeader<SH>): BlockHeader<E, H, T, SE, SH, ST> {
+  deserialize(data: SerializedBlockHeader): BlockHeader {
     // TODO: this needs to make assertions on the data format
     // as it can be from untrusted sources
     const header = new BlockHeader(
@@ -319,15 +273,13 @@ export class BlockHeaderSerde<
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
-        commitment: this.strategy
-          .noteHasher()
+        commitment: this.strategy.noteHasher
           .hashSerde()
           .deserialize(data.noteCommitment.commitment),
         size: data.noteCommitment.size,
       },
       {
-        commitment: this.strategy
-          .nullifierHasher()
+        commitment: this.strategy.nullifierHasher
           .hashSerde()
           .deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
@@ -344,12 +296,3 @@ export class BlockHeaderSerde<
     return header
   }
 }
-
-export type IronfishBlockHeader = BlockHeader<
-  IronfishNoteEncrypted,
-  WasmNoteEncryptedHash,
-  IronfishTransaction,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
->

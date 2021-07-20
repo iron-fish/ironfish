@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Accounts } from '../account'
-import { IronfishBlockchain } from '../blockchain'
-import { IronfishMiningDirector } from '../mining/director'
+import { Blockchain } from '../blockchain'
+import { Verifier } from '../consensus'
+import { MiningDirector } from '../mining/director'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -11,8 +12,7 @@ import { IronfishMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { NodeTest } from './nodeTest'
-import { IronfishTestStrategy } from './strategy'
-import { IronfishTestVerifier } from './verifier'
+import { TestStrategy } from './strategy'
 
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
@@ -26,13 +26,13 @@ export class RouteTest extends NodeTest {
   async createSetup(): Promise<{
     sdk: IronfishSdk
     node: IronfishNode
-    strategy: IronfishTestStrategy
-    verifier: IronfishTestVerifier
-    chain: IronfishBlockchain
+    strategy: TestStrategy
+    verifier: Verifier
+    chain: Blockchain
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: IronfishMiningDirector
+    miningDirector: MiningDirector
     adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {

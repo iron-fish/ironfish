@@ -4,11 +4,11 @@
 
 import type { Account } from '../account'
 import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
-import { IronfishBlockchain } from '../blockchain'
+import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
-import { IronfishBlock } from '../primitives/block'
+import { Block } from '../primitives'
 import { Target } from '../primitives/target'
-import { IronfishTransaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transaction'
 import { GraffitiUtils } from '../utils/graffiti'
 import { WorkerPool } from '../workerPool'
 
@@ -27,12 +27,12 @@ export type GenesisBlockInfo = {
  * nullifier merkle trees.
  */
 export async function makeGenesisBlock(
-  chain: IronfishBlockchain,
+  chain: Blockchain,
   info: GenesisBlockInfo,
   account: Account,
   workerPool: WorkerPool,
   logger: Logger,
-): Promise<{ block: IronfishBlock }> {
+): Promise<{ block: Block }> {
   logger = logger.withTag('makeGenesisBlock')
   if (!chain.isEmpty) {
     throw new Error('Database must be empty to create a genesis block.')
@@ -62,7 +62,7 @@ export async function makeGenesisBlock(
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new IronfishTransaction(
+  const postedInitialTransaction = new Transaction(
     Buffer.from(initialTransaction.post_miners_fee().serialize()),
     workerPool,
   )
@@ -109,7 +109,7 @@ export async function makeGenesisBlock(
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new IronfishTransaction(
+  const postedTransaction = new Transaction(
     Buffer.from(transaction.post(genesisKey.spending_key, undefined, BigInt(0)).serialize()),
     workerPool,
   )
@@ -132,7 +132,7 @@ export async function makeGenesisBlock(
   const note = new WasmNote(account.publicAddress, BigInt(0), '')
   const minersFeeTransaction = new WasmTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new IronfishTransaction(
+  const postedMinersFeeTransaction = new Transaction(
     Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
     workerPool,
   )

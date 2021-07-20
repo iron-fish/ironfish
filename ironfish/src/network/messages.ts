@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishVerifier } from '../consensus'
+import { Verifier } from '../consensus'
 import { SerializedBlock } from '../primitives/block'
+import { SerializedTransaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
 import { Identity, isIdentity } from './identity'
@@ -366,16 +367,14 @@ export type GetBlocksRequest = Message<
   }
 >
 
-export type GetBlocksResponse<SH, ST> = Message<
+export type GetBlocksResponse = Message<
   NodeMessageType.GetBlocks,
   {
-    blocks: SerializedBlock<SH, ST>[]
+    blocks: SerializedBlock[]
   }
 >
 
-export function isGetBlocksResponse<SH, ST>(
-  obj: LooseMessage,
-): obj is GetBlocksResponse<SH, ST> {
+export function isGetBlocksResponse(obj: LooseMessage): obj is GetBlocksResponse {
   if (
     obj.type === NodeMessageType.GetBlocks &&
     'payload' in obj &&
@@ -438,9 +437,7 @@ function isBlockHash(obj: unknown | undefined): obj is string {
   return typeof obj === 'string'
 }
 
-function isBlock<SH, ST>(
-  obj: Record<string, unknown> | undefined,
-): obj is SerializedBlock<SH, ST> {
+function isBlock(obj: Record<string, unknown> | undefined): obj is SerializedBlock {
   return (
     obj !== undefined &&
     'header' in obj &&
@@ -453,15 +450,13 @@ function isBlock<SH, ST>(
 /**
  * A newly mined block gossipped on the P2P network
  */
-export type NewBlock<SH, ST> = Message<'NewBlock', { block: SerializedBlock<SH, ST> }>
+export type NewBlock = Message<'NewBlock', { block: SerializedBlock }>
 
 /**
  * Type narrowing to confirm the message payload contains a `block` object.
  * Does not try to confirm whether it is a correct block.
  */
-export function isNewBlockPayload<SH, ST>(
-  obj: PayloadType,
-): obj is NewBlock<SH, ST>['payload'] {
+export function isNewBlockPayload(obj: PayloadType): obj is NewBlock['payload'] {
   return (
     obj !== undefined && 'block' in obj && typeof obj.block === 'object' && obj.block !== null
   )
@@ -470,10 +465,10 @@ export function isNewBlockPayload<SH, ST>(
 /**
  * A newly spent transaction that a client would like to have mined
  */
-export type NewTransaction<ST> = Message<
+export type NewTransaction = Message<
   'NewTransaction',
   {
-    transaction: ST
+    transaction: SerializedTransaction
   }
 >
 
@@ -481,9 +476,7 @@ export type NewTransaction<ST> = Message<
  * Type narrowing to confirm the message payload contains a `transaction`
  * object. Does not try to validate the transaction.
  */
-export function isNewTransactionPayload<ST>(
-  obj: PayloadType,
-): obj is NewTransaction<ST>['payload'] {
+export function isNewTransactionPayload(obj: PayloadType): obj is NewTransaction['payload'] {
   return (
     obj !== undefined &&
     'transaction' in obj &&
@@ -492,12 +485,12 @@ export function isNewTransactionPayload<ST>(
   )
 }
 
-export type NewBlockMessage<SH, ST> = Gossip<
+export type NewBlockMessage = Gossip<
   NodeMessageType.NewBlock,
-  UnwrapPromise<{ block: SerializedBlock<SH, ST> }>
+  UnwrapPromise<{ block: SerializedBlock }>
 >
 
 export type NewTransactionMessage = Gossip<
   NodeMessageType.NewTransaction,
-  UnwrapPromise<ReturnType<IronfishVerifier['verifyNewTransaction']>>
+  UnwrapPromise<ReturnType<Verifier['verifyNewTransaction']>>
 >

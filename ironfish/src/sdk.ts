@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishVerifier } from './consensus'
 import { Config, ConfigOptions } from './fileStores'
 import { InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
@@ -24,7 +23,7 @@ import {
   IronfishMemoryClient,
   IronfishRpcClient,
 } from './rpc'
-import { IronfishStrategy } from './strategy'
+import { Strategy } from './strategy'
 
 export class IronfishSdk {
   agent: string
@@ -35,8 +34,7 @@ export class IronfishSdk {
   logger: Logger
   metrics: MetricsMonitor
   internal: InternalStore
-  verifierClass: typeof IronfishVerifier | null
-  strategyClass: typeof IronfishStrategy | null
+  strategyClass: typeof Strategy | null
 
   private constructor(
     agent: string,
@@ -47,8 +45,7 @@ export class IronfishSdk {
     fileSystem: FileSystem,
     logger: Logger,
     metrics: MetricsMonitor,
-    verifierClass: typeof IronfishVerifier | null = null,
-    strategyClass: typeof IronfishStrategy | null = null,
+    strategyClass: typeof Strategy | null = null,
   ) {
     this.agent = agent
     this.client = client
@@ -58,7 +55,6 @@ export class IronfishSdk {
     this.fileSystem = fileSystem
     this.logger = logger
     this.metrics = metrics
-    this.verifierClass = verifierClass
     this.strategyClass = strategyClass
   }
 
@@ -70,7 +66,6 @@ export class IronfishSdk {
     dataDir,
     logger = createRootLogger(),
     metrics,
-    verifierClass,
     strategyClass,
   }: {
     agent?: string
@@ -80,8 +75,7 @@ export class IronfishSdk {
     dataDir?: string
     logger?: Logger
     metrics?: MetricsMonitor
-    verifierClass?: typeof IronfishVerifier
-    strategyClass?: typeof IronfishStrategy
+    strategyClass?: typeof Strategy
   } = {}): Promise<IronfishSdk> {
     const runtime = Platform.getRuntime()
 
@@ -158,7 +152,6 @@ export class IronfishSdk {
       fileSystem,
       logger,
       metrics,
-      verifierClass,
       strategyClass,
     )
   }
@@ -181,7 +174,6 @@ export class IronfishSdk {
       autoSeed: autoSeed,
       logger: this.logger,
       metrics: this.metrics,
-      verifierClass: this.verifierClass,
       strategyClass: this.strategyClass,
       webSocket: webSocket,
     })

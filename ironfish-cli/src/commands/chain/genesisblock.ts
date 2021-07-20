@@ -80,7 +80,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     )
 
     this.log(`\nGenesis Block`)
-    const serialized = node.strategy._blockSerde.serialize(block)
+    const serialized = node.strategy.blockSerde.serialize(block)
     this.log(IJSON.stringify(serialized, '  '))
   }
 }

@@ -6,60 +6,26 @@ import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { PayloadType } from '../network'
 import { isNewTransactionPayload } from '../network/messages'
+import { Spend } from '../primitives'
 import { Block, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
-import {
-  IronfishNoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
-import {
-  IronfishTransaction,
-  SerializedTransaction,
-  Spend,
-  Transaction,
-} from '../primitives/transaction'
-import { JsonSerializable } from '../serde'
+import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
-/**
- * Verifier transctions and blocks
- *
- * @typeParam E IronfishNoteEncrypted
- *              Note element stored in transactions and the notes Merkle Tree
- * @typeParam H WasmNoteEncryptedHash
- *              the hash of an `E`. Used for the internal nodes and root hash
- *              of the notes Merkle Tree
- * @typeParam T Transaction
- *              Type of a transaction stored on the Blockchain
- * @typeParam SE SerializedWasmNoteEncrypted
- * @typeParam SH SerializedWasmNoteEncryptedHash
- * @typeParam ST SerializedTransaction
- *               The serialized format of a `T`. Conversion between the two happens
- *               via the `strategy`.
- */
-export class Verifier<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> {
-  strategy: Strategy<E, H, T, SE, SH, ST>
-  chain: Blockchain<E, H, T, SE, SH, ST>
+export class Verifier {
+  strategy: Strategy
+  chain: Blockchain
 
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
    */
   enableVerifyTarget = true
 
-  constructor(chain: Blockchain<E, H, T, SE, SH, ST>) {
+  constructor(chain: Blockchain) {
     this.strategy = chain.strategy
     this.chain = chain
   }
@@ -75,9 +41,12 @@ export class Verifier<
    * forward it to other peers.
    */
   async verifyNewBlock(
-    newBlock: SerializedBlock<SH, ST>,
+    newBlock: SerializedBlock,
     workerPool: WorkerPool,
-  ): Promise<{ block: Block<E, H, T, SE, SH, ST>; serializedBlock: SerializedBlock<SH, ST> }> {
+  ): Promise<{
+    block: Block
+    serializedBlock: SerializedBlock
+  }> {
     if (workerPool.isMessageQueueFull()) {
       return Promise.reject('Dropping block because worker pool message queue is full')
     }
@@ -103,7 +72,7 @@ export class Verifier<
    *  *  Miner's fee is transaction list fees + miner's reward
    */
   async verifyBlock(
-    block: Block<E, H, T, SE, SH, ST>,
+    block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
     // Verify the block header
@@ -163,7 +132,7 @@ export class Verifier<
    *  *  the timestamp is not in future by our local clock time
    */
   verifyBlockHeader(
-    blockHeader: BlockHeader<E, H, T, SE, SH, ST>,
+    blockHeader: BlockHeader,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): VerificationResult {
     if (blockHeader.graffiti.byteLength !== 32) {
@@ -191,12 +160,12 @@ export class Verifier<
    */
   async verifyNewTransaction(
     payload: PayloadType,
-  ): Promise<{ transaction: T; serializedTransaction: ST }> {
-    if (!isNewTransactionPayload<ST>(payload)) {
+  ): Promise<{ transaction: Transaction; serializedTransaction: SerializedTransaction }> {
+    if (!isNewTransactionPayload(payload)) {
       throw new Error('Payload is not a serialized transaction')
     }
 
-    const transaction = this.strategy.transactionSerde().deserialize(payload.transaction)
+    const transaction = this.strategy.transactionSerde.deserialize(payload.transaction)
 
     try {
       // Transaction is lazily deserialized, so we use takeReference()
@@ -225,7 +194,7 @@ export class Verifier<
     }
   }
 
-  async verifyTransaction(transaction: T): Promise<VerificationResult> {
+  async verifyTransaction(transaction: Transaction): Promise<VerificationResult> {
     try {
       return await transaction.verify()
     } catch {
@@ -245,10 +214,7 @@ export class Verifier<
    *     the previous block
    *  -  The block sequence has incremented by one
    */
-  isValidAgainstPrevious(
-    current: Block<E, H, T, SE, SH, ST>,
-    previousHeader: BlockHeader<E, H, T, SE, SH, ST>,
-  ): VerificationResult {
+  isValidAgainstPrevious(current: Block, previousHeader: BlockHeader): VerificationResult {
     const { notes, nullifiers } = current.counts()
 
     if (current.header.noteCommitment.size !== previousHeader.noteCommitment.size + notes) {
@@ -283,10 +249,7 @@ export class Verifier<
   /**
    * Verify that the target of this block is correct aginst the block before it.
    */
-  protected isValidTarget(
-    header: BlockHeader<E, H, T, SE, SH, ST>,
-    previous: BlockHeader<E, H, T, SE, SH, ST>,
-  ): boolean {
+  protected isValidTarget(header: BlockHeader, previous: BlockHeader): boolean {
     if (!this.enableVerifyTarget) {
       return true
     }
@@ -305,10 +268,7 @@ export class Verifier<
    *  -  The nullifier has not previously been spent
    *  -  the note being spent really existed in the tree at the time it was spent
    */
-  async hasValidSpends(
-    block: Block<E, H, T, SE, SH, ST>,
-    tx?: IDatabaseTransaction,
-  ): Promise<VerificationResult> {
+  async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
       const previousSpendCount =
@@ -334,8 +294,8 @@ export class Verifier<
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
   async verifyBlockAdd(
-    block: Block<E, H, T, SE, SH, ST>,
-    prev: BlockHeader<E, H, T, SE, SH, ST> | null,
+    block: Block,
+    prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -381,7 +341,7 @@ export class Verifier<
    * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
   async verifySpend(
-    spend: Spend<H>,
+    spend: Spend,
     size: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
@@ -390,7 +350,7 @@ export class Verifier<
     }
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-      if (!this.strategy.noteHasher().hashSerde().equals(spend.commitment, realSpendRoot)) {
+      if (!this.strategy.noteHasher.hashSerde().equals(spend.commitment, realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
     } catch {
@@ -408,7 +368,7 @@ export class Verifier<
    * for both notes and nullifiers trees.
    */
   async blockMatchesTrees(
-    header: BlockHeader<E, H, T, SE, SH, ST>,
+    header: BlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<{ valid: boolean; reason: VerificationResultReason | null }> {
     return this.chain.db.withTransaction(tx, async (tx) => {
@@ -427,8 +387,7 @@ export class Verifier<
 
       const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
       if (
-        !this.strategy
-          .noteHasher()
+        !this.strategy.noteHasher
           .hashSerde()
           .equals(pastNoteRoot, header.noteCommitment.commitment)
       ) {
@@ -437,8 +396,7 @@ export class Verifier<
 
       const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
       if (
-        !this.strategy
-          .nullifierHasher()
+        !this.strategy.nullifierHasher
           .hashSerde()
           .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
       ) {
@@ -481,12 +439,3 @@ export interface VerificationResult {
   reason?: VerificationResultReason
   hash?: BlockHash
 }
-
-export class IronfishVerifier extends Verifier<
-  IronfishNoteEncrypted,
-  WasmNoteEncryptedHash,
-  IronfishTransaction,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
-> {}

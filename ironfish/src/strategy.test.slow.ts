@@ -11,12 +11,13 @@ import {
   WasmTransaction,
   WasmTransactionPosted,
 } from 'ironfish-wasm-nodejs'
+import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteHasher } from './merkletree/hasher'
-import { IronfishNote } from './primitives/note'
-import { IronfishNoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteEncrypted'
+import { Note } from './primitives/note'
+import { NoteEncrypted, WasmNoteEncryptedHash } from './primitives/noteEncrypted'
 import { IDatabase } from './storage'
-import { IronfishStrategy } from './strategy'
+import { Strategy } from './strategy'
 import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
@@ -29,7 +30,7 @@ async function makeWasmStrategyTree({
   depth?: number
   name?: string
   database?: IDatabase
-} = {}): Promise<MerkleTree<IronfishNoteEncrypted, WasmNoteEncryptedHash, Buffer, Buffer>> {
+} = {}): Promise<MerkleTree<NoteEncrypted, WasmNoteEncryptedHash, Buffer, Buffer>> {
   const openDb = !database
 
   if (!name) {
@@ -83,11 +84,11 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Rejects incoming new transactions if fees are negative', async () => {
       // Generate a miner's fee transaction
-      const strategy = new IronfishStrategy(new WorkerPool())
+      const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      const verifier = strategy.createVerifier(nodeTest.chain)
-      const serialized = strategy.transactionSerde().serialize(minersFee)
+      const verifier = new Verifier(nodeTest.chain)
+      const serialized = strategy.transactionSerde.serialize(minersFee)
       const payload = { transaction: serialized }
 
       await expect(verifier.verifyNewTransaction(payload)).rejects.toThrowError(
@@ -117,7 +118,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can add the miner transaction note to the tree', async () => {
       for (let i = 0; i < minerTransaction.notesLength; i++) {
         const note = Buffer.from(minerTransaction.getNote(i))
-        await tree.add(new IronfishNoteEncrypted(note))
+        await tree.add(new NoteEncrypted(note))
       }
       const treeSize: number = await tree.size()
       expect(treeSize).toBeGreaterThan(0)
@@ -153,7 +154,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(publicTransaction.verify()).toBeTruthy()
       for (let i = 0; i < publicTransaction.notesLength; i++) {
         const note = Buffer.from(publicTransaction.getNote(i))
-        await tree.add(new IronfishNoteEncrypted(note))
+        await tree.add(new NoteEncrypted(note))
       }
     })
 
@@ -170,7 +171,7 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new IronfishStrategy(new WorkerPool())
+      const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
@@ -180,7 +181,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new IronfishStrategy(new WorkerPool())
+      const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       minersFee.withReference(() => {
@@ -196,14 +197,14 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
       const key = generateKey()
-      const strategy = new IronfishStrategy(new WorkerPool())
+      const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
       const noteIterator = minersFee.notes()
       expect(minersFee['wasmTransactionPosted']).toBeNull()
 
-      let note: IronfishNoteEncrypted | null = null
+      let note: NoteEncrypted | null = null
       for (const n of noteIterator) {
         note = n
       }
@@ -227,7 +228,7 @@ describe('Demonstrate the Sapling API', () => {
   })
 
   describe('Finding notes to spend', () => {
-    let receiverNote: IronfishNote
+    let receiverNote: Note
     const receiverWitnessIndex = 1
     let transaction: WasmTransaction
 
@@ -287,10 +288,10 @@ describe('Demonstrate the Sapling API', () => {
 })
 
 describe('Miners reward', () => {
-  let strategy: IronfishStrategy
+  let strategy: Strategy
 
   beforeAll(() => {
-    strategy = new IronfishStrategy(new WorkerPool())
+    strategy = new Strategy(new WorkerPool())
   })
 
   // see https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule

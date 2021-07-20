@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import diff from 'jest-diff'
-import { IronfishBlockchain } from '../../blockchain'
-import { IronfishBlock } from '../../primitives/block'
+import { Blockchain } from '../../blockchain'
+import { Block } from '../../primitives/block'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
 import { makeError, makeResult } from './utils'
@@ -40,7 +40,7 @@ function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcher
   return makeError(error, `Expected two serde elements to match, but they didn't`)
 }
 
-function toEqualBlock(self: IronfishBlock, other: IronfishBlock): jest.CustomMatcherResult {
+function toEqualBlock(self: Block, other: Block): jest.CustomMatcherResult {
   let error: string | null = null
 
   if (!self.header.strategy.blockSerde.equals(self, other)) {
@@ -50,10 +50,7 @@ function toEqualBlock(self: IronfishBlock, other: IronfishBlock): jest.CustomMat
   return makeError(error, `Expected two blocks to match, but they didn't`)
 }
 
-async function toAddBlock(
-  self: IronfishBlockchain,
-  other: IronfishBlock,
-): Promise<jest.CustomMatcherResult> {
+async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMatcherResult> {
   const result = await self.addBlock(other)
 
   if (!result.isAdded) {
@@ -75,8 +72,8 @@ declare global {
     interface Matchers<R> {
       toEqualNullifier(other: Nullifier): R
       toEqualHash(other: BlockHash | null | undefined): R
-      toEqualBlock(block: IronfishBlock): Promise<R>
-      toAddBlock(block: IronfishBlock): Promise<R>
+      toEqualBlock(block: Block): Promise<R>
+      toAddBlock(block: Block): Promise<R>
     }
   }
 }

@@ -5,39 +5,17 @@
 import { BufferMap } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
-import {
-  IronfishNoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
 import { Nullifier } from '../primitives/nullifier'
-import {
-  IronfishTransaction,
-  SerializedTransaction,
-  Transaction,
-} from '../primitives/transaction'
-import { JsonSerializable } from '../serde'
+import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 
-export class MemPool<
-  E,
-  H,
-  T extends Transaction<E, H>,
-  SE extends JsonSerializable,
-  SH extends JsonSerializable,
-  ST,
-> {
-  transactions = new BufferMap<T>()
-  chain: Blockchain<E, H, T, SE, SH, ST>
-  strategy: Strategy<E, H, T, SE, SH, ST>
+export class MemPool {
+  transactions = new BufferMap<Transaction>()
+  chain: Blockchain
+  strategy: Strategy
   logger: Logger
 
-  constructor(options: {
-    strategy: Strategy<E, H, T, SE, SH, ST>
-    chain: Blockchain<E, H, T, SE, SH, ST>
-    logger?: Logger
-  }) {
+  constructor(options: { strategy: Strategy; chain: Blockchain; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
     this.chain = options.chain
@@ -53,7 +31,7 @@ export class MemPool<
     return this.transactions.has(transactionHash)
   }
 
-  async *get(): AsyncGenerator<T, void, unknown> {
+  async *get(): AsyncGenerator<Transaction, void, unknown> {
     await this.prune()
 
     for (const transaction of this.transactions.values()) {
@@ -64,7 +42,7 @@ export class MemPool<
   /**
    * Accepts a transaction from the network
    */
-  acceptTransaction(transaction: T): boolean {
+  acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.transactionHash()
     if (this.transactions.has(hash)) {
       return false
@@ -127,7 +105,7 @@ export class MemPool<
    *     when the only thing that might have changed is whether they have been spent before
    */
   async isValidTransaction(
-    transaction: T,
+    transaction: Transaction,
     beforeSize: number,
     seenNullifiers: Nullifier[],
   ): Promise<boolean> {
@@ -145,7 +123,7 @@ export class MemPool<
 
     for (const spend of transaction.spends()) {
       for (const seen of seenNullifiers) {
-        if (this.strategy.nullifierHasher().hashSerde().equals(spend.nullifier, seen)) {
+        if (this.strategy.nullifierHasher.hashSerde().equals(spend.nullifier, seen)) {
           return false
         }
       }
@@ -156,12 +134,3 @@ export class MemPool<
     return true
   }
 }
-
-export type IronfishMemPool = MemPool<
-  IronfishNoteEncrypted,
-  WasmNoteEncryptedHash,
-  IronfishTransaction,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  SerializedTransaction
->
