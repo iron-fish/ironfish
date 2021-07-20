@@ -32,7 +32,7 @@ export class ShowCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(ShowCommand)
 
-    const client = await this.sdk.getConnectedClient(flags.local)
+    const client = await this.sdk.connectRpc(flags.local)
     const response = await client.getConfig({ user: flags.user })
 
     let output = JSON.stringify(response.content, undefined, '   ')

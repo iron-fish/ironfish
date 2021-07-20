@@ -30,9 +30,9 @@ export class RemoveCommand extends IronfishCommand {
     const confirm = flags.confirm
     const name = (args.name as string).trim()
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
-    const response = await this.sdk.client.removeAccount({ name, confirm })
+    const response = await client.removeAccount({ name, confirm })
 
     if (response.content.needsConfirm) {
       const value = (await cli.prompt(`Are you sure? Type ${name} to confirm`)) as string
@@ -42,7 +42,7 @@ export class RemoveCommand extends IronfishCommand {
         this.exit(1)
       }
 
-      await this.sdk.client.removeAccount({ name, confirm: true })
+      await client.removeAccount({ name, confirm: true })
     }
 
     this.log(`Account '${name}' successfully removed.`)

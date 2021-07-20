@@ -25,9 +25,9 @@ export class BalanceCommand extends IronfishCommand {
     const { args } = this.parse(BalanceCommand)
     const account = args.account as string | undefined
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
-    const response = await this.sdk.client.getAccountBalance({
+    const response = await client.getAccountBalance({
       account: account,
     })
 

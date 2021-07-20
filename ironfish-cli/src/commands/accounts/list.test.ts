@@ -12,17 +12,20 @@ describe('accounts:list', () => {
   beforeAll(() => {
     jest.doMock('ironfish', () => {
       const originalModule = jest.requireActual('ironfish')
+
       const client = {
         connect: jest.fn(),
         getAccounts: jest.fn().mockImplementation(() => ({
           content: responseContent,
         })),
       }
+
       const module: typeof jest = {
         ...originalModule,
         IronfishSdk: {
           init: jest.fn().mockImplementation(() => ({
             client,
+            connectRpc: jest.fn().mockResolvedValue(client),
           })),
         },
       }

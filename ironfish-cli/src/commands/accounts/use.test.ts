@@ -9,11 +9,14 @@ describe('accounts:use', () => {
   const name = 'default'
 
   beforeEach(() => {
+    const client = {
+      useAccount,
+      connect: jest.fn(),
+    }
+
     ironfish.IronfishSdk.init = jest.fn().mockImplementationOnce(() => ({
-      client: {
-        useAccount,
-        connect: jest.fn(),
-      },
+      client: client,
+      connectRpc: jest.fn().mockResolvedValue(client),
     }))
   })
 

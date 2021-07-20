@@ -61,10 +61,10 @@ export class Pay extends IronfishCommand {
     let to = flags.to
     let from = flags.account
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
     if (!amount || Number.isNaN(amount)) {
-      const responseBalance = await this.sdk.client.getAccountBalance({
+      const responseBalance = await client.getAccountBalance({
         account: from,
       })
       const { confirmedBalance } = responseBalance.content
@@ -105,7 +105,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!from) {
-      const response = await this.sdk.client.getDefaultAccount()
+      const response = await client.getDefaultAccount()
       const defaultAccount = response.content.account
 
       if (!defaultAccount) {
@@ -185,7 +185,7 @@ ${displayIronAmountWithCurrency(
     }
 
     try {
-      const result = await this.sdk.client.sendTransaction({
+      const result = await client.sendTransaction({
         amount: ironToOre(amount).toString(),
         fromAccountName: from,
         memo: '',

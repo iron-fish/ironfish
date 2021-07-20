@@ -17,12 +17,16 @@ describe('accounts:remove', () => {
       content: { needsConfirm: true },
     }))
 
-    ironfish.IronfishSdk.init = jest.fn().mockImplementationOnce(() => ({
-      client: {
-        connect: jest.fn(),
+    ironfish.IronfishSdk.init = jest.fn().mockImplementationOnce(() => {
+      const client = {
         removeAccount,
-      },
-    }))
+      }
+
+      return {
+        client: client,
+        connectRpc: jest.fn().mockResolvedValue(client),
+      }
+    })
   })
 
   describe('with no flags', () => {
@@ -56,7 +60,7 @@ describe('accounts:remove', () => {
 
   describe('with the confirmation flag', () => {
     beforeEach(() => {
-      removeAccount = jest.fn().mockImplementationOnce(() => ({
+      removeAccount = jest.fn().mockImplementation(() => ({
         content: {},
       }))
     })
@@ -65,7 +69,7 @@ describe('accounts:remove', () => {
       .stdout()
       .command(['accounts:remove', '--confirm', name])
       .exit(0)
-      .it('calls `removeAccount` once and logs an error', (ctx) => {
+      .it('successfully removes account', (ctx) => {
         expect(removeAccount).toHaveBeenCalledTimes(1)
         expect(removeAccount.mock.calls[0][0]).toMatchObject({ name, confirm: true })
         expectCli(ctx.stdout).include(`Account '${name}' successfully removed.`)

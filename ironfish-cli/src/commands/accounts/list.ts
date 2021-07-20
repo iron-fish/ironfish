@@ -14,9 +14,9 @@ export class ListCommand extends IronfishCommand {
   async start(): Promise<void> {
     this.parse(ListCommand)
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
-    const response = await this.sdk.client.getAccounts()
+    const response = await client.getAccounts()
 
     if (response.content.accounts.length === 0) {
       this.log('you have no accounts')

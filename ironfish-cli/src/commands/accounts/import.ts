@@ -32,7 +32,7 @@ export class ImportCommand extends IronfishCommand {
     const { flags, args } = this.parse(ImportCommand)
     const importPath = args.path as string | undefined
 
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
     let account: Account | null = null
     if (importPath) {
@@ -48,7 +48,7 @@ export class ImportCommand extends IronfishCommand {
       this.exit(1)
     }
 
-    const result = await this.sdk.client.importAccount({
+    const result = await client.importAccount({
       account: account,
       rescan: flags.rescan,
     })
