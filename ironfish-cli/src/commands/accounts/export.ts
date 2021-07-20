@@ -23,7 +23,7 @@ export class ExportCommand extends IronfishCommand {
     {
       name: 'account',
       parse: (input: string): string => input.trim(),
-      required: true,
+      required: false,
       description: 'name of the account to export',
     },
     {
