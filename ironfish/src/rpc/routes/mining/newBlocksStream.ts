@@ -50,6 +50,11 @@ router.register<typeof NewBlocksStreamRequestSchema, NewBlocksStreamResponse>(
       )
     }
 
+    node.miningDirector.miners++
+    request.onClose.once(() => {
+      node.miningDirector.miners--
+    })
+
     node.miningDirector.onBlockToMine.on((event) => {
       request.stream({
         bytes: event.bytes.toJSON(),

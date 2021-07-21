@@ -13,7 +13,10 @@ describe('Route node/getStatus', () => {
 
     expect(response.content).toMatchObject({
       node: {
-        status: 'started',
+        status: 'stopped',
+      },
+      miningDirector: {
+        status: 'stopped',
       },
       blockSyncer: {
         status: 'stopped',

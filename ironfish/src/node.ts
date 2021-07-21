@@ -34,6 +34,7 @@ export class IronfishNode {
   peerNetwork: PeerNetwork
   syncer: Syncer
 
+  started = false
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
@@ -231,6 +232,7 @@ export class IronfishNode {
 
   async start(): Promise<void> {
     this.shutdownPromise = new Promise((r) => (this.shutdownResolve = r))
+    this.started = true
 
     // Work in the worker pool happens concurrently,
     // so we should start it as soon as possible
@@ -280,6 +282,8 @@ export class IronfishNode {
     if (this.shutdownResolve) {
       this.shutdownResolve()
     }
+
+    this.started = false
   }
 
   onPeerNetworkReady(): void {

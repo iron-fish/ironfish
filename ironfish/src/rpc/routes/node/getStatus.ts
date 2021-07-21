@@ -16,6 +16,11 @@ export type GetStatusResponse = {
   node: {
     status: 'started' | 'stopped' | 'error'
   }
+  miningDirector: {
+    status: 'started' | 'stopped'
+    miners: number
+    blocks: number
+  }
   blockchain: {
     synced: boolean
     head: string
@@ -47,6 +52,13 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
     node: yup
       .object({
         status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
+      })
+      .defined(),
+    miningDirector: yup
+      .object({
+        status: yup.string().oneOf(['started', 'stopped']).defined(),
+        miners: yup.number().defined(),
+        blocks: yup.number().defined(),
       })
       .defined(),
     blockchain: yup
@@ -121,7 +133,12 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       })`,
     },
     node: {
-      status: 'started',
+      status: node.started ? 'started' : 'stopped',
+    },
+    miningDirector: {
+      status: node.miningDirector.isStarted() ? 'started' : 'stopped',
+      miners: node.miningDirector.miners,
+      blocks: node.miningDirector.blocksMined,
     },
     blockSyncer: {
       status: node.syncer.state,
