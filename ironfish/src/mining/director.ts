@@ -127,6 +127,16 @@ export class MiningDirector {
   private miningRequestId: number
 
   /**
+   * How many blocks the miner has found
+   */
+  blocksMined = 0
+
+  /**
+   * How many blocks the miner has found
+   */
+  miners = 0
+
+  /**
    * Should the miner mine, even if the chain is not synced
    */
   force: boolean
@@ -438,6 +448,8 @@ export class MiningDirector {
         block.header.sequence
       }) has ${block.transactions.length} transactions`,
     )
+
+    this.blocksMined++
 
     const { isAdded, reason } = await this.chain.addBlock(block)
 
