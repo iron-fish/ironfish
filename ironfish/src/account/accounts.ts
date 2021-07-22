@@ -16,6 +16,12 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import {
+  isValidIncomingViewKey,
+  isValidOutgoingViewKey,
+  isValidPublicAddress,
+  isValidSpendingKey,
+} from './account-validator'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 
 const REBROADCAST_SEQUENCE_DELTA = 5
@@ -789,13 +795,7 @@ export class Accounts {
   }
 
   async importAccount(toImport: Partial<Account>): Promise<Account> {
-    if (!toImport.name) {
-      throw new Error(`Imported account has no name`)
-    }
-
-    if (this.accounts.has(toImport.name)) {
-      throw new Error(`Account already exists with the name ${toImport.name}`)
-    }
+    this.validateAccount(toImport)
 
     const account = {
       ...AccountDefaults,
@@ -806,6 +806,48 @@ export class Accounts {
     await this.db.setAccount(account)
 
     return account
+  }
+
+  validateAccount(toImport: Partial<Account>): void {
+    if (!toImport.name) {
+      throw new Error(`Imported account has no name`)
+    }
+
+    if (this.accounts.has(toImport.name)) {
+      throw new Error(`Account already exists with the name ${toImport.name}`)
+    }
+
+    if (!toImport.publicAddress) {
+      throw new Error(`Imported account has no public address`)
+    }
+
+    if (!isValidPublicAddress(toImport.publicAddress)) {
+      throw new Error(`Provided public address ${toImport.publicAddress} is invalid`)
+    }
+
+    if (!toImport.outgoingViewKey) {
+      throw new Error(`Imported account has no outgoing view key`)
+    }
+
+    if (!isValidOutgoingViewKey(toImport.outgoingViewKey)) {
+      throw new Error(`Provided outgoing view key ${toImport.outgoingViewKey} is invalid`)
+    }
+
+    if (!toImport.incomingViewKey) {
+      throw new Error(`Imported account has no incoming view key`)
+    }
+
+    if (!isValidIncomingViewKey(toImport.incomingViewKey)) {
+      throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
+    }
+
+    if (!toImport.spendingKey) {
+      throw new Error(`Imported account has no spending key`)
+    }
+
+    if (!isValidSpendingKey(toImport.spendingKey)) {
+      throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
+    }
   }
 
   listAccounts(): Account[] {
