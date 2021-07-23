@@ -61,7 +61,7 @@ export default class Status extends IronfishCommand {
 }
 
 function renderStatus(content: GetStatusResponse): string {
-  const nodeStatus = content.node.status.toUpperCase()
+  const nodeStatus = `${content.node.status.toUpperCase()} @ ${content.node.version}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
@@ -78,17 +78,17 @@ function renderStatus(content: GetStatusResponse): string {
 
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
-  } In: ${FileUtils.formatFileSize(
+  } - In: ${FileUtils.formatFileSize(
     content.peerNetwork.inboundTraffic,
   )}/s, Out: ${FileUtils.formatFileSize(content.peerNetwork.outboundTraffic)}/s, peers ${
     content.peerNetwork.peers
   }`
 
-  const blockchainStatus = `${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'}, HEAD ${
+  const blockchainStatus = `${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'} @ HEAD ${
     content.blockchain.head
   }`
 
-  const miningDirectorStatus = `${content.miningDirector.status.toUpperCase()}, ${
+  const miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
 
