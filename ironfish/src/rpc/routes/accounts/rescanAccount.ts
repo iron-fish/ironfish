@@ -6,7 +6,7 @@ import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 export type RescanAccountRequest = { follow?: boolean; reset?: boolean }
-export type RescanAccountResponse = { sequence: number }
+export type RescanAccountResponse = { sequence: number; startedAt: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
   .object({
@@ -18,6 +18,7 @@ export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> 
 export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse> = yup
   .object({
     sequence: yup.number().defined(),
+    startedAt: yup.number().defined(),
   })
   .defined()
 
@@ -41,7 +42,10 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
 
     if (scan && request.data.follow) {
       const onTransaction = (sequence: number) => {
-        request.stream({ sequence: Number(sequence) })
+        request.stream({
+          sequence: Number(sequence),
+          startedAt: scan?.startedAt || 0,
+        })
       }
 
       scan.onTransaction.on(onTransaction)

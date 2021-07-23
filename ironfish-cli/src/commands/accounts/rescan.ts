@@ -13,7 +13,7 @@ export class RescanCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    follow: flags.boolean({
+    detach: flags.boolean({
       default: false,
       description: 'if a scan is already happening, follow that scan instead',
     }),
@@ -30,39 +30,30 @@ export class RescanCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = this.parse(RescanCommand)
-    const { follow, reset, local } = flags
+    const { detach, reset, local } = flags
     const client = await this.sdk.connectRpc(local)
 
-    await rescan(client, follow, reset)
-  }
-}
+    cli.action.start('Rescanning Transactions', 'Asking node to start scanning', {
+      stdout: true,
+    })
 
-export async function rescan(
-  client: IronfishRpcClient,
-  follow: boolean,
-  reset: boolean,
-): Promise<void> {
-  cli.action.start('Rescanning Transactions', 'Asking node to start scanning', {
-    stdout: true,
-  })
+    const response = client.rescanAccountStream({ reset, follow: !detach })
 
-  const startedAt = Date.now()
-  const response = client.rescanAccountStream({ follow, reset })
+    try {
+      for await (const { sequence, startedAt } of response.contentStream()) {
+        cli.action.status = `Scanning Block: ${sequence}, ${Math.floor(
+          (Date.now() - startedAt) / 1000,
+        )} seconds`
+      }
+    } catch (error) {
+      if (hasUserResponseError(error)) {
+        cli.action.stop(error.codeMessage)
+        return
+      }
 
-  try {
-    for await (const { sequence } of response.contentStream()) {
-      cli.action.status = `Scanning Block: ${sequence}, ${Math.floor(
-        (Date.now() - startedAt) / 1000,
-      )} seconds`
-    }
-  } catch (error) {
-    if (hasUserResponseError(error)) {
-      cli.action.stop(error.codeMessage)
-      return
+      throw error
     }
 
-    throw error
+    cli.action.stop(detach ? 'Scan started in background' : 'Scanning Complete')
   }
-
-  cli.action.stop('Scanning Complete')
 }
