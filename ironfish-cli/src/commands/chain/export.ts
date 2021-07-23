@@ -4,7 +4,7 @@
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import fs from 'fs'
-import { Assert, BlockchainUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
+import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -53,26 +53,17 @@ export default class Export extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = this.parse(Export)
+    const path = this.sdk.fileSystem.resolve(flags.path)
 
-    cli.action.start('Opening node')
-    const node = await this.sdk.node()
-    await node.openDB()
-    await node.chain.open()
-    cli.action.stop('done.')
+    const client = await this.sdk.connectRpc()
 
-    Assert.isNotNull(node.chain.head, 'head')
-    Assert.isNotNull(node.chain.latest, 'latest')
-
-    const path = node.files.resolve(flags.path)
-
-    const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
+    const stream = client.exportChainStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
     })
 
+    const { start, stop } = await AsyncUtils.first(stream.contentStream())
     this.log(`Exporting chain from ${start} -> ${stop} to ${path}`)
-
-    const result = []
 
     const progress = cli.progress({
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
@@ -80,30 +71,16 @@ export default class Export extends IronfishCommand {
 
     progress.start(stop - start + 1, 0)
 
-    for (let i = start; i <= stop; ++i) {
-      const blocks = await node.chain.getHeadersAtSequence(i)
+    const results: unknown[] = []
 
-      for (const block of blocks) {
-        const isMain = await node.chain.isHeadChain(block)
-
-        result.push({
-          hash: block.hash.toString('hex'),
-          seq: Number(block.sequence),
-          prev: block.previousBlockHash.toString('hex'),
-          main: isMain,
-          graffiti: block.graffiti.toString('ascii'),
-          work: block.work.toString(),
-          head: block.hash.equals(node.chain.head.hash),
-          latest: block.hash.equals(node.chain.latest.hash),
-        })
-      }
-
-      progress.increment()
+    for await (const result of stream.contentStream()) {
+      results.push(result.block)
+      progress.update(result.block?.seq || 0)
     }
 
     progress.stop()
 
-    await fs.promises.writeFile(path, JSON.stringify(result, undefined, '  '))
+    await fs.promises.writeFile(path, JSON.stringify(results, undefined, '  '))
     this.log('Export complete')
   }
 }

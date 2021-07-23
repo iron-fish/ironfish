@@ -18,4 +18,12 @@ export class AsyncUtils {
     }
     return count
   }
+
+  static async first<T>(iter: AsyncIterable<T>): Promise<T> {
+    for await (const result of iter) {
+      return result
+    }
+
+    throw new Error('No element found when expecting first in iter')
+  }
 }

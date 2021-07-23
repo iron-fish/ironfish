@@ -49,6 +49,10 @@ import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
+import {
+  ExportChainStreamRequest,
+  ExportChainStreamResponse,
+} from '../routes/chain/exportChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
@@ -216,6 +220,12 @@ export abstract class IronfishRpcClient {
     params: GetChainInfoRequest = undefined,
   ): Promise<ResponseEnded<GetChainInfoResponse>> {
     return this.request<GetChainInfoResponse>('chain/getChainInfo', params).waitForEnd()
+  }
+
+  exportChainStream(
+    params: ExportChainStreamRequest = undefined,
+  ): Response<void, ExportChainStreamResponse> {
+    return this.request<void, ExportChainStreamResponse>('chain/exportChainStream', params)
   }
 
   async getBlockInfo(
