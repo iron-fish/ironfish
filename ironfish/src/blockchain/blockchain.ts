@@ -1091,7 +1091,7 @@ export class Blockchain {
       return
     }
 
-    for await (const header of this.iterateFrom(this.genesis, to, tx)) {
+    for await (const header of this.iterateTo(this.genesis, to, tx)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
         yield transaction
       }

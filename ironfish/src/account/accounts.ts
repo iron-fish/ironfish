@@ -475,12 +475,12 @@ export class Accounts {
     }
 
     if (this.headHash === null) {
-      this.logger.info('Skipping scan, there is no blocks to scan')
+      this.logger.debug('Skipping scan, there is no blocks to scan')
       return
     }
 
-    const started = Date.now()
-    this.scan = new ScanState()
+    const scan = new ScanState()
+    this.scan = scan
 
     // If were updating the account head we need to wait until its finished
     // but setting this.scan is our lock so updating the head doesn't run again
@@ -489,7 +489,7 @@ export class Accounts {
     const accountHeadHash = Buffer.from(this.headHash, 'hex')
 
     const scanFor = Array.from(this.accounts.values())
-      .filter((a) => a.rescan !== null && a.rescan <= started)
+      .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
       .map((a) => a.name)
       .join(', ')
 
@@ -502,30 +502,30 @@ export class Accounts {
       initialNoteIndex,
       sequence,
     } of this.chain.iterateAllTransactions(accountHeadHash)) {
-      if (this.scan.isAborted) {
-        this.scan.signalComplete()
+      if (scan.isAborted) {
+        scan.signalComplete()
         this.scan = null
         return
       }
 
       await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
-      this.scan.onTransaction.emit(sequence)
+      scan.onTransaction.emit(sequence)
     }
 
-    this.logger.info(
-      `Finished scanning for transactions after ${Math.floor(
-        (Date.now() - started) / 1000,
-      )} seconds`,
-    )
-
     for (const account of this.accounts.values()) {
-      if (account.rescan !== null && account.rescan <= started) {
+      if (account.rescan !== null && account.rescan <= scan.startedAt) {
         account.rescan = null
         await this.db.setAccount(account)
       }
     }
 
-    this.scan.signalComplete()
+    this.logger.info(
+      `Finished scanning for transactions after ${Math.floor(
+        (Date.now() - scan.startedAt) / 1000,
+      )} seconds`,
+    )
+
+    scan.signalComplete()
     this.scan = null
   }
 
@@ -902,6 +902,7 @@ export class Accounts {
 export class ScanState {
   onTransaction = new Event<[sequence: number]>()
 
+  readonly startedAt: number
   private aborted: boolean
   private runningPromise: Promise<void>
   private runningResolve: PromiseResolve<void>
@@ -912,6 +913,7 @@ export class ScanState {
     this.runningResolve = resolve
 
     this.aborted = false
+    this.startedAt = Date.now()
   }
 
   get isAborted(): boolean {
