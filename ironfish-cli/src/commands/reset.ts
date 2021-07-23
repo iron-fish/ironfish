@@ -5,7 +5,7 @@ import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
-import { IronfishNode, PeerNetwork } from 'ironfish'
+import { IronfishNode, NodeUtils, PeerNetwork } from 'ironfish'
 import path from 'path'
 import { IronfishCommand } from '../command'
 import {
@@ -41,7 +41,7 @@ export default class Reset extends IronfishCommand {
     const { flags } = this.parse(Reset)
 
     let node = await this.sdk.node({ autoSeed: false })
-    await node.openDB({ upgrade: false })
+    await NodeUtils.waitForOpen(node, null, { upgrade: false })
 
     const backupPath = path.join(this.sdk.config.dataDir, 'accounts.backup.json')
 
