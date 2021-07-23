@@ -17,7 +17,7 @@ const VersionHook: Hook<'init'> = (): void => {
 
     console.log(`name       ${Package.name}`)
     console.log(`version    ${Package.version}`)
-    console.log(`git        ${Package.git || 'src'}`)
+    console.log(`git        ${Package.git}`)
     console.log(`runtime    ${runtime.type}/${runtime.runtime}`)
 
     return process.exit(0)
