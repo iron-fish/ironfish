@@ -8,5 +8,5 @@ export const Package = {
   name: pkg.name,
   license: pkg.license,
   version: pkg.version,
-  git: pkg.gitHash,
+  git: pkg.gitHash || 'src',
 }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
+import { Package } from '../../../package'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
@@ -15,6 +16,7 @@ export type GetStatusRequest =
 export type GetStatusResponse = {
   node: {
     status: 'started' | 'stopped' | 'error'
+    version: string
   }
   miningDirector: {
     status: 'started' | 'stopped'
@@ -52,6 +54,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
     node: yup
       .object({
         status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
+        version: yup.string().defined(),
       })
       .defined(),
     miningDirector: yup
@@ -134,6 +137,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     node: {
       status: node.started ? 'started' : 'stopped',
+      version: Package.git,
     },
     miningDirector: {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
