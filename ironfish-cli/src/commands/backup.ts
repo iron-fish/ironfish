@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { flags } from '@oclif/command'
 import { spawn } from 'child_process'
 import cli from 'cli-ux'
 import fsAsync from 'fs/promises'
-import { FileUtils } from 'ironfish'
+import { FileUtils, NodeUtils } from 'ironfish'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
@@ -18,6 +19,11 @@ export default class Backup extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
+    lock: flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'wait for the database to stop being used',
+    }),
   }
 
   static args = [
@@ -29,13 +35,18 @@ export default class Backup extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(Backup)
+    const { flags, args } = this.parse(Backup)
     const bucket = (args.bucket as string).trim()
 
     let id = uuid().slice(0, 5)
     const name = this.sdk.config.get('nodeName')
     if (name) {
       id = `${name}.${id}`
+    }
+
+    if (flags.lock) {
+      const node = await this.sdk.node({ autoSeed: false })
+      await NodeUtils.waitForOpen(node)
     }
 
     const source = this.sdk.config.dataDir
