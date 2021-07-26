@@ -27,7 +27,7 @@ WORKDIR /usr/src
 COPY --from=build /ironfish-cli/build.cli/ironfish-cli ./app
 COPY --from=build /ironfish-cli/scripts/entrypoint.sh ./app/
 RUN chmod +x ./app/entrypoint.sh
-# TODO: use environment variables for this
+
 WORKDIR /usr/src/app
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["start", "--rpc.ipc", "--rpc.tcp"]
