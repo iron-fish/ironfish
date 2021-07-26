@@ -24,6 +24,11 @@ export default class Backup extends IronfishCommand {
       allowNo: true,
       description: 'wait for the database to stop being used',
     }),
+    accounts: flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'export the accounts',
+    }),
   }
 
   static args = [
@@ -56,7 +61,11 @@ export default class Backup extends IronfishCommand {
     this.log(`Zipping\n    SRC ${source}\n    DST ${dest}\n`)
     cli.action.start(`Zipping ${source}`)
 
-    await this.zipDir(source, dest)
+    await this.zipDir(
+      source,
+      dest,
+      flags.accounts ? [] : [path.basename(path.dirname(this.sdk.config.accountDatabasePath))],
+    )
 
     const stat = await fsAsync.stat(dest)
     cli.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
@@ -66,12 +75,19 @@ export default class Backup extends IronfishCommand {
     cli.action.start(`done`)
   }
 
-  zipDir(source: string, dest: string): Promise<number | null> {
+  zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
     return new Promise<number | null>((resolve, reject) => {
       const sourceDir = path.dirname(source)
       const sourceFile = path.basename(source)
 
-      const process = spawn('tar', ['-zcvf', dest, '-C', sourceDir, sourceFile])
+      const args = ['-zcvf', dest, '-C', sourceDir, sourceFile]
+
+      for (const exclude of excludes) {
+        args.unshift(exclude)
+        args.unshift('--exclude')
+      }
+
+      const process = spawn('tar', args)
       process.on('exit', (code) => resolve(code))
       process.on('error', (error) => reject(error))
     })
