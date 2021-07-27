@@ -7,7 +7,7 @@ import { Assert, BlockHeader, IDatabaseTransaction, IronfishNode, TimeUtils } fr
 import { Meter } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ProgressBar } from './export'
+import { ProgressBar } from '../../types'
 
 const TREE_BATCH = 1000
 const TREE_START = 1

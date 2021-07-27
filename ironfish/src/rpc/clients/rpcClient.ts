@@ -54,6 +54,10 @@ import {
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import {
+  ExportMinedStreamRequest,
+  ExportMinedStreamResponse,
+} from '../routes/mining/exportMined'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -226,6 +230,12 @@ export abstract class IronfishRpcClient {
     params: ExportChainStreamRequest = undefined,
   ): Response<void, ExportChainStreamResponse> {
     return this.request<void, ExportChainStreamResponse>('chain/exportChainStream', params)
+  }
+
+  exportMinedStream(
+    params: ExportMinedStreamRequest = undefined,
+  ): Response<void, ExportMinedStreamResponse> {
+    return this.request<void, ExportMinedStreamResponse>('miner/exportMinedStream', params)
   }
 
   async getBlockInfo(

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { zip } from 'lodash'
+import { Assert } from '../assert'
 import { Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
@@ -86,6 +87,12 @@ export class Block {
 
   equals(block: Block): boolean {
     return block === this || this.header.strategy.blockSerde.equals(this, block)
+  }
+
+  get minersFee(): Transaction {
+    const tx = this.transactions[this.transactions.length - 1]
+    Assert.isNotUndefined(tx, 'Block has no miners fee')
+    return tx
   }
 }
 

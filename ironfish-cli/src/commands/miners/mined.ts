@@ -1,27 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import fs from 'fs'
-import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
+import { AsyncUtils, GENESIS_BLOCK_SEQUENCE, MathUtils, oreToIron } from 'ironfish'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
+import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { linkText } from '../../utils/terminal'
 
-export default class Export extends IronfishCommand {
-  static description = 'Export part of the chain database to JSON'
+export class MinedCommand extends IronfishCommand {
+  static description = `List mined block hashes`
 
   static flags = {
-    ...LocalFlags,
-    path: flags.string({
-      char: 'p',
-      parse: (input: string): string => input.trim(),
-      required: false,
-      default: '../ironfish-graph-explorer/src/data.json',
-      description: 'a path to export the chain to',
-    }),
+    ...RemoteFlags,
   }
 
   static args = [
@@ -41,18 +33,18 @@ export default class Export extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Export)
-    const path = this.sdk.fileSystem.resolve(flags.path)
-
+    const { args } = this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
-    const stream = client.exportChainStream({
+    this.log('Scanning for mined blocks')
+
+    const stream = client.exportMinedStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
     })
 
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
-    this.log(`Exporting chain from ${start} -> ${stop} to ${path}`)
+    this.log(`Exporting mined block from ${start} -> ${stop}`)
 
     const progress = cli.progress({
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
@@ -60,16 +52,26 @@ export default class Export extends IronfishCommand {
 
     progress.start(stop - start + 1, 0)
 
-    const results: unknown[] = []
+    for await (const { sequence, block } of stream.contentStream()) {
+      if (block) {
+        process.stdout.clearLine(-1)
+        process.stdout.cursorTo(0)
 
-    for await (const result of stream.contentStream()) {
-      results.push(result.block)
-      progress.update(result.block?.seq || 0)
+        const amount = MathUtils.round(oreToIron(block.minersFee), 2)
+
+        const link = linkText(
+          `https://explorer.ironfish.network/blocks/${block.hash.toUpperCase()}`,
+          'view in web',
+        )
+
+        this.log(
+          `${block.hash} ${block.account} ${amount} ${block.main ? 'MAIN' : 'FORK'} ${
+            block.sequence
+          }: ${link}`,
+        )
+      }
+
+      progress.update(sequence - start)
     }
-
-    progress.stop()
-
-    await fs.promises.writeFile(path, JSON.stringify(results, undefined, '  '))
-    this.log('Export complete')
   }
 }

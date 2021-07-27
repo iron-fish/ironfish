@@ -13,14 +13,7 @@ import {
 } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-
-interface ProgressBar {
-  progress: VoidFunction
-  start: VoidFunction
-  stop: VoidFunction
-  update: (number: number) => void
-  getTotal: () => number
-}
+import { ProgressBar } from '../../types'
 
 export class Pay extends IronfishCommand {
   static description = `Send coins to another account`
