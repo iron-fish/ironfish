@@ -8,6 +8,7 @@ import {
   displayIronAmountWithCurrency,
   ironToOre,
   isValidAmount,
+  isValidPublicAddress,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
 } from 'ironfish'
@@ -91,8 +92,7 @@ export class Pay extends IronfishCommand {
         required: true,
       })) as string
 
-      // Todo: need better validation for public address
-      if (to.length !== 86) {
+      if (!isValidPublicAddress(to)) {
         this.error(`A valid public address is required`)
       }
     }
