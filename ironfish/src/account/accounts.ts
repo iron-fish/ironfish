@@ -17,7 +17,7 @@ import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
-
+import { validateAccount } from './validator'
 const REBROADCAST_SEQUENCE_DELTA = 5
 
 type SyncTransactionParams =
@@ -789,11 +789,9 @@ export class Accounts {
   }
 
   async importAccount(toImport: Partial<Account>): Promise<Account> {
-    if (!toImport.name) {
-      throw new Error(`Imported account has no name`)
-    }
+    validateAccount(toImport)
 
-    if (this.accounts.has(toImport.name)) {
+    if (toImport.name && this.accounts.has(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
