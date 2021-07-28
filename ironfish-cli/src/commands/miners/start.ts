@@ -35,8 +35,9 @@ export class Miner extends IronfishCommand {
 
     const successfullyMined = (randomness: number, miningRequestId: number) => {
       cli.action.stop(
-        `Successfully mined a block on request ${miningRequestId} randomness ${randomness}`,
+        `Submitting mining attempt to node from request ${miningRequestId} with randomness ${randomness}`,
       )
+
       const request = client.successfullyMined({ randomness, miningRequestId })
       request.waitForEnd().catch(() => {
         cli.action.stop('Unable to submit mined block')
