@@ -23,6 +23,9 @@ export type GetStatusResponse = {
     miners: number
     blocks: number
   }
+  memPool: {
+    size: number
+  }
   blockchain: {
     synced: boolean
     head: string
@@ -62,6 +65,11 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         status: yup.string().oneOf(['started', 'stopped']).defined(),
         miners: yup.number().defined(),
         blocks: yup.number().defined(),
+      })
+      .defined(),
+    memPool: yup
+      .object({
+        size: yup.number().defined(),
       })
       .defined(),
     blockchain: yup
@@ -143,6 +151,9 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
       miners: node.miningDirector.miners,
       blocks: node.miningDirector.blocksMined,
+    },
+    memPool: {
+      size: node.memPool.size(),
     },
     blockSyncer: {
       status: node.syncer.state,

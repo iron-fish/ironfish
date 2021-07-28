@@ -92,10 +92,13 @@ function renderStatus(content: GetStatusResponse): string {
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
 
+  const memPoolStatus = `${content.memPool.size} tx`
+
   return `
 Node:                 ${nodeStatus}
 P2P Network:          ${peerNetworkStatus}
 Mining:               ${miningDirectorStatus}
-Blocks syncing:       ${blockSyncerStatus}
+Mem Pool:             ${memPoolStatus}
+Syncer:               ${blockSyncerStatus}
 Blockchain:           ${blockchainStatus}`
 }
