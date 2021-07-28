@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Account } from '../account'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
+import { Block } from '../primitives'
+import { isTransactionMine } from '../testUtilities/helpers/transaction'
 
 export function getBlockRange(
   chain: Blockchain,
@@ -33,4 +36,8 @@ export function getBlockRange(
   return { start, stop }
 }
 
-export const BlockchainUtils = { getBlockRange }
+export function isBlockMine(block: Block, account: Account): boolean {
+  return isTransactionMine(block.minersFee, account)
+}
+
+export const BlockchainUtils = { isBlockMine, getBlockRange }
