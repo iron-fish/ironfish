@@ -17,6 +17,9 @@ export type FollowChainStreamRequest =
 
 export type FollowChainStreamResponse = {
   type: 'connected' | 'disconnected' | 'fork'
+  head: {
+    sequence: number
+  }
   block: {
     hash: string
     sequence: number
@@ -38,6 +41,11 @@ export const FollowChainStreamRequestSchema: yup.ObjectSchema<FollowChainStreamR
 export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStreamResponse> = yup
   .object({
     type: yup.string().oneOf(['connected', 'disconnected', 'fork']).defined(),
+    head: yup
+      .object({
+        sequence: yup.number().defined(),
+      })
+      .defined(),
     block: yup
       .object({
         hash: yup.string().defined(),
@@ -69,6 +77,9 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const send = (header: BlockHeader, type: 'connected' | 'disconnected' | 'fork') => {
       request.stream({
         type: type,
+        head: {
+          sequence: node.chain.head.sequence,
+        },
         block: {
           hash: header.hash.toString('hex'),
           sequence: header.sequence,
