@@ -53,7 +53,10 @@ import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
-import { FollowChainStreamRequest, FollowChainStreamResponse } from '../routes/chain/followChain'
+import {
+  FollowChainStreamRequest,
+  FollowChainStreamResponse,
+} from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   ExportMinedStreamRequest,
