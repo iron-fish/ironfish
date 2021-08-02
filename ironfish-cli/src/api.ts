@@ -26,12 +26,10 @@ export class IronfishApi {
     return response?.data.hash || null
   }
 
-  async blocks(follow: FollowChainStreamResponse): Promise<void> {
+  async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
     this.requireToken()
 
-    const { type, block } = follow
-
-    const body = {
+    const serialized = blocks.map(({ type, block }) => ({
       type: type,
       hash: block.hash,
       sequence: block.sequence,
@@ -40,11 +38,11 @@ export class IronfishApi {
       difficulty: block.difficulty,
       graffiti: block.graffiti,
       transactions_count: 0,
-    }
+    }))
 
     const options = this.options({ 'Content-Type': 'application/json' })
 
-    await axios.post(`${this.host}/blocks`, body, options)
+    await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
   }
 
   options(headers: Record<string, string> = {}): AxiosRequestConfig {

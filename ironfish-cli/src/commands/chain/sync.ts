@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { Meter, TimeUtils } from 'ironfish'
+import { FollowChainStreamResponse, Meter, TimeUtils } from 'ironfish'
 import { IronfishApi } from '../../api'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+
+const MAX_UPLOAD = 1000
+const NEAR_SYNC_THRESHOLD = 5
 
 export default class Sync extends IronfishCommand {
   static hidden = true
@@ -75,20 +78,42 @@ export default class Sync extends IronfishCommand {
     const speed = new Meter()
     speed.start()
 
+    const buffer = new Array<FollowChainStreamResponse>()
+
+    async function commit(): Promise<void> {
+      await api.blocks(buffer)
+      buffer.length = 0
+    }
+
     for await (const content of response.contentStream()) {
+      buffer.push(content)
       speed.add(1)
 
-      const estimate = TimeUtils.renderEstimate(
-        content.block.sequence,
-        content.head.sequence,
-        speed.rate5s,
-      )
+      // We're almost done syncing if we are within 5 sequence to the HEAD
+      const finishing =
+        Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
+
+      // Should we commit the current batch?
+      const committing = buffer.length === MAX_UPLOAD || finishing
 
       this.log(
-        `${content.type}: ${content.block.hash} - ${content.block.sequence} - ${estimate}`,
+        `${content.type}: ${content.block.hash} - ${content.block.sequence}${
+          committing
+            ? ' - ' +
+              TimeUtils.renderEstimate(
+                content.block.sequence,
+                content.head.sequence,
+                speed.rate5m,
+              )
+            : ''
+        }`,
       )
 
-      await api.blocks(content)
+      if (committing) {
+        await commit()
+      }
     }
+
+    await commit()
   }
 }
