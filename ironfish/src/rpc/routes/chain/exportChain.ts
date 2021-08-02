@@ -50,7 +50,7 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
         head: yup.boolean().defined(),
         latest: yup.boolean().defined(),
       })
-      .defined(),
+      .optional(),
   })
   .defined()
 

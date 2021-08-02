@@ -97,6 +97,8 @@ export class Blockchain {
   onConnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever a block is removed from the heaviest chain, trees have not been updated yet
   onDisconnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
+  // When ever a block is added to a fork
+  onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
 
   private _head: BlockHeader | null = null
   get head(): BlockHeader {
@@ -610,6 +612,7 @@ export class Blockchain {
     }
 
     await this.saveBlock(block, prev, true, tx)
+    await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
       'Added block to fork' +

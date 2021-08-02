@@ -7,14 +7,14 @@ import fs from 'fs'
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
+import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
 export default class Export extends IronfishCommand {
   static description = 'Export part of the chain database to JSON'
 
   static flags = {
-    ...LocalFlags,
+    ...RemoteFlags,
     path: flags.string({
       char: 'p',
       parse: (input: string): string => input.trim(),
