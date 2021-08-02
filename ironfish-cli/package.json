@@ -44,6 +44,7 @@
     "@oclif/config": "1.17.0",
     "@oclif/plugin-help": "3.2.2",
     "@oclif/plugin-not-found": "1.2.4",
+    "axios": "0.21.1",
     "blessed": "0.1.81",
     "cli-ux": "^5.5.0",
     "ironfish": "*",

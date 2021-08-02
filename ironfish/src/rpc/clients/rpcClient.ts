@@ -53,6 +53,7 @@ import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
+import { FollowChainStreamRequest, FollowChainStreamResponse } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   ExportMinedStreamRequest,
@@ -230,6 +231,12 @@ export abstract class IronfishRpcClient {
     params: ExportChainStreamRequest = undefined,
   ): Response<void, ExportChainStreamResponse> {
     return this.request<void, ExportChainStreamResponse>('chain/exportChainStream', params)
+  }
+
+  followChainStream(
+    params: FollowChainStreamRequest = undefined,
+  ): Response<void, FollowChainStreamResponse> {
+    return this.request<void, FollowChainStreamResponse>('chain/followChainStream', params)
   }
 
   exportMinedStream(
