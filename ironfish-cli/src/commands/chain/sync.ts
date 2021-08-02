@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
+import { Meter, TimeUtils } from 'ironfish'
 import { IronfishApi } from '../../api'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -71,8 +72,22 @@ export default class Sync extends IronfishCommand {
       head: (args.head || head) as string | null,
     })
 
+    const speed = new Meter()
+    speed.start()
+
     for await (const content of response.contentStream()) {
-      this.log(`${content.type}: ${content.block.hash} - ${content.block.sequence}`)
+      speed.add(1)
+
+      const estimate = TimeUtils.renderEstimate(
+        content.block.sequence,
+        content.head.sequence,
+        speed.rate5s,
+      )
+
+      this.log(
+        `${content.type}: ${content.block.hash} - ${content.block.sequence} - ${estimate}`,
+      )
+
       await api.blocks(content)
     }
   }
