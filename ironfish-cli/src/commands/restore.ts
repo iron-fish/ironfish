@@ -7,9 +7,16 @@ import { spawn } from 'child_process'
 import cli from 'cli-ux'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
+<<<<<<< HEAD
 import { NodeUtils, PromiseUtils } from 'ironfish'
 import os from 'os'
 import path from 'path'
+=======
+import { FileUtils, NodeUtils, PromiseUtils } from 'ironfish'
+import os from 'os'
+import path from 'path'
+import { v4 as uuid } from 'uuid'
+>>>>>>> 65c39b9... WIP
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { ProgressBar } from '../types'

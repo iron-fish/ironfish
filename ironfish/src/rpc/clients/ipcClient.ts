@@ -170,7 +170,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
       timeoutMs?: number | null
     } = {},
   ): Response<TEnd, TStream> {
-    Assert.isNotNull(this.client)
+    Assert.isNotNull(this.client, 'Connect first using IpcClient.connect()')
 
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
     const messageId = ++this.messageIds

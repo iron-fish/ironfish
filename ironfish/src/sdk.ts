@@ -232,10 +232,13 @@ export class IronfishSdk {
       }
 
       const connected = await this.client.tryConnect()
+      console.log('Trying to connect', connected)
       if (connected) {
         return this.client
       }
     }
+
+    console.log('Could not connect, running locally')
 
     const node = await this.node()
     await this.clientMemory.connect(node)

@@ -384,6 +384,8 @@ export class MiningDirector {
       GraffitiUtils.fromString(this.blockGraffiti),
     )
 
+    console.log('CREATED BLOCK', minersFee.transactionHash().toString('hex'))
+
     this.logger.debug(
       `Current block  ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
@@ -443,11 +445,11 @@ export class MiningDirector {
       return MINED_RESULT.INVALID_BLOCK
     }
 
-    this.logger.info(
-      `Successfully mined block ${block.header.hash.toString('hex')} (${
-        block.header.sequence
-      }) has ${block.transactions.length} transactions`,
-    )
+    // this.logger.info(
+    //   `Successfully mined block ${block.header.hash.toString('hex')} (${
+    //     block.header.sequence
+    //   }) has ${block.transactions.length} transactions`,
+    // )
 
     this.blocksMined++
 

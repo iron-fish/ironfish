@@ -572,4 +572,25 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(2),
     })
   }, 600000)
+
+  it('produces unique transaction hashes', async () => {
+    const account = await useAccountFixture(nodeTest.accounts)
+
+    const transactionA = await nodeTest.strategy.createMinersFee(
+      BigInt(0),
+      1,
+      account.spendingKey,
+    )
+
+    const transactionB = await nodeTest.strategy.createMinersFee(
+      BigInt(0),
+      1,
+      account.spendingKey,
+    )
+
+    const hashA = transactionA.transactionHash()
+    const hashB = transactionB.transactionHash()
+
+    expect(hashA.equals(hashB)).toBe(false)
+  }, 600000)
 })

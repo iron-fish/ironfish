@@ -480,5 +480,15 @@
         }
       ]
     }
+  ],
+  "Accounts produces unique transaction hashes": [
+    {
+      "name": "test",
+      "spendingKey": "b22ada2832f7b0b8267b784b2e437f62b7393783eb47487156227170571536d7",
+      "incomingViewKey": "0c1376b39ef0b793f2571d26351b31439f1d364e6818dd6c95a8be012b311c00",
+      "outgoingViewKey": "56935490cd346a5906db0310b106ab499b21e6dbecfcbb03798776e8aa7b225a",
+      "publicAddress": "ae62e0657880a374feb10a1babd51bf14145008d3fad06f32ece197060382bf2be2d1492241cf878ac2da1",
+      "rescan": null
+    }
   ]
 }

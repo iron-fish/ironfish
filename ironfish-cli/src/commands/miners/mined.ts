@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import cli from 'cli-ux'
-import { AsyncUtils, GENESIS_BLOCK_SEQUENCE, MathUtils, oreToIron } from 'ironfish'
+import {
+  AsyncUtils,
+  GENESIS_BLOCK_SEQUENCE,
+  MathUtils,
+  Meter,
+  oreToIron,
+  TimeUtils,
+} from 'ironfish'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -46,10 +53,13 @@ export class MinedCommand extends IronfishCommand {
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
     this.log(`Exporting mined block from ${start} -> ${stop}`)
 
+    const speed = new Meter()
+
     const progress = cli.progress({
-      format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
+      format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
     }) as ProgressBar
 
+    speed.start()
     progress.start(stop - start + 1, 0)
 
     for await (const { sequence, block } of stream.contentStream()) {
@@ -71,7 +81,12 @@ export class MinedCommand extends IronfishCommand {
         )
       }
 
-      progress.update(sequence - start)
+      speed.add(1)
+
+      progress.update(sequence - start, {
+        estimate: TimeUtils.renderEstimate(sequence - start, stop - start, speed.rate5s),
+        sequence: sequence,
+      })
     }
   }
 }

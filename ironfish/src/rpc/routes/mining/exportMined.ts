@@ -10,6 +10,7 @@ export type ExportMinedStreamRequest =
   | {
       start?: number | null
       stop?: number | null
+      forks?: boolean | null
     }
   | undefined
 
@@ -30,6 +31,7 @@ export const ExportMinedStreamRequestSchema: yup.ObjectSchema<ExportMinedStreamR
   .object({
     start: yup.number().nullable().optional(),
     stop: yup.number().nullable().optional(),
+    forks: yup.boolean().nullable().optional(),
   })
   .optional()
 
@@ -57,6 +59,8 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
+    const scanForks = request.data?.forks == null ? false : true
+
     const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
       start: request.data?.start,
       stop: request.data?.stop,
@@ -64,36 +68,54 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
 
     request.stream({ start, stop, sequence: 0 })
 
+    let promise = Promise.resolve()
+    let waiting = 0
+
     for (let i = start; i <= stop; ++i) {
-      const headers = await node.chain.getHeadersAtSequence(i)
+      promise = promise.then(async () => {
+        const headers = scanForks
+          ? await node.chain.getHeadersAtSequence(i)
+          : [await node.chain.getHeaderAtSequence(i)]
 
-      for (const header of headers) {
-        const block = await node.chain.getBlock(header)
-        Assert.isNotNull(block)
+        for (const header of headers) {
+          if (header == null) {
+            break
+          }
 
-        const account = node.accounts
-          .listAccounts()
-          .find((a) => BlockchainUtils.isBlockMine(block, a))
+          const block = await node.chain.getBlock(header)
+          Assert.isNotNull(block)
 
-        if (!account) {
-          request.stream({ start, stop, sequence: header.sequence })
-          continue
+          const account = node.accounts
+            .listAccounts()
+            .find((a) => BlockchainUtils.isBlockMine(block, a))
+
+          if (!account) {
+            request.stream({ start, stop, sequence: header.sequence })
+            continue
+          }
+
+          const main = await node.chain.isHeadChain(header)
+          const minersFee = node.chain.strategy.miningReward(header.sequence)
+
+          const result = {
+            main: main,
+            hash: header.hash.toString('hex'),
+            sequence: header.sequence,
+            account: account.name,
+            minersFee: minersFee,
+          }
+
+          request.stream({ start, stop, sequence: header.sequence, block: result })
         }
+      })
 
-        const main = await node.chain.isHeadChain(header)
-        const minersFee = node.chain.strategy.miningReward(header.sequence)
-
-        const result = {
-          main: main,
-          hash: header.hash.toString('hex'),
-          sequence: header.sequence,
-          account: account.name,
-          minersFee: minersFee,
-        }
-
-        request.stream({ start, stop, sequence: header.sequence, block: result })
+      if (++waiting > 100) {
+        await promise
+        waiting = 0
       }
     }
+
+    await promise
 
     request.end()
   },

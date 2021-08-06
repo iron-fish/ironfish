@@ -40,6 +40,7 @@ export class IronfishMemoryClient extends IronfishRpcClient {
     if (options.timeoutMs) {
       throw new Error(`MemoryAdapter does not support timeoutMs`)
     }
+
     return this.adapter.requestStream<TEnd, TStream>(route, data)
   }
 }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
@@ -14,7 +15,7 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
-import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import { isBlockMine, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 import { validateAccount } from './validator'
@@ -397,6 +398,18 @@ export class Accounts {
     await transaction.withReference(() => {
       const notes = this.decryptNotes(transaction, initialNoteIndex)
 
+      if (notes.length > 0) {
+        // console.log(
+        //   '\nDECRYPTED NOTE',
+        //   blockHash,
+        //   transaction.transactionHash().toString('hex'),
+        //   {
+        //     ...(notes[0] || {}),
+        //     account: notes[0]?.account?.name,
+        //   },
+        // )
+      }
+
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
           const transactionHash = transaction.transactionHash()
@@ -410,6 +423,8 @@ export class Accounts {
 
           // The transaction is useful if we want to display transaction history,
           // but since we spent the note, we don't need to put it in the nullifierToNote mappings
+
+          console.log('Insert Tx', transactionHash.toString('hex'))
           await this.updateTransactionMap(
             transactionHash,
             {
@@ -427,7 +442,10 @@ export class Accounts {
           if (!forSpender) {
             if (nullifier !== null) {
               await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
+              // console.log('nullifierToNote', nullifier, merkleHash)
             }
+
+            // console.log('noteToNullifier', merkleHash, noteIndex)
 
             await this.updateNoteToNullifierMap(
               merkleHash,
@@ -501,7 +519,10 @@ export class Accounts {
       transaction,
       initialNoteIndex,
       sequence,
-    } of this.chain.iterateAllTransactions(accountHeadHash)) {
+    } of this.chain.iterateAllTransactions(
+      Buffer.from('00000004220326378d39e013b93c52c604d9a619dd9651c7034a0a4049c172da', 'hex'),
+      Buffer.from('00000000dbf143f7758831398555ce1c5ebb143af2d89494767f520a5150b6df', 'hex'),
+    )) {
       if (scan.isAborted) {
         scan.signalComplete()
         this.scan = null
@@ -539,6 +560,7 @@ export class Accounts {
         // Notes can be spent and received by the same Account.
         // Try decrypting the note as its owner
         const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
+
         if (receivedNote) {
           const noteHashHex = Buffer.from(note.merkleHash()).toString('hex')
 
@@ -546,6 +568,22 @@ export class Accounts {
           if (!map) {
             throw new Error('All decryptable notes should be in the noteToNullifier map')
           }
+
+          // console.log(
+          //   'NOTE\n',
+          //   '    ',
+          //   noteHashHex,
+          //   '\n    ',
+          //   map.noteIndex,
+          //   '\n    ',
+          //   map.nullifierHash,
+          //   '\n    ',
+          //   map.spent,
+          //   '\n    ',
+          //   receivedNote.value(),
+          //   '\n    ',
+          //   transactionMapValue.transaction.transactionHash().toString('hex'),
+          // )
 
           if (!map.spent) {
             unspentNotes.push({
