@@ -5,7 +5,7 @@ import { expect as expectCli, test } from '@oclif/test'
 import cli from 'cli-ux'
 import * as ironfishmodule from 'ironfish'
 
-describe('faucet:giveme command', () => {
+describe('faucet command', () => {
   let accountName: string | null = null
   const request = jest.fn()
   const createAccount = jest.fn()
@@ -47,7 +47,7 @@ describe('faucet:giveme command', () => {
     })
     .stub(cli, 'prompt', () => async () => await Promise.resolve('nameOfTheAccount'))
     .stdout()
-    .command(['faucet:giveme'])
+    .command(['faucet', '--force'])
     .exit(0)
     .it('request to create an account if one is not set', (ctx) => {
       expectCli(ctx.stdout).include(
@@ -62,7 +62,7 @@ describe('faucet:giveme command', () => {
     })
     .stub(cli, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
     .stdout()
-    .command(['faucet:giveme'])
+    .command(['faucet', '--force'])
     .exit(0)
     .it('request funds and succeed', (ctx) => {
       expectCli(ctx.stdout).include(`Collecting your funds...`)
@@ -83,7 +83,7 @@ describe('faucet:giveme command', () => {
     })
     .stub(cli, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
     .stdout()
-    .command(['faucet:giveme'])
+    .command(['faucet', '--force'])
     .exit(1)
     .it('request funds and fail', (ctx) => {
       expectCli(ctx.stdout).include(`Collecting your funds...`)
