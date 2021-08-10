@@ -2,20 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import { RequestError } from 'ironfish'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../../images'
+import { DEFAULT_DISCORD_INVITE, RequestError } from 'ironfish'
+import { IronfishCommand } from '../command'
+import { RemoteFlags } from '../flags'
+import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
 
-export class GiveMeCommand extends IronfishCommand {
+export class FaucetCommand extends IronfishCommand {
   static description = `Receive coins from the Iron Fish official Faucet`
 
   static flags = {
     ...RemoteFlags,
+    force: flags.boolean({
+      default: false,
+      description: 'Force the faucet to try to give you coins even if its disabled',
+    }),
   }
 
   async start(): Promise<void> {
+    const { flags } = this.parse(FaucetCommand)
+
+    if (!flags.force) {
+      this.log(`❌ The faucet is currently disabled. Check ${DEFAULT_DISCORD_INVITE} ❌`)
+      this.exit(1)
+    }
+
     this.log(`${ONE_FISH_IMAGE}
 
 Receive funds, check your balance and send money.
