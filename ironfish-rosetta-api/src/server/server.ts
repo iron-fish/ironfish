@@ -10,7 +10,6 @@ import { Express } from 'express-serve-static-core'
 import http from 'http'
 import { connector } from 'swagger-routes-express'
 import swaggerUi from 'swagger-ui-express'
-import { API_HOST } from '../config'
 import { OpenAPIDefinition } from '../config/openapi'
 import { Routes } from '../config/routes'
 import * as api from '../controllers'
@@ -28,7 +27,7 @@ const options: cors.CorsOptions = {
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'X-Access-Token'],
   credentials: true,
   methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
-  origin: API_HOST,
+  origin: '*',
   preflightContinue: false,
 }
 
