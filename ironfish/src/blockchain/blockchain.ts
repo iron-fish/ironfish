@@ -1076,25 +1076,33 @@ export class Blockchain {
    * Iterates through all transactions, starting from the heaviest head and walking backward.
    */
   async *iterateAllTransactions(
-    fromBlockHash: Buffer | null = null,
+    fromHash: Buffer | null = null,
+    toHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
     { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
     void,
     unknown
   > {
+    let from: BlockHeader | null
+    if (fromHash) {
+      from = await this.getHeader(fromHash, tx)
+    } else {
+      from = this.genesis
+    }
+
     let to: BlockHeader | null
-    if (fromBlockHash) {
-      to = await this.getHeader(fromBlockHash, tx)
+    if (toHash) {
+      to = await this.getHeader(toHash, tx)
     } else {
       to = this.head
     }
 
-    if (!to) {
+    if (!to || !from) {
       return
     }
 
-    for await (const header of this.iterateTo(this.genesis, to, tx)) {
+    for await (const header of this.iterateTo(from, to, tx)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
         yield transaction
       }
