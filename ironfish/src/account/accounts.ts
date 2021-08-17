@@ -539,6 +539,7 @@ export class Accounts {
         // Notes can be spent and received by the same Account.
         // Try decrypting the note as its owner
         const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
+
         if (receivedNote) {
           const noteHashHex = Buffer.from(note.merkleHash()).toString('hex')
 
