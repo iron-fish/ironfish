@@ -23,7 +23,7 @@ export class RescanCommand extends IronfishCommand {
     }),
     local: flags.boolean({
       default: false,
-      description: 'Rescan the blockchain without an online node',
+      description: 'Force the rescan to not connect via RPC',
     }),
   }
 
