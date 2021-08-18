@@ -1,0 +1,12 @@
+{
+  "Accounts produces unique transaction hashes": [
+    {
+      "name": "test",
+      "spendingKey": "b342b6f4a6e7e015cfebb0def4bf84170a137ab03a826a9a98029b971ea9dd77",
+      "incomingViewKey": "2862e0b4967ca0fbc374866f4c3770b434441a53a544392126cca56765bc7e06",
+      "outgoingViewKey": "0b0e4dabf8a443eee19e3723c347086c7a4cc742e8e56768385980d324929db3",
+      "publicAddress": "8020264e76d2d5bded8339fc5b0eb489d61549d394afe00744deab7e1aa84279198bef2880a8dfcde83e1e",
+      "rescan": null
+    }
+  ]
+}
