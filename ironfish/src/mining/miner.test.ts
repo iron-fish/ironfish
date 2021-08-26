@@ -31,7 +31,7 @@ async function* makeAsync(
 
 describe('Miner', () => {
   it('mines', async () => {
-    const miner = new Miner()
+    const miner = new Miner(1)
 
     const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
     const stopSpy = jest.spyOn(miner.workerPool, 'stop')
@@ -47,7 +47,6 @@ describe('Miner', () => {
         },
       ]),
       successfullyMined,
-      1,
     )
 
     expect(mineHeaderSpy).toBeCalled()
@@ -56,7 +55,7 @@ describe('Miner', () => {
   })
 
   it('reschedules on new block', async () => {
-    const miner = new Miner()
+    const miner = new Miner(1)
 
     const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
     const stopSpy = jest.spyOn(miner.workerPool, 'stop')
@@ -82,7 +81,6 @@ describe('Miner', () => {
         },
       ]),
       successfullyMined,
-      1,
     )
 
     expect(mineHeaderSpy).toBeCalledTimes(3)
@@ -91,7 +89,7 @@ describe('Miner', () => {
   })
 
   it('calls successfullyMined', async () => {
-    const miner = new Miner()
+    const miner = new Miner(1)
     jest
       .spyOn(miner.workerPool, 'mineHeader')
       .mockImplementation((_id, _bytes, initialRandomness, _targetValue, _batchSize) => {
@@ -113,7 +111,6 @@ describe('Miner', () => {
         },
       ]),
       successfullyMined,
-      1,
     )
     expect(successfullyMined).toBeCalledTimes(1)
   })

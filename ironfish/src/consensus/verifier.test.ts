@@ -17,7 +17,6 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { WorkerPool } from '../workerPool'
 import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
@@ -109,7 +108,7 @@ describe('Verifier', () => {
       const serializedBlock = nodeTest.chain.strategy.blockSerde.serialize(block)
 
       await expect(
-        nodeTest.chain.verifier.verifyNewBlock(serializedBlock, new WorkerPool()),
+        nodeTest.chain.verifier.verifyNewBlock(serializedBlock, nodeTest.node.workerPool),
       ).rejects.toEqual('Block is invalid')
     })
 

@@ -31,6 +31,7 @@ export class ResponseError extends Error {
 
     if (messageOrError instanceof Error) {
       this.error = messageOrError
+      this.stack = this.error.stack
     }
 
     this.status = status

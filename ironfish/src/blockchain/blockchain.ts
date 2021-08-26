@@ -597,6 +597,7 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
+
     if (!valid) {
       Assert.isNotUndefined(reason)
 
