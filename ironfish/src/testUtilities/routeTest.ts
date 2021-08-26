@@ -11,6 +11,7 @@ import { MemoryAdapter } from '../rpc/adapters'
 import { IronfishMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { WorkerPool } from '../workerPool'
 import { NodeTest } from './nodeTest'
 import { TestStrategy } from './strategy'
 
@@ -33,6 +34,7 @@ export class RouteTest extends NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: MiningDirector
+    workerPool: WorkerPool
     adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
@@ -55,6 +57,7 @@ export class RouteTest extends NodeTest {
       peerNetwork,
       syncer,
       miningDirector,
+      workerPool,
       client,
       adapter,
     } = await this.createSetup()
@@ -69,6 +72,7 @@ export class RouteTest extends NodeTest {
     this.client = client
     this.adapter = adapter
     this.miningDirector = miningDirector
+    this.workerPool = workerPool
   }
 }
 

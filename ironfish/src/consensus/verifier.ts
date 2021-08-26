@@ -47,7 +47,7 @@ export class Verifier {
     block: Block
     serializedBlock: SerializedBlock
   }> {
-    if (workerPool.isMessageQueueFull()) {
+    if (workerPool.saturated) {
       return Promise.reject('Dropping block because worker pool message queue is full')
     }
 

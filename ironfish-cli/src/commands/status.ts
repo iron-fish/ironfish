@@ -94,11 +94,17 @@ function renderStatus(content: GetStatusResponse): string {
 
   const memPoolStatus = `${content.memPool.size} tx`
 
+  let workersStatus = `${content.workers.started ? 'STARTED' : 'STOPPED'}`
+  if (content.workers.started) {
+    workersStatus += ` - ${content.workers.queued} -> ${content.workers.executing} / ${content.workers.capacity} - ${content.workers.change} jobs Δ, ${content.workers.speed} jobs/s`
+  }
+
   return `
-Node:                 ${nodeStatus}
-P2P Network:          ${peerNetworkStatus}
-Mining:               ${miningDirectorStatus}
-Mem Pool:             ${memPoolStatus}
-Syncer:               ${blockSyncerStatus}
-Blockchain:           ${blockchainStatus}`
+Node                 ${nodeStatus}
+P2P Network          ${peerNetworkStatus}
+Mining               ${miningDirectorStatus}
+Mem Pool             ${memPoolStatus}
+Syncer               ${blockSyncerStatus}
+Blockchain           ${blockchainStatus}
+Workers              ${workersStatus}`
 }

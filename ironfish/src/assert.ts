@@ -9,7 +9,7 @@ export class Assert {
 
   static isUndefined<T>(x: undefined | T, message?: string): asserts x is undefined {
     if (x !== undefined) {
-      throw new Error(message || `Expected ${JSON.stringify(x)} to be undefined`)
+      throw new Error(message || `Expected ${String(x)} to be undefined`)
     }
   }
 
@@ -31,8 +31,14 @@ export class Assert {
     }
   }
 
-  static isNever(x: never): never {
-    throw new Error(`Expected value to be never: ${JSON.stringify(x)}`)
+  static isEqual(a: unknown, b: unknown, message?: string): void {
+    if (a !== b) {
+      throw new Error(message || `Expected values to be equal: ${String(a)} vs ${String(b)}`)
+    }
+  }
+
+  static isNever(x: never, message?: string): never {
+    throw new Error(message || `Expected value to be never: ${String(x)}`)
   }
 
   static isTrue(x: boolean, message?: string): asserts x is true {

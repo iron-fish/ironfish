@@ -2,223 +2,176 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/**
- * Handler for Worker messages.
- */
-
-import type {
-  BoxMessageRequest,
-  BoxMessageResponse,
-  CreateMinersFeeRequest,
-  CreateMinersFeeResponse,
-  CreateTransactionRequest,
-  CreateTransactionResponse,
-  MineHeaderRequest,
-  MineHeaderResponse,
-  TransactionFeeRequest,
-  TransactionFeeResponse,
-  UnboxMessageRequest,
-  UnboxMessageResponse,
-  VerifyTransactionRequest,
-  VerifyTransactionResponse,
-  WorkerRequestMessage,
-  WorkerResponse,
-  WorkerResponseMessage,
-} from './messages'
-import {
-  generateKey,
-  generateNewPublicAddress,
-  WasmNote,
-  WasmTransaction,
-  WasmTransactionPosted,
-} from 'ironfish-wasm-nodejs'
-import { MessagePort, parentPort } from 'worker_threads'
+import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
+import { generateKey } from 'ironfish-wasm-nodejs'
+import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
-import { mineHeader } from '../mining/miner'
-import { boxMessage, unboxMessage } from '../network/peers/encryption'
+import { createRootLogger, Logger } from '../logger'
+import { JobError } from './errors'
+import { Job } from './job'
 
-// Global constants
-// Needed for constructing a witness when creating transactions
-const noteHasher = new NoteHasher()
+export class Worker {
+  thread: WorkerThread | null = null
+  parent: MessagePort | null = null
+  path: string
+  jobs: Map<number, Job>
+  maxJobs: number
+  started: boolean
+  logger: Logger
 
-function handleCreateMinersFee({
-  spendKey,
-  amount,
-  memo,
-}: CreateMinersFeeRequest): CreateMinersFeeResponse {
-  // Generate a public address from the miner's spending key
-  const minerPublicAddress = generateNewPublicAddress(spendKey).public_address
-
-  const minerNote = new WasmNote(minerPublicAddress, amount, memo)
-
-  const transaction = new WasmTransaction()
-  transaction.receive(spendKey, minerNote)
-
-  const postedTransaction = transaction.post_miners_fee()
-
-  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
-
-  minerNote.free()
-  transaction.free()
-  postedTransaction.free()
-
-  return { type: 'createMinersFee', serializedTransactionPosted }
-}
-
-function handleCreateTransaction({
-  transactionFee,
-  spendKey,
-  spends,
-  receives,
-}: CreateTransactionRequest): CreateTransactionResponse {
-  const transaction = new WasmTransaction()
-
-  for (const spend of spends) {
-    const note = WasmNote.deserialize(spend.note)
-    transaction.spend(
-      spendKey,
-      note,
-      new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
-    )
-    note.free()
+  get executing(): boolean {
+    return this.jobs.size > 0
   }
 
-  for (const { publicAddress, amount, memo } of receives) {
-    const note = new WasmNote(publicAddress, amount, memo)
-    transaction.receive(spendKey, note)
-    note.free()
+  get canTakeJobs(): boolean {
+    return this.jobs.size < this.maxJobs
   }
 
-  const postedTransaction = transaction.post(spendKey, undefined, transactionFee)
+  constructor(options: {
+    parent?: MessagePort
+    path?: string
+    maxJobs?: number
+    logger?: Logger
+  }) {
+    this.path = options.path ?? ''
+    this.maxJobs = options.maxJobs ?? 1
+    this.parent = options.parent ?? null
+    this.jobs = new Map<number, Job>()
+    this.started = true
+    this.logger = options.logger || createRootLogger()
 
-  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
-
-  transaction.free()
-  postedTransaction.free()
-
-  return { type: 'createTransaction', serializedTransactionPosted }
-}
-
-function handleTransactionFee({
-  serializedTransactionPosted,
-}: TransactionFeeRequest): TransactionFeeResponse {
-  const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
-  const fee = transaction.transactionFee
-  transaction.free()
-  return { type: 'transactionFee', transactionFee: fee.valueOf() }
-}
-
-function handleVerify({
-  serializedTransactionPosted,
-}: VerifyTransactionRequest): VerifyTransactionResponse {
-  let transaction
-
-  let verified = false
-  try {
-    transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
-    verified = transaction.verify()
-  } catch {
-    verified = false
-  } finally {
-    transaction?.free()
-  }
-
-  return { type: 'verify', verified }
-}
-
-function handleBoxMessage({
-  message,
-  sender,
-  recipient,
-}: BoxMessageRequest): BoxMessageResponse {
-  const { nonce, boxedMessage } = boxMessage(message, sender, recipient)
-  return {
-    type: 'boxMessage',
-    nonce,
-    boxedMessage,
-  }
-}
-
-function handleUnboxMessage({
-  boxedMessage,
-  nonce,
-  sender,
-  recipient,
-}: UnboxMessageRequest): UnboxMessageResponse {
-  const result = unboxMessage(boxedMessage, nonce, sender, recipient)
-  return {
-    type: 'unboxMessage',
-    message: result === null ? null : Buffer.from(result).toString('utf8'),
-  }
-}
-
-function handleMineHeader({
-  batchSize,
-  headerBytesWithoutRandomness,
-  initialRandomness,
-  miningRequestId,
-  targetValue,
-}: MineHeaderRequest): MineHeaderResponse {
-  const result = mineHeader({
-    batchSize,
-    headerBytesWithoutRandomness: Buffer.from(headerBytesWithoutRandomness),
-    initialRandomness,
-    miningRequestId,
-    targetValue,
-  })
-
-  return { type: 'mineHeader', ...result }
-}
-
-export function handleRequest(request: WorkerRequestMessage): WorkerResponseMessage | null {
-  let response: WorkerResponse | null = null
-
-  const body = request.body
-
-  switch (body.type) {
-    case 'createMinersFee':
-      response = handleCreateMinersFee(body)
-      break
-    case 'createTransaction':
-      response = handleCreateTransaction(body)
-      break
-    case 'transactionFee':
-      response = handleTransactionFee(body)
-      break
-    case 'verify':
-      response = handleVerify(body)
-      break
-    case 'boxMessage':
-      response = handleBoxMessage(body)
-      break
-    case 'unboxMessage':
-      response = handleUnboxMessage(body)
-      break
-    case 'mineHeader':
-      response = handleMineHeader(body)
-      break
-    default: {
-      Assert.isNever(body)
+    if (options.parent) {
+      this.spawned()
+    } else {
+      this.spawn()
     }
   }
 
-  return { requestId: request.requestId, body: response }
-}
+  execute(job: Job): void {
+    this.jobs.set(job.id, job)
+    job.execute(this)
+  }
 
-function onMessage(port: MessagePort, request: WorkerRequestMessage) {
-  const response = handleRequest(request)
+  send(message: WorkerRequestMessage | WorkerResponseMessage): void {
+    if (this.thread) {
+      this.thread.postMessage(message)
+    } else if (this.parent) {
+      this.parent.postMessage(message)
+    } else {
+      throw new Error(`Cannot send message: no thread or worker`)
+    }
+  }
 
-  if (response !== null) {
-    port.postMessage(response)
+  async stop(): Promise<void> {
+    if (!this.started) {
+      return
+    }
+
+    this.started = false
+
+    const jobs = Array.from(this.jobs.values())
+    this.jobs.clear()
+
+    for (const job of jobs) {
+      job.abort()
+    }
+
+    if (this.thread) {
+      this.thread.removeAllListeners()
+      await this.thread.terminate()
+      this.thread = null
+    }
+
+    if (this.parent) {
+      this.parent.removeAllListeners()
+      this.parent = null
+    }
+  }
+
+  /**
+   * Called from the main process to spawn a worker thread
+   */
+  private spawn() {
+    Assert.isNull(this.parent)
+    this.thread = new WorkerThread(this.path)
+    this.thread.on('message', this.onMessageFromWorker)
+  }
+
+  /**
+   * Called from the worker thread once the worker spawns in the thread
+   */
+  private spawned() {
+    Assert.isNotNull(this.parent)
+    this.parent.on('message', this.onMessageFromParent)
+    // Trigger loading of Sapling parameters if we're in a worker thread
+    generateKey()
+  }
+
+  private onMessageFromParent = (request: WorkerRequestMessage): void => {
+    if (request.body.type === 'jobAbort') {
+      const job = this.jobs.get(request.jobId)
+
+      if (job) {
+        this.jobs.delete(job.id)
+        job?.abort()
+      }
+      return
+    }
+
+    const job = new Job(request)
+    this.jobs.set(job.id, job)
+
+    job
+      .execute()
+      .response()
+      .then((response: WorkerResponseMessage) => {
+        this.send(response)
+      })
+      .catch((e: unknown) => {
+        this.send({
+          jobId: job.id,
+          body: {
+            type: 'jobError',
+            error: new JobError(e).serialize(),
+          },
+        })
+      })
+  }
+
+  private onMessageFromWorker = (response: WorkerResponseMessage): void => {
+    const job = this.jobs.get(response.jobId)
+    this.jobs.delete(response.jobId)
+
+    if (!job) {
+      return
+    }
+
+    Assert.isNotNull(job.resolve)
+    Assert.isNotNull(job.reject)
+
+    if (response.body.type === 'jobError') {
+      job.status = 'error'
+      job.ended.emit(job)
+      job.reject(JobError.deserialize(response.body.error))
+    } else {
+      job.status = 'success'
+      job.ended.emit(job)
+      job.resolve(response)
+    }
   }
 }
 
 if (parentPort !== null) {
-  // Trigger loading of Sapling parameters if we're in a worker thread
-  generateKey()
+  new Worker({ parent: parentPort })
+}
 
-  const port = parentPort
-  port.on('message', (request: WorkerRequestMessage) => onMessage(port, request))
+export function getWorkerPath(): string {
+  // Works around different paths when run under ts-jest
+  let path = __dirname
+
+  if (path.includes('ironfish/src/workerPool')) {
+    path = path.replace('ironfish/src/workerPool', 'ironfish/build/src/workerPool')
+  }
+
+  return path + '/worker.js'
 }

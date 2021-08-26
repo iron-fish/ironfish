@@ -27,7 +27,7 @@ router.register<typeof SuccessfullyMinedRequestSchema, SuccessfullyMinedResponse
         request.data.miningRequestId,
       )
     }
+
     request.end()
-    return Promise.resolve()
   },
 )

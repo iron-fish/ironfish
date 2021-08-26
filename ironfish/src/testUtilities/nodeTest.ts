@@ -13,6 +13,7 @@ import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { WorkerPool } from '../workerPool'
 import { TestStrategy } from './strategy'
 
 export type NodeTestOptions =
@@ -39,6 +40,7 @@ export class NodeTest {
   peerNetwork!: PeerNetwork
   syncer!: Syncer
   miningDirector!: MiningDirector
+  workerPool!: WorkerPool
 
   setups = new Array<{
     sdk: IronfishSdk
@@ -49,6 +51,7 @@ export class NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: MiningDirector
+    workerPool: WorkerPool
   }>()
 
   constructor(options: NodeTestOptions = {}) {
@@ -65,6 +68,7 @@ export class NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
     miningDirector: MiningDirector
+    workerPool: WorkerPool
   }> {
     if (!options) {
       options = this.options
@@ -74,16 +78,6 @@ export class NodeTest {
     const strategyClass = TestStrategy
 
     const sdk = await IronfishSdk.init({ dataDir, strategyClass })
-    const node = await sdk.node({ autoSeed: this.options?.autoSeed })
-    const strategy = node.strategy as TestStrategy
-    const chain = node.chain
-    const accounts = node.accounts
-    const peerNetwork = node.peerNetwork
-    const syncer = node.syncer
-    const miningDirector = node.miningDirector
-    const verifier = node.chain.verifier
-
-    verifier.enableVerifyTarget = false
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
@@ -98,6 +92,18 @@ export class NodeTest {
       }
     }
 
+    const node = await sdk.node({ autoSeed: this.options?.autoSeed })
+    const strategy = node.strategy as TestStrategy
+    const chain = node.chain
+    const accounts = node.accounts
+    const peerNetwork = node.peerNetwork
+    const syncer = node.syncer
+    const miningDirector = node.miningDirector
+    const verifier = node.chain.verifier
+    const workerPool = node.workerPool
+
+    verifier.enableVerifyTarget = false
+
     await node.openDB()
 
     const setup = {
@@ -110,6 +116,7 @@ export class NodeTest {
       peerNetwork,
       syncer,
       miningDirector,
+      workerPool,
     }
 
     this.setups.push(setup)
@@ -127,6 +134,7 @@ export class NodeTest {
       peerNetwork,
       syncer,
       miningDirector,
+      workerPool,
     } = await this.createSetup()
 
     this.sdk = sdk
@@ -138,6 +146,7 @@ export class NodeTest {
     this.peerNetwork = peerNetwork
     this.syncer = syncer
     this.miningDirector = miningDirector
+    this.workerPool = workerPool
   }
 
   async teardownEach(): Promise<void> {

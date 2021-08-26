@@ -8,158 +8,113 @@ import type {
   CreateMinersFeeRequest,
   CreateTransactionRequest,
   MineHeaderRequest,
-  OmitRequestId,
+  SleepRequest,
   TransactionFeeRequest,
   UnboxMessageRequest,
   VerifyTransactionRequest,
-  WorkerRequest,
-  WorkerRequestMessage,
-  WorkerResponse,
-  WorkerResponseMessage,
-} from './messages'
-import { Worker } from 'worker_threads'
+} from './tasks'
+import _ from 'lodash'
+import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
-import * as worker from './worker'
-
-const MESSAGE_QUEUE_MAX_LENGTH = 200
-
-type WorkerPoolWorker = { worker: Worker; awaitingResponse: boolean }
+import { Job } from './job'
+import { WorkerRequest } from './messages'
+import { getWorkerPath, Worker } from './worker'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
  */
 export class WorkerPool {
-  private readonly resolvers: Map<number, (response: WorkerResponse) => void> = new Map<
-    number,
-    (response: WorkerResponse) => void
-  >()
-  private messageQueue: Array<WorkerRequestMessage> = []
-  private workers: Array<WorkerPoolWorker> = []
+  readonly maxJobs: number
+  readonly maxQueue: number
+  readonly maxWorkers: number
 
-  private _started = false
-  public get started(): boolean {
-    return this._started
+  queue: Array<Job> = []
+  workers: Array<Worker> = []
+  started = false
+  completed = 0
+  change: Meter | null
+  speed: Meter | null
+
+  private lastJobId = 0
+
+  get saturated(): boolean {
+    return this.queue.length >= this.maxQueue
   }
 
-  private lastRequestId = 0
-
-  private sendRequest(request: Readonly<WorkerRequest>): Promise<WorkerResponse | null> {
-    const requestId = this.lastRequestId++
-
-    const requestMessage: Readonly<WorkerRequestMessage> = { requestId, body: request }
-
-    if (this.workers.length === 0) {
-      const response = worker.handleRequest(requestMessage)
-      return Promise.resolve(response ? response.body : null)
-    }
-
-    return this.promisifyRequest(requestMessage)
+  get executing(): number {
+    return _.sumBy(this.workers, (w) => w.jobs.size)
   }
 
-  /**
-   * Send a request to the worker thread,
-   * giving it an id and constructing a promise that can be resolved
-   * when the worker thread has issued a response message.
-   */
-  private promisifyRequest(request: Readonly<WorkerRequestMessage>): Promise<WorkerResponse> {
-    const promise: Promise<WorkerResponse> = new Promise((resolve) => {
-      this.resolvers.set(request.requestId, (posted) => resolve(posted))
-    })
-
-    for (const worker of this.workers) {
-      // If we find a worker that's not busy, send it the request
-      if (worker.awaitingResponse === false) {
-        worker.awaitingResponse = true
-        worker.worker.postMessage(request)
-        return promise
-      }
-    }
-
-    // All workers are busy, so push the request onto the messageQueue
-    this.messageQueue.push(request)
-    return promise
+  get queued(): number {
+    return this.queue.length
   }
 
-  private promisifyResponse(
-    worker: WorkerPoolWorker | undefined,
-    response: WorkerResponseMessage,
-  ): void {
-    if (worker !== undefined) {
-      // Send the worker a new request if the message queue is not empty
-      if (this.messageQueue.length === 0) {
-        worker.awaitingResponse = false
-      } else {
-        worker.awaitingResponse = true
-        const message = this.messageQueue.shift()
-        worker.worker.postMessage(message)
-      }
-    }
-
-    // Resolve the outstanding promise with the response
-    const resolver = this.resolvers.get(response.requestId)
-    if (resolver) {
-      this.resolvers.delete(response.requestId)
-      resolver(response.body)
-    }
+  get capacity(): number {
+    return this.workers.length * this.maxJobs
   }
 
-  start(workers: number): WorkerPool {
+  constructor(options?: {
+    metrics?: MetricsMonitor
+    maxWorkers?: number
+    maxQueue?: number
+    maxJobs?: number
+  }) {
+    this.maxWorkers = options?.maxWorkers ?? 1
+    this.maxJobs = options?.maxJobs ?? 1
+    this.maxQueue = options?.maxQueue ?? 200
+    this.change = options?.metrics?.addMeter() ?? null
+    this.speed = options?.metrics?.addMeter() ?? null
+  }
+
+  start(): void {
     if (this.started) {
-      return this
+      return
     }
 
-    this._started = true
+    this.started = true
 
-    // Works around different paths when run under ts-jest
-    let dir = __dirname
-    if (dir.includes('ironfish/src/workerPool')) {
-      dir = dir.replace('ironfish/src/workerPool', 'ironfish/build/src/workerPool')
+    const path = getWorkerPath()
+
+    for (let i = 0; i < this.maxWorkers; i++) {
+      const worker = new Worker({ path, maxJobs: this.maxJobs })
+      this.workers.push(worker)
     }
-
-    for (let i = 0; i < workers; i++) {
-      const worker = new Worker(dir + '/worker.js')
-
-      worker.on('message', (value) => {
-        const w = this.workers.find((w) => w.worker === worker)
-        this.promisifyResponse(w, value)
-      })
-
-      this.workers.push({ worker, awaitingResponse: false })
-    }
-
-    return this
   }
 
-  async stop(): Promise<undefined> {
-    await Promise.all(this.workers.map((w) => w.worker.terminate()))
+  async stop(): Promise<void> {
+    if (!this.started) {
+      return
+    }
+
+    this.started = false
+
+    const workers = this.workers
+    const queue = this.queue
+
     this.workers = []
-    this.messageQueue = []
-    this.resolvers.clear()
-    this._started = false
-    return
+    this.queue = []
+
+    queue.forEach((j) => j.abort())
+    await Promise.all(workers.map((w) => w.stop()))
   }
 
   async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
-    const request: OmitRequestId<CreateMinersFeeRequest> = {
+    const request: CreateMinersFeeRequest = {
       type: 'createMinersFee',
       spendKey,
       amount,
       memo,
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
+    if (request.type !== response.type) {
       throw new Error('Response type must match request type')
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
-  }
-
-  isMessageQueueFull(): boolean {
-    return this.messageQueue.length >= MESSAGE_QUEUE_MAX_LENGTH
   }
 
   async createTransaction(
@@ -176,7 +131,7 @@ export class WorkerPool {
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
   ): Promise<Transaction> {
-    const request: OmitRequestId<CreateTransactionRequest> = {
+    const request: CreateTransactionRequest = {
       type: 'createTransaction',
       spendKey,
       transactionFee,
@@ -187,7 +142,7 @@ export class WorkerPool {
       receives,
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -197,12 +152,12 @@ export class WorkerPool {
   }
 
   async transactionFee(transaction: Transaction): Promise<bigint> {
-    const request: OmitRequestId<TransactionFeeRequest> = {
+    const request: TransactionFeeRequest = {
       type: 'transactionFee',
       serializedTransactionPosted: transaction.serialize(),
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -212,12 +167,12 @@ export class WorkerPool {
   }
 
   async verify(transaction: Transaction): Promise<boolean> {
-    const request: OmitRequestId<VerifyTransactionRequest> = {
+    const request: VerifyTransactionRequest = {
       type: 'verify',
       serializedTransactionPosted: transaction.serialize(),
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -231,14 +186,14 @@ export class WorkerPool {
     sender: PrivateIdentity,
     recipient: Identity,
   ): Promise<{ nonce: string; boxedMessage: string }> {
-    const request: OmitRequestId<BoxMessageRequest> = {
+    const request: BoxMessageRequest = {
       type: 'boxMessage',
       message: plainTextMessage,
       sender: sender,
       recipient: recipient,
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -253,7 +208,7 @@ export class WorkerPool {
     sender: Identity,
     recipient: PrivateIdentity,
   ): Promise<{ message: string | null }> {
-    const request: OmitRequestId<UnboxMessageRequest> = {
+    const request: UnboxMessageRequest = {
       type: 'unboxMessage',
       boxedMessage: boxedMessage,
       nonce: nonce,
@@ -261,7 +216,7 @@ export class WorkerPool {
       sender: sender,
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -277,7 +232,7 @@ export class WorkerPool {
     targetValue: string,
     batchSize: number,
   ): Promise<{ initialRandomness: number; miningRequestId?: number; randomness?: number }> {
-    const request: OmitRequestId<MineHeaderRequest> = {
+    const request: MineHeaderRequest = {
       type: 'mineHeader',
       headerBytesWithoutRandomness,
       miningRequestId,
@@ -286,7 +241,7 @@ export class WorkerPool {
       batchSize,
     }
 
-    const response = await this.sendRequest(request)
+    const response = await this.execute(request).result()
 
     if (response === null || response.type !== request.type) {
       throw new Error('Response type must match request type')
@@ -297,5 +252,73 @@ export class WorkerPool {
       miningRequestId: response.miningRequestId,
       randomness: response.randomness,
     }
+  }
+
+  /**
+   * A test worker task that sleeps for specicifed milliseconds
+   */
+  sleep(sleep = 0, error = ''): Job {
+    const request: SleepRequest = {
+      type: 'sleep',
+      sleep,
+      error,
+    }
+
+    return this.execute(request)
+  }
+
+  private execute(request: Readonly<WorkerRequest>): Job {
+    const jobId = this.lastJobId++
+    const job = new Job({ jobId: jobId, body: request })
+    job.ended.once(this.jobEnded)
+
+    // If there are no workers, execute in process
+    if (this.workers.length === 0) {
+      void job.execute()
+      return job
+    }
+
+    this.change?.add(1)
+
+    // If we already have queue, put it at the end of the queue
+    if (this.queue.length > 0) {
+      this.queue.push(job)
+      return job
+    }
+
+    const worker = this.workers.find((w) => w.canTakeJobs)
+
+    if (!worker) {
+      this.queue.push(job)
+      return job
+    }
+
+    worker.execute(job)
+    return job
+  }
+
+  private executeQueue(): void {
+    if (this.queue.length === 0) {
+      return
+    }
+
+    const worker = this.workers.find((w) => w.canTakeJobs)
+    if (!worker) {
+      return
+    }
+
+    const job = this.queue.shift()
+    if (!job) {
+      return
+    }
+
+    worker.execute(job)
+  }
+
+  private jobEnded = (): void => {
+    this.change?.add(-1)
+    this.speed?.add(1)
+    this.completed++
+    this.executeQueue()
   }
 }

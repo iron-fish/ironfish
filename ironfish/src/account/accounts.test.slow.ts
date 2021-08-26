@@ -191,7 +191,7 @@ describe('Accounts', () => {
     const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
-    node.accounts['workerPool'].start(1)
+    node.accounts['workerPool'].start()
 
     const account = await node.accounts.createAccount('test', true)
 

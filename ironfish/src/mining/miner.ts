@@ -5,6 +5,7 @@
 import { hashBlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { WorkerPool } from '../workerPool'
+import { Job } from '../workerPool/job'
 
 /**
  * The number of tasks to run in each thread batch
@@ -25,8 +26,8 @@ type MineResult = { initialRandomness: number; randomness?: number; miningReques
 export default class Miner {
   workerPool: WorkerPool
 
-  constructor() {
-    this.workerPool = new WorkerPool()
+  constructor(numTasks: number) {
+    this.workerPool = new WorkerPool({ maxWorkers: numTasks })
   }
 
   /**
@@ -88,7 +89,6 @@ export default class Miner {
       miningRequestId: number
     }>,
     successfullyMined: (randomness: number, miningRequestId: number) => void,
-    numTasks: number,
   ): Promise<void> {
     let blockToMineResult = await newBlocksIterator.next()
     if (blockToMineResult.done) {
@@ -96,13 +96,13 @@ export default class Miner {
     }
     let blockPromise = newBlocksIterator.next()
 
-    this.workerPool.start(numTasks)
+    this.workerPool.start()
 
     let tasks: Record<number, Promise<MineResult>> = {}
 
     let randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
 
-    this.primePool(randomness, tasks, numTasks, blockToMineResult.value)
+    this.primePool(randomness, tasks, this.workerPool.maxWorkers, blockToMineResult.value)
 
     for (;;) {
       const result = await Promise.race([blockPromise, ...Object.values(tasks)])
@@ -134,7 +134,7 @@ export default class Miner {
         }
 
         randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
-        this.primePool(randomness, tasks, numTasks, blockToMineResult.value)
+        this.primePool(randomness, tasks, this.workerPool.maxWorkers, blockToMineResult.value)
 
         blockPromise = newBlocksIterator.next()
       }
@@ -180,17 +180,23 @@ export function mineHeader({
   initialRandomness,
   targetValue,
   batchSize,
+  job,
 }: {
   miningRequestId: number
   headerBytesWithoutRandomness: Buffer
   initialRandomness: number
   targetValue: string
   batchSize: number
+  job?: Job
 }): { initialRandomness: number; randomness?: number; miningRequestId?: number } {
   const target = new Target(targetValue)
   const randomnessBytes = new ArrayBuffer(8)
 
   for (let i = 0; i < batchSize; i++) {
+    if (job?.status === 'aborted') {
+      break
+    }
+
     // The intention here is to wrap randomness between 0 inclusive and Number.MAX_SAFE_INTEGER inclusive
     const randomness =
       i > Number.MAX_SAFE_INTEGER - initialRandomness

@@ -43,6 +43,15 @@ export type GetStatusResponse = {
     inboundTraffic: number
     outboundTraffic: number
   }
+  workers: {
+    started: boolean
+    workers: number
+    queued: number
+    capacity: number
+    executing: number
+    change: number
+    speed: number
+  }
 }
 
 export const GetStatusRequestSchema: yup.ObjectSchema<GetStatusRequest> = yup
@@ -96,6 +105,17 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
             speed: yup.number().defined(),
           })
           .optional(),
+      })
+      .defined(),
+    workers: yup
+      .object({
+        started: yup.boolean().defined(),
+        workers: yup.number().defined(),
+        capacity: yup.number().defined(),
+        queued: yup.number().defined(),
+        executing: yup.number().defined(),
+        change: yup.number().defined(),
+        speed: yup.number().defined(),
       })
       .defined(),
   })
@@ -161,6 +181,15 @@ function getStatus(node: IronfishNode): GetStatusResponse {
         blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
         speed: MathUtils.round(node.syncer.speed.rate1m, 2),
       },
+    },
+    workers: {
+      started: node.workerPool.started,
+      workers: node.workerPool.workers.length,
+      executing: node.workerPool.executing,
+      queued: node.workerPool.queued,
+      capacity: node.workerPool.capacity,
+      change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
+      speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
     },
   }
 

@@ -3,42 +3,46 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * This is used to unwrap a message from an error if its possible otherwise just renders the error as JSON
- */
-function extractMessage(error: unknown): string {
-  if (!error) {
-    return ''
-  }
-  if (error instanceof Error) {
-    return error.message
-  }
-  if (typeof error === 'string') {
-    return error
-  }
-  return JSON.stringify(error)
-}
-
-/**
  * This is used to unwrap a message from an error
  *
  * Falls back to JSON.stringify the error if we cannot get the message
  */
 export function renderError(error: unknown, stack = false): string {
+  if (!error) {
+    return ''
+  }
+
   if (stack && error instanceof Error && error.stack) {
     // stack also contains the error message
     return error.stack
   }
 
-  return extractMessage(error)
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return JSON.stringify(error)
 }
 
-export function isConnectRefusedError(
-  error: unknown,
-): error is Error & { code: 'ECONNREFUSED' } {
-  return error instanceof Error && 'code' in error && error['code'] === 'ECONNREFUSED'
-}
-export function isNoEntityError(error: unknown): error is Error & { code: 'ENOENT' } {
-  return error instanceof Error && 'code' in error && error['code'] === 'ENOENT'
+function isConnectRefusedError(error: unknown): error is Error & { code: 'ECONNREFUSED' } {
+  return isNodeError(error) && error.code === 'ECONNREFUSED'
 }
 
-export const ErrorUtils = { renderError, isConnectRefusedError, isNoEntityError }
+function isNoEntityError(error: unknown): error is Error & { code: 'NOENT' } {
+  return isNodeError(error) && error.code === 'ENOENT'
+}
+
+function isNodeError(error: unknown): error is Error & { code: string } {
+  return error instanceof Error && 'code' in error && typeof error['code'] === 'string'
+}
+
+export const ErrorUtils = {
+  renderError,
+  isConnectRefusedError,
+  isNoEntityError,
+  isNodeError,
+}

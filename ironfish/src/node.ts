@@ -155,7 +155,11 @@ export class IronfishNode {
       config.setOverride('databaseName', databaseName)
     }
 
-    const workerPool = new WorkerPool()
+    let workers = config.get('nodeWorkers')
+    if (workers === -1) {
+      workers = os.cpus().length - 1
+    }
+    const workerPool = new WorkerPool({ metrics, maxWorkers: workers })
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
@@ -236,11 +240,7 @@ export class IronfishNode {
 
     // Work in the worker pool happens concurrently,
     // so we should start it as soon as possible
-    let workers = this.config.get('nodeWorkers')
-    if (workers === -1) {
-      workers = os.cpus().length - 1
-    }
-    this.workerPool.start(workers)
+    this.workerPool.start()
 
     if (this.config.get('enableTelemetry')) {
       startCollecting(this.config.get('telemetryApi'))
