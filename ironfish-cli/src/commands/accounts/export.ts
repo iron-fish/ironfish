@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
+import cli from 'cli-ux'
 import fs from 'fs'
 import { ErrorUtils } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import cli from 'cli-ux'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
