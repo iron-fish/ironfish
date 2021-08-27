@@ -49,26 +49,29 @@ export class ExportCommand extends IronfishCommand {
     let output = JSON.stringify(response.content.account, undefined, '   ')
 
     if (exportPath) {
-      const resolved = this.sdk.fileSystem.resolve(exportPath)
+      let resolved = this.sdk.fileSystem.resolve(exportPath)
 
       try {
         const stats = await fs.promises.stat(resolved)
+
         if (stats.isDirectory()) {
-          await fs.promises.writeFile(
-            this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`),
-            output,
-          )
-        } else {
+          resolved = this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`)
+        }
+
+        if (fs.existsSync(resolved)) {
           this.log(`There is already an account backup at ${exportPath}`)
+
           const confirmed = await cli.confirm(
             `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
           )
+
           if (!confirmed) {
             this.exit(1)
-          } else {
-            await fs.promises.writeFile(resolved, output)
           }
         }
+
+        await fs.promises.writeFile(resolved, output)
+        this.log(`Exported account ${response.content.account.name} to ${resolved}`)
       } catch (err: unknown) {
         if (ErrorUtils.isNoEntityError(err)) {
           await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
