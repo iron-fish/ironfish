@@ -66,6 +66,8 @@ export class ExportCommand extends IronfishCommand {
           throw err
         }
       }
+
+      return
     }
 
     if (color) {
