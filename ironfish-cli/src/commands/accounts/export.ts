@@ -8,6 +8,7 @@ import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
+import cli from 'cli-ux'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -57,6 +58,16 @@ export class ExportCommand extends IronfishCommand {
             this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`),
             output,
           )
+        } else {
+          this.log(`There is already an account backup at ${exportPath}`)
+          const confirmed = await cli.confirm(
+            `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
+          )
+          if (!confirmed) {
+            this.exit(1)
+          } else {
+            await fs.promises.writeFile(resolved, output)
+          }
         }
       } catch (err: unknown) {
         if (ErrorUtils.isNoEntityError(err)) {
