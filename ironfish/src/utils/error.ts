@@ -32,4 +32,11 @@ export function renderError(error: unknown, stack = false): string {
   return extractMessage(error)
 }
 
-export const ErrorUtils = { renderError }
+export function isConnectRefusedError(error: unknown): error is Error & { code: 'ECONNREFUSED'} {
+  return error instanceof Error && 'code' in error && error['code'] === 'ECONNREFUSED'
+}
+export function isNoEntityError(error: unknown): error is Error & { code: 'ENOENT'} {
+  return error instanceof Error && 'code' in error && error['code'] === 'ENOENT'
+}
+
+export const ErrorUtils = { renderError, isConnectRefusedError, isNoEntityError }

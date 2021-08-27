@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import fs from 'fs'
-import path from 'path'
+import { ErrorUtils } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
+import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
 
@@ -52,10 +53,13 @@ export class ExportCommand extends IronfishCommand {
       try {
         const stats = await fs.promises.stat(resolved)
         if (stats.isDirectory()) {
-          await fs.promises.writeFile(this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`), output)
+          await fs.promises.writeFile(
+            this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`),
+            output,
+          )
         }
-      } catch (err) {
-        if (err.code === 'ENOENT') {
+      } catch (err: unknown) {
+        if (ErrorUtils.isNoEntityError(err)) {
           await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
           await fs.promises.writeFile(resolved, output)
         } else {
