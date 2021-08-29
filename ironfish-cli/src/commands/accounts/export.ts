@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
+import cli from 'cli-ux'
 import fs from 'fs'
+import { ErrorUtils } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
+import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
 
@@ -46,9 +49,38 @@ export class ExportCommand extends IronfishCommand {
     let output = JSON.stringify(response.content.account, undefined, '   ')
 
     if (exportPath) {
-      const resolved = this.sdk.fileSystem.resolve(exportPath)
-      fs.writeFileSync(resolved, output)
-      this.log(`Exported account ${account} to the file ${exportPath}`)
+      let resolved = this.sdk.fileSystem.resolve(exportPath)
+
+      try {
+        const stats = await fs.promises.stat(resolved)
+
+        if (stats.isDirectory()) {
+          resolved = this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`)
+        }
+
+        if (fs.existsSync(resolved)) {
+          this.log(`There is already an account backup at ${exportPath}`)
+
+          const confirmed = await cli.confirm(
+            `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
+          )
+
+          if (!confirmed) {
+            this.exit(1)
+          }
+        }
+
+        await fs.promises.writeFile(resolved, output)
+        this.log(`Exported account ${response.content.account.name} to ${resolved}`)
+      } catch (err: unknown) {
+        if (ErrorUtils.isNoEntityError(err)) {
+          await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
+          await fs.promises.writeFile(resolved, output)
+        } else {
+          throw err
+        }
+      }
+
       return
     }
 

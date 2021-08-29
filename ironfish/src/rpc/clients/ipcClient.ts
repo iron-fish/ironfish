@@ -5,7 +5,7 @@ import { IPC, IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
-import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
+import { ErrorUtils, PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { IpcErrorSchema, IpcRequest, IpcResponseSchema, IpcStreamSchema } from '../adapters'
 import { isResponseError, Response } from '../response'
 import { Stream } from '../stream'
@@ -20,13 +20,6 @@ import { IronfishRpcClient } from './rpcClient'
 
 const CONNECT_RETRY_MS = 2000
 const REQUEST_TIMEOUT_MS = null
-
-function isConnectRefusedError(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error['code'] === 'ECONNREFUSED'
-}
-function isNoEntityError(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error['code'] === 'ENOENT'
-}
 
 export type IpcClientConnectionInfo =
   | {
@@ -120,9 +113,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
           client.off('error', onError)
           client.off('connect', onConnect)
 
-          if (isConnectRefusedError(error)) {
+          if (ErrorUtils.isConnectRefusedError(error)) {
             reject(new ConnectionRefusedError())
-          } else if (isNoEntityError(error)) {
+          } else if (ErrorUtils.isNoEntityError(error)) {
             reject(new ConnectionRefusedError())
           } else {
             reject(error)
