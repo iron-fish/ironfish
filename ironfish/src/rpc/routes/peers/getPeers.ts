@@ -26,7 +26,6 @@ export type PeerResponse = {
   connectionWebRTCError: string
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export type GetPeersRequest =
   | undefined
   | {

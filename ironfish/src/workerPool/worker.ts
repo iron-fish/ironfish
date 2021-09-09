@@ -150,12 +150,16 @@ export class Worker {
     Assert.isNotNull(job.reject)
 
     if (response.body.type === 'jobError') {
+      const prevStatus = job.status
       job.status = 'error'
-      job.ended.emit(job)
+      job.onChange.emit(job, prevStatus)
+      job.onEnded.emit(job)
       job.reject(JobError.deserialize(response.body.error))
     } else {
+      const prevStatus = job.status
       job.status = 'success'
-      job.ended.emit(job)
+      job.onChange.emit(job, prevStatus)
+      job.onEnded.emit(job)
       job.resolve(response)
     }
   }
