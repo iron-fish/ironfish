@@ -39,6 +39,21 @@ export class WorkerPool {
 
   private lastJobId = 0
 
+  readonly stats = new Map<
+    WorkerRequest['type'],
+    { complete: number; error: number; queue: number; execute: number }
+  >([
+    ['createMinersFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['verify', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['mineHeader', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
+  ])
+
   get saturated(): boolean {
     return this.queue.length >= this.maxQueue
   }
@@ -270,7 +285,9 @@ export class WorkerPool {
   private execute(request: Readonly<WorkerRequest>): Job {
     const jobId = this.lastJobId++
     const job = new Job({ jobId: jobId, body: request })
-    job.ended.once(this.jobEnded)
+    job.onEnded.once(this.jobEnded)
+    job.onChange.on(this.jobChange)
+    job.onChange.emit(job, 'init')
 
     // If there are no workers, execute in process
     if (this.workers.length === 0) {
@@ -320,5 +337,40 @@ export class WorkerPool {
     this.speed?.add(1)
     this.completed++
     this.executeQueue()
+  }
+
+  private jobChange = (job: Job, prevStatus: Job['status']): void => {
+    const stats = this.stats.get(job.request.body.type)
+
+    if (!stats) {
+      return
+    }
+
+    switch (prevStatus) {
+      case 'queued':
+        stats.queue--
+        break
+      case 'executing':
+        stats.execute--
+        break
+    }
+
+    switch (job.status) {
+      case 'queued':
+        stats.queue++
+        break
+      case 'executing':
+        stats.execute++
+        break
+      case 'aborted':
+        stats.complete++
+        break
+      case 'success':
+        stats.complete++
+        break
+      case 'error':
+        stats.error++
+        break
+    }
   }
 }

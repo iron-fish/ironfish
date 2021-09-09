@@ -190,6 +190,7 @@ export class IronfishSdk {
       ApiNamespace.peer,
       ApiNamespace.transaction,
       ApiNamespace.telemetry,
+      ApiNamespace.worker,
     ]
 
     if (this.config.get('enableRpcIpc')) {

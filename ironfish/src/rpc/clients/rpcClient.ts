@@ -27,6 +27,8 @@ import {
   GetPublicKeyResponse,
   GetStatusRequest,
   GetStatusResponse,
+  GetWorkersStatusRequest,
+  GetWorkersStatusResponse,
   GiveMeRequest,
   GiveMeResponse,
   NewBlocksStreamRequest,
@@ -168,6 +170,21 @@ export abstract class IronfishRpcClient {
 
   getPeersStream(params: GetPeersRequest = undefined): Response<void, GetPeersResponse> {
     return this.request<void, GetPeersResponse>('peer/getPeers', { ...params, stream: true })
+  }
+
+  async getWorkersStatus(
+    params: GetWorkersStatusRequest = undefined,
+  ): Promise<ResponseEnded<GetWorkersStatusResponse>> {
+    return this.request<GetWorkersStatusResponse>('worker/getStatus', params).waitForEnd()
+  }
+
+  getWorkersStatusStream(
+    params: GetWorkersStatusRequest = undefined,
+  ): Response<void, GetWorkersStatusResponse> {
+    return this.request<void, GetWorkersStatusResponse>('worker/getStatus', {
+      ...params,
+      stream: true,
+    })
   }
 
   async getPeer(params: GetPeerRequest): Promise<ResponseEnded<GetPeerResponse>> {

@@ -96,7 +96,7 @@ describe('Worker Pool', () => {
     expect(pool.executing).toBe(1)
     expect(pool.completed).toBe(0)
     expect(job1.status).toBe('executing')
-    expect(job2.status).toBe('waiting')
+    expect(job2.status).toBe('queued')
 
     await pool.stop()
 

@@ -13,17 +13,19 @@ export class Job {
   id: number
   request: WorkerRequestMessage
   worker: Worker | null
-  status: 'waiting' | 'executing' | 'success' | 'error' | 'aborted'
+  status: 'init' | 'queued' | 'executing' | 'success' | 'error' | 'aborted'
   promise: Promise<WorkerResponseMessage>
   resolve: PromiseResolve<WorkerResponseMessage>
   reject: PromiseReject
-  ended = new Event<[Job]>()
+
+  onEnded = new Event<[Job]>()
+  onChange = new Event<[Job, Job['status']]>()
 
   constructor(request: WorkerRequestMessage) {
     this.id = request.jobId
     this.request = request
     this.worker = null
-    this.status = 'waiting'
+    this.status = 'queued'
 
     const [promise, resolve, reject] = PromiseUtils.split<WorkerResponseMessage>()
     this.promise = promise
@@ -37,12 +39,14 @@ export class Job {
   }
 
   abort(): void {
-    if (this.status !== 'waiting' && this.status !== 'executing') {
+    if (this.status !== 'queued' && this.status !== 'executing') {
       return
     }
 
+    const prevStatus = this.status
     this.status = 'aborted'
-    this.ended.emit(this)
+    this.onChange.emit(this, prevStatus)
+    this.onEnded.emit(this)
 
     if (this.worker) {
       this.worker.send({ jobId: this.id, body: { type: 'jobAbort' } })
@@ -55,8 +59,10 @@ export class Job {
   }
 
   execute(worker: Worker | null = null): Job {
+    const prevStatus = this.status
     this.status = 'executing'
     this.worker = worker
+    this.onChange.emit(this, prevStatus)
 
     if (worker) {
       worker.send(this.request)
@@ -66,15 +72,19 @@ export class Job {
     void handleRequest(this.request, this)
       .then((r) => {
         if (this.status !== 'aborted') {
+          const prevStatus = this.status
           this.status = 'success'
-          this.ended.emit(this)
+          this.onChange.emit(this, prevStatus)
+          this.onEnded.emit(this)
           this.resolve?.(r)
         }
       })
       .catch((e: unknown) => {
         if (this.status !== 'aborted') {
+          const prevStatus = this.status
           this.status = 'error'
-          this.ended.emit(this)
+          this.onChange.emit(this, prevStatus)
+          this.onEnded.emit(this)
           this.reject?.(e)
         }
       })
