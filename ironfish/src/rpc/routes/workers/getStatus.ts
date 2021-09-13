@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { MathUtils } from '../../../utils'
 import { WorkerPool } from '../../../workerPool'
 import { ApiNamespace, router } from '../router'
 
@@ -13,6 +14,12 @@ export type GetWorkersStatusRequest =
 
 export type GetWorkersStatusResponse = {
   started: boolean
+  workers: number
+  queued: number
+  capacity: number
+  executing: number
+  change: number
+  speed: number
   jobs: Array<{
     name: string
     complete: number
@@ -32,6 +39,12 @@ export const GetWorkersStatusRequestSchema: yup.ObjectSchema<GetWorkersStatusReq
 export const GetWorkersStatusResponseSchema: yup.ObjectSchema<GetWorkersStatusResponse> = yup
   .object({
     started: yup.boolean().defined(),
+    workers: yup.number().defined(),
+    queued: yup.number().defined(),
+    capacity: yup.number().defined(),
+    executing: yup.number().defined(),
+    change: yup.number().defined(),
+    speed: yup.number().defined(),
     jobs: yup
       .array(
         yup
@@ -55,15 +68,42 @@ router.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
     const jobs = getJobs(node.workerPool)
 
     if (!request.data?.stream) {
-      request.end({ started: node.workerPool.started, jobs })
+      request.end({
+        started: node.workerPool.started,
+        workers: node.workerPool.workers.length,
+        executing: node.workerPool.executing,
+        queued: node.workerPool.queued,
+        capacity: node.workerPool.capacity,
+        change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
+        speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
+        jobs,
+      })
       return
     }
 
-    request.stream({ started: node.workerPool.started, jobs })
+    request.stream({
+      started: node.workerPool.started,
+      workers: node.workerPool.workers.length,
+      executing: node.workerPool.executing,
+      queued: node.workerPool.queued,
+      capacity: node.workerPool.capacity,
+      change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
+      speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
+      jobs,
+    })
 
     const interval = setInterval(() => {
       const jobs = getJobs(node.workerPool)
-      request.stream({ started: node.workerPool.started, jobs })
+      request.stream({
+        started: node.workerPool.started,
+        workers: node.workerPool.workers.length,
+        executing: node.workerPool.executing,
+        queued: node.workerPool.queued,
+        capacity: node.workerPool.capacity,
+        change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
+        speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
+        jobs,
+      })
     }, 1000)
 
     request.onClose.on(() => {
