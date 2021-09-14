@@ -38,6 +38,30 @@ describe('accounts:pay command', () => {
     '997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
   const from =
     '197c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
+  const memo = 'test memo for a transaction'
+
+  test
+    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stdout()
+    .command([
+      'accounts:pay',
+      `-a ${amount}`,
+      `-t ${to}`,
+      `-f ${from}`,
+      `-o ${fee}`,
+      `-m ${memo}`,
+    ])
+    .exit(0)
+    .it(
+      'with every flag: show the right confirmation message and call sendTransaction if valid',
+      (ctx) => {
+        expectCli(ctx.stdout).include(
+          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
+        )
+        expectCli(ctx.stdout).include(`Transaction Hash`)
+        expect(sendTransaction).toBeCalledTimes(1)
+      },
+    )
 
   test
     .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
@@ -45,7 +69,7 @@ describe('accounts:pay command', () => {
     .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
     .exit(0)
     .it(
-      'with every flag: show the right confirmation message and call sendTransaction if valid',
+      'without memo flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
         expectCli(ctx.stdout).include(
           `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
