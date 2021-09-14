@@ -42,6 +42,10 @@ export class Pay extends IronfishCommand {
       char: 'o',
       description: 'the fee amount in Ore',
     }),
+    memo: flags.string({
+      char: 'm',
+      description: 'the memo of transaction',
+    }),
     confirm: flags.boolean({
       default: false,
       description: 'confirm without asking',
@@ -54,6 +58,7 @@ export class Pay extends IronfishCommand {
     let fee = flags.fee as unknown as number
     let to = flags.to
     let from = flags.account
+    const message = flags.memo as string
 
     const client = await this.sdk.connectRpc()
 
@@ -181,7 +186,7 @@ ${displayIronAmountWithCurrency(
       const result = await client.sendTransaction({
         amount: ironToOre(amount).toString(),
         fromAccountName: from,
-        memo: '',
+        memo: message,
         toPublicKey: to,
         transactionFee: ironToOre(fee).toString(),
       })
