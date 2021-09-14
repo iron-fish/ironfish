@@ -100,7 +100,7 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
       result.push({ name: name, ...job })
     }
   }
-  const response: GetWorkersStatusResponse = {
+  return {
     started: node.workerPool.started,
     workers: node.workerPool.workers.length,
     executing: node.workerPool.executing,
@@ -110,5 +110,4 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
     speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
     jobs: result,
   }
-  return response
 }
