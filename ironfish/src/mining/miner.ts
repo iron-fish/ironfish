@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Event } from '../event'
+import { createRootLogger, Logger } from '../logger'
 import { hashBlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { WorkerPool } from '../workerPool'
@@ -11,6 +13,8 @@ import { Job } from '../workerPool/job'
  * The number of tasks to run in each thread batch
  */
 const BATCH_SIZE = 10000
+
+const FAILURE_RETRY_TIME_MS = 1000
 
 /**
  * Return value from a mining task.
@@ -23,12 +27,46 @@ const BATCH_SIZE = 10000
  */
 type MineResult = { initialRandomness: number; randomness?: number; miningRequestId?: number }
 
+type MineRequest = {
+  bytes: Buffer
+  target: bigint
+  requestId: number
+}
+
 export default class Miner {
   workerPool: WorkerPool
+  workers: number
+  jobs: Job[] = []
 
-  constructor(numTasks: number) {
-    this.workerPool = new WorkerPool({ maxWorkers: numTasks })
+  constructor(options?: { workers?: number }) {
+    this.workers = options?.workers ?? 1
+    this.workerPool = new WorkerPool({ maxWorkers: this.workers })
   }
+
+  // async mineFoo(request: MineRequest): Promise<void> {
+  //   if (!this.workerPool.started) {
+  //     this.workerPool.start()
+  //   }
+
+  //   for (const job of this.jobs) {
+  //     void job.abort()
+  //   }
+
+  //   this.jobs.length = 0
+
+  //   for (let i = 0; i < this.workers; i++) {
+  //     const job = this.workerPool.mineHeader(
+  //       newBlockData.miningRequestId,
+  //       bytes,
+  //       randomness,
+  //       newBlockData.target,
+  //       BATCH_SIZE,
+  //     )
+
+  //     this.jobs.push(job)
+  //     await Promise.race(job)
+  //   }
+  // }
 
   /**
    * Prime the pool of mining tasks with several jobs for the given block.
@@ -41,7 +79,6 @@ export default class Miner {
    * @param numTasks The number of new tasks to enqueue
    * @param bytes The bytes of the header to be mined by these tasks
    * @param target The target value that this batch needs to meet
-   * @param hashFunction the strategy's hash function, serialized to a string
    */
   private primePool(
     randomness: number,
@@ -63,6 +100,7 @@ export default class Miner {
         newBlockData.target,
         BATCH_SIZE,
       )
+
       randomness += BATCH_SIZE
     }
 
@@ -202,6 +240,7 @@ export function mineHeader({
       i > Number.MAX_SAFE_INTEGER - initialRandomness
         ? i - (Number.MAX_SAFE_INTEGER - initialRandomness) - 1
         : initialRandomness + i
+
     new DataView(randomnessBytes).setFloat64(0, randomness, false)
 
     const headerBytes = Buffer.concat([
@@ -215,5 +254,48 @@ export function mineHeader({
       return { initialRandomness, randomness, miningRequestId }
     }
   }
+
   return { initialRandomness }
+}
+
+export class MinerFoo {
+  status: 'idle' | 'stopped' = 'stopped'
+  workers: WorkerPool
+  jobs: Job[] = []
+  maxWorkers: number
+  onRequestWork = new Event<[]>()
+  logger: Logger
+
+  constructor(options?: { workers?: number; logger?: Logger }) {
+    this.maxWorkers = options?.workers ?? 1
+    this.workers = new WorkerPool({ maxWorkers: this.maxWorkers })
+    this.logger = options?.logger ?? createRootLogger()
+  }
+
+  mine(): void {
+    if (this.status === 'stopped') {
+      return
+    }
+  }
+
+  start(): void {
+    if (this.status !== 'stopped') {
+      return
+    }
+
+    this.status = 'idle'
+    void this.requestWork()
+  }
+
+  private async requestWork(): Promise<void> {
+    if (this.status !== 'idle') {
+      return
+    }
+
+    try {
+      await this.onRequestWork.emitAsync()
+    } catch {
+      setTimeout(() => this.requestWork(), FAILURE_RETRY_TIME_MS)
+    }
+  }
 }

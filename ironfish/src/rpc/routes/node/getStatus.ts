@@ -168,9 +168,9 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       version: Package.git,
     },
     miningDirector: {
-      status: node.miningDirector.isStarted() ? 'started' : 'stopped',
-      miners: node.miningDirector.miners,
-      blocks: node.miningDirector.blocksMined,
+      status: node.miningDirector.started ? 'started' : 'stopped',
+      miners: node.miningDirector.miners.size,
+      blocks: node.miningDirector.submittedBlocks,
     },
     memPool: {
       size: node.memPool.size(),

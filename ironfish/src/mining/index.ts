@@ -3,4 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export { default as Miner } from './miner'
+export { MinerFoo } from './miner'
 export { MiningDirector } from './director'
+export { MinerDirector } from './minerDirector'

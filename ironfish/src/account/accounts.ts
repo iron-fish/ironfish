@@ -340,6 +340,7 @@ export class Accounts {
       for (const account of accounts) {
         // Try decrypting the note as the owner
         const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
+
         if (receivedNote) {
           if (receivedNote.value() !== BigInt(0)) {
             notes.push({

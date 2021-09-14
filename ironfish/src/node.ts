@@ -9,7 +9,7 @@ import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
-import { MiningDirector } from './mining'
+import { MinerDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
@@ -25,7 +25,7 @@ export class IronfishNode {
   internal: InternalStore
   accounts: Accounts
   logger: Logger
-  miningDirector: MiningDirector
+  miningDirector: MinerDirector
   metrics: MetricsMonitor
   memPool: MemPool
   workerPool: WorkerPool
@@ -62,7 +62,7 @@ export class IronfishNode {
     chain: Blockchain
     strategy: Strategy
     metrics: MetricsMonitor
-    miningDirector: MiningDirector
+    miningDirector: MinerDirector
     memPool: MemPool
     workerPool: WorkerPool
     logger: Logger
@@ -187,7 +187,7 @@ export class IronfishNode {
 
     const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
 
-    const mining = new MiningDirector({
+    const miningDirector = new MinerDirector({
       chain: chain,
       strategy: strategy,
       memPool: memPool,
@@ -208,7 +208,7 @@ export class IronfishNode {
       internal,
       accounts,
       metrics,
-      miningDirector: mining,
+      miningDirector,
       memPool,
       workerPool,
       logger,
@@ -231,8 +231,8 @@ export class IronfishNode {
 
     await this.accounts.load()
 
-    const defaultAccount = this.accounts.getDefaultAccount()
-    this.miningDirector.setMinerAccount(defaultAccount)
+    // const defaultAccount = this.accounts.getDefaultAccount()
+    // this.miningDirector.setMinerAccount(defaultAccount)
   }
 
   async closeDB(): Promise<void> {
@@ -254,6 +254,10 @@ export class IronfishNode {
 
     if (this.config.get('enableMetrics')) {
       this.metrics.start()
+    }
+
+    if (this.config.get('enableMiningDirector')) {
+      this.miningDirector.start()
     }
 
     this.accounts.start()
@@ -282,7 +286,7 @@ export class IronfishNode {
       stopCollecting(),
       this.metrics.stop(),
       this.workerPool.stop(),
-      this.miningDirector.shutdown(),
+      this.miningDirector.stop(),
     ])
 
     if (this.shutdownResolve) {
@@ -298,17 +302,17 @@ export class IronfishNode {
     }
 
     if (this.config.get('enableMiningDirector')) {
-      void this.miningDirector.start()
+      void this.miningDirector.startMining()
     }
   }
 
   onPeerNetworkNotReady(): void {
     void this.syncer.stop()
-    this.miningDirector.shutdown()
+    this.miningDirector.stopMining()
   }
 
   onDefaultAccountChange = (account: Account | null): void => {
-    this.miningDirector.setMinerAccount(account)
+    // this.miningDirector.setMinerAccount(account)
   }
 
   async onConfigChange<Key extends keyof ConfigOptions>(
@@ -317,7 +321,7 @@ export class IronfishNode {
   ): Promise<void> {
     switch (key) {
       case 'blockGraffiti': {
-        this.miningDirector.setBlockGraffiti(this.config.get('blockGraffiti'))
+        this.miningDirector.graffiti = this.config.get('blockGraffiti')
         break
       }
       case 'enableTelemetry': {
@@ -348,7 +352,7 @@ export class IronfishNode {
         if (newValue && this.peerNetwork.isReady) {
           void this.miningDirector.start()
         } else {
-          this.miningDirector.shutdown()
+          this.miningDirector.stop()
         }
         break
       }

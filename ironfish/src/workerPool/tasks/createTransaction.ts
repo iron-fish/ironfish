@@ -41,11 +41,13 @@ export function handleCreateTransaction({
 
   for (const spend of spends) {
     const note = WasmNote.deserialize(spend.note)
+
     transaction.spend(
       spendKey,
       note,
       new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
     )
+
     note.free()
   }
 

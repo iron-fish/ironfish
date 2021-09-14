@@ -17,17 +17,17 @@ export const SuccessfullyMinedResponseSchema: yup.MixedSchema<SuccessfullyMinedR
   .mixed()
   .oneOf([undefined] as const)
 
-router.register<typeof SuccessfullyMinedRequestSchema, SuccessfullyMinedResponse>(
-  `${ApiNamespace.miner}/successfullyMined`,
-  SuccessfullyMinedRequestSchema,
-  async (request, node): Promise<void> => {
-    if (node.miningDirector) {
-      await node.miningDirector.successfullyMined(
-        request.data.randomness,
-        request.data.miningRequestId,
-      )
-    }
+// router.register<typeof SuccessfullyMinedRequestSchema, SuccessfullyMinedResponse>(
+//   `${ApiNamespace.miner}/successfullyMined`,
+//   SuccessfullyMinedRequestSchema,
+//   async (request, node): Promise<void> => {
+//     if (node.miningDirector) {
+//       await node.miningDirector.successfullyMined(
+//         request.data.randomness,
+//         request.data.miningRequestId,
+//       )
+//     }
 
-    request.end()
-  },
-)
+//     request.end()
+//   },
+// )

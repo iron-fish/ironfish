@@ -3,7 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import { Miner as IronfishMiner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
+import {
+  AsyncUtils,
+  IronfishRpcClient,
+  Miner as IronfishMiner,
+  MinerFoo,
+  NewBlocksStreamResponse,
+  PromiseUtils,
+} from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -13,69 +20,72 @@ export class Miner extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    threads: flags.integer({
+    workers: flags.integer({
       char: 't',
       default: 1,
-      description:
-        'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+      description: 'number of workers to use for mining. -1 will use ALL your available cores.',
+    }),
+    name: flags.string({
+      char: 'n',
+      description: 'An identifiable name of the miner',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = this.parse(Miner)
 
-    let threads = flags.threads
-    if (threads === 0 || threads < -1) {
-      throw new Error('--threads must be a positive integer or -1.')
-    } else if (threads === -1) {
-      threads = os.cpus().length
+    if (flags.workers === 0 || flags.workers < -1) {
+      throw new Error('--workers must be a positive integer or -1.')
+    }
+
+    if (flags.workers === -1) {
+      flags.workers = os.cpus().length - 1
     }
 
     const client = this.sdk.client
+    let connectAttempts = 0
 
-    const successfullyMined = (randomness: number, miningRequestId: number) => {
-      cli.action.stop(
-        `Submitting mining attempt to node from request ${miningRequestId} with randomness ${randomness}`,
-      )
+    this.log(
+      `Starting miner${flags.name ? ' ' + flags.name : ''} with ${flags.workers} worker(s)`,
+    )
 
-      const request = client.successfullyMined({ randomness, miningRequestId })
-      request.waitForEnd().catch(() => {
-        cli.action.stop('Unable to submit mined block')
-      })
-
-      cli.action.start('Mining a block')
-    }
-
-    async function* nextBlock(blocksStream: AsyncGenerator<unknown, void>) {
-      for (;;) {
-        const blocksResult =
-          (await blocksStream.next()) as IteratorResult<NewBlocksStreamResponse>
-
-        if (blocksResult.done) {
-          return
-        }
-
-        yield blocksResult.value
-      }
-    }
+    cli.action.start('Starting miner')
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      cli.action.start('Connecting to node')
       const connected = await client.tryConnect()
 
       if (!connected) {
-        this.logger.log('Not connected to a node - waiting 5s before retrying')
+        cli.action.start(
+          'Not connected to a node - waiting 5s before retrying' +
+            (connectAttempts ? `(attempts ${connectAttempts})` : ''),
+        )
+
+        connectAttempts++
         await PromiseUtils.sleep(5000)
         continue
       }
 
-      this.logger.log(`Starting to mine with ${threads} thread${threads === 1 ? '' : 's'}`)
-      const blocksStream = client.newBlocksStream().contentStream()
+      connectAttempts = 0
+      cli.action.start('Connecting miner')
 
-      cli.action.start('Mining a block')
-      const miner = new IronfishMiner(threads)
-      await miner.mine(nextBlock(blocksStream), successfullyMined)
-      cli.action.stop('Mining interrupted')
+      const stream = client.connectMinerStream({ name: flags.name })
+      const info = await AsyncUtils.first(stream.contentStream())
+
+      this.log(`Miner connected with id ${String(info.minerId)}`)
+      const miner = new MinerFoo()
+
+      cli.action.start('Authenticating miner')
+
+      const onRequestWork = async (): Promise<void> => {
+        this.log('Requesting Work\n')
+        await client.getMinerWork({ id: info.minerId, token: info.token })
+      }
+
+      miner.onRequestWork.on(onRequestWork)
+
+      await stream.waitForEnd()
     }
   }
 }

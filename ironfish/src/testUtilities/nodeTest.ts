@@ -8,7 +8,7 @@ import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
-import { MiningDirector } from '../mining'
+import { MinerDirector } from '../mining'
 import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
@@ -39,7 +39,7 @@ export class NodeTest {
   accounts!: Accounts
   peerNetwork!: PeerNetwork
   syncer!: Syncer
-  miningDirector!: MiningDirector
+  miningDirector!: MinerDirector
   workerPool!: WorkerPool
 
   setups = new Array<{
@@ -50,7 +50,7 @@ export class NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
+    miningDirector: MinerDirector
     workerPool: WorkerPool
   }>()
 
@@ -67,7 +67,7 @@ export class NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
+    miningDirector: MinerDirector
     workerPool: WorkerPool
   }> {
     if (!options) {

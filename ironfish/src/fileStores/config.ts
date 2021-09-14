@@ -147,7 +147,7 @@ export class Config extends KeyStore<ConfigOptions> {
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
-      enableMiningDirector: false,
+      enableMiningDirector: true,
       enableRpc: true,
       enableRpcIpc: true,
       enableRpcTcp: false,

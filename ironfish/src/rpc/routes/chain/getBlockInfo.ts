@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -14,6 +15,14 @@ export type GetBlockInfoResponse = {
     previousBlockHash: string
     sequence: number
     timestamp: number
+    noteCommitment: {
+      size: number
+      commitment: string
+    }
+    nullifierCommitment: {
+      size: number
+      commitment: string
+    }
     transactions: Array<{
       transactionFee: string
       transactionHash: string
@@ -39,6 +48,18 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
         previousBlockHash: yup.string().defined(),
         sequence: yup.number().defined(),
         timestamp: yup.number().defined(),
+        noteCommitment: yup
+          .object({
+            commitment: yup.string().defined(),
+            size: yup.number().defined(),
+          })
+          .defined(),
+        nullifierCommitment: yup
+          .object({
+            commitment: yup.string().defined(),
+            size: yup.number().defined(),
+          })
+          .defined(),
         transactions: yup
           .array(
             yup
@@ -79,6 +100,21 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
       for (const tx of block.transactions) {
         const fee = await tx.transactionFee()
 
+        const acc = node.accounts.getAccountByName('fishp3810')
+        Assert.isNotNull(acc)
+
+        const note = tx.getNote(0)
+        const dec = note.decryptNoteForOwner(acc.incomingViewKey)
+
+        Assert.isNotUndefined(dec)
+
+        console.log('MERKLE_HASH', note.merkleHash().toString('hex'))
+        console.log('MEMO', dec.memo())
+        console.log('NULLIFIER',
+          dec.nullifier(acc.spendingKey, BigInt(block.header.noteCommitment.size - 1)).toString('hex'),
+        )
+        console.log('VALUE', dec.value().toString())
+
         transactions.push({
           transactionSignature: tx.transactionSignature().toString('hex'),
           transactionHash: tx.transactionHash().toString('hex'),
@@ -97,6 +133,14 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         sequence: Number(header.sequence),
         timestamp: header.timestamp.valueOf(),
         transactions: transactions,
+        noteCommitment: {
+          size: header.noteCommitment.size,
+          commitment: header.noteCommitment.commitment.toString('hex'),
+        },
+        nullifierCommitment: {
+          size: header.nullifierCommitment.size,
+          commitment: header.nullifierCommitment.commitment.toString('hex'),
+        },
       },
     })
   },

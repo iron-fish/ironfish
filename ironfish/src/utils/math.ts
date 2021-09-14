@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { number } from 'yup'
+
 function arrayAverage(values: number[]): number {
   if (values.length === 0) {
     return 0
@@ -39,4 +41,8 @@ function min<T extends number | bigint>(a: T, b: T): T {
   return a > b ? b : a
 }
 
-export const MathUtils = { arrayAverage, arraySum, round, min, max }
+function bitsNeeded(value: number): number {
+  return Math.ceil(Math.log(value) / Math.log(2) + 1)
+}
+
+export const MathUtils = { arrayAverage, arraySum, round, min, max, bitsNeeded }
