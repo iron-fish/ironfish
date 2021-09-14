@@ -49,7 +49,6 @@ export default class Status extends IronfishCommand {
       }
 
       const response = this.sdk.client.getWorkersStatusStream()
-
       for await (const value of response.contentStream()) {
         statusText.clearBaseLine(0)
         statusText.setContent(renderStatus(value))
@@ -60,9 +59,12 @@ export default class Status extends IronfishCommand {
 }
 
 function renderStatus(content: GetWorkersStatusResponse): string {
-  let status = `STARTED ${content.started ? 'TRUE' : 'FALSE'}\n\n`
-  status += `${'JOB'.padEnd(20, ' ')} | QUEUE | EXECUTE | ERROR | DONE \n`
+  let workersStatus = `${content.started ? 'STARTED' : 'STOPPED'}`
+  if (content.started) {
+    workersStatus += ` - ${content.queued} -> ${content.executing} / ${content.capacity} - ${content.change} jobs Δ, ${content.speed} jobs/s`
+  }
 
+  let status = `\n${'JOB'.padEnd(20, ' ')} | QUEUE | EXECUTE | ERROR | DONE \n`
   for (const job of content.jobs) {
     status += `${job.name.padEnd(20, ' ')} | ${String(job.queue).padStart(5, ' ')} | ${String(
       job.execute,
@@ -72,5 +74,6 @@ function renderStatus(content: GetWorkersStatusResponse): string {
     )}\n`
   }
 
-  return status
+  return `Workers              ${workersStatus}
+  ${status}`
 }
