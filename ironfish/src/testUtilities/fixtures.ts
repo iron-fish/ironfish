@@ -284,7 +284,7 @@ export async function useBlockWithTx(
   from?: Account,
   to?: Account,
   useFee = true,
-): Promise<{ account: Account; previous: Block; block: Block }> {
+): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
     from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
   }
@@ -326,5 +326,5 @@ export async function useBlockWithTx(
     )
   })
 
-  return { block, previous, account: from }
+  return { block, previous, account: from, transaction: block.transactions[0] }
 }

@@ -104,7 +104,7 @@ export class MemPool {
    *     TODO: transactions that have been previously verified are needlessly verified again
    *     when the only thing that might have changed is whether they have been spent before
    */
-  async isValidTransaction(
+  private async isValidTransaction(
     transaction: Transaction,
     beforeSize: number,
     seenNullifiers: Nullifier[],
