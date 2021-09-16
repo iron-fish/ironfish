@@ -57,6 +57,7 @@ describe('start command', () => {
       isWorker: false,
       bootstrapNodes: [],
       blockGraffiti: defaultGraffiti,
+      generateNewIdentity: false,
     }
 
     const internalOptions = {
