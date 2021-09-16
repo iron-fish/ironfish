@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishNode, NodeUtils, PromiseUtils } from 'ironfish'
+import { IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
 import { Platform } from 'ironfish'
+import tweetnacl from 'tweetnacl'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
   ConfigFlag,
@@ -155,7 +156,9 @@ export default class Start extends IronfishCommand {
       this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
     }
 
-    const node = await this.sdk.node()
+    const privateIdentity = this.getPrivateIdentity()
+
+    const node = await this.sdk.node({ privateIdentity: privateIdentity })
 
     const version = Platform.getAgent('cli')
     const nodeName = this.sdk.config.get('nodeName').trim() || null
@@ -186,6 +189,10 @@ export default class Start extends IronfishCommand {
 
       this.exit(1)
     }
+
+    const newSecretKey = Buffer.from(privateIdentity.secretKey).toString('hex')
+    node.internal.set('networkIdentity', newSecretKey)
+    await node.internal.save()
 
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
@@ -235,5 +242,21 @@ export default class Start extends IronfishCommand {
 
     node.internal.set('isFirstRun', false)
     await node.internal.save()
+  }
+
+  getPrivateIdentity(): PrivateIdentity {
+    let privateIdentity: PrivateIdentity
+    const networkIdentity = this.sdk.internal.get('networkIdentity')
+    if (
+      !this.sdk.config.get('generateNewIdentity') &&
+      networkIdentity !== undefined &&
+      networkIdentity.length > 31
+    ) {
+      const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
+      privateIdentity = tweetnacl.box.keyPair.fromSecretKey(hex)
+    } else {
+      privateIdentity = tweetnacl.box.keyPair()
+    }
+    return privateIdentity
   }
 }

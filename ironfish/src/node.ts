@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
-import tweetnacl from 'tweetnacl'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
@@ -53,6 +52,7 @@ export class IronfishNode {
     workerPool,
     logger,
     webSocket,
+    privateIdentity,
   }: {
     agent: string
     files: FileSystem
@@ -67,6 +67,7 @@ export class IronfishNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
+    privateIdentity?: PrivateIdentity
   }) {
     this.files = files
     this.config = config
@@ -80,8 +81,6 @@ export class IronfishNode {
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)
     this.logger = logger
-
-    const privateIdentity: PrivateIdentity = this.getPrivateIdentity()
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
@@ -129,6 +128,7 @@ export class IronfishNode {
     files,
     strategyClass,
     webSocket,
+    privateIdentity,
   }: {
     agent: string
     dataDir?: string
@@ -141,6 +141,7 @@ export class IronfishNode {
     files: FileSystem
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
+    privateIdentity?: PrivateIdentity
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
     metrics = metrics || new MetricsMonitor(logger)
@@ -212,6 +213,7 @@ export class IronfishNode {
       workerPool,
       logger,
       webSocket,
+      privateIdentity,
     })
   }
 
@@ -269,25 +271,6 @@ export class IronfishNode {
 
   async waitForShutdown(): Promise<void> {
     await this.shutdownPromise
-  }
-
-  getPrivateIdentity(): PrivateIdentity {
-    let privateIdentity: PrivateIdentity
-    const networkIdentity = this.internal.get('networkIdentity')
-    if (
-      !this.config.get('generateNewIdentity') &&
-      networkIdentity !== undefined &&
-      networkIdentity.length > 31
-    ) {
-      const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
-      privateIdentity = tweetnacl.box.keyPair.fromSecretKey(hex)
-    } else {
-      privateIdentity = tweetnacl.box.keyPair()
-      const newSecretKey = Buffer.from(privateIdentity.secretKey).toString('hex')
-      this.internal.set('networkIdentity', newSecretKey)
-      void this.internal.save()
-    }
-    return privateIdentity
   }
 
   async shutdown(): Promise<void> {

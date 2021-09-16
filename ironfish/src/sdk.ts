@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BoxKeyPair } from 'tweetnacl'
+import { PrivateIdentity } from '.'
 import { Config, ConfigOptions } from './fileStores'
 import { InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
@@ -36,6 +38,7 @@ export class IronfishSdk {
   metrics: MetricsMonitor
   internal: InternalStore
   strategyClass: typeof Strategy | null
+  privateIdentity: BoxKeyPair | null | undefined
 
   private constructor(
     agent: string,
@@ -160,9 +163,11 @@ export class IronfishSdk {
   async node({
     databaseName,
     autoSeed,
+    privateIdentity,
   }: {
     databaseName?: string
     autoSeed?: boolean
+    privateIdentity?: PrivateIdentity
   } = {}): Promise<IronfishNode> {
     const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
 
@@ -177,6 +182,7 @@ export class IronfishSdk {
       metrics: this.metrics,
       strategyClass: this.strategyClass,
       webSocket: webSocket,
+      privateIdentity: privateIdentity,
     })
 
     const namespaces = [
