@@ -273,18 +273,18 @@ export class IronfishNode {
 
   getPrivateIdentity(): PrivateIdentity {
     let privateIdentity: PrivateIdentity
-    const secretKey = this.internal.get('secretKey')
+    const networkIdentity = this.internal.get('networkIdentity')
     if (
       !this.config.get('generateNewIdentity') &&
-      secretKey !== undefined &&
-      secretKey.length > 31
+      networkIdentity !== undefined &&
+      networkIdentity.length > 31
     ) {
-      const hex = Uint8Array.from(Buffer.from(secretKey, 'hex'))
+      const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
       privateIdentity = tweetnacl.box.keyPair.fromSecretKey(hex)
     } else {
       privateIdentity = tweetnacl.box.keyPair()
       const newSecretKey = Buffer.from(privateIdentity.secretKey).toString('hex')
-      this.internal.set('secretKey', newSecretKey)
+      this.internal.set('networkIdentity', newSecretKey)
       void this.internal.save()
     }
     return privateIdentity
