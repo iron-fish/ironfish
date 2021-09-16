@@ -83,6 +83,11 @@ export default class Start extends IronfishCommand {
       description: 'track all messages sent and received by peers',
       hidden: true,
     }),
+    generateNewIdentity: flags.boolean({
+      default: false,
+      description: 'genereate new identity for each new start',
+      hidden: true,
+    }),
   }
 
   node: IronfishNode | null = null
@@ -110,6 +115,7 @@ export default class Start extends IronfishCommand {
       port,
       worker,
       workers,
+      generateNewIdentity,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -141,6 +147,12 @@ export default class Start extends IronfishCommand {
       logPeerMessages !== this.sdk.config.get('logPeerMessages')
     ) {
       this.sdk.config.setOverride('logPeerMessages', logPeerMessages)
+    }
+    if (
+      generateNewIdentity !== undefined &&
+      generateNewIdentity !== this.sdk.config.get('generateNewIdentity')
+    ) {
+      this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
     }
 
     const node = await this.sdk.node()

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
+import tweetnacl from 'tweetnacl'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
@@ -10,7 +11,7 @@ import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
-import { PeerNetwork } from './network'
+import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -80,7 +81,10 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
 
+    const privateIdentity: PrivateIdentity = this.getPrivateIdentity()
+
     this.peerNetwork = new PeerNetwork({
+      identity: privateIdentity,
       agent: agent,
       port: config.get('peerPort'),
       name: config.get('nodeName'),
@@ -265,6 +269,25 @@ export class IronfishNode {
 
   async waitForShutdown(): Promise<void> {
     await this.shutdownPromise
+  }
+
+  getPrivateIdentity(): PrivateIdentity {
+    let privateIdentity: PrivateIdentity
+    const secretKey = this.internal.get('secretKey')
+    if (
+      !this.config.get('generateNewIdentity') &&
+      secretKey !== undefined &&
+      secretKey.length > 31
+    ) {
+      const hex = Uint8Array.from(Buffer.from(secretKey, 'hex'))
+      privateIdentity = tweetnacl.box.keyPair.fromSecretKey(hex)
+    } else {
+      privateIdentity = tweetnacl.box.keyPair()
+      const newSecretKey = Buffer.from(privateIdentity.secretKey).toString('hex')
+      this.internal.set('secretKey', newSecretKey)
+      void this.internal.save()
+    }
+    return privateIdentity
   }
 
   async shutdown(): Promise<void> {
