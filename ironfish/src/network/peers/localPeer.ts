@@ -16,7 +16,7 @@ export class LocalPeer {
   readonly chain: Blockchain
   readonly workerPool: WorkerPool
   // our keypair for encrypting messages
-  private readonly privateIdentity: PrivateIdentity
+  readonly privateIdentity: PrivateIdentity
   // the identity we expose to other peers
   readonly publicIdentity: Identity
   // the agent of the local client

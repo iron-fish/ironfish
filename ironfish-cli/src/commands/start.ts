@@ -190,7 +190,9 @@ export default class Start extends IronfishCommand {
       this.exit(1)
     }
 
-    const newSecretKey = Buffer.from(privateIdentity.secretKey).toString('hex')
+    const newSecretKey = Buffer.from(
+      node.peerNetwork.localPeer.privateIdentity.secretKey,
+    ).toString('hex')
     node.internal.set('networkIdentity', newSecretKey)
     await node.internal.save()
 
@@ -244,8 +246,7 @@ export default class Start extends IronfishCommand {
     await node.internal.save()
   }
 
-  getPrivateIdentity(): PrivateIdentity {
-    let privateIdentity: PrivateIdentity
+  getPrivateIdentity(): PrivateIdentity | undefined {
     const networkIdentity = this.sdk.internal.get('networkIdentity')
     if (
       !this.sdk.config.get('generateNewIdentity') &&
@@ -253,10 +254,7 @@ export default class Start extends IronfishCommand {
       networkIdentity.length > 31
     ) {
       const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
-      privateIdentity = tweetnacl.box.keyPair.fromSecretKey(hex)
-    } else {
-      privateIdentity = tweetnacl.box.keyPair()
+      return tweetnacl.box.keyPair.fromSecretKey(hex)
     }
-    return privateIdentity
   }
 }
