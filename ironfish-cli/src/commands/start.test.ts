@@ -150,7 +150,7 @@ describe('start command', () => {
       .it('show the telemetry message, generate the genesis block', (ctx) => {
         // welcome message
         expectCli(ctx.stdout).include(`Peer Identity`)
-        expect(setConfig).toHaveBeenCalledTimes(0)
+        expect(setConfig).toHaveBeenCalledTimes(1)
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()
