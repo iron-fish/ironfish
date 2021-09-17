@@ -106,6 +106,13 @@ export type ConfigOptions = {
   targetPeers: number
   telemetryApi: string
   accountName: string
+
+  /**
+   * When the option is true, then each invocation of start command will invoke generation of new identity.
+   * In situation, when the option is false, the app check if identity already exists in internal.json file,
+   * if exists then will use it, otherwise will generate new.
+   */
+  generateNewIdentity: boolean
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -167,6 +174,7 @@ export class Config extends KeyStore<ConfigOptions> {
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
+      generateNewIdentity: false,
     }
   }
 }

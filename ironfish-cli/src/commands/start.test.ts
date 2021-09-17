@@ -57,10 +57,12 @@ describe('start command', () => {
       isWorker: false,
       bootstrapNodes: [],
       blockGraffiti: defaultGraffiti,
+      generateNewIdentity: false,
     }
 
     const internalOptions = {
       isFirstRun,
+      networkIdentity: '',
     }
 
     const config = {
@@ -87,6 +89,9 @@ describe('start command', () => {
     const peerNetwork = {
       localPeer: {
         publicIdentity: 'identity',
+        privateIdentity: {
+          secretKey: '',
+        },
       },
     }
 
@@ -149,7 +154,7 @@ describe('start command', () => {
       .it('show the telemetry message, generate the genesis block', (ctx) => {
         // welcome message
         expectCli(ctx.stdout).include(`Peer Identity`)
-        expect(setConfig).toHaveBeenCalledTimes(0)
+        expect(setConfig).toHaveBeenCalledTimes(1)
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()

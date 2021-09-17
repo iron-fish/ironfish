@@ -6,10 +6,12 @@ import { KeyStore } from './keyStore'
 
 export type InternalOptions = {
   isFirstRun: boolean
+  networkIdentity: string
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
   isFirstRun: true,
+  networkIdentity: '',
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {

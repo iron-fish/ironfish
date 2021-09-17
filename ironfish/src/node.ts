@@ -10,7 +10,7 @@ import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
-import { PeerNetwork } from './network'
+import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -52,6 +52,7 @@ export class IronfishNode {
     workerPool,
     logger,
     webSocket,
+    privateIdentity,
   }: {
     agent: string
     files: FileSystem
@@ -66,6 +67,7 @@ export class IronfishNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
+    privateIdentity?: PrivateIdentity
   }) {
     this.files = files
     this.config = config
@@ -81,6 +83,7 @@ export class IronfishNode {
     this.logger = logger
 
     this.peerNetwork = new PeerNetwork({
+      identity: privateIdentity,
       agent: agent,
       port: config.get('peerPort'),
       name: config.get('nodeName'),
@@ -125,6 +128,7 @@ export class IronfishNode {
     files,
     strategyClass,
     webSocket,
+    privateIdentity,
   }: {
     agent: string
     dataDir?: string
@@ -137,6 +141,7 @@ export class IronfishNode {
     files: FileSystem
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
+    privateIdentity?: PrivateIdentity
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
     metrics = metrics || new MetricsMonitor(logger)
@@ -208,6 +213,7 @@ export class IronfishNode {
       workerPool,
       logger,
       webSocket,
+      privateIdentity,
     })
   }
 
