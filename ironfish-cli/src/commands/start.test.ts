@@ -62,6 +62,7 @@ describe('start command', () => {
 
     const internalOptions = {
       isFirstRun,
+      networkIdentity: '',
     }
 
     const config = {
@@ -88,6 +89,9 @@ describe('start command', () => {
     const peerNetwork = {
       localPeer: {
         publicIdentity: 'identity',
+        privateIdentity: {
+          secretKey: '',
+        },
       },
     }
 
