@@ -64,12 +64,16 @@ export default class Sync extends IronfishCommand {
       this.exit(1)
     }
 
-    this.log('Connecting to node and fetching head...')
+    this.log('Connecting to node...')
 
     const client = await this.sdk.connectRpc()
 
+    this.log(`Fetching head from ${apiHost}`)
+
     const api = new IronfishApi(apiHost, apiToken)
     const head = await api.head()
+
+    this.log(`Starting from head ${head}`)
 
     const response = client.followChainStream({
       head: (args.head || head) as string | null,
