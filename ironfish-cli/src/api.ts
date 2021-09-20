@@ -37,6 +37,7 @@ export class IronfishApi {
       previous_block_hash: block.previous,
       difficulty: block.difficulty,
       graffiti: block.graffiti,
+      main: block.main,
       transactions: block.transactions,
       transactions_count: block.transactions.length,
     }))
