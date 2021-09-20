@@ -34,6 +34,7 @@ export type FollowChainStreamResponse = {
     transactions: Array<{
       hash: string
       size: number
+      fee: number
       notes: Array<{ commitment: string }>
       spends: Array<{ nullifier: string }>
     }>
@@ -70,6 +71,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
               .object({
                 hash: yup.string().defined(),
                 size: yup.number().defined(),
+                fee: yup.number().defined(),
                 notes: yup
                   .array(
                     yup
@@ -110,7 +112,27 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       head: head,
     })
 
-    const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+    const send = async (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+      const transactions = await Promise.all(
+        block.transactions.map(async (transaction) => {
+          const size = Buffer.from(
+            JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
+          ).byteLength
+
+          return {
+            hash: BlockHashSerdeInstance.serialize(transaction.transactionHash()),
+            size,
+            fee: Number(await transaction.transactionFee()),
+            notes: [...transaction.notes()].map((note) => ({
+              commitment: note.merkleHash().toString('hex'),
+            })),
+            spends: [...transaction.spends()].map((spend) => ({
+              nullifier: spend.nullifier.toString('hex'),
+            })),
+          }
+        }),
+      )
+
       request.stream({
         type: type,
         head: {
@@ -125,21 +147,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           main: type === 'connected',
           timestamp: block.header.timestamp.valueOf(),
           difficulty: block.header.target.toDifficulty().toString(),
-          transactions: block.transactions.map((transaction) => {
-            const transactionBuffer = Buffer.from(
-              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-            )
-            return {
-              hash: BlockHashSerdeInstance.serialize(transaction.transactionHash()),
-              size: transactionBuffer.byteLength,
-              notes: [...transaction.notes()].map((note) => ({
-                commitment: note.merkleHash().toString('hex'),
-              })),
-              spends: [...transaction.spends()].map((spend) => ({
-                nullifier: spend.nullifier.toString('hex'),
-              })),
-            }
-          }),
+          transactions,
         },
       })
     }
