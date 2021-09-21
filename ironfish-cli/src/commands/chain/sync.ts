@@ -52,7 +52,7 @@ export default class Sync extends IronfishCommand {
 
     if (!apiHost) {
       this.log(
-        `No api host found to upload blocks too. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
+        `No api host found to upload blocks to. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
       )
       this.exit(1)
     }
