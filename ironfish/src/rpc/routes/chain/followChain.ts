@@ -155,17 +155,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      send(block, 'connected')
+      void send(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      send(block, 'disconnected')
+      void send(block, 'disconnected')
     }
 
     const onFork = (block: Block) => {
-      send(block, 'fork')
+      void send(block, 'fork')
     }
 
     processor.onAdd.on(onAdd)
