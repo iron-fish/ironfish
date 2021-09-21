@@ -12,6 +12,7 @@ export function mockEvent(): any {
 export function mockAccounts(): any {
   return {
     onBroadcastTransaction: mockEvent(),
+    syncTransaction: jest.fn(),
   }
 }
 
@@ -29,8 +30,10 @@ export function mockStrategy(): any {
 export function mockNode(): any {
   return {
     accounts: mockAccounts(),
+    memPool: mockMempool(),
     miningDirector: mockDirector(),
     syncer: mockSyncer(),
+    workerPool: mockWorkerPool(),
   }
 }
 
@@ -44,8 +47,20 @@ export function mockDirector(): any {
   }
 }
 
+function mockMempool(): unknown {
+  return {
+    acceptTransaction: jest.fn(),
+  }
+}
+
 export function mockSyncer(): any {
   return {
     addNewBlock: jest.fn(),
+  }
+}
+
+function mockWorkerPool(): unknown {
+  return {
+    saturated: jest.fn(),
   }
 }

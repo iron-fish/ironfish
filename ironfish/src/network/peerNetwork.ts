@@ -771,6 +771,10 @@ export class PeerNetwork {
   private async onNewTransaction(
     message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    if (this.node.workerPool.saturated) {
+      return false
+    }
+
     const transaction = message.message.payload.transaction
 
     if (this.node.memPool.acceptTransaction(transaction)) {
