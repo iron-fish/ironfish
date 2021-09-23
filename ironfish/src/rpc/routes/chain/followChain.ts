@@ -7,6 +7,7 @@ import { Blockchain } from '../../../blockchain'
 import { Event } from '../../../event'
 import { Logger } from '../../../logger'
 import { Block, BlockHeader } from '../../../primitives'
+import { BlockHashSerdeInstance } from '../../../serde'
 import { GraffitiUtils } from '../../../utils/graffiti'
 import { ApiNamespace, router } from '../router'
 
@@ -31,6 +32,13 @@ export type FollowChainStreamResponse = {
     timestamp: number
     work: string
     main: boolean
+    transactions: Array<{
+      hash: string
+      size: number
+      fee: number
+      notes: Array<{ commitment: string }>
+      spends: Array<{ nullifier: string }>
+    }>
   }
 }
 
@@ -59,6 +67,35 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         work: yup.string().defined(),
         main: yup.boolean().defined(),
         difficulty: yup.string().defined(),
+        transactions: yup
+          .array(
+            yup
+              .object({
+                hash: yup.string().defined(),
+                size: yup.number().defined(),
+                fee: yup.number().defined(),
+                notes: yup
+                  .array(
+                    yup
+                      .object({
+                        commitment: yup.string().defined(),
+                      })
+                      .defined(),
+                  )
+                  .defined(),
+                spends: yup
+                  .array(
+                    yup
+                      .object({
+                        nullifier: yup.string().defined(),
+                      })
+                      .defined(),
+                  )
+                  .defined(),
+              })
+              .defined(),
+          )
+          .defined(),
       })
       .defined(),
   })
@@ -77,7 +114,25 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       head: head,
     })
 
-    const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+    const send = async (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+      const transactions = await Promise.all(
+        block.transactions.map(async (transaction) => {
+          return {
+            hash: BlockHashSerdeInstance.serialize(transaction.transactionHash()),
+            size: Buffer.from(
+              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
+            ).byteLength,
+            fee: Number(await transaction.transactionFee()),
+            notes: [...transaction.notes()].map((note) => ({
+              commitment: note.merkleHash().toString('hex'),
+            })),
+            spends: [...transaction.spends()].map((spend) => ({
+              nullifier: spend.nullifier.toString('hex'),
+            })),
+          }
+        }),
+      )
+
       request.stream({
         type: type,
         head: {
@@ -94,6 +149,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           main: type === 'connected',
           timestamp: block.header.timestamp.valueOf(),
           difficulty: block.header.target.toDifficulty().toString(),
+          transactions,
         },
       })
     }
@@ -101,17 +157,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      send(block, 'connected')
+      await send(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      send(block, 'disconnected')
+      await send(block, 'disconnected')
     }
 
-    const onFork = (block: Block) => {
-      send(block, 'fork')
+    const onFork = async (block: Block) => {
+      await send(block, 'fork')
     }
 
     processor.onAdd.on(onAdd)

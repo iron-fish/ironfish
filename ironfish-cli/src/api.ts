@@ -38,7 +38,8 @@ export class IronfishApi {
       difficulty: block.difficulty,
       size: block.size,
       graffiti: block.graffiti,
-      transactions_count: 0,
+      main: block.main,
+      transactions: block.transactions,
     }))
 
     const options = this.options({ 'Content-Type': 'application/json' })
