@@ -40,7 +40,6 @@ export class IronfishApi {
       graffiti: block.graffiti,
       main: block.main,
       transactions: block.transactions,
-      transactions_count: block.transactions.length,
     }))
 
     const options = this.options({ 'Content-Type': 'application/json' })
