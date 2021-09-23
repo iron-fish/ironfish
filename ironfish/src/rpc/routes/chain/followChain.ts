@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { Event } from '../../../event'
 import { Logger } from '../../../logger'
@@ -26,6 +27,7 @@ export type FollowChainStreamResponse = {
     previous: string
     graffiti: string
     difficulty: string
+    size: number
     timestamp: number
     work: string
     main: boolean
@@ -53,6 +55,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         previous: yup.string().defined(),
         timestamp: yup.number().defined(),
         graffiti: yup.string().defined(),
+        size: yup.number().defined(),
         work: yup.string().defined(),
         main: yup.boolean().defined(),
         difficulty: yup.string().defined(),
@@ -74,35 +77,41 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       head: head,
     })
 
-    const send = (header: BlockHeader, type: 'connected' | 'disconnected' | 'fork') => {
+    const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       request.stream({
         type: type,
         head: {
           sequence: node.chain.head.sequence,
         },
         block: {
-          hash: header.hash.toString('hex'),
-          sequence: header.sequence,
-          previous: header.previousBlockHash.toString('hex'),
-          graffiti: GraffitiUtils.toHuman(header.graffiti),
-          work: header.work.toString(),
+          hash: block.header.hash.toString('hex'),
+          sequence: block.header.sequence,
+          previous: block.header.previousBlockHash.toString('hex'),
+          graffiti: GraffitiUtils.toHuman(block.header.graffiti),
+          size: Buffer.from(JSON.stringify(node.strategy.blockSerde.serialize(block)))
+            .byteLength,
+          work: block.header.work.toString(),
           main: type === 'connected',
-          timestamp: header.timestamp.valueOf(),
-          difficulty: header.target.toDifficulty().toString(),
+          timestamp: block.header.timestamp.valueOf(),
+          difficulty: block.header.target.toDifficulty().toString(),
         },
       })
     }
 
-    const onAdd = (header: BlockHeader) => {
-      send(header, 'connected')
+    const onAdd = async (header: BlockHeader) => {
+      const block = await node.chain.getBlock(header)
+      Assert.isNotNull(block)
+      send(block, 'connected')
     }
 
-    const onRemove = (header: BlockHeader) => {
-      send(header, 'disconnected')
+    const onRemove = async (header: BlockHeader) => {
+      const block = await node.chain.getBlock(header)
+      Assert.isNotNull(block)
+      send(block, 'disconnected')
     }
 
     const onFork = (block: Block) => {
-      send(block.header, 'fork')
+      send(block, 'fork')
     }
 
     processor.onAdd.on(onAdd)
