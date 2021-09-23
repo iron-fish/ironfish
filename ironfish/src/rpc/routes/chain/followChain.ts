@@ -28,6 +28,7 @@ export type FollowChainStreamResponse = {
     previous: string
     graffiti: string
     difficulty: string
+    size: number
     timestamp: number
     work: string
     main: boolean
@@ -62,6 +63,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         previous: yup.string().defined(),
         timestamp: yup.number().defined(),
         graffiti: yup.string().defined(),
+        size: yup.number().defined(),
         work: yup.string().defined(),
         main: yup.boolean().defined(),
         difficulty: yup.string().defined(),
@@ -115,13 +117,12 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const send = async (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = await Promise.all(
         block.transactions.map(async (transaction) => {
-          const size = Buffer.from(
-            JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-          ).byteLength
 
           return {
             hash: BlockHashSerdeInstance.serialize(transaction.transactionHash()),
-            size,
+            size: Buffer.from(
+              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
+            ).byteLength,
             fee: Number(await transaction.transactionFee()),
             notes: [...transaction.notes()].map((note) => ({
               commitment: note.merkleHash().toString('hex'),
@@ -143,6 +144,8 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           sequence: block.header.sequence,
           previous: block.header.previousBlockHash.toString('hex'),
           graffiti: GraffitiUtils.toHuman(block.header.graffiti),
+          size: Buffer.from(JSON.stringify(node.strategy.blockSerde.serialize(block)))
+            .byteLength,
           work: block.header.work.toString(),
           main: type === 'connected',
           timestamp: block.header.timestamp.valueOf(),
