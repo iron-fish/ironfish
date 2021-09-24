@@ -5,17 +5,21 @@ import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import {
   AsyncUtils,
+  createRootLogger,
+  IronfishIpcClient,
   IronfishRpcClient,
-  Miner as IronfishMiner,
-  MinerFoo,
+  Logger,
+  Miner,
   NewBlocksStreamResponse,
+  PromiseResolve,
   PromiseUtils,
+  RPC_TIMEOUT_MILLIS,
 } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class Miner extends IronfishCommand {
+export class Start extends IronfishCommand {
   static description = `Start a miner and subscribe to new blocks for the node`
 
   static flags = {
@@ -32,7 +36,7 @@ export class Miner extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Miner)
+    const { flags } = this.parse(Start)
 
     if (flags.workers === 0 || flags.workers < -1) {
       throw new Error('--workers must be a positive integer or -1.')
@@ -57,10 +61,9 @@ export class Miner extends IronfishCommand {
       const connected = await client.tryConnect()
 
       if (!connected) {
-        cli.action.start(
+        cli.action.status =
           'Not connected to a node - waiting 5s before retrying' +
-            (connectAttempts ? `(attempts ${connectAttempts})` : ''),
-        )
+          (connectAttempts ? ` (attempts ${connectAttempts})` : '')
 
         connectAttempts++
         await PromiseUtils.sleep(5000)
@@ -68,24 +71,78 @@ export class Miner extends IronfishCommand {
       }
 
       connectAttempts = 0
-      cli.action.start('Connecting miner')
+      cli.action.stop('Connected')
 
-      const stream = client.connectMinerStream({ name: flags.name })
-      const info = await AsyncUtils.first(stream.contentStream())
+      const miner = new MinerClient({ client })
 
-      this.log(`Miner connected with id ${String(info.minerId)}`)
-      const miner = new MinerFoo()
+      this.log('Authenticating')
+      await miner.connect()
+      await miner.waitForDisconnect()
 
-      cli.action.start('Authenticating miner')
+      // const onRequestWork = async (): Promise<void> => {
+      //   await client.getMinerWork({ id: info.minerId, token: info.token })
+      // }
 
-      const onRequestWork = async (): Promise<void> => {
-        this.log('Requesting Work\n')
-        await client.getMinerWork({ id: info.minerId, token: info.token })
-      }
-
-      miner.onRequestWork.on(onRequestWork)
-
-      await stream.waitForEnd()
+      // miner.onRequestWork.on(onRequestWork)
     }
+  }
+}
+
+class MinerClient {
+  miner: Miner
+  logger: Logger
+  client: IronfishIpcClient
+
+  name: string | null = null
+  id: number | null = null
+  token: string | null = null
+  connectPromise: Promise<void> | null = null
+  connectResolve: PromiseResolve<void> | null = null
+
+  constructor(options: { name?: string; client: IronfishIpcClient; logger?: Logger }) {
+    this.name = options.name || null
+    this.client = options.client
+    this.miner = new Miner()
+    this.logger = options.logger ?? createRootLogger()
+  }
+
+  async connect(): Promise<void> {
+    const connection = this.client.connectMiner({ name: this.name ?? undefined })
+    const info = await AsyncUtils.first(connection.contentStream())
+
+    this.id = info.minerId
+    this.token = info.token
+
+    const [promise, resolve] = PromiseUtils.split<void>()
+    this.connectPromise = promise
+    this.connectResolve = resolve
+
+    void connection
+      .waitForEnd()
+      .catch(() => {
+        /* Eat exception */
+      })
+      .finally(() => {
+        this.onDisconnected()
+      })
+
+    this.logger.info(`Miner connected with id ${String(this.id)}`)
+
+    const jobs = this.client.getMinerJob({ id: this.id, token: this.token })
+    for await(const job of jobs.contentStream()) {
+    }
+  }
+
+  async run(): Promise<void> {
+    const jobs = this.client.getMinerJob({ id: this.id, token: this.token })
+    for await(const job of jobs.contentStream()) {
+
+
+    await this.connectPromise
+  }
+
+  private onDisconnected() {
+    this.logger.info('Miner disconnected')
+    this.connectResolve?.()
   }
 }

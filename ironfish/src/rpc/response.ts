@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Event } from '../event'
 import { SetTimeoutToken } from '../utils'
 import { ConnectionLostError } from './clients'
 import { Stream } from './stream'
@@ -18,7 +19,9 @@ export function isResponseUserError(response: Response<unknown>): boolean {
   return response.status >= 400 && response.status <= 499
 }
 
-export type ResponseEnded<TEnd> = Exclude<Response<TEnd>, 'content'> & { content: TEnd }
+export type ResponseEnded<TEnd> = Exclude<Exclude<Response<TEnd>, 'content'>, 'onStream'> & {
+  content: TEnd
+}
 
 export class Response<TEnd = unknown, TStream = unknown> {
   private promise: Promise<TEnd>
@@ -27,6 +30,8 @@ export class Response<TEnd = unknown, TStream = unknown> {
 
   status = 0
   content: TEnd | null = null
+  onStream = new Event<[TStream]>()
+  onEnd = new Event<[TStream]>()
 
   constructor(
     promise: Promise<TEnd>,
@@ -58,5 +63,9 @@ export class Response<TEnd = unknown, TStream = unknown> {
       }
       throw e
     })
+  }
+
+  handleStream(data: unknown): void {
+    this.stream.write(data)
   }
 }

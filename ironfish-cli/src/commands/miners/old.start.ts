@@ -75,7 +75,7 @@ export class Miner extends IronfishCommand {
 
       cli.action.start('Mining a block')
       const miner = new IronfishMiner({ workers: flags.workers })
-      await miner.mine(nextBlock(blocksStream), successfullyMined)
+      // await miner.mine(nextBlock(blocksStream), successfullyMined)
       cli.action.stop('Mining interrupted')
     }
   }

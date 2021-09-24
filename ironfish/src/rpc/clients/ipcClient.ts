@@ -136,7 +136,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
     })
   }
 
-  /** Like IpcClient.connect but doesn't throw an error if we cannot connect */
+  /**
+   * Like IpcClient.connect but doesn't throw an error if we cannot connect
+   * */
   async tryConnect(): Promise<boolean> {
     return this.connect({ retryConnect: false })
       .then(() => true)
@@ -183,6 +185,8 @@ export class IronfishIpcClient extends IronfishRpcClient {
       }, timeoutMs)
     }
 
+    response = new Response<TEnd, TStream>(promise, stream, timeout)
+
     const resolveRequest = (...args: Parameters<typeof resolve>): void => {
       this.pending.delete(messageId)
       if (timeout) {
@@ -200,8 +204,6 @@ export class IronfishIpcClient extends IronfishRpcClient {
       stream.close()
       reject(...args)
     }
-
-    response = new Response<TEnd, TStream>(promise, stream, timeout)
 
     const pending = {
       resolve: resolveRequest as (value: unknown) => void,

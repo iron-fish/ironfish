@@ -227,7 +227,7 @@ export abstract class IronfishRpcClient {
     ).waitForEnd()
   }
 
-  connectMinerStream(
+  connectMiner(
     params: ConnectMinerRequest = undefined,
   ): Response<void, ConnectMinerResponse> {
     return this.request<void, ConnectMinerResponse>('miner/connectMiner', params)
