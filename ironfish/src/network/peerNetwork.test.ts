@@ -255,6 +255,54 @@ describe('PeerNetwork', () => {
       })
     })
 
+    describe('when the node is syncing', () => {
+      it('does not accept or sync transactions', async () => {
+        const chain = {
+          ...mockChain(),
+          synced: false,
+          verifier: {
+            verifyNewTransaction: jest.fn(),
+          },
+        }
+        const node = {
+          ...mockNode(),
+          chain,
+        }
+        const peerNetwork = new PeerNetwork({
+          identity: mockPrivateIdentity('local'),
+          agent: 'sdk/1/cli',
+          webSocket: ws,
+          node,
+          chain,
+          strategy: mockStrategy(),
+        })
+
+        const { accounts, memPool } = node
+        const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
+        const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
+
+        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
+          NodeMessageType.NewTransaction,
+        )
+
+        if (newTransactionHandler === undefined) {
+          throw new Error('Expected newTransactionHandler to be defined')
+        }
+
+        await newTransactionHandler({
+          peerIdentity: '',
+          message: {
+            type: NodeMessageType.NewTransaction,
+            nonce: 'nonce',
+            payload: {},
+          },
+        })
+
+        expect(acceptTransaction).not.toHaveBeenCalled()
+        expect(syncTransaction).not.toHaveBeenCalled()
+      })
+    })
+
     describe('when the worker pool is not saturated', () => {
       it('verifies transactions', async () => {
         const verifyNewTransaction = jest.fn(() => {
