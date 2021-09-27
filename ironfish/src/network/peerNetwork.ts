@@ -776,6 +776,10 @@ export class PeerNetwork {
     }
 
     // Ignore new transactions if the node is still syncing
+    //
+    // TODO(rohanjadvani): However, it's okay to accept transactions if you are
+    // not synced and not syncing. We should update this logic after syncing
+    // becomes more reliable
     if (!this.node.chain.synced) {
       return false
     }
