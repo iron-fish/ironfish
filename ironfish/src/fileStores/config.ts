@@ -14,6 +14,9 @@ export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/api/v1/getFun
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/api/v1/writeTelemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
+export const DEFAULT_MAX_PEERS = 8
+export const DEFAULT_MIN_PEERS = 1
+export const DEFAULT_TARGET_PEERS = 8
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -169,9 +172,9 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
       rpcRetryConnect: false,
-      maxPeers: 8,
-      minPeers: 1,
-      targetPeers: 8,
+      maxPeers: DEFAULT_MAX_PEERS,
+      minPeers: DEFAULT_MIN_PEERS,
+      targetPeers: DEFAULT_TARGET_PEERS,
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
