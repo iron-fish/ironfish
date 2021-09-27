@@ -775,6 +775,11 @@ export class PeerNetwork {
       return false
     }
 
+    // Ignore new transactions if the node is still syncing
+    if (!this.node.chain.synced) {
+      return false
+    }
+
     const transaction = message.message.payload.transaction
 
     if (this.node.memPool.acceptTransaction(transaction)) {
