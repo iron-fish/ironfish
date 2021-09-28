@@ -12,6 +12,7 @@ import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
+import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
@@ -81,7 +82,7 @@ export class Verifier {
 
     // Verify the transactions
     const verificationResults = await Promise.all(
-      block.transactions.map((t) => this.verifyTransaction(t)),
+      block.transactions.map((t) => this.verifyTransaction(t, { verifyFees: false })),
     )
 
     const invalidResult = verificationResults.find((f) => !f.valid)
@@ -172,9 +173,12 @@ export class Verifier {
     return transaction
   }
 
-  async verifyTransaction(transaction: Transaction): Promise<VerificationResult> {
+  async verifyTransaction(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     try {
-      return transaction.verify()
+      return transaction.verify(options)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
