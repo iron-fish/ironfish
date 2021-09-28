@@ -43,19 +43,23 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
-    const { valid } = await this.chain.verifier.verifyTransaction(transaction)
+    const { valid, reason } = await this.chain.verifier.verifyTransaction(transaction)
+    const hash = transaction.transactionHash()
+    const renderedHash = hash.toString('hex')
     if (!valid) {
+      if (reason) {
+        this.logger.debug(`Invalid transaction '${renderedHash}': ${reason}`)
+      }
       return false
     }
 
-    const hash = transaction.transactionHash()
     if (this.transactions.has(hash)) {
       return false
     }
 
     this.transactions.set(hash, transaction)
 
-    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${renderedHash}, poolsize ${this.size()}`)
     return true
   }
 

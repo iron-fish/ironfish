@@ -156,16 +156,17 @@ export class Verifier {
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  verifyNewTransaction(payload: { transaction: SerializedTransaction }): Transaction {
-    const transaction = this.strategy.transactionSerde.deserialize(payload.transaction)
+  verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
+    const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
 
     try {
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
       transaction.takeReference()
     } catch {
-      transaction.returnReference()
       throw new Error('Transaction cannot deserialize')
+    } finally {
+      transaction.returnReference()
     }
 
     return transaction

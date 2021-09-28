@@ -25,23 +25,21 @@ describe('Verifier', () => {
 
     it('rejects if payload is not a serialized transaction', async () => {
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: Buffer.from(JSON.stringify({ notA: 'Transaction' })),
-        }),
+        nodeTest.chain.verifier.verifyNewTransaction(
+          Buffer.from(JSON.stringify({ notA: 'Transaction' })),
+        ),
       ).rejects.toThrowError('Payload is not a serialized transaction')
     })
 
     it('rejects if the transaction cannot be deserialized', async () => {
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: Buffer.alloc(32, 'hello'),
-        }),
+        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
       ).rejects.toThrowError('Transaction cannot deserialize')
 
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: Buffer.from(JSON.stringify({ not: 'valid' })),
-        }),
+        nodeTest.chain.verifier.verifyNewTransaction(
+          Buffer.from(JSON.stringify({ not: 'valid' })),
+        ),
       ).rejects.toThrowError('Transaction cannot deserialize')
     })
 
@@ -49,9 +47,7 @@ describe('Verifier', () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
       const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
-      const transaction = nodeTest.chain.verifier.verifyNewTransaction({
-        transaction: serialized,
-      })
+      const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 
       expect(tx.equals(transaction)).toBe(true)
     }, 60000)
@@ -66,7 +62,7 @@ describe('Verifier', () => {
       })
 
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ transaction: serialized }),
+        nodeTest.chain.verifier.verifyNewTransaction(serialized),
       ).rejects.toThrowError('Transaction is invalid')
     }, 60000)
 
@@ -76,7 +72,7 @@ describe('Verifier', () => {
       const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ transaction: serialized }),
+        nodeTest.chain.verifier.verifyNewTransaction(serialized),
       ).rejects.toThrowError('Transaction has negative fees')
     }, 30000)
   })

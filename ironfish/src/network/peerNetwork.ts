@@ -228,7 +228,7 @@ export class PeerNetwork {
           }
 
           return Promise.resolve({
-            transaction: this.node.chain.verifier.verifyNewTransaction(p),
+            transaction: this.node.chain.verifier.verifyNewTransaction(p.transaction),
           })
         },
         (message) => this.onNewTransaction(message),

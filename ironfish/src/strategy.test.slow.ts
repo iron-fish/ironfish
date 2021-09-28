@@ -89,9 +89,8 @@ describe('Demonstrate the Sapling API', () => {
 
       const verifier = new Verifier(nodeTest.chain)
       const serialized = strategy.transactionSerde.serialize(minersFee)
-      const payload = { transaction: serialized }
 
-      await expect(verifier.verifyNewTransaction(payload)).rejects.toThrowError(
+      await expect(verifier.verifyNewTransaction(serialized)).rejects.toThrowError(
         'Transaction has negative fees',
       )
     }, 60000)
