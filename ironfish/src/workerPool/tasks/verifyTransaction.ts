@@ -21,6 +21,11 @@ export function handleVerifyTransaction({
   let verified = false
   try {
     transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
+
+    if (transaction.transactionFee < BigInt(0)) {
+      throw new Error('Transaction has negative fees')
+    }
+
     verified = transaction.verify()
   } catch {
     verified = false

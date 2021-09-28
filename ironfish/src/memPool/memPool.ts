@@ -42,7 +42,12 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  acceptTransaction(transaction: Transaction): boolean {
+  async acceptTransaction(transaction: Transaction): Promise<boolean> {
+    const { valid } = await this.chain.verifier.verifyTransaction(transaction)
+    if (!valid) {
+      return false
+    }
+
     const hash = transaction.transactionHash()
     if (this.transactions.has(hash)) {
       return false

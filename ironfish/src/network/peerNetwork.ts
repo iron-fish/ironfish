@@ -47,6 +47,7 @@ import {
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
   isGetBlocksResponse,
+  isNewTransactionPayload,
   LooseMessage,
   Message,
   MessageType,
@@ -222,9 +223,15 @@ export class PeerNetwork {
         NodeMessageType.NewTransaction,
         RoutingStyle.gossip,
         (p) => {
-          return this.chain.verifier.verifyNewTransaction(p)
+          if (!isNewTransactionPayload(p)) {
+            throw new Error('Payload is not a serialized transaction')
+          }
+
+          return Promise.resolve({
+            transaction: this.node.chain.verifier.verifyNewTransaction(p),
+          })
         },
-        async (message) => await this.onNewTransaction(message),
+        (message) => this.onNewTransaction(message),
       )
     } else {
       this.registerHandler(
@@ -769,7 +776,9 @@ export class PeerNetwork {
   }
 
   private async onNewTransaction(
-    message: IncomingPeerMessage<NewTransactionMessage>,
+    message: IncomingPeerMessage<
+      Gossip<NodeMessageType.NewTransaction, NewTransactionMessage['payload']>
+    >,
   ): Promise<boolean> {
     if (this.node.workerPool.saturated) {
       return false
@@ -784,9 +793,8 @@ export class PeerNetwork {
       return false
     }
 
-    const transaction = message.message.payload.transaction
-
-    if (this.node.memPool.acceptTransaction(transaction)) {
+    const { transaction } = message.message.payload
+    if (await this.node.memPool.acceptTransaction(transaction)) {
       await this.node.accounts.syncTransaction(transaction, {})
     }
 

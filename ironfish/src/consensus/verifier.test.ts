@@ -25,7 +25,9 @@ describe('Verifier', () => {
 
     it('rejects if payload is not a serialized transaction', async () => {
       await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ notA: 'Transaction' }),
+        nodeTest.chain.verifier.verifyNewTransaction({
+          transaction: Buffer.from(JSON.stringify({ notA: 'Transaction' })),
+        }),
       ).rejects.toThrowError('Payload is not a serialized transaction')
     })
 
@@ -38,7 +40,7 @@ describe('Verifier', () => {
 
       await expect(
         nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: { not: 'valid' },
+          transaction: Buffer.from(JSON.stringify({ not: 'valid' })),
         }),
       ).rejects.toThrowError('Transaction cannot deserialize')
     })
@@ -47,13 +49,11 @@ describe('Verifier', () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
       const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
-      const { transaction, serializedTransaction } =
-        await nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: serialized,
-        })
+      const transaction = nodeTest.chain.verifier.verifyNewTransaction({
+        transaction: serialized,
+      })
 
       expect(tx.equals(transaction)).toBe(true)
-      expect(serialized.equals(serializedTransaction)).toBe(true)
     }, 60000)
 
     it('rejects if the transaction is not valid', async () => {

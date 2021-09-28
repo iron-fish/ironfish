@@ -4,8 +4,6 @@
 
 import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
-import { PayloadType } from '../network'
-import { isNewTransactionPayload } from '../network/messages'
 import { Spend } from '../primitives'
 import { Block, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
@@ -158,13 +156,7 @@ export class Verifier {
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  async verifyNewTransaction(
-    payload: PayloadType,
-  ): Promise<{ transaction: Transaction; serializedTransaction: SerializedTransaction }> {
-    if (!isNewTransactionPayload(payload)) {
-      throw new Error('Payload is not a serialized transaction')
-    }
-
+  verifyNewTransaction(payload: { transaction: SerializedTransaction }): Transaction {
     const transaction = this.strategy.transactionSerde.deserialize(payload.transaction)
 
     try {
@@ -176,27 +168,12 @@ export class Verifier {
       throw new Error('Transaction cannot deserialize')
     }
 
-    try {
-      if ((await transaction.transactionFee()) < 0) {
-        throw new Error('Transaction has negative fees')
-      }
-
-      if (!(await this.verifyTransaction(transaction)).valid) {
-        throw new Error('Transaction is invalid')
-      }
-    } finally {
-      transaction.returnReference()
-    }
-
-    return {
-      transaction: transaction,
-      serializedTransaction: payload.transaction,
-    }
+    return transaction
   }
 
   async verifyTransaction(transaction: Transaction): Promise<VerificationResult> {
     try {
-      return await transaction.verify()
+      return transaction.verify()
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
