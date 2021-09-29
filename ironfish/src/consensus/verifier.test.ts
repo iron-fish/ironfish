@@ -10,10 +10,8 @@ import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
-  useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
-  useMinersTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -23,62 +21,26 @@ describe('Verifier', () => {
   describe('Transaction', () => {
     const nodeTest = createNodeTest()
 
-    it('rejects if payload is not a serialized transaction', async () => {
-      await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ notA: 'Transaction' }),
-      ).rejects.toThrowError('Payload is not a serialized transaction')
-    })
+    it('rejects if the transaction cannot be deserialized', () => {
+      expect(() =>
+        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
+      ).toThrowError('Transaction cannot deserialize')
 
-    it('rejects if the transaction cannot be deserialized', async () => {
-      await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: Buffer.alloc(32, 'hello'),
-        }),
-      ).rejects.toThrowError('Transaction cannot deserialize')
-
-      await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: { not: 'valid' },
-        }),
-      ).rejects.toThrowError('Transaction cannot deserialize')
+      expect(() =>
+        nodeTest.chain.verifier.verifyNewTransaction(
+          Buffer.from(JSON.stringify({ not: 'valid' })),
+        ),
+      ).toThrowError('Transaction cannot deserialize')
     })
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
       const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
 
-      const { transaction, serializedTransaction } =
-        await nodeTest.chain.verifier.verifyNewTransaction({
-          transaction: serialized,
-        })
+      const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 
       expect(tx.equals(transaction)).toBe(true)
-      expect(serialized.equals(serializedTransaction)).toBe(true)
     }, 60000)
-
-    it('rejects if the transaction is not valid', async () => {
-      const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = nodeTest.strategy.transactionSerde.serialize(transaction)
-
-      jest.spyOn(nodeTest.chain.verifier, 'verifyTransaction').mockResolvedValue({
-        valid: false,
-        reason: VerificationResultReason.VERIFY_TRANSACTION,
-      })
-
-      await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ transaction: serialized }),
-      ).rejects.toThrowError('Transaction is invalid')
-    }, 60000)
-
-    it('rejects if the transaction has negative fees', async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
-      const tx = await useMinersTxFixture(nodeTest.accounts, account, 2, -100)
-      const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
-
-      await expect(
-        nodeTest.chain.verifier.verifyNewTransaction({ transaction: serialized }),
-      ).rejects.toThrowError('Transaction has negative fees')
-    }, 30000)
   })
 
   describe('Block', () => {

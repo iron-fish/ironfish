@@ -6,6 +6,7 @@ import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
 import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
+import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -69,8 +70,8 @@ export class Transaction {
   /**
    * Verify whether the transaction has valid proofs.
    */
-  async verify(): Promise<VerificationResult> {
-    const result = await this.workerPool.verify(this)
+  async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
+    const result = await this.workerPool.verify(this, options)
 
     return result === true
       ? { valid: true }

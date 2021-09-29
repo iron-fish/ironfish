@@ -15,7 +15,7 @@ describe('MemPool', () => {
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-      memPool.acceptTransaction(transaction)
+      await memPool.acceptTransaction(transaction)
 
       expect(memPool.size()).toBe(1)
     }, 60000)
@@ -53,7 +53,7 @@ describe('MemPool', () => {
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-      memPool.acceptTransaction(transaction)
+      await memPool.acceptTransaction(transaction)
 
       const transactions = await AsyncUtils.materialize(memPool.get())
       expect(transactions).toHaveLength(1)
@@ -72,9 +72,9 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        memPool.acceptTransaction(transaction)
+        await memPool.acceptTransaction(transaction)
 
-        expect(memPool.acceptTransaction(transaction)).toBe(false)
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
       }, 60000)
     })
 
@@ -88,7 +88,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(memPool.acceptTransaction(transaction)).toBe(true)
+        expect(await memPool.acceptTransaction(transaction)).toBe(true)
       }, 60000)
 
       it('sets the transaction hash in the mempool', async () => {
@@ -100,7 +100,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        memPool.acceptTransaction(transaction)
+        await memPool.acceptTransaction(transaction)
 
         expect(set).toHaveBeenCalledTimes(1)
         expect(set).toHaveBeenCalledWith(transaction.transactionHash(), transaction)

@@ -77,7 +77,7 @@ describe('Mining director', () => {
       const transaction = await useTxFixture(node.accounts, account, account)
 
       expect(node.memPool.size()).toBe(0)
-      miningDirector.memPool.acceptTransaction(transaction)
+      await miningDirector.memPool.acceptTransaction(transaction)
       expect(node.memPool.size()).toBe(1)
 
       const spy = jest

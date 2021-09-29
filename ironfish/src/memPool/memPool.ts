@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { Nullifier } from '../primitives/nullifier'
@@ -42,15 +43,24 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  acceptTransaction(transaction: Transaction): boolean {
+  async acceptTransaction(transaction: Transaction): Promise<boolean> {
     const hash = transaction.transactionHash()
+
     if (this.transactions.has(hash)) {
+      return false
+    }
+
+    const { valid, reason } = await this.chain.verifier.verifyTransaction(transaction)
+    const renderedHash = hash.toString('hex')
+    if (!valid) {
+      Assert.isNotUndefined(reason)
+      this.logger.debug(`Invalid transaction '${renderedHash}': ${reason}`)
       return false
     }
 
     this.transactions.set(hash, transaction)
 
-    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${renderedHash}, poolsize ${this.size()}`)
     return true
   }
 

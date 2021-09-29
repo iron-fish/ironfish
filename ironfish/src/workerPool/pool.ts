@@ -20,6 +20,7 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
+import { VerifyTransactionOptions } from './tasks/verifyTransaction'
 import { getWorkerPath, Worker } from './worker'
 
 /**
@@ -181,10 +182,11 @@ export class WorkerPool {
     return response.transactionFee
   }
 
-  async verify(transaction: Transaction): Promise<boolean> {
+  async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
     const request: VerifyTransactionRequest = {
       type: 'verify',
       serializedTransactionPosted: transaction.serialize(),
+      options,
     }
 
     const response = await this.execute(request).result()

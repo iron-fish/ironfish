@@ -305,24 +305,23 @@ describe('PeerNetwork', () => {
 
     describe('when the worker pool is not saturated', () => {
       it('verifies transactions', async () => {
-        const verifyNewTransaction = jest.fn(() => {
-          throw new Error('')
-        })
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const chain: any = {
+        const chain = {
           ...mockChain(),
           verifier: {
-            verifyNewTransaction,
+            verifyNewTransaction: jest.fn(),
           },
+        }
+        const node = {
+          ...mockNode(),
+          chain,
         }
 
         const peerNetwork = new PeerNetwork({
           identity: mockPrivateIdentity('local'),
           agent: 'sdk/1/cli',
           webSocket: ws,
-          node: mockNode(),
-          chain: chain,
+          node,
+          chain,
           strategy: mockStrategy(),
         })
 
@@ -345,7 +344,9 @@ describe('PeerNetwork', () => {
           message: {
             type: NodeMessageType.NewTransaction,
             nonce: 'nonce',
-            payload: {},
+            payload: {
+              transaction: {},
+            },
           },
         })
 

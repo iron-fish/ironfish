@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Verifier } from '../consensus'
 import { SerializedBlock } from '../primitives/block'
-import { SerializedTransaction } from '../primitives/transaction'
+import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
 import { Identity, isIdentity } from './identity'
@@ -492,5 +491,5 @@ export type NewBlockMessage = Gossip<
 
 export type NewTransactionMessage = Gossip<
   NodeMessageType.NewTransaction,
-  UnwrapPromise<ReturnType<Verifier['verifyNewTransaction']>>
+  UnwrapPromise<{ transaction: Transaction }>
 >
