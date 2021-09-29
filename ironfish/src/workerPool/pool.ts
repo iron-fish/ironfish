@@ -281,7 +281,10 @@ export class WorkerPool {
       error,
     }
 
-    return this.execute(request)
+    const job = this.execute(request)
+    job.enableJobAbortError = true
+
+    return job
   }
 
   private execute(request: Readonly<WorkerRequest>): Job {
