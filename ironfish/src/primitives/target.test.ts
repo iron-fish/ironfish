@@ -115,6 +115,7 @@ describe('TargetSerde', () => {
 })
 
 describe('Calculate target', () => {
+  const defaultBlockTimeInMs = 60000
   it('can increase target (which decreases difficulty) if its taking too long to mine a block (20+ seconds since last block)', () => {
     const now = new Date()
     // for any time 20-29 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
@@ -126,7 +127,12 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = difficulty / BigInt(2048)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        defaultBlockTimeInMs,
+      )
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeLessThan(difficulty)
@@ -144,7 +150,12 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(2)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        defaultBlockTimeInMs,
+      )
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeLessThan(difficulty)
@@ -164,7 +175,12 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = difficulty / BigInt(2048)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        defaultBlockTimeInMs,
+      )
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeGreaterThan(difficulty)
@@ -182,7 +198,12 @@ describe('Calculate target', () => {
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        defaultBlockTimeInMs,
+      )
       const newTarget = Target.calculateTarget(time, now, target)
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
