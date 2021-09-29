@@ -21,6 +21,12 @@ export class Job {
   onEnded = new Event<[Job]>()
   onChange = new Event<[Job, Job['status']]>()
 
+  // This determines if JobAbortedError is fed into the response if the job is
+  // aborted. The code base hasn't been upgraded to handle these so it should be
+  // enabled for each job that now properly handles it until all jobs handle it.
+  // Then this should be removed.
+  enableJobAbortError = false
+
   constructor(request: WorkerRequestMessage) {
     this.id = request.jobId
     this.request = request
@@ -53,7 +59,7 @@ export class Job {
       this.worker.jobs.delete(this.id)
     }
 
-    if (this.reject) {
+    if (this.reject && this.enableJobAbortError) {
       this.reject(new JobAbortedError())
     }
   }
