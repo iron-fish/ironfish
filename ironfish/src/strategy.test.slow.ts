@@ -88,11 +88,8 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       const verifier = new Verifier(nodeTest.chain)
-      const serialized = strategy.transactionSerde.serialize(minersFee)
 
-      await expect(verifier.verifyNewTransaction(serialized)).rejects.toThrowError(
-        'Transaction has negative fees',
-      )
+      expect(await verifier.verifyTransaction(minersFee)).toMatchObject({ valid: false })
     }, 60000)
   })
 
@@ -174,7 +171,7 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['wasmTransactionPosted']).toBeNull()
-      expect(await minersFee.verify()).toEqual({ valid: true })
+      expect(await minersFee.verify({ verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['wasmTransactionPosted']).toBeNull()
     }, 60000)
 
