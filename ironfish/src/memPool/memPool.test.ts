@@ -74,7 +74,7 @@ describe('MemPool', () => {
 
         await memPool.acceptTransaction(transaction)
 
-        expect(memPool.acceptTransaction(transaction)).toBe(false)
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
       }, 60000)
     })
 
