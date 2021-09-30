@@ -5,6 +5,10 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from 'ironfish'
 
+/**
+ *  The API should be compatible with the Ironfish API here:
+ *  https://github.com/iron-fish/ironfish-api/blob/master/src/blocks/blocks.controller.ts
+ */
 export class IronfishApi {
   host: string
   token: string

@@ -14,10 +14,7 @@ export default class Sync extends IronfishCommand {
   static hidden = true
 
   static description = `
-    Upload blocks to an HTTP API
-
-    The API should be compatible with the Ironfish API here:
-    https://github.com/iron-fish/ironfish-api/blob/master/src/blocks/blocks.controller.ts
+    Upload blocks to an HTTP API using IronfishApi
   `
 
   static flags = {
