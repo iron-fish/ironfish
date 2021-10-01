@@ -4,6 +4,12 @@
 
 import { bigIntToBytes, bytesToBigInt, Target, TargetSerde } from './target'
 
+/**
+ * The logic of method calculation the increase/descreas difficulty
+ * if block was mined less than 40 seconds -> increase difficulty (the block has been found too fast)
+ * if block was mined between 40 and 80 seconds -> do nothing (averagate block mining time will be -->> 60 seconds)
+ * if block was mined more than 80+ seconds -> decrease difficulty
+ */
 describe('Target', () => {
   it('converts bigints to bytes and back', () => {
     const bigints = [
@@ -115,12 +121,12 @@ describe('TargetSerde', () => {
 })
 
 describe('Calculate target', () => {
-  const defaultBlockTimeInMs = 60000
+  const defaultBlockTimeInMs = 40000
   it('can increase target (which decreases difficulty) if its taking too long to mine a block (20+ seconds since last block)', () => {
     const now = new Date()
-    // for any time 20-29 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
-    for (let i = 1; i < 10; i++) {
-      const time = new Date(now.getTime() + 20000 + i * 1000)
+    // for any time 80 - 90 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
+    for (let i = 80; i < 120; i++) {
+      const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
@@ -141,9 +147,9 @@ describe('Calculate target', () => {
       expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
     }
 
-    // for any time 30-39 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) * 2
-    for (let i = 1; i < 10; i++) {
-      const time = new Date(now.getTime() + 30000 + i * 1000)
+    // for any time 120 - 140 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) * 2
+    for (let i = 120; i < 140; i++) {
+      const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
@@ -165,9 +171,9 @@ describe('Calculate target', () => {
     }
   })
 
-  it('can decrease target (which increases difficulty) if a block is trying to come in too early (1-10 seconds)', () => {
+  it('can decrease target (which increases difficulty) if a block is trying to come in too early (1-39 seconds)', () => {
     const now = new Date()
-    for (let i = 1; i < 10; i++) {
+    for (let i = 1; i < 39; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
@@ -190,9 +196,9 @@ describe('Calculate target', () => {
     }
   })
 
-  it('keeps difficulty/target of parent block header if time differnece is between 10 and 20 seconds', () => {
+  it('keeps difficulty/target of parent block header if time differnece is between 40 and 80 seconds', () => {
     const now = new Date()
-    for (let i = 10; i < 20; i++) {
+    for (let i = 40; i < 80; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)

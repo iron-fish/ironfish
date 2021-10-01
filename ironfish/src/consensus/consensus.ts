@@ -48,4 +48,4 @@ export const MAX_REQUESTED_BLOCKS = 50
  * NOTE: This is not used in target calculation, or IRON_FISH_YEAR_IN_BLOCKS.
  * Ideally, it should be in a future refactor.
  */
-export const TARGET_BLOCK_TIME_MS = 60 * 1000
+export const TARGET_BLOCK_TIME_MS = 40 * 1000
