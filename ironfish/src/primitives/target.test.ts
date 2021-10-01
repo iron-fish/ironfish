@@ -121,7 +121,6 @@ describe('TargetSerde', () => {
 })
 
 describe('Calculate target', () => {
-  const defaultBlockTimeInMs = 40000
   it('can increase target (which decreases difficulty) if its taking too long to mine a block (20+ seconds since last block)', () => {
     const now = new Date()
     // for any time 80 - 90 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
