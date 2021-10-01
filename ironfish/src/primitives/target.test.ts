@@ -133,12 +133,7 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = difficulty / BigInt(2048)
 
-      const newDifficulty = Target.calculateDifficulty(
-        time,
-        now,
-        difficulty,
-        defaultBlockTimeInMs,
-      )
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeLessThan(difficulty)
@@ -156,12 +151,7 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(2)
 
-      const newDifficulty = Target.calculateDifficulty(
-        time,
-        now,
-        difficulty,
-        defaultBlockTimeInMs,
-      )
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeLessThan(difficulty)
@@ -181,12 +171,7 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = difficulty / BigInt(2048)
 
-      const newDifficulty = Target.calculateDifficulty(
-        time,
-        now,
-        difficulty,
-        defaultBlockTimeInMs,
-      )
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
       const newTarget = Target.calculateTarget(time, now, target)
 
       expect(newDifficulty).toBeGreaterThan(difficulty)
@@ -204,12 +189,7 @@ describe('Calculate target', () => {
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
 
-      const newDifficulty = Target.calculateDifficulty(
-        time,
-        now,
-        difficulty,
-        defaultBlockTimeInMs,
-      )
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
       const newTarget = Target.calculateTarget(time, now, target)
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
