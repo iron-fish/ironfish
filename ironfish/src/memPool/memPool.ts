@@ -51,16 +51,15 @@ export class MemPool {
     }
 
     const { valid, reason } = await this.chain.verifier.verifyTransaction(transaction)
-    const renderedHash = hash.toString('hex')
     if (!valid) {
       Assert.isNotUndefined(reason)
-      this.logger.debug(`Invalid transaction '${renderedHash}': ${reason}`)
+      this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
       return false
     }
 
     this.transactions.set(hash, transaction)
 
-    this.logger.debug(`Accepted tx ${renderedHash}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
   }
 
