@@ -220,7 +220,7 @@ export class Blockchain {
     return !!this._genesis
   }
 
-  get progress(): number {
+  getProgress(): number {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
@@ -538,7 +538,7 @@ export class Blockchain {
           ` seq: ${Number(block.header.sequence)},` +
           ` hash: ${HashUtils.renderHash(block.header.hash)},` +
           ` txs: ${block.transactions.length},` +
-          ` progress: ${(this.progress * 100).toFixed(2)}%,` +
+          ` progress: ${(this.getProgress() * 100).toFixed(2)}%,` +
           ` time: ${addTime.toFixed(1)}ms`,
       )
     }
