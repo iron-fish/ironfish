@@ -52,3 +52,9 @@ Once your environment is setup - you can run the CLI by following [these directi
  - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
  - [ironfish-http-api](./ironfish-http-api/README.md): API hosted on Iron Fish servers for the Iron Fish faucet.
  - [ironfish-rosetta-api](./ironfish-rosetta-api/README.md): API hosted on Iron Fish servers for the block explorer. The code of the block explorer client can be found [here](https://github.com/iron-fish/block-explorer).
+ - [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the block chain and all of its forks.
+
+## Other Repositories
+
+ - [iron-fish/homebrew-brew](https://github.com/iron-fish/homebrew-brew): Contains brew formula for installing via the [Brew](https://brew.sh) package manager
+ - [iron-fish/website](https://github.com/iron-fish/website): The repo that powers [ironfish.network](https://ironfish.network)
