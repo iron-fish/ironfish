@@ -90,7 +90,7 @@ export class Block {
   }
 
   get minersFee(): Transaction {
-    const tx = this.transactions[this.transactions.length - 1]
+    const tx = this.transactions[0]
     Assert.isNotUndefined(tx, 'Block has no miners fee')
     return tx
   }
