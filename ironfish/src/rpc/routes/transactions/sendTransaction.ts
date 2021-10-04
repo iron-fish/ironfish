@@ -12,6 +12,7 @@ export type SendTransactionRequest = {
   transactionFee: string
   memo: string
 }
+
 export type SendTransactionResponse = {
   fromAccountName: string
   toPublicKey: string

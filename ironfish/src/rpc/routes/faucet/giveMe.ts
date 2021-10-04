@@ -37,11 +37,9 @@ router.register<typeof GiveMeRequestSchema, GiveMeResponse>(
     }
 
     await axios
-      .post(getFundsApi, null, {
-        params: {
-          email: request.data.email,
-          publicKey: account.publicAddress,
-        },
+      .post(getFundsApi, {
+        email: request.data.email,
+        public_key: account.publicAddress,
       })
       .then(({ data }: AxiosResponse) => {
         request.end(data)
