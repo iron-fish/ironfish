@@ -9,6 +9,8 @@ import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
 
+const FAUCET_DISABLED = false
+
 export class FaucetCommand extends IronfishCommand {
   static description = `Receive coins from the Iron Fish official Faucet`
 
@@ -27,7 +29,7 @@ export class FaucetCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(FaucetCommand)
 
-    if (!flags.force) {
+    if (FAUCET_DISABLED && !flags.force) {
       this.log(`❌ The faucet is currently disabled. Check ${DEFAULT_DISCORD_INVITE} ❌`)
       this.exit(1)
     }

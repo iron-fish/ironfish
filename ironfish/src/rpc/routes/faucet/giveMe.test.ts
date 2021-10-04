@@ -34,8 +34,9 @@ describe('Route faucet.giveMe', () => {
       const response = await routeTest.adapter.request('faucet/giveMe', { accountName, email })
       expect(response.status).toBe(200)
 
-      expect(axios.post).toHaveBeenCalledWith(routeTest.node.config.get('getFundsApi'), null, {
-        params: { email, publicKey: publicAddress },
+      expect(axios.post).toHaveBeenCalledWith(routeTest.node.config.get('getFundsApi'), {
+        email,
+        public_key: publicAddress,
       })
       expect(response.content).toMatchObject(apiResponse)
     }, 10000)
