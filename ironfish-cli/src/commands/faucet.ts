@@ -18,6 +18,10 @@ export class FaucetCommand extends IronfishCommand {
       default: false,
       description: 'Force the faucet to try to give you coins even if its disabled',
     }),
+    email: flags.string({
+      hidden: true,
+      description: 'Email to use to get funds',
+    }),
   }
 
   async start(): Promise<void> {
@@ -37,9 +41,13 @@ Thanks for contributing to Iron Fish!
 
     await this.sdk.client.connect()
 
-    const email = (await cli.prompt('Enter your email to stay updated with Iron Fish', {
-      required: false,
-    })) as string
+    let email = flags.email
+
+    if (!email) {
+      email = (await cli.prompt('Enter your email to stay updated with Iron Fish', {
+        required: false,
+      })) as string
+    }
 
     // Create an account if one is not set
     const response = await this.sdk.client.getDefaultAccount()
