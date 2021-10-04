@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { isFunction } from 'lodash'
+import { ResponseError } from './errors'
+import { RequestError } from '../clients/errors'
 import { Assert } from '../../assert'
 import { PromiseUtils, SetTimeoutToken } from '../../utils'
 import { Request } from '../request'
@@ -82,7 +85,13 @@ export class MemoryAdapter implements IAdapter {
 
     response.routePromise = router.route(route, request).catch((e) => {
       stream.close()
-      reject(e)
+
+      if (e instanceof ResponseError) {
+        console.log(e.code)
+        reject(new RequestError(response, e.code, e.message, e.stack))
+      } else {
+        reject(e)
+      }
     })
 
     return response

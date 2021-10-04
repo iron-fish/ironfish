@@ -6,12 +6,12 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 
 jest.mock('axios')
 
-describe('Route faucet.giveMe', () => {
+describe('Route faucet.getFunds', () => {
   const routeTest = createRouteTest()
 
   it('should fail if the account does not exist in DB', async () => {
     await expect(
-      routeTest.adapter.request('faucet/giveMe', { accountName: 'test-notfound' }),
+      routeTest.adapter.request('faucet/getFunds', { accountName: 'test-notfound' }),
     ).rejects.toThrow('Account test-notfound could not be found')
   }, 10000)
 
@@ -31,7 +31,10 @@ describe('Route faucet.giveMe', () => {
       axios.post = jest
         .fn()
         .mockImplementationOnce(() => Promise.resolve({ data: apiResponse }))
-      const response = await routeTest.adapter.request('faucet/giveMe', { accountName, email })
+      const response = await routeTest.adapter.request('faucet/getFunds', {
+        accountName,
+        email,
+      })
       expect(response.status).toBe(200)
 
       expect(axios.post).toHaveBeenCalledWith(routeTest.node.config.get('getFundsApi'), {
@@ -45,7 +48,7 @@ describe('Route faucet.giveMe', () => {
       const apiResponse = new Error('API failure') as AxiosError
       axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
       await expect(
-        routeTest.adapter.request('faucet/giveMe', { accountName, email }),
+        routeTest.adapter.request('faucet/getFunds', { accountName, email }),
       ).rejects.toThrow('API failure')
     }, 10000)
   })

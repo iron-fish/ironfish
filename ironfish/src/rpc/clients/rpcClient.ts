@@ -20,6 +20,8 @@ import {
   GetConfigResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
+  GetFundsRequest,
+  GetFundsResponse,
   GetLogStreamResponse,
   GetPeersRequest,
   GetPeersResponse,
@@ -29,8 +31,6 @@ import {
   GetStatusResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
-  GiveMeRequest,
-  GiveMeResponse,
   NewBlocksStreamRequest,
   NewBlocksStreamResponse,
   SendTransactionRequest,
@@ -233,8 +233,8 @@ export abstract class IronfishRpcClient {
     return this.request<SuccessfullyMinedResponse>('miner/successfullyMined', params)
   }
 
-  async giveMeFaucet(params: GiveMeRequest): Promise<ResponseEnded<GiveMeResponse>> {
-    return this.request<GiveMeResponse>('faucet/giveMe', params).waitForEnd()
+  async giveMeFaucet(params: GetFundsRequest): Promise<ResponseEnded<GetFundsResponse>> {
+    return this.request<GetFundsResponse>('faucet/getFunds', params).waitForEnd()
   }
 
   async getBlock(params: GetBlockRequest): Promise<ResponseEnded<GetBlockResponse>> {

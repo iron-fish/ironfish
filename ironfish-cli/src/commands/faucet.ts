@@ -34,14 +34,9 @@ export class FaucetCommand extends IronfishCommand {
       this.exit(1)
     }
 
-    this.log(`${ONE_FISH_IMAGE}
+    this.log(ONE_FISH_IMAGE)
 
-Receive funds, check your balance and send money.
-
-Thanks for contributing to Iron Fish!
-`)
-
-    await this.sdk.client.connect()
+    const client = await this.sdk.connectRpc()
 
     let email = flags.email
 
@@ -52,7 +47,7 @@ Thanks for contributing to Iron Fish!
     }
 
     // Create an account if one is not set
-    const response = await this.sdk.client.getDefaultAccount()
+    const response = await client.getDefaultAccount()
     let accountName = response.content.account?.name
 
     if (!accountName) {
@@ -62,40 +57,43 @@ Thanks for contributing to Iron Fish!
           required: false,
         })) as string) || 'default'
 
-      await this.sdk.client.createAccount({ name: accountName, default: true })
+      await client.createAccount({ name: accountName, default: true })
     }
 
     cli.action.start('Collecting your funds', 'Sending a request to the Iron Fish network', {
       stdout: true,
     })
+
     try {
-      await this.sdk.client.giveMeFaucet({
+      await client.giveMeFaucet({
         accountName,
         email,
       })
-      cli.action.stop('Success')
     } catch (error: unknown) {
-      cli.action.stop('Unfortunately, the faucet request failed. Please try again later.')
       if (error instanceof RequestError) {
-        this.log(error.message)
+        cli.action.stop(error.codeMessage)
+      } else {
+        cli.action.stop('Unfortunately, the faucet request failed. Please try again later.')
       }
+
       this.exit(1)
     }
 
+    cli.action.stop('Success')
     this.log(
       `
 
-${TWO_FISH_IMAGE}
+    ${TWO_FISH_IMAGE}
 
 Congratulations! The Iron Fish Faucet just added your request to the queue!
+
 It will be processed within the next hour and $IRON will be sent directly to your account.
 
 Check your balance by running:
-- ironfish accounts:balance
+  - ironfish accounts:balance
 
 Learn how to send a transaction by running:
-- ironfish accounts:pay --help
-`,
+  - ironfish accounts:pay --help`,
     )
   }
 }
