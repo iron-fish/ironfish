@@ -92,6 +92,10 @@ export class Transaction {
     })
   }
 
+  isMinersFee(): boolean {
+    return this.spendsLength() === 0 && this.notesLength() === 1
+  }
+
   /**
    * Iterate over all the notes created by this transaction.
    */
