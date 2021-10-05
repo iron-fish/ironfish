@@ -4,7 +4,7 @@
 
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ResponseError } from '../../adapters'
+import { RequestError } from '../../clients/errors'
 
 const TEST_PARAMS = {
   amount: BigInt(10).toString(),
@@ -28,7 +28,7 @@ describe('Transactions sendTransaction', () => {
         fromAccountName: 'AccountDoesNotExist',
       })
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) {
+      if (!(e instanceof RequestError)) {
         throw e
       }
 
@@ -40,7 +40,7 @@ describe('Transactions sendTransaction', () => {
     try {
       await routeTest.client.sendTransaction(TEST_PARAMS)
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) {
+      if (!(e instanceof RequestError)) {
         throw e
       }
 
@@ -57,7 +57,7 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) {
+        if (!(e instanceof RequestError)) {
           throw e
         }
         expect(e.message).toContain(
@@ -73,7 +73,7 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) {
+        if (!(e instanceof RequestError)) {
           throw e
         }
         expect(e.message).toContain('Your balance is too low. Add funds to your account first')
@@ -92,7 +92,7 @@ describe('Transactions sendTransaction', () => {
       try {
         await routeTest.client.sendTransaction(TEST_PARAMS)
       } catch (e: unknown) {
-        if (!(e instanceof ResponseError)) {
+        if (!(e instanceof RequestError)) {
           throw e
         }
 
