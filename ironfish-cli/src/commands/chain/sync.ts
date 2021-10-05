@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { FollowChainStreamResponse, Meter, TimeUtils } from 'ironfish'
-import { IronfishApi } from '../../api'
+import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -68,7 +67,7 @@ export default class Sync extends IronfishCommand {
 
     this.log(`Fetching head from ${apiHost}`)
 
-    const api = new IronfishApi(apiHost, apiToken)
+    const api = new WebApi({ host: apiHost, token: apiToken })
     const head = await api.head()
 
     if (head) {
