@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { PromiseUtils, SetTimeoutToken } from '../../utils'
+import { RequestError } from '../clients/errors'
 import { Request } from '../request'
 import { Response, ResponseEnded } from '../response'
 import { ALL_API_NAMESPACES, Router } from '../routes'
 import { RpcServer } from '../server'
 import { Stream } from '../stream'
 import { IAdapter } from './adapter'
+import { ResponseError } from './errors'
 
 /**
  * This class provides a way to route requests directly against the routing layer
@@ -82,7 +84,13 @@ export class MemoryAdapter implements IAdapter {
 
     response.routePromise = router.route(route, request).catch((e) => {
       stream.close()
-      reject(e)
+
+      if (e instanceof ResponseError) {
+        response.status = e.status
+        reject(new RequestError(response, e.code, e.message, e.stack))
+      } else {
+        reject(e)
+      }
     })
 
     return response
