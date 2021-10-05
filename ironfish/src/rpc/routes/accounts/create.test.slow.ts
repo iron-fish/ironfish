@@ -7,7 +7,8 @@
 
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ERROR_CODES, ResponseError } from '../../adapters'
+import { ERROR_CODES } from '../../adapters'
+import { RequestError } from '../../clients/errors'
 
 describe('Route account/create', () => {
   jest.setTimeout(15000)
@@ -51,7 +52,7 @@ describe('Route account/create', () => {
       expect.assertions(3)
       await routeTest.adapter.request('account/create')
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) {
+      if (!(e instanceof RequestError)) {
         throw e
       }
       expect(e.status).toBe(400)
@@ -69,7 +70,7 @@ describe('Route account/create', () => {
       expect.assertions(2)
       await routeTest.adapter.request('account/create', { name: name })
     } catch (e: unknown) {
-      if (!(e instanceof ResponseError)) {
+      if (!(e instanceof RequestError)) {
         throw e
       }
       expect(e.status).toBe(400)
