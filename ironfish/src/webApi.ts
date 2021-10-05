@@ -3,23 +3,29 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import axios, { AxiosRequestConfig } from 'axios'
-import { FollowChainStreamResponse } from 'ironfish'
+import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
+import { UnwrapPromise } from './utils/types'
 
 /**
- *  The API should be compatible with the Ironfish API here:
- *  https://github.com/iron-fish/ironfish-api/blob/master/src/blocks/blocks.controller.ts
+ *  The API should be compatible with the Ironfish API here
+ *  used to host our Facuet, BlockExplorer, and other things.
+ *  https://github.com/iron-fish/ironfish-api
  */
-export class IronfishApi {
+export class WebApi {
   host: string
   token: string
+  getFundsEndpoint: string | null
 
-  constructor(host: string, token = '') {
+  constructor(options?: { host?: string; token?: string; getFundsEndpoint?: string }) {
+    let host = options?.host ?? 'https://api-production.ironfish.network'
+
     if (host.endsWith('/')) {
       host = host.slice(0, -1)
     }
 
     this.host = host
-    this.token = token
+    this.token = options?.token || ''
+    this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
   async head(): Promise<string | null> {
@@ -49,6 +55,30 @@ export class IronfishApi {
     const options = this.options({ 'Content-Type': 'application/json' })
 
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
+  }
+
+  async getFunds(data: { email?: string; public_key: string }): Promise<{
+    id: number
+    object: 'faucet_transaction'
+    public_key: string
+    completed_at: number | null
+    started_at: number | null
+  }> {
+    const endpoint = this.getFundsEndpoint || `${this.host}/faucet_transactions`
+    const options = this.options({ 'Content-Type': 'application/json' })
+
+    type GetFundsResponse = UnwrapPromise<ReturnType<WebApi['getFunds']>>
+
+    const response = await axios.post<GetFundsResponse>(
+      endpoint,
+      {
+        email: data.email,
+        public_key: data.public_key,
+      },
+      options,
+    )
+
+    return response.data
   }
 
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
