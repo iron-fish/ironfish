@@ -36,7 +36,14 @@ describe('Accounts', () => {
       account.spendingKey,
     )
 
-    expect(transactionA.isMinersFee()).toBe(true)
+    const transactionB = await nodeTest.strategy.createMinersFee(
+      BigInt(-1),
+      1,
+      account.spendingKey,
+    )
+
+    expect(await transactionA.isMinersFee()).toBe(true)
+    expect(await transactionB.isMinersFee()).toBe(true)
   })
 
   it('check if a transaction is not a miners fee', async () => {
@@ -62,6 +69,6 @@ describe('Accounts', () => {
       '',
       accountB.publicAddress,
     )
-    expect(transaction.isMinersFee()).toBe(false)
+    expect(await transaction.isMinersFee()).toBe(false)
   }, 600000)
 })
