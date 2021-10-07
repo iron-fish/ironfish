@@ -25,6 +25,7 @@ describe('accounts:balance', () => {
         ...originalModule,
         IronfishSdk: {
           init: jest.fn().mockImplementation(() => ({
+            connectRpc: jest.fn().mockResolvedValue(client),
             client,
           })),
         },
@@ -43,17 +44,13 @@ describe('accounts:balance', () => {
       .command(['accounts:balance', 'default'])
       .exit(0)
       .it('logs the account balance and available spending balance', (ctx) => {
-        const expectedOutput =
-          `The account balance is: ${displayIronAmountWithCurrency(
-            oreToIron(Number(unconfirmedBalance)),
-            true,
-          )}\n` +
-          `Amount available to spend: ${displayIronAmountWithCurrency(
-            oreToIron(Number(confirmedBalance)),
-            true,
-          )}`
+        expectCli(ctx.stdout).include(
+          displayIronAmountWithCurrency(oreToIron(Number(unconfirmedBalance)), true),
+        )
 
-        expectCli(ctx.stdout).include(expectedOutput)
+        expectCli(ctx.stdout).include(
+          displayIronAmountWithCurrency(oreToIron(Number(confirmedBalance)), true),
+        )
       })
   })
 })
