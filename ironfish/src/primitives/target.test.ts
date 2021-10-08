@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TARGET_BLOCK_TIME_MS } from '..'
 import { bigIntToBytes, bytesToBigInt, Target, TargetSerde } from './target'
 
 describe('Target', () => {
@@ -115,10 +116,11 @@ describe('TargetSerde', () => {
 })
 
 describe('Calculate target', () => {
+  const targetBlockInSeconds = (TARGET_BLOCK_TIME_MS * 2) / 3 / 1000
   it('can increase target (which decreases difficulty) if its taking too long to mine a block (80+ seconds since last block)', () => {
     const now = new Date()
     // for any time 80-120 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
-    for (let i = 80; i < 120; i++) {
+    for (let i = targetBlockInSeconds * 2; i < targetBlockInSeconds * 3; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
@@ -136,7 +138,7 @@ describe('Calculate target', () => {
     }
 
     // for any time 120-140 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) * 2
-    for (let i = 120; i < 140; i++) {
+    for (let i = targetBlockInSeconds * 3; i < targetBlockInSeconds * 3 + 10; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
@@ -156,7 +158,7 @@ describe('Calculate target', () => {
 
   it('can decrease target (which increases difficulty) if a block is trying to come in too early (1-39 seconds)', () => {
     const now = new Date()
-    for (let i = 1; i < 39; i++) {
+    for (let i = 1; i < targetBlockInSeconds; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
@@ -176,7 +178,7 @@ describe('Calculate target', () => {
 
   it('keeps difficulty/target of parent block header if time differnece is between 40 and 80 seconds', () => {
     const now = new Date()
-    for (let i = 40; i < 80; i++) {
+    for (let i = targetBlockInSeconds; i < targetBlockInSeconds * 2; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)

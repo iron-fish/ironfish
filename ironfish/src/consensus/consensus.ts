@@ -49,10 +49,3 @@ export const MAX_REQUESTED_BLOCKS = 50
  * Ideally, it should be in a future refactor.
  */
 export const TARGET_BLOCK_TIME_MS = 60 * 1000
-
-/**
- * The block mining time range that will not increase/decrease difficulty/target
- *
- * NOTE: if block was mined between 40 and 80 seconds -> do nothing (averagate block mining time will be -->> 60 seconds)
- */
-export const TARGET_BLOCK_DO_NOTHING_RANGE_TIME_SECONDS = 40
