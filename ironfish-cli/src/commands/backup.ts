@@ -72,7 +72,7 @@ export default class Backup extends IronfishCommand {
 
     cli.action.start(`Uploading to ${bucket}`)
     await this.uploadToS3(dest, bucket)
-    cli.action.start(`done`)
+    cli.action.stop(`done`)
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
@@ -80,7 +80,7 @@ export default class Backup extends IronfishCommand {
       const sourceDir = path.dirname(source)
       const sourceFile = path.basename(source)
 
-      const args = ['-zcvf', dest, '-C', sourceDir, sourceFile]
+      const args = ['-zcf', dest, '-C', sourceDir, sourceFile]
 
       for (const exclude of excludes) {
         args.unshift(exclude)
@@ -89,6 +89,7 @@ export default class Backup extends IronfishCommand {
 
       const process = spawn('tar', args)
       process.on('exit', (code) => resolve(code))
+      process.on('close', (code) => resolve(code))
       process.on('error', (error) => reject(error))
     })
   }
