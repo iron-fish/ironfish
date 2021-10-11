@@ -2,9 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import axios, { AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
-import { UnwrapPromise } from './utils/types'
+import { HasOwnProperty, UnwrapPromise } from './utils/types'
+
+function IsAxiosError(e: unknown): e is AxiosError {
+  return typeof e === 'object' && e != null && HasOwnProperty(e, 'isAxiosError')
+}
+
+type FaucetTransaction = {
+  object: 'faucet_transaction'
+  id: number
+  public_key: string
+  started_at: string | null
+  completed_at: string | null
+}
 
 /**
  *  The API should be compatible with the Ironfish API here
@@ -76,6 +88,49 @@ export class WebApi {
         public_key: data.public_key,
       },
       options,
+    )
+
+    return response.data
+  }
+
+  async getNextFaucetTransaction(): Promise<FaucetTransaction | null> {
+    this.requireToken()
+
+    try {
+      const response = await axios.get<FaucetTransaction>(
+        `${this.host}/faucet_transactions/next`,
+        this.options(),
+      )
+
+      return response.data
+    } catch (e) {
+      if (IsAxiosError(e) && e.response?.status === 404) {
+        return null
+      }
+
+      throw e
+    }
+  }
+
+  async startFaucetTransaction(id: number): Promise<FaucetTransaction> {
+    this.requireToken()
+
+    const response = await axios.post<FaucetTransaction>(
+      `${this.host}/faucet_transactions/${id}/start`,
+      undefined,
+      this.options(),
+    )
+
+    return response.data
+  }
+
+  async completeFaucetTransaction(id: number): Promise<FaucetTransaction> {
+    this.requireToken()
+
+    const response = await axios.post<FaucetTransaction>(
+      `${this.host}/faucet_transactions/${id}/complete`,
+      undefined,
+      this.options(),
     )
 
     return response.data

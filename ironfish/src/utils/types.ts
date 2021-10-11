@@ -41,3 +41,8 @@ export function IsNodeTimeout(timer: number | NodeJS.Timeout): timer is NodeJS.T
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Constructor<T> = new (...args: any[]) => T
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function HasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop: Y): boolean {
+  return Object.hasOwnProperty.call(obj, prop)
+}
