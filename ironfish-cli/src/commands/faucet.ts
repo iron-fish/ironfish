@@ -69,7 +69,7 @@ Thanks for contributing to Iron Fish!
       stdout: true,
     })
     try {
-      await this.sdk.client.giveMeFaucet({
+      await this.sdk.client.getFunds({
         accountName,
         email,
       })
