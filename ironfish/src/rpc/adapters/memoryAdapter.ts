@@ -86,8 +86,15 @@ export class MemoryAdapter implements IAdapter {
       stream.close()
 
       if (e instanceof ResponseError) {
+        // Set the response status to the errors status because RequsetError takes it from the response
         response.status = e.status
-        reject(new RequestError(response, e.code, e.message, e.stack))
+
+        const error = new RequestError(response, e.code, e.message, e.stack)
+
+        // Do this so in memory requests retain the original stack and are easier to debug
+        error.stack = error.codeStack ?? error.stack
+
+        reject(error)
       } else {
         reject(e)
       }
