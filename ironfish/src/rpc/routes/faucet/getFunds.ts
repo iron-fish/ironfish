@@ -6,25 +6,25 @@ import * as yup from 'yup'
 import { ERROR_CODES, ResponseError, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type GiveMeRequest = { accountName: string; email?: string }
-export type GiveMeResponse = { message: string }
+export type GetFundsRequest = { accountName: string; email?: string }
+export type GetFundsResponse = { message: string }
 
-export const GiveMeRequestSchema: yup.ObjectSchema<GiveMeRequest> = yup
+export const GetFundsRequestSchema: yup.ObjectSchema<GetFundsRequest> = yup
   .object({
     accountName: yup.string().required(),
     email: yup.string().strip(true),
   })
   .defined()
 
-export const GiveMeResponseSchema: yup.ObjectSchema<GiveMeResponse> = yup
+export const GetFundsResponseSchema: yup.ObjectSchema<GetFundsResponse> = yup
   .object({
     message: yup.string().defined(),
   })
   .defined()
 
-router.register<typeof GiveMeRequestSchema, GiveMeResponse>(
-  `${ApiNamespace.faucet}/giveMe`,
-  GiveMeRequestSchema,
+router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
+  `${ApiNamespace.faucet}/getFunds`,
+  GetFundsRequestSchema,
   async (request, node): Promise<void> => {
     const account = node.accounts.getAccountByName(request.data.accountName)
     if (!account) {
@@ -33,7 +33,7 @@ router.register<typeof GiveMeRequestSchema, GiveMeResponse>(
 
     const getFundsApi = node.config.get('getFundsApi')
     if (!getFundsApi) {
-      throw new ValidationError(`GiveMe requires config.getFundsApi to be set`)
+      throw new ValidationError(`GetFunds requires config.getFundsApi to be set`)
     }
 
     await axios
