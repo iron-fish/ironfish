@@ -9,13 +9,13 @@ describe('faucet command', () => {
   let accountName: string | null = null
   const request = jest.fn()
   const createAccount = jest.fn()
-  const giveMeFaucet = jest.fn()
+  const getFunds = jest.fn()
   const getDefaultAccount = jest.fn()
 
   const ironFishSdkBackup = ironfishmodule.IronfishSdk.init
 
   beforeEach(() => {
-    giveMeFaucet.mockReturnValue(Promise.resolve({ content: { message: 'success' } }))
+    getFunds.mockReturnValue(Promise.resolve({ content: { message: 'success' } }))
 
     getDefaultAccount.mockImplementation(() => {
       return Promise.resolve({ content: { account: { name: accountName } } })
@@ -28,7 +28,7 @@ describe('faucet command', () => {
         request,
         connect: jest.fn(),
         createAccount,
-        giveMeFaucet,
+        getFunds,
         getDefaultAccount,
       },
     }))
@@ -36,7 +36,7 @@ describe('faucet command', () => {
 
   afterEach(() => {
     createAccount.mockReset()
-    giveMeFaucet.mockReset()
+    getFunds.mockReset()
     getDefaultAccount.mockReset()
     ironfishmodule.IronfishSdk.init = ironFishSdkBackup
   })
@@ -67,7 +67,7 @@ describe('faucet command', () => {
     .it('request funds and succeed', (ctx) => {
       expectCli(ctx.stdout).include(`Collecting your funds...`)
       expect(createAccount).toHaveBeenCalledTimes(0)
-      expect(giveMeFaucet).toHaveBeenCalledWith({
+      expect(getFunds).toHaveBeenCalledWith({
         accountName: 'myAccount',
         email: 'johann@ironfish.network',
       })
@@ -79,7 +79,7 @@ describe('faucet command', () => {
   test
     .do(() => {
       accountName = 'myAccount'
-      giveMeFaucet.mockRejectedValue('Error')
+      getFunds.mockRejectedValue('Error')
     })
     .stub(cli, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
     .stdout()
@@ -87,7 +87,7 @@ describe('faucet command', () => {
     .exit(1)
     .it('request funds and fail', (ctx) => {
       expectCli(ctx.stdout).include(`Collecting your funds...`)
-      expect(giveMeFaucet).toHaveBeenCalledWith({
+      expect(getFunds).toHaveBeenCalledWith({
         accountName,
         email: 'johann@ironfish.network',
       })
