@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ValidationError } from '../../adapters/errors'
+import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 export type SendTransactionRequest = {
@@ -69,12 +69,18 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const sum = BigInt(transaction.amount) + BigInt(transaction.transactionFee)
 
     if (balance.confirmedBalance < sum && balance.unconfirmedBalance < sum) {
-      throw new ValidationError(`Your balance is too low. Add funds to your account first`)
+      throw new ValidationError(
+        `Your balance is too low. Add funds to your account first`,
+        undefined,
+        ERROR_CODES.INSUFFICIENT_BALANCE,
+      )
     }
 
     if (balance.confirmedBalance < sum) {
       throw new ValidationError(
         `Please wait a few seconds for your balance to update and try again`,
+        undefined,
+        ERROR_CODES.INSUFFICIENT_BALANCE,
       )
     }
 

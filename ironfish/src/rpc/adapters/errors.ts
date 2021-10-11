@@ -8,6 +8,7 @@ export enum ERROR_CODES {
   ERROR = 'error',
   ROUTE_NOT_FOUND = 'route-not-found',
   VALIDATION = 'validation',
+  INSUFFICIENT_BALANCE = 'insufficient-balance',
 }
 
 /**
