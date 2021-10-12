@@ -27,21 +27,26 @@ describe('Route faucet.getFunds', () => {
     })
 
     it('calls the API and returns the right response', async () => {
-      const apiResponse = { message: 'success' }
-      axios.post = jest
-        .fn()
-        .mockImplementationOnce(() => Promise.resolve({ data: apiResponse }))
+      routeTest.node.config.set('getFundsApi', 'foo.com')
+
+      axios.post = jest.fn().mockImplementationOnce(() => Promise.resolve({ data: { id: 5 } }))
+
       const response = await routeTest.adapter.request('faucet/getFunds', {
         accountName,
         email,
       })
-      expect(response.status).toBe(200)
 
-      expect(axios.post).toHaveBeenCalledWith(routeTest.node.config.get('getFundsApi'), {
-        email,
-        public_key: publicAddress,
-      })
-      expect(response.content).toMatchObject(apiResponse)
+      // Response gives back string for ID
+      expect(response).toMatchObject({ status: 200, content: { id: '5' } })
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'foo.com',
+        {
+          email,
+          public_key: publicAddress,
+        },
+        expect.anything(),
+      )
     }, 10000)
 
     it('throws an error if the API request fails', async () => {
