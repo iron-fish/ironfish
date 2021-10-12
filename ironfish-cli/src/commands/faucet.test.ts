@@ -24,9 +24,14 @@ describe('faucet command', () => {
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({
       config: { get: jest.fn() },
       accounts: { use: jest.fn() },
+      connectRpc: jest.fn(() => ({
+        request,
+        createAccount,
+        getFunds,
+        getDefaultAccount,
+      })),
       client: {
         request,
-        connect: jest.fn(),
         createAccount,
         getFunds,
         getDefaultAccount,
