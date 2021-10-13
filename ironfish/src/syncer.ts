@@ -124,8 +124,9 @@ export class Syncer {
       .filter((peer) => peer.work && peer.work > head.work)
       .filter((peer) => (whitelist.size ? whitelist.has(peer.name || '') : true))
 
-    // Get a random peer with higher work. We do this to ensure
-    // that the highest work peer isn't overloaded with requests
+    // Get a random peer with higher work. We do this to encourage
+    // peer diversity so the highest work peer isn't overwhelmed
+    // as well as helping to make sure we don't get stuck with unstable peers
     if (peers.length > 0) {
       const peer = ArrayUtils.sampleOrThrow(peers)
       this.startSync(peer)
