@@ -71,7 +71,7 @@ export default class Faucet extends IronfishCommand {
       const connected = await client.tryConnect()
 
       if (!connected) {
-        this.log('Failed to connet, retrying in 5 seconds')
+        this.log('Failed to connect, retrying in 5 seconds')
         await PromiseUtils.sleep(5000)
       }
 
