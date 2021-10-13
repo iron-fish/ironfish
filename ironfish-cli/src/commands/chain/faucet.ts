@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishIpcClient, Meter, PromiseUtils, WebApi } from 'ironfish'
+import { ConnectionError, IronfishIpcClient, Meter, PromiseUtils, WebApi } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -60,30 +60,45 @@ export default class Faucet extends IronfishCommand {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const connected = await client.tryConnect()
+      try {
+        await this.startSyncing(client, api, speed)
+      } catch (e) {
+        if (e instanceof ConnectionError) {
+          this.log('Connection error... retrying in 5 seconds')
+          await PromiseUtils.sleep(5000)
+          continue
+        }
 
-      if (!connected) {
-        this.log('Failed to connect, retrying in 5 seconds')
-        await PromiseUtils.sleep(5000)
+        throw e
       }
+    }
+  }
 
-      this.log('Fetching faucet account')
+  async startSyncing(client: IronfishIpcClient, api: WebApi, speed: Meter): Promise<void> {
+    const connected = await client.tryConnect()
 
-      const response = await client.getDefaultAccount()
-      const account = response.content.account?.name
+    if (!connected) {
+      this.log('Failed to connect, retrying in 5 seconds')
+      await PromiseUtils.sleep(5000)
+      return
+    }
 
-      if (!account) {
-        this.error('Faucet node has no account to use')
-      }
+    this.log('Fetching faucet account')
 
-      this.log(`Using account ${account}`)
+    const response = await client.getDefaultAccount()
+    const account = response.content.account?.name
 
-      while (client.isConnected) {
-        speed.start()
-        speed.reset()
+    if (!account) {
+      this.error('Faucet node has no account to use')
+    }
 
-        await this.processNextTransaction(client, account, speed, api)
-      }
+    this.log(`Using account ${account}`)
+
+    while (client.isConnected) {
+      speed.start()
+      speed.reset()
+
+      await this.processNextTransaction(client, account, speed, api)
     }
   }
 
