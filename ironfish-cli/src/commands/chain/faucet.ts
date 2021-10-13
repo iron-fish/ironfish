@@ -144,7 +144,7 @@ export default class Faucet extends IronfishCommand {
       toPublicKey: faucetTransaction.public_key,
       amount: BigInt(FAUCET_AMOUNT).toString(),
       transactionFee: BigInt(FAUCET_FEE).toString(),
-      memo: `Facuet for ${faucetTransaction.id}`,
+      memo: `Faucet for ${faucetTransaction.id}`,
     })
 
     await api.completeFaucetTransaction(faucetTransaction.id)
