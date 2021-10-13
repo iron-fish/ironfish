@@ -32,14 +32,6 @@ export default class Faucet extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'head',
-      required: false,
-      description: 'the block hash to start following at',
-    },
-  ]
-
   async start(): Promise<void> {
     const { flags } = this.parse(Faucet)
 
@@ -140,7 +132,7 @@ export default class Faucet extends IronfishCommand {
     await api.startFaucetTransaction(faucetTransaction.id)
 
     await client.sendTransaction({
-      fromAccountName: 'default',
+      fromAccountName: account,
       toPublicKey: faucetTransaction.public_key,
       amount: BigInt(FAUCET_AMOUNT).toString(),
       transactionFee: BigInt(FAUCET_FEE).toString(),
@@ -151,6 +143,6 @@ export default class Faucet extends IronfishCommand {
 
     speed.add(1)
 
-    this.log(`COMPLETED: ${faucetTransaction.id} in ${speed.rate5m.toFixed(2)}`)
+    this.log(`COMPLETED: ${faucetTransaction.id} (${speed.rate5m.toFixed(2)} avg)`)
   }
 }
