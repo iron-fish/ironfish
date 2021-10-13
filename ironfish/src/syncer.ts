@@ -14,6 +14,7 @@ import { Block, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Strategy } from './strategy'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import { ArrayUtils } from './utils/array'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
@@ -117,19 +118,17 @@ export class Syncer {
       return
     }
 
-    // Find the peer with the most work more than we have
+    // Find all allowed peers that have more work than we have
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
       .filter((peer) => peer.work && peer.work > head.work)
       .filter((peer) => (whitelist.size ? whitelist.has(peer.name || '') : true))
-      .sort((a, b) => {
-        Assert.isNotNull(a.work)
-        Assert.isNotNull(b.work)
-        return Number(a.work) - Number(b.work)
-      })
 
+    // Get a random peer with higher work. We do this to ensure
+    // that the highest work peer isn't overloaded with requests
     if (peers.length > 0) {
-      this.startSync(peers[0])
+      const peer = ArrayUtils.sampleOrThrow(peers)
+      this.startSync(peer)
     }
   }
 
