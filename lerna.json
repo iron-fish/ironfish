@@ -2,7 +2,6 @@
   "packages": [
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
-    "config/monorepo-template-library",
     "ironfish-cli",
     "ironfish-http-api",
     "ironfish-rosetta-api",
