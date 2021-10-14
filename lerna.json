@@ -3,8 +3,6 @@
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
     "ironfish-cli",
-    "ironfish-http-api",
-    "ironfish-rosetta-api",
     "ironfish",
     "ironfish-wasm/nodejs",
     "ironfish-wasm/web"

@@ -7,8 +7,6 @@
   "license": "MPL-2.0",
   "workspaces": [
     "ironfish-cli",
-    "ironfish-http-api",
-    "ironfish-rosetta-api",
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
     "ironfish",
