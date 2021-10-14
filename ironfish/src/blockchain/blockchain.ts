@@ -494,10 +494,12 @@ export class Blockchain {
 
   isInvalid(block: Block): boolean {
     if (this.invalid.has(block.header.hash)) {
+      console.log("Block is known to be invalid")
       return true
     }
 
     if (this.invalid.has(block.header.previousBlockHash)) {
+      console.log("Previous block known to be invalid")
       this.addInvalid(block.header)
       return true
     }

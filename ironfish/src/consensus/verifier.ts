@@ -278,7 +278,7 @@ export class Verifier {
   async verifyBlockAdd(
     block: Block,
     prev: BlockHeader | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
@@ -332,10 +332,14 @@ export class Verifier {
     }
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+      console.log("real spend root: ", realSpendRoot)
+      console.log("spend commitment: ", spend.commitment)
       if (!this.strategy.noteHasher.hashSerde().equals(spend.commitment, realSpendRoot)) {
+        console.log("we are for sure hitting here")
         return VerificationResultReason.INVALID_SPEND
       }
     } catch {
+      console.log("Error in verify spend, but neither double or invalid spend")
       return VerificationResultReason.ERROR
     }
 
