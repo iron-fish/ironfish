@@ -1,8 +1,0 @@
-combined.log
-error.log
-rosetta-cli
-rosetta-specifications
-src/types/.openapi-generator
-src/types/git_push.sh
-src/types/.npmignore
-src/types/.openapi-generator-ignore
