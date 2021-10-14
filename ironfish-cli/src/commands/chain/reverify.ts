@@ -24,10 +24,46 @@ export default class Reverify extends IronfishCommand {
       required: false,
       description: 'the sequence of the block to look at',
     }),
+    all: flags.integer({
+      char: 'a',
+      required: false,
+      description: 'look at all blocks up to a given height',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = this.parse(Reverify)
+
+    if (flags.all) {
+      cli.action.start(`Opening node`)
+      const node = await this.sdk.node()
+      await node.openDB()
+      await node.chain.open()
+      cli.action.stop('done.')
+
+      let blocks = []
+
+      this.log('Collecting blocks...')
+      for (let i = 1; i <= flags.all; i++) {
+        const hashes = await node.chain.getHashesAtSequence(i)
+        const blocksFromHashes = await Promise.all(
+          hashes.map((hash) => node.chain.getBlock(hash)),
+        )
+        blocks.push(...blocksFromHashes)
+      }
+
+      for (const block of blocks) {
+        if (block === null) {
+          continue
+        }
+        this.log(`Block sequence: ${block.header.sequence}`)
+        this.log(`Block hash: ${block.header.hash.toString('hex')}`)
+        this.log(`Number of transactions: ${block.transactions.length}`)
+        const prev_header = await node.chain.getHeader(block.header.previousBlockHash)
+        const result = await node.chain.verifier.verifyBlockAdd(block, prev_header)
+        this.log(`Result: ${JSON.stringify(result)}`)
+      }
+    }
 
     if (flags.hash === undefined && flags.sequence === undefined) {
       this.log(`Please supply either a hash or sequence number`)
@@ -63,12 +99,12 @@ export default class Reverify extends IronfishCommand {
       if (block === null) {
         continue
       }
-      const prev_header = await node.chain.getHeader(block.header.previousBlockHash)
-
-      const result = await node.chain.verifier.verifyBlockAdd(block, prev_header)
+      this.log(`Block sequence: ${block.header.sequence}`)
       this.log(`Block hash: ${block.header.hash.toString('hex')}`)
-      this.log(`Result: ${JSON.stringify(result)}`)
       this.log(`Number of transactions: ${block.transactions.length}`)
+      const prev_header = await node.chain.getHeader(block.header.previousBlockHash)
+      const result = await node.chain.verifier.verifyBlockAdd(block, prev_header)
+      this.log(`Result: ${JSON.stringify(result)}`)
     }
   }
 }
