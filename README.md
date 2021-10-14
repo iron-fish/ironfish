@@ -50,8 +50,6 @@ Once your environment is setup - you can run the CLI by following [these directi
  - [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command line interface built on Node. More details on [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
  - [ironfish-wasm](./ironfish-wasm/README.md): Wrapper for `ironfish-rust` in WASM to be interacted with by the `ironfish` project.
  - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
- - [ironfish-http-api](./ironfish-http-api/README.md): API hosted on Iron Fish servers for the Iron Fish faucet.
- - [ironfish-rosetta-api](./ironfish-rosetta-api/README.md): API hosted on Iron Fish servers for the block explorer. The code of the block explorer client can be found [here](https://github.com/iron-fish/block-explorer).
  - [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the block chain and all of its forks.
 
 ## Other Repositories

@@ -28,14 +28,6 @@ coverage:
         target: 60%
         flags:
           - ironfish
-      ironfish-http-api:
-        target: 70%
-        flags:
-          - ironfish-http-api
-      ironfish-rosetta-api:
-        target: 75%
-        flags:
-          - ironfish-rosetta-api
       event:
         target: 84%
         flags:
@@ -60,12 +52,4 @@ flags:
   ironfish:
     paths:
       - ironfish
-    carryforward: true
-  ironfish-http-api:
-    paths:
-      - ironfish-http-api
-    carryforward: true
-  ironfish-rosetta-api:
-    paths:
-      - ironfish-rosetta-api
     carryforward: true
