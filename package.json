@@ -11,7 +11,6 @@
     "ironfish-rosetta-api",
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
-    "config/monorepo-template-library",
     "ironfish",
     "ironfish-wasm/nodejs",
     "ironfish-wasm/web"
