@@ -22,7 +22,7 @@ export class Meter {
   private _rate5m: RollingAverage
   private _average: RollingAverage
   private _count = 0
-  private _interval: NodeJS.Timeout | null = null
+  private _interval: ReturnType<typeof setInterval> | null = null
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
