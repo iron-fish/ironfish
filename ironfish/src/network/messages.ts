@@ -20,6 +20,7 @@ export enum InternalMessageType {
   signal = 'signal',
   signalRequest = 'signalRequest',
   peerList = 'peerList',
+  peerListRequest = 'peerListRequest',
   cannotSatisfyRequest = 'cannotSatisfyRequest',
   disconnecting = 'disconnecting',
 }
@@ -176,6 +177,38 @@ export function isSignal(obj: unknown): obj is Signal {
     typeof payload.destinationIdentity === 'string' &&
     typeof payload.nonce === 'string' &&
     typeof payload.signal === 'string'
+  )
+}
+
+/**
+ * A message used to request a peer list from another peer.
+ *
+ * The referring peer will respond with a PeerList message,
+ * which contains information about their connected peers.
+ */
+export type PeerListRequest = Message<
+  InternalMessageType.peerListRequest,
+  {
+    identity: Identity
+    name?: string
+    address: string | null,
+    port: number | null,
+  }
+>
+
+export function isPeerListRequest(obj: unknown): obj is PeerListRequest {
+  if (!isPayloadMessage(obj)) {
+    return false
+  }
+
+  const payload = obj.payload as PeerListRequest['payload']
+  return (
+    obj.type === InternalMessageType.peerListRequest &&
+    payload !== null &&
+    isIdentity(payload.identity) &&
+    (typeof payload.name === 'string' || typeof payload.name === undefined) &&
+    (typeof payload.address === 'string' || typeof payload.address === null) &&
+    (typeof payload.address === 'number' || typeof payload.address === null)
   )
 }
 
