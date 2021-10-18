@@ -42,6 +42,7 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
+import { isPeerListRequest, PeerListRequest } from '..'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -882,6 +883,8 @@ export class PeerManager {
       this.handleSignalRequestMessage(peer, connection, message)
     } else if (isSignal(message)) {
       await this.handleSignalMessage(peer, connection, message)
+    } else if (isPeerListRequest(message)) {
+      this.handlePeerListRequestMessage(message, peer)
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
     } else {
@@ -1428,6 +1431,36 @@ export class PeerManager {
 
     // We have the signaling data, so pass it on to the connection
     signalingConnection.signal(signalData)
+  }
+
+  private handlePeerListRequestMessage(peerListRequest: PeerListRequest, peer: Peer) {
+    const peers = []
+
+    for (const p of this.identifiedPeers.values()) {
+      if (p.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      if (p.isWorker && !this.localPeer.broadcastWorkers) {
+        continue
+      }
+
+      peers.push({
+        identity: p.state.identity,
+        name: p.name || undefined,
+        address: p.address,
+        port: p.port,
+      })
+    }
+
+    const connectedPeers = peers.filter((cp) => !peer.knownPeers.has(cp.identity))
+
+    const peerList: PeerList = {
+      type: InternalMessageType.peerList,
+      payload: { connectedPeers },
+    }
+
+    peer.send(peerList)
   }
 
   private handlePeerListMessage(peerList: PeerList, peer: Peer) {
