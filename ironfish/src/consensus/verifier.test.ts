@@ -6,6 +6,7 @@ jest.mock('ws')
 jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
+import { Assert } from '..'
 import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {
@@ -340,33 +341,42 @@ describe('Verifier', () => {
     const nodeTest = createNodeTest()
 
     it('is true for block that passes all checks', async () => {
-      await expect(
-        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
-      ).resolves.toMatchObject({
-        valid: true,
-      })
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: true,
+        },
+      )
     })
 
     it("is false if there aren't enough notes in the tree", async () => {
       await nodeTest.chain.notes.truncate((await nodeTest.chain.notes.size()) - 1)
 
-      await expect(
-        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
-      ).resolves.toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
-      })
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
+        },
+      )
     })
 
     it("is false if there aren't enough nullifiers in the tree", async () => {
       await nodeTest.chain.nullifiers.truncate((await nodeTest.chain.nullifiers.size()) - 1)
 
-      await expect(
-        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
-      ).resolves.toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
-      })
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
+        },
+      )
     })
 
     it('is false if the note hash is incorrect', async () => {
@@ -375,12 +385,15 @@ describe('Verifier', () => {
         'NOOO',
       )
 
-      await expect(
-        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
-      ).resolves.toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NOTE_COMMITMENT,
-      })
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.NOTE_COMMITMENT,
+        },
+      )
     })
 
     it('is false for block that has incorrect nullifier hash', async () => {
@@ -389,12 +402,15 @@ describe('Verifier', () => {
         'NOOO',
       )
 
-      await expect(
-        nodeTest.verifier.blockMatchesTrees(nodeTest.chain.genesis),
-      ).resolves.toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NULLIFIER_COMMITMENT,
-      })
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.NULLIFIER_COMMITMENT,
+        },
+      )
     })
   })
 })

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
+import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
 import { Platform } from 'ironfish'
 import tweetnacl from 'tweetnacl'
 import { IronfishCommand, SIGNALS } from '../command'
@@ -179,7 +179,9 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
-    const trees = await node.chain.verifier.blockMatchesTrees(node.chain.head)
+    const headBlock = await node.chain.getBlock(node.chain.head)
+    Assert.isNotNull(headBlock)
+    const trees = await node.chain.verifier.verifyConnectedBlock(headBlock)
     if (!trees.valid) {
       this.log(
         `Error starting node: your merkle trees are corrupt: ${String(trees.reason)}.` +

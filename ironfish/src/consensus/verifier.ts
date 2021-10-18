@@ -245,41 +245,8 @@ export class Verifier {
     return header.target.targetValue === expectedTarget.targetValue
   }
 
-  /**
-   * Loop over all spends in the block and check that:
-   *  -  The nullifier has not previously been spent
-   *  -  the note being spent really existed in the tree at the time it was spent
-   */
-  async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
-      const spendsInThisBlock = Array.from(block.spends())
-      const previousSpendCount =
-        block.header.nullifierCommitment.size - spendsInThisBlock.length
-      const processedSpends = new BufferSet()
-
-      for (const [index, spend] of spendsInThisBlock.entries()) {
-        if (processedSpends.has(spend.nullifier)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        const verificationError = await this.verifySpend(spend, previousSpendCount + index, tx)
-        if (verificationError) {
-          return { valid: false, reason: verificationError }
-        }
-
-        processedSpends.add(spend.nullifier)
-      }
-
-      return { valid: true }
-    })
-  }
-
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(
-    block: Block,
-    prev: BlockHeader | null,
-    tx: IDatabaseTransaction,
-  ): Promise<VerificationResult> {
+  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
@@ -303,9 +270,33 @@ export class Verifier {
         return verification
       }
 
-      verification = await this.hasValidSpends(block, tx)
-      if (!verification.valid) {
-        return verification
+      return { valid: true }
+    })
+  }
+
+  /**
+   * Loop over all spends in the block and check that:
+   *  -  The nullifier has not previously been spent
+   *  -  the note being spent really existed in the tree at the time it was spent
+   */
+  async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      const spendsInThisBlock = Array.from(block.spends())
+      const previousSpendCount =
+        block.header.nullifierCommitment.size - spendsInThisBlock.length
+      const processedSpends = new BufferSet()
+
+      for (const [index, spend] of spendsInThisBlock.entries()) {
+        if (processedSpends.has(spend.nullifier)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        const verificationError = await this.verifySpend(spend, previousSpendCount + index, tx)
+        if (verificationError) {
+          return { valid: false, reason: verificationError }
+        }
+
+        processedSpends.add(spend.nullifier)
       }
 
       return { valid: true }
@@ -338,8 +329,6 @@ export class Verifier {
     } catch {
       return VerificationResultReason.ERROR
     }
-
-    // TODO (Elena) need to check trees when genesis - heaviest established
   }
 
   /**
@@ -349,11 +338,12 @@ export class Verifier {
    * specified in the commitment is the same as the commitment,
    * for both notes and nullifiers trees.
    */
-  async blockMatchesTrees(
-    header: BlockHeader,
+  async verifyConnectedBlock(
+    block: Block,
     tx?: IDatabaseTransaction,
-  ): Promise<{ valid: boolean; reason: VerificationResultReason | null }> {
+  ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
+      const header = block.header
       const noteSize = header.noteCommitment.size
       const nullifierSize = header.nullifierCommitment.size
       const actualNoteSize = await this.chain.notes.size(tx)
@@ -385,7 +375,12 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
-      return { valid: true, reason: null }
+      const spendVerification = await this.hasValidSpends(block, tx)
+      if (!spendVerification.valid) {
+        return spendVerification
+      }
+
+      return { valid: true }
     })
   }
 }

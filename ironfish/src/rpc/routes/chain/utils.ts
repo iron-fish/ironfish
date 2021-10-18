@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferSet } from 'buffer-map'
+import { VerificationResult } from '../../..'
 import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { createRootLogger, Logger } from '../../../logger'
@@ -51,9 +52,12 @@ export async function renderChain(
 ): Promise<string[]> {
   const content: string[] = []
 
-  const trees = chain.head
-    ? await chain.verifier.blockMatchesTrees(chain.head)
-    : { valid: true, reason: null }
+  let trees: VerificationResult = { valid: true }
+  if (chain.head) {
+    const headBlock = await chain.getBlock(chain.head)
+    Assert.isNotNull(headBlock)
+    trees = await chain.verifier.verifyConnectedBlock(headBlock)
+  }
 
   content.push(
     '======',

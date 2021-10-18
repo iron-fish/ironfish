@@ -327,7 +327,7 @@ describe('Blockchain', () => {
     expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT_SIZE)
 
     expect(node.chain.head?.hash).toEqualBuffer(blockB2.header.hash)
-    const result = await node.chain.verifier.blockMatchesTrees(blockB2.header)
+    const result = await node.chain.verifier.verifyConnectedBlock(blockB2)
     expect(result.valid).toBe(true)
 
     await expect(node.chain).toAddBlock(blockA3)

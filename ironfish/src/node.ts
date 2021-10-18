@@ -146,12 +146,12 @@ export class IronfishNode {
     logger = logger.withTag('ironfishnode')
     metrics = metrics || new MetricsMonitor(logger)
 
-    if (!config) {
+    if (!config || dataDir) {
       config = new Config(files, dataDir)
       await config.load()
     }
 
-    if (!internal) {
+    if (!internal || dataDir) {
       internal = new InternalStore(files, dataDir)
       await internal.load()
     }

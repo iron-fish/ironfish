@@ -162,10 +162,12 @@ export class IronfishSdk {
 
   async node({
     databaseName,
+    dataDir,
     autoSeed,
     privateIdentity,
   }: {
     databaseName?: string
+    dataDir?: string
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
   } = {}): Promise<IronfishNode> {
@@ -177,6 +179,7 @@ export class IronfishSdk {
       internal: this.internal,
       files: this.fileSystem,
       databaseName: databaseName,
+      dataDir: dataDir,
       autoSeed: autoSeed,
       logger: this.logger,
       metrics: this.metrics,
