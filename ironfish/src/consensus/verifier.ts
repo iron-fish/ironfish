@@ -336,7 +336,8 @@ export class Verifier {
    *
    * Matching means that the root hash of the tree when the tree is the size
    * specified in the commitment is the same as the commitment,
-   * for both notes and nullifiers trees.
+   * for both notes and nullifiers trees. Also verifies the spends, which have
+   * commitments as well.
    */
   async verifyConnectedBlock(
     block: Block,
