@@ -60,6 +60,7 @@ import {
   WebSocketConnection,
 } from './connections'
 import { PeerManager } from './peerManager'
+import { PeerListRequest } from '..'
 
 jest.useFakeTimers()
 
@@ -1392,6 +1393,35 @@ describe('PeerManager', () => {
 
       expect(signalSpy).not.toBeCalled()
       expect(closeSpy).toBeCalled()
+    })
+  })
+
+  describe('Message: PeerListRequest', () => {
+    it('Does not broadcast worker nodes', () => {
+      const peerIdentity = mockIdentity('peer')
+      const newPeerIdentity = mockIdentity('new')
+      const localPeer = mockLocalPeer()
+      localPeer.isWorker = true
+      localPeer.broadcastWorkers = false
+
+      const pm = new PeerManager(localPeer)
+      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
+
+      expect(pm.peers.length).toBe(1)
+      expect(pm.identifiedPeers.size).toBe(1)
+      expect(peer.knownPeers.size).toBe(0)
+
+      const peerListRequest: PeerListRequest = {
+        type: InternalMessageType.peerListRequest,
+        payload: {
+          identity: newPeerIdentity,
+          address: peer.address,
+          port: peer.port,
+        },
+      }
+
+      peer.onMessage.emit(peerListRequest, connection)
+      expect(peer.knownPeers.size).toBe(0)
     })
   })
 
