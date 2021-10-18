@@ -516,4 +516,51 @@ describe('Blockchain', () => {
       `Miner's fee is incorrect`,
     )
   }, 60000)
+
+  it('should wait to validate spends', async () => {
+    /**
+     * This test is used to validate that we don't verify the spend
+     * root commitments when adding to a fork because the trees are
+     * not valid in the forked blocks state. We should wait to validate
+     * them once we reorg to the new chain. Before this PR it would fail
+     * https://github.com/iron-fish/ironfish/pull/393
+     *
+     * G -> A1 -> A2
+     *   -> B1 -> B2 -> B3
+     */
+
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const { previous: blockA1, block: blockA2 } = await useBlockWithTx(nodeA)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
+    const { block: blockB3 } = await useBlockWithTx(nodeB)
+
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+    await expect(nodeA.chain).toAddBlock(blockA4)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+    await expect(nodeB.chain).toAddBlock(blockA1)
+
+    expect(nodeA.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+
+    // This should succeed but before the fix it would fail
+    const result = await nodeB.chain.addBlock(blockA2)
+    expect(result).toMatchObject({ isAdded: true, reason: null })
+
+    // Head should still be blockB3
+    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+
+    await expect(nodeB.chain).toAddBlock(blockA3)
+    await expect(nodeB.chain).toAddBlock(blockA4)
+
+    // We should have reorged to blockA4
+    expect(nodeB.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+  }, 60000)
 })
