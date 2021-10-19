@@ -533,21 +533,28 @@ describe('Blockchain', () => {
     const { node: nodeB } = await nodeTest.createSetup()
 
     const { previous: blockA1, block: blockA2 } = await useBlockWithTx(nodeA)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain)
-    const blockA4 = await useMinerBlockFixture(nodeA.chain)
-    const blockB1 = await useMinerBlockFixture(nodeB.chain)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain)
-    const { block: blockB3 } = await useBlockWithTx(nodeB)
-
     await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
+
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA4)
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB1)
+
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
+
+    const { block: blockB3 } = await useBlockWithTx(nodeB)
     await expect(nodeB.chain).toAddBlock(blockB3)
-    await expect(nodeB.chain).toAddBlock(blockA1)
 
     expect(nodeA.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+
+    // If we add A1 to nodeB it should not re-org yet
+    await expect(nodeB.chain).toAddBlock(blockA1)
     expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
 
     // This should succeed but before the fix it would fail
@@ -562,5 +569,5 @@ describe('Blockchain', () => {
 
     // We should have reorged to blockA4
     expect(nodeB.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
-  }, 60000)
+  }, 120000)
 })
