@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
+import { Block } from '../primitives'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 
@@ -21,6 +22,14 @@ export class MemPool {
     this.chain = options.chain
     this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
+
+    this.chain.onConnectBlock.on((block) => {
+      this.onConnectBlock(block)
+    })
+
+    this.chain.onDisconnectBlock.on((block) => {
+      this.onDisconnectBlock(block)
+    })
   }
 
   size(): number {
@@ -58,5 +67,31 @@ export class MemPool {
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
+  }
+
+  onConnectBlock(block: Block): void {
+    let deletedTransactions = 0
+
+    for (const transaction of block.transactions) {
+      this.transactions.delete(transaction.transactionHash())
+      deletedTransactions++
+    }
+
+    this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+  }
+
+  onDisconnectBlock(block: Block): void {
+    let addedTransactions = 0
+
+    for (const transaction of block.transactions) {
+      const hash = transaction.transactionHash()
+
+      if (!this.transactions.has(hash)) {
+        this.transactions.set(hash, transaction)
+        addedTransactions++
+      }
+    }
+
+    this.logger.debug(`Added ${addedTransactions} transactions`)
   }
 }
