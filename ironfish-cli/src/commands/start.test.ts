@@ -33,12 +33,13 @@ describe('start command', () => {
   const defaultGraffiti = 'default-graffiti'
 
   const verifier = {
-    blockMatchesTrees: jest
+    verifyConnectedBlock: jest
       .fn()
       .mockReturnValue(Promise.resolve({ valid: true, reason: null })),
   }
 
   const chain = {
+    getBlock: jest.fn().mockReturnValue(Promise.resolve({})),
     verifier: verifier,
     hasGenesisBlock: hasGenesisBlock,
   }

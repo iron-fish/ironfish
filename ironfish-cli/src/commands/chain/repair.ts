@@ -125,7 +125,9 @@ export default class RepairChain extends IronfishCommand {
 
     const noNotes = (await node.chain.notes.size()) === 0
     const noNullifiers = (await node.chain.nullifiers.size()) === 0
-    const treeStatus = await node.chain.verifier.blockMatchesTrees(node.chain.head)
+    const headBlock = await node.chain.getBlock(node.chain.head)
+    Assert.isNotNull(headBlock)
+    const treeStatus = await node.chain.verifier.verifyConnectedBlock(headBlock)
     const rebuildTrees = force || noNotes || noNullifiers || !treeStatus.valid
 
     if (!rebuildTrees) {
@@ -166,7 +168,7 @@ export default class RepairChain extends IronfishCommand {
 
       await node.chain.saveConnect(block, prev || null, tx)
 
-      const verify = await node.chain.verifier.blockMatchesTrees(block.header, tx)
+      const verify = await node.chain.verifier.verifyConnectedBlock(block, tx)
 
       if (!verify.valid) {
         await tx.commit()
