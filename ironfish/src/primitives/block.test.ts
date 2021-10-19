@@ -91,15 +91,9 @@ describe('Block', () => {
   }, 60000)
 
   it('validate get minersFee returns the first transaction in a block', async () => {
-    const { node: nodeA } = nodeTest
-    const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
-
-    // Create nodeA blocks
-    const blockA = await useMinerBlockFixture(nodeA.chain, 3, accountA)
-    await expect(nodeA.chain).toAddBlock(blockA)
-    await nodeA.accounts.updateHead()
-
-    expect(blockA.minersFee).toBe(blockA.transactions[0])
+    const block = await useMinerBlockFixture(nodeTest.chain)
+    // Miners Fee should be the first transaction in the block
+    expect(block.minersFee).toBe(block.transactions[0])
   }, 60000)
 
   it('validate get minersFee when no miners fee', async () => {
