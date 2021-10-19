@@ -4,6 +4,7 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
+import { VerificationResult } from '../../../consensus'
 import { createRootLogger, Logger } from '../../../logger'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { HashUtils } from '../../../utils'
@@ -51,9 +52,12 @@ export async function renderChain(
 ): Promise<string[]> {
   const content: string[] = []
 
-  const trees = chain.head
-    ? await chain.verifier.blockMatchesTrees(chain.head)
-    : { valid: true, reason: null }
+  let trees: VerificationResult = { valid: true }
+  if (chain.head) {
+    const headBlock = await chain.getBlock(chain.head)
+    Assert.isNotNull(headBlock)
+    trees = await chain.verifier.verifyConnectedBlock(headBlock)
+  }
 
   content.push(
     '======',

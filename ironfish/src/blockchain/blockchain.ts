@@ -596,7 +596,7 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
+    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
 
     if (!valid) {
       Assert.isNotUndefined(reason)
@@ -646,7 +646,7 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev, tx)
+    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -1157,7 +1157,7 @@ export class Blockchain {
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    await block.withTransactionReferences(async () => {
+    const verify = await block.withTransactionReferences(async () => {
       for (const note of block.allNotes()) {
         await this.addNote(notesIndex, note, tx)
         notesIndex++
@@ -1167,14 +1167,14 @@ export class Blockchain {
         await this.addNullifier(nullifierIndex, spend.nullifier, tx)
         nullifierIndex++
       }
-    })
 
-    const verify = await this.verifier.blockMatchesTrees(block.header, tx)
+      return await this.verifier.verifyConnectedBlock(block, tx)
+    })
 
     if (!verify.valid) {
       this.addInvalid(block.header)
 
-      Assert.isNotNull(verify.reason)
+      Assert.isNotUndefined(verify.reason)
       throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
   }
