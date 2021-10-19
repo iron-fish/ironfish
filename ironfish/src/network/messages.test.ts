@@ -55,11 +55,6 @@ describe('isPeerListRequest', () => {
   it('Retuns true on peerlist request message', () => {
     const msg: PeerListRequest = {
       type: InternalMessageType.peerListRequest,
-      payload: {
-        identity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        address: 'localhost',
-        port: null,
-      },
     }
     expect(isPeerListRequest(msg)).toBeTruthy()
   })
