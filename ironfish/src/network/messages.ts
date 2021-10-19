@@ -29,7 +29,7 @@ export type PayloadType = Record<string, unknown> | undefined
 /**
  * Used for functions that don't care about the contents of the message.
  */
-export type LooseMessage = Message<MessageType, PayloadType>
+export type LooseMessage = Message<MessageType, Record<string,unknown>> | Message<MessageType>
 
 /**
  * A message that has been received on the connection. Note that most messages
