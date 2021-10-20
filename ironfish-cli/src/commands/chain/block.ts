@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { GraffitiUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -9,10 +10,10 @@ export default class Block extends IronfishCommand {
 
   static args = [
     {
-      name: 'hash',
+      name: 'search',
       parse: (input: string): string => input.trim(),
       required: true,
-      description: 'the hash of the block to look at',
+      description: 'the hash or sequence of the block to look at',
     },
   ]
 
@@ -22,10 +23,16 @@ export default class Block extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = this.parse(Block)
-    const hash = args.hash as string
+    const search = args.search as string
 
-    const client = await this.sdk.connectRpc(true)
-    const data = await client.getBlockInfo({ hash: hash })
+    const client = await this.sdk.connectRpc()
+    const data = await client.getBlockInfo({ search })
+
+    // Render graffiti to human form
+    data.content.block.graffiti = GraffitiUtils.toHuman(
+      Buffer.from(data.content.block.graffiti, 'hex'),
+    )
+
     this.log(JSON.stringify(data.content, undefined, '  '))
   }
 }
