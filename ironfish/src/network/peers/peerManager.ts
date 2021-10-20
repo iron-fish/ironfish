@@ -8,6 +8,7 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ArrayUtils } from '../../utils'
+import { isPeerListRequest } from '..'
 import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
@@ -27,7 +28,6 @@ import {
   isSignalRequest,
   LooseMessage,
   PeerList,
-  PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
@@ -43,7 +43,6 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
-import { isPeerListRequest } from '..'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
