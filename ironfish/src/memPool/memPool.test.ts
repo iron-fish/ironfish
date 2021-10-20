@@ -106,4 +106,44 @@ describe('MemPool', () => {
       }, 60000)
     })
   })
+
+  describe('when a block is connected with a transaction in the mempool', () => {
+    const nodeTest = createNodeTest()
+
+    it('removes the block transactions from the mempool', async () => {
+      const { node, chain } = nodeTest
+      const { accounts, memPool } = node
+      const { transactions } = memPool
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+
+      await memPool.acceptTransaction(transaction)
+
+      const hash = transaction.transactionHash()
+      expect(transactions.get(hash)).not.toBeUndefined()
+
+      await chain.addBlock(block)
+      expect(transactions.get(hash)).toBeUndefined()
+    }, 60000)
+  })
+
+  describe('when a block is disconnected', () => {
+    const nodeTest = createNodeTest()
+
+    it('adds the block transactions to the mempool', async () => {
+      const { node, chain } = nodeTest
+      const { accounts, memPool } = node
+      const { transactions } = memPool
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+
+      await chain.addBlock(block)
+
+      await chain.removeBlock(block.header.hash)
+      const hash = transaction.transactionHash()
+      expect(transactions.get(hash)).not.toBeUndefined()
+    }, 60000)
+  })
 })
