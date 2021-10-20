@@ -27,6 +27,7 @@ import {
   isSignalRequest,
   LooseMessage,
   PeerList,
+  PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
@@ -42,7 +43,7 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
-import { isPeerListRequest, PeerListRequest } from '..'
+import { isPeerListRequest } from '..'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -884,7 +885,7 @@ export class PeerManager {
     } else if (isSignal(message)) {
       await this.handleSignalMessage(peer, connection, message)
     } else if (isPeerListRequest(message)) {
-      this.handlePeerListRequestMessage(message, peer)
+      this.handlePeerListRequestMessage(peer)
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
     } else {
@@ -1433,7 +1434,7 @@ export class PeerManager {
     signalingConnection.signal(signalData)
   }
 
-  private handlePeerListRequestMessage(peerListRequest: PeerListRequest, peer: Peer) {
+  private handlePeerListRequestMessage(peer: Peer) {
     const peers = []
 
     for (const p of this.identifiedPeers.values()) {
@@ -1460,7 +1461,7 @@ export class PeerManager {
       payload: { connectedPeers },
     }
 
-    peer.send(peerList)
+    this.sendTo(peer, peerList)
   }
 
   private handlePeerListMessage(peerList: PeerList, peer: Peer) {
