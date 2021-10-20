@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { BlockHeader } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type GetBlockInfoRequest = { hash: string }
+export type GetBlockInfoRequest = {
+  search?: string
+  hash?: string
+  sequence?: number
+}
 
 export type GetBlockInfoResponse = {
   block: {
@@ -25,8 +30,11 @@ export type GetBlockInfoResponse = {
 }
 
 export const GetBlockInfoRequestSchema: yup.ObjectSchema<GetBlockInfoRequest> = yup
-  .object({
-    hash: yup.string().defined(),
+  .object()
+  .shape({
+    search: yup.string(),
+    hash: yup.string(),
+    sequence: yup.number(),
   })
   .defined()
 
@@ -61,16 +69,38 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
   `${ApiNamespace.chain}/getBlockInfo`,
   GetBlockInfoRequestSchema,
   async (request, node): Promise<void> => {
-    const hash = Buffer.from(request.data.hash, 'hex')
+    let header: BlockHeader | null = null
+    let error = ''
 
-    const header = await node.chain.getHeader(hash)
+    if (request.data.search) {
+      const search = request.data.search.trim()
+      const num = Number(search)
+
+      if (Number.isInteger(num)) {
+        request.data.sequence = num
+      } else {
+        request.data.hash = search
+      }
+    }
+
+    if (request.data.hash) {
+      const hash = Buffer.from(request.data.hash, 'hex')
+      header = await node.chain.getHeader(hash)
+      error = `No block found with hash ${request.data.hash}`
+    }
+
+    if (request.data.sequence && !header) {
+      header = await node.chain.getHeaderAtSequence(request.data.sequence)
+      error = `No block found with sequence ${request.data.sequence}`
+    }
+
     if (!header) {
-      throw new ValidationError(`No block with hash ${request.data.hash}`)
+      throw new ValidationError(error)
     }
 
     const block = await node.chain.getBlock(header)
     if (!block) {
-      throw new ValidationError(`No block with hash ${request.data.hash}`)
+      throw new ValidationError(`No block with header ${header.hash.toString('hex')}`)
     }
 
     const transactions: GetBlockInfoResponse['block']['transactions'] = []
@@ -92,7 +122,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
     request.status(200).end({
       block: {
         graffiti: header.graffiti.toString('hex'),
-        hash: request.data.hash,
+        hash: header.hash.toString('hex'),
         previousBlockHash: header.previousBlockHash.toString('hex'),
         sequence: Number(header.sequence),
         timestamp: header.timestamp.valueOf(),
