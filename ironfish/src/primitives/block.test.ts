@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+import { useMinerBlockFixture } from '../testUtilities'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -88,5 +88,18 @@ describe('Block', () => {
     block4.transactions.pop()
     block4.transactions.push(tx)
     expect(block1.equals(block4)).toBe(false)
+  }, 60000)
+
+  it('validate get minersFee returns the first transaction in a block', async () => {
+    const block = await useMinerBlockFixture(nodeTest.chain)
+    // Miners Fee should be the first transaction in the block
+    expect(block.minersFee).toBe(block.transactions[0])
+  }, 60000)
+
+  it('validate get minersFee when no miners fee', async () => {
+    nodeTest.strategy.disableMiningReward()
+    const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
+
+    expect(() => block.minersFee).toThrowError('Block has no miners fee')
   }, 60000)
 })
