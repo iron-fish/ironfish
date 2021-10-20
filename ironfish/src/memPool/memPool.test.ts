@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
-import { AsyncUtils } from '../utils'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -55,7 +54,7 @@ describe('MemPool', () => {
 
       await memPool.acceptTransaction(transaction)
 
-      const transactions = await AsyncUtils.materialize(memPool.get())
+      const transactions = Array.from(memPool.get())
       expect(transactions).toHaveLength(1)
       expect(transactions[0]).toEqual(transaction)
     }, 60000)
