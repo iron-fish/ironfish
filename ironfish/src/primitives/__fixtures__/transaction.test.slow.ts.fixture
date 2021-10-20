@@ -8,5 +8,63 @@
       "publicAddress": "8020264e76d2d5bded8339fc5b0eb489d61549d394afe00744deab7e1aa84279198bef2880a8dfcde83e1e",
       "rescan": null
     }
+  ],
+  "Accounts check if a transaction is a miners fee": [
+    {
+      "name": "test",
+      "spendingKey": "2f978ad0ccdfec4c38da5eed0e09910f8d4fb94cd69caae2167a947e38a3bfca",
+      "incomingViewKey": "0a54790f0e0fc2b227a7ffa87539eb0ececc913c8d948c57b5ed3d82ba014004",
+      "outgoingViewKey": "5807f69886c596fe1360473324852d3867df76e37f4d55b2a0c0340708ae187f",
+      "publicAddress": "d44ad8e9ca504230056ce7910a3ff5c86b2f0c3e6782743bbf0c861c39ccae55df087b5517343930d53e68",
+      "rescan": null
+    }
+  ],
+  "Accounts check if a transaction is not a miners fee": [
+    {
+      "name": "testA",
+      "spendingKey": "ef52212694fec1b342656621bbbeb911d51b291f437e41a5d36fe8de8c581c73",
+      "incomingViewKey": "52d04559e4178cda08a6856bf7407e56ec9edb42f348d10868b679f895fd1904",
+      "outgoingViewKey": "dc0514f7e432dac3d467cef46d027191fa53d98cccd51347db6fc7be283c4d0e",
+      "publicAddress": "73cf2290c649d9207c245630a7eebed2e2a6a07f6740495480d76d68e5b7e14fe447813593eb9702a57ae3",
+      "rescan": null
+    },
+    {
+      "name": "testB",
+      "spendingKey": "394fde0ed9cd25a7dc4023a7f42cfdb41a54d0db19f4fd338c4158c802d8997f",
+      "incomingViewKey": "597eac06c2bbc02220adf0ccf8b570661d8c08aebe1a7083ceaa3b7576e95f06",
+      "outgoingViewKey": "b4ed35ff6b0d9c19af7d63d4f5d85e67ab57fc5f53bca6780237de0f0c742838",
+      "publicAddress": "7113e6d9803c7eca4f1ab2859e6290a60f0c1f4e0ca774dbefba2bd681c8e68d0881e1d42e2717198abf61",
+      "rescan": null
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "66C6D7317F77F2840B472A511255B591B83D8D79453F13706628922B05A2104F",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:zkw63vs14cNgPy4RMHwtpoBCUdDAESqyLfY8itGTagg="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "64DB0DD35E49EE735EECC79FDAE6764C42BFF27FEF35D73A6F404E666A1F13C6",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1634845652400,
+        "minersFee": "-500000000",
+        "work": "0",
+        "hash": "7EA3C35EFE0AFF65C1E903545011E86D91CF5BAF45235E4A566CC4A3BB1CBAB8",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAACbMuL/////iOdTFSTyqZ8kk1ME1KHmi3lkAMpH2gZi4Et7cvciHKTF2XxICo40T7mL5xhxeO6Opnnv5UcT1MB5qNpZGiAWjbOP+EhSZhCi/aW0LMC4kp9SK/8joVct2Hqh84DdD3B1CBRPfFuO0FfXJQdKwv9I8nWn67phhyiwSsN3iZjn5CSx0oaA3FWepMfpGGp0sOk8jtiieOSbcV0Phs1ZjQ0IpPvV9ED3n657af3/XVP0+3vZG6AWDWLHlyY6HImPZilNoTNuwarAKMbf6eF4jY7oZuzgYf8aaC3/nRxLkmRgyQNzEUPUBr56A/DooP5gT7FkZuHrozrZ/xu9I7XLarAAGivblo96SpBTwsQhgc9DUe+t0Il0dNGh6hbHejgQ+sLYOrHSpGUEcxJ0vSwX4X8pnh7nAi8vNto6s4ftmrozMU+iDpoTJQGLgdV6Vy0uQlAeA6hncHoD8YdzPFISCMzzeaIEGvueuMQY+P7+Xf/QvV+ydP7Vtse4HLbAYQZfQKxAxDUTQmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDBlAbaPCKB9I75QSOwacyhDCvvGXq0U5EB2wKCBdVJLVB6Do2ubYxfNPlWvGsBpTcosLPiY/UcKllmBm1R/zPUG"
+        }
+      ]
+    }
   ]
 }
