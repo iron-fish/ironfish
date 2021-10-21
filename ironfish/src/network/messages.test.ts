@@ -64,7 +64,7 @@ describe('isPeerListRequest', () => {
       type: InternalMessageType.peerList,
       payload: {
         connectedPeers: [],
-      }
+      },
     }
     expect(isPeerListRequest(msg)).toBeFalsy()
   })
