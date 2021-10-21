@@ -58,6 +58,16 @@ describe('isPeerListRequest', () => {
     }
     expect(isPeerListRequest(msg)).toBeTruthy()
   })
+
+  it('Returns false on wrong type message', () => {
+    const msg: PeerList = {
+      type: InternalMessageType.peerList,
+      payload: {
+        connectedPeers: [],
+      }
+    }
+    expect(isPeerListRequest(msg)).toBeFalsy()
+  })
 })
 
 describe('isPeerList', () => {
