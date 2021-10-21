@@ -1434,10 +1434,14 @@ export class PeerManager {
   }
 
   private handlePeerListRequestMessage(peer: Peer) {
-    const peers = []
+    const connectedPeers = []
 
     for (const p of this.identifiedPeers.values()) {
       if (p.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      if (peer.knownPeers.has(p.state.identity)) {
         continue
       }
 
@@ -1445,15 +1449,13 @@ export class PeerManager {
         continue
       }
 
-      peers.push({
+      connectedPeers.push({
         identity: p.state.identity,
         name: p.name || undefined,
         address: p.address,
         port: p.port,
       })
     }
-
-    const connectedPeers = peers.filter((cp) => !peer.knownPeers.has(cp.identity))
 
     const peerList: PeerList = {
       type: InternalMessageType.peerList,
