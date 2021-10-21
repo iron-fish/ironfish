@@ -789,6 +789,7 @@ export class PeerManager {
 
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 5000)
+    this.broadcastPeerListHandle = setInterval(() => this.broadcastPeerList(), 5000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
   }
 
@@ -798,6 +799,7 @@ export class PeerManager {
    */
   stop(): void {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
+    this.broadcastPeerListHandle && clearInterval(this.broadcastPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
@@ -810,6 +812,41 @@ export class PeerManager {
     }
 
     this.broadcast(peerListRequest)
+  }
+
+  /**
+   * Send the list of peer IDs I am connected to to each of those peers.
+   * This is expected to be called periodically, both as a keep-alive and
+   * to help peers keep their view of the network up-to-date.
+   */
+  private broadcastPeerList() {
+    const connectedPeers = []
+
+    for (const p of this.identifiedPeers.values()) {
+      if (p.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      // Worker nodes are nodes that should not be broadcast because they are
+      // meant to connect to a single node and perform one function
+      if (p.isWorker && !this.localPeer.broadcastWorkers) {
+        continue
+      }
+
+      connectedPeers.push({
+        identity: p.state.identity,
+        name: p.name || undefined,
+        address: p.address,
+        port: p.port,
+      })
+    }
+
+    const peerList: PeerList = {
+      type: InternalMessageType.peerList,
+      payload: { connectedPeers },
+    }
+
+    this.broadcast(peerList)
   }
 
   private disposePeers(): void {
