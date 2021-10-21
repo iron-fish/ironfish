@@ -6,13 +6,14 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
-import { Block } from '../primitives'
+import { Block, BlockHeader } from '../primitives'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 
 export class MemPool {
   transactions = new BufferMap<Transaction>()
   chain: Blockchain
+  head: BlockHeader | null
   strategy: Strategy
   logger: Logger
 
@@ -20,6 +21,7 @@ export class MemPool {
     const logger = options.logger || createRootLogger()
 
     this.chain = options.chain
+    this.head = null
     this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
 
@@ -27,8 +29,8 @@ export class MemPool {
       this.onConnectBlock(block)
     })
 
-    this.chain.onDisconnectBlock.on((block) => {
-      this.onDisconnectBlock(block)
+    this.chain.onDisconnectBlock.on(async (block) => {
+      await this.onDisconnectBlock(block)
     })
   }
 
@@ -50,6 +52,23 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
+    if (!this.head) {
+      this.logger.warn('No head for mempool')
+      return false
+    }
+
+    const chainHeadHash = this.chain.head.hash
+    const memPoolHeadHash = this.head.hash
+    if (!memPoolHeadHash.equals(chainHeadHash)) {
+      this.logger.warn(
+        `Chain head '${chainHeadHash.toString(
+          'hex',
+        )}' different from mempool head '${memPoolHeadHash.toString('hex')}'`,
+      )
+      this.transactions = new BufferMap<Transaction>()
+      return false
+    }
+
     const hash = transaction.transactionHash()
 
     if (this.transactions.has(hash)) {
@@ -78,9 +97,11 @@ export class MemPool {
     }
 
     this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+
+    this.head = block.header
   }
 
-  onDisconnectBlock(block: Block): void {
+  async onDisconnectBlock(block: Block): Promise<void> {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
@@ -93,5 +114,12 @@ export class MemPool {
     }
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
+
+    if (!this.head) {
+      this.logger.warn('No head for mempool when disconnecting')
+      return
+    }
+
+    this.head = await this.chain.getHeader(this.head.previousBlockHash)
   }
 }

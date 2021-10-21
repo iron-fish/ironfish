@@ -61,6 +61,22 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
+    describe('when the mempool head and chain head are different', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        await node.chain.open()
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        memPool.chain.head = node.chain.genesis
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+      }, 60000)
+    })
+
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 
