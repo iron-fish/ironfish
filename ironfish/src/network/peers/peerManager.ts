@@ -768,15 +768,7 @@ export class PeerManager {
   broadcast(message: LooseMessage): void {
     for (const peer of this.identifiedPeers.values()) {
       if (peer.state.type === 'CONNECTED') {
-        if (
-          message.type === InternalMessageType.peerList &&
-          peer.version !== null &&
-          peer.version >= this.localPeer.version
-        ) {
-          continue
-        } else {
-          peer.send(message)
-        }
+        peer.send(message)
       }
     }
   }
