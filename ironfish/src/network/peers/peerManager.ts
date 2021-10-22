@@ -833,11 +833,6 @@ export class PeerManager {
         continue
       }
 
-      /**
-       * Send the list of peer IDs I am connected to to each of those peers.
-       * This is expected to be called periodically, both as a keep-alive and
-       * to help peers keep their view of the network up-to-date.
-       */
       peer.send(peerList)
     }
   }
