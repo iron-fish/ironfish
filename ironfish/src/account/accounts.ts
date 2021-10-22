@@ -501,7 +501,7 @@ export class Accounts {
       transaction,
       initialNoteIndex,
       sequence,
-    } of this.chain.iterateAllTransactions(accountHeadHash)) {
+    } of this.chain.iterateAllTransactions(null, accountHeadHash)) {
       if (scan.isAborted) {
         scan.signalComplete()
         this.scan = null
