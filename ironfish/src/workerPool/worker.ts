@@ -103,6 +103,7 @@ export class Worker {
   private spawned() {
     Assert.isNotNull(this.parent)
     this.parent.on('message', this.onMessageFromParent)
+
     // Trigger loading of Sapling parameters if we're in a worker thread
     generateKey()
   }

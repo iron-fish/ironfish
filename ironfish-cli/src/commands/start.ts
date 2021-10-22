@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
+import {
+  Assert,
+  IronfishNode,
+  NodeUtils,
+  Package,
+  PrivateIdentity,
+  PromiseUtils,
+} from 'ironfish'
 import { Platform } from 'ironfish'
 import tweetnacl from 'tweetnacl'
 import { IronfishCommand, SIGNALS } from '../command'
@@ -160,17 +167,18 @@ export default class Start extends IronfishCommand {
 
     const node = await this.sdk.node({ privateIdentity: privateIdentity })
 
-    const version = Platform.getAgent('cli')
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
+    const peerAgent = Platform.getAgent('cli')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
-    this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
-    this.log(`Peer Agent    ${version}`)
-    this.log(`Port          ${peerPort}`)
-    this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    this.log(`Version       ${Package.version} @ ${Package.git}`)
     this.log(`Node Name     ${nodeName || 'NONE'}`)
+    this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
+    this.log(`Peer Agent    ${peerAgent}`)
+    this.log(`Peer Port     ${peerPort}`)
+    this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     this.log(` `)
 
     await NodeUtils.waitForOpen(node, () => this.closing)
