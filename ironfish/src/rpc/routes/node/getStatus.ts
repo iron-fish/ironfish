@@ -17,6 +17,7 @@ export type GetStatusResponse = {
   node: {
     status: 'started' | 'stopped' | 'error'
     version: string
+    git: string
   }
   miningDirector: {
     status: 'started' | 'stopped'
@@ -67,6 +68,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .object({
         status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
         version: yup.string().defined(),
+        git: yup.string().defined(),
       })
       .defined(),
     miningDirector: yup
@@ -165,7 +167,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     node: {
       status: node.started ? 'started' : 'stopped',
-      version: Package.git,
+      version: Package.version,
+      git: Package.git,
     },
     miningDirector: {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
