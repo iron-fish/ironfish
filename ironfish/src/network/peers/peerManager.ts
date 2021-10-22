@@ -78,16 +78,10 @@ export class PeerManager {
   peers: Array<Peer> = []
 
   /**
-   * setInterval handle for requestPeerList, which sends out the peer list to all
-   * connected peers
+   * setInterval handle for distributePeerList, which sends out peer lists and
+   * requests for peer lists
    */
-  private requestPeerListHandle: ReturnType<typeof setInterval> | undefined
-
-  /**
-   * setInterval handle for broadcastPeerList, which sends out the peer list to all
-   * connected peers
-   */
-  private broadcastPeerListHandle: ReturnType<typeof setInterval> | undefined
+  private distributePeerListHandle: ReturnType<typeof setInterval> | undefined
 
   /**
    * setInterval handle for peer disposal, which removes peers from the list that we
@@ -788,8 +782,7 @@ export class PeerManager {
   }
 
   start(): void {
-    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 5000)
-    this.broadcastPeerListHandle = setInterval(() => this.broadcastPeerList(), 5000)
+    this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
   }
 
@@ -798,28 +791,14 @@ export class PeerManager {
    * outstanding connections.
    */
   stop(): void {
-    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
-    this.broadcastPeerListHandle && clearInterval(this.broadcastPeerListHandle)
+    this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
   }
 
-  private requestPeerList() {
-    const peerListRequest: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
-    }
-
-    this.broadcast(peerListRequest)
-  }
-
-  /**
-   * Send the list of peer IDs I am connected to to each of those peers.
-   * This is expected to be called periodically, both as a keep-alive and
-   * to help peers keep their view of the network up-to-date.
-   */
-  private broadcastPeerList() {
+  private distributePeerList() {
     const connectedPeers = []
 
     for (const p of this.identifiedPeers.values()) {
@@ -846,7 +825,23 @@ export class PeerManager {
       payload: { connectedPeers },
     }
 
-    this.broadcast(peerList)
+    const peerListRequest: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+
+    for (const peer of this.identifiedPeers.values()) {
+      if (peer.version !== null && peer.version >= 9) {
+        peer.send(peerListRequest)
+        continue
+      }
+
+      /**
+       * Send the list of peer IDs I am connected to to each of those peers.
+       * This is expected to be called periodically, both as a keep-alive and
+       * to help peers keep their view of the network up-to-date.
+       */
+      peer.send(peerList)
+    }
   }
 
   private disposePeers(): void {
