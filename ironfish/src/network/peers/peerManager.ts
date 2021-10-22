@@ -52,6 +52,12 @@ import { Peer } from './peer'
 const MAX_WEBRTC_BROKERING_ATTEMPTS = 5
 
 /**
+ * The minimum version at which the peer manager will send peer list requests
+ * to a connected peer
+ */
+const MIN_VERSION_FOR_PEER_LIST_REQUESTS = 9
+
+/**
  * PeerManager keeps the state of Peers and their underlying connections up to date,
  * determines how to establish a connection to a given Peer, and provides an event
  * bus for Peers, e.g. for listening to incoming messages from all connected peers.
@@ -822,7 +828,7 @@ export class PeerManager {
     }
 
     for (const peer of this.identifiedPeers.values()) {
-      if (peer.version !== null && peer.version >= 9) {
+      if (peer.version !== null && peer.version >= MIN_VERSION_FOR_PEER_LIST_REQUESTS) {
         peer.send(peerListRequest)
         continue
       }
