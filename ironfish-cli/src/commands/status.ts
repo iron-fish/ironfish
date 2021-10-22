@@ -61,7 +61,7 @@ export default class Status extends IronfishCommand {
 }
 
 function renderStatus(content: GetStatusResponse): string {
-  const nodeStatus = `${content.node.status.toUpperCase()} @ ${content.node.version}`
+  const nodeStatus = `${content.node.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
@@ -100,6 +100,7 @@ function renderStatus(content: GetStatusResponse): string {
   }
 
   return `
+Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}
