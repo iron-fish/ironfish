@@ -23,10 +23,12 @@ import {
   isIdentify,
   isMessage,
   isPeerList,
+  isPeerListRequest,
   isSignal,
   isSignalRequest,
   LooseMessage,
   PeerList,
+  PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
@@ -48,6 +50,12 @@ import { Peer } from './peer'
  * that can send signaling messages to another peer.
  */
 const MAX_WEBRTC_BROKERING_ATTEMPTS = 5
+
+/**
+ * The minimum version at which the peer manager will send peer list requests
+ * to a connected peer
+ */
+const MIN_VERSION_FOR_PEER_LIST_REQUESTS = 9
 
 /**
  * PeerManager keeps the state of Peers and their underlying connections up to date,
@@ -76,10 +84,10 @@ export class PeerManager {
   peers: Array<Peer> = []
 
   /**
-   * setInterval handle for broadcastPeerList, which sends out the peer list to all
-   * connected peers
+   * setInterval handle for distributePeerList, which sends out peer lists and
+   * requests for peer lists
    */
-  private broadcastPeerListHandle: ReturnType<typeof setInterval> | undefined
+  private distributePeerListHandle: ReturnType<typeof setInterval> | undefined
 
   /**
    * setInterval handle for peer disposal, which removes peers from the list that we
@@ -772,7 +780,7 @@ export class PeerManager {
   }
 
   start(): void {
-    this.broadcastPeerListHandle = setInterval(() => this.broadcastPeerList(), 5000)
+    this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
   }
 
@@ -781,19 +789,14 @@ export class PeerManager {
    * outstanding connections.
    */
   stop(): void {
-    this.broadcastPeerListHandle && clearInterval(this.broadcastPeerListHandle)
+    this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
   }
 
-  /**
-   * Send the list of peer IDs I am connected to to each of those peers.
-   * This is expected to be called periodically, both as a keep-alive and
-   * to help peers keep their view of the network up-to-date.
-   */
-  private broadcastPeerList() {
+  private distributePeerList() {
     const connectedPeers = []
 
     for (const p of this.identifiedPeers.values()) {
@@ -820,7 +823,18 @@ export class PeerManager {
       payload: { connectedPeers },
     }
 
-    this.broadcast(peerList)
+    const peerListRequest: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+
+    for (const peer of this.identifiedPeers.values()) {
+      if (peer.version !== null && peer.version >= MIN_VERSION_FOR_PEER_LIST_REQUESTS) {
+        peer.send(peerListRequest)
+        continue
+      }
+
+      peer.send(peerList)
+    }
   }
 
   private disposePeers(): void {
@@ -882,6 +896,8 @@ export class PeerManager {
       this.handleSignalRequestMessage(peer, connection, message)
     } else if (isSignal(message)) {
       await this.handleSignalMessage(peer, connection, message)
+    } else if (isPeerListRequest(message)) {
+      this.handlePeerListRequestMessage(peer)
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
     } else {
@@ -1428,6 +1444,38 @@ export class PeerManager {
 
     // We have the signaling data, so pass it on to the connection
     signalingConnection.signal(signalData)
+  }
+
+  private handlePeerListRequestMessage(peer: Peer) {
+    const connectedPeers = []
+
+    for (const p of this.identifiedPeers.values()) {
+      if (p.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      if (peer.knownPeers.has(p.state.identity)) {
+        continue
+      }
+
+      if (p.isWorker && !this.localPeer.broadcastWorkers) {
+        continue
+      }
+
+      connectedPeers.push({
+        identity: p.state.identity,
+        name: p.name || undefined,
+        address: p.address,
+        port: p.port,
+      })
+    }
+
+    const peerList: PeerList = {
+      type: InternalMessageType.peerList,
+      payload: { connectedPeers },
+    }
+
+    this.sendTo(peer, peerList)
   }
 
   private handlePeerListMessage(peerList: PeerList, peer: Peer) {
