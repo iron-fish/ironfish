@@ -10,8 +10,10 @@ import {
   isDisconnectingMessage,
   isIdentify,
   isPeerList,
+  isPeerListRequest,
   isSignal,
   PeerList,
+  PeerListRequest,
   Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
@@ -46,6 +48,25 @@ describe('isSignal', () => {
       },
     }
     expect(isSignal(msg)).toBeTruthy()
+  })
+})
+
+describe('isPeerListRequest', () => {
+  it('Retuns true on peerlist request message', () => {
+    const msg: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+    expect(isPeerListRequest(msg)).toBeTruthy()
+  })
+
+  it('Returns false on wrong type message', () => {
+    const msg: PeerList = {
+      type: InternalMessageType.peerList,
+      payload: {
+        connectedPeers: [],
+      },
+    }
+    expect(isPeerListRequest(msg)).toBeFalsy()
   })
 })
 
