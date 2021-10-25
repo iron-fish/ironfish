@@ -57,18 +57,6 @@ export class MemPool {
       return false
     }
 
-    const chainHeadHash = this.chain.head.hash
-    const memPoolHeadHash = this.head.hash
-    if (!memPoolHeadHash.equals(chainHeadHash)) {
-      this.logger.warn(
-        `Chain head '${chainHeadHash.toString(
-          'hex',
-        )}' different from mempool head '${memPoolHeadHash.toString('hex')}'`,
-      )
-      this.transactions = new BufferMap<Transaction>()
-      return false
-    }
-
     const hash = transaction.transactionHash()
 
     if (this.transactions.has(hash)) {
