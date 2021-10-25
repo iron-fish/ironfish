@@ -13,7 +13,7 @@ import { Strategy } from '../strategy'
 export class MemPool {
   transactions = new BufferMap<Transaction>()
   chain: Blockchain
-  head: BlockHeader | null
+  head: BlockHeader
   strategy: Strategy
   logger: Logger
 
@@ -21,7 +21,7 @@ export class MemPool {
     const logger = options.logger || createRootLogger()
 
     this.chain = options.chain
-    this.head = null
+    this.head = options.chain.genesis
     this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
 
@@ -108,6 +108,11 @@ export class MemPool {
       return
     }
 
-    this.head = await this.chain.getHeader(this.head.previousBlockHash)
+    const previousHead = await this.chain.getHeader(this.head.previousBlockHash)
+    if (!previousHead) {
+      throw new Error(`No block with hash ${this.head.previousBlockHash.toString('hex')}`)
+    }
+
+    this.head = previousHead
   }
 }
