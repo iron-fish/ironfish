@@ -42,7 +42,7 @@ export function bytesToBigInt(bytes: Buffer): bigint {
   return BigInt('0x' + hex.join(''))
 }
 
-export function bigIntToBytes(bigint: bigint): Buffer {
+export function bigIntToBytes(bigint: BigInt): Buffer {
   let hex = bigint.toString(16)
   if (hex.length % 2) {
     hex = '0' + hex
@@ -291,11 +291,11 @@ export class TargetSerde implements Serde<Target, string> {
     return target.targetValue.toString()
   }
 
-  deserialize(data: string): Target {
-    if (typeof data !== 'string') {
-      throw new Error('Can only deserialize Target from string')
+  deserialize(data: string | Buffer): Target {
+    if (typeof data === 'string' || data instanceof Buffer) {
+      return new Target(data)
     }
-    return new Target(data)
+    throw new Error('Can only deserialize Target from string or Buffer')
   }
 }
 
