@@ -32,6 +32,8 @@ export default class Faucet extends IronfishCommand {
     }),
   }
 
+  warnedFund = false
+
   async start(): Promise<void> {
     const { flags } = this.parse(Faucet)
 
@@ -125,14 +127,21 @@ export default class Faucet extends IronfishCommand {
     const response = await client.getAccountBalance({ account })
 
     if (BigInt(response.content.confirmedBalance) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
-      this.log(
-        `Faucet has insufficient funds. Needs ${FAUCET_AMOUNT + FAUCET_FEE} but has ${
-          response.content.confirmedBalance
-        }`,
-      )
+      if (!this.warnedFund) {
+        this.log(
+          `Faucet has insufficient funds. Needs ${FAUCET_AMOUNT + FAUCET_FEE} but has ${
+            response.content.confirmedBalance
+          }. Waiting on more funds.`,
+        )
+
+        this.warnedFund = true
+      }
+
       await PromiseUtils.sleep(5000)
       return
     }
+
+    this.warnedFund = false
 
     const faucetTransaction = await api.getNextFaucetTransaction()
 
@@ -146,7 +155,7 @@ export default class Faucet extends IronfishCommand {
 
     await api.startFaucetTransaction(faucetTransaction.id)
 
-    await client.sendTransaction({
+    const tx = await client.sendTransaction({
       fromAccountName: account,
       toPublicKey: faucetTransaction.public_key,
       amount: BigInt(FAUCET_AMOUNT).toString(),
@@ -154,10 +163,14 @@ export default class Faucet extends IronfishCommand {
       memo: `Faucet for ${faucetTransaction.id}`,
     })
 
-    await api.completeFaucetTransaction(faucetTransaction.id)
-
     speed.add(1)
 
-    this.log(`COMPLETED: ${faucetTransaction.id} (${speed.rate5m.toFixed(2)} avg)`)
+    this.log(
+      `COMPLETING: ${faucetTransaction.id} ${
+        tx.content.transactionHash
+      } (5m avg ${speed.rate5m.toFixed(2)})`,
+    )
+
+    await api.completeFaucetTransaction(faucetTransaction.id)
   }
 }
