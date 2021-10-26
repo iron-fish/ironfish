@@ -5,6 +5,7 @@ import os from 'os'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { HostsStore } from './fileStores/hostsStore'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
@@ -23,6 +24,7 @@ export class IronfishNode {
   strategy: Strategy
   config: Config
   internal: InternalStore
+  hosts: HostsStore
   accounts: Accounts
   logger: Logger
   miningDirector: MiningDirector
@@ -44,6 +46,7 @@ export class IronfishNode {
     files,
     config,
     internal,
+    hosts,
     accounts,
     strategy,
     metrics,
@@ -58,6 +61,7 @@ export class IronfishNode {
     files: FileSystem
     config: Config
     internal: InternalStore
+    hosts: HostsStore
     accounts: Accounts
     chain: Blockchain
     strategy: Strategy
@@ -72,6 +76,7 @@ export class IronfishNode {
     this.files = files
     this.config = config
     this.internal = internal
+    this.hosts = hosts
     this.accounts = accounts
     this.chain = chain
     this.strategy = strategy
@@ -122,6 +127,7 @@ export class IronfishNode {
     dataDir,
     config,
     internal,
+    hosts,
     autoSeed,
     logger = createRootLogger(),
     metrics,
@@ -134,6 +140,7 @@ export class IronfishNode {
     dataDir?: string
     config?: Config
     internal?: InternalStore
+    hosts?: HostsStore
     autoSeed?: boolean
     databaseName?: string
     logger?: Logger
@@ -154,6 +161,11 @@ export class IronfishNode {
     if (!internal) {
       internal = new InternalStore(files, dataDir)
       await internal.load()
+    }
+
+    if (!hosts) {
+      hosts = new HostsStore(files, dataDir)
+      await hosts.load()
     }
 
     if (databaseName) {
@@ -206,6 +218,7 @@ export class IronfishNode {
       files,
       config,
       internal,
+      hosts,
       accounts,
       metrics,
       miningDirector: mining,
@@ -278,6 +291,7 @@ export class IronfishNode {
       this.accounts.stop(),
       this.syncer.stop(),
       this.peerNetwork.stop(),
+      this.hosts.save(),
       this.rpc.stop(),
       stopCollecting(),
       this.metrics.stop(),
