@@ -12,6 +12,7 @@ import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
+import { PeerAddrManager } from './network/peers/peerAddrManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -107,6 +108,7 @@ export class IronfishNode {
       chain: chain,
       strategy: strategy,
       metrics: this.metrics,
+      peerAddrManager: new PeerAddrManager(this.hosts),
     })
 
     this.syncer = new Syncer({

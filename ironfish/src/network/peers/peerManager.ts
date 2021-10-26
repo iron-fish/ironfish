@@ -88,7 +88,7 @@ export class PeerManager {
    * PeerAddrManager allows the storage and persistence of addresses that can
    * map to peers.
    */
-  private peerAddrManager: PeerAddrManager
+  peerAddrManager: PeerAddrManager
 
   /**
    * setInterval handle for broadcastPeerList, which sends out the peer list to all

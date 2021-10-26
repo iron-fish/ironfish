@@ -147,6 +147,7 @@ export class PeerNetwork {
     node: IronfishNode
     strategy: Strategy
     chain: Blockchain
+    peerAddrManager: PeerAddrManager
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -177,11 +178,10 @@ export class PeerNetwork {
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50
     const logPeerMessages = options.logPeerMessages ?? false
-    const peerAddrManager = new PeerAddrManager(this.node.hosts)
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      peerAddrManager,
+      options.peerAddrManager,
       this.logger,
       this.metrics,
       maxPeers,
