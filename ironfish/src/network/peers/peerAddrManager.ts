@@ -23,11 +23,13 @@ export class PeerAddrManager {
     address: string | null,
     port: number | null,
     identity?: Identity | undefined,
+    inUse?: boolean | undefined,
   ): void {
     this.addrs.push({
       address: address,
       port: port,
       identity: identity,
+      inUse: inUse || false,
     })
   }
 

@@ -49,20 +49,28 @@ class MockHostsStore extends HostsStore {
 
   constructor() {
     super(new MockFileSystem())
-    this.hosts = []
-  }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async load(): Promise<void> {
     this.hosts = [
       {
         address: '127.0.0.1',
         port: 9999,
+        identity: undefined,
+        inUse: false,
       },
     ]
   }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async load(): Promise<void> {}
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async save(): Promise<void> {}
+
+  getArray(_key: string): PeerAddr[] {
+    return this.hosts
+  }
+
+  set(_key: string, array: PeerAddr[]): void {
+    this.hosts = array
+  }
 }
 
 export function mockHostsStore(): MockHostsStore {
