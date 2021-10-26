@@ -12,8 +12,8 @@ import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage, NodeMessageType } from './messages'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
-import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 import { PeerAddrManager } from './peers/peerAddrManager'
+import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
 jest.useFakeTimers()
 
