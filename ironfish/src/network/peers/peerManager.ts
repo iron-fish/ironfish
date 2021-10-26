@@ -44,6 +44,7 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
+import { PeerAddrManager } from './peerAddrManager'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -84,8 +85,14 @@ export class PeerManager {
   peers: Array<Peer> = []
 
   /**
-   * setInterval handle for distributePeerList, which sends out peer lists and
-   * requests for peer lists
+   * PeerAddrManager allows the storage and persistence of addresses that can
+   * map to peers.
+   */
+  private peerAddrManager: PeerAddrManager
+
+  /**
+   * setInterval handle for broadcastPeerList, which sends out the peer list to all
+   * connected peers
    */
   private distributePeerListHandle: ReturnType<typeof setInterval> | undefined
 
@@ -144,6 +151,7 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
+    peerAddrManager: PeerAddrManager,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
@@ -151,6 +159,7 @@ export class PeerManager {
     logPeerMessages = false,
   ) {
     this.logger = logger.withTag('peermanager')
+    this.peerAddrManager = peerAddrManager
     this.metrics = metrics || new MetricsMonitor(this.logger)
     this.localPeer = localPeer
     this.maxPeers = maxPeers

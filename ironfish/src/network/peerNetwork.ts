@@ -58,6 +58,7 @@ import {
 } from './messages'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
+import { PeerAddrManager } from './peers/peerAddrManager'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { IsomorphicWebSocketConstructor } from './types'
@@ -176,9 +177,11 @@ export class PeerNetwork {
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50
     const logPeerMessages = options.logPeerMessages ?? false
+    const peerAddrManager = new PeerAddrManager(this.node.hosts)
 
     this.peerManager = new PeerManager(
       this.localPeer,
+      peerAddrManager,
       this.logger,
       this.metrics,
       maxPeers,
