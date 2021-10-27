@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTx,
+  useMinersTxFixture,
+} from '../testUtilities'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -66,12 +71,11 @@ describe('MemPool', () => {
 
       it('returns false', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
-        const { block } = await useBlockWithTx(node, accountA, accountB)
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        expect(await memPool.acceptTransaction(block.transactions[1])).toBe(false)
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
       }, 60000)
     })
 
