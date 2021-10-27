@@ -293,7 +293,6 @@ export class IronfishNode {
       this.accounts.stop(),
       this.syncer.stop(),
       this.peerNetwork.stop(),
-      this.hosts.save(),
       this.rpc.stop(),
       stopCollecting(),
       this.metrics.stop(),

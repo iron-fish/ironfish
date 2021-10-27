@@ -399,12 +399,14 @@ export class PeerNetwork {
    * Call close when shutting down the PeerNetwork to clean up
    * outstanding connections.
    */
-  stop(): void {
-    this.started = false
-    this.peerConnectionManager.stop()
-    this.peerManager.stop()
-    this.webSocketServer?.close()
-    this.updateIsReady()
+  async stop(): Promise<void> {
+    await Promise.allSettled([
+      (this.started = false),
+      this.peerConnectionManager.stop(),
+      this.peerManager.stop(),
+      this.webSocketServer?.close(),
+      this.updateIsReady(),
+    ])
   }
 
   /**
