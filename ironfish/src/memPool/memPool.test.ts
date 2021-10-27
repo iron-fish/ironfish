@@ -61,6 +61,20 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
+    describe('with a coinbase transaction', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { block } = await useBlockWithTx(node, accountA, accountB)
+
+        expect(await memPool.acceptTransaction(block.transactions[1])).toBe(false)
+      }, 60000)
+    })
+
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 
