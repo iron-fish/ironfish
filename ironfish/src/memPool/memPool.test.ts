@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTx,
+  useMinersTxFixture,
+} from '../testUtilities'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -61,6 +66,19 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
+    describe('with a coinbase transaction', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+      }, 60000)
+    })
+
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 

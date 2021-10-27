@@ -654,5 +654,19 @@
         }
       ]
     }
+  ],
+  "MemPool acceptTransaction with a coinbase transaction returns false": [
+    {
+      "name": "test",
+      "spendingKey": "c6cd0aa29e5f6973e337f9dc6ef471367a2df01a5a5507effbd2c0e8654e4da8",
+      "incomingViewKey": "9bbb81fb6181c5717c2b8ac2b0992d745a36cf2c001849c0947eb938bf083d05",
+      "outgoingViewKey": "d434822a4dea8703a50dd6cbc930e428a448ed7d6544ea7b292652e0e0dfeeeb",
+      "publicAddress": "22d99c27a2b981a50032151ac6c4f79cd1e65d6292e0936e6ae83a263e7854a794448e42ced31e024cd40f",
+      "rescan": null
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAACbMuL/////rz96POUydb6+RLmrfKQQcilc9lgRab2GTEvgDKKIudGKgbaXyN8ePGtnVR7XEp4xhNS8ENgqJw6lG+HnOOV/5kl06rqFYPfe1wRADO5eA4tBHZZmKGfvUvQvKwMvY3ThBkcF4UakO906dLe7gVrGOcC6UsVC5iiyrgwrvG+EHg41iYPpd4y22YJNFeUAMwQLt4xHLDq0S2l2yHyyL2B0WrPuyPsWGCx9IQhUTbrbT3Ff8FOg84y62sCWTbCW232w/T+2zLUhqAC7sS8Y9XR4+jk3MGjhR4w0geIDIM0f6Mfb2VN9WXbqsftcQSheVcQwDoCGrX5OnTGy0ITTg1BhAfYGoWhcYaS37thVfEmeKhvxpahptDASKbOJSVUbJYOd0y5joJn3QhlDKWHH5uH36/xtcHF4TuAIkR6DTc8X6WQkoHwtRv4DmmGWErdQHxCj4CdgANTX1XjWUXpJdoUoUWnPeElvBaxtj8PVUKdKZ9TXWPF/HLi0CBen1o6hU3wNWr1ZQmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDJtu/c3mJ7d4BQwZetmUFsJmalXnO3T8xeaqDThYyzEpmv9nWSKsxQCsWDgpkQO8m3V/vsAHMlxbZoDo2veEEO"
+    }
   ]
 }
