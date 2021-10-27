@@ -6,13 +6,14 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
-import { Block } from '../primitives'
+import { Block, BlockHeader } from '../primitives'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 
 export class MemPool {
   transactions = new BufferMap<Transaction>()
   chain: Blockchain
+  head: BlockHeader | null
   strategy: Strategy
   logger: Logger
 
@@ -20,6 +21,7 @@ export class MemPool {
     const logger = options.logger || createRootLogger()
 
     this.chain = options.chain
+    this.head = null
     this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
 
@@ -27,8 +29,8 @@ export class MemPool {
       this.onConnectBlock(block)
     })
 
-    this.chain.onDisconnectBlock.on((block) => {
-      this.onDisconnectBlock(block)
+    this.chain.onDisconnectBlock.on(async (block) => {
+      await this.onDisconnectBlock(block)
     })
   }
 
@@ -78,9 +80,11 @@ export class MemPool {
     }
 
     this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+
+    this.head = block.header
   }
 
-  onDisconnectBlock(block: Block): void {
+  async onDisconnectBlock(block: Block): Promise<void> {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
@@ -93,5 +97,7 @@ export class MemPool {
     }
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
+
+    this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 }
