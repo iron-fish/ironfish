@@ -10,12 +10,7 @@ export type HostsOptions = {
 }
 
 export const HostOptionsDefaults: HostsOptions = {
-  hosts: [
-    {
-      address: null,
-      port: null,
-    },
-  ],
+  hosts: [],
 }
 
 export class HostsStore extends KeyStore<HostsOptions> {
