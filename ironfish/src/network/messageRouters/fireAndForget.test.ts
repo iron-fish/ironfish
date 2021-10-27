@@ -79,6 +79,6 @@ describe('FireAndForget Router', () => {
     })
 
     expect(fireAndForgetMock).toBeCalled()
-    network.stop()
+    await network.stop()
   })
 })
