@@ -91,7 +91,7 @@ export class PeerManager {
   peerAddrManager: PeerAddrManager
 
   /**
-   * setInterval handle for broadcastPeerList, which sends out the peer list to all
+   * setInterval handle for distributePeerList, which sends out the peer list to all
    * connected peers
    */
   private distributePeerListHandle: ReturnType<typeof setInterval> | undefined
