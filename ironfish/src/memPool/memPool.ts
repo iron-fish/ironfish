@@ -52,11 +52,6 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
-    if (!this.head) {
-      this.logger.warn('No head for mempool')
-      return false
-    }
-
     const hash = transaction.transactionHash()
 
     if (this.transactions.has(hash)) {
@@ -103,11 +98,6 @@ export class MemPool {
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
 
-    if (!this.head) {
-      this.logger.warn('No head for mempool when disconnecting')
-      return
-    }
-
-    this.head = await this.chain.getHeader(this.head.previousBlockHash)
+    this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 }
