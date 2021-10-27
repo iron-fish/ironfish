@@ -6,6 +6,5 @@ import { Identity } from '../identity'
 export type PeerAddr = {
   address: string | null
   port: number | null
-  identity?: Identity | undefined
-  inUse?: boolean
+  identity?: Identity | null
 }
