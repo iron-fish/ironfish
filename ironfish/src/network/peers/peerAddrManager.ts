@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ArrayUtils } from '../..'
 import { HostsStore } from '../../fileStores/hostsStore'
-import { Identity } from '..'
+import { Peer } from '..'
 import { PeerAddr } from './peerAddr'
 
 export class PeerAddrManager {
@@ -19,22 +19,14 @@ export class PeerAddrManager {
     return ArrayUtils.sampleOrThrow(this.addrs)
   }
 
-  createPeerAddr(
-    address: string | null,
-    port: number | null,
-    identity?: Identity | undefined,
-    inUse?: boolean | undefined,
-  ): void {
-    this.addrs.push({
-      address: address,
-      port: port,
-      identity: identity,
-      inUse: inUse || false,
-    })
-  }
-
-  async save(): Promise<void> {
-    const inUseAddrs = this.addrs.filter((addr) => addr.inUse === true)
+  async save(peers: Peer[]): Promise<void> {
+    const inUseAddrs = peers
+      .filter((peer) => peer.state.type === 'CONNECTED')
+      .map((peer) => ({
+        address: peer.address,
+        port: peer.port,
+        identity: peer.state.identity,
+      }))
     this.hostsStore.set('hosts', inUseAddrs)
     await this.hostsStore.save()
   }

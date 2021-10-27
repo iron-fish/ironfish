@@ -19,34 +19,12 @@ describe('PeerAddrManager', () => {
     ])
   })
 
-  it('createPeerAddr should create PeerAddr from peer details', () => {
-    const peerAddrManager = new PeerAddrManager(mockHostsStore())
-    peerAddrManager.createPeerAddr('1.1.1.1', 1111)
-    expect(peerAddrManager.addrs).toContainEqual({
-      address: '1.1.1.1',
-      port: 1111,
-      identity: undefined,
-      inUse: false,
-    })
-  })
-
   it('getPeerAddr should return a randomly-sampled PeerAddr', () => {
     const peerAddrManager = new PeerAddrManager(mockHostsStore())
     for (let i = 0; i < 10; i++) {
-      peerAddrManager.createPeerAddr(`${i}.${i}.${i}.${i}`, i)
+      peerAddrManager.addrs.push({ address: `${i}.${i}.${i}.${i}`, port: i })
     }
     const sample = peerAddrManager.getPeerAddr()
     expect(peerAddrManager.addrs).toContainEqual(sample)
-  })
-
-  it('save should save host information to hostsStore', async () => {
-    const peerAddrManager = new PeerAddrManager(mockHostsStore())
-    for (let i = 0; i < 10; i++) {
-      peerAddrManager.createPeerAddr(`${i}.${i}.${i}.${i}`, i, undefined, i < 5)
-    }
-    await peerAddrManager.save()
-    peerAddrManager.hostsStore
-      .getArray('hosts')
-      .forEach((addr) => expect(addr.inUse).toBeTruthy())
   })
 })
