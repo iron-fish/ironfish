@@ -54,9 +54,7 @@ describe('Target', () => {
   it('throws when constructed with too big an array', () => {
     const bytes = Buffer.alloc(33)
     bytes[0] = 1
-    expect(() => new Target(bytes)).toThrowErrorMatchingInlineSnapshot(
-      `"Target value exceeds max target"`,
-    )
+    expect(() => new Target(bytes)).toThrowError(`Target value exceeds max target`)
   })
 
   it('has the correct max value', () => {
@@ -99,17 +97,17 @@ describe('TargetSerde', () => {
   it('serializes and deserializes bytes', () => {
     const target = new Target(500)
     const serialized = serde.serialize(target)
-    expect(serialized).toMatchInlineSnapshot(`"500"`)
+    expect(serialized).toEqual(`500`)
     const deserialized = serde.deserialize(serialized)
     expect(serde.equals(deserialized, target)).toBe(true)
   })
   it('throws when deserializing incorrect value', () => {
-    expect(() => serde.deserialize('not a number')).toThrowErrorMatchingInlineSnapshot(
-      `"Cannot convert not a number to a BigInt"`,
+    expect(() => serde.deserialize('not a number')).toThrowError(
+      `Cannot convert not a number to a BigInt`,
     )
     // @ts-expect-error Argument of type '{ not: string; }' is not assignable to parameter of type 'string'.ts(2345)
-    expect(() => serde.deserialize({ not: 'a string' })).toThrowErrorMatchingInlineSnapshot(
-      `"Can only deserialize Target from string or Buffer"`,
+    expect(() => serde.deserialize({ not: 'a string' })).toThrowError(
+      `Can only deserialize Target from string or Buffer`,
     )
   })
 })
