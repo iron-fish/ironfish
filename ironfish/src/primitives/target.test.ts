@@ -2,31 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { bigIntToBytes, bytesToBigInt, Target, TargetSerde } from './target'
+import { Target, TargetSerde } from './target'
 
 describe('Target', () => {
-  it('converts bigints to bytes and back', () => {
-    const bigints = [
-      BigInt(0),
-      BigInt(
-        '9999999999999999999999999999999999999999999999999999999999999999999999999999999999',
-      ),
-      BigInt(255),
-      BigInt(256),
-      BigInt(1024),
-      BigInt(1025),
-    ]
-    for (const candidate of bigints) {
-      const bytes = bigIntToBytes(candidate)
-      const back = bytesToBigInt(bytes)
-      expect(back).toEqual(candidate)
-    }
-  })
-
-  it('converts empty array to 0', () => {
-    expect(bytesToBigInt(Buffer.from([]))).toEqual(BigInt(0))
-  })
-
   it('constructs targets', () => {
     expect(new Target().asBigInt()).toEqual(BigInt(0))
     expect(new Target(BigInt(9999999999999)).asBigInt()).toEqual(BigInt(9999999999999))
