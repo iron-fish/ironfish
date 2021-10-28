@@ -103,6 +103,12 @@ export class PeerManager {
   private disposePeersHandle: ReturnType<typeof setInterval> | undefined
 
   /**
+   * setInterval handle for peer address persistence, which saves connected
+   * peers to disk
+   */
+  private savePeerAddressesHandle: ReturnType<typeof setInterval> | undefined
+
+  /**
    * Event fired when a new connection is successfully opened. Sends some identifying
    * information about the peer.
    *
@@ -791,6 +797,10 @@ export class PeerManager {
   start(): void {
     this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
+    this.savePeerAddressesHandle = setInterval(
+      () => this.peerAddressManager.save(this.peers),
+      60000,
+    )
   }
 
   /**
@@ -800,6 +810,7 @@ export class PeerManager {
   async stop(): Promise<void> {
     this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
+    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
     await this.peerAddressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
