@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HostsStore } from '../../fileStores/hostsStore'
+import { HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { PeerAddr } from '../peers/peerAddr'
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ArrayUtils } from '../..'
-import { HostsStore } from '../../fileStores/hostsStore'
+import { HostsStore } from '../../fileStores'
 import { Peer } from '..'
 import { PeerAddr } from './peerAddr'
 

@@ -4,3 +4,4 @@
 export * from './config'
 export * from './fileStore'
 export * from './internal'
+export * from './hostsStore'

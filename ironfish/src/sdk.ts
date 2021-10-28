@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
 import { PrivateIdentity } from '.'
-import { Config, ConfigOptions } from './fileStores'
-import { InternalStore } from './fileStores'
-import { HostsStore } from './fileStores/hostsStore'
+import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
