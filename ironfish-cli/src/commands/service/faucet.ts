@@ -171,6 +171,6 @@ export default class Faucet extends IronfishCommand {
       } (5m avg ${speed.rate5m.toFixed(2)})`,
     )
 
-    await api.completeFaucetTransaction(faucetTransaction.id)
+    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.transactionHash)
   }
 }
