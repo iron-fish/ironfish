@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
-import { PeerAddr } from '../peers/peerAddr'
+import { PeerAddress } from '../peers/peerAddress'
 
 /**
  * Utility to create a fake HostsStore for use in
- * PeerAddrManager and PeerManager
+ * PeerAddressManager and PeerManager
  */
 
 class MockFileSystem extends FileSystem {
@@ -45,7 +45,7 @@ class MockFileSystem extends FileSystem {
 }
 
 class MockHostsStore extends HostsStore {
-  hosts: PeerAddr[]
+  hosts: PeerAddress[]
 
   constructor() {
     super(new MockFileSystem())
@@ -63,11 +63,11 @@ class MockHostsStore extends HostsStore {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async save(): Promise<void> {}
 
-  getArray(_key: string): PeerAddr[] {
+  getArray(_key: string): PeerAddress[] {
     return this.hosts
   }
 
-  set(_key: string, array: PeerAddr[]): void {
+  set(_key: string, array: PeerAddress[]): void {
     this.hosts = array
   }
 }

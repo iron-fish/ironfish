@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Identity } from '../identity'
 
-export type PeerAddr = {
+export type PeerAddress = {
   address: string | null
   port: number | null
   identity?: Identity | null

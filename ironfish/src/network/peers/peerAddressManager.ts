@@ -4,10 +4,10 @@
 import { ArrayUtils } from '../..'
 import { HostsStore } from '../../fileStores'
 import { Peer } from '..'
-import { PeerAddr } from './peerAddr'
+import { PeerAddress } from './peerAddress'
 
-export class PeerAddrManager {
-  addrs: Array<PeerAddr>
+export class PeerAddressManager {
+  addrs: Array<PeerAddress>
   hostsStore: HostsStore
 
   constructor(hostsStore: HostsStore) {
@@ -15,7 +15,7 @@ export class PeerAddrManager {
     this.addrs = this.hostsStore.getArray('hosts')
   }
 
-  getPeerAddr(): PeerAddr {
+  getPeerAddr(): PeerAddress {
     return ArrayUtils.sampleOrThrow(this.addrs)
   }
 

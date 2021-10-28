@@ -44,7 +44,7 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
-import { PeerAddrManager } from './peerAddrManager'
+import { PeerAddressManager } from './peerAddressManager'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -85,10 +85,10 @@ export class PeerManager {
   peers: Array<Peer> = []
 
   /**
-   * PeerAddrManager allows the storage and persistence of addresses that can
+   * PeerAddressManager allows the storage and persistence of addresses that can
    * map to peers.
    */
-  peerAddrManager: PeerAddrManager
+  peerAddressManager: PeerAddressManager
 
   /**
    * setInterval handle for distributePeerList, which sends out the peer list to all
@@ -151,7 +151,7 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
-    peerAddrManager: PeerAddrManager,
+    peerAddressManager: PeerAddressManager,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
@@ -159,7 +159,7 @@ export class PeerManager {
     logPeerMessages = false,
   ) {
     this.logger = logger.withTag('peermanager')
-    this.peerAddrManager = peerAddrManager
+    this.peerAddressManager = peerAddressManager
     this.metrics = metrics || new MetricsMonitor(this.logger)
     this.localPeer = localPeer
     this.maxPeers = maxPeers
@@ -800,7 +800,7 @@ export class PeerManager {
   async stop(): Promise<void> {
     this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    await this.peerAddrManager.save(this.peers)
+    await this.peerAddressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }

@@ -12,7 +12,7 @@ import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage, NodeMessageType } from './messages'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
-import { PeerAddrManager } from './peers/peerAddrManager'
+import { PeerAddressManager } from './peers/peerAddressManager'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
 jest.useFakeTimers()
@@ -27,7 +27,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
@@ -45,7 +45,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       const type = 'hello'
@@ -69,7 +69,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       const handlerMock = jest.fn(() => {})
@@ -101,7 +101,7 @@ describe('PeerNetwork', () => {
         chain: mockChain(),
         strategy: mockStrategy(),
         minPeers: 1,
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       expect(peerNetwork.isReady).toBe(false)
@@ -142,7 +142,7 @@ describe('PeerNetwork', () => {
         port: 0,
         minPeers: 1,
         maxPeers: 0,
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       const rejectSpy = jest
@@ -196,7 +196,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: chain,
         strategy: mockStrategy(),
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -233,7 +233,7 @@ describe('PeerNetwork', () => {
             },
           },
           strategy: mockStrategy(),
-          peerAddrManager: new PeerAddrManager(mockHostsStore()),
+          peerAddressManager: new PeerAddressManager(mockHostsStore()),
         })
 
         const { accounts, memPool, workerPool } = node
@@ -283,7 +283,7 @@ describe('PeerNetwork', () => {
           node,
           chain,
           strategy: mockStrategy(),
-          peerAddrManager: new PeerAddrManager(mockHostsStore()),
+          peerAddressManager: new PeerAddressManager(mockHostsStore()),
         })
 
         const { accounts, memPool } = node
@@ -332,7 +332,7 @@ describe('PeerNetwork', () => {
           node,
           chain,
           strategy: mockStrategy(),
-          peerAddrManager: new PeerAddrManager(mockHostsStore()),
+          peerAddressManager: new PeerAddressManager(mockHostsStore()),
         })
 
         // Spy on new transactions
@@ -392,7 +392,7 @@ describe('PeerNetwork', () => {
         chain: chain,
         strategy: mockStrategy(),
         enableSyncing: false,
-        peerAddrManager: new PeerAddrManager(mockHostsStore()),
+        peerAddressManager: new PeerAddressManager(mockHostsStore()),
       })
 
       // Spy on new blocks

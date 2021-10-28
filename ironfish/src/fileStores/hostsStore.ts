@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem } from '../fileSystems'
-import { PeerAddr } from '../network/peers/peerAddr'
+import { PeerAddress } from '../network/peers/peerAddress'
 import { KeyStore } from './keyStore'
 
 export type HostsOptions = {
-  hosts: PeerAddr[]
+  hosts: PeerAddress[]
 }
 
 export const HostOptionsDefaults: HostsOptions = {
