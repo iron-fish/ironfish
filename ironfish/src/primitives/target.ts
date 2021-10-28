@@ -42,7 +42,7 @@ export function bytesToBigInt(bytes: Buffer): bigint {
   return BigInt('0x' + hex.join(''))
 }
 
-export function bigIntToBytes(bigint: BigInt): Buffer {
+export function bigIntToBytes(bigint: bigint): Buffer {
   let hex = bigint.toString(16)
   if (hex.length % 2) {
     hex = '0' + hex

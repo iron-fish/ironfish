@@ -74,7 +74,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
   }
 
   minersFeeAsBytes(value: BigInt): Buffer {
-    const bytes = bigIntToBytes(value)
+    const bytes = bigIntToBytes(BigInt(value.toString()) * 1n)
     const result = Buffer.alloc(this.MINERS_FEE_BUFFER_SIZE)
     result.set(bytes, this.MINERS_FEE_BUFFER_SIZE - bytes.length)
     return result
