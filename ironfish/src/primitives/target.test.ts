@@ -109,7 +109,7 @@ describe('TargetSerde', () => {
     )
     // @ts-expect-error Argument of type '{ not: string; }' is not assignable to parameter of type 'string'.ts(2345)
     expect(() => serde.deserialize({ not: 'a string' })).toThrowErrorMatchingInlineSnapshot(
-      `"Can only deserialize Target from string"`,
+      `"Can only deserialize Target from string or Buffer"`,
     )
   })
 })
