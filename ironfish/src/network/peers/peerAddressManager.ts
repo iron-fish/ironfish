@@ -12,7 +12,7 @@ export class PeerAddressManager {
 
   constructor(hostsStore: HostsStore) {
     this.hostsStore = hostsStore
-    this.addrs = this.hostsStore.getArray('hosts')
+    this.addrs = this.hostsStore.getArray('knownPeers')
   }
 
   getPeerAddr(): PeerAddress {
@@ -27,7 +27,7 @@ export class PeerAddressManager {
         port: peer.port,
         identity: peer.state.identity,
       }))
-    this.hostsStore.set('hosts', inUseAddrs)
+    this.hostsStore.set('knownPeers', inUseAddrs)
     await this.hostsStore.save()
   }
 }

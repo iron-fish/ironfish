@@ -45,11 +45,11 @@ class MockFileSystem extends FileSystem {
 }
 
 class MockHostsStore extends HostsStore {
-  hosts: PeerAddress[]
+  knownPeers: PeerAddress[]
 
   constructor() {
     super(new MockFileSystem())
-    this.hosts = [
+    this.knownPeers = [
       {
         address: '127.0.0.1',
         port: 9999,
@@ -64,11 +64,11 @@ class MockHostsStore extends HostsStore {
   async save(): Promise<void> {}
 
   getArray(_key: string): PeerAddress[] {
-    return this.hosts
+    return this.knownPeers
   }
 
   set(_key: string, array: PeerAddress[]): void {
-    this.hosts = array
+    this.knownPeers = array
   }
 }
 
