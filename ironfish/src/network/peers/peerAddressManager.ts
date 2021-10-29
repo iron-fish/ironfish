@@ -4,6 +4,7 @@
 import { ArrayUtils } from '../..'
 import { HostsStore } from '../../fileStores'
 import { Peer, PeerList } from '..'
+import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 
 export class PeerAddressManager {
@@ -48,11 +49,17 @@ export class PeerAddressManager {
 
   async save(peers: Peer[]): Promise<void> {
     const inUseAddrs = peers
-      .filter((peer) => peer.state.type === 'CONNECTED')
+      .filter(
+        (peer) =>
+          peer.state.type === 'CONNECTED' &&
+          !peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
+            ?.willNeverRetryConnecting,
+      )
       .map((peer) => ({
         address: peer.address,
         port: peer.port,
         identity: peer.state.identity,
+        name: peer.name,
       }))
     this.hostsStore.set('knownPeers', inUseAddrs)
     await this.hostsStore.save()

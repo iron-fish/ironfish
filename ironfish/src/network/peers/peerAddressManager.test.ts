@@ -11,6 +11,7 @@ import {
   mockHostsStore,
   mockLocalPeer,
 } from '../testUtilities'
+import { ConnectionDirection, ConnectionType } from './connections'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 import { PeerAddressManager } from './peerAddressManager'
@@ -82,5 +83,38 @@ describe('PeerAddressManager', () => {
     expect(allPeerAddresses).toContainEqual(sample)
     expect(sample.address).toEqual(disconnectedPeer.address)
     expect(sample.port).toEqual(disconnectedPeer.port)
+  })
+
+  describe('save', () => {
+    it('save should persist connected peers', async () => {
+      const peerAddressManager = new PeerAddressManager(mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+      const { peer: connectedPeer } = getConnectedPeer(pm)
+      const { peer: connectingPeer } = getConnectingPeer(pm)
+      const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+      const address: PeerAddress = {
+        address: connectedPeer.address,
+        port: connectedPeer.port,
+        identity: connectedPeer.state.identity,
+        name: connectedPeer.name,
+      }
+
+      await peerAddressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
+      expect(peerAddressManager.addresses).toContainEqual(address)
+    })
+
+    it('should not persist peers that will never retry connecting', async () => {
+      const peerAddressManager = new PeerAddressManager(mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+      const { peer: connectedPeer } = getConnectedPeer(pm)
+      const { peer: connectingPeer } = getConnectingPeer(pm)
+      const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+      connectedPeer
+        .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
+        ?.neverRetryConnecting()
+
+      await peerAddressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
+      expect(peerAddressManager.addresses.length).toEqual(0)
+    })
   })
 })
