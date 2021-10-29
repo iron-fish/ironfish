@@ -3,64 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Serde } from '../serde'
-
-function max(a: bigint, b: bigint): bigint {
-  if (a > b) {
-    return a
-  } else {
-    return b
-  }
-}
-
-/**
- * Courtesy of https://coolaj86.com/articles/convert-js-bigints-to-typedarrays/
- *
- * Convert a Buffer to a big integer number, in big endian format.
- *
- * I'm concerned about efficiency here. Converting a string and back and... WTF?
- * Every block hash attempt has to be converted to a Target, so this is a function
- * that should be optimized. We may want to compile this to wasm if there isn't
- * a less janky way to do it.
- *
- * I'm pushing it out like this for now so I can focus on bigger architecture concerns.
- *
- * Sorry.
- */
-export function bytesToBigInt(bytes: Buffer): bigint {
-  const hex: string[] = []
-  if (bytes.length === 0) {
-    return BigInt(0)
-  }
-  bytes.forEach(function (i) {
-    let h = i.toString(16)
-    if (h.length % 2) {
-      h = '0' + h
-    }
-    hex.push(h)
-  })
-
-  return BigInt('0x' + hex.join(''))
-}
-
-export function bigIntToBytes(bigint: bigint): Buffer {
-  let hex = bigint.toString(16)
-  if (hex.length % 2) {
-    hex = '0' + hex
-  }
-
-  const len = hex.length / 2
-  const u8 = Buffer.alloc(len)
-
-  let i = 0
-  let j = 0
-  while (i < len) {
-    u8[i] = parseInt(hex.slice(j, j + 2), 16)
-    i += 1
-    j += 2
-  }
-
-  return u8
-}
+import { BigIntUtils } from '../utils/bigint'
 
 /**
  * The bound divisor of the difficulty, used to update difficulty (and subsequently target).
@@ -105,12 +48,9 @@ export class Target {
     if (targetValue === undefined) {
       this.targetValue = BigInt(0)
     } else {
-      let candidate
-      if (targetValue instanceof Buffer) {
-        candidate = bytesToBigInt(targetValue)
-      } else {
-        candidate = BigInt(targetValue)
-      }
+      const candidate =
+        targetValue instanceof Buffer ? BigIntUtils.fromBytes(targetValue) : BigInt(targetValue)
+
       if (candidate > MAX_256_BIT_NUM) {
         throw new Error('Target value exceeds max target')
       } else {
@@ -205,7 +145,7 @@ export class Target {
     const offset = BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
 
     // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    const difficulty = max(
+    const difficulty = BigIntUtils.max(
       BigInt(previousBlockDifficulty) + offset * sign,
       Target.minDifficulty(),
     )
@@ -275,10 +215,7 @@ export class Target {
    * The resulting byte array is always left padded with 0s to be 32 bytes long
    */
   asBytes(): Buffer {
-    const bytes = bigIntToBytes(this.targetValue)
-    const result = Buffer.alloc(32)
-    result.set(bytes, 32 - bytes.length)
-    return result
+    return BigIntUtils.toBytesBE(this.targetValue, 32)
   }
 }
 
