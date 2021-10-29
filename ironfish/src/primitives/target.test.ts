@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Target, TargetSerde } from './target'
+import { Target } from './target'
 
 describe('Target', () => {
   it('constructs targets', () => {
@@ -65,28 +65,15 @@ describe('Target', () => {
     expect(Target.meets(BigInt(43), target)).toBe(true)
     expect(Target.meets(BigInt(44), target)).toBe(false)
   })
-})
 
-describe('TargetSerde', () => {
-  const serde = new TargetSerde()
   it('checks target equality', () => {
-    expect(serde.equals(new Target('588888'), new Target('588888'))).toBe(true)
-  })
-  it('serializes and deserializes bytes', () => {
-    const target = new Target(500)
-    const serialized = serde.serialize(target)
-    expect(serialized).toEqual(`500`)
-    const deserialized = serde.deserialize(serialized)
-    expect(serde.equals(deserialized, target)).toBe(true)
-  })
-  it('throws when deserializing incorrect value', () => {
-    expect(() => serde.deserialize('not a number')).toThrowError(
-      `Cannot convert not a number to a BigInt`,
-    )
-    // @ts-expect-error Argument of type '{ not: string; }' is not assignable to parameter of type 'string'.ts(2345)
-    expect(() => serde.deserialize({ not: 'a string' })).toThrowError(
-      `Can only deserialize Target from string or Buffer`,
-    )
+    const a = new Target('588888')
+    const b = new Target('588888')
+    const c = new Target('325434')
+
+    expect(a.equals(b)).toBe(true)
+    expect(a.equals(c)).toBe(false)
+    expect(b.equals(c)).toBe(false)
   })
 })
 
