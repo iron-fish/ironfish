@@ -798,10 +798,6 @@ export class PeerManager {
     await Promise.allSettled([
       (this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)),
       (this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)),
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      (this.savePeerAddressesHandle = setInterval(async () => {
-        await this.peerAddressManager.save(this.peers)
-      }, 60000)),
     ])
   }
 
@@ -809,11 +805,9 @@ export class PeerManager {
    * Call when shutting down the PeerManager to clean up
    * outstanding connections.
    */
-  async stop(): Promise<void> {
+  stop(): void {
     this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.peerAddressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }

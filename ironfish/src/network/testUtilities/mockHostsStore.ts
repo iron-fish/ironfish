@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HostsStore } from '../../fileStores'
+import { HostsOptions, HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { PeerAddress } from '../peers/peerAddress'
 
@@ -45,17 +45,15 @@ class MockFileSystem extends FileSystem {
 }
 
 class MockHostsStore extends HostsStore {
-  knownPeers: PeerAddress[]
-
   constructor() {
     super(new MockFileSystem())
-    this.knownPeers = [
+    super.set('priorConnectedPeers', [
       {
         address: '127.0.0.1',
         port: 9999,
         identity: undefined,
       },
-    ]
+    ])
   }
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async load(): Promise<void> {}
@@ -63,12 +61,12 @@ class MockHostsStore extends HostsStore {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async save(): Promise<void> {}
 
-  getArray(_key: string): PeerAddress[] {
-    return this.knownPeers
+  getArray(key: keyof HostsOptions): PeerAddress[] {
+    return super.getArray(key)
   }
 
-  set(_key: string, array: PeerAddress[]): void {
-    this.knownPeers = array
+  set(key: keyof HostsOptions, val: PeerAddress[]): void {
+    super.set(key, val)
   }
 }
 

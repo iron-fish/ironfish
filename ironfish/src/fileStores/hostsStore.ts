@@ -6,11 +6,13 @@ import { PeerAddress } from '../network/peers/peerAddress'
 import { KeyStore } from './keyStore'
 
 export type HostsOptions = {
-  knownPeers: PeerAddress[]
+  priorConnectedPeers: PeerAddress[]
+  possiblePeers: PeerAddress[]
 }
 
 export const HostOptionsDefaults: HostsOptions = {
-  knownPeers: [],
+  priorConnectedPeers: [],
+  possiblePeers: [],
 }
 
 export class HostsStore extends KeyStore<HostsOptions> {
