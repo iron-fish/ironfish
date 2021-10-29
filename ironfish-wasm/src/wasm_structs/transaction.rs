@@ -91,8 +91,8 @@ impl WasmTransactionPosted {
         Ok(serialized_signature)
     }
 
-    #[wasm_bindgen(getter, js_name = "transactionHash")]
-    pub fn transaction_hash(&self) -> Vec<u8> {
+    #[wasm_bindgen(getter, js_name = "hash")]
+    pub fn hash(&self) -> Vec<u8> {
         self.transaction.transaction_signature_hash().to_vec()
     }
 }

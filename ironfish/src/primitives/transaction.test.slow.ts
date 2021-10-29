@@ -21,8 +21,8 @@ describe('Accounts', () => {
       account.spendingKey,
     )
 
-    const hashA = transactionA.transactionHash()
-    const hashB = transactionB.transactionHash()
+    const hashA = transactionA.hash()
+    const hashB = transactionB.hash()
 
     expect(hashA.equals(hashB)).toBe(false)
   }, 600000)

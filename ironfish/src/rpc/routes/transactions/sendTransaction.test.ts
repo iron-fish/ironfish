@@ -118,7 +118,7 @@ describe('Transactions sendTransaction', () => {
       })
 
       const result = await routeTest.client.sendTransaction(TEST_PARAMS)
-      expect(result.content.transactionHash).toEqual(tx.transactionHash().toString('hex'))
+      expect(result.content.hash).toEqual(tx.hash().toString('hex'))
     }, 30000)
   })
 })

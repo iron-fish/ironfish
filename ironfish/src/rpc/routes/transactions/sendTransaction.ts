@@ -17,7 +17,7 @@ export type SendTransactionResponse = {
   fromAccountName: string
   toPublicKey: string
   amount: string
-  transactionHash: string
+  hash: string
 }
 
 export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionRequest> = yup
@@ -35,7 +35,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
     fromAccountName: yup.string().defined(),
     toPublicKey: yup.string().defined(),
     amount: yup.string().defined(),
-    transactionHash: yup.string().defined(),
+    hash: yup.string().defined(),
   })
   .defined()
 
@@ -97,7 +97,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       amount: transaction.amount,
       toPublicKey: transaction.toPublicKey,
       fromAccountName: account.name,
-      transactionHash: transactionPosted.transactionHash().toString('hex'),
+      hash: transactionPosted.hash().toString('hex'),
     })
   },
 )
