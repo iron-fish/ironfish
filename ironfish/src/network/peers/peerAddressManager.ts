@@ -15,8 +15,22 @@ export class PeerAddressManager {
     this.addrs = this.hostsStore.getArray('knownPeers')
   }
 
-  getPeerAddr(): PeerAddress {
-    return ArrayUtils.sampleOrThrow(this.addrs)
+  getRandomDisconnectedPeer(peers: Peer[]): PeerAddress {
+    const addressSet = new Set(this.addrs)
+    const connectedPeerAdresses: Set<PeerAddress> = new Set(
+      peers
+        .filter((peer) => peer.state.type === 'CONNECTED' || peer.state.type === 'CONNECTING')
+        .map((peer) => ({
+          address: peer.address,
+          port: peer.port,
+          identity: peer.state.identity,
+          name: peer.name,
+        })),
+    )
+    const disconnectedAddresses = [...addressSet].filter(
+      (address) => !connectedPeerAdresses.has(address),
+    )
+    return ArrayUtils.sampleOrThrow(disconnectedAddresses)
   }
 
   async save(peers: Peer[]): Promise<void> {

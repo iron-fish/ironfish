@@ -3,8 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
-import { mockHostsStore } from '../testUtilities'
+import {
+  getConnectedPeer,
+  getConnectingPeer,
+  getDisconnectedPeer,
+  mockHostsStore,
+  mockLocalPeer,
+} from '../testUtilities'
+import { Peer } from './peer'
+import { PeerAddress } from './peerAddress'
 import { PeerAddressManager } from './peerAddressManager'
+import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
 
@@ -20,11 +29,24 @@ describe('PeerAddressManager', () => {
   })
 
   it('getPeerAddr should return a randomly-sampled PeerAddress', () => {
+    const allPeerAddresses: PeerAddress[] = []
+    const allPeers: Peer[] = []
     const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    for (let i = 0; i < 10; i++) {
-      peerAddressManager.addrs.push({ address: `${i}.${i}.${i}.${i}`, port: i })
+    const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+    const { peer: connectedPeer } = getConnectedPeer(pm)
+    const { peer: connectingPeer } = getConnectingPeer(pm)
+    const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+    for (const peer of [connectedPeer, connectingPeer, disconnectedPeer]) {
+      allPeers.push(peer)
+      allPeerAddresses.push({
+        address: peer.address,
+        port: peer.port,
+        identity: peer.state.identity,
+      })
     }
-    const sample = peerAddressManager.getPeerAddr()
-    expect(peerAddressManager.addrs).toContainEqual(sample)
+    peerAddressManager.addrs = allPeerAddresses
+    const sample = peerAddressManager.getRandomDisconnectedPeer(allPeers)
+    expect(allPeerAddresses).toContainEqual(sample)
+    expect(sample.identity).toEqual(disconnectedPeer.state.identity)
   })
 })
