@@ -5,8 +5,9 @@
 import bufio from 'bufio'
 import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
-import { bigIntToBytes, bytesToBigInt, Target, TargetSerdeInstance } from '../primitives/target'
+import { Target, TargetSerdeInstance } from '../primitives/target'
 import { Strategy } from '../strategy'
+import { BigIntUtils } from '../utils'
 import { Serde } from '.'
 
 export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader, Buffer> {
@@ -49,7 +50,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
     const nullifierCommitmentSize = br.readU64()
     const target = br.readBytes(this.HASH_LENGTH)
     const timestamp = br.readU64()
-    const minersFee = bytesToBigInt(br.readBytes(this.MINERS_FEE_BUFFER_SIZE))
+    const minersFee = BigIntUtils.fromBytes(br.readBytes(this.MINERS_FEE_BUFFER_SIZE))
     const graffiti = br.readBytes(this.HASH_LENGTH)
     return {
       sequence: sequence,
@@ -74,10 +75,8 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
   }
 
   minersFeeAsBytes(value: BigInt): Buffer {
-    const bytes = bigIntToBytes(BigInt(value.toString()) * 1n)
-    const result = Buffer.alloc(this.MINERS_FEE_BUFFER_SIZE)
-    result.set(bytes, this.MINERS_FEE_BUFFER_SIZE - bytes.length)
-    return result
+    const minersFee = BigInt(value.toString()) * 1n
+    return BigIntUtils.toBytesBE(minersFee, this.MINERS_FEE_BUFFER_SIZE)
   }
 }
 
