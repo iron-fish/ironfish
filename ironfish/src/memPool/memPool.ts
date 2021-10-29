@@ -3,15 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import FastPriorityQueue from 'fastpriorityqueue'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { Block, BlockHeader } from '../primitives'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
+
+interface TransactionFeeAndHash {
+  fee: bigint
+  hash: TransactionHash
+}
 
 export class MemPool {
   transactions = new BufferMap<Transaction>()
+  queue: FastPriorityQueue<TransactionFeeAndHash>
   chain: Blockchain
   head: BlockHeader | null
   strategy: Strategy
@@ -20,6 +27,11 @@ export class MemPool {
   constructor(options: { strategy: Strategy; chain: Blockchain; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
+    this.queue = new FastPriorityQueue<TransactionFeeAndHash>(
+      (firstTransaction, secondTransaction) => {
+        return firstTransaction.fee > secondTransaction.fee
+      },
+    )
     this.chain = options.chain
     this.head = null
     this.strategy = options.strategy
@@ -43,8 +55,14 @@ export class MemPool {
   }
 
   *get(): Generator<Transaction, void, unknown> {
-    for (const transaction of this.transactions.values()) {
-      yield transaction
+    while (!this.queue.isEmpty()) {
+      const feeAndHash = this.queue.poll()
+      if (feeAndHash) {
+        const transaction = this.transactions.get(feeAndHash.hash)
+        if (transaction) {
+          yield transaction
+        }
+      }
     }
   }
 
@@ -66,6 +84,7 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
+    this.queue.add({ fee: await transaction.transactionFee(), hash })
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
@@ -75,7 +94,9 @@ export class MemPool {
     let deletedTransactions = 0
 
     for (const transaction of block.transactions) {
-      this.transactions.delete(transaction.transactionHash())
+      const hash = transaction.transactionHash()
+      this.transactions.delete(hash)
+      this.queue.removeOne((t) => t.hash.equals(hash))
       deletedTransactions++
     }
 
@@ -92,6 +113,7 @@ export class MemPool {
 
       if (!this.transactions.has(hash)) {
         this.transactions.set(hash, transaction)
+        this.queue.add({ fee: await transaction.transactionFee(), hash })
         addedTransactions++
       }
     }
