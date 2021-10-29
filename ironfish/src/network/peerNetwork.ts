@@ -294,7 +294,7 @@ export class PeerNetwork {
     })
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.started) {
       return
     }
@@ -371,7 +371,7 @@ export class PeerNetwork {
     }
 
     // Start up the PeerManager
-    await this.peerManager.start()
+    this.peerManager.start()
 
     // Start up the PeerConnectionManager
     this.peerConnectionManager.start()

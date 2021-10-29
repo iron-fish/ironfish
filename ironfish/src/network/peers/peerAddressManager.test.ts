@@ -9,12 +9,19 @@ import { PeerAddressManager } from './peerAddressManager'
 jest.useFakeTimers()
 
 describe('PeerAddressManager', () => {
-  it('constructor load hosts from HostsStore', () => {
+  it('constructor loads addresses from HostsStore', () => {
     const peerAddressManager = new PeerAddressManager(mockHostsStore())
     expect(peerAddressManager.priorConnectedPeerAddresses).toMatchObject([
       {
         address: '127.0.0.1',
         port: 9999,
+      },
+    ])
+    expect(peerAddressManager.possiblePeerAddresses).toMatchObject([
+      {
+        address: '1.1.1.1',
+        port: 1111,
+        identity: undefined,
       },
     ])
   })

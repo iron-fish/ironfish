@@ -788,11 +788,9 @@ export class PeerManager {
     }
   }
 
-  async start(): Promise<void> {
-    await Promise.allSettled([
-      (this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)),
-      (this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)),
-    ])
+  start(): void {
+    this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)
+    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
   }
 
   /**
