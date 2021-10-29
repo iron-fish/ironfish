@@ -5,7 +5,7 @@
 import bufio from 'bufio'
 import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
-import { Target, TargetSerdeInstance } from '../primitives/target'
+import { Target } from '../primitives/target'
 import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 import { Serde } from '.'
@@ -55,7 +55,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
     return {
       sequence: sequence,
       previousBlockHash: previousBlockHash,
-      target: TargetSerdeInstance.deserialize(target),
+      target: new Target(target),
       timestamp: new Date(timestamp),
       minersFee: BigInt(minersFee),
       graffiti: graffiti,
