@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 declare module 'bufio' {
   type Encoding = 'utf8' | 'ascii'
+  type BufferEncoding = 'hex'
 
   class StaticWriter {
     render(): Buffer
@@ -12,6 +13,7 @@ declare module 'bufio' {
     writeVarString(value: string, enc?: Encoding | null): StaticWriter
     writeVarBytes(value: Buffer): StaticWriter
     writeBytes(value: Buffer): StaticWriter
+    writeHash(value: Buffer | string): StaticWriter
     getSize(): number
   }
 
@@ -23,16 +25,20 @@ declare module 'bufio' {
     writeVarString(value: string, enc?: Encoding | null): BufferWriter
     writeVarBytes(value: Buffer): BufferWriter
     writeBytes(value: Buffer): BufferWriter
+    writeHash(value: Buffer | string): BufferWriter
     getSize(): number
   }
 
   class BufferReader {
     readU64(): number
-    readVarString(env?: Encoding | null, limit?: number): string
+    readVarString(enc?: Encoding | null, limit?: number): string
     readVarBytes(): Buffer
-    readBytes(size: number, zeroCopy?: boolean | false): Buffer
+    readBytes(size: number, zeroCopy?: boolean): Buffer
+
+    readHash(enc: BufferEncoding): string
+    readHash(enc?: null): Buffer
   }
 
   export function write(size?: number): StaticWriter | BufferWriter
-  export function read(data: Buffer, zeroCopy?: boolean | false): BufferReader
+  export function read(data: Buffer, zeroCopy?: boolean): BufferReader
 }

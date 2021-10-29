@@ -15,20 +15,6 @@ describe('Target', () => {
     expect(new Target(Buffer.alloc(32)).asBigInt()).toEqual(BigInt('0'))
   })
 
-  it('makes the correct bytes', () => {
-    const bigints = [
-      BigInt(0),
-      BigInt('99999999999999999999999999999999999999999999999999999999999999999999999'),
-      BigInt(255),
-      BigInt(256),
-      BigInt(1024),
-      BigInt(1025),
-    ]
-    for (const candidate of bigints) {
-      expect(new Target(candidate).asBytes()).toMatchSnapshot()
-    }
-  })
-
   it('throws when constructed with too big an array', () => {
     const bytes = Buffer.alloc(33)
     bytes[0] = 1

@@ -104,7 +104,7 @@ export class BlockHeader {
    * Note that the transaction fee on a minersFee is negative. By "spending a negative value"
    * the miner is awarding itself a positive receipt.
    */
-  public minersFee: BigInt
+  public minersFee: bigint
 
   /**
    * A 32 byte field that may be assigned at will by the miner who mined the block.
@@ -128,7 +128,7 @@ export class BlockHeader {
     target: Target,
     randomness = 0,
     timestamp: Date | undefined = undefined,
-    minersFee: BigInt,
+    minersFee: bigint,
     graffiti: Buffer,
     work = BigInt(0),
     hash?: Buffer,
@@ -154,7 +154,7 @@ export class BlockHeader {
    * This is used for calculating the hash in miners and for verifying it.
    */
   serializePartial(): Buffer {
-    return new PartialBlockHeaderSerde(this.strategy).serialize({
+    return new PartialBlockHeaderSerde().serialize({
       sequence: this.sequence,
       previousBlockHash: this.previousBlockHash,
       noteCommitment: this.noteCommitment,
