@@ -103,12 +103,6 @@ export class PeerManager {
   private disposePeersHandle: ReturnType<typeof setInterval> | undefined
 
   /**
-   * setInterval handle for peer address persistence, which saves connected
-   * peers to disk
-   */
-  private savePeerAddressesHandle: ReturnType<typeof setInterval> | undefined
-
-  /**
    * Event fired when a new connection is successfully opened. Sends some identifying
    * information about the peer.
    *
