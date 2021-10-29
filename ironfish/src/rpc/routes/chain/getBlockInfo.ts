@@ -15,9 +15,9 @@ export type GetBlockInfoResponse = {
     sequence: number
     timestamp: number
     transactions: Array<{
-      transactionFee: string
-      transactionHash: string
-      transactionSignature: string
+      fee: string
+      hash: string
+      signature: string
       notes: number
       spends: number
     }>
@@ -43,9 +43,9 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
           .array(
             yup
               .object({
-                transactionFee: yup.string().defined(),
-                transactionHash: yup.string().defined(),
-                transactionSignature: yup.string().defined(),
+                fee: yup.string().defined(),
+                hash: yup.string().defined(),
+                signature: yup.string().defined(),
                 notes: yup.number().defined(),
                 spends: yup.number().defined(),
               })
@@ -80,9 +80,9 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         const fee = await tx.transactionFee()
 
         transactions.push({
-          transactionSignature: tx.transactionSignature().toString('hex'),
-          transactionHash: tx.transactionHash().toString('hex'),
-          transactionFee: fee.toString(),
+          signature: tx.transactionSignature().toString('hex'),
+          hash: tx.hash().toString('hex'),
+          fee: fee.toString(),
           spends: tx.spendsLength(),
           notes: tx.notesLength(),
         })

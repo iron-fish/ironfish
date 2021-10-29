@@ -103,7 +103,7 @@ describe('MemPool', () => {
         await memPool.acceptTransaction(transaction)
 
         expect(set).toHaveBeenCalledTimes(1)
-        expect(set).toHaveBeenCalledWith(transaction.transactionHash(), transaction)
+        expect(set).toHaveBeenCalledWith(transaction.hash(), transaction)
       }, 60000)
     })
   })

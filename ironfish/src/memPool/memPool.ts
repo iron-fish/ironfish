@@ -44,7 +44,7 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
-    const hash = transaction.transactionHash()
+    const hash = transaction.hash()
 
     if (this.transactions.has(hash)) {
       return false
@@ -81,7 +81,7 @@ export class MemPool {
       const isValid = await this.isValidTransaction(transaction, beforeSize, seenNullifiers)
 
       if (!isValid) {
-        this.transactions.delete(transaction.transactionHash())
+        this.transactions.delete(transaction.hash())
         pruneCount++
       }
     }

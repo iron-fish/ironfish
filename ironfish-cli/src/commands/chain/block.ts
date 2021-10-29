@@ -25,7 +25,7 @@ export default class Block extends IronfishCommand {
     const hash = args.hash as string
 
     const client = await this.sdk.connectRpc(true)
-    const data = await client.getBlockInfo({ hash: hash })
+    const data = await client.getBlockInfo({ hash })
     this.log(JSON.stringify(data.content, undefined, '  '))
   }
 }
