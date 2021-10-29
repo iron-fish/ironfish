@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Serde } from '../serde'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -217,23 +216,8 @@ export class Target {
   asBytes(): Buffer {
     return BigIntUtils.toBytesBE(this.targetValue, 32)
   }
-}
 
-export class TargetSerde implements Serde<Target, string> {
-  equals(target1: Target, target2: Target): boolean {
-    return target1.targetValue === target2.targetValue
-  }
-
-  serialize(target: Target): string {
-    return target.targetValue.toString()
-  }
-
-  deserialize(data: string | Buffer): Target {
-    if (typeof data === 'string' || data instanceof Buffer) {
-      return new Target(data)
-    }
-    throw new Error('Can only deserialize Target from string or Buffer')
+  equals(other: Target): boolean {
+    return this.targetValue === other.targetValue
   }
 }
-
-export const TargetSerdeInstance = new TargetSerde()
