@@ -6,7 +6,7 @@ import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { SerializedWasmNoteEncryptedHash, WasmNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
-import { Target, TargetSerdeInstance } from './target'
+import { Target } from './target'
 
 export type BlockHash = Buffer
 
@@ -229,7 +229,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           element2.nullifierCommitment.commitment,
         ) &&
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
-      TargetSerdeInstance.equals(element1.target, element2.target) &&
+      element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
       element1.timestamp.getTime() === element2.timestamp.getTime() &&
       element1.minersFee === element2.minersFee &&
@@ -253,7 +253,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           .serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
       },
-      target: TargetSerdeInstance.serialize(header.target),
+      target: header.target.targetValue.toString(),
       randomness: header.randomness,
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
@@ -284,7 +284,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           .deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
       },
-      TargetSerdeInstance.deserialize(data.target),
+      new Target(data.target),
       data.randomness,
       new Date(data.timestamp),
       BigInt(data.minersFee),
