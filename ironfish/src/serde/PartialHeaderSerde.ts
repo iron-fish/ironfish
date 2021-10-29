@@ -6,36 +6,21 @@ import bufio from 'bufio'
 import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
-import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 import { Serde } from '.'
 
 export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader, Buffer> {
-  strategy: Strategy
-
-  HASH_LENGTH = 32
-  HEADER_SIZE = 200
-  MINERS_FEE_BUFFER_SIZE = 8
-
-  constructor(strategy: Strategy) {
-    this.strategy = strategy
-  }
-
   serialize(header: PartialBlockHeader): Buffer {
-    // WHAT EVER YOU DO DO NOT REORDER THE KEYS IN THIS OBJECT
-    // It will cause ALL block hashes to change. Yes that is
-    // absolutely awful, and we will fix it.
-
-    const bw = bufio.write(this.HEADER_SIZE)
+    const bw = bufio.write(200)
     bw.writeU64(header.sequence)
-    bw.writeBytes(header.previousBlockHash)
-    bw.writeBytes(header.noteCommitment.commitment)
+    bw.writeHash(header.previousBlockHash)
+    bw.writeHash(header.noteCommitment.commitment)
     bw.writeU64(header.noteCommitment.size)
-    bw.writeBytes(header.nullifierCommitment.commitment)
+    bw.writeHash(header.nullifierCommitment.commitment)
     bw.writeU64(header.nullifierCommitment.size)
-    bw.writeBytes(header.target.asBytes())
+    bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
     bw.writeU64(header.timestamp.getTime())
-    bw.writeBytes(this.minersFeeAsBytes(header.minersFee))
+    bw.writeBytes(BigIntUtils.toBytesBE(header.minersFee, 8))
     bw.writeBytes(header.graffiti)
     return bw.render()
   }
@@ -43,24 +28,25 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
   deserialize(data: Buffer): PartialBlockHeader {
     const br = bufio.read(data)
     const sequence = br.readU64()
-    const previousBlockHash = br.readBytes(this.HASH_LENGTH)
-    const commitment = br.readBytes(this.HASH_LENGTH)
+    const previousBlockHash = br.readHash()
+    const noteCommitment = br.readHash()
     const noteCommitmentSize = br.readU64()
-    const nullifierCommitment = br.readBytes(this.HASH_LENGTH)
+    const nullifierCommitment = br.readHash()
     const nullifierCommitmentSize = br.readU64()
-    const target = br.readBytes(this.HASH_LENGTH)
+    const target = br.readBytes(32)
     const timestamp = br.readU64()
-    const minersFee = BigIntUtils.fromBytes(br.readBytes(this.MINERS_FEE_BUFFER_SIZE))
-    const graffiti = br.readBytes(this.HASH_LENGTH)
+    const minersFee = br.readBytes(8)
+    const graffiti = br.readBytes(32)
+
     return {
       sequence: sequence,
       previousBlockHash: previousBlockHash,
       target: new Target(target),
       timestamp: new Date(timestamp),
-      minersFee: BigInt(minersFee),
+      minersFee: BigIntUtils.fromBytes(minersFee),
       graffiti: graffiti,
       noteCommitment: {
-        commitment: commitment,
+        commitment: noteCommitment,
         size: noteCommitmentSize,
       },
       nullifierCommitment: {
@@ -72,11 +58,6 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
 
   equals(): boolean {
     throw new Error('You should never use this')
-  }
-
-  minersFeeAsBytes(value: BigInt): Buffer {
-    const minersFee = BigInt(value.toString()) * 1n
-    return BigIntUtils.toBytesBE(minersFee, this.MINERS_FEE_BUFFER_SIZE)
   }
 }
 
@@ -93,6 +74,6 @@ type PartialBlockHeader = {
   }
   target: Target
   timestamp: Date
-  minersFee: BigInt
+  minersFee: bigint
   graffiti: Buffer
 }
