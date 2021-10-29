@@ -207,16 +207,6 @@ export class Target {
     return this.targetValue
   }
 
-  /**
-   * Big endian, and since even after 20 years in the industry, I can't remember
-   * what that means, the most significant byte is in the 0th index of the array.
-   *
-   * The resulting byte array is always left padded with 0s to be 32 bytes long
-   */
-  asBytes(): Buffer {
-    return BigIntUtils.toBytesBE(this.targetValue, 32)
-  }
-
   equals(other: Target): boolean {
     return this.targetValue === other.targetValue
   }
