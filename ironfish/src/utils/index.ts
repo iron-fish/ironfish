@@ -4,6 +4,7 @@
 export * from './array'
 export * from './async'
 export * from './bench'
+export * from './bigint'
 export * from './blockchain'
 export * from './currency'
 export * from './enums'
