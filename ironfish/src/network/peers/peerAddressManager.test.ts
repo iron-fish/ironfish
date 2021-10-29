@@ -47,6 +47,7 @@ describe('PeerAddressManager', () => {
     peerAddressManager.addrs = allPeerAddresses
     const sample = peerAddressManager.getRandomDisconnectedPeer(allPeers)
     expect(allPeerAddresses).toContainEqual(sample)
-    expect(sample.identity).toEqual(disconnectedPeer.state.identity)
+    expect(sample.address).toEqual(disconnectedPeer.address)
+    expect(sample.port).toEqual(disconnectedPeer.port)
   })
 })
