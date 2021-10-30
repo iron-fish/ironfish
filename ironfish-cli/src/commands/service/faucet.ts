@@ -171,6 +171,6 @@ export default class Faucet extends IronfishCommand {
       )})`,
     )
 
-    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.transactionHash)
+    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
   }
 }
