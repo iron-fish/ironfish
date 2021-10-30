@@ -167,7 +167,7 @@ export class Transaction {
    * Get the transaction hash.
    */
   hash(): TransactionHash {
-    return this.withReference((t) => Buffer.from(t.hash))
+    return this.withReference((t) => Buffer.from(t.transactionHash))
   }
 
   equals(other: Transaction): boolean {
