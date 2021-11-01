@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from './blockchain'
 import { Event } from './event'
-import { Logger } from './logger'
+import { createRootLogger, Logger } from './logger'
 import { BlockHeader } from './primitives'
 
 /**
@@ -28,21 +28,21 @@ import { BlockHeader } from './primitives'
  */
 export class ChainProcessor {
   chain: Blockchain
-  name: string
+  name: string | null
   hash: Buffer | null = null
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
 
   constructor(options: {
-    name: string
-    logger: Logger
+    name?: string
+    logger?: Logger
     chain: Blockchain
     head: Buffer | null
   }) {
     this.chain = options.chain
-    this.name = options.name
-    this.logger = options.logger
+    this.name = options.name ?? null
+    this.logger = options.logger ?? createRootLogger()
     this.hash = options.head
   }
 
