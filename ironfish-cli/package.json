@@ -49,7 +49,7 @@
     "blessed": "0.1.81",
     "cli-ux": "^5.5.0",
     "ironfish": "*",
-    "ironfish-wasm-nodejs": "*",
+    "ironfish-rust-nodejs": "*",
     "json-colorizer": "2.2.2",
     "segfault-handler": "1.3.0",
     "tweetnacl": "1.0.3",

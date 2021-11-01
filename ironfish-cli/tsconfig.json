@@ -8,5 +8,6 @@
   "include": ["src"],
   "references": [
     { "path": "../ironfish" },
+    { "path": "../ironfish-rust-nodejs" },
   ]
 }

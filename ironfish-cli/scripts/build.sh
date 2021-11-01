@@ -23,11 +23,11 @@ GIT_HASH=$(git rev-parse --short HEAD)
 cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
 
 echo "Removing lifecycle scripts"
-cat <<< "$(jq 'del(.scripts.prebuild)' < package.json)" > package.json
 cat <<< "$(jq 'del(.scripts.preinstall)' < package.json)" > package.json
+cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
 
-echo "Building WASM"
-( cd ironfish-wasm && yarn run build:node )
+echo "Building Rust"
+( cd ironfish-rust-nodejs && yarn build )
 
 echo "Installing from lockfile"
 yarn --non-interactive --frozen-lockfile
