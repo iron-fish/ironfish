@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
+import { NoteEncrypted as NativeNoteEncrypted } from 'ironfish-rust-nodejs'
 import {
   NoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-  WasmNoteEncryptedHashSerde,
-  WasmNoteEncryptedSerde,
+  NoteEncryptedHash,
+  NoteEncryptedHashSerde,
+  NoteEncryptedSerde,
+  SerializedNoteEncrypted,
+  SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { StringSerde } from '../serde'
 import { JsonSerializable, Serde } from '../serde'
@@ -45,24 +45,24 @@ export class NoteHasher
   implements
     MerkleHasher<
       NoteEncrypted,
-      WasmNoteEncryptedHash,
-      SerializedWasmNoteEncrypted,
-      SerializedWasmNoteEncryptedHash
+      NoteEncryptedHash,
+      SerializedNoteEncrypted,
+      SerializedNoteEncryptedHash
     >
 {
-  _merkleNoteSerde: WasmNoteEncryptedSerde
-  _merkleNoteHashSerde: WasmNoteEncryptedHashSerde
+  _merkleNoteSerde: NoteEncryptedSerde
+  _merkleNoteHashSerde: NoteEncryptedHashSerde
 
   constructor() {
-    this._merkleNoteSerde = new WasmNoteEncryptedSerde()
-    this._merkleNoteHashSerde = new WasmNoteEncryptedHashSerde()
+    this._merkleNoteSerde = new NoteEncryptedSerde()
+    this._merkleNoteHashSerde = new NoteEncryptedHashSerde()
   }
 
-  elementSerde(): Serde<NoteEncrypted, SerializedWasmNoteEncrypted> {
+  elementSerde(): Serde<NoteEncrypted, SerializedNoteEncrypted> {
     return this._merkleNoteSerde
   }
 
-  hashSerde(): Serde<WasmNoteEncryptedHash, SerializedWasmNoteEncryptedHash> {
+  hashSerde(): Serde<NoteEncryptedHash, SerializedNoteEncryptedHash> {
     return this._merkleNoteHashSerde
   }
 
@@ -72,10 +72,10 @@ export class NoteHasher
 
   combineHash(
     depth: number,
-    left: WasmNoteEncryptedHash,
-    right: WasmNoteEncryptedHash,
-  ): WasmNoteEncryptedHash {
-    return Buffer.from(WasmNoteEncrypted.combineHash(depth, left, right))
+    left: NoteEncryptedHash,
+    right: NoteEncryptedHash,
+  ): NoteEncryptedHash {
+    return Buffer.from(NativeNoteEncrypted.combineHash(depth, left, right))
   }
 }
 

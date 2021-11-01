@@ -4,7 +4,7 @@
 
 import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
 import { Strategy } from '../strategy'
-import { SerializedWasmNoteEncryptedHash, WasmNoteEncryptedHash } from './noteEncrypted'
+import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
 import { Target } from './target'
 
@@ -64,7 +64,7 @@ export class BlockHeader {
    * block have been added to it. Stored as the hash and the size of the tree
    * at the time the hash was calculated.
    */
-  public noteCommitment: { commitment: WasmNoteEncryptedHash; size: number }
+  public noteCommitment: { commitment: NoteEncryptedHash; size: number }
 
   /**
    * Commitment to the nullifier set after all the spends in this block have
@@ -123,7 +123,7 @@ export class BlockHeader {
     strategy: Strategy,
     sequence: number,
     previousBlockHash: BlockHash,
-    noteCommitment: { commitment: WasmNoteEncryptedHash; size: number },
+    noteCommitment: { commitment: NoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
     randomness = 0,
@@ -195,7 +195,7 @@ export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
   noteCommitment: {
-    commitment: SerializedWasmNoteEncryptedHash
+    commitment: SerializedNoteEncryptedHash
     size: number
   }
   nullifierCommitment: {

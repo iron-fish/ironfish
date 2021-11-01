@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import fs from 'fs'
-import { generateKey } from 'ironfish-wasm-nodejs'
+import { generateKey } from 'ironfish-rust-nodejs'
 import path from 'path'
 import { Account, Accounts } from '../account'
 import { Assert } from '../assert'

@@ -22,7 +22,6 @@ See https://ironfish.network
       1. Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
       1. On the next screen, click `Process`.
       1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
-1. Install [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 1. Run `yarn install` from the root directory to install packages.
    * If `yarn install` fails with an error that includes "Could NOT find OpenSSL", you may need to first install OpenSSL and add an environment variable. For example, on macOS:
       1. Run `brew install openssl`
@@ -48,8 +47,9 @@ Once your environment is setup - you can run the CLI by following [these directi
 
  - [ironfish](./ironfish/README.md): The library that contains the IronfishSDK and all Ironfish code written in Typescript.
  - [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command line interface built on Node. More details on [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
- - [ironfish-wasm](./ironfish-wasm/README.md): Wrapper for `ironfish-rust` in WASM to be interacted with by the `ironfish` project.
  - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
+ - [ironfish-rust-nodejs](./ironfish-rust-nodejs/README.md): Wrapper for `ironfish-rust` as a native NodeJS addon.
+ - [ironfish-rust-wasm](./ironfish-rust-wasm/README.md): Wrapper for `ironfish-rust` in WASM.
  - [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the block chain and all of its forks.
 
 ## Other Repositories

@@ -14,7 +14,7 @@ import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
 
 /**
- * Implementation of a Blockchain Strategy using the Wasm zero-knowledge proofs.
+ * Implementation of a Blockchain Strategy using zero-knowledge proofs.
  */
 export class Strategy {
   readonly workerPool: WorkerPool

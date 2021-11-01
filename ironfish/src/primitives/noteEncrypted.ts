@@ -2,41 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { WasmNoteEncrypted } from 'ironfish-wasm-nodejs'
+import { NoteEncrypted as NativeNoteEncrypted } from 'ironfish-rust-nodejs'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-export type WasmNoteEncryptedHash = Buffer
-export type SerializedWasmNoteEncryptedHash = Buffer
-export type SerializedWasmNoteEncrypted = Buffer
+export type NoteEncryptedHash = Buffer
+export type SerializedNoteEncryptedHash = Buffer
+export type SerializedNoteEncrypted = Buffer
 
 export class NoteEncrypted {
-  private readonly wasmNoteEncryptedSerialized: Buffer
-  private wasmNoteEncrypted: WasmNoteEncrypted | null = null
+  private readonly noteEncryptedSerialized: Buffer
+  private noteEncrypted: NativeNoteEncrypted | null = null
   private referenceCount = 0
 
-  constructor(wasmNoteEncryptedSerialized: Buffer) {
-    this.wasmNoteEncryptedSerialized = wasmNoteEncryptedSerialized
+  constructor(noteEncryptedSerialized: Buffer) {
+    this.noteEncryptedSerialized = noteEncryptedSerialized
   }
 
   serialize(): Buffer {
-    return this.wasmNoteEncryptedSerialized
+    return this.noteEncryptedSerialized
   }
 
-  takeReference(): WasmNoteEncrypted {
+  takeReference(): NativeNoteEncrypted {
     this.referenceCount++
-    if (this.wasmNoteEncrypted === null) {
-      this.wasmNoteEncrypted = WasmNoteEncrypted.deserialize(this.wasmNoteEncryptedSerialized)
+    if (this.noteEncrypted === null) {
+      this.noteEncrypted = NativeNoteEncrypted.deserialize(this.noteEncryptedSerialized)
     }
-    return this.wasmNoteEncrypted
+    return this.noteEncrypted
   }
 
   returnReference(): void {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.wasmNoteEncrypted?.free()
-      this.wasmNoteEncrypted = null
+      this.noteEncrypted?.free()
+      this.noteEncrypted = null
     }
   }
 
@@ -70,18 +70,16 @@ export class NoteEncrypted {
 /**
  * Serde implementation to convert an encrypted note to its serialized form and back.
  */
-export class WasmNoteEncryptedSerde
-  implements Serde<NoteEncrypted, SerializedWasmNoteEncrypted>
-{
+export class NoteEncryptedSerde implements Serde<NoteEncrypted, SerializedNoteEncrypted> {
   equals(note1: NoteEncrypted, note2: NoteEncrypted): boolean {
     return note1.serialize().equals(note2.serialize())
   }
 
-  serialize(note: NoteEncrypted): SerializedWasmNoteEncrypted {
+  serialize(note: NoteEncrypted): SerializedNoteEncrypted {
     return note.serialize()
   }
 
-  deserialize(serializedNote: SerializedWasmNoteEncrypted): NoteEncrypted {
+  deserialize(serializedNote: SerializedNoteEncrypted): NoteEncrypted {
     return new NoteEncrypted(serializedNote)
   }
 }
@@ -89,16 +87,16 @@ export class WasmNoteEncryptedSerde
 /**
  * Serde implementation to convert an encrypted note's hash to its serialized form and back.
  */
-export class WasmNoteEncryptedHashSerde
-  implements Serde<WasmNoteEncryptedHash, SerializedWasmNoteEncryptedHash>
+export class NoteEncryptedHashSerde
+  implements Serde<NoteEncryptedHash, SerializedNoteEncryptedHash>
 {
-  equals(hash1: WasmNoteEncryptedHash, hash2: WasmNoteEncryptedHash): boolean {
+  equals(hash1: NoteEncryptedHash, hash2: NoteEncryptedHash): boolean {
     return hash1.equals(hash2)
   }
-  serialize(note: WasmNoteEncryptedHash): SerializedWasmNoteEncryptedHash {
+  serialize(note: NoteEncryptedHash): SerializedNoteEncryptedHash {
     return note
   }
-  deserialize(serializedNote: SerializedWasmNoteEncryptedHash): WasmNoteEncryptedHash {
+  deserialize(serializedNote: SerializedNoteEncryptedHash): NoteEncryptedHash {
     return serializedNote
   }
 }
