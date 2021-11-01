@@ -122,7 +122,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             size: Buffer.from(
               JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
             ).byteLength,
-            fee: Number(await transaction.transactionFee()),
+            fee: Number(await transaction.fee()),
             notes: [...transaction.notes()].map((note) => ({
               commitment: note.merkleHash().toString('hex'),
             })),

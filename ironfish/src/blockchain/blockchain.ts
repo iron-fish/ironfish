@@ -879,7 +879,7 @@ export class Blockchain {
         target,
         0,
         timestamp,
-        await minersFee.transactionFee(),
+        await minersFee.fee(),
         graffiti,
       )
 
