@@ -10,35 +10,11 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v2
 
-      - name: "Use Rust Toolchain"
-        uses: actions-rs/toolchain@v1
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
         with:
-          components: rustfmt, clippy
-
-      - name: Use wasm-pack
-        uses: actions-rs/install@v0.1
-        with:
-          crate: wasm-pack
-          version: latest
-          use-tool-cache: true
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo build
-        uses: actions/cache@v1
-        with:
-          path: ironfish-wasm/target
-          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
+          sharedKey: nodejs
+          working-directory: ironfish-rust-nodejs
 
       - name: Cache Ironfish CLI Build
         id: cache-ironfish-cli-build
@@ -48,9 +24,10 @@ jobs:
           key: ${{ github.sha }}
 
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
           node-version: '14.16.0'
+          cache: 'yarn'
 
       - name: Build Ironfish CLI
         if: steps.cache-ironfish-cli-build.outputs.cache-hit != 'true'

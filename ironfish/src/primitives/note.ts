@@ -2,35 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { WasmNote } from 'ironfish-wasm-nodejs'
+import { Note as NativeNote } from 'ironfish-rust-nodejs'
 
 export class Note {
-  private readonly wasmNoteSerialized: Buffer
-  private wasmNote: WasmNote | null = null
+  private readonly noteSerialized: Buffer
+  private note: NativeNote | null = null
   private referenceCount = 0
 
-  constructor(wasmNoteSerialized: Buffer) {
-    this.wasmNoteSerialized = wasmNoteSerialized
+  constructor(noteSerialized: Buffer) {
+    this.noteSerialized = noteSerialized
   }
 
   serialize(): Buffer {
-    return this.wasmNoteSerialized
+    return this.noteSerialized
   }
 
-  takeReference(): WasmNote {
+  takeReference(): NativeNote {
     this.referenceCount++
-    if (this.wasmNote === null) {
-      this.wasmNote = WasmNote.deserialize(this.wasmNoteSerialized)
+    if (this.note === null) {
+      this.note = NativeNote.deserialize(this.noteSerialized)
     }
-    return this.wasmNote
+    return this.note
   }
 
   returnReference(): void {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.wasmNote?.free()
-      this.wasmNote = null
+      this.note?.free()
+      this.note = null
     }
   }
 
@@ -46,7 +46,7 @@ export class Note {
     return memo
   }
 
-  nullifier(ownerPrivateKey: string, position: BigInt): Buffer {
+  nullifier(ownerPrivateKey: string, position: bigint): Buffer {
     const buf = Buffer.from(this.takeReference().nullifier(ownerPrivateKey, position))
     this.returnReference()
     return buf

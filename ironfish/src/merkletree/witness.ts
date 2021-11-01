@@ -4,9 +4,9 @@
 
 import {
   NoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
+  NoteEncryptedHash,
+  SerializedNoteEncrypted,
+  SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { JsonSerializable } from '../serde'
 import { MerkleHasher } from './hasher'
@@ -70,7 +70,7 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
 
 export type NoteWitness = Witness<
   NoteEncrypted,
-  WasmNoteEncryptedHash,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash
+  NoteEncryptedHash,
+  SerializedNoteEncrypted,
+  SerializedNoteEncryptedHash
 >

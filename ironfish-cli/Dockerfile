@@ -7,7 +7,6 @@ RUN \
     apt-get update && \
     apt-get install jq rsync gcc cmake -y && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y && \
     ./ironfish-cli/scripts/build.sh
 
 FROM node:14.17.6-bullseye-slim

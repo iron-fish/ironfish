@@ -19,57 +19,19 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
           node-version: '14.16.0'
-
-      - name: Use wasm-pack
-        uses: actions-rs/install@v0.1
-        with:
-          crate: wasm-pack
-          version: latest
-          use-tool-cache: true
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo build
-        uses: actions/cache@v1
-        with:
-          path: ironfish-wasm/target
-          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Restore Yarn cache
-        id: yarn-cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            */*/node_modules
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Build Wasm packages
-        run: cd ironfish-wasm && yarn build
+          cache: 'yarn'
 
       - name: Install packages
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: yarn --non-interactive --frozen-lockfile
+        run: yarn --non-interactive --frozen-lockfile --ignore-scripts
 
       - name: Lint
         run: yarn lint
 
   test:
     name: Test
-
     runs-on: ubuntu-latest
 
     steps:
@@ -77,49 +39,18 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
           node-version: '14.16.0'
+          cache: 'yarn'
 
-      - name: Use wasm-pack
-        uses: actions-rs/install@v0.1
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
         with:
-          crate: wasm-pack
-          version: latest
-          use-tool-cache: true
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo build
-        uses: actions/cache@v1
-        with:
-          path: ironfish-wasm/target
-          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Restore Yarn cache
-        id: yarn-cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            */*/node_modules
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Build Wasm packages
-        run: cd ironfish-wasm && yarn build
+          sharedKey: nodejs
+          working-directory: ironfish-rust-nodejs
 
       - name: Install packages
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
@@ -130,7 +61,6 @@ jobs:
 
   testslow:
     name: Slow Tests
-
     runs-on: ubuntu-latest
 
     steps:
@@ -138,49 +68,18 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
           node-version: '14.16.0'
+          cache: 'yarn'
 
-      - name: Use wasm-pack
-        uses: actions-rs/install@v0.1
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
         with:
-          crate: wasm-pack
-          version: latest
-          use-tool-cache: true
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo index
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-stable-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo build
-        uses: actions/cache@v1
-        with:
-          path: ironfish-wasm/target
-          key: ${{ runner.os }}-stable-target-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Restore Yarn cache
-        id: yarn-cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            node_modules
-            */*/node_modules
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Build Wasm packages
-        run: cd ironfish-wasm && yarn build
+          sharedKey: nodejs
+          working-directory: ironfish-rust-nodejs
 
       - name: Install packages
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run slow tests & coverage

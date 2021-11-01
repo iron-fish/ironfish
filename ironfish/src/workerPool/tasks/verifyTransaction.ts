@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
+import { TransactionPosted } from 'ironfish-rust-nodejs'
 
 export interface VerifyTransactionOptions {
   verifyFees?: boolean
@@ -27,7 +27,7 @@ export function handleVerifyTransaction({
 
   let verified = false
   try {
-    transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
+    transaction = TransactionPosted.deserialize(serializedTransactionPosted)
 
     if (verifyFees && transaction.fee < BigInt(0)) {
       throw new Error('Transaction has negative fees')

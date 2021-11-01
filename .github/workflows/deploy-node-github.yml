@@ -10,11 +10,6 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v2
 
-      - name: Use Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: "14.16.0"
-
       - name: Login to Github Registry
         run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_USER} --password-stdin ghcr.io
         env:
