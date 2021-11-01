@@ -38,6 +38,11 @@ lerna-debug.log*
 
 # rust build artifacts
 **/*/target/*
+*.node
+
+# ironfish-rust-nodejs
+ironfish-rust-nodejs/*.map
+ironfish-rust-nodejs/index.js
 
 # ironfish-cli
 bin/ironfish-cli/databases

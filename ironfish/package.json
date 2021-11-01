@@ -38,8 +38,8 @@
     "lint:fix": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start": "tsc -b -w",
     "test": "tsc -b && tsc -b tsconfig.test.json && jest",
-    "test:slow": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_WASM=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns",
-    "test:perf": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_WASM=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
+    "test:slow": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns",
+    "test:perf": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest  --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false"
   },

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { generateNewPublicAddress, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
+import { generateNewPublicAddress, Note, Transaction } from 'ironfish-rust-nodejs'
 
 export type CreateMinersFeeRequest = {
   type: 'createMinersFee'
@@ -24,9 +24,9 @@ export function handleCreateMinersFee({
   // Generate a public address from the miner's spending key
   const minerPublicAddress = generateNewPublicAddress(spendKey).public_address
 
-  const minerNote = new WasmNote(minerPublicAddress, amount, memo)
+  const minerNote = new Note(minerPublicAddress, amount, memo)
 
-  const transaction = new WasmTransaction()
+  const transaction = new Transaction()
   transaction.receive(spendKey, minerNote)
 
   const postedTransaction = transaction.post_miners_fee()

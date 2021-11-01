@@ -3,7 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Account } from '../account'
-import { generateKey, WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
+import {
+  generateKey,
+  Note as NativeNote,
+  Transaction as NativeTransaction,
+} from 'ironfish-rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
@@ -47,7 +51,11 @@ export async function makeGenesisBlock(
   // It should end up with 0 coins.
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
-  const genesisNote = new WasmNote(genesisKey.public_address, BigInt(allocationSum), info.memo)
+  const genesisNote = new NativeNote(
+    genesisKey.public_address,
+    BigInt(allocationSum),
+    info.memo,
+  )
 
   /**
    *
@@ -56,7 +64,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
-  const initialTransaction = new WasmTransaction()
+  const initialTransaction = new NativeTransaction()
 
   logger.info('  Generating the receipt...')
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
@@ -96,7 +104,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new WasmTransaction()
+  const transaction = new NativeTransaction()
   logger.info(`  Generating a spend for ${allocationSum} coins...`)
   transaction.spend(genesisKey.spending_key, genesisNote, witness)
 
@@ -104,7 +112,7 @@ export async function makeGenesisBlock(
     logger.info(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
-    const note = new WasmNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
+    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
     transaction.receive(genesisKey.spending_key, note)
   }
 
@@ -129,8 +137,8 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`  Generating a miner's fee transaction for the block...`)
-  const note = new WasmNote(account.publicAddress, BigInt(0), '')
-  const minersFeeTransaction = new WasmTransaction()
+  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+  const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new Transaction(
     Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
-import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
+import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'

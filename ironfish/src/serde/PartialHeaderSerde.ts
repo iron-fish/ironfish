@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+import { NoteEncryptedHash, SerializedNoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
 import { Target, TargetSerdeInstance } from '../primitives/target'
 import { Strategy } from '../strategy'
@@ -81,7 +78,7 @@ type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {
-    commitment: WasmNoteEncryptedHash
+    commitment: NoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
@@ -102,7 +99,7 @@ type SerializedPartialBlockHeader = {
   minersFee: string
   graffiti: string
   noteCommitment: {
-    commitment: SerializedWasmNoteEncryptedHash
+    commitment: SerializedNoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
