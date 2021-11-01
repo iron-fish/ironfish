@@ -56,9 +56,9 @@ If you don't know what contribution you can work on, here are a few suggestions:
 
 ## Testing
 
-You can run the entire test suite by running `yarn test` on our TypeScript codebase.
-You can run the test suite by entering the command `cargo-test` for each package (`ironfish-rust` or `ironfish-wasm`) within our Rust codebase.
+For our TypeScript codebase, you can run the entire test suite using `yarn test` in the root directory.
 
+For our Rust codebase, you can run the test suites for each project by running `cargo test` in the project directory.
 
 ## Continuous integration
 

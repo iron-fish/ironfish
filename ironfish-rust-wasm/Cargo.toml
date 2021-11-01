@@ -12,7 +12,7 @@ rand = {version = "0.7", features = ["wasm-bindgen"]}
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-ironfish_rust= { path = "../ironfish-rust" }
+ironfish_rust= { path = "../ironfish-rust", features = ["wasm"] }
 js-sys = "0.3.48"
 wasm-bindgen = "0.2.71"
 

@@ -2717,6 +2717,11 @@ cardinal@^2.1.1:
     ansicolors "~0.3.2"
     redeyed "~2.1.0"
 
+cargo-cp-artifact@^0.1:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/cargo-cp-artifact/-/cargo-cp-artifact-0.1.5.tgz#2c35f7d658f22acfe9b1fa2774344d9a389efd14"
+  integrity sha512-mWwNdfrEyvMPxDHoAhbCYwQBNP3RyW9bV+yi5VaaHtVZqoDXbGU5JQF5qG7s65SJhqP7HIVAQD7wZM6Fk2COuw==
+
 caseless@~0.12.0:
   version "0.12.0"
   resolved "https://registry.yarnpkg.com/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"

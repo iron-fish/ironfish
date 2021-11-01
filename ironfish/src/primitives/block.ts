@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 import { Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import { NoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
 import { SerializedTransaction, Transaction } from './transaction'
 
@@ -63,7 +63,7 @@ export class Block {
    */
   *spends(): Generator<{
     nullifier: Nullifier
-    commitment: WasmNoteEncryptedHash
+    commitment: NoteEncryptedHash
     size: number
   }> {
     for (const transaction of this.transactions) {

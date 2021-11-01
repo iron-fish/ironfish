@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import { WasmNoteEncryptedHash } from '../primitives/noteEncrypted'
+import { NoteEncryptedHash, SerializedNoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { BigIntUtils } from '../utils'
@@ -65,7 +65,7 @@ type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {
-    commitment: WasmNoteEncryptedHash
+    commitment: NoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
@@ -76,4 +76,21 @@ type PartialBlockHeader = {
   timestamp: Date
   minersFee: bigint
   graffiti: Buffer
+}
+
+type SerializedPartialBlockHeader = {
+  sequence: string
+  previousBlockHash: string
+  target: string
+  timestamp: number
+  minersFee: string
+  graffiti: string
+  noteCommitment: {
+    commitment: SerializedNoteEncryptedHash
+    size: number
+  }
+  nullifierCommitment: {
+    commitment: string
+    size: number
+  }
 }
