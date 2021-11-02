@@ -68,6 +68,18 @@ export class PeerAddressManager {
     return ArrayUtils.sampleOrThrow(disconnectedAddresses)
   }
 
+  removePeerAddress(peer: Peer): void {
+    const filteredPossibles = this.possiblePeerAddresses.filter(
+      (possible) => possible.address != peer.address && possible.port != peer.port,
+    )
+    const filteredPriorConnected = this.priorConnectedPeerAddresses.filter(
+      (prior) => prior.address != peer.address && prior.port != peer.port,
+    )
+
+    this.hostsStore.set('possiblePeers', filteredPossibles)
+    this.hostsStore.set('priorConnectedPeers', filteredPriorConnected)
+  }
+
   async save(peers: Peer[]): Promise<void> {
     const inUsePeerAddresses = peers
       .filter(
