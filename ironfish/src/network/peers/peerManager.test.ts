@@ -158,7 +158,6 @@ describe('PeerManager', () => {
     it('Should not send peer list requests to null protocol version', () => {
       const pm = new PeerManager(mockLocalPeer(), new PeerAddressManager(mockHostsStore()))
 
-
       const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
 
       expect(pm.identifiedPeers.size).toBe(1)
