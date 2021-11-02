@@ -1,0 +1,14 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - foo
+
+jobs:
+  foo:
+    name: foo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl Package
+        run: curl -L -I https://github.com/WebAssembly/binaryen/releases/download/version_90/binaryen-version_90-x86-linux.tar.gz
