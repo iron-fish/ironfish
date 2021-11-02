@@ -69,6 +69,27 @@ describe('PeerAddressManager', () => {
     })
   })
 
+  it('removePeerAddress should remove a peer address', () => {
+    const peerAddressManager = new PeerAddressManager(mockHostsStore())
+    const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+    const { peer: peer1 } = getConnectedPeer(pm)
+    const allPeers: Peer[] = [peer1]
+    const allPeerAddresses: PeerAddress[] = []
+
+    for (const peer of allPeers) {
+      allPeerAddresses.push({
+        address: peer.address,
+        port: peer.port,
+        identity: peer.state.identity,
+      })
+    }
+    peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
+    peerAddressManager.hostsStore.set('priorConnectedPeers', allPeerAddresses)
+    peerAddressManager.removePeerAddress(peer1)
+    expect(peerAddressManager.possiblePeerAddresses.length).toEqual(0)
+    expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(0)
+  })
+
   it('getRandomDisconnectedPeer should return a randomly-sampled disconnected peer', () => {
     const peerAddressManager = new PeerAddressManager(mockHostsStore())
     const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
