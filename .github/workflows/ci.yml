@@ -176,6 +176,9 @@ jobs:
             */*/node_modules
           key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Curl Package
+        run: curl -L -I https://github.com/WebAssembly/binaryen/releases/download/version_90/binaryen-version_90-x86-linux.tar.gz
+
       - name: Build Wasm packages
         run: cd ironfish-wasm && yarn build
 
