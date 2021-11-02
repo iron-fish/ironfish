@@ -1,4 +1,4 @@
-name: Foo
+name: CURL
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - foo
 
 jobs:
-  foo:
-    name: foo
+  curl:
+    name: curl
     runs-on: ubuntu-latest
     steps:
       - name: Curl Package
