@@ -166,11 +166,11 @@ export default class Faucet extends IronfishCommand {
     speed.add(1)
 
     this.log(
-      `COMPLETING: ${faucetTransaction.id} ${
-        tx.content.transactionHash
-      } (5m avg ${speed.rate5m.toFixed(2)})`,
+      `COMPLETING: ${faucetTransaction.id} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(
+        2,
+      )})`,
     )
 
-    await api.completeFaucetTransaction(faucetTransaction.id)
+    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
   }
 }

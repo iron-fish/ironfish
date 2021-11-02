@@ -399,7 +399,7 @@ export class Accounts {
 
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
-          const transactionHash = transaction.transactionHash()
+          const transactionHash = transaction.hash()
 
           const existingT = this.transactionMap.get(transactionHash)
           // If we passed in a submittedSequence, set submittedSequence to that value.
