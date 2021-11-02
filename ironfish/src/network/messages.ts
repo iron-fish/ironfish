@@ -20,6 +20,7 @@ export enum InternalMessageType {
   signal = 'signal',
   signalRequest = 'signalRequest',
   peerList = 'peerList',
+  peerListRequest = 'peerListRequest',
   cannotSatisfyRequest = 'cannotSatisfyRequest',
   disconnecting = 'disconnecting',
 }
@@ -29,7 +30,7 @@ export type PayloadType = Record<string, unknown> | undefined
 /**
  * Used for functions that don't care about the contents of the message.
  */
-export type LooseMessage = Message<MessageType, PayloadType>
+export type LooseMessage = Message<MessageType, Record<string, unknown>> | Message<MessageType>
 
 /**
  * A message that has been received on the connection. Note that most messages
@@ -177,6 +178,18 @@ export function isSignal(obj: unknown): obj is Signal {
     typeof payload.nonce === 'string' &&
     typeof payload.signal === 'string'
   )
+}
+
+/**
+ * A message used to request a peer list from another peer.
+ *
+ * The referring peer will respond with a PeerList message,
+ * which contains information about their connected peers.
+ */
+export type PeerListRequest = Message<InternalMessageType.peerListRequest>
+
+export function isPeerListRequest(obj: unknown): obj is PeerListRequest {
+  return isMessage(obj) && obj.type === InternalMessageType.peerListRequest
 }
 
 export type PeerList = Message<

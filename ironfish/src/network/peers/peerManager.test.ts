@@ -37,6 +37,7 @@ import {
   Identify,
   InternalMessageType,
   PeerList,
+  PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
@@ -115,26 +116,107 @@ describe('PeerManager', () => {
     })
   })
 
-  it('broadcastPeerList sends all connected peers', () => {
-    const pm = new PeerManager(mockLocalPeer())
+  describe('Distribute peers', () => {
+    it('Should send peer list requests to newer protocol version', () => {
+      const pm = new PeerManager(mockLocalPeer())
 
-    const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
-    const { peer: peer2 } = getConnectedPeer(pm, 'peer2')
+      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
 
-    expect(pm.identifiedPeers.size).toBe(2)
+      peer1.version = 9
 
-    const mockBroadcast = jest.spyOn(pm, 'broadcast')
+      expect(pm.identifiedPeers.size).toBe(1)
 
-    pm['broadcastPeerList']()
-    expect(mockBroadcast).toBeCalledTimes(1)
-    expect(mockBroadcast).toBeCalledWith({
-      type: InternalMessageType.peerList,
-      payload: {
-        connectedPeers: [
-          { address: 'testuri.com', port: 9033, identity: peer1.getIdentityOrThrow() },
-          { address: 'testuri.com', port: 9033, identity: peer2.getIdentityOrThrow() },
-        ],
-      },
+      const mockSend = jest.spyOn(peer1, 'send')
+
+      pm['distributePeerList']()
+      expect(mockSend).toBeCalledTimes(1)
+      expect(mockSend).toBeCalledWith({
+        type: InternalMessageType.peerListRequest,
+      })
+    })
+
+    it('Should not send peer list requests to older protocol version', () => {
+      const pm = new PeerManager(mockLocalPeer())
+
+      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
+
+      peer1.version = 8
+
+      expect(pm.identifiedPeers.size).toBe(1)
+
+      const mockSend = jest.spyOn(peer1, 'send')
+
+      pm['distributePeerList']()
+      expect(mockSend).toHaveBeenCalledTimes(1)
+      expect(mockSend).not.toHaveBeenCalledWith({
+        type: InternalMessageType.peerListRequest,
+      })
+    })
+
+    it('Should not send peer list requests to null protocol version', () => {
+      const pm = new PeerManager(mockLocalPeer())
+
+      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
+
+      expect(pm.identifiedPeers.size).toBe(1)
+
+      const mockSend = jest.spyOn(peer1, 'send')
+
+      pm['distributePeerList']()
+      expect(mockSend).toHaveBeenCalledTimes(1)
+      expect(mockSend).not.toHaveBeenCalledWith({
+        type: InternalMessageType.peerListRequest,
+      })
+    })
+
+    it('Should broadcast peer list to older protocol version', () => {
+      const pm = new PeerManager(mockLocalPeer())
+
+      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
+      const { peer: peer2 } = getConnectedPeer(pm, 'peer2')
+
+      peer1.version = 8
+
+      expect(pm.identifiedPeers.size).toBe(2)
+
+      const mockSend = jest.spyOn(peer1, 'send')
+
+      pm['distributePeerList']()
+      expect(mockSend).toBeCalledTimes(1)
+      expect(mockSend).toBeCalledWith({
+        type: InternalMessageType.peerList,
+        payload: {
+          connectedPeers: [
+            { address: 'testuri.com', port: 9033, identity: peer1.getIdentityOrThrow() },
+            { address: 'testuri.com', port: 9033, identity: peer2.getIdentityOrThrow() },
+          ],
+        },
+      })
+    })
+
+    it('Should not broadcast peer list to newer protocol version', () => {
+      const pm = new PeerManager(mockLocalPeer())
+
+      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
+      const { peer: peer2 } = getConnectedPeer(pm, 'peer2')
+
+      peer1.version = 9
+
+      expect(pm.identifiedPeers.size).toBe(2)
+
+      const mockSend = jest.spyOn(peer1, 'send')
+
+      pm['distributePeerList']()
+      expect(mockSend).toBeCalledTimes(1)
+      expect(mockSend).not.toBeCalledWith({
+        type: InternalMessageType.peerList,
+        payload: {
+          connectedPeers: [
+            { address: 'testuri.com', port: 9033, identity: peer1.getIdentityOrThrow() },
+            { address: 'testuri.com', port: 9033, identity: peer2.getIdentityOrThrow() },
+          ],
+        },
+      })
     })
   })
 
@@ -1392,6 +1474,70 @@ describe('PeerManager', () => {
 
       expect(signalSpy).not.toBeCalled()
       expect(closeSpy).toBeCalled()
+    })
+  })
+
+  describe('Message: PeerListRequest', () => {
+    it('Sends a peer list message in response', () => {
+      const peerIdentity = mockIdentity('peer')
+
+      const pm = new PeerManager(mockLocalPeer())
+      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
+
+      expect(pm.peers.length).toBe(1)
+      expect(pm.identifiedPeers.size).toBe(1)
+
+      const peerListRequest: PeerListRequest = {
+        type: InternalMessageType.peerListRequest,
+      }
+
+      const peerList: PeerList = {
+        type: InternalMessageType.peerList,
+        payload: {
+          connectedPeers: [
+            {
+              identity: peer.getIdentityOrThrow(),
+              address: peer.address,
+              port: peer.port,
+            },
+          ],
+        },
+      }
+
+      const sendToSpy = jest.spyOn(pm, 'sendTo')
+      peer.onMessage.emit(peerListRequest, connection)
+      expect(sendToSpy).toBeCalledTimes(1)
+      expect(sendToSpy).toHaveBeenCalledWith(peer, peerList)
+    })
+
+    it('Does not broadcast worker peers', () => {
+      const peerIdentity = mockIdentity('peer')
+
+      const localPeer = mockLocalPeer()
+      localPeer.broadcastWorkers = false
+
+      const pm = new PeerManager(localPeer)
+      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
+      peer.isWorker = true
+
+      expect(pm.peers.length).toBe(1)
+      expect(pm.identifiedPeers.size).toBe(1)
+
+      const peerListRequest: PeerListRequest = {
+        type: InternalMessageType.peerListRequest,
+      }
+
+      const emptyPeerList: PeerList = {
+        type: InternalMessageType.peerList,
+        payload: {
+          connectedPeers: [],
+        },
+      }
+
+      const sendToSpy = jest.spyOn(pm, 'sendTo')
+      peer.onMessage.emit(peerListRequest, connection)
+      expect(sendToSpy).toBeCalledTimes(1)
+      expect(sendToSpy).toHaveBeenCalledWith(peer, emptyPeerList)
     })
   })
 
