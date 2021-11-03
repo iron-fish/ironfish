@@ -81,6 +81,7 @@ describe('PeerAddressManager', () => {
         address: peer.address,
         port: peer.port,
         identity: peer.state.identity,
+        name: peer.name,
       })
     }
     peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
@@ -104,10 +105,11 @@ describe('PeerAddressManager', () => {
         address: peer.address,
         port: peer.port,
         identity: peer.state.identity,
+        name: peer.name,
       })
     }
     peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
-    const sample = peerAddressManager.getRandomDisconnectedPeer(allPeers)
+    const sample = peerAddressManager.getRandomDisconnectedPeerAddress(allPeers)
     expect(allPeerAddresses).toContainEqual(sample)
     expect(sample.address).toEqual(disconnectedPeer.address)
     expect(sample.port).toEqual(disconnectedPeer.port)

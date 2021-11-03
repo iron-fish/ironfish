@@ -51,14 +51,16 @@ class MockHostsStore extends HostsStore {
       {
         address: '127.0.0.1',
         port: 9999,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
     super.set('possiblePeers', [
       {
         address: '1.1.1.1',
         port: 1111,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
   }
