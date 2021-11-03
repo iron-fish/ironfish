@@ -7,6 +7,10 @@ import { Peer, PeerList } from '..'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 
+/**
+ * PeerAddressManager stores the necessary data for connecting to new peers
+ * and provides functionality for persistence of said data.
+ */
 export class PeerAddressManager {
   hostsStore: HostsStore
 
@@ -22,12 +26,15 @@ export class PeerAddressManager {
     return this.hostsStore.getArray('possiblePeers')
   }
 
+  /**
+   * Adds addresses associated to peers received from peer list
+   */
   addAddressesFromPeerList(peerList: PeerList): void {
     const newAddresses: PeerAddress[] = peerList.payload.connectedPeers.map((peer) => ({
       address: peer.address,
       port: peer.port,
-      identity: peer.identity,
-      name: peer.name,
+      identity: peer.identity ?? null,
+      name: peer.name ?? null,
     }))
 
     const possiblePeerSet: Set<string> = new Set(
@@ -50,7 +57,11 @@ export class PeerAddressManager {
     this.hostsStore.set('possiblePeers', [...this.possiblePeerAddresses, ...dedupedAddresses])
   }
 
-  getRandomDisconnectedPeer(peers: Peer[]): PeerAddress {
+  /**
+   * Returns a peer address for a disconnected peer by using current peers to
+   * filter out connected peer addresses
+   */
+  getRandomDisconnectedPeerAddress(peers: Peer[]): PeerAddress {
     const addressSet = new Set(this.possiblePeerAddresses)
     const connectedPeerAdresses: Set<PeerAddress> = new Set(
       peers
@@ -58,8 +69,8 @@ export class PeerAddressManager {
         .map((peer) => ({
           address: peer.address,
           port: peer.port,
-          identity: peer.state.identity,
-          name: peer.name,
+          identity: peer.state.identity ?? null,
+          name: peer.name ?? null,
         })),
     )
     const disconnectedAddresses = [...addressSet].filter(
@@ -68,18 +79,24 @@ export class PeerAddressManager {
     return ArrayUtils.sampleOrThrow(disconnectedAddresses)
   }
 
+  /**
+   * Removes address associated with a peer from address stores
+   */
   removePeerAddress(peer: Peer): void {
     const filteredPossibles = this.possiblePeerAddresses.filter(
-      (possible) => possible.address != peer.address && possible.port != peer.port,
+      (possible) => possible.address !== peer.address && possible.port !== peer.port,
     )
     const filteredPriorConnected = this.priorConnectedPeerAddresses.filter(
-      (prior) => prior.address != peer.address && prior.port != peer.port,
+      (prior) => prior.address !== peer.address && prior.port !== peer.port,
     )
 
     this.hostsStore.set('possiblePeers', filteredPossibles)
     this.hostsStore.set('priorConnectedPeers', filteredPriorConnected)
   }
 
+  /**
+   * Persist all currently connected peers and unused peer addresses to disk
+   */
   async save(peers: Peer[]): Promise<void> {
     const inUsePeerAddresses = peers
       .filter(
@@ -91,8 +108,8 @@ export class PeerAddressManager {
       .map((peer) => ({
         address: peer.address,
         port: peer.port,
-        identity: peer.state.identity,
-        name: peer.name,
+        identity: peer.state.identity ?? null,
+        name: peer.name ?? null,
       }))
     this.hostsStore.set('priorConnectedPeers', [
       ...this.priorConnectedPeerAddresses,
