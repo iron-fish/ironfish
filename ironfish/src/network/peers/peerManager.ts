@@ -1532,6 +1532,8 @@ export class PeerManager {
 
     let changed = false
 
+    this.peerAddressManager.addAddressesFromPeerList(peerList)
+
     const newPeerSet = peerList.payload.connectedPeers.reduce(
       (memo, peer) => {
         memo.set(peer.identity, peer)
