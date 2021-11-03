@@ -892,6 +892,8 @@ export class PeerManager {
       }
       this.peers = this.peers.filter((p) => p !== peer)
 
+      this.peerAddressManager.removePeerAddress(peer)
+
       return true
     }
     return false
