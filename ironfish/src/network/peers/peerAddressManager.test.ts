@@ -32,7 +32,8 @@ describe('PeerAddressManager', () => {
       {
         address: '1.1.1.1',
         port: 1111,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
   })
@@ -43,7 +44,8 @@ describe('PeerAddressManager', () => {
       {
         address: '1.1.1.1',
         port: 1111,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
     const peerList: PeerList = {
