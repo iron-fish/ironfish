@@ -152,7 +152,7 @@ export class Transaction {
    * The transaction fee is the difference between outputs and spends on the
    * transaction.
    */
-  transactionFee(): Promise<bigint> {
+  fee(): Promise<bigint> {
     return this.workerPool.transactionFee(this)
   }
 
