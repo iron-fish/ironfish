@@ -159,7 +159,7 @@ export default class Faucet extends IronfishCommand {
       fromAccountName: account,
       toPublicKey: faucetTransaction.public_key,
       amount: BigInt(FAUCET_AMOUNT).toString(),
-      transactionFee: BigInt(FAUCET_FEE).toString(),
+      fee: BigInt(FAUCET_FEE).toString(),
       memo: `Faucet for ${faucetTransaction.id}`,
     })
 

@@ -9,7 +9,7 @@ export type SendTransactionRequest = {
   fromAccountName: string
   toPublicKey: string
   amount: string
-  transactionFee: string
+  fee: string
   memo: string
 }
 
@@ -25,7 +25,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
     fromAccountName: yup.string().defined(),
     toPublicKey: yup.string().defined(),
     amount: yup.string().defined(),
-    transactionFee: yup.string().defined(),
+    fee: yup.string().defined(),
     memo: yup.string().defined(),
   })
   .defined()
@@ -66,7 +66,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     // Check that the node account is updated
     const balance = node.accounts.getBalance(account)
-    const sum = BigInt(transaction.amount) + BigInt(transaction.transactionFee)
+    const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
 
     if (balance.confirmedBalance < sum && balance.unconfirmedBalance < sum) {
       throw new ValidationError(
@@ -88,7 +88,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       node.memPool,
       account,
       BigInt(transaction.amount),
-      BigInt(transaction.transactionFee),
+      BigInt(transaction.fee),
       transaction.memo,
       transaction.toPublicKey,
     )

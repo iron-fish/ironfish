@@ -170,7 +170,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.transactionFee(),
+      await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -233,7 +233,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.transactionFee(),
+      await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -289,7 +289,7 @@ describe('Accounts', () => {
       return nodeA.chain.newBlock(
         [transaction],
         await nodeA.strategy.createMinersFee(
-          await transaction.transactionFee(),
+          await transaction.fee(),
           3,
           generateKey().spending_key,
         ),

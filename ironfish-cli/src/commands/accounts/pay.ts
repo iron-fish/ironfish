@@ -189,7 +189,7 @@ ${displayIronAmountWithCurrency(
         fromAccountName: from,
         memo: memo,
         toPublicKey: to,
-        transactionFee: ironToOre(fee).toString(),
+        fee: ironToOre(fee).toString(),
       })
 
       stopProgressBar()

@@ -11,7 +11,7 @@ const TEST_PARAMS = {
   fromAccountName: 'existingAccount',
   memo: '',
   toPublicKey: 'test2',
-  transactionFee: BigInt(1).toString(),
+  fee: BigInt(1).toString(),
 }
 
 describe('Transactions sendTransaction', () => {

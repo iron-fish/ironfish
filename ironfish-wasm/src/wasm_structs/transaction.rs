@@ -76,8 +76,8 @@ impl WasmTransactionPosted {
         }
     }
 
-    #[wasm_bindgen(getter, js_name = "transactionFee")]
-    pub fn transaction_fee(&self) -> i64 {
+    #[wasm_bindgen(getter, js_name = "fee")]
+    pub fn fee(&self) -> i64 {
         self.transaction.transaction_fee()
     }
 
