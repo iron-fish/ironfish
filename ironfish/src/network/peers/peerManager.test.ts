@@ -1578,19 +1578,6 @@ describe('PeerManager', () => {
         type: InternalMessageType.peerListRequest,
       }
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: peer.getIdentityOrThrow(),
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
-        },
-      }
-
       const onKnownPeersChangedSpy = jest.spyOn(peer.onKnownPeersChanged, 'emit')
       peer.onMessage.emit(peerListRequest, connection)
       expect(onKnownPeersChangedSpy).toBeCalledTimes(1)
