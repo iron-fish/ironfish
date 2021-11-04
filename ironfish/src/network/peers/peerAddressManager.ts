@@ -112,10 +112,7 @@ export class PeerAddressManager {
         identity: peer.state.identity ?? null,
         name: peer.name ?? null,
       }))
-    this.hostsStore.set('priorConnectedPeers', [
-      ...this.priorConnectedPeerAddresses,
-      ...inUsePeerAddresses,
-    ])
+    this.hostsStore.set('priorConnectedPeers', [...inUsePeerAddresses])
     await this.hostsStore.save()
   }
 }
