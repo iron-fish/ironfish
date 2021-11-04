@@ -398,11 +398,11 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
 
         Ok(Transaction {
             sapling,
-            expiration_sequence,
             transaction_fee,
             spends,
             receipts,
             binding_signature,
+            expiration_sequence,
         })
     }
 
