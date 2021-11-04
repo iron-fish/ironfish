@@ -47,7 +47,7 @@ class MockFileSystem extends FileSystem {
 class MockHostsStore extends HostsStore {
   constructor() {
     super(new MockFileSystem())
-    super.set('priorConnectedPeers', [
+    super.set('priorPeers', [
       {
         address: '127.0.0.1',
         port: 9999,

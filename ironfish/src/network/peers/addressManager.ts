@@ -16,7 +16,7 @@ export class AddressManager {
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hosts.getArray('priorConnectedPeers')
+    return this.hosts.getArray('priorPeers')
   }
 
   get possiblePeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
