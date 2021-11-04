@@ -60,7 +60,9 @@ export class PeerAddressManager {
 
   /**
    * Returns a peer address for a disconnected peer by using current peers to
-   * filter out connected peer addresses
+   * filter out peer addresses. It attempts to find a previously-connected
+   * peer address that is not part of an active connection. If there are none,
+   * then it attempts to find a previously-known peer address.
    */
   getRandomDisconnectedPeerAddress(peers: Peer[]): PeerAddress | null {
     if (
@@ -70,24 +72,41 @@ export class PeerAddressManager {
       return null
     }
 
-    const addressSet = new Set([
-      ...this.possiblePeerAddresses,
-      ...this.priorConnectedPeerAddresses,
-    ])
-    const connectedPeerAdresses: Set<PeerAddress> = new Set(
-      peers
-        .filter((peer) => peer.state.type === 'CONNECTED' || peer.state.type === 'CONNECTING')
-        .map((peer) => ({
-          address: peer.address,
-          port: peer.port,
-          identity: peer.state.identity ?? null,
-          name: peer.name ?? null,
-        })),
+    const currentPeerAddresses = new Set(
+      peers.filter((peer) => peer.state.identity !== null).map((peer) => peer.state.identity!),
     )
+
+    const priorConnectedAddressSet = new Set([...this.priorConnectedPeerAddresses])
+
+    const disconnectedPriorAddresses = this.filterConnectedAddresses(
+      priorConnectedAddressSet,
+      currentPeerAddresses,
+    )
+    if (disconnectedPriorAddresses.length) {
+      return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
+    } else {
+      const possibleAddressSet = new Set([...this.possiblePeerAddresses])
+      const disconnectedPossibleAddresses = this.filterConnectedAddresses(
+        possibleAddressSet,
+        currentPeerAddresses,
+      )
+      if (disconnectedPossibleAddresses.length) {
+        return ArrayUtils.sampleOrThrow(disconnectedPossibleAddresses)
+      } else {
+        return null
+      }
+    }
+  }
+
+  private filterConnectedAddresses(
+    addressSet: Set<Readonly<PeerAddress>>,
+    connectedPeerAdresses: Set<string>,
+  ): PeerAddress[] {
     const disconnectedAddresses = [...addressSet].filter(
-      (address) => !connectedPeerAdresses.has(address),
+      (address) => address.identity !== null && !connectedPeerAdresses.has(address.identity),
     )
-    return ArrayUtils.sampleOrThrow(disconnectedAddresses)
+
+    return disconnectedAddresses
   }
 
   /**
@@ -95,10 +114,10 @@ export class PeerAddressManager {
    */
   removePeerAddress(peer: Peer): void {
     const filteredPossibles = this.possiblePeerAddresses.filter(
-      (possible) => possible.address !== peer.address && possible.port !== peer.port,
+      (possible) => possible.identity !== peer.state.identity,
     )
     const filteredPriorConnected = this.priorConnectedPeerAddresses.filter(
-      (prior) => prior.address !== peer.address && prior.port !== peer.port,
+      (prior) => prior.identity !== peer.state.identity,
     )
 
     this.hostsStore.set('possiblePeers', filteredPossibles)
