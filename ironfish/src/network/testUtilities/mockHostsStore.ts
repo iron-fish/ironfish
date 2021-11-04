@@ -7,7 +7,7 @@ import { PeerAddress } from '../peers/peerAddress'
 
 /**
  * Utility to create a fake HostsStore for use in
- * PeerAddressManager and PeerManager
+ * AddressManager and PeerManager
  */
 
 class MockFileSystem extends FileSystem {

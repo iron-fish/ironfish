@@ -4,18 +4,22 @@
 import { HostsStore } from '../../fileStores'
 import { PeerAddress } from './peerAddress'
 
-export class PeerAddressManager {
-  hostsStore: HostsStore
+/**
+ * AddressManager stores the necessary data for connecting to new peers
+ * and provides functionality for persistence of said data.
+ */
+export class AddressManager {
+  hosts: HostsStore
 
   constructor(hostsStore: HostsStore) {
-    this.hostsStore = hostsStore
+    this.hosts = hostsStore
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hostsStore.getArray('priorConnectedPeers')
+    return this.hosts.getArray('priorConnectedPeers')
   }
 
   get possiblePeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hostsStore.getArray('possiblePeers')
+    return this.hosts.getArray('possiblePeers')
   }
 }

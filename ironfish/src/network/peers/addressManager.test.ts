@@ -4,20 +4,20 @@
 jest.mock('ws')
 
 import { mockHostsStore } from '../testUtilities'
-import { PeerAddressManager } from './peerAddressManager'
+import { AddressManager } from './addressManager'
 
 jest.useFakeTimers()
 
-describe('PeerAddressManager', () => {
+describe('AddressManager', () => {
   it('constructor loads addresses from HostsStore', () => {
-    const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    expect(peerAddressManager.priorConnectedPeerAddresses).toMatchObject([
+    const addressManager = new AddressManager(mockHostsStore())
+    expect(addressManager.priorConnectedPeerAddresses).toMatchObject([
       {
         address: '127.0.0.1',
         port: 9999,
       },
     ])
-    expect(peerAddressManager.possiblePeerAddresses).toMatchObject([
+    expect(addressManager.possiblePeerAddresses).toMatchObject([
       {
         address: '1.1.1.1',
         port: 1111,
