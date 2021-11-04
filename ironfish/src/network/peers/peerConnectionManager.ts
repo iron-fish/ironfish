@@ -66,6 +66,13 @@ export class PeerConnectionManager {
   private eventLoop() {
     let connectAttempts = 0
 
+    if (this.peerManager.getPeersWithConnection().length < this.peerManager.targetPeers) {
+      const peer = this.peerManager.getRandomDisconnectedPeer()
+      if (peer && this.connectToEligiblePeers(peer)) {
+        connectAttempts++
+      }
+    }
+
     const shuffledPeers = ArrayUtils.shuffle(this.peerManager.peers)
 
     for (const peer of shuffledPeers) {
