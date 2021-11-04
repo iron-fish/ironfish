@@ -62,7 +62,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> SimpleTransaction<J> {
             .post(&self.spender_key, None, self.intended_transaction_fee)
     }
 
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> () {
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
     }

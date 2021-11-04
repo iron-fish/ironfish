@@ -196,7 +196,7 @@ impl WasmTransaction {
     }
 
     #[wasm_bindgen(js_name = "setExpirationSequence")]
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> () {
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
     }

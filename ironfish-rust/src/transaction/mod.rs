@@ -200,7 +200,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     }
 
     /// Set the sequence to expire the transaction from the mempool.
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> () {
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
         self.expiration_sequence = expiration_sequence;
     }
 
