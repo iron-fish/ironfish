@@ -68,7 +68,8 @@ pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     transaction_fee: i64,
 
     /// This is the sequence in the chain the transaction will expire at and be
-    /// removed from the mempool.
+    /// removed from the mempool. A value of 0 indicates the transaction will
+    /// not expire.
     expiration_sequence: u32,
     //
     // NOTE: If adding fields here, you may need to add fields to
@@ -368,7 +369,8 @@ pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     binding_signature: Signature,
 
     /// This is the sequence in the chain the transaction will expire at and be
-    /// removed from the mempool.
+    /// removed from the mempool. A value of 0 indicates the transaction will
+    /// not expire.
     expiration_sequence: u32,
 }
 
