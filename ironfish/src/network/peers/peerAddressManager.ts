@@ -37,15 +37,14 @@ export class PeerAddressManager {
       name: peer.name ?? null,
     }))
 
-    const possiblePeerSet: Set<string> = new Set(
-      ...this.possiblePeerAddresses
-        .filter((peerAddress) => !(peerAddress.address == null) && !(peerAddress.port == null))
-        .map(
-          (filteredPeerAddress) =>
-            //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            `${filteredPeerAddress.address!}:${filteredPeerAddress.port!}`,
-        ),
-    )
+    const possiblePeerStrings = this.possiblePeerAddresses
+      .filter((peerAddress) => !(peerAddress.address == null) && !(peerAddress.port == null))
+      .map(
+        (filteredPeerAddress) =>
+          //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          `${filteredPeerAddress.address!}:${filteredPeerAddress.port!}`,
+      )
+    const possiblePeerSet = new Set(possiblePeerStrings)
 
     const dedupedAddresses = newAddresses.filter(
       (newAddress) =>
@@ -54,7 +53,9 @@ export class PeerAddressManager {
         !possiblePeerSet.has(`${newAddress.address}:${newAddress.port}`),
     )
 
-    this.hostsStore.set('possiblePeers', [...this.possiblePeerAddresses, ...dedupedAddresses])
+    if (dedupedAddresses.length) {
+      this.hostsStore.set('possiblePeers', [...this.possiblePeerAddresses, ...dedupedAddresses])
+    }
   }
 
   /**
