@@ -823,12 +823,16 @@ export class PeerManager {
    * Gets a random disconnected peer address and returns a peer created from
    * said address
    */
-  getRandomDisconnectedPeer(): Peer {
+  getRandomDisconnectedPeer(): Peer | null {
     const peerAddress = this.peerAddressManager.getRandomDisconnectedPeerAddress(this.peers)
-    const peer = this.getOrCreatePeer(peerAddress.identity)
-    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-    peer.name = peerAddress.name || null
-    return peer
+    if (peerAddress) {
+      const peer = this.getOrCreatePeer(peerAddress.identity)
+      peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
+      peer.name = peerAddress.name || null
+      return peer
+    } else {
+      return null
+    }
   }
 
   private distributePeerList() {

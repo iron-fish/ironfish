@@ -62,8 +62,18 @@ export class PeerAddressManager {
    * Returns a peer address for a disconnected peer by using current peers to
    * filter out connected peer addresses
    */
-  getRandomDisconnectedPeerAddress(peers: Peer[]): PeerAddress {
-    const addressSet = new Set(this.possiblePeerAddresses)
+  getRandomDisconnectedPeerAddress(peers: Peer[]): PeerAddress | null {
+    if (
+      this.possiblePeerAddresses.length == 0 &&
+      this.priorConnectedPeerAddresses.length == 0
+    ) {
+      return null
+    }
+
+    const addressSet = new Set([
+      ...this.possiblePeerAddresses,
+      ...this.priorConnectedPeerAddresses,
+    ])
     const connectedPeerAdresses: Set<PeerAddress> = new Set(
       peers
         .filter((peer) => peer.state.type === 'CONNECTED' || peer.state.type === 'CONNECTING')
