@@ -95,6 +95,11 @@ impl WasmTransactionPosted {
     pub fn transaction_hash(&self) -> Vec<u8> {
         self.transaction.transaction_signature_hash().to_vec()
     }
+
+    #[wasm_bindgen(getter, js_name = "expirationSequence")]
+    pub fn expiration_sequence(&self) -> u32 {
+        self.transaction.expiration_sequence()
+    }
 }
 
 #[wasm_bindgen]
@@ -188,6 +193,11 @@ impl WasmTransaction {
         Ok(WasmTransactionPosted {
             transaction: posted_transaction,
         })
+    }
+
+    #[wasm_bindgen(js_name = "setExpirationSequence")]
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> () {
+        self.transaction.set_expiration_sequence(expiration_sequence);
     }
 }
 
