@@ -141,7 +141,7 @@ describe('Gossip Router', () => {
     const message = { type: 'hello', nonce: 'test_handler1', payload: { test: 'payload' } }
     await network['handleMessage'](peer, { peerIdentity: peer.getIdentityOrThrow(), message })
     expect(gossipMock).toBeCalled()
-    await network.stop()
+    network.stop()
   })
 
   it('does not handle a poorly formatted gossip message as gossip', async () => {
@@ -180,6 +180,6 @@ describe('Gossip Router', () => {
 
     expect(gossipMock).not.toBeCalled()
     expect(logFn).toBeCalled()
-    await network.stop()
+    network.stop()
   })
 })

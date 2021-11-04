@@ -55,13 +55,13 @@ import {
   webRtcLocalIdentity,
 } from '../testUtilities'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
+import { AddressManager } from './addressManager'
 import {
   ConnectionDirection,
   ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from './connections'
-import { AddressManager } from './addressManager'
 import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()

@@ -13,13 +13,13 @@ import {
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { AddressManager } from './addressManager'
 import {
   ConnectionDirection,
   ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from './connections'
-import { AddressManager } from './addressManager'
 import { PeerConnectionManager } from './peerConnectionManager'
 import { PeerManager } from './peerManager'
 

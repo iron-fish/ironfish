@@ -56,9 +56,9 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
+import { AddressManager } from './peers/addressManager'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
-import { AddressManager } from './peers/addressManager'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { IsomorphicWebSocketConstructor } from './types'

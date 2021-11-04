@@ -19,7 +19,7 @@ jest.useFakeTimers()
 
 describe('PeerNetwork', () => {
   describe('stop', () => {
-    it('stops the peer manager', async () => {
+    it('stops the peer manager', () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -31,13 +31,13 @@ describe('PeerNetwork', () => {
       })
 
       const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
-      await peerNetwork.stop()
+      peerNetwork.stop()
       expect(stopSpy).toBeCalled()
     })
   })
 
   describe('registerHandler', () => {
-    it('stores the type in the routingStyles', async () => {
+    it('stores the type in the routingStyles', () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -56,7 +56,7 @@ describe('PeerNetwork', () => {
         () => {},
       )
       expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.gossip)
-      await peerNetwork.stop()
+      peerNetwork.stop()
     })
   })
 
@@ -87,12 +87,12 @@ describe('PeerNetwork', () => {
         message,
       })
       expect(handlerMock).not.toBeCalled()
-      await peerNetwork.stop()
+      peerNetwork.stop()
     })
   })
 
   describe('when peers connect', () => {
-    it('changes isReady', async () => {
+    it('changes isReady', () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -118,7 +118,7 @@ describe('PeerNetwork', () => {
       peer.close()
       expect(peerNetwork.isReady).toBe(false)
 
-      await peerNetwork.stop()
+      peerNetwork.stop()
       expect(peerNetwork.isReady).toBe(false)
 
       expect(readyChanged).toBeCalledTimes(2)
@@ -128,7 +128,7 @@ describe('PeerNetwork', () => {
   })
 
   describe('when at max peers', () => {
-    it('rejects websocket connections', async () => {
+    it('rejects websocket connections', () => {
       const wsActual = jest.requireActual<typeof WSWebSocket>('ws')
 
       const peerNetwork = new PeerNetwork({
@@ -161,7 +161,7 @@ describe('PeerNetwork', () => {
       const sendSpy = jest.spyOn(conn, 'send').mockReturnValue(undefined)
       const closeSpy = jest.spyOn(conn, 'close').mockReturnValue(undefined)
       server.server.emit('connection', conn, req)
-      await peerNetwork.stop()
+      peerNetwork.stop()
 
       expect(rejectSpy).toHaveBeenCalled()
       expect(sendSpy).toHaveBeenCalled()

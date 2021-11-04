@@ -34,6 +34,7 @@ import {
 } from '../messages'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
+import { AddressManager } from './addressManager'
 import {
   Connection,
   ConnectionDirection,
@@ -44,7 +45,6 @@ import {
 } from './connections'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
-import { AddressManager } from './addressManager'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
