@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from 'ironfish-wasm-nodejs'
+import { DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA } from '../consensus'
 import { Target } from '../primitives/target'
+import { ValidationError } from '../rpc/adapters/errors'
 import {
   createNodeTest,
   useAccountFixture,
@@ -231,6 +233,11 @@ describe('Accounts', () => {
       generateKey().public_address,
     )
 
+    // Check the default expiration is DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA from head
+    expect(transaction.expirationSequence()).toBe(
+      node.chain.head.sequence + DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA,
+    )
+
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
       await transaction.transactionFee(),
@@ -248,6 +255,55 @@ describe('Accounts', () => {
       unconfirmedBalance: BigInt(499999998),
     })
   }, 600000)
+
+  it('throws a ValidationError with an invalid expiration sequence', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    const chain = nodeTest.chain
+    node.accounts['workerPool'].start()
+
+    const account = await node.accounts.createAccount('test', true)
+
+    // Initial balance should be 0
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmedBalance: BigInt(0),
+      unconfirmedBalance: BigInt(0),
+    })
+
+    // Balance after adding the genesis block should be 0
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmedBalance: BigInt(0),
+      unconfirmedBalance: BigInt(0),
+    })
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 500000000 after adding the miner's fee
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmedBalance: BigInt(500000000),
+      unconfirmedBalance: BigInt(500000000),
+    })
+
+    // Spend the balance with an invalid expiration
+    await expect(
+      node.accounts.pay(
+        node.memPool,
+        account,
+        BigInt(2),
+        BigInt(0),
+        '',
+        generateKey().public_address,
+        1,
+      ),
+    ).rejects.toThrowError(ValidationError)
+  }, 60000)
 
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
