@@ -50,18 +50,31 @@ describe('MemPool', () => {
   describe('get', () => {
     const nodeTest = createNodeTest()
 
-    it('returns transactions from the node mempool', async () => {
+    it('returns transactions from the node mempool sorted by fees', async () => {
       const { node } = nodeTest
       const { accounts, memPool } = node
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { transaction } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
 
-      await memPool.acceptTransaction(transaction)
+      jest
+        .spyOn(transactionA, 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(1)))
+      jest
+        .spyOn(transactionB, 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+      jest
+        .spyOn(transactionC, 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(3)))
+
+      await memPool.acceptTransaction(transactionA)
+      await memPool.acceptTransaction(transactionB)
+      await memPool.acceptTransaction(transactionC)
 
       const transactions = Array.from(memPool.get())
-      expect(transactions).toHaveLength(1)
-      expect(transactions[0]).toEqual(transaction)
+      expect(transactions).toEqual([transactionB, transactionC, transactionA])
     }, 60000)
   })
 
@@ -108,10 +121,11 @@ describe('MemPool', () => {
         expect(await memPool.acceptTransaction(transaction)).toBe(true)
       }, 60000)
 
-      it('sets the transaction hash in the mempool', async () => {
+      it('sets the transaction hash in the mempool map and priority queue', async () => {
         const { node } = nodeTest
         const { accounts, memPool } = node
-        const { transactions } = memPool
+        const { queue, transactions } = memPool
+        const add = jest.spyOn(queue, 'add')
         const set = jest.spyOn(transactions, 'set')
         const accountA = await useAccountFixture(accounts, 'accountA')
         const accountB = await useAccountFixture(accounts, 'accountB')
@@ -119,8 +133,11 @@ describe('MemPool', () => {
 
         await memPool.acceptTransaction(transaction)
 
+        const hash = transaction.transactionHash()
+        expect(add).toHaveBeenCalledTimes(1)
+        expect(add).toHaveBeenCalledWith({ fee: await transaction.transactionFee(), hash })
         expect(set).toHaveBeenCalledTimes(1)
-        expect(set).toHaveBeenCalledWith(transaction.transactionHash(), transaction)
+        expect(set).toHaveBeenCalledWith(hash, transaction)
       }, 60000)
     })
   })
@@ -131,7 +148,8 @@ describe('MemPool', () => {
     it('removes the block transactions from the mempool', async () => {
       const { node, chain } = nodeTest
       const { accounts, memPool } = node
-      const { transactions } = memPool
+      const { queue, transactions } = memPool
+      const removeOne = jest.spyOn(queue, 'removeOne')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
@@ -143,6 +161,7 @@ describe('MemPool', () => {
 
       await chain.addBlock(block)
       expect(transactions.get(hash)).toBeUndefined()
+      expect(removeOne).toHaveBeenCalled()
     }, 60000)
   })
 
@@ -152,7 +171,8 @@ describe('MemPool', () => {
     it('adds the block transactions to the mempool', async () => {
       const { node, chain } = nodeTest
       const { accounts, memPool } = node
-      const { transactions } = memPool
+      const { queue, transactions } = memPool
+      const add = jest.spyOn(queue, 'add')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
@@ -162,6 +182,7 @@ describe('MemPool', () => {
       await chain.removeBlock(block.header.hash)
       const hash = transaction.transactionHash()
       expect(transactions.get(hash)).not.toBeUndefined()
+      expect(add).toHaveBeenCalledWith({ fee: await transaction.transactionFee(), hash })
     }, 60000)
   })
 })
