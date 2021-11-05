@@ -66,6 +66,11 @@ pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// The balance of all the spends minus all the receipts. The difference
     /// is the fee paid to the miner for mining the transaction.
     transaction_fee: i64,
+
+    /// This is the sequence in the chain the transaction will expire at and be
+    /// removed from the mempool. A value of 0 indicates the transaction will
+    /// not expire.
+    expiration_sequence: u32,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
@@ -80,6 +85,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
             spends: vec![],
             receipts: vec![],
             transaction_fee: 0,
+            expiration_sequence: 0,
         }
     }
 
@@ -189,6 +195,16 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
         self._partial_post()
     }
 
+    /// Get the expiration sequence for this transaction
+    pub fn expiration_sequence(&self) -> u32 {
+        self.expiration_sequence
+    }
+
+    /// Set the sequence to expire the transaction from the mempool.
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
+        self.expiration_sequence = expiration_sequence;
+    }
+
     // post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction<J>, TransactionError> {
         self.check_value_consistency()?;
@@ -204,6 +220,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
         }
         Ok(Transaction {
             sapling: self.sapling.clone(),
+            expiration_sequence: self.expiration_sequence,
             transaction_fee: self.transaction_fee,
             spends: spend_proofs,
             receipts: receipt_proofs,
@@ -223,6 +240,9 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
             .to_state();
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        hasher
+            .write_u32::<LittleEndian>(self.expiration_sequence)
+            .unwrap();
         hasher
             .write_i64::<LittleEndian>(self.transaction_fee)
             .unwrap();
@@ -347,6 +367,11 @@ pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// Signature calculated from accumulating randomness with all the spends
     /// and receipts when the transaction was created.
     binding_signature: Signature,
+
+    /// This is the sequence in the chain the transaction will expire at and be
+    /// removed from the mempool. A value of 0 indicates the transaction will
+    /// not expire.
+    expiration_sequence: u32,
 }
 
 impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
@@ -360,6 +385,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
+        let expiration_sequence = reader.read_u32::<LittleEndian>()?;
         let mut spends = vec![];
         let mut receipts = vec![];
         for _ in 0..num_spends {
@@ -376,6 +402,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
             spends,
             receipts,
             binding_signature,
+            expiration_sequence,
         })
     }
 
@@ -385,6 +412,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.transaction_fee)?;
+        writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
         for spend in self.spends.iter() {
             spend.write(&mut writer)?;
         }
@@ -465,6 +493,11 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         &self.binding_signature
     }
 
+    /// Get the expiration sequence for this transaction
+    pub fn expiration_sequence(&self) -> u32 {
+        self.expiration_sequence
+    }
+
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.
@@ -477,6 +510,9 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
             .personal(SIGNATURE_HASH_PERSONALIZATION)
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        hasher
+            .write_u32::<LittleEndian>(self.expiration_sequence)
+            .unwrap();
         hasher
             .write_i64::<LittleEndian>(self.transaction_fee)
             .unwrap();
