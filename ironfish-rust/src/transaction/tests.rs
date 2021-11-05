@@ -184,6 +184,8 @@ fn test_transaction_signature() {
         .receive(&out_note)
         .expect("Should be able to receive note");
 
+    transaction.set_expiration_sequence(1337);
+
     let public_transaction = transaction
         .post()
         .expect("should be able to post transaction");
