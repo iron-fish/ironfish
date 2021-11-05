@@ -462,8 +462,7 @@ export class PeerManager {
     }
 
     const canEstablishNewConnection =
-      peer.state.type !== 'DISCONNECTED' ||
-      this.getPeersWithConnection().length < this.targetPeers
+      peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
     const disconnectOk =
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
@@ -490,8 +489,7 @@ export class PeerManager {
     }
 
     const canEstablishNewConnection =
-      peer.state.type !== 'DISCONNECTED' ||
-      this.getPeersWithConnection().length < this.targetPeers
+      peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
     const disconnectOk =
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
@@ -570,6 +568,14 @@ export class PeerManager {
     return [...this.identifiedPeers.values()].filter((p) => {
       return p.state.type === 'CONNECTED'
     })
+  }
+
+  /**
+   * Returns true if the total number of connected peers is less
+   * than the target amount of peers
+   */
+  canCreateNewConnections(): boolean {
+    return this.getPeersWithConnection().length < this.targetPeers
   }
 
   /**

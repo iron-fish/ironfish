@@ -86,7 +86,7 @@ export class PeerConnectionManager {
       }
     }
 
-    if (this.peerManager.getPeersWithConnection().length < this.peerManager.targetPeers) {
+    if (this.peerManager.canCreateNewConnections()) {
       const peer = this.peerManager.getRandomDisconnectedPeer()
       if (peer) {
         this.connectToEligiblePeers(peer)
