@@ -11,14 +11,14 @@ import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 
-interface TransactionFeeAndHash {
+interface MempoolEntry {
   fee: bigint
   hash: TransactionHash
 }
 
 export class MemPool {
   transactions = new BufferMap<Transaction>()
-  queue: FastPriorityQueue<TransactionFeeAndHash>
+  queue: FastPriorityQueue<MempoolEntry>
   chain: Blockchain
   head: BlockHeader | null
   strategy: Strategy
@@ -27,11 +27,12 @@ export class MemPool {
   constructor(options: { strategy: Strategy; chain: Blockchain; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
-    this.queue = new FastPriorityQueue<TransactionFeeAndHash>(
-      (firstTransaction, secondTransaction) => {
-        return firstTransaction.fee > secondTransaction.fee
-      },
-    )
+    this.queue = new FastPriorityQueue<MempoolEntry>((firstTransaction, secondTransaction) => {
+      if (firstTransaction.fee === secondTransaction.fee) {
+        return firstTransaction.hash.compare(secondTransaction.hash) > 0
+      }
+      return firstTransaction.fee > secondTransaction.fee
+    })
     this.chain = options.chain
     this.head = null
     this.strategy = options.strategy
@@ -57,12 +58,10 @@ export class MemPool {
   *get(): Generator<Transaction, void, unknown> {
     while (!this.queue.isEmpty()) {
       const feeAndHash = this.queue.poll()
-      if (feeAndHash) {
-        const transaction = this.transactions.get(feeAndHash.hash)
-        if (transaction) {
-          yield transaction
-        }
-      }
+      Assert.isNotUndefined(feeAndHash)
+      const transaction = this.transactions.get(feeAndHash.hash)
+      Assert.isNotUndefined(transaction)
+      yield transaction
     }
   }
 

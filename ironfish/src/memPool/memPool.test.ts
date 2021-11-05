@@ -55,26 +55,26 @@ describe('MemPool', () => {
       const { accounts, memPool } = node
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { transaction: firstTransaction } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: secondTransaction } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: thirdTransaction } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
 
       jest
-        .spyOn(firstTransaction, 'transactionFee')
+        .spyOn(transactionA, 'transactionFee')
         .mockImplementationOnce(() => Promise.resolve(BigInt(1)))
       jest
-        .spyOn(secondTransaction, 'transactionFee')
+        .spyOn(transactionB, 'transactionFee')
         .mockImplementationOnce(() => Promise.resolve(BigInt(4)))
       jest
-        .spyOn(thirdTransaction, 'transactionFee')
+        .spyOn(transactionC, 'transactionFee')
         .mockImplementationOnce(() => Promise.resolve(BigInt(3)))
 
-      await memPool.acceptTransaction(firstTransaction)
-      await memPool.acceptTransaction(secondTransaction)
-      await memPool.acceptTransaction(thirdTransaction)
+      await memPool.acceptTransaction(transactionA)
+      await memPool.acceptTransaction(transactionB)
+      await memPool.acceptTransaction(transactionC)
 
       const transactions = Array.from(memPool.get())
-      expect(transactions).toEqual([secondTransaction, thirdTransaction, firstTransaction])
+      expect(transactions).toEqual([transactionB, transactionC, transactionA])
     }, 60000)
   })
 
