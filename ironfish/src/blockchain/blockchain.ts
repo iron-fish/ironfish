@@ -9,7 +9,7 @@ import {
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
-  TARGET_BLOCK_TIME_MS,
+  TARGET_BLOCK_TIME_IN_SECONDS,
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -224,7 +224,7 @@ export class Blockchain {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
-    const offset = TARGET_BLOCK_TIME_MS * 4
+    const offset = TARGET_BLOCK_TIME_IN_SECONDS * 4 * 1000
 
     const progress = (current - start) / (end - offset - start)
 

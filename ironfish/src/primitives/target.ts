@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TARGET_BLOCK_TIME_MS } from '../consensus'
+import { FREEZE_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -140,18 +140,32 @@ export class Target {
     // note that timestamps above are in seconds, and JS timestamps are in ms
 
     // max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    const targetRangeInSeconds = TARGET_BLOCK_TIME_MS / 1000
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
-    const sign = BigInt(
-      Math.max(targetRangeInSeconds / 10 - Math.floor(diffInSeconds / 10), -99),
-    )
-    const offset = BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
 
     // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    const difficulty = BigIntUtils.max(
-      BigInt(previousBlockDifficulty) + offset * sign,
-      Target.minDifficulty(),
-    )
+
+    const threshold = 1
+    const halfBucket = Math.floor(FREEZE_TIME_IN_SECONDS / 2)
+    const bucket =
+      Math.floor(
+        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) / FREEZE_TIME_IN_SECONDS,
+      ) + 1
+
+    const max_change =
+      BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
+
+    let targetDifficulty = null
+    if (bucket <= threshold) {
+      // Scale up
+      const multiplier = threshold - bucket
+      targetDifficulty = previousBlockDifficulty + BigInt(max_change) * BigInt(multiplier)
+    } else {
+      // Scale down
+      const multiplier = Math.min(bucket - threshold, 99)
+      targetDifficulty = previousBlockDifficulty - BigInt(max_change) * BigInt(multiplier)
+    }
+
+    const difficulty = BigIntUtils.max(targetDifficulty, Target.minDifficulty())
 
     return difficulty
   }

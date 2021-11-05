@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { FREEZE_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consensus'
 import { Target } from './target'
 
 describe('Target', () => {
@@ -64,81 +65,76 @@ describe('Target', () => {
 })
 
 describe('Calculate target', () => {
-  it('can increase target (which decreases difficulty) if its taking too long to mine a block (20+ seconds since last block)', () => {
-    const now = new Date()
-    // for any time 70-79 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
-    for (let i = 70; i < 79; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+  /**
+   * if new block comes in at these time ranges after the previous parent block, then difficulty is adjust as:
+   * 0 - 5 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 6
+   * 5 - 15 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 5
+   * 15 - 25 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 4
+   * 25 - 35 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 3
+   * 35 - 45 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 2
+   * 45 - 55 seconds: difficulty = parentDifficulty + parentDifficulty / 2048
+   * 55 - 65 seconds: difficulty = parentDifficulty
+   * 65 - 75 seconds: difficulty = parentDifficulty - parentDifficulty / 2048
+   * 75 - 85 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 2)
+   * ...
+   */
 
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
-
-      const diffInDifficulty = difficulty / BigInt(2048)
-
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
-      expect(newDifficulty).toBeLessThan(difficulty)
-      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
-
-      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
+  const findBucket = function (targetTime: number, allowedSlippage: number, blockTime: number) {
+    let bucket = 0
+    let startingPoint =
+      blockTime > targetTime + allowedSlippage
+        ? targetTime + allowedSlippage
+        : targetTime - allowedSlippage
+    if (blockTime <= targetTime - allowedSlippage) {
+      startingPoint = targetTime - allowedSlippage
+      while (startingPoint > blockTime) {
+        startingPoint = startingPoint - allowedSlippage * 2
+        bucket++
+      }
+    } else if (blockTime >= targetTime + allowedSlippage) {
+      startingPoint = blockTime
+      while (startingPoint >= targetTime + allowedSlippage) {
+        startingPoint = startingPoint - allowedSlippage * 2
+        bucket++
+      }
     }
 
-    // for any time 80-89 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) * 2
-    for (let i = 80; i < 89; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+    return bucket
+  }
 
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
-
-      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(2)
-
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
-      expect(newDifficulty).toBeLessThan(difficulty)
-      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
-
-      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
-    }
-  })
-
-  it('can decrease target (which increases difficulty) if a block is trying to come in too early (50-59 seconds)', () => {
+  it('adjusts difficulty', () => {
     const now = new Date()
-    for (let i = 50; i < 59; i++) {
-      const time = new Date(now.getTime() + i * 1000)
 
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
+    for (let i = 1; i < 100; i++) {
+      const blockTime = i
+      const parentDifficulty = BigInt(231072)
 
-      const diffInDifficulty = difficulty / BigInt(2048)
+      const targetTime = 60
+      const allowedSlippage = 5
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
+      const bucketFromTarget = findBucket(targetTime, allowedSlippage, blockTime)
 
-      expect(newDifficulty).toBeGreaterThan(difficulty)
-      expect(BigInt(difficulty) + diffInDifficulty).toEqual(newDifficulty)
+      const diffInDifficulty = (parentDifficulty / BigInt(2048)) * BigInt(bucketFromTarget)
 
-      expect(newTarget.targetValue).toBeLessThan(target.targetValue)
-    }
-  })
+      const expectedDifficulty =
+        blockTime < targetTime
+          ? parentDifficulty + diffInDifficulty
+          : parentDifficulty - diffInDifficulty
 
-  it('keeps difficulty/target of parent block header if time differnece is between 60 and 69 seconds', () => {
-    const now = new Date()
-    for (let i = 60; i < 69; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+      const newDifficulty = Target.calculateDifficulty(
+        new Date(now.getTime() + blockTime * 1000),
+        now,
+        parentDifficulty,
+      )
 
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
+      expect(newDifficulty).toEqual(expectedDifficulty)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
-      const diffInDifficulty = BigInt(newDifficulty) - difficulty
-
-      expect(diffInDifficulty).toEqual(BigInt(0))
-      expect(newDifficulty).toEqual(difficulty)
-      expect(newTarget.targetValue).toEqual(target.targetValue)
+      const newTarget = Target.calculateTarget(
+        new Date(now.getTime() + blockTime * 1000),
+        now,
+        Target.fromDifficulty(parentDifficulty),
+      )
+      expect(newTarget).toEqual(Target.fromDifficulty(expectedDifficulty))
     }
   })
 })

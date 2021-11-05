@@ -160,7 +160,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Exposes transaction hash', () => {
-      expect(publicTransaction.hash.length).toBe(32)
+      expect(publicTransaction.transactionHash.length).toBe(32)
     })
   })
 

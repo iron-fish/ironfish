@@ -43,9 +43,11 @@ export const MAX_SYNCED_AGE_MS = 60 * 1000
 export const MAX_REQUESTED_BLOCKS = 50
 
 /**
- * The network has a target block time of 15 seconds
- *
- * NOTE: This is not used in target calculation, or IRON_FISH_YEAR_IN_BLOCKS.
- * Ideally, it should be in a future refactor.
+ * The network has a target block time of 60 seconds
  */
-export const TARGET_BLOCK_TIME_MS = 60 * 1000
+export const TARGET_BLOCK_TIME_IN_SECONDS = 60
+
+/**
+ * The time range when difficulty and target not change
+ */
+export const FREEZE_TIME_IN_SECONDS = 10
