@@ -283,6 +283,7 @@ describe('Accounts', () => {
         BigInt(1),
         '',
         accountB.publicAddress,
+        0,
       )
 
       // Create block 2
@@ -308,6 +309,7 @@ describe('Accounts', () => {
         BigInt(1),
         '',
         accountC.publicAddress,
+        0,
       ),
     ).resolves.toBeTruthy()
   }, 600000)
@@ -409,6 +411,7 @@ describe('Accounts', () => {
           BigInt(0),
           '',
           accountB.publicAddress,
+          0,
         )
 
         // Create block A2
@@ -505,6 +508,7 @@ describe('Accounts', () => {
           BigInt(0),
           '',
           accountB.publicAddress,
+          0,
         )
 
         // Create block A2

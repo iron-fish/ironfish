@@ -216,7 +216,7 @@ export async function useTxFixture(
   generate =
     generate ||
     (() => {
-      return accounts.createTransaction(from, BigInt(1), BigInt(0), '', to.publicAddress)
+      return accounts.createTransaction(from, BigInt(1), BigInt(0), '', to.publicAddress, 0)
     })
 
   return useFixture(generate, {
@@ -314,6 +314,7 @@ export async function useBlockWithTx(
       BigInt(1),
       '',
       to.publicAddress,
+      0,
     )
 
     return node.chain.newBlock(
