@@ -1515,8 +1515,6 @@ export class PeerManager {
         address: p.address,
         port: p.port,
       })
-
-      this.addKnownPeerTo(p, peer, false)
     }
 
     const peerList: PeerList = {
@@ -1525,7 +1523,6 @@ export class PeerManager {
     }
 
     this.sendTo(peer, peerList)
-    peer.onKnownPeersChanged.emit()
   }
 
   private handlePeerListMessage(peerList: PeerList, peer: Peer) {
