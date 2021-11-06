@@ -99,22 +99,27 @@ describe('PeerAddressManager', () => {
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
     const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
-    const allPeers: Peer[] = [connectedPeer, connectingPeer, disconnectedPeer]
+    const nonDisconnectedPeers: Peer[] = [connectedPeer, connectingPeer]
     const allPeerAddresses: PeerAddress[] = []
 
-    for (const peer of allPeers) {
+    for (const peer of [...nonDisconnectedPeers, disconnectedPeer]) {
       allPeerAddresses.push({
         address: peer.address,
         port: peer.port,
-        identity: peer.state.identity,
+        identity: 'boop',
         name: peer.name,
       })
     }
+
+    peerAddressManager.hostsStore.set('priorConnectedPeers', allPeerAddresses)
     peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
-    const sample = peerAddressManager.getRandomDisconnectedPeerAddress(allPeers)
-    expect(allPeerAddresses).toContainEqual(sample)
-    expect(sample.address).toEqual(disconnectedPeer.address)
-    expect(sample.port).toEqual(disconnectedPeer.port)
+    const sample = peerAddressManager.getRandomDisconnectedPeerAddress(nonDisconnectedPeers)
+    expect(sample).not.toBeNull()
+    if (sample !== null) {
+      expect(allPeerAddresses).toContainEqual(sample)
+      expect(sample.address).toEqual(disconnectedPeer.address)
+      expect(sample.port).toEqual(disconnectedPeer.port)
+    }
   })
 
   describe('save', () => {
@@ -147,7 +152,7 @@ describe('PeerAddressManager', () => {
         ?.neverRetryConnecting()
 
       await peerAddressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
-      expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(1)
+      expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(0)
     })
   })
 })

@@ -66,13 +66,14 @@ export class PeerAddressManager {
    */
   getRandomDisconnectedPeerAddress(peers: Peer[]): PeerAddress | null {
     if (
-      this.possiblePeerAddresses.length == 0 &&
-      this.priorConnectedPeerAddresses.length == 0
+      this.possiblePeerAddresses.length === 0 &&
+      this.priorConnectedPeerAddresses.length === 0
     ) {
       return null
     }
 
     const currentPeerAddresses = new Set(
+      //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       peers.filter((peer) => peer.state.identity !== null).map((peer) => peer.state.identity!),
     )
 
