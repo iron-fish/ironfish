@@ -4,11 +4,9 @@
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
 import { Blockchain } from '../blockchain'
-import {
-  DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA,
-  GENESIS_BLOCK_SEQUENCE,
-} from '../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
@@ -591,6 +589,7 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
+    defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
@@ -599,9 +598,8 @@ export class Accounts {
     }
 
     expirationSequence =
-      expirationSequence ??
-      heaviestHead.sequence + DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA
-    if (0 < expirationSequence && expirationSequence <= heaviestHead.sequence) {
+      expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
+    if (expirationSequence !== 0 && expirationSequence <= heaviestHead.sequence) {
       throw new ValidationError('Invalid expiration sequence for transaction')
     }
 

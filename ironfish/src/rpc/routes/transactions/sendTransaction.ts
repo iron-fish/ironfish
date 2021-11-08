@@ -93,6 +93,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       BigInt(transaction.transactionFee),
       transaction.memo,
       transaction.toPublicKey,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
       transaction.expirationSequence,
     )
 

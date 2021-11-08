@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from 'ironfish-wasm-nodejs'
-import { DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA } from '../consensus'
 import { Target } from '../primitives/target'
 import { ValidationError } from '../rpc/adapters/errors'
 import {
@@ -168,6 +167,8 @@ describe('Accounts', () => {
       BigInt(0),
       '',
       generateKey().public_address,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      0,
     )
 
     // Create a block with a miner's fee
@@ -231,11 +232,11 @@ describe('Accounts', () => {
       BigInt(0),
       '',
       generateKey().public_address,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
     )
 
-    // Check the default expiration is DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA from head
     expect(transaction.expirationSequence()).toBe(
-      node.chain.head.sequence + DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA,
+      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
     )
 
     // Create a block with a miner's fee
@@ -257,7 +258,6 @@ describe('Accounts', () => {
   }, 600000)
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
-    // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
@@ -300,6 +300,7 @@ describe('Accounts', () => {
         BigInt(0),
         '',
         generateKey().public_address,
+        node.config.get('defaultTransactionExpirationSequenceDelta'),
         1,
       ),
     ).rejects.toThrowError(ValidationError)

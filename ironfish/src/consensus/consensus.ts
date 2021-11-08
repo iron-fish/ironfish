@@ -49,9 +49,3 @@ export const MAX_REQUESTED_BLOCKS = 50
  * Ideally, it should be in a future refactor.
  */
 export const TARGET_BLOCK_TIME_MS = 15 * 1000
-
-/**
- * The default delta of block sequence for which to expire transactions from the
- * mempool.
- */
-export const DEFAULT_TRANSACTION_EXPIRATION_SEQUENCE_DELTA = 450
