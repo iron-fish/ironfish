@@ -145,12 +145,7 @@ export class Target {
     // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
 
     const threshold = 1
-    const halfBucket = Math.floor(FREEZE_TIME_IN_SECONDS / 2)
-    const bucket =
-      Math.floor(
-        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) / FREEZE_TIME_IN_SECONDS,
-      ) + 1
-
+    const bucket = this.findBucket(diffInSeconds)
     const max_change =
       BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
 
@@ -165,9 +160,21 @@ export class Target {
       targetDifficulty = previousBlockDifficulty - BigInt(max_change) * BigInt(multiplier)
     }
 
-    const difficulty = BigIntUtils.max(targetDifficulty, Target.minDifficulty())
+    return BigIntUtils.max(targetDifficulty, Target.minDifficulty())
+  }
 
-    return difficulty
+  /**
+   * Returns the bucket values based difference time between the current and previous block, target block mining time and free time range
+   * @param diffInSeconds different in seconds between blocks
+   * @returns the bucket number
+   */
+  static findBucket(diffInSeconds: number): number {
+    const halfBucket = Math.floor(FREEZE_TIME_IN_SECONDS / 2)
+    return (
+      Math.floor(
+        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) / FREEZE_TIME_IN_SECONDS,
+      ) + 1
+    )
   }
 
   /**

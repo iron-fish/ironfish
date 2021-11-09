@@ -67,7 +67,7 @@ describe('Target', () => {
 describe('Calculate target', () => {
   it('increases difficulty if a new block is coming in before the target range time', () => {
     const now = new Date()
-    // for any time 0 - 55 seconds after the last block, difficulty should increase by previous block's difficulty / BigInt(2048) * m
+    // for any time 0 - 55 seconds after the last block, difficulty should increase by previous block's difficulty / BigInt(2048) * bucket
     for (let i = 0; i < 55; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
@@ -112,7 +112,7 @@ describe('Calculate target', () => {
   it('dencreases difficulty if a new block is coming in after the target range time', () => {
     const now = new Date()
 
-    // for any time more than 65 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) / n
+    // for any time more than 65 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) / bucket
     for (let i = 65; i < 100; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
