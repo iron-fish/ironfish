@@ -104,7 +104,6 @@ describe('Calculate target', () => {
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
 
       expect(diffInDifficulty).toEqual(BigInt(0))
-      expect(newDifficulty).toEqual(difficulty)
       expect(newTarget.targetValue).toEqual(target.targetValue)
     }
   })

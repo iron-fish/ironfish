@@ -20,7 +20,7 @@ import { BigIntUtils } from '../utils/bigint'
  * note that timestamps above are in seconds, and JS timestamps are in ms
  * The bound divisor of the difficulty is the '2048' part of that equation
  */
-const DIFFICULTY_ADJUSTMENT_DENOMINATOR = 2048
+const DIFFICULTY_ADJUSTMENT_DENOMINATOR = BigInt(2048)
 
 /**
  *  Minimum difficulty, which is equivalent to maximum target
@@ -146,21 +146,20 @@ export class Target {
 
     const threshold = 1
     const bucket = this.findBucket(diffInSeconds)
-    const max_change =
-      BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
+    const maxChange = previousBlockDifficulty / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
 
-    let targetDifficulty = null
+    let difficulty = null
     if (bucket <= threshold) {
       // Scale up
       const multiplier = threshold - bucket
-      targetDifficulty = previousBlockDifficulty + BigInt(max_change) * BigInt(multiplier)
+      difficulty = previousBlockDifficulty + BigInt(maxChange) * BigInt(multiplier)
     } else {
       // Scale down
       const multiplier = Math.min(bucket - threshold, 99)
-      targetDifficulty = previousBlockDifficulty - BigInt(max_change) * BigInt(multiplier)
+      difficulty = previousBlockDifficulty - BigInt(maxChange) * BigInt(multiplier)
     }
 
-    return BigIntUtils.max(targetDifficulty, Target.minDifficulty())
+    return BigIntUtils.max(difficulty, Target.minDifficulty())
   }
 
   /**
