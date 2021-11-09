@@ -65,76 +65,73 @@ describe('Target', () => {
 })
 
 describe('Calculate target', () => {
-  /**
-   * if new block comes in at these time ranges after the previous parent block, then difficulty is adjust as:
-   * 0 - 5 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 6
-   * 5 - 15 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 5
-   * 15 - 25 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 4
-   * 25 - 35 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 3
-   * 35 - 45 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 2
-   * 45 - 55 seconds: difficulty = parentDifficulty + parentDifficulty / 2048
-   * 55 - 65 seconds: difficulty = parentDifficulty
-   * 65 - 75 seconds: difficulty = parentDifficulty - parentDifficulty / 2048
-   * 75 - 85 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 2)
-   * ...
-   */
+  it('increases difficulty if a new block is coming in before the target range time', () => {
+    const now = new Date()
+    // for any time 0 - 55 seconds after the last block, difficulty should increase by previous block's difficulty / BigInt(2048) * m
+    for (let i = 0; i < 55; i++) {
+      const time = new Date(now.getTime() + i * 1000)
 
-  const findBucket = function (targetTime: number, allowedSlippage: number, blockTime: number) {
-    let bucket = 0
-    let startingPoint =
-      blockTime > targetTime + allowedSlippage
-        ? targetTime + allowedSlippage
-        : targetTime - allowedSlippage
-    if (blockTime <= targetTime - allowedSlippage) {
-      startingPoint = targetTime - allowedSlippage
-      while (startingPoint > blockTime) {
-        startingPoint = startingPoint - allowedSlippage * 2
-        bucket++
-      }
-    } else if (blockTime >= targetTime + allowedSlippage) {
-      startingPoint = blockTime
-      while (startingPoint >= targetTime + allowedSlippage) {
-        startingPoint = startingPoint - allowedSlippage * 2
-        bucket++
-      }
+      const difficulty = BigInt(231072)
+      const target = Target.fromDifficulty(difficulty)
+
+      const bucketFromParent =
+        TARGET_BLOCK_TIME_IN_SECONDS / FREEZE_TIME_IN_SECONDS -
+        Math.round(i / FREEZE_TIME_IN_SECONDS)
+
+      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
+
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newTarget = Target.calculateTarget(time, now, target)
+
+      expect(newDifficulty).toBeGreaterThan(difficulty)
+      expect(BigInt(difficulty) + diffInDifficulty).toEqual(newDifficulty)
+
+      expect(newTarget.targetValue).toBeLessThan(target.targetValue)
     }
+  })
 
-    return bucket
-  }
+  it('keeps difficulty/target of parent block header if time differnece is between 55 and 65 seconds', () => {
+    const now = new Date()
+    for (let i = 55; i < 65; i++) {
+      const time = new Date(now.getTime() + i * 1000)
 
-  it('adjusts difficulty', () => {
+      const difficulty = BigInt(231072)
+      const target = Target.fromDifficulty(difficulty)
+
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newTarget = Target.calculateTarget(time, now, target)
+
+      const diffInDifficulty = BigInt(newDifficulty) - difficulty
+
+      expect(diffInDifficulty).toEqual(BigInt(0))
+      expect(newDifficulty).toEqual(difficulty)
+      expect(newTarget.targetValue).toEqual(target.targetValue)
+    }
+  })
+
+  it('dencreases difficulty if a new block is coming in after the target range time', () => {
     const now = new Date()
 
-    for (let i = 1; i < 100; i++) {
-      const blockTime = i
-      const parentDifficulty = BigInt(231072)
+    // for any time more than 65 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) / n
+    for (let i = 65; i < 100; i++) {
+      const time = new Date(now.getTime() + i * 1000)
 
-      const targetTime = 60
-      const allowedSlippage = 5
+      const difficulty = BigInt(231072)
+      const target = Target.fromDifficulty(difficulty)
 
-      const bucketFromTarget = findBucket(targetTime, allowedSlippage, blockTime)
+      const bucketFromParent =
+        Math.round(i / FREEZE_TIME_IN_SECONDS) -
+        TARGET_BLOCK_TIME_IN_SECONDS / FREEZE_TIME_IN_SECONDS
 
-      const diffInDifficulty = (parentDifficulty / BigInt(2048)) * BigInt(bucketFromTarget)
+      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
-      const expectedDifficulty =
-        blockTime < targetTime
-          ? parentDifficulty + diffInDifficulty
-          : parentDifficulty - diffInDifficulty
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newTarget = Target.calculateTarget(time, now, target)
 
-      const newDifficulty = Target.calculateDifficulty(
-        new Date(now.getTime() + blockTime * 1000),
-        now,
-        parentDifficulty,
-      )
+      expect(newDifficulty).toBeLessThan(difficulty)
+      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
 
-      expect(newDifficulty).toEqual(expectedDifficulty)
-
-      const newTarget = Target.calculateTarget(
-        new Date(now.getTime() + blockTime * 1000),
-        now,
-        Target.fromDifficulty(parentDifficulty),
-      )
-      expect(newTarget).toEqual(Target.fromDifficulty(expectedDifficulty))
+      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
     }
   })
 })
