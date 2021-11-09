@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { FREEZE_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consensus'
+import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -101,6 +101,16 @@ export class Target {
    * Note that difficulty == 2**256 / target and target == 2**256 / difficulty
    *
    * Returns the difficulty for a block given it timestamp for that block and its parent.
+   * We are taking in large part Ethereum's dynamic difficulty calculation,
+   * with the exeption of 'uncles' and 'difficulty bomb' as a concept
+   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
+   * original algorithm:
+   * diff = (parent_diff + (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))) + 2**((current_block_number // 100000) — 2)
+   * Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
+   * So the algorithm we're taking is:
+   * diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
+   * note that timestamps above are in seconds, and JS timestamps are in ms
+   *  max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
    * @param time the block's timestamp for which the target is calcualted for
    * @param previousBlockTimestamp the block's previous block header's timestamp
    * @param previousBlockTarget the block's previous block header's target
@@ -110,25 +120,16 @@ export class Target {
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
   ): bigint {
-    // We are taking in large part Ethereum's dynamic difficulty calculation,
-    // with the exeption of 'uncles' and 'difficulty bomb' as a concept
-    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
-    // original algorithm:
-    // diff = (parent_diff +
-    //         (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))
-    //        ) + 2**((current_block_number // 100000) — 2)
-    // Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
-    // So the algorithm we're taking is:
-    // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    // note that timestamps above are in seconds, and JS timestamps are in ms
-
-    // max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
+    // to identify
+    const threshold = 1
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
-    // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-
-    const threshold = 1
-    const bucket = this.findBucket(diffInSeconds)
+    const halfBucket = Math.floor(TARGET_BUCKET_TIME_IN_SECONDS / 2)
+    const bucket =
+      Math.floor(
+        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) /
+          TARGET_BUCKET_TIME_IN_SECONDS,
+      ) + 1
     const changeDifficulty = previousBlockDifficulty / BigInt(2048)
 
     let difficulty = null
@@ -143,20 +144,6 @@ export class Target {
     }
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
-  }
-
-  /**
-   * Returns the bucket values based difference time between the current and previous block, target block mining time and free time range
-   * @param diffInSeconds different in seconds between blocks
-   * @returns the bucket number
-   */
-  static findBucket(diffInSeconds: number): number {
-    const halfBucket = Math.floor(FREEZE_TIME_IN_SECONDS / 2)
-    return (
-      Math.floor(
-        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) / FREEZE_TIME_IN_SECONDS,
-      ) + 1
-    )
   }
 
   /**

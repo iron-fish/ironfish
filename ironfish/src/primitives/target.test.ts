@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { FREEZE_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consensus'
+import { TARGET_BUCKET_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consensus'
 import { Target } from './target'
 
 describe('Target', () => {
@@ -83,8 +83,8 @@ describe('Calculate target', () => {
       const target = Target.fromDifficulty(difficulty)
 
       const bucketFromParent =
-        TARGET_BLOCK_TIME_IN_SECONDS / FREEZE_TIME_IN_SECONDS -
-        Math.round(i / FREEZE_TIME_IN_SECONDS)
+        TARGET_BLOCK_TIME_IN_SECONDS / TARGET_BUCKET_TIME_IN_SECONDS -
+        Math.round(i / TARGET_BUCKET_TIME_IN_SECONDS)
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
@@ -133,8 +133,8 @@ describe('Calculate target', () => {
       const target = Target.fromDifficulty(difficulty)
 
       const bucketFromParent =
-        Math.round(i / FREEZE_TIME_IN_SECONDS) -
-        TARGET_BLOCK_TIME_IN_SECONDS / FREEZE_TIME_IN_SECONDS
+        Math.round(i / TARGET_BUCKET_TIME_IN_SECONDS) -
+        TARGET_BLOCK_TIME_IN_SECONDS / TARGET_BUCKET_TIME_IN_SECONDS
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
