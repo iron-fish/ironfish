@@ -85,8 +85,8 @@ describe('Transactions sendTransaction', () => {
       routeTest.chain.synced = true
 
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-        unconfirmedBalance: BigInt(11),
-        confirmedBalance: BigInt(0),
+        unconfirmed: BigInt(11),
+        confirmed: BigInt(0),
       })
 
       try {
@@ -113,8 +113,8 @@ describe('Transactions sendTransaction', () => {
       jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
 
       jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-        unconfirmedBalance: BigInt(11),
-        confirmedBalance: BigInt(11),
+        unconfirmed: BigInt(11),
+        confirmed: BigInt(11),
       })
 
       const result = await routeTest.client.sendTransaction(TEST_PARAMS)
