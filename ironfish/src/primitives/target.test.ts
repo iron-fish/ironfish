@@ -147,4 +147,26 @@ describe('Calculate target', () => {
       expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
     }
   })
+
+  it('no matter how late blocks come in, we clamp difficulty change by 99 buckets (steps) away from previous block difficulty', () => {
+    const now = new Date()
+    const difficulty = BigInt(231072)
+    const previousBlockTarget = Target.fromDifficulty(difficulty)
+    // 99 buckets away from previous block target
+    const maximallyDifferentTarget = Target.calculateTarget(
+      new Date(now.getTime() + 1065 * 1000),
+      now,
+      previousBlockTarget,
+    )
+
+    // check that we don't change difficulty by more than 99 buckets (steps)
+    // away from previous block difficulty
+    for (let i = 1065; i < 1070; i++) {
+      const time = new Date(now.getTime() + i * 1000)
+
+      const newTarget = Target.calculateTarget(time, now, previousBlockTarget)
+
+      expect(newTarget).toEqual(maximallyDifferentTarget)
+    }
+  })
 })

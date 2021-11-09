@@ -94,23 +94,22 @@ export class Target {
   }
 
   /**
-   *
    * Calculate the difficulty for the current block given the timestamp in that
    * block's header, the pervious block's timestamp and previous block's target.
    *
    * Note that difficulty == 2**256 / target and target == 2**256 / difficulty
    *
+   * Algorithm: difficulty = parentDifficulty - (parentDifficulty / 2048) * bucket
+   * Where bucket is how many steps (in TARGET_BUCKET_TIME_IN_SECONDS) the new time is away from
+   * our target bucket range, e.g. for target block time of 60 seconds (with +/-5 seconds forgiveness):
+   * 35 - 45 seconds: bucket -2
+   * 45 - 55 seconds: bucket -1
+   * 55 - 65 seconds: bucket 0
+   * 65 - 75 seconds: bucket 1
+   * 75 - 85 seconds: bucket 2
+   * .. and so on
+   *
    * Returns the difficulty for a block given it timestamp for that block and its parent.
-   * We are taking in large part Ethereum's dynamic difficulty calculation,
-   * with the exeption of 'uncles' and 'difficulty bomb' as a concept
-   * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
-   * original algorithm:
-   * diff = (parent_diff + (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))) + 2**((current_block_number // 100000) — 2)
-   * Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
-   * So the algorithm we're taking is:
-   * diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-   * note that timestamps above are in seconds, and JS timestamps are in ms
-   *  max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
    * @param time the block's timestamp for which the target is calcualted for
    * @param previousBlockTimestamp the block's previous block header's timestamp
    * @param previousBlockTarget the block's previous block header's target
@@ -120,28 +119,20 @@ export class Target {
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
   ): bigint {
-    // to identify
-    const threshold = 1
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
-    const halfBucket = Math.floor(TARGET_BUCKET_TIME_IN_SECONDS / 2)
-    const bucket =
-      Math.floor(
-        (diffInSeconds - TARGET_BLOCK_TIME_IN_SECONDS + halfBucket) /
-          TARGET_BUCKET_TIME_IN_SECONDS,
-      ) + 1
-    const changeDifficulty = previousBlockDifficulty / BigInt(2048)
+    let bucket = Math.floor(
+      (diffInSeconds -
+        TARGET_BLOCK_TIME_IN_SECONDS +
+        Math.floor(TARGET_BUCKET_TIME_IN_SECONDS / 2)) /
+        TARGET_BUCKET_TIME_IN_SECONDS,
+    )
 
-    let difficulty = null
-    if (bucket <= threshold) {
-      // Scale up
-      const multiplier = threshold - bucket
-      difficulty = previousBlockDifficulty + BigInt(changeDifficulty) * BigInt(multiplier)
-    } else {
-      // Scale down
-      const multiplier = Math.min(bucket - threshold, 99)
-      difficulty = previousBlockDifficulty - BigInt(changeDifficulty) * BigInt(multiplier)
-    }
+    // Should not change difficulty by more than 99 buckets from last block's difficulty
+    bucket = Math.min(bucket, 99)
+
+    const difficulty =
+      previousBlockDifficulty - (previousBlockDifficulty / BigInt(2048)) * BigInt(bucket)
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
   }
