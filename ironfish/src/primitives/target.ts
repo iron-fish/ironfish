@@ -6,23 +6,6 @@ import { FREEZE_TIME_IN_SECONDS, TARGET_BLOCK_TIME_IN_SECONDS } from '../consens
 import { BigIntUtils } from '../utils/bigint'
 
 /**
- * The bound divisor of the difficulty, used to update difficulty (and subsequently target).
- * We are taking in large part Ethereum's dynamic difficulty calculation,
- * with the exeption of 'uncles' and 'difficulty bomb' as a concept
- * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
- * original algorithm:
- * diff = (parent_diff +
- *         (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))
- *        ) + 2**((current_block_number // 100000) — 2)
- * Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
- * So the algorithm for target is:
- * diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
- * note that timestamps above are in seconds, and JS timestamps are in ms
- * The bound divisor of the difficulty is the '2048' part of that equation
- */
-const DIFFICULTY_ADJUSTMENT_DENOMINATOR = BigInt(2048)
-
-/**
  *  Minimum difficulty, which is equivalent to maximum target
  */
 const MIN_DIFFICULTY = BigInt(131072)
@@ -146,17 +129,17 @@ export class Target {
 
     const threshold = 1
     const bucket = this.findBucket(diffInSeconds)
-    const maxChange = previousBlockDifficulty / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
+    const changeDifficulty = previousBlockDifficulty / BigInt(2048)
 
     let difficulty = null
     if (bucket <= threshold) {
       // Scale up
       const multiplier = threshold - bucket
-      difficulty = previousBlockDifficulty + BigInt(maxChange) * BigInt(multiplier)
+      difficulty = previousBlockDifficulty + BigInt(changeDifficulty) * BigInt(multiplier)
     } else {
       // Scale down
       const multiplier = Math.min(bucket - threshold, 99)
-      difficulty = previousBlockDifficulty - BigInt(maxChange) * BigInt(multiplier)
+      difficulty = previousBlockDifficulty - BigInt(changeDifficulty) * BigInt(multiplier)
     }
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())

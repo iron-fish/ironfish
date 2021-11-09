@@ -43,7 +43,9 @@ export const MAX_SYNCED_AGE_MS = 60 * 1000
 export const MAX_REQUESTED_BLOCKS = 50
 
 /**
- * The network has a target block time of 60 seconds
+ * The average time that all blocks should be mined
+ *
+ * NOTE: This is not used in target calculation, or IRON_FISH_YEAR_IN_BLOCKS.
  */
 export const TARGET_BLOCK_TIME_IN_SECONDS = 60
 

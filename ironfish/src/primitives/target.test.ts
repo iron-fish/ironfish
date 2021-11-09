@@ -67,7 +67,15 @@ describe('Target', () => {
 describe('Calculate target', () => {
   it('increases difficulty if a new block is coming in before the target range time', () => {
     const now = new Date()
-    // for any time 0 - 55 seconds after the last block, difficulty should increase by previous block's difficulty / BigInt(2048) * bucket
+    /**
+     * if new block comes in at these time ranges after the previous parent block, then difficulty is adjust as:
+     * 0  - 5  seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 6
+     * 5  - 15 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 5
+     * 15 - 25 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 4
+     * 25 - 35 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 3
+     * 35 - 45 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 2
+     * 45 - 55 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 1
+     **/
     for (let i = 0; i < 55; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
@@ -108,10 +116,16 @@ describe('Calculate target', () => {
     }
   })
 
-  it('dencreases difficulty if a new block is coming in after the target range time', () => {
+  it('decreases difficulty if a new block is coming in after the target range time', () => {
     const now = new Date()
 
-    // for any time more than 65 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) / bucket
+    /**
+     * if new block comes after target block mining time + half bucket time, then difficulty is adjust as:
+     * 65 - 75 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 1)
+     * 75 - 85 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 2)
+     * 85 - 95 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 3)
+     * ...
+     */
     for (let i = 65; i < 100; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
