@@ -772,10 +772,8 @@ export class PeerManager {
    * Send a message to all connected peers.
    */
   broadcast(message: LooseMessage): void {
-    for (const peer of this.identifiedPeers.values()) {
-      if (peer.state.type === 'CONNECTED') {
-        peer.send(message)
-      }
+    for (const peer of this.getConnectedPeers()) {
+      peer.send(message)
     }
   }
 
@@ -827,7 +825,7 @@ export class PeerManager {
       type: InternalMessageType.peerListRequest,
     }
 
-    for (const peer of this.identifiedPeers.values()) {
+    for (const peer of this.getConnectedPeers()) {
       if (peer.version !== null && peer.version >= MIN_VERSION_FOR_PEER_LIST_REQUESTS) {
         peer.send(peerListRequest)
         continue
