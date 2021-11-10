@@ -11,7 +11,6 @@ import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
-import { isValidExpirationSequence } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
@@ -178,10 +177,10 @@ export class Verifier {
     transaction: Transaction,
     options?: VerifyTransactionOptions,
   ): Promise<VerificationResult> {
-    if (!isValidExpirationSequence(this.chain.head, transaction.expirationSequence())) {
+    if (!this.isExpiredSequence(transaction.expirationSequence())) {
       return {
         valid: false,
-        reason: VerificationResultReason.INVALID_TRANSACTION_EXPIRATION_SEQUENCE,
+        reason: VerificationResultReason.TRANSACTION_EXPIRED,
       }
     }
 
@@ -190,6 +189,10 @@ export class Verifier {
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
+  }
+
+  isExpiredSequence(expirationSequence: number): boolean {
+    return expirationSequence === 0 || expirationSequence > this.chain.head.sequence
   }
 
   /**
@@ -401,7 +404,6 @@ export enum VerificationResultReason {
   ERROR = 'error',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'hash does not meet target',
-  INVALID_TRANSACTION_EXPIRATION_SEQUENCE = 'Transaction expiration sequence is invalid',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
   INVALID_PREV_HASH = 'invalid previous hash',
   INVALID_SPEND = 'Invalid spend',
@@ -414,6 +416,7 @@ export enum VerificationResultReason {
   ORPHAN = 'Block is an orphan',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
+  TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'verify_transaction',
 }
 

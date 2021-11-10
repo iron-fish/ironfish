@@ -5,7 +5,7 @@
 import { Account } from '../account'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
-import { Block, BlockHeader } from '../primitives'
+import { Block } from '../primitives'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
 
 export function getBlockRange(
@@ -38,13 +38,6 @@ export function getBlockRange(
 
 export function isBlockMine(block: Block, account: Account): boolean {
   return isTransactionMine(block.minersFee, account)
-}
-
-export function isValidExpirationSequence(
-  head: BlockHeader,
-  expirationSequence: number,
-): boolean {
-  return expirationSequence === 0 || expirationSequence > head.sequence
 }
 
 export const BlockchainUtils = { isBlockMine, getBlockRange }

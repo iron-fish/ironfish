@@ -925,7 +925,7 @@
       ]
     }
   ],
-  "Verifier verifyTransaction with an invalid expiration sequence returns INVALID_TRANSACTION_EXPIRATION_SEQUENCE": [
+  "Verifier verifyTransaction with an invalid expiration sequence returns TRANSACTION_SEQUENCE_EXPIRED": [
     {
       "name": "test",
       "spendingKey": "e782e5e606362c36ebd0f4c7e6f00636d3554ec1c76438eaed0f84ec9f75f487",

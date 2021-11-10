@@ -418,12 +418,12 @@ describe('Verifier', () => {
     const nodeTest = createNodeTest()
 
     describe('with an invalid expiration sequence', () => {
-      it('returns INVALID_TRANSACTION_EXPIRATION_SEQUENCE', async () => {
+      it('returns TRANSACTION_EXPIRED', async () => {
         const { transaction } = await useBlockWithTx(nodeTest.node)
         jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
         expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
           valid: false,
-          reason: VerificationResultReason.INVALID_TRANSACTION_EXPIRATION_SEQUENCE,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
         })
       }, 60000)
     })
