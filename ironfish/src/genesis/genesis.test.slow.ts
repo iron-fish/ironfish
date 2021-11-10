@@ -92,8 +92,8 @@ describe('Create genesis block', () => {
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Add the block to the chain
@@ -105,8 +105,8 @@ describe('Create genesis block', () => {
 
     // Check that the balance is what's expected
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: amountBigint,
-      unconfirmedBalance: amountBigint,
+      confirmed: amountBigint,
+      unconfirmed: amountBigint,
     })
 
     // Ensure we can construct blocks after that block
@@ -143,8 +143,8 @@ describe('Create genesis block', () => {
     await newNode.accounts.scanTransactions()
 
     expect(newNode.accounts.getBalance(account)).toEqual({
-      confirmedBalance: amountBigint,
-      unconfirmedBalance: amountBigint,
+      confirmed: amountBigint,
+      unconfirmed: amountBigint,
     })
 
     // Ensure we can construct blocks after that block

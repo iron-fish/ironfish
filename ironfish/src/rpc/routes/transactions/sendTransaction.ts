@@ -68,7 +68,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const balance = node.accounts.getBalance(account)
     const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
 
-    if (balance.confirmedBalance < sum && balance.unconfirmedBalance < sum) {
+    if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
         `Your balance is too low. Add funds to your account first`,
         undefined,
@@ -76,7 +76,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    if (balance.confirmedBalance < sum) {
+    if (balance.confirmed < sum) {
       throw new ValidationError(
         `Please wait a few seconds for your balance to update and try again`,
         undefined,

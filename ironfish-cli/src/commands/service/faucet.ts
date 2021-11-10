@@ -126,11 +126,11 @@ export default class Faucet extends IronfishCommand {
 
     const response = await client.getAccountBalance({ account })
 
-    if (BigInt(response.content.confirmedBalance) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
+    if (BigInt(response.content.confirmed) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
       if (!this.warnedFund) {
         this.log(
           `Faucet has insufficient funds. Needs ${FAUCET_AMOUNT + FAUCET_FEE} but has ${
-            response.content.confirmedBalance
+            response.content.confirmed
           }. Waiting on more funds.`,
         )
 
