@@ -11,8 +11,10 @@ import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
+  useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
+  useMinersTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -419,7 +421,8 @@ describe('Verifier', () => {
 
     describe('with an invalid expiration sequence', () => {
       it('returns TRANSACTION_EXPIRED', async () => {
-        const { transaction } = await useBlockWithTx(nodeTest.node)
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
         jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
         expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
           valid: false,
@@ -430,7 +433,8 @@ describe('Verifier', () => {
 
     describe('when the worker pool returns false', () => {
       it('returns ERROR', async () => {
-        const { transaction } = await useBlockWithTx(nodeTest.node)
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
@@ -443,7 +447,8 @@ describe('Verifier', () => {
 
     describe('when the worker pool returns true', () => {
       it('returns valid', async () => {
-        const { transaction } = await useBlockWithTx(nodeTest.node)
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(true))
