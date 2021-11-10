@@ -201,6 +201,7 @@ ${displayIronAmountWithCurrency(
         memo: memo,
         toPublicKey: to,
         transactionFee: ironToOre(fee).toString(),
+        expirationSequence,
       })
 
       stopProgressBar()
