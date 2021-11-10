@@ -14,6 +14,7 @@ export type CreateTransactionRequest = {
   type: 'createTransaction'
   spendKey: string
   transactionFee: bigint
+  expirationSequence: number
   spends: {
     note: Buffer
     treeSize: number
@@ -36,8 +37,10 @@ export function handleCreateTransaction({
   spendKey,
   spends,
   receives,
+  expirationSequence,
 }: CreateTransactionRequest): CreateTransactionResponse {
   const transaction = new WasmTransaction()
+  transaction.setExpirationSequence(expirationSequence)
 
   for (const spend of spends) {
     const note = WasmNote.deserialize(spend.note)

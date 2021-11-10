@@ -588,10 +588,18 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
+    defaultTransactionExpirationSequenceDelta: number,
+    expirationSequence?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
+    }
+
+    expirationSequence =
+      expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
+    if (expirationSequence !== 0 && expirationSequence <= heaviestHead.sequence) {
+      throw new ValidationError('Invalid expiration sequence for transaction')
     }
 
     const transaction = await this.createTransaction(
@@ -600,6 +608,7 @@ export class Accounts {
       transactionFee,
       memo,
       receiverPublicAddress,
+      expirationSequence,
     )
 
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
@@ -615,6 +624,7 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
+    expirationSequence: number,
   ): Promise<Transaction> {
     this.assertHasAccount(sender)
 
@@ -703,6 +713,7 @@ export class Accounts {
           memo,
         },
       ],
+      expirationSequence,
     )
   }
 

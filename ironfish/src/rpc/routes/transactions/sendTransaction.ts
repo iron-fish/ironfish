@@ -11,6 +11,7 @@ export type SendTransactionRequest = {
   amount: string
   transactionFee: string
   memo: string
+  expirationSequence?: number | null
 }
 
 export type SendTransactionResponse = {
@@ -27,6 +28,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
     amount: yup.string().defined(),
     transactionFee: yup.string().defined(),
     memo: yup.string().defined(),
+    expirationSequence: yup.number().nullable().optional(),
   })
   .defined()
 
@@ -91,6 +93,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       BigInt(transaction.transactionFee),
       transaction.memo,
       transaction.toPublicKey,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      transaction.expirationSequence,
     )
 
     request.end({

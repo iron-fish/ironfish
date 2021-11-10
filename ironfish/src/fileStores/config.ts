@@ -114,6 +114,12 @@ export type ConfigOptions = {
    * if exists then will use it, otherwise will generate new.
    */
   generateNewIdentity: boolean
+
+  /**
+   * The default delta of block sequence for which to expire transactions from the
+   * mempool.
+   */
+  defaultTransactionExpirationSequenceDelta: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -145,6 +151,7 @@ export class Config extends KeyStore<ConfigOptions> {
       broadcastWorkers: true,
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
+      defaultTransactionExpirationSequenceDelta: 450,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
