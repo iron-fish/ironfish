@@ -598,7 +598,7 @@ export class Accounts {
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
-    if (!this.chain.verifier.isExpiredSequence(expirationSequence)) {
+    if (this.chain.verifier.isExpiredSequence(expirationSequence)) {
       throw new ValidationError('Invalid expiration sequence for transaction')
     }
 

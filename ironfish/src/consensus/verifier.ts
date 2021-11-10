@@ -177,7 +177,7 @@ export class Verifier {
     transaction: Transaction,
     options?: VerifyTransactionOptions,
   ): Promise<VerificationResult> {
-    if (!this.isExpiredSequence(transaction.expirationSequence())) {
+    if (this.isExpiredSequence(transaction.expirationSequence())) {
       return {
         valid: false,
         reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -192,7 +192,7 @@ export class Verifier {
   }
 
   isExpiredSequence(expirationSequence: number): boolean {
-    return expirationSequence === 0 || expirationSequence > this.chain.head.sequence
+    return expirationSequence !== 0 && expirationSequence <= this.chain.head.sequence
   }
 
   /**
