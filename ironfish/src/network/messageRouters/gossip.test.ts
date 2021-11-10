@@ -10,8 +10,9 @@ import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
+import { AddressManager } from '../peers/addressManager'
 import { PeerManager } from '../peers/peerManager'
-import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
+import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
 import { GossipRouter } from './gossip'
 
 jest.useFakeTimers()
@@ -19,7 +20,7 @@ jest.useFakeTimers()
 describe('Gossip Router', () => {
   it('Broadcasts a message on gossip', () => {
     mocked(uuid).mockReturnValue('test_broadcast')
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const broadcastMock = jest.spyOn(pm, 'broadcast').mockImplementation(() => {})
     const router = new GossipRouter(pm)
     router.register('test', jest.fn())
@@ -31,7 +32,7 @@ describe('Gossip Router', () => {
   })
 
   it('Handles an incoming gossip message', async () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const broadcastMock = jest.spyOn(pm, 'broadcast').mockImplementation(() => {})
     const { peer: peer1 } = getConnectedPeer(pm)
     const { peer: peer2 } = getConnectedPeer(pm)
@@ -64,7 +65,7 @@ describe('Gossip Router', () => {
   })
 
   it('Does not process a seen message twice', async () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const broadcastMock = jest.spyOn(pm, 'broadcast').mockImplementation(() => {})
     const { peer: peer1 } = getConnectedPeer(pm)
     const { peer: peer2 } = getConnectedPeer(pm)
@@ -94,7 +95,7 @@ describe('Gossip Router', () => {
   })
 
   it('Does not send messages to peers of peer that sent it', async () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const broadcastMock = jest.spyOn(pm, 'broadcast').mockImplementation(() => {})
     const { peer: peer1 } = getConnectedPeer(pm)
     const { peer: peer2 } = getConnectedPeer(pm)
@@ -124,6 +125,7 @@ describe('Gossip Router', () => {
       node: mockNode(),
       chain: mockChain(),
       strategy: mockStrategy(),
+      addressManager: new AddressManager(mockHostsStore()),
     })
 
     const gossipMock = jest.fn(async () => {})
@@ -134,7 +136,7 @@ describe('Gossip Router', () => {
       () => Promise.resolve({ name: '' }),
       () => true,
     )
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const { peer } = getConnectedPeer(pm)
     const message = { type: 'hello', nonce: 'test_handler1', payload: { test: 'payload' } }
     await network['handleMessage'](peer, { peerIdentity: peer.getIdentityOrThrow(), message })
@@ -149,6 +151,7 @@ describe('Gossip Router', () => {
       node: mockNode(),
       chain: mockChain(),
       strategy: mockStrategy(),
+      addressManager: new AddressManager(mockHostsStore()),
     })
 
     const gossipMock = jest.fn(async () => {})
@@ -163,7 +166,7 @@ describe('Gossip Router', () => {
     const logFn = jest.fn()
     network['logger'].mock(() => logFn)
 
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const { peer } = getConnectedPeer(pm)
 
     // This is the wrong type so it tests that it fails

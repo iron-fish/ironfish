@@ -34,6 +34,7 @@ import {
 } from '../messages'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
+import { AddressManager } from './addressManager'
 import {
   Connection,
   ConnectionDirection,
@@ -82,6 +83,8 @@ export class PeerManager {
    * List of all peers, including both unidentified and identified.
    */
   peers: Array<Peer> = []
+
+  addressManager: AddressManager
 
   /**
    * setInterval handle for distributePeerList, which sends out peer lists and
@@ -144,6 +147,7 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
+    addressManager: AddressManager,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
@@ -151,6 +155,7 @@ export class PeerManager {
     logPeerMessages = false,
   ) {
     this.logger = logger.withTag('peermanager')
+    this.addressManager = addressManager
     this.metrics = metrics || new MetricsMonitor(this.logger)
     this.localPeer = localPeer
     this.maxPeers = maxPeers
