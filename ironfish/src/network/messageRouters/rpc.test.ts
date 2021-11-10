@@ -4,9 +4,10 @@
 
 jest.mock('./rpcId')
 import { mocked } from 'ts-jest/utils'
+import { AddressManager } from '../peers/addressManager'
 import { NetworkError } from '../peers/connections/errors'
 import { PeerManager } from '../peers/peerManager'
-import { getConnectedPeer, mockLocalPeer } from '../testUtilities'
+import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
 import { CannotSatisfyRequestError, Direction, RequestTimeoutError, RpcRouter } from './rpc'
 import { nextRpcId, rpcTimeoutMillis } from './rpcId'
 
@@ -22,7 +23,7 @@ describe('RPC Router', () => {
   })
 
   it('Registers an RPC Handler', () => {
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const router = new RpcRouter(peers)
     const handler = jest.fn()
     router.register('test', handler)
@@ -31,7 +32,7 @@ describe('RPC Router', () => {
   })
 
   it('should time out RPC requests', async () => {
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const { peer } = getConnectedPeer(peers)
@@ -57,7 +58,7 @@ describe('RPC Router', () => {
   })
 
   it('should reject requests when connection disconnects', async () => {
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const { peer, connection } = getConnectedPeer(peers)
@@ -88,7 +89,7 @@ describe('RPC Router', () => {
   it('should increment and decrement pendingRPC', async () => {
     mocked(nextRpcId).mockReturnValue(91)
 
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     jest.spyOn(peers, 'sendTo')
     const { peer } = getConnectedPeer(peers, 'peer')
 
@@ -114,7 +115,7 @@ describe('RPC Router', () => {
     mocked(nextRpcId).mockReturnValue(91)
     mocked(rpcTimeoutMillis).mockReturnValue(1000)
 
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
 
     const router = new RpcRouter(peers)
     router.register('test', jest.fn())
@@ -145,7 +146,7 @@ describe('RPC Router', () => {
   it('Catches a cannotSatisfy error and returns the appropriate type', async () => {
     mocked(nextRpcId).mockReturnValue(18)
 
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const sendToMock = jest.fn()
     peers.sendTo = sendToMock
 
