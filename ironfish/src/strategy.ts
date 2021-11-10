@@ -76,10 +76,14 @@ export class Strategy {
 
     const annualReward = (GENESIS_SUPPLY_IN_IRON / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
 
-    reward = this.convertIronToOre(annualReward / IRON_FISH_YEAR_IN_BLOCKS)
+    reward = this.convertIronToOre(this.mRound(annualReward / IRON_FISH_YEAR_IN_BLOCKS, 0.125))
     this.miningRewardCachedByYear.set(yearsAfterLaunch, reward)
 
     return reward
+  }
+
+  mRound(num: number, threshold: number): number {
+    return threshold * Math.round(num / threshold)
   }
 
   convertIronToOre(iron: number): number {

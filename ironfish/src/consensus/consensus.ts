@@ -25,13 +25,6 @@ export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
  */
 export const GENESIS_SUPPLY_IN_IRON = 42000000
 
-/*
- * A ratio of blocks per year that represents an approximation of how many blocks are considered a "year".
- * It's generally an approximation based on 15 second block times. It's used in calculating how much a miner
- * should get in rewards. Approximately (365 * 24  * 60 * 60) / TARGET_BLOCK_TIME_MS
- */
-export const IRON_FISH_YEAR_IN_BLOCKS = 2100000
-
 /**
  * The oldest the tip should be before we consider the chain synced
  */
@@ -53,3 +46,11 @@ export const TARGET_BLOCK_TIME_IN_SECONDS = 60
  * The time range when difficulty and target not change
  */
 export const TARGET_BUCKET_TIME_IN_SECONDS = 10
+
+/*
+ * A ratio of blocks per year that represents an approximation of how many blocks are considered a "year".
+ * It's generally an approximation based on TARGET_BLOCK_TIME_IN_SECONDS second block times.
+ * It's used in calculating how much a miner should get in rewards.
+ * Approximately (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
+ */
+export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
