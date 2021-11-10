@@ -258,38 +258,10 @@ describe('Accounts', () => {
   }, 600000)
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
-    const chain = nodeTest.chain
     node.accounts['workerPool'].start()
 
     const account = await node.accounts.createAccount('test', true)
-
-    // Initial balance should be 0
-    expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
-    })
-
-    // Balance after adding the genesis block should be 0
-    await node.accounts.updateHead()
-    expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
-    })
-
-    // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
-    const addResult = await chain.addBlock(newBlock)
-    expect(addResult.isAdded).toBeTruthy()
-
-    // Account should now have a balance of 500000000 after adding the miner's fee
-    await node.accounts.updateHead()
-    expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
-    })
 
     // Spend the balance with an invalid expiration
     await expect(
