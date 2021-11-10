@@ -14,7 +14,12 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
-import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import {
+  isValidExpirationSequence,
+  PromiseResolve,
+  PromiseUtils,
+  SetTimeoutToken,
+} from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 import { validateAccount } from './validator'
@@ -598,7 +603,7 @@ export class Accounts {
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
-    if (expirationSequence !== 0 && expirationSequence <= heaviestHead.sequence) {
+    if (!isValidExpirationSequence(heaviestHead, expirationSequence)) {
       throw new ValidationError('Invalid expiration sequence for transaction')
     }
 

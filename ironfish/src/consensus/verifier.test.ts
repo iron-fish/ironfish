@@ -413,4 +413,44 @@ describe('Verifier', () => {
       )
     })
   })
+
+  describe('verifyTransaction', () => {
+    const nodeTest = createNodeTest()
+
+    describe('with an invalid expiration sequence', () => {
+      it('returns INVALID_TRANSACTION_EXPIRATION_SEQUENCE', async () => {
+        const { transaction } = await useBlockWithTx(nodeTest.node)
+        jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
+        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+          valid: false,
+          reason: VerificationResultReason.INVALID_TRANSACTION_EXPIRATION_SEQUENCE,
+        })
+      }, 60000)
+    })
+
+    describe('when the worker pool returns false', () => {
+      it('returns ERROR', async () => {
+        const { transaction } = await useBlockWithTx(nodeTest.node)
+        jest
+          .spyOn(transaction['workerPool'], 'verify')
+          .mockImplementationOnce(() => Promise.resolve(false))
+        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+          valid: false,
+          reason: VerificationResultReason.ERROR,
+        })
+      }, 60000)
+    })
+
+    describe('when the worker pool returns true', () => {
+      it('returns valid', async () => {
+        const { transaction } = await useBlockWithTx(nodeTest.node)
+        jest
+          .spyOn(transaction['workerPool'], 'verify')
+          .mockImplementationOnce(() => Promise.resolve(true))
+        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+          valid: true,
+        })
+      }, 60000)
+    })
+  })
 })
