@@ -924,5 +924,47 @@
         }
       ]
     }
+  ],
+  "Verifier verifyTransaction with an invalid expiration sequence returns TRANSACTION_EXPIRED": [
+    {
+      "name": "test",
+      "spendingKey": "32535d3514f0517d318ceb5b595eaf9136d7f6150de7643d9cf07530fe3780f5",
+      "incomingViewKey": "1e1f316eb53a3b3a71889ba8234677435cebf475d7c10f714cc57a9dbcc6a305",
+      "outgoingViewKey": "8fdd12491740f32141898fb759e3ed40666b780ea8c9de6b31be6238e45ce9b5",
+      "publicAddress": "b31f0b87a0e68580a30b1cedf42ab46a30278d6ca5587a2067de5accf142872c2b981d3c2fcf83aab00058",
+      "rescan": null
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAACbMuL/////AAAAAIg+bK0SXRRhg/xWhBy1PS0UMutA/PUuzFnOB0+vrjkhxgTiCqRYBRF+eNscfCSHvaLhqLt+W6cOxUmGF4iUtOA2LAzIfo/VNqpYDSezAEG7WEwfHpHZxjjKXnsbgyE6wg3O+a3kq6gTEx4IZ44yb1vmhPDsplR/nLpjQe6IUk+SkM+3LdgLbFVAwWpoGZtVWLia3nQWqvCl6tjQtKWbXOOokO1z+WECH7oH/tsg7A+BxJ25jB5OzAkhy4v5kg9ITaEpo70rUyGFi9I+xq4NCvoveGXlgYVE7z7neuTRqMtwj6kTnM9FQTXAriqWzfWQ9GR8seeIZVcykDFwJoV5U22Jw16++lxO683lDfNmNyvbYjiGlRSuxn0TTqdQVLY7KSF8vvNNf2/dm656jOhim2QmhDSlyedsu3yXYlqLRKprWR5SmmiDoDk7LsmBNB7uqn4fNGP7fxWLJCL9XQdYFOcjxCggPDAG1r212docL0+9KYRVTuGRgym6yAsUq/mhBlDBNkJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwgNWvNOSYhQI52gT0L8jI/T1p3PPOz5DZewUxbv8BdwsT9MpLT+/1hQh4VJa+uGB0KDBQEwhX/UJxaDWDlDyiAQ=="
+    }
+  ],
+  "Verifier verifyTransaction when the worker pool returns false returns ERROR": [
+    {
+      "name": "test",
+      "spendingKey": "bf5b392c8b2be2b5b559d7969fe137d242d4adca70690354ab0dc6065860fa9a",
+      "incomingViewKey": "3a3dd3f261f405a8dd8ed4aa2baa07995f6877fe0999425d02e7a86ba8866902",
+      "outgoingViewKey": "e340322352f4532333abcbb43e53639c43538027b30685a37e42ec971edf5ade",
+      "publicAddress": "20d62e299d18d9fbcfe5b196fa106f51252e6ec5d84a42c14fb116eec0979506011b3844ba70bbe65eacd7",
+      "rescan": null
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAACbMuL/////AAAAALkZiJNG3oaF07OveZZbyrzPtPNX4fKbgciabr0Y2/6z+QaZenMYWgjRPIMJyK2LdLBT8ZGOeTWGCz/EamYyTHSNB2SncFyFx8ueEO7ppallPk58/U5OBkcWMdHV/3kCbACKtqGxZBVIhLDB13oswjXs256++1mGyf2eD33k8FJtoP3dLNMerKM/l423ckiqIaSELZzWeHEkvWvcrqDQ6wYT9dbLcadYQIG5vcWOBinaYJIgcxquR6efkTPKqNgw65vcjkS3u2dPWmgkFvVqVyHLHugsXMOVNc50QRIywCso7/zVdbpKlVSHkQaVCzcFFZJhf14L/i5i1P5nmTYWnjOqvdZjXW7TsvZjjAwfQQZAiQ3u0cUXkNPA3UDDTmEO5O1N9CdzKtMWOQxqqU1c4FScOZ8uwKIGU1RqnBrx7nHjWv5D6vTr9uI7ujBkM+56zRIGyAuV5IlOpefAT7qV09+yio6e1KOTvtdGmcwQeYQsSXhDhHUSJnTGZf5ClL47x3VhXkJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw7dbAcpnAPvYfDEgO0t1Sg5XmsP3GBJYbS02S+hbEGw4bRt6s5JDrAes/z7opPpz9sPt8rNjVxO7fUF9UvlFTCA=="
+    }
+  ],
+  "Verifier verifyTransaction when the worker pool returns true returns valid": [
+    {
+      "name": "test",
+      "spendingKey": "41faccf7144a449cd9fe92f52a983d912457551cabfdbea9a9bb2b828ee092fd",
+      "incomingViewKey": "fd8b4fa32b760a48e1e0b0e9803645aaf17b8b6f6a1cc2d027898eace1a81b00",
+      "outgoingViewKey": "b16399ecd5aa11b024fb7a6180181c642a648181ff54c95d979d67c3c387606b",
+      "publicAddress": "de4b6e39a2077efcf841df0c39412a170aad2ec51cbff75b57c3a79e5bfdcfdb11f8742b254bd9ccbba6a9",
+      "rescan": null
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAACbMuL/////AAAAALLdee+qxiv18+PbWkF8jTN49TYAQ8fVpyzEgfqk3QAMndczIHAZ5WmpxYrxkUGuJbActHyffiwXLjFmFKMjMM/cFecUp378zLH1gstxRZOy9MPa4Wa0q4iWHeinePA9UBeHiPSz2+NLUemMQMAshO+Haxm0AHsDmRoInFY2j+1onyiQiTabtEBe4IC7EJ/PUIPNXd6hom5kqolcbsmrRyzZKecom4oHK0VygADIZ6IKc18tj70HOrYfQShChJ1WzM23TD458mFesCAMPsS9HZdhtwqDau5h0ewDKEGjmJc2fBEDkl2asTwsLSgUZOstzm4jStJn6tWwVjDRG3fLIFh5Uw0WtbfvBIxwBiS1ULeAJCieArLO7Jhl4aL77GTuWkkDxf8RWHNP8wOQs8IhyXo/6idVKWPCq7R5HFu+gz8sxExIfEph/Mwf8Q/ntrevrn/2H3Ak9o2KfGxtung3J7KWUkplQlffBEDQvlVdIXsq2Ml5ADU5bwLsSix1HMk6ycY8oUJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwmYIrGcehxeqxxY4hd8QNJkfE5cY8G+bkoW7lAv/Pswjca463HZ5OKT8qRegvOfkqxsRr1Y1/Sp+P4GiJ0tbzDQ=="
+    }
   ]
 }

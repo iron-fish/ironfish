@@ -177,11 +177,22 @@ export class Verifier {
     transaction: Transaction,
     options?: VerifyTransactionOptions,
   ): Promise<VerificationResult> {
+    if (this.isExpiredSequence(transaction.expirationSequence())) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.TRANSACTION_EXPIRED,
+      }
+    }
+
     try {
       return transaction.verify(options)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
+  }
+
+  isExpiredSequence(expirationSequence: number): boolean {
+    return expirationSequence !== 0 && expirationSequence <= this.chain.head.sequence
   }
 
   /**
@@ -388,24 +399,25 @@ export class Verifier {
 
 export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
+  DOUBLE_SPEND = 'Double spend',
+  DUPLICATE = 'duplicate',
   ERROR = 'error',
+  GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'hash does not meet target',
-  VERIFY_TRANSACTION = 'verify_transaction',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
+  INVALID_PREV_HASH = 'invalid previous hash',
+  INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
-  INVALID_PREV_HASH = 'invalid previous hash',
   NOTE_COMMITMENT = 'note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NULLIFIER_COMMITMENT = 'nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
+  ORPHAN = 'Block is an orphan',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'timestamp is in future',
-  GRAFFITI = 'Graffiti field is not 32 bytes in length',
-  DOUBLE_SPEND = 'Double spend',
-  INVALID_SPEND = 'Invalid spend',
-  ORPHAN = 'Block is an orphan',
-  DUPLICATE = 'duplicate',
+  TRANSACTION_EXPIRED = 'Transaction expired',
+  VERIFY_TRANSACTION = 'verify_transaction',
 }
 
 /**
