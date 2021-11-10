@@ -5,11 +5,9 @@ import { expect as expectCli, test } from '@oclif/test'
 import { displayIronAmountWithCurrency, GetBalanceResponse, oreToIron } from 'ironfish'
 
 describe('accounts:balance', () => {
-  const confirmedBalance = '5'
-  const unconfirmedBalance = '10'
   const responseContent: GetBalanceResponse = {
-    confirmedBalance,
-    unconfirmedBalance,
+    confirmed: '5',
+    unconfirmed: '10',
   }
 
   beforeAll(() => {
@@ -45,11 +43,11 @@ describe('accounts:balance', () => {
       .exit(0)
       .it('logs the account balance and available spending balance', (ctx) => {
         expectCli(ctx.stdout).include(
-          displayIronAmountWithCurrency(oreToIron(Number(unconfirmedBalance)), true),
+          displayIronAmountWithCurrency(oreToIron(Number(responseContent.unconfirmed)), true),
         )
 
         expectCli(ctx.stdout).include(
-          displayIronAmountWithCurrency(oreToIron(Number(confirmedBalance)), true),
+          displayIronAmountWithCurrency(oreToIron(Number(responseContent.confirmed)), true),
         )
       })
   })

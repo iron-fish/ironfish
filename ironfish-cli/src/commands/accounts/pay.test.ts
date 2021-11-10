@@ -16,7 +16,7 @@ describe('accounts:pay command', () => {
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => {
       const client = {
         connect: jest.fn(),
-        getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmedBalance: 1000 } }),
+        getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmed: 1000 } }),
         sendTransaction,
       }
 
