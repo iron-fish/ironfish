@@ -51,6 +51,11 @@ export class Pay extends IronfishCommand {
       default: false,
       description: 'confirm without asking',
     }),
+    expirationSequence: flags.integer({
+      char: 'e',
+      description:
+        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+    }),
   }
 
   async start(): Promise<void> {
@@ -59,6 +64,7 @@ export class Pay extends IronfishCommand {
     let fee = flags.fee as unknown as number
     let to = flags.to
     let from = flags.account
+    const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc()
@@ -137,6 +143,11 @@ export class Pay extends IronfishCommand {
       this.exit(0)
     }
 
+    if (expirationSequence !== undefined && expirationSequence < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
+
     if (!flags.confirm) {
       this.log(`
 You are about to send:
@@ -190,6 +201,7 @@ ${displayIronAmountWithCurrency(
         memo: memo,
         toPublicKey: to,
         transactionFee: ironToOre(fee).toString(),
+        expirationSequence,
       })
 
       stopProgressBar()

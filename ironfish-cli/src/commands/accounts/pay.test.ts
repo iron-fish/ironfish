@@ -139,6 +139,26 @@ describe('accounts:pay command', () => {
       expect(sendTransaction).toBeCalledTimes(0)
     })
 
+  describe('with an invalid expiration sequence', () => {
+    test
+      .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+      .stdout()
+      .command([
+        'accounts:pay',
+        `-a ${amount}`,
+        `-t ${to}`,
+        `-f ${from}`,
+        `-o ${fee}`,
+        '-e',
+        '-1',
+      ])
+      .exit(1)
+      .it('logs an invalid error message', (ctx) => {
+        expect(sendTransaction).not.toHaveBeenCalled()
+        expectCli(ctx.stdout).include('Expiration sequence must be non-negative')
+      })
+  })
+
   describe('When the API throws an error', () => {
     beforeEach(() => {
       sendTransaction = jest.fn().mockRejectedValue('an error')
