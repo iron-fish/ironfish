@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
 import { Target } from './target'
 
 describe('Target', () => {
@@ -64,54 +65,28 @@ describe('Target', () => {
 })
 
 describe('Calculate target', () => {
-  it('can increase target (which decreases difficulty) if its taking too long to mine a block (20+ seconds since last block)', () => {
+  it('increases difficulty if a new block is coming in before the target range time', () => {
     const now = new Date()
-    // for any time 20-29 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048)
-    for (let i = 1; i < 10; i++) {
-      const time = new Date(now.getTime() + 20000 + i * 1000)
-
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
-
-      const diffInDifficulty = difficulty / BigInt(2048)
-
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
-      expect(newDifficulty).toBeLessThan(difficulty)
-      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
-
-      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
-    }
-
-    // for any time 30-39 seconds after the last block, difficulty should decrease by previous block's difficulty / BigInt(2048) * 2
-    for (let i = 1; i < 10; i++) {
-      const time = new Date(now.getTime() + 30000 + i * 1000)
-
-      const difficulty = BigInt(231072)
-      const target = Target.fromDifficulty(difficulty)
-
-      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(2)
-
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
-      expect(newDifficulty).toBeLessThan(difficulty)
-      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
-
-      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
-    }
-  })
-
-  it('can decrease target (which increases difficulty) if a block is trying to come in too early (1-10 seconds)', () => {
-    const now = new Date()
-    for (let i = 1; i < 10; i++) {
+    /**
+     * if new block comes in at these time ranges after the previous parent block, then difficulty is adjust as:
+     * 0  - 5  seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 6
+     * 5  - 15 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 5
+     * 15 - 25 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 4
+     * 25 - 35 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 3
+     * 35 - 45 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 2
+     * 45 - 55 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 1
+     **/
+    for (let i = 0; i < 55; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
 
-      const diffInDifficulty = difficulty / BigInt(2048)
+      const bucketFromParent =
+        TARGET_BLOCK_TIME_IN_SECONDS / TARGET_BUCKET_TIME_IN_SECONDS -
+        Math.round(i / TARGET_BUCKET_TIME_IN_SECONDS)
+
+      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
       const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
       const newTarget = Target.calculateTarget(time, now, target)
@@ -123,9 +98,9 @@ describe('Calculate target', () => {
     }
   })
 
-  it('keeps difficulty/target of parent block header if time differnece is between 10 and 20 seconds', () => {
+  it('keeps difficulty/target of parent block header if time differnece is between 55 and 65 seconds', () => {
     const now = new Date()
-    for (let i = 10; i < 20; i++) {
+    for (let i = 55; i < 65; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
       const difficulty = BigInt(231072)
@@ -137,8 +112,61 @@ describe('Calculate target', () => {
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
 
       expect(diffInDifficulty).toEqual(BigInt(0))
-      expect(newDifficulty).toEqual(difficulty)
       expect(newTarget.targetValue).toEqual(target.targetValue)
+    }
+  })
+
+  it('decreases difficulty if a new block is coming in after the target range time', () => {
+    const now = new Date()
+
+    /**
+     * if new block comes after target block mining time + half bucket time, then difficulty is adjust as:
+     * 65 - 75 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 1)
+     * 75 - 85 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 2)
+     * 85 - 95 seconds: difficulty = parentDifficulty - (parentDifficulty / 2048 * 3)
+     * ...
+     */
+    for (let i = 65; i < 100; i++) {
+      const time = new Date(now.getTime() + i * 1000)
+
+      const difficulty = BigInt(231072)
+      const target = Target.fromDifficulty(difficulty)
+
+      const bucketFromParent =
+        Math.round(i / TARGET_BUCKET_TIME_IN_SECONDS) -
+        TARGET_BLOCK_TIME_IN_SECONDS / TARGET_BUCKET_TIME_IN_SECONDS
+
+      const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
+
+      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
+      const newTarget = Target.calculateTarget(time, now, target)
+
+      expect(newDifficulty).toBeLessThan(difficulty)
+      expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
+
+      expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
+    }
+  })
+
+  it('no matter how late blocks come in, we clamp difficulty change by 99 buckets (steps) away from previous block difficulty', () => {
+    const now = new Date()
+    const difficulty = BigInt(231072)
+    const previousBlockTarget = Target.fromDifficulty(difficulty)
+    // 99 buckets away from previous block target
+    const maximallyDifferentTarget = Target.calculateTarget(
+      new Date(now.getTime() + 1065 * 1000),
+      now,
+      previousBlockTarget,
+    )
+
+    // check that we don't change difficulty by more than 99 buckets (steps)
+    // away from previous block difficulty
+    for (let i = 1065; i < 1070; i++) {
+      const time = new Date(now.getTime() + i * 1000)
+
+      const newTarget = Target.calculateTarget(time, now, previousBlockTarget)
+
+      expect(newTarget).toEqual(maximallyDifferentTarget)
     }
   })
 })
