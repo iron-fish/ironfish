@@ -458,6 +458,10 @@ export class Blockchain {
     }
   }
 
+  /**
+   * Iterate from start to end with start and end being
+   * included in the yielded blocks.
+   * */
   async *iterateFrom(
     start: BlockHeader,
     end?: BlockHeader,
@@ -879,7 +883,7 @@ export class Blockchain {
         target,
         0,
         timestamp,
-        await minersFee.transactionFee(),
+        await minersFee.fee(),
         graffiti,
       )
 

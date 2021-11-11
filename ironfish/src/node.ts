@@ -11,7 +11,7 @@ import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
-import { PeerAddressManager } from './network/peers/peerAddressManager'
+import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -107,7 +107,7 @@ export class IronfishNode {
       chain: chain,
       strategy: strategy,
       metrics: this.metrics,
-      peerAddressManager: new PeerAddressManager(this.hosts),
+      addressManager: new AddressManager(hosts),
     })
 
     this.syncer = new Syncer({
@@ -128,7 +128,6 @@ export class IronfishNode {
     dataDir,
     config,
     internal,
-    hosts,
     autoSeed,
     logger = createRootLogger(),
     metrics,
@@ -141,7 +140,6 @@ export class IronfishNode {
     dataDir?: string
     config?: Config
     internal?: InternalStore
-    hosts?: HostsStore
     autoSeed?: boolean
     databaseName?: string
     logger?: Logger
@@ -164,10 +162,8 @@ export class IronfishNode {
       await internal.load()
     }
 
-    if (!hosts) {
-      hosts = new HostsStore(files, dataDir)
-      await hosts.load()
-    }
+    const hosts = new HostsStore(files, dataDir)
+    await hosts.load()
 
     if (databaseName) {
       config.setOverride('databaseName', databaseName)

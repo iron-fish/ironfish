@@ -342,7 +342,7 @@ export class MiningDirector {
 
     // Sum the transaction fees
     let totalTransactionFees = BigInt(0)
-    const transactionFees = await Promise.all(blockTransactions.map((t) => t.transactionFee()))
+    const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
     for (const transactionFee of transactionFees) {
       totalTransactionFees += transactionFee
     }

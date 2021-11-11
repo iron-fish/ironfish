@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { Blockchain } from '../../../blockchain'
-import { Event } from '../../../event'
-import { Logger } from '../../../logger'
+import { ChainProcessor } from '../../../chainProcessor'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { GraffitiUtils } from '../../../utils/graffiti'
@@ -122,7 +120,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             size: Buffer.from(
               JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
             ).byteLength,
-            fee: Number(await transaction.transactionFee()),
+            fee: Number(await transaction.fee()),
             notes: [...transaction.notes()].map((note) => ({
               commitment: note.merkleHash().toString('hex'),
             })),
@@ -187,72 +185,3 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     request.end()
   },
 )
-
-class ChainProcessor {
-  chain: Blockchain
-  name: string
-  hash: Buffer | null = null
-  logger: Logger
-  onAdd = new Event<[block: BlockHeader]>()
-  onRemove = new Event<[block: BlockHeader]>()
-
-  constructor(options: {
-    name: string
-    logger: Logger
-    chain: Blockchain
-    head: Buffer | null
-  }) {
-    this.chain = options.chain
-    this.name = options.name
-    this.logger = options.logger
-    this.hash = options.head
-  }
-
-  async add(header: BlockHeader): Promise<void> {
-    await this.onAdd.emitAsync(header)
-  }
-
-  async remove(header: BlockHeader): Promise<void> {
-    await this.onRemove.emitAsync(header)
-  }
-
-  async update(): Promise<void> {
-    if (!this.hash) {
-      await this.add(this.chain.genesis)
-      this.hash = this.chain.genesis.hash
-    }
-
-    const head = await this.chain.getHeader(this.hash)
-    if (!head || this.chain.head.hash.equals(head.hash)) {
-      return
-    }
-
-    const { fork, isLinear } = await this.chain.findFork(head, this.chain.head)
-    if (!fork) {
-      return
-    }
-
-    if (!isLinear) {
-      const iter = this.chain.iterateFrom(head, fork, undefined, false)
-
-      for await (const remove of iter) {
-        if (!remove.hash.equals(fork.hash)) {
-          await this.remove(remove)
-        }
-
-        this.hash = remove.hash
-      }
-    }
-
-    const iter = this.chain.iterateTo(fork, this.chain.head, undefined, false)
-
-    for await (const add of iter) {
-      if (add.hash.equals(fork.hash)) {
-        continue
-      }
-
-      await this.add(add)
-      this.hash = add.hash
-    }
-  }
-}

@@ -7,7 +7,7 @@ jest.mock('ws')
 import ws from 'ws'
 import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
-import { PeerAddressManager } from '../peers/peerAddressManager'
+import { AddressManager } from '../peers/addressManager'
 import { PeerManager } from '../peers/peerManager'
 import {
   getConnectedPeer,
@@ -21,7 +21,7 @@ jest.useFakeTimers()
 
 describe('FireAndForget Router', () => {
   it('sends a fire and forget message', () => {
-    const peers = new PeerManager(mockLocalPeer(), new PeerAddressManager(mockHostsStore()))
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const router = new FireAndForgetRouter(peers)
@@ -34,7 +34,7 @@ describe('FireAndForget Router', () => {
   })
 
   it('handles an incoming fire and forget message', async () => {
-    const peers = new PeerManager(mockLocalPeer(), new PeerAddressManager(mockHostsStore()))
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const router = new FireAndForgetRouter(peers)
 
     const handleMock = jest.fn((_message: IncomingFireAndForgetGeneric<'incoming'>) =>
@@ -59,7 +59,7 @@ describe('FireAndForget Router', () => {
       node: mockNode(),
       chain: mockChain(),
       strategy: mockStrategy(),
-      peerAddressManager: new PeerAddressManager(mockHostsStore()),
+      addressManager: new AddressManager(mockHostsStore()),
     })
 
     const fireAndForgetMock = jest.fn(async () => {})

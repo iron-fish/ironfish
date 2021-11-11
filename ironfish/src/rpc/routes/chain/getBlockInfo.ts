@@ -107,7 +107,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
     await block.withTransactionReferences(async () => {
       for (const tx of block.transactions) {
-        const fee = await tx.transactionFee()
+        const fee = await tx.fee()
 
         transactions.push({
           signature: tx.transactionSignature().toString('hex'),

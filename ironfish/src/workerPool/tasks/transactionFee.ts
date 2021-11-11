@@ -18,7 +18,7 @@ export function handleTransactionFee({
   serializedTransactionPosted,
 }: TransactionFeeRequest): TransactionFeeResponse {
   const transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
-  const fee = transaction.transactionFee
+  const fee = transaction.fee
 
   transaction.free()
 

@@ -94,7 +94,7 @@ export class Verifier {
     let totalTransactionFees = BigInt(0)
     let minersFee = BigInt(0)
 
-    const transactionFees = await Promise.all(block.transactions.map((t) => t.transactionFee()))
+    const transactionFees = await Promise.all(block.transactions.map((t) => t.fee()))
 
     for (const transactionFee of transactionFees) {
       if (transactionFee > 0) {

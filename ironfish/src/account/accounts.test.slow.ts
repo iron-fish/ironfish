@@ -41,16 +41,16 @@ describe('Accounts', () => {
 
     // Initial balance should be 0
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     await node.accounts.updateHead()
 
     // Balance after adding the genesis block should be 0
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -63,8 +63,8 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 500000000 after adding the miner's fee
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
   }, 600000)
 
@@ -79,15 +79,15 @@ describe('Accounts', () => {
     // Initial balance should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -99,8 +99,8 @@ describe('Accounts', () => {
     // Account should now have a balance of 500000000 after adding the miner's fee
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
 
     await node.accounts.saveTransactionsToDb()
@@ -111,16 +111,16 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 0 after clearing the cache
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     await node.accounts.loadTransactionsFromDb()
 
     // Balance should be back to 500000000
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
   }, 600000)
 
@@ -134,15 +134,15 @@ describe('Accounts', () => {
 
     // Initial balance should be 0
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -154,8 +154,8 @@ describe('Accounts', () => {
     // Account should now have a balance of 500000000 after adding the miner's fee
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
 
     // Spend the balance
@@ -170,7 +170,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.transactionFee(),
+      await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -181,8 +181,8 @@ describe('Accounts', () => {
     // Balance after adding the transaction that spends 2 should be 499999998
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(499999998),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(499999998),
+      unconfirmed: BigInt(499999998),
     })
   }, 600000)
 
@@ -197,15 +197,15 @@ describe('Accounts', () => {
 
     // Initial balance should be 0
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -217,8 +217,8 @@ describe('Accounts', () => {
     // Account should now have a balance of 500000000 after adding the miner's fee
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
 
     // Spend the balance
@@ -233,7 +233,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.transactionFee(),
+      await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -244,8 +244,8 @@ describe('Accounts', () => {
     // Balance after adding the transaction that spends 2 should be 499999998
     await node.accounts.updateHead()
     expect(node.accounts.getBalance(account)).toEqual({
-      confirmedBalance: BigInt(499999998),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(499999998),
+      unconfirmed: BigInt(499999998),
     })
   }, 600000)
 
@@ -271,8 +271,8 @@ describe('Accounts', () => {
     // Initial balance should be 500000000
     await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
 
     const block2 = await useBlockFixture(nodeA.chain, async () => {
@@ -289,7 +289,7 @@ describe('Accounts', () => {
       return nodeA.chain.newBlock(
         [transaction],
         await nodeA.strategy.createMinersFee(
-          await transaction.transactionFee(),
+          await transaction.fee(),
           3,
           generateKey().spending_key,
         ),
@@ -345,16 +345,16 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await nodeB.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(0),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
     })
     expect(nodeB.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(1000000000),
-      unconfirmedBalance: BigInt(1000000000),
+      confirmed: BigInt(1000000000),
+      unconfirmed: BigInt(1000000000),
     })
 
     // Copy block B1 to nodeA
@@ -365,12 +365,12 @@ describe('Accounts', () => {
     await nodeA.chain.addBlock(blockB2)
     await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(500000000),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(1000000000),
-      unconfirmedBalance: BigInt(1000000000),
+      confirmed: BigInt(1000000000),
+      unconfirmed: BigInt(1000000000),
     })
   }, 60000)
 
@@ -438,16 +438,16 @@ describe('Accounts', () => {
     await nodeB.accounts.updateHead()
 
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(499999998),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(499999998),
+      unconfirmed: BigInt(499999998),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(2),
-      unconfirmedBalance: BigInt(2),
+      confirmed: BigInt(2),
+      unconfirmed: BigInt(2),
     })
     expect(nodeB.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(500000000),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(500000000),
     })
 
     // Copy block B2 and B3 to nodeA
@@ -458,12 +458,12 @@ describe('Accounts', () => {
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should not have confirmed coins any more because the transaction is pending
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(499999998),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(2),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(2),
     })
   }, 600000)
 
@@ -544,16 +544,16 @@ describe('Accounts', () => {
     await nodeB.accounts.updateHead()
 
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(499999998),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(499999998),
+      unconfirmed: BigInt(499999998),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(2),
-      unconfirmedBalance: BigInt(2),
+      confirmed: BigInt(2),
+      unconfirmed: BigInt(2),
     })
     expect(nodeB.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(499999998),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(499999998),
     })
 
     // Copy block B2 and B3 to nodeA
@@ -564,12 +564,12 @@ describe('Accounts', () => {
     // A should have its original coins
     // B should not have the coins any more
     expect(nodeA.accounts.getBalance(accountA)).toEqual({
-      confirmedBalance: BigInt(500000000),
-      unconfirmedBalance: BigInt(999999998),
+      confirmed: BigInt(500000000),
+      unconfirmed: BigInt(999999998),
     })
     expect(nodeA.accounts.getBalance(accountB)).toEqual({
-      confirmedBalance: BigInt(0),
-      unconfirmedBalance: BigInt(2),
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(2),
     })
   }, 600000)
 })

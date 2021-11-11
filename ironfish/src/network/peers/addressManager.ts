@@ -8,10 +8,10 @@ import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 
 /**
- * PeerAddressManager stores the necessary data for connecting to new peers
+ * AddressManager stores the necessary data for connecting to new peers
  * and provides functionality for persistence of said data.
  */
-export class PeerAddressManager {
+export class AddressManager {
   hostsStore: HostsStore
 
   constructor(hostsStore: HostsStore) {
@@ -19,7 +19,7 @@ export class PeerAddressManager {
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hostsStore.getArray('priorConnectedPeers')
+    return this.hostsStore.getArray('priorPeers')
   }
 
   get possiblePeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
@@ -122,7 +122,7 @@ export class PeerAddressManager {
     )
 
     this.hostsStore.set('possiblePeers', filteredPossibles)
-    this.hostsStore.set('priorConnectedPeers', filteredPriorConnected)
+    this.hostsStore.set('priorPeers', filteredPriorConnected)
   }
 
   /**
@@ -142,7 +142,7 @@ export class PeerAddressManager {
         identity: peer.state.identity ?? null,
         name: peer.name ?? null,
       }))
-    this.hostsStore.set('priorConnectedPeers', [...inUsePeerAddresses])
+    this.hostsStore.set('priorPeers', [...inUsePeerAddresses])
     await this.hostsStore.save()
   }
 }

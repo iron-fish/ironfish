@@ -11,24 +11,24 @@ import {
   mockHostsStore,
   mockLocalPeer,
 } from '../testUtilities'
+import { AddressManager } from './addressManager'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
-import { PeerAddressManager } from './peerAddressManager'
 import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
 
-describe('PeerAddressManager', () => {
+describe('AddressManager', () => {
   it('constructor loads addresses from HostsStore', () => {
-    const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    expect(peerAddressManager.priorConnectedPeerAddresses).toMatchObject([
+    const addressManager = new AddressManager(mockHostsStore())
+    expect(addressManager.priorConnectedPeerAddresses).toMatchObject([
       {
         address: '127.0.0.1',
         port: 9999,
       },
     ])
-    expect(peerAddressManager.possiblePeerAddresses).toMatchObject([
+    expect(addressManager.possiblePeerAddresses).toMatchObject([
       {
         address: '1.1.1.1',
         port: 1111,
@@ -38,9 +38,9 @@ describe('PeerAddressManager', () => {
     ])
   })
   it('addAddressesFromPeerList should add new addresses from a peer list', () => {
-    const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    expect(peerAddressManager.possiblePeerAddresses.length).toEqual(1)
-    expect(peerAddressManager.possiblePeerAddresses).toMatchObject([
+    const addressManager = new AddressManager(mockHostsStore())
+    expect(addressManager.possiblePeerAddresses.length).toEqual(1)
+    expect(addressManager.possiblePeerAddresses).toMatchObject([
       {
         address: '1.1.1.1',
         port: 1111,
@@ -61,9 +61,9 @@ describe('PeerAddressManager', () => {
         ],
       },
     }
-    peerAddressManager.addAddressesFromPeerList(peerList)
-    expect(peerAddressManager.possiblePeerAddresses.length).toEqual(2)
-    expect(peerAddressManager.possiblePeerAddresses).toContainEqual({
+    addressManager.addAddressesFromPeerList(peerList)
+    expect(addressManager.possiblePeerAddresses.length).toEqual(2)
+    expect(addressManager.possiblePeerAddresses).toContainEqual({
       address: '2.2.2.2',
       identity: 'blah',
       name: 'blah',
@@ -72,8 +72,8 @@ describe('PeerAddressManager', () => {
   })
 
   it('removePeerAddress should remove a peer address', () => {
-    const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+    const addressManager = new AddressManager(mockHostsStore())
+    const pm = new PeerManager(mockLocalPeer(), addressManager)
     const { peer: peer1 } = getConnectedPeer(pm)
     const allPeers: Peer[] = [peer1]
     const allPeerAddresses: PeerAddress[] = []
@@ -86,16 +86,16 @@ describe('PeerAddressManager', () => {
         name: peer.name,
       })
     }
-    peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
-    peerAddressManager.hostsStore.set('priorConnectedPeers', allPeerAddresses)
-    peerAddressManager.removePeerAddress(peer1)
-    expect(peerAddressManager.possiblePeerAddresses.length).toEqual(0)
-    expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(0)
+    addressManager.hostsStore.set('possiblePeers', allPeerAddresses)
+    addressManager.hostsStore.set('priorPeers', allPeerAddresses)
+    addressManager.removePeerAddress(peer1)
+    expect(addressManager.possiblePeerAddresses.length).toEqual(0)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
   it('getRandomDisconnectedPeer should return a randomly-sampled disconnected peer', () => {
-    const peerAddressManager = new PeerAddressManager(mockHostsStore())
-    const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+    const addressManager = new AddressManager(mockHostsStore())
+    const pm = new PeerManager(mockLocalPeer(), addressManager)
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
     const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
@@ -111,9 +111,9 @@ describe('PeerAddressManager', () => {
       })
     }
 
-    peerAddressManager.hostsStore.set('priorConnectedPeers', allPeerAddresses)
-    peerAddressManager.hostsStore.set('possiblePeers', allPeerAddresses)
-    const sample = peerAddressManager.getRandomDisconnectedPeerAddress(nonDisconnectedPeers)
+    addressManager.hostsStore.set('priorPeers', allPeerAddresses)
+    addressManager.hostsStore.set('possiblePeers', allPeerAddresses)
+    const sample = addressManager.getRandomDisconnectedPeerAddress(nonDisconnectedPeers)
     expect(sample).not.toBeNull()
     if (sample !== null) {
       expect(allPeerAddresses).toContainEqual(sample)
@@ -124,8 +124,8 @@ describe('PeerAddressManager', () => {
 
   describe('save', () => {
     it('save should persist connected peers', async () => {
-      const peerAddressManager = new PeerAddressManager(mockHostsStore())
-      const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+      const addressManager = new AddressManager(mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), addressManager)
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
       const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
@@ -136,14 +136,14 @@ describe('PeerAddressManager', () => {
         name: connectedPeer.name,
       }
 
-      await peerAddressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
-      expect(peerAddressManager.priorConnectedPeerAddresses).toContainEqual(address)
+      await addressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
+      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
     })
 
     it('should not persist peers that will never retry connecting', async () => {
-      const peerAddressManager = new PeerAddressManager(mockHostsStore())
-      expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(1)
-      const pm = new PeerManager(mockLocalPeer(), peerAddressManager)
+      const addressManager = new AddressManager(mockHostsStore())
+      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+      const pm = new PeerManager(mockLocalPeer(), addressManager)
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
       const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
@@ -151,8 +151,8 @@ describe('PeerAddressManager', () => {
         .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
         ?.neverRetryConnecting()
 
-      await peerAddressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
-      expect(peerAddressManager.priorConnectedPeerAddresses.length).toEqual(0)
+      await addressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
+      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
     })
   })
 })
