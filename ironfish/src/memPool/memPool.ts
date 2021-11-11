@@ -82,8 +82,7 @@ export class MemPool {
       return false
     }
 
-    this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.transactionFee(), hash })
+    await this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
@@ -93,10 +92,14 @@ export class MemPool {
     let deletedTransactions = 0
 
     for (const transaction of block.transactions) {
-      const hash = transaction.transactionHash()
-      this.transactions.delete(hash)
-      this.queue.removeOne((t) => t.hash.equals(hash))
+      this.deleteTransaction(transaction)
       deletedTransactions++
+    }
+
+    for (const transaction of this.transactions.values()) {
+      if (this.chain.verifier.isExpiredSequence(transaction.expirationSequence())) {
+        this.deleteTransaction(transaction)
+      }
     }
 
     this.logger.debug(`Deleted ${deletedTransactions} transactions`)
@@ -111,8 +114,7 @@ export class MemPool {
       const hash = transaction.transactionHash()
 
       if (!this.transactions.has(hash)) {
-        this.transactions.set(hash, transaction)
-        this.queue.add({ fee: await transaction.transactionFee(), hash })
+        await this.addTransaction(transaction)
         addedTransactions++
       }
     }
@@ -120,5 +122,17 @@ export class MemPool {
     this.logger.debug(`Added ${addedTransactions} transactions`)
 
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
+  }
+
+  private async addTransaction(transaction: Transaction): Promise<void> {
+    const hash = transaction.transactionHash()
+    this.transactions.set(hash, transaction)
+    this.queue.add({ fee: await transaction.transactionFee(), hash })
+  }
+
+  private deleteTransaction(transaction: Transaction): void {
+    const hash = transaction.transactionHash()
+    this.transactions.delete(hash)
+    this.queue.removeOne((t) => t.hash.equals(hash))
   }
 }

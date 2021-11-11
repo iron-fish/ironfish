@@ -145,22 +145,32 @@ describe('MemPool', () => {
   describe('when a block is connected with a transaction in the mempool', () => {
     const nodeTest = createNodeTest()
 
-    it('removes the block transactions from the mempool', async () => {
+    it('removes the block transactions and expired transactions from the mempool', async () => {
       const { node, chain } = nodeTest
       const { accounts, memPool } = node
       const { queue, transactions } = memPool
       const removeOne = jest.spyOn(queue, 'removeOne')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
+      const { block, transaction: transactionB } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+      )
+      const hashA = transactionA.transactionHash()
+      const hashB = transactionB.transactionHash()
 
-      await memPool.acceptTransaction(transaction)
+      await memPool.acceptTransaction(transactionA)
+      await memPool.acceptTransaction(transactionB)
+      expect(transactions.get(hashA)).not.toBeUndefined()
+      expect(transactions.get(hashB)).not.toBeUndefined()
 
-      const hash = transaction.transactionHash()
-      expect(transactions.get(hash)).not.toBeUndefined()
-
+      jest.spyOn(transactionA, 'expirationSequence').mockImplementation(() => 1)
       await chain.addBlock(block)
-      expect(transactions.get(hash)).toBeUndefined()
+
+      expect(transactions.get(hashA)).toBeUndefined()
+      expect(transactions.get(hashB)).toBeUndefined()
       expect(removeOne).toHaveBeenCalled()
     }, 60000)
   })
