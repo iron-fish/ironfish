@@ -19,6 +19,11 @@ export class NodeFileProvider extends FileSystem {
     return this
   }
 
+  async access(path: fs.PathLike, mode?: number | undefined): Promise<void> {
+    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
+    await this.fs.access(path, mode)
+  }
+
   async writeFile(
     path: string,
     data: string,

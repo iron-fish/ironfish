@@ -8,6 +8,7 @@ import {
   getConnectedPeer,
   getConnectingPeer,
   getDisconnectedPeer,
+  mockFileSystem,
   mockHostsStore,
   mockLocalPeer,
 } from '../testUtilities'
@@ -21,7 +22,8 @@ jest.useFakeTimers()
 
 describe('AddressManager', () => {
   it('constructor loads addresses from HostsStore', () => {
-    const addressManager = new AddressManager(mockHostsStore())
+    const addressManager = new AddressManager(mockFileSystem())
+    addressManager.hostsStore = mockHostsStore()
     expect(addressManager.priorConnectedPeerAddresses).toMatchObject([
       {
         address: '127.0.0.1',
@@ -38,7 +40,8 @@ describe('AddressManager', () => {
     ])
   })
   it('addAddressesFromPeerList should add new addresses from a peer list', () => {
-    const addressManager = new AddressManager(mockHostsStore())
+    const addressManager = new AddressManager(mockFileSystem())
+    addressManager.hostsStore = mockHostsStore()
     expect(addressManager.possiblePeerAddresses.length).toEqual(1)
     expect(addressManager.possiblePeerAddresses).toMatchObject([
       {
@@ -72,8 +75,9 @@ describe('AddressManager', () => {
   })
 
   it('removePeerAddress should remove a peer address', () => {
-    const addressManager = new AddressManager(mockHostsStore())
-    const pm = new PeerManager(mockLocalPeer(), addressManager)
+    const addressManager = new AddressManager(mockFileSystem())
+    addressManager.hostsStore = mockHostsStore()
+    const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
     const { peer: peer1 } = getConnectedPeer(pm)
     const allPeers: Peer[] = [peer1]
     const allPeerAddresses: PeerAddress[] = []
@@ -94,8 +98,9 @@ describe('AddressManager', () => {
   })
 
   it('getRandomDisconnectedPeer should return a randomly-sampled disconnected peer', () => {
-    const addressManager = new AddressManager(mockHostsStore())
-    const pm = new PeerManager(mockLocalPeer(), addressManager)
+    const addressManager = new AddressManager(mockFileSystem())
+    addressManager.hostsStore = mockHostsStore()
+    const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
     const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
@@ -124,8 +129,9 @@ describe('AddressManager', () => {
 
   describe('save', () => {
     it('save should persist connected peers', async () => {
-      const addressManager = new AddressManager(mockHostsStore())
-      const pm = new PeerManager(mockLocalPeer(), addressManager)
+      const addressManager = new AddressManager(mockFileSystem())
+      addressManager.hostsStore = mockHostsStore()
+      const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
       const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
@@ -141,9 +147,10 @@ describe('AddressManager', () => {
     })
 
     it('should not persist peers that will never retry connecting', async () => {
-      const addressManager = new AddressManager(mockHostsStore())
+      const addressManager = new AddressManager(mockFileSystem())
+      addressManager.hostsStore = mockHostsStore()
       expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
-      const pm = new PeerManager(mockLocalPeer(), addressManager)
+      const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
       const { peer: disconnectedPeer } = getDisconnectedPeer(pm)

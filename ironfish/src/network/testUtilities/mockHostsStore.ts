@@ -24,12 +24,17 @@ class MockFileSystem extends FileSystem {
     return this
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async access(): Promise<void> {
+    throw new Error('File does not exist')
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async writeFile(): Promise<void> {}
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async readFile(): Promise<string> {
-    return ''
+    return '{}'
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -81,4 +86,8 @@ class MockHostsStore extends HostsStore {
 
 export function mockHostsStore(): MockHostsStore {
   return new MockHostsStore()
+}
+
+export function mockFileSystem(): MockFileSystem {
+  return new MockFileSystem()
 }

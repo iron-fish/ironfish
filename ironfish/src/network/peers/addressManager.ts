@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ArrayUtils } from '../..'
 import { HostsStore } from '../../fileStores'
+import { FileSystem } from '../../fileSystems'
 import { Peer, PeerList } from '..'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
@@ -14,8 +15,10 @@ import { PeerAddress } from './peerAddress'
 export class AddressManager {
   hostsStore: HostsStore
 
-  constructor(hostsStore: HostsStore) {
-    this.hostsStore = hostsStore
+  constructor(files: FileSystem, dataDir?: string) {
+    this.hostsStore = new HostsStore(files, dataDir)
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.hostsStore.load()
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
