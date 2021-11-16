@@ -78,9 +78,15 @@ function toBytesBE(value: bigint, size?: number): Buffer {
   return bytes
 }
 
+function divide(a: bigint, b: bigint): number {
+  const div = a / b
+  return Number(div) + Number(a - div * b) / Number(b)
+}
+
 export const BigIntUtils = {
   toBytes,
   fromBytes,
   toBytesBE,
   max,
+  divide,
 }
