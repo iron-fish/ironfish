@@ -225,8 +225,8 @@ export abstract class IronfishRpcClient {
 
   newBlocksStream(
     params: NewBlocksStreamRequest = undefined,
-  ): Response<NewBlocksStreamResponse> {
-    return this.request<NewBlocksStreamResponse>('miner/newBlocksStream', params)
+  ): Response<void, NewBlocksStreamResponse> {
+    return this.request<void, NewBlocksStreamResponse>('miner/newBlocksStream', params)
   }
 
   successfullyMined(params: SuccessfullyMinedRequest): Response<SuccessfullyMinedResponse> {

@@ -11,6 +11,15 @@ export class AsyncUtils {
     return results
   }
 
+  static async *transform<TIn, TOut>(
+    iter: AsyncGenerator<TIn, unknown, unknown>,
+    transformer: (value: TIn) => TOut,
+  ): AsyncGenerator<TOut, void, void> {
+    for await (const result of iter) {
+      yield transformer(result)
+    }
+  }
+
   static async count<T>(iter: AsyncIterable<T>): Promise<number> {
     let count = 0
     for await (const _result of iter) {
