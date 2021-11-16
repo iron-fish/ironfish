@@ -51,6 +51,5 @@ export const TARGET_BUCKET_TIME_IN_SECONDS = 10
  * A ratio of blocks per year that represents an approximation of how many blocks are considered a "year".
  * It's generally an approximation based on TARGET_BLOCK_TIME_IN_SECONDS second block times.
  * It's used in calculating how much a miner should get in rewards.
- * Approximately (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
