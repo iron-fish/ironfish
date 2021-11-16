@@ -26,4 +26,20 @@ describe('BigIntUtils', () => {
   it('converts empty array to 0', () => {
     expect(BigIntUtils.fromBytes(Buffer.from([]))).toEqual(BigInt(0))
   })
+
+  it('divides bigint', () => {
+    const max = BigInt(Number.MAX_SAFE_INTEGER)
+
+    let result = BigIntUtils.divide(max, max + max)
+    expect(result).toBeCloseTo(0.5, 2)
+
+    result = BigIntUtils.divide(max, max)
+    expect(result).toBe(1)
+
+    result = BigIntUtils.divide(BigInt(0), max)
+    expect(result).toBe(0)
+
+    result = BigIntUtils.divide(max, BigInt(2))
+    expect(result).toBe(Number(max) / 2)
+  })
 })
