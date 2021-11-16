@@ -93,11 +93,7 @@ export class Transaction {
   }
 
   async isMinersFee(): Promise<boolean> {
-    return (
-      this.spendsLength() === 0 &&
-      this.notesLength() === 1 &&
-      (await this.transactionFee()) <= 0
-    )
+    return this.spendsLength() === 0 && this.notesLength() === 1 && (await this.fee()) <= 0
   }
 
   /**
