@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
+import { Target } from '../../../primitives/target'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -11,6 +12,7 @@ export type NewBlocksStreamResponse = {
   bytes: { type: 'Buffer'; data: number[] }
   target: string
   miningRequestId: number
+  sequence: number
 }
 
 export const NewBlocksStreamRequestSchema: yup.MixedSchema<NewBlocksStreamRequest> = yup
@@ -30,6 +32,7 @@ export const NewBlocksStreamResponseSchema: yup.ObjectSchema<NewBlocksStreamResp
       .required(),
     target: yup.string().required(),
     miningRequestId: yup.number().required(),
+    sequence: yup.number().required(),
   })
   .required()
   .defined()
@@ -50,18 +53,28 @@ router.register<typeof NewBlocksStreamRequestSchema, NewBlocksStreamResponse>(
       )
     }
 
-    node.miningDirector.miners++
-    request.onClose.once(() => {
-      node.miningDirector.miners--
-    })
-
-    node.miningDirector.onBlockToMine.on((event) => {
+    const onBlock = (event: {
+      miningRequestId: number
+      bytes: Buffer
+      target: Target
+      sequence: number
+    }) => {
       request.stream({
         bytes: event.bytes.toJSON(),
         target: event.target.asBigInt().toString(),
         miningRequestId: event.miningRequestId,
+        sequence: event.sequence,
       })
+    }
+
+    node.miningDirector.miners++
+
+    request.onClose.once(() => {
+      node.miningDirector.miners--
+      node.miningDirector.onBlockToMine.off(onBlock)
     })
+
+    node.miningDirector.onBlockToMine.on(onBlock)
 
     // 'prime' the stream with the current block
     if (node.chain.head) {

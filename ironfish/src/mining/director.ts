@@ -47,7 +47,9 @@ export class MiningDirector {
    * a randomness value for that block. If one arrives, the block is reconstructed,
    * gossiped, and added to the local tree.
    */
-  onBlockToMine = new Event<[{ miningRequestId: number; bytes: Buffer; target: Target }]>()
+  onBlockToMine = new Event<
+    [{ miningRequestId: number; bytes: Buffer; target: Target; sequence: number }]
+  >()
 
   /**
    * Emitted when a new block has been mined
@@ -402,6 +404,7 @@ export class MiningDirector {
       bytes: asBuffer,
       target,
       miningRequestId: this.miningRequestId,
+      sequence: newBlock.header.sequence,
     })
 
     this.recentBlocks.set(this.miningRequestId, newBlock)
@@ -424,11 +427,16 @@ export class MiningDirector {
   async successfullyMined(randomness: number, miningRequestId: number): Promise<MINED_RESULT> {
     const block = this.recentBlocks.get(miningRequestId)
     if (!block) {
-      this.logger.debug(
-        'Received randomness for a block with unknown request ID (it may have expired)',
-      )
       return MINED_RESULT.UNKNOWN_REQUEST
     }
+
+    // TODO(jason): This is temporary to avoid the race condition here of
+    // finding multiple results for the same block. It'll mutate the block that
+    // is shared by all other calls in recentBlocks then rely on that value
+    // while doing async work. Then other calls can come in at the same time. We
+    // should remove this when we can put a lock around this whole function's
+    // code
+    this.recentBlocks.remove(miningRequestId)
 
     if (!this.chain.head || !block.header.previousBlockHash.equals(this.chain.head.hash)) {
       this.logger.debug('Discarding block that no longer attaches to heaviest head')
