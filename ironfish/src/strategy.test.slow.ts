@@ -218,7 +218,7 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       expect(decryptedNote['wasmNote']).toBeNull()
-      expect(decryptedNote.value()).toBe(BigInt(500000000))
+      expect(decryptedNote.value()).toBe(BigInt(2000000000))
       expect(decryptedNote['wasmNote']).toBeNull()
     }, 60000)
   })
