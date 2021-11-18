@@ -34,6 +34,7 @@ import {
 } from '../messages'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
+import { AddressManager } from './addressManager'
 import {
   Connection,
   ConnectionDirection,
@@ -82,6 +83,8 @@ export class PeerManager {
    * List of all peers, including both unidentified and identified.
    */
   peers: Array<Peer> = []
+
+  addressManager: AddressManager
 
   /**
    * setInterval handle for distributePeerList, which sends out peer lists and
@@ -144,6 +147,7 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
+    addressManager: AddressManager,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
@@ -151,6 +155,7 @@ export class PeerManager {
     logPeerMessages = false,
   ) {
     this.logger = logger.withTag('peermanager')
+    this.addressManager = addressManager
     this.metrics = metrics || new MetricsMonitor(this.logger)
     this.localPeer = localPeer
     this.maxPeers = maxPeers
@@ -772,10 +777,8 @@ export class PeerManager {
    * Send a message to all connected peers.
    */
   broadcast(message: LooseMessage): void {
-    for (const peer of this.identifiedPeers.values()) {
-      if (peer.state.type === 'CONNECTED') {
-        peer.send(message)
-      }
+    for (const peer of this.getConnectedPeers()) {
+      peer.send(message)
     }
   }
 
@@ -827,7 +830,7 @@ export class PeerManager {
       type: InternalMessageType.peerListRequest,
     }
 
-    for (const peer of this.identifiedPeers.values()) {
+    for (const peer of this.getConnectedPeers()) {
       if (peer.version !== null && peer.version >= MIN_VERSION_FOR_PEER_LIST_REQUESTS) {
         peer.send(peerListRequest)
         continue

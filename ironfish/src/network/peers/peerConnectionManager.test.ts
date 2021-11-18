@@ -7,11 +7,13 @@ jest.mock('ws')
 import { createRootLogger } from '../../logger'
 import {
   getConnectedPeer,
+  mockHostsStore,
   mockIdentity,
   mockLocalPeer,
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { AddressManager } from './addressManager'
 import {
   ConnectionDirection,
   ConnectionType,
@@ -25,7 +27,7 @@ jest.useFakeTimers()
 
 describe('connectToDisconnectedPeers', () => {
   it('Should not connect to disconnected peers without an address or peers', () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const peer = pm.getOrCreatePeer(null)
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pm['logger'].mockTypes(() => jest.fn())
@@ -37,7 +39,7 @@ describe('connectToDisconnectedPeers', () => {
   })
 
   it('Should connect to disconnected unidentified peers with an address', () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
     const peer = pm.getOrCreatePeer(null)
     peer.setWebSocketAddress('testuri.com', 9033)
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
@@ -52,7 +54,7 @@ describe('connectToDisconnectedPeers', () => {
   })
 
   it('Should connect to disconnected identified peers with an address over WS', () => {
-    const pm = new PeerManager(mockLocalPeer())
+    const pm = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
 
     const identity = mockIdentity('peer')
     const peer = pm.getOrCreatePeer(identity)
@@ -74,7 +76,7 @@ describe('connectToDisconnectedPeers', () => {
   })
 
   it('Should connect to webrtc and websockets', () => {
-    const peers = new PeerManager(mockLocalPeer())
+    const peers = new PeerManager(mockLocalPeer(), new AddressManager(mockHostsStore()))
 
     const identity = mockIdentity('peer')
     const peer = peers.getOrCreatePeer(identity)
@@ -102,7 +104,10 @@ describe('connectToDisconnectedPeers', () => {
 
   it('Should connect to known peers of connected peers', () => {
     const peerIdentity = webRtcCanInitiateIdentity()
-    const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
+    const pm = new PeerManager(
+      mockLocalPeer({ identity: webRtcLocalIdentity() }),
+      new AddressManager(mockHostsStore()),
+    )
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
     const peer = pm.getOrCreatePeer(peerIdentity)
     // Link the peers
@@ -122,7 +127,10 @@ describe('connectToDisconnectedPeers', () => {
 
 describe('maintainOneConnectionPerPeer', () => {
   it('Should not close WS connection if the WebRTC connection is not in CONNECTED', () => {
-    const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
+    const pm = new PeerManager(
+      mockLocalPeer({ identity: webRtcLocalIdentity() }),
+      new AddressManager(mockHostsStore()),
+    )
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {
@@ -168,7 +176,10 @@ describe('maintainOneConnectionPerPeer', () => {
   })
 
   it('Should close WebSocket connection if a peer has WS and WebRTC connections', () => {
-    const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
+    const pm = new PeerManager(
+      mockLocalPeer({ identity: webRtcLocalIdentity() }),
+      new AddressManager(mockHostsStore()),
+    )
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {
@@ -216,7 +227,10 @@ describe('maintainOneConnectionPerPeer', () => {
 
 describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
   it('Should attempt to establish a WebRTC connection if we have a WebSocket connection', () => {
-    const pm = new PeerManager(mockLocalPeer({ identity: webRtcLocalIdentity() }))
+    const pm = new PeerManager(
+      mockLocalPeer({ identity: webRtcLocalIdentity() }),
+      new AddressManager(mockHostsStore()),
+    )
     const peer = pm.connectToWebSocketAddress('testuri')
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {

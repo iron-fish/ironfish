@@ -562,23 +562,25 @@ export class Accounts {
     return unspentNotes
   }
 
-  getBalance(account: Account): { unconfirmedBalance: BigInt; confirmedBalance: BigInt } {
+  getBalance(account: Account): { unconfirmed: BigInt; confirmed: BigInt } {
     this.assertHasAccount(account)
 
     const notes = this.getUnspentNotes(account)
 
-    let unconfirmedBalance = BigInt(0)
-    let confirmedBalance = BigInt(0)
+    let unconfirmed = BigInt(0)
+    let confirmed = BigInt(0)
 
     for (const note of notes) {
       const value = note.note.value()
-      unconfirmedBalance += value
+
+      unconfirmed += value
+
       if (note.index !== null) {
-        confirmedBalance += value
+        confirmed += value
       }
     }
 
-    return { unconfirmedBalance, confirmedBalance }
+    return { unconfirmed, confirmed }
   }
 
   async pay(

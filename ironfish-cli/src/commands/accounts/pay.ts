@@ -64,19 +64,18 @@ export class Pay extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!amount || Number.isNaN(amount)) {
-      const responseBalance = await client.getAccountBalance({
-        account: from,
-      })
-      const { confirmedBalance } = responseBalance.content
+      const response = await client.getAccountBalance({ account: from })
+
       amount = (await cli.prompt(
         `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
-          oreToIron(Number(confirmedBalance)),
+          oreToIron(Number(response.content.confirmed)),
           false,
         )})`,
         {
           required: true,
         },
       )) as number
+
       if (Number.isNaN(amount)) {
         this.error(`A valid amount is required`)
       }
@@ -189,7 +188,7 @@ ${displayIronAmountWithCurrency(
         fromAccountName: from,
         memo: memo,
         toPublicKey: to,
-        transactionFee: ironToOre(fee).toString(),
+        fee: ironToOre(fee).toString(),
       })
 
       stopProgressBar()

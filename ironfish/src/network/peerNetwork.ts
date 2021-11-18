@@ -56,6 +56,7 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
+import { AddressManager } from './peers/addressManager'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -146,6 +147,7 @@ export class PeerNetwork {
     node: IronfishNode
     strategy: Strategy
     chain: Blockchain
+    addressManager: AddressManager
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -179,6 +181,7 @@ export class PeerNetwork {
 
     this.peerManager = new PeerManager(
       this.localPeer,
+      options.addressManager,
       this.logger,
       this.metrics,
       maxPeers,
