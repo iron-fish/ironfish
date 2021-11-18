@@ -92,6 +92,10 @@ export class Transaction {
     })
   }
 
+  async isMinersFee(): Promise<boolean> {
+    return this.spendsLength() === 0 && this.notesLength() === 1 && (await this.fee()) <= 0
+  }
+
   /**
    * Iterate over all the notes created by this transaction.
    */
@@ -152,7 +156,7 @@ export class Transaction {
    * The transaction fee is the difference between outputs and spends on the
    * transaction.
    */
-  transactionFee(): Promise<bigint> {
+  fee(): Promise<bigint> {
     return this.workerPool.transactionFee(this)
   }
 
@@ -166,12 +170,12 @@ export class Transaction {
   /**
    * Get the transaction hash.
    */
-  transactionHash(): TransactionHash {
-    return this.withReference((t) => Buffer.from(t.transactionHash))
+  hash(): TransactionHash {
+    return this.withReference((t) => Buffer.from(t.hash))
   }
 
   equals(other: Transaction): boolean {
-    return this.transactionHash().equals(other.transactionHash())
+    return this.hash().equals(other.hash())
   }
 
   expirationSequence(): number {

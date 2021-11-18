@@ -124,12 +124,12 @@ export class WebApi {
     return response.data
   }
 
-  async completeFaucetTransaction(id: number): Promise<FaucetTransaction> {
+  async completeFaucetTransaction(id: number, hash: string): Promise<FaucetTransaction> {
     this.requireToken()
 
     const response = await axios.post<FaucetTransaction>(
       `${this.host}/faucet_transactions/${id}/complete`,
-      undefined,
+      { hash },
       this.options(),
     )
 

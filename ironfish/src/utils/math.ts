@@ -31,6 +31,13 @@ function round(value: number, places: number): number {
   return Math.round(value * scalar) / scalar
 }
 
+/**
+ * Round a number to the nearest threshold increment
+ */
+function roundBy(num: number, threshold: number): number {
+  return threshold * Math.round(num / threshold)
+}
+
 function max<T extends number | bigint>(a: T, b: T): T {
   return a > b ? a : b
 }
@@ -39,4 +46,4 @@ function min<T extends number | bigint>(a: T, b: T): T {
   return a > b ? b : a
 }
 
-export const MathUtils = { arrayAverage, arraySum, round, min, max }
+export const MathUtils = { arrayAverage, arraySum, round, roundBy, min, max }

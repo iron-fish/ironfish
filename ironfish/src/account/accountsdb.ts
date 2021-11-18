@@ -229,7 +229,7 @@ export class AccountsDB {
         transaction: new Transaction(value.transaction, this.workerPool),
       }
 
-      map.set(deserialized.transaction.transactionHash(), deserialized)
+      map.set(deserialized.transaction.hash(), deserialized)
     }
   }
 

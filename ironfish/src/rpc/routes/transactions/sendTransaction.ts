@@ -9,7 +9,7 @@ export type SendTransactionRequest = {
   fromAccountName: string
   toPublicKey: string
   amount: string
-  transactionFee: string
+  fee: string
   memo: string
   expirationSequence?: number | null
 }
@@ -18,7 +18,7 @@ export type SendTransactionResponse = {
   fromAccountName: string
   toPublicKey: string
   amount: string
-  transactionHash: string
+  hash: string
 }
 
 export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionRequest> = yup
@@ -26,7 +26,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
     fromAccountName: yup.string().defined(),
     toPublicKey: yup.string().defined(),
     amount: yup.string().defined(),
-    transactionFee: yup.string().defined(),
+    fee: yup.string().defined(),
     memo: yup.string().defined(),
     expirationSequence: yup.number().nullable().optional(),
   })
@@ -37,7 +37,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
     fromAccountName: yup.string().defined(),
     toPublicKey: yup.string().defined(),
     amount: yup.string().defined(),
-    transactionHash: yup.string().defined(),
+    hash: yup.string().defined(),
   })
   .defined()
 
@@ -68,9 +68,9 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     // Check that the node account is updated
     const balance = node.accounts.getBalance(account)
-    const sum = BigInt(transaction.amount) + BigInt(transaction.transactionFee)
+    const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
 
-    if (balance.confirmedBalance < sum && balance.unconfirmedBalance < sum) {
+    if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
         `Your balance is too low. Add funds to your account first`,
         undefined,
@@ -78,7 +78,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    if (balance.confirmedBalance < sum) {
+    if (balance.confirmed < sum) {
       throw new ValidationError(
         `Please wait a few seconds for your balance to update and try again`,
         undefined,
@@ -90,7 +90,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       node.memPool,
       account,
       BigInt(transaction.amount),
-      BigInt(transaction.transactionFee),
+      BigInt(transaction.fee),
       transaction.memo,
       transaction.toPublicKey,
       node.config.get('defaultTransactionExpirationSequenceDelta'),
@@ -101,7 +101,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       amount: transaction.amount,
       toPublicKey: transaction.toPublicKey,
       fromAccountName: account.name,
-      transactionHash: transactionPosted.transactionHash().toString('hex'),
+      hash: transactionPosted.hash().toString('hex'),
     })
   },
 )

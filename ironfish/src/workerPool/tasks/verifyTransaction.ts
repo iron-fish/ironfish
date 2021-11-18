@@ -29,7 +29,7 @@ export function handleVerifyTransaction({
   try {
     transaction = WasmTransactionPosted.deserialize(serializedTransactionPosted)
 
-    if (verifyFees && transaction.transactionFee < BigInt(0)) {
+    if (verifyFees && transaction.fee < BigInt(0)) {
       throw new Error('Transaction has negative fees')
     }
 

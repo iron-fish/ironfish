@@ -4,13 +4,14 @@
 import os from 'os'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
-import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
+import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -44,6 +45,7 @@ export class IronfishNode {
     files,
     config,
     internal,
+    hosts,
     accounts,
     strategy,
     metrics,
@@ -58,6 +60,7 @@ export class IronfishNode {
     files: FileSystem
     config: Config
     internal: InternalStore
+    hosts: HostsStore
     accounts: Accounts
     chain: Blockchain
     strategy: Strategy
@@ -102,6 +105,7 @@ export class IronfishNode {
       chain: chain,
       strategy: strategy,
       metrics: this.metrics,
+      addressManager: new AddressManager(hosts),
     })
 
     this.syncer = new Syncer({
@@ -156,6 +160,9 @@ export class IronfishNode {
       await internal.load()
     }
 
+    const hosts = new HostsStore(files, dataDir)
+    await hosts.load()
+
     if (databaseName) {
       config.setOverride('databaseName', databaseName)
     }
@@ -206,6 +213,7 @@ export class IronfishNode {
       files,
       config,
       internal,
+      hosts,
       accounts,
       metrics,
       miningDirector: mining,
