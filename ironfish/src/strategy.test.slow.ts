@@ -218,7 +218,7 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       expect(decryptedNote['wasmNote']).toBeNull()
-      expect(decryptedNote.value()).toBe(BigInt(500000000))
+      expect(decryptedNote.value()).toBe(BigInt(2000000000))
       expect(decryptedNote['wasmNote']).toBeNull()
     }, 60000)
   })
@@ -280,28 +280,5 @@ describe('Demonstrate the Sapling API', () => {
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()
     })
-  })
-})
-
-describe('Miners reward', () => {
-  let strategy: Strategy
-
-  beforeAll(() => {
-    strategy = new Strategy(new WorkerPool())
-  })
-
-  // see https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
-  // for more details
-  it('miners reward is properly calculated for year 0-1', () => {
-    let minersReward = strategy.miningReward(1)
-    expect(minersReward).toBe(5 * 10 ** 8)
-
-    minersReward = strategy.miningReward(100000)
-    expect(minersReward).toBe(5 * 10 ** 8)
-  })
-
-  it('miners reward is properly calculated for year 1-2', () => {
-    const minersReward = strategy.miningReward(2100001)
-    expect(minersReward).toBe(475614712)
   })
 })

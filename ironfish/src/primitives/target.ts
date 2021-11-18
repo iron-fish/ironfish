@@ -2,82 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Serde } from '../serde'
-
-function max(a: bigint, b: bigint): bigint {
-  if (a > b) {
-    return a
-  } else {
-    return b
-  }
-}
-
-/**
- * Courtesy of https://coolaj86.com/articles/convert-js-bigints-to-typedarrays/
- *
- * Convert a Buffer to a big integer number, in big endian format.
- *
- * I'm concerned about efficiency here. Converting a string and back and... WTF?
- * Every block hash attempt has to be converted to a Target, so this is a function
- * that should be optimized. We may want to compile this to wasm if there isn't
- * a less janky way to do it.
- *
- * I'm pushing it out like this for now so I can focus on bigger architecture concerns.
- *
- * Sorry.
- */
-export function bytesToBigInt(bytes: Buffer): bigint {
-  const hex: string[] = []
-  if (bytes.length === 0) {
-    return BigInt(0)
-  }
-  bytes.forEach(function (i) {
-    let h = i.toString(16)
-    if (h.length % 2) {
-      h = '0' + h
-    }
-    hex.push(h)
-  })
-
-  return BigInt('0x' + hex.join(''))
-}
-
-export function bigIntToBytes(bigint: bigint): Buffer {
-  let hex = bigint.toString(16)
-  if (hex.length % 2) {
-    hex = '0' + hex
-  }
-
-  const len = hex.length / 2
-  const u8 = Buffer.alloc(len)
-
-  let i = 0
-  let j = 0
-  while (i < len) {
-    u8[i] = parseInt(hex.slice(j, j + 2), 16)
-    i += 1
-    j += 2
-  }
-
-  return u8
-}
-
-/**
- * The bound divisor of the difficulty, used to update difficulty (and subsequently target).
- * We are taking in large part Ethereum's dynamic difficulty calculation,
- * with the exeption of 'uncles' and 'difficulty bomb' as a concept
- * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
- * original algorithm:
- * diff = (parent_diff +
- *         (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))
- *        ) + 2**((current_block_number // 100000) — 2)
- * Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
- * So the algorithm for target is:
- * diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
- * note that timestamps above are in seconds, and JS timestamps are in ms
- * The bound divisor of the difficulty is the '2048' part of that equation
- */
-const DIFFICULTY_ADJUSTMENT_DENOMINATOR = 2048
+import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
+import { BigIntUtils } from '../utils/bigint'
 
 /**
  *  Minimum difficulty, which is equivalent to maximum target
@@ -105,12 +31,9 @@ export class Target {
     if (targetValue === undefined) {
       this.targetValue = BigInt(0)
     } else {
-      let candidate
-      if (targetValue instanceof Buffer) {
-        candidate = bytesToBigInt(targetValue)
-      } else {
-        candidate = BigInt(targetValue)
-      }
+      const candidate =
+        targetValue instanceof Buffer ? BigIntUtils.fromBytes(targetValue) : BigInt(targetValue)
+
       if (candidate > MAX_256_BIT_NUM) {
         throw new Error('Target value exceeds max target')
       } else {
@@ -171,11 +94,20 @@ export class Target {
   }
 
   /**
-   *
    * Calculate the difficulty for the current block given the timestamp in that
    * block's header, the pervious block's timestamp and previous block's target.
    *
    * Note that difficulty == 2**256 / target and target == 2**256 / difficulty
+   *
+   * Algorithm: difficulty = parentDifficulty - (parentDifficulty / 2048) * bucket
+   * Where bucket is how many steps (in TARGET_BUCKET_TIME_IN_SECONDS) the new time is away from
+   * our target bucket range, e.g. for target block time of 60 seconds (with +/-5 seconds forgiveness):
+   * 35 - 45 seconds: bucket -2
+   * 45 - 55 seconds: bucket -1
+   * 55 - 65 seconds: bucket 0
+   * 65 - 75 seconds: bucket 1
+   * 75 - 85 seconds: bucket 2
+   * .. and so on
    *
    * Returns the difficulty for a block given it timestamp for that block and its parent.
    * @param time the block's timestamp for which the target is calcualted for
@@ -187,30 +119,22 @@ export class Target {
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
   ): bigint {
-    // We are taking in large part Ethereum's dynamic difficulty calculation,
-    // with the exeption of 'uncles' and 'difficulty bomb' as a concept
-    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
-    // original algorithm:
-    // diff = (parent_diff +
-    //         (parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) // 10, -99))
-    //        ) + 2**((current_block_number // 100000) — 2)
-    // Note we are not including the difficulty bomb (which is this part: 2**((current_block_number // 100000) — 2))
-    // So the algorithm we're taking is:
-    // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    // note that timestamps above are in seconds, and JS timestamps are in ms
-
-    // max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
-    const sign = BigInt(Math.max(1 - Math.floor(diffInSeconds / 10), -99))
-    const offset = BigInt(previousBlockDifficulty) / BigInt(DIFFICULTY_ADJUSTMENT_DENOMINATOR)
 
-    // diff = parent_diff + parent_diff / 2048 * max(1 - (current_block_timestamp - parent_timestamp) / 10, -99)
-    const difficulty = max(
-      BigInt(previousBlockDifficulty) + offset * sign,
-      Target.minDifficulty(),
+    let bucket = Math.floor(
+      (diffInSeconds -
+        TARGET_BLOCK_TIME_IN_SECONDS +
+        Math.floor(TARGET_BUCKET_TIME_IN_SECONDS / 2)) /
+        TARGET_BUCKET_TIME_IN_SECONDS,
     )
 
-    return difficulty
+    // Should not change difficulty by more than 99 buckets from last block's difficulty
+    bucket = Math.min(bucket, 99)
+
+    const difficulty =
+      previousBlockDifficulty - (previousBlockDifficulty / BigInt(2048)) * BigInt(bucket)
+
+    return BigIntUtils.max(difficulty, Target.minDifficulty())
   }
 
   /**
@@ -268,35 +192,7 @@ export class Target {
     return this.targetValue
   }
 
-  /**
-   * Big endian, and since even after 20 years in the industry, I can't remember
-   * what that means, the most significant byte is in the 0th index of the array.
-   *
-   * The resulting byte array is always left padded with 0s to be 32 bytes long
-   */
-  asBytes(): Buffer {
-    const bytes = bigIntToBytes(this.targetValue)
-    const result = Buffer.alloc(32)
-    result.set(bytes, 32 - bytes.length)
-    return result
+  equals(other: Target): boolean {
+    return this.targetValue === other.targetValue
   }
 }
-
-export class TargetSerde implements Serde<Target, string> {
-  equals(target1: Target, target2: Target): boolean {
-    return target1.targetValue === target2.targetValue
-  }
-
-  serialize(target: Target): string {
-    return target.targetValue.toString()
-  }
-
-  deserialize(data: string): Target {
-    if (typeof data !== 'string') {
-      throw new Error('Can only deserialize Target from string')
-    }
-    return new Target(data)
-  }
-}
-
-export const TargetSerdeInstance = new TargetSerde()

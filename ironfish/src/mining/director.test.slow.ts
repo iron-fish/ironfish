@@ -116,7 +116,7 @@ describe('Mining director', () => {
       await expect(chain).toAddBlock(previous)
       const [event] = await promise
 
-      const partial = new PartialBlockHeaderSerde(chain.strategy).deserialize(event.bytes)
+      const partial = new PartialBlockHeaderSerde().deserialize(event.bytes)
 
       expect(event.target.targetValue).toEqual(
         Target.calculateTarget(new Date(now), previous.header.timestamp, previous.header.target)
