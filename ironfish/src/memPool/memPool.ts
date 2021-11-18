@@ -69,7 +69,7 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
-    const hash = transaction.transactionHash()
+    const hash = transaction.hash()
 
     if (this.transactions.has(hash)) {
       return false
@@ -111,7 +111,7 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      const hash = transaction.transactionHash()
+      const hash = transaction.hash()
 
       if (!this.transactions.has(hash)) {
         await this.addTransaction(transaction)
@@ -125,13 +125,13 @@ export class MemPool {
   }
 
   private async addTransaction(transaction: Transaction): Promise<void> {
-    const hash = transaction.transactionHash()
+    const hash = transaction.hash()
     this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.transactionFee(), hash })
+    this.queue.add({ fee: await transaction.fee(), hash })
   }
 
   private deleteTransaction(transaction: Transaction): void {
-    const hash = transaction.transactionHash()
+    const hash = transaction.hash()
     this.transactions.delete(hash)
     this.queue.removeOne((t) => t.hash.equals(hash))
   }

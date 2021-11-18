@@ -59,15 +59,9 @@ describe('MemPool', () => {
       const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
 
-      jest
-        .spyOn(transactionA, 'transactionFee')
-        .mockImplementationOnce(() => Promise.resolve(BigInt(1)))
-      jest
-        .spyOn(transactionB, 'transactionFee')
-        .mockImplementationOnce(() => Promise.resolve(BigInt(4)))
-      jest
-        .spyOn(transactionC, 'transactionFee')
-        .mockImplementationOnce(() => Promise.resolve(BigInt(3)))
+      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
+      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(3)))
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -133,9 +127,9 @@ describe('MemPool', () => {
 
         await memPool.acceptTransaction(transaction)
 
-        const hash = transaction.transactionHash()
+        const hash = transaction.hash()
         expect(add).toHaveBeenCalledTimes(1)
-        expect(add).toHaveBeenCalledWith({ fee: await transaction.transactionFee(), hash })
+        expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
         expect(set).toHaveBeenCalledTimes(1)
         expect(set).toHaveBeenCalledWith(hash, transaction)
       }, 60000)
@@ -158,8 +152,8 @@ describe('MemPool', () => {
         accountA,
         accountB,
       )
-      const hashA = transactionA.transactionHash()
-      const hashB = transactionB.transactionHash()
+      const hashA = transactionA.hash()
+      const hashB = transactionB.hash()
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -190,9 +184,9 @@ describe('MemPool', () => {
       await chain.addBlock(block)
 
       await chain.removeBlock(block.header.hash)
-      const hash = transaction.transactionHash()
+      const hash = transaction.hash()
       expect(transactions.get(hash)).not.toBeUndefined()
-      expect(add).toHaveBeenCalledWith({ fee: await transaction.transactionFee(), hash })
+      expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
     }, 60000)
   })
 })

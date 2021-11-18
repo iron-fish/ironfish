@@ -152,7 +152,7 @@ export class Transaction {
    * The transaction fee is the difference between outputs and spends on the
    * transaction.
    */
-  transactionFee(): Promise<bigint> {
+  fee(): Promise<bigint> {
     return this.workerPool.transactionFee(this)
   }
 
@@ -166,12 +166,12 @@ export class Transaction {
   /**
    * Get the transaction hash.
    */
-  transactionHash(): TransactionHash {
-    return this.withReference((t) => Buffer.from(t.transactionHash))
+  hash(): TransactionHash {
+    return this.withReference((t) => Buffer.from(t.hash))
   }
 
   equals(other: Transaction): boolean {
-    return this.transactionHash().equals(other.transactionHash())
+    return this.hash().equals(other.hash())
   }
 
   expirationSequence(): number {

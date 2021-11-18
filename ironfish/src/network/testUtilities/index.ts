@@ -4,6 +4,7 @@
 
 import '../../testUtilities/matchers'
 
+export * from './mockHostsStore'
 export * from './mockIdentity'
 export * from './mockLocalPeer'
 export * from './mockPrivateIdentity'
