@@ -12,7 +12,7 @@ export class AsyncUtils {
   }
 
   static async *transform<TIn, TOut>(
-    iter: AsyncGenerator<TIn, unknown, unknown>,
+    iter: AsyncIterable<TIn>,
     transformer: (value: TIn) => TOut,
   ): AsyncGenerator<TOut, void, void> {
     for await (const result of iter) {
