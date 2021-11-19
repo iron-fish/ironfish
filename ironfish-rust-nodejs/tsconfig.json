@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": ".",
+    "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
   "include": ["index.ts", "index.node", "index.node.d.ts"],
   "exclude": []

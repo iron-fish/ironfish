@@ -40,7 +40,6 @@ export function handleCreateTransaction({
   expirationSequence,
 }: CreateTransactionRequest): CreateTransactionResponse {
   const transaction = new Transaction()
-  transaction.set_expiration_sequence(expirationSequence)
 
   for (const spend of spends) {
     const note = Note.deserialize(spend.note)
