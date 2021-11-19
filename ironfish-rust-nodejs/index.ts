@@ -160,7 +160,7 @@ export class Transaction {
   }
 
   setExpirationSequence(expirationSequence: number): undefined {
-    return native.transactionExpirationSequence.call(this.boxedData, expirationSequence)
+    return native.transactionSetExpirationSequence.call(this.boxedData, expirationSequence)
   }
 }
 
