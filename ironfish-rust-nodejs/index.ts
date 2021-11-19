@@ -159,7 +159,7 @@ export class Transaction {
     return new TransactionPosted(native.transactionPost.call(this.boxedData, spenderHexKey, changeGoesTo, intendedTransactionFee.toString()));
   }
 
-  set_expiration_sequence(expirationSequence: number): undefined {
+  setExpirationSequence(expirationSequence: number): undefined {
     return native.transactionExpirationSequence.call(this.boxedData, expirationSequence)
   }
 }

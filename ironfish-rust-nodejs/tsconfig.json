@@ -2,7 +2,7 @@
   "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": ".",
+    "outDir": "build",
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
   "include": ["index.ts", "index.node", "index.node.d.ts"],
