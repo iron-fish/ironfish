@@ -498,6 +498,11 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         self.expiration_sequence
     }
 
+    /// Set the sequence to expire the transaction from the mempool.
+    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
+        self.expiration_sequence = expiration_sequence;
+    }
+
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.

@@ -170,6 +170,14 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
         "transactionPostedHash",
         structs::NativeTransactionPosted::hash,
     )?;
+    cx.export_function(
+        "transactionExpirationSequence",
+        structs::NativeTransactionPosted::expiration_sequence,
+    )?;
+    cx.export_function(
+        "transactionSetExpirationSequence",
+        structs::NativeTransactionPosted::set_expiration_sequence,
+    )?;
 
     Ok(())
 }

@@ -166,6 +166,26 @@ impl NativeTransactionPosted {
 
         Ok(bytes)
     }
+
+    pub fn set_expiration_sequence(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+        let transaction = cx
+            .this()
+            .downcast_or_throw::<JsBox<RefCell<NativeTransactionPosted>>, _>(&mut cx)?;
+        let expiration_sequence = cx.argument::<JsNumber>(0)?.value(&mut cx) as u32;
+        transaction
+            .borrow_mut()
+            .transaction
+            .set_expiration_sequence(expiration_sequence);
+
+        Ok(cx.undefined())
+    }
+
+    pub fn expiration_sequence(mut cx: FunctionContext) -> JsResult<JsNumber> {
+        let transaction = cx
+            .this()
+            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
+        Ok(cx.number(transaction.transaction.expiration_sequence()))
+    }
 }
 
 type BoxedNativeTransaction = JsBox<RefCell<NativeTransaction>>;
