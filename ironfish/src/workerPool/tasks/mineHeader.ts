@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Job } from '../job'
-import { mineHeader } from '../../mining'
+import { mineHeader } from '../../mining/mineHeader'
 
 export type MineHeaderRequest = {
   type: 'mineHeader'

@@ -16,12 +16,6 @@ import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
-import {
-  GetBlockHashesResponse,
-  GetBlocksResponse,
-  isGetBlocksRequest,
-  isNewBlockPayload,
-} from '.'
 import { PrivateIdentity } from './identity'
 import { Identity } from './identity'
 import {
@@ -37,6 +31,12 @@ import {
   Rpc,
   RpcRouter,
 } from './messageRouters'
+import {
+  GetBlockHashesResponse,
+  GetBlocksResponse,
+  isGetBlocksRequest,
+  isNewBlockPayload,
+} from './messages'
 import {
   DisconnectingMessage,
   DisconnectingReason,

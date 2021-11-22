@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { mocked } from 'ts-jest/utils'
-import { mineHeader, Miner, MineRequest } from '..'
 import * as blockHeaderModule from '../primitives/blockheader'
+import { mineHeader } from './mineHeader'
+import { Miner, MineRequest } from './miner'
 
 jest.mock('../primitives/blockheader')
 

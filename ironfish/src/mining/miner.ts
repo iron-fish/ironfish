@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Meter } from '..'
 import { Event } from '../event'
+import { Meter } from '../metrics'
 import { WorkerPool } from '../workerPool'
 
 export type MineRequest = {
@@ -16,7 +16,7 @@ export type MineRequest = {
 /**
  * Return value from a mining task.
  *
- * @param initialRandomness the value that was passed into the task
+ * @param initialRandomness the value that waxs passed into the task
  * for the initial randomness. Used by the calling code as a task id
  * @param randomness if defined, a value for randomness that was found
  * while mining the task. If undefined, none of the BATCH_SIZE attempts
@@ -28,7 +28,7 @@ export type MineResult = {
   miningRequestId?: number
 }
 
-export default class Miner {
+export class Miner {
   readonly workerPool: WorkerPool
   readonly batchSize: number
   readonly hashRate: Meter
@@ -89,6 +89,7 @@ export default class Miner {
       blockPromise = newBlocksIterator.next()
     }
 
+    this.hashRate.stop()
     await this.workerPool.stop()
   }
 

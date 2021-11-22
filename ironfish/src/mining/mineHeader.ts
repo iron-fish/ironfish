@@ -2,23 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Job } from '../workerPool/job'
 import { hashBlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { Job } from '../workerPool/job'
 
-/**
- * Given header bytes and a target value, attempts to find a randomness
- * value that causes the header hash to meet the target.
- *
- * @param headerBytesWithoutRandomness The bytes to be appended to randomness to generate a header
- * @param miningRequestId An identifier that is passed back to the miner when returning a
- *        successfully mined block
- * @param initialRandomness The first randomness value to attempt. Will try the next
- *        batchSize randomness values after that
- * @param targetValue The target value that a block hash must meet.
- * @param batchSize The number of attempts to mine that should be made in this batch.
- *        Each attempt increments the randomness starting from initialRandomness
- */
 export function mineHeader({
   miningRequestId,
   headerBytesWithoutRandomness,
