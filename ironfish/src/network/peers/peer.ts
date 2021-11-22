@@ -126,11 +126,6 @@ export class Peer {
   }
 
   /**
-   * Is the peer a worker node that should not be advertised
-   */
-  isWorker = false
-
-  /**
    * Is the peer a node we will always attempt to connect to
    */
   isWhitelisted = false
