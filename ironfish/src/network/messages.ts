@@ -89,7 +89,6 @@ export type Identify = Message<
   InternalMessageType.identity,
   {
     identity: Identity
-    isWorker?: boolean
     name?: string
     version: number
     agent: string

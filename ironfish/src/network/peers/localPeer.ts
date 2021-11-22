@@ -30,10 +30,6 @@ export class LocalPeer {
   port: number | null
   // optional a human readable name for the node
   name: string | null
-  // is the node a worker node that should not be advertised
-  isWorker = false
-  // should we broadcast worker nodes anyway?
-  broadcastWorkers = true
   // simulated latency in MS that gets added to connection.send
   simulateLatency = 0
 
@@ -55,7 +51,6 @@ export class LocalPeer {
     this.webSocket = webSocket
     this.port = null
     this.name = null
-    this.isWorker = false
   }
 
   /**
@@ -68,7 +63,6 @@ export class LocalPeer {
       type: InternalMessageType.identity,
       payload: {
         identity: this.publicIdentity,
-        isWorker: this.isWorker || undefined,
         version: this.version,
         agent: this.agent,
         name: this.name || undefined,
