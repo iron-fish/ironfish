@@ -23,7 +23,6 @@
     "lint:changed": "lerna run --since origin/master --include-dependents lint",
     "lint:fix": "lerna run lint:fix",
     "lint:ci": "lerna run lint:ci",
-    "preinstall": "node tools/node-platform-check",
     "postinstall": "(cd ironfish-rust-nodejs && yarn build)",
     "test": "lerna run test",
     "test:coverage": "lerna run test --stream --concurrency 1 -- --collect-coverage",
