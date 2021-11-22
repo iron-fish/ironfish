@@ -138,8 +138,6 @@ export class PeerNetwork {
     minPeers?: number
     targetPeers?: number
     enableSyncing?: boolean
-    isWorker?: boolean
-    broadcastWorkers?: boolean
     logPeerMessages?: boolean
     simulateLatency?: number
     logger?: Logger
@@ -170,10 +168,7 @@ export class PeerNetwork {
 
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
-    this.localPeer.isWorker = options.isWorker || false
     this.localPeer.simulateLatency = options.simulateLatency || 0
-    this.localPeer.broadcastWorkers =
-      options.broadcastWorkers === undefined ? true : options.broadcastWorkers
 
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50

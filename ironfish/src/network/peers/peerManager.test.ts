@@ -1564,36 +1564,6 @@ describe('PeerManager', () => {
       expect(sendToSpy).toBeCalledTimes(1)
       expect(sendToSpy).toHaveBeenCalledWith(peer, peerList)
     })
-
-    it('Does not broadcast worker peers', () => {
-      const peerIdentity = mockIdentity('peer')
-
-      const localPeer = mockLocalPeer()
-      localPeer.broadcastWorkers = false
-
-      const pm = new PeerManager(localPeer, new AddressManager(mockHostsStore()))
-      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
-      peer.isWorker = true
-
-      expect(pm.peers.length).toBe(1)
-      expect(pm.identifiedPeers.size).toBe(1)
-
-      const peerListRequest: PeerListRequest = {
-        type: InternalMessageType.peerListRequest,
-      }
-
-      const emptyPeerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [],
-        },
-      }
-
-      const sendToSpy = jest.spyOn(pm, 'sendTo')
-      peer.onMessage.emit(peerListRequest, connection)
-      expect(sendToSpy).toBeCalledTimes(1)
-      expect(sendToSpy).toHaveBeenCalledWith(peer, emptyPeerList)
-    })
   })
 
   describe('Message: PeerList', () => {

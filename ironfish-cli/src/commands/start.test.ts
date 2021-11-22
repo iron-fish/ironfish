@@ -55,7 +55,6 @@ describe('start command', () => {
     const configOptions = {
       enableTelemetry: false,
       nodeName: '',
-      isWorker: false,
       bootstrapNodes: [],
       blockGraffiti: defaultGraffiti,
       generateNewIdentity: false,
