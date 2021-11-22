@@ -13,7 +13,7 @@ See https://ironfish.network
 
 ## Install
 
-1. Install [Node.js 14.x](https://nodejs.org/en/download/)
+1. Install [Node.js 16.x](https://nodejs.org/en/download/)
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:

@@ -4,7 +4,7 @@
   "description": "Command line Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   },
   "devDependencies": {
     "@oclif/dev-cli": "^1",
