@@ -27,7 +27,7 @@ cat <<< "$(jq 'del(.scripts.preinstall)' < package.json)" > package.json
 cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
 
 echo "Building Rust"
-( cd ironfish-rust-nodejs && yarn build )
+( cd ironfish-rust-nodejs && yarn && yarn build )
 
 echo "Installing from lockfile"
 yarn --non-interactive --frozen-lockfile
