@@ -3341,10 +3341,10 @@ dateformat@^3.0.0, dateformat@^3.0.3:
   resolved "https://registry.yarnpkg.com/dateformat/-/dateformat-3.0.3.tgz#a6e37499a4d9a9cf85ef5872044d62901c9889ae"
   integrity sha512-jyCETtSl3VMZMWeRo7iY1FL19ges1t55hMo5yaam4Jrsm5EPL89UQkoQRyiI+Yf4k8r2ZpdngkV8hr1lIdjb3Q==
 
-debug@4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1:
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.1.tgz#f0d229c505e0c6d8c49ac553d1b13dc183f6b2ee"
-  integrity sha512-doEwdvm4PCeK4K3RQN2ZC2BYUBaxwLARCqZmMjtF8a51J2Rb0xpVloFRnCODwqjpwnAoao4pelN8l3RJdv3gRQ==
+debug@4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.3.1:
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.2.tgz#f0a49c18ac8779e31d4a0c6029dfb76873c7428b"
+  integrity sha512-mOp8wKcvj7XxC78zLgw/ZA+6TSgkoE2C/ienthhRD298T7UNwAg9diBpLRxC0mOezLl4B0xV7M0cCO6P/O0Xhw==
   dependencies:
     ms "2.1.2"
 
@@ -3361,13 +3361,6 @@ debug@^3.1.0, debug@^3.2.7:
   integrity sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==
   dependencies:
     ms "^2.1.1"
-
-debug@^4.3.1:
-  version "4.3.2"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.2.tgz#f0a49c18ac8779e31d4a0c6029dfb76873c7428b"
-  integrity sha512-mOp8wKcvj7XxC78zLgw/ZA+6TSgkoE2C/ienthhRD298T7UNwAg9diBpLRxC0mOezLl4B0xV7M0cCO6P/O0Xhw==
-  dependencies:
-    ms "2.1.2"
 
 debuglog@^1.0.1:
   version "1.0.1"
@@ -7488,10 +7481,10 @@ object.values@^1.1.3, object.values@^1.1.4:
     define-properties "^1.1.3"
     es-abstract "^1.18.2"
 
-oclif@1.16.1:
-  version "1.16.1"
-  resolved "https://registry.yarnpkg.com/oclif/-/oclif-1.16.1.tgz#24131db5ed2f3a4ae538111bd8b75aa994dd6090"
-  integrity sha512-jCHGL6lH2tFWi41fUYSO4KSMvJLX/bEBetK3/w0H/LlxtFKdo2JAKSYuu5QwTn/HLnWkxzjBvdgbkNZGg8NBkA==
+oclif@1.18.1:
+  version "1.18.1"
+  resolved "https://registry.yarnpkg.com/oclif/-/oclif-1.18.1.tgz#07f7244932652967728ae58038a6652b51b43934"
+  integrity sha512-bX9lwpEBHcWhUldHOCstS08JOo69lQfS3qCeimJRGdXKflewarwEWZiWG2vTJi30KuwT0YyObCAJO7Ux1XI9ew==
   dependencies:
     "@oclif/command" "^1.6"
     "@oclif/config" "^1.12.6"
@@ -7500,13 +7493,19 @@ oclif@1.16.1:
     "@oclif/plugin-help" "^3"
     "@oclif/plugin-not-found" "^1.2.2"
     "@oclif/plugin-warn-if-update-available" "^1.5.4"
+    cli-ux "^5.2.1"
     debug "^4.1.1"
+    find-yarn-workspace-root "^2.0.0"
+    fs-extra "^8.1"
+    github-slugger "^1.2.1"
     lodash "^4.17.11"
+    normalize-package-data "^3.0.0"
     nps-utils "^1.7.0"
+    qqjs "^0.3.10"
     sort-pjson "^1.0.3"
-    tslib "^1.9.3"
+    tslib "^2.0.0"
     yeoman-environment "^2.3.4"
-    yeoman-generator "^3.2.0"
+    yeoman-generator "3"
     yosay "^2.0.2"
 
 once@^1.3.0, once@^1.3.1, once@^1.4.0:
@@ -10275,7 +10274,7 @@ yeoman-environment@^2.0.5, yeoman-environment@^2.3.4, yeoman-environment@^2.9.5:
     untildify "^3.0.3"
     yeoman-generator "^4.8.2"
 
-yeoman-generator@^3.2.0:
+yeoman-generator@3:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/yeoman-generator/-/yeoman-generator-3.2.0.tgz#02077d2d7ff28fedc1ed7dad7f9967fd7c3604cc"
   integrity sha512-iR/qb2je3GdXtSfxgvOXxUW0Cp8+C6LaZaNlK2BAICzFNzwHtM10t/QBwz5Ea9nk6xVDQNj4Q889TjCXGuIv8w==
