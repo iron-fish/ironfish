@@ -50,7 +50,7 @@
     "@types/jest": "26.0.23",
     "@types/leveldown": "4.0.2",
     "@types/levelup": "4.3.0",
-    "@types/lodash": "4.14.170",
+    "@types/lodash": "4.14.177",
     "@types/uuid": "^8.0.1",
     "@types/ws": "7.4.5",
     "@types/yup": "0.29.10",
