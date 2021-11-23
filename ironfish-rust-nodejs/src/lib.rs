@@ -125,6 +125,10 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
         "transactionPostMinersFee",
         structs::NativeTransaction::post_miners_fee,
     )?;
+    cx.export_function(
+        "transactionSetExpirationSequence",
+        structs::NativeTransaction::set_expiration_sequence,
+    )?;
 
     cx.export_function("spendProofNullifier", structs::NativeSpendProof::nullifier)?;
     cx.export_function("spendProofRootHash", structs::NativeSpendProof::root_hash)?;
@@ -173,10 +177,6 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function(
         "transactionExpirationSequence",
         structs::NativeTransactionPosted::expiration_sequence,
-    )?;
-    cx.export_function(
-        "transactionSetExpirationSequence",
-        structs::NativeTransactionPosted::set_expiration_sequence,
     )?;
 
     Ok(())
