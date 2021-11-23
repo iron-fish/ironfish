@@ -22,18 +22,14 @@ echo "Inserting GIT hash into ironfish/package.json as gitHash"
 GIT_HASH=$(git rev-parse --short HEAD)
 cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
 
-echo "Removing lifecycle scripts"
-cat <<< "$(jq 'del(.scripts.preinstall)' < package.json)" > package.json
-cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
-
-echo "Building Rust"
-( cd ironfish-rust-nodejs && yarn && yarn build )
-
 echo "Installing from lockfile"
 yarn --non-interactive --frozen-lockfile
 
 echo "Building all projects"
 yarn build
+
+echo "Removing lifecycle scripts"
+cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
 
 cd ironfish-cli
 echo "Outputting build to $PWD/build.cli"
