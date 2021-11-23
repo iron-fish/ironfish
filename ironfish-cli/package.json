@@ -41,7 +41,7 @@
   },
   "license": "MPL-2.0",
   "dependencies": {
-    "@oclif/command": "1.8.0",
+    "@oclif/command": "1.8.3",
     "@oclif/config": "1.17.0",
     "@oclif/plugin-help": "3.2.2",
     "@oclif/plugin-not-found": "1.2.4",
