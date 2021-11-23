@@ -28,7 +28,7 @@
     "parse-json": "5.1.0",
     "tweetnacl": "1.0.3",
     "uuid": "^8.3.0",
-    "yup": "0.29.3"
+    "yup": "0.32.11"
   },
   "scripts": {
     "build": "tsc -b",
