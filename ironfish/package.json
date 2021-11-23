@@ -20,7 +20,7 @@
     "hex-array": "1.0.0",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",
-    "leveldown": "5.6.0",
+    "leveldown": "6.1.0",
     "levelup": "4.4.0",
     "lodash": "^4.17.20",
     "node-datachannel": "0.1.12",
