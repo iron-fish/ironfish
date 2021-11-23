@@ -15,7 +15,7 @@
     "buffer-json": "2.0.0",
     "buffer-map": "0.0.7",
     "colors": "1.4.0",
-    "consola": "2.15.0",
+    "consola": "2.15.3",
     "date-fns": "2.16.1",
     "hex-array": "1.0.0",
     "imurmurhash": "0.1.4",
