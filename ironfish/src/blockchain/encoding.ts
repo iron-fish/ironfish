@@ -16,15 +16,11 @@ export class BlockHeaderEncoding implements IDatabaseEncoding<BlockHeader> {
   }
 
   serialize(value: BlockHeader): Buffer {
-    const serialized = this.headerSerializer.serialize(value)
-    const buffer = this.jsonSerializer.serialize(serialized)
-    return buffer
+    return this.headerSerializer.serialize(value)
   }
 
   deserialize(data: Buffer): BlockHeader {
-    const json = this.jsonSerializer.deserialize(data)
-    const deserialized = this.headerSerializer.deserialize(json)
-    return deserialized
+    return this.headerSerializer.deserialize(data)
   }
 
   equals(): boolean {

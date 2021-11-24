@@ -97,7 +97,7 @@ export class Block {
 }
 
 export type SerializedBlock = {
-  header: SerializedBlockHeader
+  header: Buffer
   transactions: SerializedTransaction[]
 }
 

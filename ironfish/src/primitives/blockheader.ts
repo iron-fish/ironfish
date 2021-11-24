@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bufio from 'bufio'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
@@ -11,6 +12,7 @@ import { Target } from './target'
 export type BlockHash = Buffer
 
 import { createHash } from 'blake3-wasm'
+import { BigIntUtils } from '..'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
@@ -212,7 +214,7 @@ export type SerializedBlockHeader = {
   graffiti: string
 }
 
-export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeader> {
+export class BlockHeaderSerde implements Serde<BlockHeader, Buffer> {
   constructor(readonly strategy: Strategy) {}
 
   equals(element1: BlockHeader, element2: BlockHeader): boolean {
@@ -237,62 +239,48 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     )
   }
 
-  serialize(header: BlockHeader): SerializedBlockHeader {
-    const serialized = {
-      sequence: header.sequence,
-      previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
-      noteCommitment: {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .serialize(header.noteCommitment.commitment),
-        size: header.noteCommitment.size,
-      },
-      nullifierCommitment: {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .serialize(header.nullifierCommitment.commitment),
-        size: header.nullifierCommitment.size,
-      },
-      target: header.target.targetValue.toString(),
-      randomness: header.randomness,
-      timestamp: header.timestamp.getTime(),
-      minersFee: header.minersFee.toString(),
-      work: header.work.toString(),
-      hash: BlockHashSerdeInstance.serialize(header.hash),
-      graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
-    }
-
-    return serialized
+  serialize(header: BlockHeader): Buffer {
+    const bw = bufio.write()
+    bw.writeU64(header.sequence)
+    bw.writeHash(header.previousBlockHash)
+    bw.writeHash(header.noteCommitment.commitment)
+    bw.writeU64(header.noteCommitment.size)
+    bw.writeHash(header.nullifierCommitment.commitment)
+    bw.writeU64(header.nullifierCommitment.size)
+    bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
+    bw.writeU64(header.randomness)
+    bw.writeU64(header.timestamp.getTime())
+    bw.writeBytes(BigIntUtils.toBytesBE(header.minersFee, 8))
+    bw.writeVarBytes(header.graffiti)
+    bw.writeVarBytes(BigIntUtils.toBytes(header.work))
+    bw.writeHash(header.hash)
+    return bw.render()
   }
 
-  deserialize(data: SerializedBlockHeader): BlockHeader {
+  deserialize(data: Buffer): BlockHeader {
     // TODO: this needs to make assertions on the data format
     // as it can be from untrusted sources
+    const br = bufio.read(data)
     const header = new BlockHeader(
       this.strategy,
-      Number(data.sequence),
-      Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
+      Number(br.readU64()),
+      br.readHash(),
       {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .deserialize(data.noteCommitment.commitment),
-        size: data.noteCommitment.size,
+        commitment: br.readHash(),
+        size: br.readU64(),
       },
       {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .deserialize(data.nullifierCommitment.commitment),
-        size: data.nullifierCommitment.size,
+        commitment: br.readHash(),
+        size: br.readU64(),
       },
-      new Target(data.target),
-      data.randomness,
-      new Date(data.timestamp),
-      BigInt(data.minersFee),
-      Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-      data.work ? BigInt(data.work) : BigInt(0),
-      Buffer.from(BlockHashSerdeInstance.deserialize(data.hash)),
+      new Target(br.readBytes(32)),
+      br.readU64(),
+      new Date(br.readU64()),
+      BigIntUtils.fromBytes(br.readBytes(8)),
+      br.readVarBytes(),
+      BigIntUtils.fromBytes(br.readVarBytes()),
+      br.readHash(),
     )
-
     return header
   }
 }

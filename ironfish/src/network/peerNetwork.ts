@@ -768,8 +768,9 @@ export class PeerNetwork {
     try {
       return await this.node.syncer.addNewBlock(peer, block)
     } catch (error) {
+      const blockHeader = this.strategy.blockHeaderSerde.deserialize(block.header)
       this.logger.error(
-        `Error when adding new block ${block.header.sequence} from ${
+        `Error when adding new block ${blockHeader.sequence} from ${
           peer.displayName
         }: ${ErrorUtils.renderError(error, true)}`,
       )
