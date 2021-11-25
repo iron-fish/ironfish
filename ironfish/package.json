@@ -18,6 +18,7 @@
     "colors": "1.4.0",
     "consola": "2.15.0",
     "date-fns": "2.16.1",
+    "fastpriorityqueue": "0.7.1",
     "hex-array": "1.0.0",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",

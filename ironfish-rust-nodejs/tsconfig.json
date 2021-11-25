@@ -7,4 +7,3 @@
   "include": ["index.ts", "index.node", "index.node.d.ts"],
   "exclude": []
 }
-  

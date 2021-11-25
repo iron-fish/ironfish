@@ -158,6 +158,10 @@ export class Transaction {
 
     return new TransactionPosted(native.transactionPost.call(this.boxedData, spenderHexKey, changeGoesTo, intendedTransactionFee.toString()));
   }
+
+  setExpirationSequence(expirationSequence: number): undefined {
+    return native.transactionSetExpirationSequence.call(this.boxedData, expirationSequence)
+  }
 }
 
 class SpendProof {
@@ -232,6 +236,10 @@ export class TransactionPosted {
 
   get transactionSignature(): Buffer {
     return native.transactionPostedTransactionSignature.call(this.boxedData);
+  }
+
+  get expirationSequence(): number {
+    return native.transactionExpirationSequence.call(this.boxedData);
   }
 }
 

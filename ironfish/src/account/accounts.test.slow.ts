@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from 'ironfish-rust-nodejs'
 import { Target } from '../primitives/target'
+import { ValidationError } from '../rpc/adapters/errors'
 import {
   createNodeTest,
   useAccountFixture,
@@ -166,6 +167,8 @@ describe('Accounts', () => {
       BigInt(0),
       '',
       generateKey().public_address,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      0,
     )
 
     // Create a block with a miner's fee
@@ -229,6 +232,11 @@ describe('Accounts', () => {
       BigInt(0),
       '',
       generateKey().public_address,
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
+    )
+
+    expect(transaction.expirationSequence()).toBe(
+      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
     )
 
     // Create a block with a miner's fee
@@ -248,6 +256,27 @@ describe('Accounts', () => {
       unconfirmed: BigInt(1999999998),
     })
   }, 600000)
+
+  it('throws a ValidationError with an invalid expiration sequence', async () => {
+    const node = nodeTest.node
+    node.accounts['workerPool'].start()
+
+    const account = await node.accounts.createAccount('test', true)
+
+    // Spend the balance with an invalid expiration
+    await expect(
+      node.accounts.pay(
+        node.memPool,
+        account,
+        BigInt(2),
+        BigInt(0),
+        '',
+        generateKey().public_address,
+        node.config.get('defaultTransactionExpirationSequenceDelta'),
+        1,
+      ),
+    ).rejects.toThrowError(ValidationError)
+  }, 60000)
 
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
@@ -283,6 +312,7 @@ describe('Accounts', () => {
         BigInt(1),
         '',
         accountB.publicAddress,
+        0,
       )
 
       // Create block 2
@@ -308,6 +338,7 @@ describe('Accounts', () => {
         BigInt(1),
         '',
         accountC.publicAddress,
+        0,
       ),
     ).resolves.toBeTruthy()
   }, 600000)
@@ -409,6 +440,7 @@ describe('Accounts', () => {
           BigInt(0),
           '',
           accountB.publicAddress,
+          0,
         )
 
         // Create block A2
@@ -505,6 +537,7 @@ describe('Accounts', () => {
           BigInt(0),
           '',
           accountB.publicAddress,
+          0,
         )
 
         // Create block A2

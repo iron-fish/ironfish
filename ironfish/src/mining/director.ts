@@ -333,7 +333,7 @@ export class MiningDirector {
     const blockTransactions = []
 
     // Fetch all transactions for the block
-    for await (const transaction of this.memPool.get()) {
+    for (const transaction of this.memPool.get()) {
       if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
         break
       }
