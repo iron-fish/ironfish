@@ -146,11 +146,13 @@ export class WorkerPool {
       }[]
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
+    expirationSequence: number,
   ): Promise<Transaction> {
     const request: CreateTransactionRequest = {
       type: 'createTransaction',
       spendKey,
       transactionFee,
+      expirationSequence,
       spends: spends.map((s) => ({
         ...s,
         note: s.note.serialize(),

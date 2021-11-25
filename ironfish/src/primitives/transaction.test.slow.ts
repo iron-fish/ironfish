@@ -68,6 +68,7 @@ describe('Accounts', () => {
       BigInt(1),
       '',
       accountB.publicAddress,
+      0,
     )
     expect(await transaction.isMinersFee()).toBe(false)
   }, 600000)
