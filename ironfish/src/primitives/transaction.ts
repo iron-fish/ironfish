@@ -175,6 +175,10 @@ export class Transaction {
   equals(other: Transaction): boolean {
     return this.hash().equals(other.hash())
   }
+
+  expirationSequence(): number {
+    return this.withReference<number>((t) => t.expirationSequence)
+  }
 }
 
 /**
