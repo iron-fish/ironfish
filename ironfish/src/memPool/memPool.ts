@@ -130,7 +130,6 @@ export class MemPool {
       return false
     }
 
-    // it's faster to check if spends have been seen or not, so do that first
     for (const spend of transaction.spends()) {
       for (const seen of seenNullifiers) {
         if (this.strategy.nullifierHasher.hashSerde().equals(spend.nullifier, seen)) {
