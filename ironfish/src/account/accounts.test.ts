@@ -51,7 +51,7 @@ describe('Accounts', () => {
     expect(getTransactionsSpy).toBeCalledTimes(8)
   }, 8000)
 
-  it.only('should reproduce issue', async () => {
+  it('should handle transaction created on fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
