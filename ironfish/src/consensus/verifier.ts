@@ -184,6 +184,29 @@ export class Verifier {
     }
   }
 
+  async verifyTransactionAdd(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      const noteSize = await this.chain.notes.size(tx)
+
+      for (const spend of transaction.spends()) {
+        const reason = await this.chain.verifier.verifySpend(spend, noteSize, tx)
+        if (reason) {
+          return { valid: false, reason }
+        }
+      }
+
+      const validity = await transaction.verify()
+      if (!validity.valid) {
+        return validity
+      }
+
+      return { valid: true }
+    })
+  }
+
   /**
    * Verify that the header of this block is consistent with the one before it.
    *
@@ -321,6 +344,7 @@ export class Verifier {
     if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
       return VerificationResultReason.DOUBLE_SPEND
     }
+
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
       if (!this.strategy.noteHasher.hashSerde().equals(spend.commitment, realSpendRoot)) {
