@@ -70,7 +70,7 @@ export class ChainProcessor {
     // a more robust locking mechanism in place (IRO-1212) - deekerno
     const chainHeadHeader = this.chain.head
 
-    const { fork, isLinear } = await this.chain.findFork(head, this.chain.head)
+    const { fork, isLinear } = await this.chain.findFork(head, chainHeadHeader)
     if (!fork) {
       return
     }
