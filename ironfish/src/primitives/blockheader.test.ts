@@ -10,7 +10,7 @@ import { Target } from './target'
 describe('BlockHeaderSerde', () => {
   const nodeTest = createNodeTest()
 
-  it('checks equal block headers', () => {
+  xit('checks equal block headers', () => {
     const { strategy } = nodeTest
     const serde = strategy.blockHeaderSerde
 

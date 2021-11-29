@@ -13,7 +13,7 @@ import {
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
-import { genesisBlockData } from '../genesis'
+import { genesisBlockData, newGenesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -233,7 +233,44 @@ export class Blockchain {
 
   private async seed() {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = this.strategy.blockSerde.deserialize(serialized)
+    const oldTransactions = serialized.transactions.map((t) =>
+      this.strategy.transactionSerde.deserialize(t),
+    )
+    const transactions = newGenesisBlockData.transactions.map((t) =>
+      this.strategy.transactionSerde.deserialize(Buffer.from(t, 'base64')),
+    )
+
+    const newSerialized = Buffer.from(newGenesisBlockData.header, 'base64')
+    const b1 = this.strategy.blockHeaderSerde.deserialize(newSerialized)
+    const newBlock1 = new Block(b1, transactions)
+    const newBlockHeader = new BlockHeader(
+      this.strategy,
+      Number(1),
+      Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
+      {
+        commitment: Buffer.from('jNBBtbipwbj/XoPyxtyfKFjKQ0oXNbGYoQUplM2ZJQo=', 'base64'),
+        size: 3,
+      },
+      {
+        commitment: Buffer.from(
+          '64DB0DD35E49EE735EECC79FDAE6764C42BFF27FEF35D73A6F404E666A1F13C6',
+          'hex',
+        ),
+        size: 1,
+      },
+      new Target('883423532389192164791648750371459257913741948437809479060803100646309888'),
+      0,
+      new Date(1624308639318),
+      BigInt(0),
+      Buffer.from('67656E6573697300000000000000000000000000000000000000000000000000', 'hex'),
+      BigInt(0),
+      Buffer.from('8362F37E70789DBB0B617F4256B3792E3239606D2F715C294D339649F2F56567', 'hex'),
+    )
+
+    const newBlock = new Block(newBlockHeader, transactions)
+    const seriaizedBlock = this.strategy.blockSerde.serialize(newBlock)
+
+    const genesis = this.strategy.blockSerde.deserialize(seriaizedBlock)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)

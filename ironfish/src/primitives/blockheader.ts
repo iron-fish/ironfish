@@ -250,7 +250,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, Buffer> {
     bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
     bw.writeU64(header.randomness)
     bw.writeU64(header.timestamp.getTime())
-    bw.writeBytes(BigIntUtils.toBytesBE(header.minersFee, 8))
+    bw.writeBytes(BigIntUtils.toBytesBE(BigInt.asIntN(64,header.minersFee), 32))
     bw.writeVarBytes(header.graffiti)
     bw.writeVarBytes(BigIntUtils.toBytes(header.work))
     bw.writeHash(header.hash)
@@ -261,25 +261,38 @@ export class BlockHeaderSerde implements Serde<BlockHeader, Buffer> {
     // TODO: this needs to make assertions on the data format
     // as it can be from untrusted sources
     const br = bufio.read(data)
+    const sequence = br.readU64()
+    const previousBlockHash = br.readHash()
+    const noteCommitment = br.readHash()
+    const noteCommitmentSize = br.readU64()
+    const nullifierCommitment = br.readHash()
+    const nullifierCommitmentSize = br.readU64()
+    const target = br.readBytes(32)
+    const randomness = br.readU64()
+    const timestamp = br.readU64()
+    const minersFee = br.readBytes(32)
+    const graffiti = br.readVarBytes()
+    const work = br.readVarBytes()
+    const hash = br.readHash()
     const header = new BlockHeader(
       this.strategy,
-      Number(br.readU64()),
-      br.readHash(),
+      Number(sequence),
+      previousBlockHash,
       {
-        commitment: br.readHash(),
-        size: br.readU64(),
+        commitment: noteCommitment,
+        size: noteCommitmentSize,
       },
       {
-        commitment: br.readHash(),
-        size: br.readU64(),
+        commitment: nullifierCommitment,
+        size: nullifierCommitmentSize,
       },
-      new Target(br.readBytes(32)),
-      br.readU64(),
-      new Date(br.readU64()),
-      BigIntUtils.fromBytes(br.readBytes(8)),
-      br.readVarBytes(),
-      BigIntUtils.fromBytes(br.readVarBytes()),
-      br.readHash(),
+      new Target(target),
+      randomness,
+      new Date(timestamp),
+      BigIntUtils.fromBytes(minersFee),
+      graffiti,
+      BigIntUtils.fromBytes(work),
+      hash,
     )
     return header
   }
