@@ -65,7 +65,12 @@ export class ChainProcessor {
       return
     }
 
-    const { fork, isLinear } = await this.chain.findFork(head, this.chain.head)
+    // TODO: Using the value of this.chain.head instead of using
+    // this.chain.head directly is a _temporary_ fix until we have
+    // a more robust locking mechanism in place (IRO-1212) - deekerno
+    const chainHeadHeader = this.chain.head
+
+    const { fork, isLinear } = await this.chain.findFork(head, chainHeadHeader)
     if (!fork) {
       return
     }
@@ -82,7 +87,8 @@ export class ChainProcessor {
       }
     }
 
-    const iter = this.chain.iterateTo(fork, this.chain.head, undefined, false)
+    // TODO: Related to IRO-1212 as described above - deekerno
+    const iter = this.chain.iterateTo(fork, chainHeadHeader, undefined, false)
 
     for await (const add of iter) {
       if (add.hash.equals(fork.hash)) {
