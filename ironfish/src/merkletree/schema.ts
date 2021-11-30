@@ -5,8 +5,6 @@
 import { DatabaseSchema } from '../storage'
 import { LeafIndex, NodeIndex, Side } from './merkletree'
 
-export const SCHEMA_VERSION = 1
-
 interface CounterEntry<T extends string> extends DatabaseSchema {
   key: T
   value: number
