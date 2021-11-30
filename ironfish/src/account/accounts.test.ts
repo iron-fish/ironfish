@@ -71,8 +71,8 @@ describe('Accounts', () => {
     // Check nodeA balance
     await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
-      confirmed: BigInt(500000000),
-      unconfirmed: BigInt(500000000),
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
     })
 
     // This transaction will be invalid after the reorg
@@ -82,7 +82,7 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(499999999),
+      unconfirmed: BigInt(1999999999),
     })
 
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -102,11 +102,10 @@ describe('Accounts', () => {
       valid: false,
     })
 
-    // This should be be 500000000 for both once A1 is removed
     await nodeA.accounts.updateHead()
     expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(999999999),
+      unconfirmed: BigInt(3999999999),
     })
 
     // Check that it was last broadcast at its added height
