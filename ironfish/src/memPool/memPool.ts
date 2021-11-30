@@ -113,10 +113,16 @@ export class MemPool {
     for (const transaction of block.transactions) {
       const hash = transaction.hash()
 
-      if (!this.transactions.has(hash)) {
-        await this.addTransaction(transaction)
-        addedTransactions++
+      if (this.transactions.has(hash)) {
+        continue
       }
+
+      if (await transaction.isMinersFee()) {
+        continue
+      }
+
+      await this.addTransaction(transaction)
+      addedTransactions++
     }
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
