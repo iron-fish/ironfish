@@ -38,6 +38,10 @@ describe('Mining director', () => {
         .mockReturnValue(Promise.resolve())
 
       const previous = await useMinerBlockFixture(chain, 2)
+
+      // Fixture generation causes a call to generateBlockSpy
+      generateBlockSpy.mockClear()
+
       await expect(chain).toAddBlock(previous)
       await flushTimeout()
 
