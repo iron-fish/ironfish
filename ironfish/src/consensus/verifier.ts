@@ -214,8 +214,9 @@ export class Verifier {
     })
   }
 
-  isExpiredSequence(expirationSequence: number): boolean {
-    return expirationSequence !== 0 && expirationSequence <= this.chain.head.sequence
+  isExpiredSequence(expirationSequence: number, headSequence?: number): boolean {
+    headSequence = headSequence ?? this.chain.head.sequence
+    return expirationSequence !== 0 && expirationSequence <= headSequence
   }
 
   /**
