@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '..'
 import {
   createNodeTest,
   useAccountFixture,
@@ -179,14 +180,36 @@ describe('MemPool', () => {
       const add = jest.spyOn(queue, 'add')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+      const { block } = await useBlockWithTx(node, accountA, accountB)
+
+      // TODO: Remove this and use return value of useBlockWithTx when miners
+      // miners fee is always first on the block
+      let minersFee
+      let transaction
+      for (const tx of block.transactions) {
+        if (await tx.isMinersFee()) {
+          minersFee = tx
+        } else {
+          transaction = tx
+        }
+      }
+      Assert.isNotUndefined(minersFee)
+      Assert.isNotUndefined(transaction)
 
       await chain.addBlock(block)
 
       await chain.removeBlock(block.header.hash)
+
       const hash = transaction.hash()
       expect(transactions.get(hash)).not.toBeUndefined()
       expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
+
+      const minersHash = minersFee.hash()
+      expect(transactions.get(minersHash)).toBeUndefined()
+      expect(add).not.toHaveBeenCalledWith({
+        fee: await block.minersFee.fee(),
+        hash: minersHash,
+      })
     }, 60000)
   })
 })
