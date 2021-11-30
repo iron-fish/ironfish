@@ -60,17 +60,15 @@ export class ChainProcessor {
       this.hash = this.chain.genesis.hash
     }
 
+    // Freeze this value in case it changes while were updating the head
+    const chainHead = this.chain.head
+
     const head = await this.chain.getHeader(this.hash)
-    if (!head || this.chain.head.hash.equals(head.hash)) {
+    if (!head || chainHead.hash.equals(head.hash)) {
       return
     }
 
-    // TODO: Using the value of this.chain.head instead of using
-    // this.chain.head directly is a _temporary_ fix until we have
-    // a more robust locking mechanism in place (IRO-1212) - deekerno
-    const chainHeadHeader = this.chain.head
-
-    const { fork, isLinear } = await this.chain.findFork(head, chainHeadHeader)
+    const { fork, isLinear } = await this.chain.findFork(head, chainHead)
     if (!fork) {
       return
     }
@@ -87,8 +85,7 @@ export class ChainProcessor {
       }
     }
 
-    // TODO: Related to IRO-1212 as described above - deekerno
-    const iter = this.chain.iterateTo(fork, chainHeadHeader, undefined, false)
+    const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
 
     for await (const add of iter) {
       if (add.hash.equals(fork.hash)) {
