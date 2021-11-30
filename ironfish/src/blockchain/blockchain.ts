@@ -247,12 +247,14 @@ export class Blockchain {
     return genesisHeader
   }
 
-  async open(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
+  async open(
+    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
+  ): Promise<void> {
     if (this.opened) {
       return
     }
-    this.opened = true
 
+    this.opened = true
     await this.db.open()
 
     if (options.upgrade) {

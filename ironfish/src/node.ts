@@ -223,27 +223,33 @@ export class IronfishNode {
     })
   }
 
-  async openDB(options?: { upgrade?: boolean }): Promise<void> {
+  /**
+   * Load the databases and initialize node components.
+   * Set `upgrade` to change if the schema version is upgraded. Set `load` to false to tell components not to load data from the database. Useful if you don't want data loaded when performing a migration that might cause an incompatability crash.
+   */
+  async openDB(
+    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
+  ): Promise<void> {
     await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
 
     try {
       await this.chain.open(options)
-      await this.accounts.db.open(options)
+      await this.accounts.open(options)
     } catch (e) {
       await this.chain.close()
-      await this.accounts.db.close()
+      await this.accounts.close()
       throw e
     }
 
-    await this.accounts.load()
-
-    const defaultAccount = this.accounts.getDefaultAccount()
-    this.miningDirector.setMinerAccount(defaultAccount)
+    if (options.load) {
+      const defaultAccount = this.accounts.getDefaultAccount()
+      this.miningDirector.setMinerAccount(defaultAccount)
+    }
   }
 
   async closeDB(): Promise<void> {
-    await this.chain.db.close()
-    await this.accounts.db.close()
+    await this.chain.close()
+    await this.accounts.close()
   }
 
   async start(): Promise<void> {
