@@ -60,6 +60,7 @@ export class Accounts {
   protected defaultAccount: string | null = null
   protected headHash: string | null = null
   protected isStarted = false
+  protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
 
   constructor({
@@ -197,6 +198,25 @@ export class Accounts {
     }
 
     return false
+  }
+
+  async open(
+    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
+  ): Promise<void> {
+    await this.db.open(options)
+
+    if (options.load) {
+      await this.load()
+    }
+  }
+
+  async close(): Promise<void> {
+    if (!this.isOpen) {
+      return
+    }
+
+    this.isOpen = false
+    await this.db.close()
   }
 
   start(): void {

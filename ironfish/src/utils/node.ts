@@ -12,7 +12,7 @@ import { PromiseUtils } from './promise'
 async function waitForOpen(
   node: IronfishNode,
   abort?: null | (() => boolean),
-  options?: { upgrade?: boolean },
+  options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
 ): Promise<void> {
   let logged = false
 
