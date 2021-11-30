@@ -78,8 +78,8 @@ export default class Reset extends IronfishCommand {
     cli.action.start('Deleting databases')
 
     await Promise.all([
-      fsAsync.rmdir(node.config.accountDatabasePath, { recursive: true }),
-      fsAsync.rmdir(node.config.chainDatabasePath, { recursive: true }),
+      fsAsync.rm(node.config.accountDatabasePath, { recursive: true }),
+      fsAsync.rm(node.config.chainDatabasePath, { recursive: true }),
     ])
 
     cli.action.status = `Importing ${accounts.length} accounts`
