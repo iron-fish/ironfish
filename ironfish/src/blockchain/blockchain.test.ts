@@ -525,8 +525,8 @@ describe('Blockchain', () => {
      * them once we reorg to the new chain. Before this PR it would fail
      * https://github.com/iron-fish/ironfish/pull/393
      *
-     * G -> A1 -> A2
-     *   -> B1 -> B2 -> B3
+     * G -> A1 -> A2 -> A3 -> A4 -> A5
+     *   -> B1 -> B2 -> B3 -> B4
      */
 
     const { node: nodeA } = await nodeTest.createSetup()
@@ -541,33 +541,38 @@ describe('Blockchain', () => {
     const blockA4 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA4)
 
+    const blockA5 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA5)
+
     const blockB1 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB1)
 
     const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
-    const { block: blockB3 } = await useBlockWithTx(nodeB)
-    await expect(nodeB.chain).toAddBlock(blockB3)
+    // blockB3 is created and added by the fixture automatically
+    const { block: blockB4 } = await useBlockWithTx(nodeB)
+    await expect(nodeB.chain).toAddBlock(blockB4)
 
-    expect(nodeA.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
-    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+    expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+    expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
 
     // If we add A1 to nodeB it should not re-org yet
     await expect(nodeB.chain).toAddBlock(blockA1)
-    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+    expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
 
     // This should succeed but before the fix it would fail
     const result = await nodeB.chain.addBlock(blockA2)
     expect(result).toMatchObject({ isAdded: true, reason: null })
 
-    // Head should still be blockB3
-    expect(nodeB.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+    // Head should still be blockB4
+    expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
 
     await expect(nodeB.chain).toAddBlock(blockA3)
     await expect(nodeB.chain).toAddBlock(blockA4)
+    await expect(nodeB.chain).toAddBlock(blockA5)
 
-    // We should have reorged to blockA4
-    expect(nodeB.chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+    // We should have reorged to blockA5
+    expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
   }, 120000)
 })
