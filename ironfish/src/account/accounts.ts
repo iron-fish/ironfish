@@ -243,6 +243,8 @@ export class Accounts {
 
     await this.updateHead()
 
+    await this.expireTransactions()
+
     await this.rebroadcastTransactions()
 
     if (this.isStarted) {
@@ -268,20 +270,30 @@ export class Accounts {
       transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
-    }>,
+    }> | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.transactionMap.set(transactionHash, transaction)
-    await this.db.saveTransaction(transactionHash, transaction, tx)
+    if (transaction === null) {
+      this.transactionMap.delete(transactionHash)
+      await this.db.removeTransaction(transactionHash, tx)
+    } else {
+      this.transactionMap.set(transactionHash, transaction)
+      await this.db.saveTransaction(transactionHash, transaction, tx)
+    }
   }
 
   async updateNullifierToNoteMap(
     nullifier: string,
-    note: string,
+    note: string | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.nullifierToNote.set(nullifier, note)
-    await this.db.saveNullifierToNote(nullifier, note, tx)
+    if (note === null) {
+      this.nullifierToNote.delete(nullifier)
+      await this.db.removeNullifierToNote(nullifier, tx)
+    } else {
+      this.nullifierToNote.set(nullifier, note)
+      await this.db.saveNullifierToNote(nullifier, note, tx)
+    }
   }
 
   async updateNoteToNullifierMap(
@@ -290,11 +302,16 @@ export class Accounts {
       nullifierHash: string | null
       noteIndex: number | null
       spent: boolean
-    }>,
+    }> | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.noteToNullifier.set(noteHash, note)
-    await this.db.saveNoteToNullifier(noteHash, note, tx)
+    if (note === null) {
+      this.noteToNullifier.delete(noteHash)
+      await this.db.removeNoteToNullifier(noteHash, tx)
+    } else {
+      this.noteToNullifier.set(noteHash, note)
+      await this.db.saveNoteToNullifier(noteHash, note, tx)
+    }
   }
 
   async updateHeadHash(headHash: string | null): Promise<void> {
@@ -469,6 +486,51 @@ export class Accounts {
           }
         }
       })
+    })
+  }
+
+  /**
+   * Removes a transaction from the transaction map and updates
+   * the related maps.
+   */
+  async removeTransaction(transaction: Transaction): Promise<void> {
+    const transactionHash = transaction.hash()
+
+    await this.db.database.transaction(async (tx) => {
+      await this.updateTransactionMap(transactionHash, null, tx)
+
+      for (const note of transaction.notes()) {
+        const merkleHash = note.merkleHash().toString('hex')
+        const noteToNullifier = this.noteToNullifier.get(merkleHash)
+
+        if (noteToNullifier) {
+          await this.updateNoteToNullifierMap(merkleHash, null, tx)
+
+          if (noteToNullifier.nullifierHash) {
+            await this.updateNullifierToNoteMap(noteToNullifier.nullifierHash, null, tx)
+          }
+        }
+      }
+
+      for (const spend of transaction.spends()) {
+        const nullifierHash = spend.nullifier.toString('hex')
+        const noteHash = this.nullifierToNote.get(nullifierHash)
+
+        if (noteHash) {
+          const nullifier = this.noteToNullifier.get(noteHash)
+
+          if (!nullifier) {
+            throw new Error(
+              'nullifierToNote mappings must have a corresponding noteToNullifier map',
+            )
+          }
+
+          await this.updateNoteToNullifierMap(noteHash, {
+            ...nullifier,
+            spent: false,
+          })
+        }
+      }
     })
   }
 
@@ -790,6 +852,37 @@ export class Accounts {
       }
 
       this.broadcastTransaction(transaction)
+    }
+  }
+
+  async expireTransactions(): Promise<void> {
+    if (!this.chain.synced) {
+      return
+    }
+
+    if (this.headHash === null) {
+      return
+    }
+
+    const head = await this.chain.getHeader(Buffer.from(this.headHash, 'hex'))
+
+    if (head === null) {
+      return
+    }
+
+    for (const [_, tx] of this.transactionMap) {
+      const { transaction, blockHash } = tx
+
+      // Skip transactions that are already added to a block
+      if (blockHash) {
+        continue
+      }
+
+      if (
+        this.chain.verifier.isExpiredSequence(transaction.expirationSequence(), head.sequence)
+      ) {
+        await this.removeTransaction(transaction)
+      }
     }
   }
 

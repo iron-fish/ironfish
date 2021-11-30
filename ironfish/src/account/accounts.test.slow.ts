@@ -278,6 +278,86 @@ describe('Accounts', () => {
     ).rejects.toThrowError(ValidationError)
   }, 60000)
 
+  it('Expires transactions when calling expireTransactions', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    const chain = nodeTest.chain
+
+    const account = await node.accounts.createAccount('test', true)
+
+    // Mock that accounts is started for the purposes of the test
+    node.accounts['isStarted'] = true
+
+    // Initial balance should be 0
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Balance after adding the genesis block should be 0
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 2000000000 after adding the miner's fee
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+
+    // Spend the balance, setting expiry soon
+    const transaction = await node.accounts.pay(
+      node.memPool,
+      account,
+      BigInt(2),
+      BigInt(0),
+      '',
+      generateKey().public_address,
+      1,
+    )
+
+    // Transaction should be unconfirmed
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(1999999998),
+    })
+
+    // Expiring transactions should not yet remove the transaction
+    await node.accounts.expireTransactions()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(1999999998),
+    })
+
+    // Create a block with a miner's fee
+    const minersfee2 = await strategy.createMinersFee(
+      await transaction.fee(),
+      newBlock.header.sequence + 1,
+      generateKey().spending_key,
+    )
+    const newBlock2 = await chain.newBlock([], minersfee2)
+    const addResult2 = await chain.addBlock(newBlock2)
+    expect(addResult2.isAdded).toBeTruthy()
+
+    // Expiring transactions should now remove the transaction
+    await node.accounts.updateHead()
+    await node.accounts.expireTransactions()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+  }, 600000)
+
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
 

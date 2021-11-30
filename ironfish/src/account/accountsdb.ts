@@ -196,6 +196,10 @@ export class AccountsDB {
     await this.transactions.put(transactionHash, serialized, tx)
   }
 
+  async removeTransaction(transactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    await this.transactions.del(transactionHash, tx)
+  }
+
   async replaceTransactions(
     map: BufferMap<{
       transaction: Transaction
@@ -241,6 +245,10 @@ export class AccountsDB {
     await this.nullifierToNote.put(nullifier, note, tx)
   }
 
+  async removeNullifierToNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.nullifierToNote.del(noteHash, tx)
+  }
+
   async replaceNullifierToNoteMap(map: Map<string, string>): Promise<void> {
     await this.nullifierToNote.clear()
 
@@ -273,6 +281,10 @@ export class AccountsDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.noteToNullifier.put(noteHash, note, tx)
+  }
+
+  async removeNoteToNullifier(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.noteToNullifier.del(noteHash, tx)
   }
 
   async replaceNoteToNullifierMap(
