@@ -41,7 +41,7 @@ export default class Reset extends IronfishCommand {
     const { flags } = this.parse(Reset)
 
     let node = await this.sdk.node({ autoSeed: false })
-    await NodeUtils.waitForOpen(node, null, { upgrade: false })
+    await NodeUtils.waitForOpen(node, null, { upgrade: false, load: false })
 
     const backupPath = path.join(this.sdk.config.dataDir, 'accounts.backup.json')
 
