@@ -53,7 +53,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 2
+const DATABASE_VERSION = 3
 
 export class Blockchain {
   db: IDatabase
