@@ -35,4 +35,17 @@ export class AsyncUtils {
 
     throw new Error('No element found when expecting first in iter')
   }
+
+  static async find<T>(
+    iter: Iterable<T> | AsyncIterable<T>,
+    predicate: (item: T) => Promise<boolean>,
+  ): Promise<T | undefined> {
+    for await (const item of iter) {
+      if (await predicate(item)) {
+        return item
+      }
+    }
+
+    return undefined
+  }
 }

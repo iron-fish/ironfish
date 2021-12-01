@@ -15,7 +15,7 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { submitMetric } from '../telemetry'
-import { ErrorUtils, GraffitiUtils } from '../utils'
+import { AsyncUtils, ErrorUtils, GraffitiUtils } from '../utils'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -503,24 +503,24 @@ export class MiningDirector {
     const nullifiers = new BufferSet()
 
     for (const transaction of this.memPool.get()) {
-      let conflicted = false
-
-      for (const spend of transaction.spends()) {
+      const conflicted = await AsyncUtils.find(transaction.spends(), async (spend) => {
         if (nullifiers.has(spend.nullifier)) {
-          conflicted = true
-          break
+          return true
         }
-
-        nullifiers.add(spend.nullifier)
 
         if (await this.chain.nullifiers.contains(spend.nullifier)) {
-          conflicted = true
-          break
+          return true
         }
-      }
+
+        return false
+      })
 
       if (conflicted) {
         continue
+      }
+
+      for (const spend of transaction.spends()) {
+        nullifiers.add(spend.nullifier)
       }
 
       yield transaction
