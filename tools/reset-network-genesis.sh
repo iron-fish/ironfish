@@ -7,11 +7,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "Deleting snapshots"
-find . -name "__snapshots__" | xargs rm -rf
+(
+    cd ..
+    echo "Deleting snapshots"
+    find . -name "__snapshots__" | xargs rm -rf
 
-echo "Deleting fixtures"
-find . -name "__fixtures__" | xargs rm -rf
+    echo "Deleting fixtures"
+    find . -name "__fixtures__" | xargs rm -rf
+)
 
 (
     echo "Regenerating genesis block"
@@ -20,10 +23,7 @@ find . -name "__fixtures__" | xargs rm -rf
 
     echo ""
     echo "Copy the above block into genesisBlock.ts"
-)
 
-(
     echo "Exporting Genesis Account for securing"
-    cd ../ironfish-cli
     yarn start:once accounts:export IronFishGenesisAccount
 )

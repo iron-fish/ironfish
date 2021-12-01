@@ -113,6 +113,16 @@ describe('Verifier', () => {
       })
     })
 
+    it('rejects a block with miners fee as second transaction', async () => {
+      const { block } = await useBlockWithTx(nodeTest.node)
+      block.transactions = [block.transactions[1], block.transactions[0]]
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_MINERS_FEE,
+        valid: false,
+      })
+    })
+
     it('accepts a valid block', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)

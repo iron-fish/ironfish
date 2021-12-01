@@ -96,21 +96,28 @@ export class Verifier {
 
     const transactionFees = await Promise.all(block.transactions.map((t) => t.fee()))
 
-    for (const transactionFee of transactionFees) {
-      if (transactionFee > 0) {
-        totalTransactionFees += transactionFee
+    for (let i = 0; i < transactionFees.length; i++) {
+      const fee = transactionFees[i]
+
+      // Miner's fee should be only the first transaction
+      if ((i === 0 && fee > 0) || (i !== 0 && fee < 0)) {
+        return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
       }
-      if (transactionFee < 0) {
-        minersFee += transactionFee
+
+      if (fee > 0) {
+        totalTransactionFees += fee
+      }
+      if (fee < 0) {
+        minersFee += fee
       }
     }
 
     // minersFee should match the block header
-    // minersFee should be (negative) miningReward + totalTransactionFees
     if (block.header.minersFee !== minersFee) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
+    // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = block.header.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
