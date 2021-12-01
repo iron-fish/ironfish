@@ -36,6 +36,7 @@ describe('Mining director', () => {
       const generateBlockSpy = jest
         .spyOn(miningDirector, 'generateBlockToMine')
         .mockReturnValue(Promise.resolve())
+
       // onSynced can trigger while generating fixtures or if this test is run in isolation,
       // which would call generateBlockToMine twice, so we can clear the listener to ensure it
       // will only be called once.
