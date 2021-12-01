@@ -56,8 +56,10 @@ export class MemPool {
   }
 
   *get(): Generator<Transaction, void, unknown> {
-    while (!this.queue.isEmpty()) {
-      const feeAndHash = this.queue.poll()
+    const clone = this.queue.clone()
+
+    while (!clone.isEmpty()) {
+      const feeAndHash = clone.poll()
       Assert.isNotUndefined(feeAndHash)
       const transaction = this.transactions.get(feeAndHash.hash)
       Assert.isNotUndefined(transaction)
