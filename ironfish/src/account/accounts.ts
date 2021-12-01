@@ -203,6 +203,7 @@ export class Accounts {
   async open(
     options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
   ): Promise<void> {
+    this.isOpen = true
     await this.db.open(options)
 
     if (options.load) {
