@@ -327,5 +327,5 @@ export async function useBlockWithTx(
     )
   })
 
-  return { block, previous, account: from, transaction: block.transactions[0] }
+  return { block, previous, account: from, transaction: block.transactions[1] }
 }

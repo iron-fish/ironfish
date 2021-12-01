@@ -57,6 +57,21 @@ export async function makeGenesisBlock(
     info.memo,
   )
 
+  // Create a miner's fee transaction for the block.
+  // Since the block itself generates coins and we don't want the miner account to gain
+  // additional coins, we'll manually create a non-standard/invalid miner's fee transaction.
+  //
+  // This transaction will cause block.verify to fail, but we skip block verification
+  // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
+  logger.info(`Generating a miner's fee transaction for the block...`)
+  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+  const minersFeeTransaction = new NativeTransaction()
+  minersFeeTransaction.receive(account.spendingKey, note)
+  const postedMinersFeeTransaction = new Transaction(
+    Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
+    workerPool,
+  )
+
   /**
    *
    * Transaction 1:
@@ -76,19 +91,18 @@ export async function makeGenesisBlock(
   )
   transactionList.push(postedInitialTransaction)
 
-  // Temporarily add the note from the transaction to our merkle tree so we can construct
-  // a witness from it. It will be re-added later when the block is constructed.
+  // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
+  // so we can construct a witness. They will be re-added later when the block is constructed.
   logger.info('  Adding the note to the tree...')
   if (postedInitialTransaction.notesLength() !== 1) {
     throw new Error('Expected postedInitialTransaction to have 1 note')
   }
-  for (const n of postedInitialTransaction.notes()) {
-    await chain.notes.add(n)
-  }
+  await chain.notes.add(postedMinersFeeTransaction.getNote(0))
+  await chain.notes.add(postedInitialTransaction.getNote(0))
 
-  // Construct a witness of that note
+  // Construct a witness of the Transaction 1 note
   logger.info('  Constructing a witness of the note...')
-  const witness = await chain.notes.witness(0)
+  const witness = await chain.notes.witness(1)
   if (witness === null) {
     throw new Error('We must be able to construct a witness in order to generate a spend.')
   }
@@ -129,21 +143,6 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a block...')
-
-  // Create a miner's fee transaction for the block.
-  // Since the block itself generates coins and we don't want the miner account to gain
-  // additional coins, we'll manually create a non-standard/invalid miner's fee transaction.
-  //
-  // This transaction will cause block.verify to fail, but we skip block verification
-  // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
-  logger.info(`  Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(account.publicAddress, BigInt(0), '')
-  const minersFeeTransaction = new NativeTransaction()
-  minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new Transaction(
-    Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
-    workerPool,
-  )
 
   // Create the block. We expect this to add notes and nullifiers on the block
   // into the database for the purpose of generating note and nullifier commitments
