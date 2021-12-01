@@ -823,7 +823,7 @@ export class Blockchain {
     minersFee: Transaction,
     graffiti?: Buffer,
   ): Promise<Block> {
-    const transactions = userTransactions.concat([minersFee])
+    const transactions = [minersFee, ...userTransactions]
     return await this.db.transaction(async (tx) => {
       const originalNoteSize = await this.notes.size(tx)
       const originalNullifierSize = await this.nullifiers.size(tx)

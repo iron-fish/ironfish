@@ -91,7 +91,7 @@ describe('Block', () => {
   }, 60000)
 
   it('validate get minersFee returns the first transaction in a block', async () => {
-    const block = await useMinerBlockFixture(nodeTest.chain)
+    const { block } = await useBlockWithTx(nodeTest.node)
     // Miners Fee should be the first transaction in the block
     expect(block.minersFee).toBe(block.transactions[0])
   }, 60000)

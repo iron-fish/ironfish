@@ -382,13 +382,13 @@ describe('Blockchain', () => {
       expect(blockB2.transactions.length).toBe(1)
       expect(blockB3.transactions.length).toBe(2)
 
-      const minersFeeA1 = blockA1.transactions[0]
-      const minersFeeA2 = blockA2.transactions[1]
-      const minersFeeB1 = blockB1.transactions[0]
-      const minersFeeB2 = blockB2.transactions[0]
-      const minersFeeB3 = blockB3.transactions[1]
-      const txA2 = blockA2.transactions[0]
-      const txB3 = blockB3.transactions[0]
+      const minersFeeA1 = blockA1.minersFee
+      const minersFeeA2 = blockA2.minersFee
+      const minersFeeB1 = blockB1.minersFee
+      const minersFeeB2 = blockB2.minersFee
+      const minersFeeB3 = blockB3.minersFee
+      const txA2 = blockA2.transactions[1]
+      const txB3 = blockB3.transactions[1]
 
       expect(minersFeeA1.notesLength()).toBe(1)
       expect(minersFeeA2.notesLength()).toBe(1)
@@ -407,9 +407,9 @@ describe('Blockchain', () => {
       let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
       let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
       expect(addedNoteA1.serialize().equals(minersFeeA1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA2.serialize().equals(txA2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(txA2.getNote(1).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(minersFeeA2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA2.serialize().equals(minersFeeA2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA3.serialize().equals(txA2.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA4.serialize().equals(txA2.getNote(1).serialize())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
@@ -425,9 +425,9 @@ describe('Blockchain', () => {
       const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).element
       expect(addedNoteB1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
       expect(addedNoteB2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB3.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB4.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
-      expect(addedNoteB5.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteB5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
 
       // Check nodeB has nullifiers from blockB3
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
@@ -449,9 +449,9 @@ describe('Blockchain', () => {
       const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).element
       expect(addedNoteA1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
       expect(addedNoteA2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
-      expect(addedNoteA5.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
+      expect(addedNoteA5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
