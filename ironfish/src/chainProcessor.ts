@@ -60,12 +60,15 @@ export class ChainProcessor {
       this.hash = this.chain.genesis.hash
     }
 
+    // Freeze this value in case it changes while were updating the head
+    const chainHead = this.chain.head
+
     const head = await this.chain.getHeader(this.hash)
-    if (!head || this.chain.head.hash.equals(head.hash)) {
+    if (!head || chainHead.hash.equals(head.hash)) {
       return
     }
 
-    const { fork, isLinear } = await this.chain.findFork(head, this.chain.head)
+    const { fork, isLinear } = await this.chain.findFork(head, chainHead)
     if (!fork) {
       return
     }
@@ -82,7 +85,7 @@ export class ChainProcessor {
       }
     }
 
-    const iter = this.chain.iterateTo(fork, this.chain.head, undefined, false)
+    const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
 
     for await (const add of iter) {
       if (add.hash.equals(fork.hash)) {

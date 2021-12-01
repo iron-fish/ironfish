@@ -70,11 +70,6 @@ export default class Start extends IronfishCommand {
       description: 'name for the node',
       hidden: true,
     }),
-    worker: flags.boolean({
-      char: 'w',
-      description: 'is this a worker node',
-      hidden: true,
-    }),
     listen: flags.boolean({
       allowNo: true,
       default: undefined,
@@ -121,7 +116,6 @@ export default class Start extends IronfishCommand {
       logPeerMessages,
       name,
       port,
-      worker,
       workers,
       generateNewIdentity,
     } = flags
@@ -143,9 +137,6 @@ export default class Start extends IronfishCommand {
     }
     if (listen !== undefined && listen !== this.sdk.config.get('enableListenP2P')) {
       this.sdk.config.setOverride('enableListenP2P', listen)
-    }
-    if (worker !== undefined && worker !== this.sdk.config.get('isWorker')) {
-      this.sdk.config.setOverride('isWorker', worker)
     }
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)

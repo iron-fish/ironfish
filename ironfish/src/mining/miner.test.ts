@@ -4,7 +4,9 @@
 
 import { mocked } from 'ts-jest/utils'
 import * as blockHeaderModule from '../primitives/blockheader'
-import Miner, { mineHeader } from './miner'
+import { mineHeader } from './mineHeader'
+import { Miner, MineRequest } from './miner'
+
 jest.mock('../primitives/blockheader')
 
 /**
@@ -15,13 +17,9 @@ jest.mock('../primitives/blockheader')
  * need to wait for an event to happen before the stream exhausts.
  */
 async function* makeAsync(
-  array: {
-    bytes: { type: 'Buffer'; data: number[] }
-    target: string
-    miningRequestId: number
-  }[],
+  array: Array<MineRequest>,
   waitAfter = Promise.resolve(),
-) {
+): AsyncGenerator<MineRequest, void, void> {
   for (const block of array) {
     yield block
   }
@@ -41,9 +39,10 @@ describe('Miner', () => {
     await miner.mine(
       makeAsync([
         {
-          bytes: { type: 'Buffer', data: [] },
+          bytes: Buffer.from([]),
           target: '0',
           miningRequestId: 1,
+          sequence: 0,
         },
       ]),
       successfullyMined,
@@ -65,19 +64,22 @@ describe('Miner', () => {
     await miner.mine(
       makeAsync([
         {
-          bytes: { type: 'Buffer', data: [] },
+          bytes: Buffer.from([]),
           target: '0',
           miningRequestId: 2,
+          sequence: 0,
         },
         {
-          bytes: { type: 'Buffer', data: [] },
+          bytes: Buffer.from([]),
           target: '0',
           miningRequestId: 3,
+          sequence: 0,
         },
         {
-          bytes: { type: 'Buffer', data: [] },
+          bytes: Buffer.from([]),
           target: '0',
           miningRequestId: 4,
+          sequence: 0,
         },
       ]),
       successfullyMined,
@@ -105,9 +107,10 @@ describe('Miner', () => {
     await miner.mine(
       makeAsync([
         {
-          bytes: { type: 'Buffer', data: [] },
+          bytes: Buffer.from([]),
           target: '0',
           miningRequestId: 2,
+          sequence: 0,
         },
       ]),
       successfullyMined,

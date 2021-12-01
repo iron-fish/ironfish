@@ -38,6 +38,10 @@ describe('Mining director', () => {
         .mockReturnValue(Promise.resolve())
 
       const previous = await useMinerBlockFixture(chain, 2)
+
+      // Fixture generation causes a call to generateBlockSpy
+      generateBlockSpy.mockClear()
+
       await expect(chain).toAddBlock(previous)
       await flushTimeout()
 
@@ -116,7 +120,7 @@ describe('Mining director', () => {
       await expect(chain).toAddBlock(previous)
       const [event] = await promise
 
-      const partial = new PartialBlockHeaderSerde(chain.strategy).deserialize(event.bytes)
+      const partial = new PartialBlockHeaderSerde().deserialize(event.bytes)
 
       expect(event.target.targetValue).toEqual(
         Target.calculateTarget(new Date(now), previous.header.timestamp, previous.header.target)

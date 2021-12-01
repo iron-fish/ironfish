@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
-import { generateKey, generateNewPublicAddress } from 'ironfish-wasm-nodejs'
+import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
@@ -18,7 +18,6 @@ import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account, AccountDefaults, AccountsDB } from './accountsdb'
 import { validateAccount } from './validator'
-const REBROADCAST_SEQUENCE_DELTA = 5
 
 type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
@@ -50,15 +49,18 @@ export class Accounts {
     Readonly<{ nullifierHash: string | null; noteIndex: number | null; spent: boolean }>
   >()
   protected readonly nullifierToNote = new Map<string, string>()
+
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
   protected readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
 
+  protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
   protected headHash: string | null = null
   protected isStarted = false
+  protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
 
   constructor({
@@ -66,16 +68,19 @@ export class Accounts {
     workerPool,
     database,
     logger = createRootLogger(),
+    rebroadcastAfter,
   }: {
     chain: Blockchain
     workerPool: WorkerPool
     database: AccountsDB
     logger?: Logger
+    rebroadcastAfter?: number
   }) {
     this.chain = chain
     this.logger = logger.withTag('accounts')
     this.db = database
     this.workerPool = workerPool
+    this.rebroadcastAfter = rebroadcastAfter ?? 10
   }
 
   async updateHead(): Promise<void> {
@@ -195,6 +200,25 @@ export class Accounts {
     return false
   }
 
+  async open(
+    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
+  ): Promise<void> {
+    await this.db.open(options)
+
+    if (options.load) {
+      await this.load()
+    }
+  }
+
+  async close(): Promise<void> {
+    if (!this.isOpen) {
+      return
+    }
+
+    this.isOpen = false
+    await this.db.close()
+  }
+
   start(): void {
     if (this.isStarted) {
       return
@@ -239,6 +263,8 @@ export class Accounts {
 
     await this.updateHead()
 
+    await this.expireTransactions()
+
     await this.rebroadcastTransactions()
 
     if (this.isStarted) {
@@ -264,20 +290,30 @@ export class Accounts {
       transaction: Transaction
       blockHash: string | null
       submittedSequence: number | null
-    }>,
+    }> | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.transactionMap.set(transactionHash, transaction)
-    await this.db.saveTransaction(transactionHash, transaction, tx)
+    if (transaction === null) {
+      this.transactionMap.delete(transactionHash)
+      await this.db.removeTransaction(transactionHash, tx)
+    } else {
+      this.transactionMap.set(transactionHash, transaction)
+      await this.db.saveTransaction(transactionHash, transaction, tx)
+    }
   }
 
   async updateNullifierToNoteMap(
     nullifier: string,
-    note: string,
+    note: string | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.nullifierToNote.set(nullifier, note)
-    await this.db.saveNullifierToNote(nullifier, note, tx)
+    if (note === null) {
+      this.nullifierToNote.delete(nullifier)
+      await this.db.removeNullifierToNote(nullifier, tx)
+    } else {
+      this.nullifierToNote.set(nullifier, note)
+      await this.db.saveNullifierToNote(nullifier, note, tx)
+    }
   }
 
   async updateNoteToNullifierMap(
@@ -286,11 +322,16 @@ export class Accounts {
       nullifierHash: string | null
       noteIndex: number | null
       spent: boolean
-    }>,
+    }> | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.noteToNullifier.set(noteHash, note)
-    await this.db.saveNoteToNullifier(noteHash, note, tx)
+    if (note === null) {
+      this.noteToNullifier.delete(noteHash)
+      await this.db.removeNoteToNullifier(noteHash, tx)
+    } else {
+      this.noteToNullifier.set(noteHash, note)
+      await this.db.saveNoteToNullifier(noteHash, note, tx)
+    }
   }
 
   async updateHeadHash(headHash: string | null): Promise<void> {
@@ -468,6 +509,51 @@ export class Accounts {
     })
   }
 
+  /**
+   * Removes a transaction from the transaction map and updates
+   * the related maps.
+   */
+  async removeTransaction(transaction: Transaction): Promise<void> {
+    const transactionHash = transaction.hash()
+
+    await this.db.database.transaction(async (tx) => {
+      await this.updateTransactionMap(transactionHash, null, tx)
+
+      for (const note of transaction.notes()) {
+        const merkleHash = note.merkleHash().toString('hex')
+        const noteToNullifier = this.noteToNullifier.get(merkleHash)
+
+        if (noteToNullifier) {
+          await this.updateNoteToNullifierMap(merkleHash, null, tx)
+
+          if (noteToNullifier.nullifierHash) {
+            await this.updateNullifierToNoteMap(noteToNullifier.nullifierHash, null, tx)
+          }
+        }
+      }
+
+      for (const spend of transaction.spends()) {
+        const nullifierHash = spend.nullifier.toString('hex')
+        const noteHash = this.nullifierToNote.get(nullifierHash)
+
+        if (noteHash) {
+          const nullifier = this.noteToNullifier.get(noteHash)
+
+          if (!nullifier) {
+            throw new Error(
+              'nullifierToNote mappings must have a corresponding noteToNullifier map',
+            )
+          }
+
+          await this.updateNoteToNullifierMap(noteHash, {
+            ...nullifier,
+            spent: false,
+          })
+        }
+      }
+    })
+  }
+
   async scanTransactions(): Promise<void> {
     if (this.scan) {
       this.logger.info('Skipping Scan, already scanning.')
@@ -590,10 +676,18 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
+    defaultTransactionExpirationSequenceDelta: number,
+    expirationSequence?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new ValidationError('You must have a genesis block to create a transaction')
+    }
+
+    expirationSequence =
+      expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
+    if (this.chain.verifier.isExpiredSequence(expirationSequence)) {
+      throw new ValidationError('Invalid expiration sequence for transaction')
     }
 
     const transaction = await this.createTransaction(
@@ -602,6 +696,7 @@ export class Accounts {
       transactionFee,
       memo,
       receiverPublicAddress,
+      expirationSequence,
     )
 
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
@@ -617,6 +712,7 @@ export class Accounts {
     transactionFee: bigint,
     memo: string,
     receiverPublicAddress: string,
+    expirationSequence: number,
   ): Promise<Transaction> {
     this.assertHasAccount(sender)
 
@@ -705,6 +801,7 @@ export class Accounts {
           memo,
         },
       ],
+      expirationSequence,
     )
   }
 
@@ -721,12 +818,15 @@ export class Accounts {
       return
     }
 
-    const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
+    if (this.headHash === null) {
       return
     }
 
-    const headSequence = heaviestHead.sequence
+    const head = await this.chain.getHeader(Buffer.from(this.headHash, 'hex'))
+
+    if (head === null) {
+      return
+    }
 
     for (const [transactionHash, tx] of this.transactionMap) {
       const { transaction, blockHash, submittedSequence } = tx
@@ -743,19 +843,66 @@ export class Accounts {
         continue
       }
 
-      // TODO: This algorithm suffers a deanonim attack where you can watch to see what transactions node continously
-      // send out, then you can know those transactions are theres. This should be randomized and made less,
-      // predictable later to help prevent that attack.
-      if (headSequence - submittedSequence < REBROADCAST_SEQUENCE_DELTA) {
+      // TODO: This algorithm suffers a deanonymization attack where you can
+      // watch to see what transactions node continously send out, then you can
+      // know those transactions are theres. This should be randomized and made
+      // less, predictable later to help prevent that attack.
+      if (head.sequence - submittedSequence < this.rebroadcastAfter) {
         continue
       }
 
+      const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
+
+      // We still update this even if it's not valid to prevent constantly
+      // reprocessing valid transaction every block. Give them a few blocks to
+      // try to become valid.
       await this.updateTransactionMap(transactionHash, {
         ...tx,
-        submittedSequence: headSequence,
+        submittedSequence: head.sequence,
       })
 
+      if (!verify.valid) {
+        this.logger.debug(
+          `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
+            'hex',
+          )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+        )
+
+        continue
+      }
+
       this.broadcastTransaction(transaction)
+    }
+  }
+
+  async expireTransactions(): Promise<void> {
+    if (!this.chain.synced) {
+      return
+    }
+
+    if (this.headHash === null) {
+      return
+    }
+
+    const head = await this.chain.getHeader(Buffer.from(this.headHash, 'hex'))
+
+    if (head === null) {
+      return
+    }
+
+    for (const [_, tx] of this.transactionMap) {
+      const { transaction, blockHash } = tx
+
+      // Skip transactions that are already added to a block
+      if (blockHash) {
+        continue
+      }
+
+      if (
+        this.chain.verifier.isExpiredSequence(transaction.expirationSequence(), head.sequence)
+      ) {
+        await this.removeTransaction(transaction)
+      }
     }
   }
 

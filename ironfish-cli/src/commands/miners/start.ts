@@ -3,7 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import cli from 'cli-ux'
-import { Miner as IronfishMiner, NewBlocksStreamResponse, PromiseUtils } from 'ironfish'
+import {
+  AsyncUtils,
+  Miner as IronfishMiner,
+  MineRequest,
+  NewBlocksStreamResponse,
+  PromiseUtils,
+} from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -24,32 +30,49 @@ export class Miner extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = this.parse(Miner)
 
-    let threads = flags.threads
-    if (threads === 0 || threads < -1) {
+    if (flags.threads === 0 || flags.threads < -1) {
       throw new Error('--threads must be a positive integer or -1.')
-    } else if (threads === -1) {
-      threads = os.cpus().length
+    }
+
+    if (flags.threads === -1) {
+      flags.threads = os.cpus().length
     }
 
     const client = this.sdk.client
+    const miner = new IronfishMiner(flags.threads)
 
-    const successfullyMined = (randomness: number, miningRequestId: number) => {
-      cli.action.stop(
-        `Submitting mining attempt to node from request ${miningRequestId} with randomness ${randomness}`,
+    const successfullyMined = (request: MineRequest, randomness: number) => {
+      this.log(
+        `Submitting hash for block ${request.sequence} on request ${request.miningRequestId} (${randomness})`,
       )
 
-      const request = client.successfullyMined({ randomness, miningRequestId })
-      request.waitForEnd().catch(() => {
-        cli.action.stop('Unable to submit mined block')
+      const response = client.successfullyMined({
+        randomness,
+        miningRequestId: request.miningRequestId,
       })
 
-      cli.action.start('Mining a block')
+      response.waitForEnd().catch(() => {
+        this.log('Unable to submit mined block')
+      })
     }
 
-    async function* nextBlock(blocksStream: AsyncGenerator<unknown, void>) {
+    const updateHashPower = () => {
+      cli.action.status = `${Math.max(0, Math.floor(miner.hashRate.rate5s))} H/s`
+    }
+
+    const onStartMine = (request: MineRequest) => {
+      cli.action.start(`Mining block ${request.sequence} on request ${request.miningRequestId}`)
+      updateHashPower()
+    }
+
+    const onStopMine = () => {
+      cli.action.start('Waiting for next block')
+      updateHashPower()
+    }
+
+    async function* nextBlock(blocksStream: AsyncGenerator<MineRequest, void, void>) {
       for (;;) {
-        const blocksResult =
-          (await blocksStream.next()) as IteratorResult<NewBlocksStreamResponse>
+        const blocksResult = await blocksStream.next()
 
         if (blocksResult.done) {
           return
@@ -69,13 +92,28 @@ export class Miner extends IronfishCommand {
         continue
       }
 
-      this.logger.log(`Starting to mine with ${threads} thread${threads === 1 ? '' : 's'}`)
+      this.logger.log(
+        `Starting to mine with ${flags.threads} thread${flags.threads === 1 ? '' : 's'}`,
+      )
+
       const blocksStream = client.newBlocksStream().contentStream()
 
-      cli.action.start('Mining a block')
-      const miner = new IronfishMiner(threads)
-      await miner.mine(nextBlock(blocksStream), successfullyMined)
-      cli.action.stop('Mining interrupted')
+      // We do this to tranform the JSON bytes back to a buffer
+      const transformed = AsyncUtils.transform<NewBlocksStreamResponse, MineRequest>(
+        blocksStream,
+        (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
+      )
+
+      cli.action.start('Waiting for director to send work.')
+
+      const hashPowerInterval = setInterval(updateHashPower, 1000)
+
+      miner.onStartMine.on(onStartMine)
+      miner.onStopMine.on(onStopMine)
+
+      await miner.mine(nextBlock(transformed), successfullyMined)
+
+      clearInterval(hashPowerInterval)
     }
   }
 }

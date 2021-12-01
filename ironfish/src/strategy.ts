@@ -10,10 +10,11 @@ import { NoteEncrypted } from './primitives/noteEncrypted'
 import { NullifierHasher } from './primitives/nullifier'
 import { Transaction, TransactionSerde } from './primitives/transaction'
 import { Serde } from './serde'
+import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
 
 /**
- * Implementation of a Blockchain Strategy using the Wasm zero-knowledge proofs.
+ * Implementation of a Blockchain Strategy using zero-knowledge proofs.
  */
 export class Strategy {
   readonly workerPool: WorkerPool
@@ -76,7 +77,10 @@ export class Strategy {
 
     const annualReward = (GENESIS_SUPPLY_IN_IRON / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
 
-    reward = this.convertIronToOre(annualReward / IRON_FISH_YEAR_IN_BLOCKS)
+    reward = this.convertIronToOre(
+      MathUtils.roundBy(annualReward / IRON_FISH_YEAR_IN_BLOCKS, 0.125),
+    )
+
     this.miningRewardCachedByYear.set(yearsAfterLaunch, reward)
 
     return reward

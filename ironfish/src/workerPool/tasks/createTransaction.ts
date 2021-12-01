@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { WasmNote, WasmTransaction } from 'ironfish-wasm-nodejs'
+import { Note, Transaction } from 'ironfish-rust-nodejs'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
@@ -14,6 +14,7 @@ export type CreateTransactionRequest = {
   type: 'createTransaction'
   spendKey: string
   transactionFee: bigint
+  expirationSequence: number
   spends: {
     note: Buffer
     treeSize: number
@@ -36,11 +37,13 @@ export function handleCreateTransaction({
   spendKey,
   spends,
   receives,
+  expirationSequence,
 }: CreateTransactionRequest): CreateTransactionResponse {
-  const transaction = new WasmTransaction()
+  const transaction = new Transaction()
+  transaction.setExpirationSequence(expirationSequence)
 
   for (const spend of spends) {
-    const note = WasmNote.deserialize(spend.note)
+    const note = Note.deserialize(spend.note)
     transaction.spend(
       spendKey,
       note,
@@ -50,7 +53,7 @@ export function handleCreateTransaction({
   }
 
   for (const { publicAddress, amount, memo } of receives) {
-    const note = new WasmNote(publicAddress, amount, memo)
+    const note = new Note(publicAddress, amount, memo)
     transaction.receive(spendKey, note)
     note.free()
   }

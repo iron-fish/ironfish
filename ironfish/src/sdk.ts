@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
 import { PrivateIdentity } from '.'
-import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -36,6 +36,7 @@ export class IronfishSdk {
   logger: Logger
   metrics: MetricsMonitor
   internal: InternalStore
+  hosts: HostsStore
   strategyClass: typeof Strategy | null
   privateIdentity: BoxKeyPair | null | undefined
 
@@ -45,6 +46,7 @@ export class IronfishSdk {
     clientMemory: IronfishMemoryClient,
     config: Config,
     internal: InternalStore,
+    hosts: HostsStore,
     fileSystem: FileSystem,
     logger: Logger,
     metrics: MetricsMonitor,
@@ -55,6 +57,7 @@ export class IronfishSdk {
     this.clientMemory = clientMemory
     this.config = config
     this.internal = internal
+    this.hosts = hosts
     this.fileSystem = fileSystem
     this.logger = logger
     this.metrics = metrics
@@ -98,6 +101,9 @@ export class IronfishSdk {
 
     const internal = new InternalStore(fileSystem, dataDir)
     await internal.load()
+
+    const hosts = new HostsStore(fileSystem, dataDir)
+    await hosts.load()
 
     if (configOverrides) {
       Object.assign(config.overrides, configOverrides)
@@ -152,6 +158,7 @@ export class IronfishSdk {
       clientMemory,
       config,
       internal,
+      hosts,
       fileSystem,
       logger,
       metrics,

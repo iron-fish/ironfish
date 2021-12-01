@@ -10,8 +10,9 @@
     "config/eslint-config-ironfish-react",
     "config/eslint-config-ironfish",
     "ironfish",
-    "ironfish-wasm/nodejs",
-    "ironfish-wasm/web"
+    "ironfish-rust-nodejs",
+    "ironfish-rust-wasm/nodejs",
+    "ironfish-rust-wasm/web"
   ],
   "scripts": {
     "build": "lerna run build",
@@ -22,8 +23,7 @@
     "lint:changed": "lerna run --since origin/master --include-dependents lint",
     "lint:fix": "lerna run lint:fix",
     "lint:ci": "lerna run lint:ci",
-    "prebuild": "node tools/node-platform-check && (cd ironfish-wasm && yarn build)",
-    "preinstall": "node tools/node-platform-check && (cd ironfish-wasm && yarn build)",
+    "postinstall": "(cd ironfish-rust-nodejs && yarn build)",
     "test": "lerna run test",
     "test:coverage": "lerna run test --stream --concurrency 1 -- --collect-coverage",
     "test:coverage:html": "lerna run test:coverage:html",

@@ -6,8 +6,6 @@ import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
 import { DatabaseSchema } from '../storage'
 
-export const SCHEMA_VERSION = 2
-
 export interface MetaSchema extends DatabaseSchema {
   key: 'head' | 'latest'
   value: BlockHash

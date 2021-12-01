@@ -13,9 +13,17 @@ find . -name "__snapshots__" | xargs rm -rf
 echo "Deleting fixtures"
 find . -name "__fixtures__" | xargs rm -rf
 
-echo "Regenerating genesis block"
-cd ../ironfish-cli
-yarn start:once chain:genesisblock
+(
+    echo "Regenerating genesis block"
+    cd ../ironfish-cli
+    yarn start:once chain:genesisblock
 
-echo ""
-echo "Copy the above block into genesisBlock.ts"
+    echo ""
+    echo "Copy the above block into genesisBlock.ts"
+)
+
+(
+    echo "Exporting Genesis Account for securing"
+    cd ../ironfish-cli
+    yarn start:once accounts:export IronFishGenesisAccount
+)

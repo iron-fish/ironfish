@@ -32,15 +32,6 @@ export type ConfigOptions = {
   getFundsApi: string
   ipcPath: string
   /**
-   * Worker nodes are nodes that are intended to only connect to one node
-   * directly and should not be broadcast to other peers. For example, a
-   * single mining director connected to a public node is a worker node.
-   *
-   * Often worker nodes are behind firewalls anyway so they cannot be
-   * connected to.
-   * */
-  isWorker: boolean
-  /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
    * otherwise you should not turn this on or you'll create useless
@@ -51,10 +42,6 @@ export type ConfigOptions = {
    * If true, track all sent and received network messages per-peer.
    */
   logPeerMessages: boolean
-  /**
-   * True if you want to send worker peers out to other clients or not
-   * */
-  broadcastWorkers: boolean
   /**
    * Log levels are formatted like so:
    * `*:warn,tag:info`
@@ -114,6 +101,12 @@ export type ConfigOptions = {
    * if exists then will use it, otherwise will generate new.
    */
   generateNewIdentity: boolean
+
+  /**
+   * The default delta of block sequence for which to expire transactions from the
+   * mempool.
+   */
+  defaultTransactionExpirationSequenceDelta: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -142,9 +135,9 @@ export class Config extends KeyStore<ConfigOptions> {
 
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
-      broadcastWorkers: true,
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
+      defaultTransactionExpirationSequenceDelta: 450,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
@@ -157,7 +150,6 @@ export class Config extends KeyStore<ConfigOptions> {
       enableMetrics: true,
       getFundsApi: DEFAULT_GET_FUNDS_API,
       ipcPath: files.resolve(files.join(dataDir || DEFAULT_DATA_DIR, 'ironfish.ipc')),
-      isWorker: false,
       logLevel: '*:info',
       logPeerMessages: false,
       logPrefix: '',

@@ -1162,7 +1162,6 @@ export class PeerManager {
     }
 
     peer.name = name
-    peer.isWorker = message.payload.isWorker || false
     peer.version = version
     peer.agent = agent
     peer.head = Buffer.from(message.payload.head, 'hex')
@@ -1464,10 +1463,6 @@ export class PeerManager {
         continue
       }
 
-      if (p.isWorker && !this.localPeer.broadcastWorkers) {
-        continue
-      }
-
       connectedPeers.push({
         identity: p.state.identity,
         name: p.name || undefined,
@@ -1487,12 +1482,6 @@ export class PeerManager {
   private handlePeerListMessage(peerList: PeerList, peer: Peer) {
     if (peer.state.type !== 'CONNECTED') {
       this.logger.warn('Should not handle the peer list message unless peer is connected')
-      return
-    }
-
-    // Workers don't try connect to other peers, so if localPeer is a worker,
-    // we can ignore this message
-    if (this.localPeer.isWorker) {
       return
     }
 

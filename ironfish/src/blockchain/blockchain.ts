@@ -9,7 +9,7 @@ import {
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
-  TARGET_BLOCK_TIME_MS,
+  TARGET_BLOCK_TIME_IN_SECONDS,
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -22,9 +22,9 @@ import { Block, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
   NoteEncrypted,
-  SerializedWasmNoteEncrypted,
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
+  NoteEncryptedHash,
+  SerializedNoteEncrypted,
+  SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
@@ -53,7 +53,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
 
 export class Blockchain {
   db: IDatabase
@@ -66,9 +66,9 @@ export class Blockchain {
   opened = false
   notes: MerkleTree<
     NoteEncrypted,
-    WasmNoteEncryptedHash,
-    SerializedWasmNoteEncrypted,
-    SerializedWasmNoteEncryptedHash
+    NoteEncryptedHash,
+    SerializedNoteEncrypted,
+    SerializedNoteEncryptedHash
   >
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
@@ -224,7 +224,7 @@ export class Blockchain {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
-    const offset = TARGET_BLOCK_TIME_MS * 4
+    const offset = TARGET_BLOCK_TIME_IN_SECONDS * 4 * 1000
 
     const progress = (current - start) / (end - offset - start)
 
@@ -247,12 +247,14 @@ export class Blockchain {
     return genesisHeader
   }
 
-  async open(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
+  async open(
+    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
+  ): Promise<void> {
     if (this.opened) {
       return
     }
-    this.opened = true
 
+    this.opened = true
     await this.db.open()
 
     if (options.upgrade) {

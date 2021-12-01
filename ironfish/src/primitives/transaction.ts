@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { WasmTransactionPosted } from 'ironfish-wasm-nodejs'
+import { TransactionPosted } from 'ironfish-rust-nodejs'
 import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
@@ -15,32 +15,30 @@ export type TransactionHash = Buffer
 export type SerializedTransaction = Buffer
 
 export class Transaction {
-  private readonly wasmTransactionPostedSerialized: Buffer
+  private readonly transactionPostedSerialized: Buffer
   private readonly workerPool: WorkerPool
 
-  private wasmTransactionPosted: WasmTransactionPosted | null = null
+  private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(wasmTransactionPostedSerialized: Buffer, workerPool: WorkerPool) {
-    this.wasmTransactionPostedSerialized = wasmTransactionPostedSerialized
+  constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
+    this.transactionPostedSerialized = transactionPostedSerialized
     this.workerPool = workerPool
   }
 
   serialize(): Buffer {
-    return this.wasmTransactionPostedSerialized
+    return this.transactionPostedSerialized
   }
 
   /**
    * Preallocate any resources necessary for using the transaction.
    */
-  takeReference(): WasmTransactionPosted {
+  takeReference(): TransactionPosted {
     this.referenceCount++
-    if (this.wasmTransactionPosted === null) {
-      this.wasmTransactionPosted = WasmTransactionPosted.deserialize(
-        this.wasmTransactionPostedSerialized,
-      )
+    if (this.transactionPosted === null) {
+      this.transactionPosted = TransactionPosted.deserialize(this.transactionPostedSerialized)
     }
-    return this.wasmTransactionPosted
+    return this.transactionPosted
   }
 
   /**
@@ -50,15 +48,15 @@ export class Transaction {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.wasmTransactionPosted?.free()
-      this.wasmTransactionPosted = null
+      this.transactionPosted?.free()
+      this.transactionPosted = null
     }
   }
 
   /**
    * Wraps the given callback in takeReference and returnReference.
    */
-  withReference<R>(callback: (transaction: WasmTransactionPosted) => R): R {
+  withReference<R>(callback: (transaction: TransactionPosted) => R): R {
     const transaction = this.takeReference()
     try {
       return callback(transaction)
@@ -90,6 +88,10 @@ export class Transaction {
       const serializedNote = Buffer.from(t.getNote(index))
       return new NoteEncrypted(serializedNote)
     })
+  }
+
+  async isMinersFee(): Promise<boolean> {
+    return this.spendsLength() === 0 && this.notesLength() === 1 && (await this.fee()) <= 0
   }
 
   /**
@@ -125,16 +127,16 @@ export class Transaction {
 
   getSpend(index: number): Spend {
     return this.withReference((t) => {
-      const wasmSpend = t.getSpend(index)
+      const spend = t.getSpend(index)
 
-      const spend = {
-        size: wasmSpend.treeSize,
-        nullifier: Buffer.from(wasmSpend.nullifier),
-        commitment: Buffer.from(wasmSpend.rootHash),
+      const jsSpend = {
+        size: spend.treeSize,
+        nullifier: Buffer.from(spend.nullifier),
+        commitment: Buffer.from(spend.rootHash),
       }
 
-      wasmSpend.free()
-      return spend
+      spend.free()
+      return jsSpend
     })
   }
 
@@ -172,6 +174,10 @@ export class Transaction {
 
   equals(other: Transaction): boolean {
     return this.hash().equals(other.hash())
+  }
+
+  expirationSequence(): number {
+    return this.withReference<number>((t) => t.expirationSequence)
   }
 }
 

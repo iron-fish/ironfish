@@ -4,9 +4,9 @@
 
 import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
 import { Strategy } from '../strategy'
-import { SerializedWasmNoteEncryptedHash, WasmNoteEncryptedHash } from './noteEncrypted'
+import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
-import { Target, TargetSerdeInstance } from './target'
+import { Target } from './target'
 
 export type BlockHash = Buffer
 
@@ -64,7 +64,7 @@ export class BlockHeader {
    * block have been added to it. Stored as the hash and the size of the tree
    * at the time the hash was calculated.
    */
-  public noteCommitment: { commitment: WasmNoteEncryptedHash; size: number }
+  public noteCommitment: { commitment: NoteEncryptedHash; size: number }
 
   /**
    * Commitment to the nullifier set after all the spends in this block have
@@ -104,7 +104,7 @@ export class BlockHeader {
    * Note that the transaction fee on a minersFee is negative. By "spending a negative value"
    * the miner is awarding itself a positive receipt.
    */
-  public minersFee: BigInt
+  public minersFee: bigint
 
   /**
    * A 32 byte field that may be assigned at will by the miner who mined the block.
@@ -123,12 +123,12 @@ export class BlockHeader {
     strategy: Strategy,
     sequence: number,
     previousBlockHash: BlockHash,
-    noteCommitment: { commitment: WasmNoteEncryptedHash; size: number },
+    noteCommitment: { commitment: NoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
     randomness = 0,
     timestamp: Date | undefined = undefined,
-    minersFee: BigInt,
+    minersFee: bigint,
     graffiti: Buffer,
     work = BigInt(0),
     hash?: Buffer,
@@ -154,7 +154,7 @@ export class BlockHeader {
    * This is used for calculating the hash in miners and for verifying it.
    */
   serializePartial(): Buffer {
-    return new PartialBlockHeaderSerde(this.strategy).serialize({
+    return new PartialBlockHeaderSerde().serialize({
       sequence: this.sequence,
       previousBlockHash: this.previousBlockHash,
       noteCommitment: this.noteCommitment,
@@ -195,7 +195,7 @@ export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
   noteCommitment: {
-    commitment: SerializedWasmNoteEncryptedHash
+    commitment: SerializedNoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
@@ -229,7 +229,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           element2.nullifierCommitment.commitment,
         ) &&
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
-      TargetSerdeInstance.equals(element1.target, element2.target) &&
+      element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
       element1.timestamp.getTime() === element2.timestamp.getTime() &&
       element1.minersFee === element2.minersFee &&
@@ -253,7 +253,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           .serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
       },
-      target: TargetSerdeInstance.serialize(header.target),
+      target: header.target.targetValue.toString(),
       randomness: header.randomness,
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
@@ -284,7 +284,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
           .deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
       },
-      TargetSerdeInstance.deserialize(data.target),
+      new Target(data.target),
       data.randomness,
       new Date(data.timestamp),
       BigInt(data.minersFee),

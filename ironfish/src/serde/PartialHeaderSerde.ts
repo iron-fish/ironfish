@@ -2,72 +2,56 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  SerializedWasmNoteEncryptedHash,
-  WasmNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+import bufio from 'bufio'
+import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
-import { Target, TargetSerdeInstance } from '../primitives/target'
-import { Strategy } from '../strategy'
-import { BlockHashSerdeInstance, GraffitiSerdeInstance, IJSON, Serde } from '.'
+import { Target } from '../primitives/target'
+import { BigIntUtils } from '../utils'
+import { Serde } from '.'
 
 export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader, Buffer> {
-  strategy: Strategy
-
-  constructor(strategy: Strategy) {
-    this.strategy = strategy
-  }
-
   serialize(header: PartialBlockHeader): Buffer {
-    // WHAT EVER YOU DO DO NOT REORDER THE KEYS IN THIS OBJECT
-    // It will cause ALL block hashes to change. Yes that is
-    // absolutely aweful, and we will fix it.
-
-    const serialized: SerializedPartialBlockHeader = {
-      sequence: header.sequence.toString(),
-      previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
-      noteCommitment: {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .serialize(header.noteCommitment.commitment),
-        size: header.noteCommitment.size,
-      },
-      nullifierCommitment: {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .serialize(header.nullifierCommitment.commitment),
-        size: header.nullifierCommitment.size,
-      },
-      target: TargetSerdeInstance.serialize(header.target),
-      timestamp: header.timestamp.getTime(),
-      minersFee: header.minersFee.toString(),
-      graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
-    }
-
-    return Buffer.from(IJSON.stringify(serialized))
+    const bw = bufio.write(200)
+    bw.writeU64(header.sequence)
+    bw.writeHash(header.previousBlockHash)
+    bw.writeHash(header.noteCommitment.commitment)
+    bw.writeU64(header.noteCommitment.size)
+    bw.writeHash(header.nullifierCommitment.commitment)
+    bw.writeU64(header.nullifierCommitment.size)
+    bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
+    bw.writeU64(header.timestamp.getTime())
+    bw.writeBytes(BigIntUtils.toBytesBE(header.minersFee, 8))
+    bw.writeBytes(header.graffiti)
+    return bw.render()
   }
 
   deserialize(data: Buffer): PartialBlockHeader {
-    const deserialized = IJSON.parse(data.toString()) as SerializedPartialBlockHeader
+    const br = bufio.read(data)
+    const sequence = br.readU64()
+    const previousBlockHash = br.readHash()
+    const noteCommitment = br.readHash()
+    const noteCommitmentSize = br.readU64()
+    const nullifierCommitment = br.readHash()
+    const nullifierCommitmentSize = br.readU64()
+    const target = br.readBytes(32)
+    const timestamp = br.readU64()
+    const minersFee = br.readBytes(8)
+    const graffiti = br.readBytes(32)
 
     return {
-      sequence: Number(deserialized.sequence),
-      previousBlockHash: BlockHashSerdeInstance.deserialize(deserialized.previousBlockHash),
-      target: TargetSerdeInstance.deserialize(deserialized.target),
-      timestamp: new Date(deserialized.timestamp),
-      minersFee: BigInt(deserialized.minersFee),
-      graffiti: GraffitiSerdeInstance.deserialize(deserialized.graffiti),
+      sequence: sequence,
+      previousBlockHash: previousBlockHash,
+      target: new Target(target),
+      timestamp: new Date(timestamp),
+      minersFee: BigIntUtils.fromBytes(minersFee),
+      graffiti: graffiti,
       noteCommitment: {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .deserialize(deserialized.noteCommitment.commitment),
-        size: deserialized.noteCommitment.size,
+        commitment: noteCommitment,
+        size: noteCommitmentSize,
       },
       nullifierCommitment: {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .deserialize(deserialized.nullifierCommitment.commitment),
-        size: deserialized.nullifierCommitment.size,
+        commitment: nullifierCommitment,
+        size: nullifierCommitmentSize,
       },
     }
   }
@@ -81,7 +65,7 @@ type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {
-    commitment: WasmNoteEncryptedHash
+    commitment: NoteEncryptedHash
     size: number
   }
   nullifierCommitment: {
@@ -90,23 +74,6 @@ type PartialBlockHeader = {
   }
   target: Target
   timestamp: Date
-  minersFee: BigInt
+  minersFee: bigint
   graffiti: Buffer
-}
-
-type SerializedPartialBlockHeader = {
-  sequence: string
-  previousBlockHash: string
-  target: string
-  timestamp: number
-  minersFee: string
-  graffiti: string
-  noteCommitment: {
-    commitment: SerializedWasmNoteEncryptedHash
-    size: number
-  }
-  nullifierCommitment: {
-    commitment: string
-    size: number
-  }
 }

@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 import { Serde } from '../serde'
 import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import { NoteEncrypted, WasmNoteEncryptedHash } from './noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
 import { SerializedTransaction, Transaction } from './transaction'
 
@@ -63,7 +63,7 @@ export class Block {
    */
   *spends(): Generator<{
     nullifier: Nullifier
-    commitment: WasmNoteEncryptedHash
+    commitment: NoteEncryptedHash
     size: number
   }> {
     for (const transaction of this.transactions) {
@@ -90,7 +90,7 @@ export class Block {
   }
 
   get minersFee(): Transaction {
-    const tx = this.transactions[this.transactions.length - 1]
+    const tx = this.transactions[0]
     Assert.isNotUndefined(tx, 'Block has no miners fee')
     return tx
   }
