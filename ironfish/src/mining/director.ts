@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import LeastRecentlyUsed from 'blru'
+import { BufferSet } from 'buffer-map'
 import { Account } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -14,7 +15,7 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { submitMetric } from '../telemetry'
-import { ErrorUtils, GraffitiUtils } from '../utils'
+import { AsyncUtils, ErrorUtils, GraffitiUtils } from '../utils'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -333,7 +334,7 @@ export class MiningDirector {
     const blockTransactions = []
 
     // Fetch all transactions for the block
-    for (const transaction of this.memPool.get()) {
+    for await (const transaction of this.getTransactions()) {
       if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
         break
       }
@@ -495,6 +496,34 @@ export class MiningDirector {
 
     if (this.miningDifficultyChangeTimeout) {
       clearTimeout(this.miningDifficultyChangeTimeout)
+    }
+  }
+
+  protected async *getTransactions(): AsyncGenerator<Transaction> {
+    const nullifiers = new BufferSet()
+
+    for (const transaction of this.memPool.get()) {
+      const conflicted = await AsyncUtils.find(transaction.spends(), async (spend) => {
+        if (nullifiers.has(spend.nullifier)) {
+          return true
+        }
+
+        if (await this.chain.nullifiers.contains(spend.nullifier)) {
+          return true
+        }
+
+        return false
+      })
+
+      if (conflicted) {
+        continue
+      }
+
+      for (const spend of transaction.spends()) {
+        nullifiers.add(spend.nullifier)
+      }
+
+      yield transaction
     }
   }
 }

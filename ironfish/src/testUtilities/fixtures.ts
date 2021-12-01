@@ -212,11 +212,19 @@ export async function useTxFixture(
   from: Account,
   to: Account,
   generate?: FixtureGenerate<Transaction>,
+  fee?: bigint,
 ): Promise<Transaction> {
   generate =
     generate ||
     (() => {
-      return accounts.createTransaction(from, BigInt(1), BigInt(0), '', to.publicAddress, 0)
+      return accounts.createTransaction(
+        from,
+        BigInt(1),
+        fee ?? BigInt(0),
+        '',
+        to.publicAddress,
+        0,
+      )
     })
 
   return useFixture(generate, {
