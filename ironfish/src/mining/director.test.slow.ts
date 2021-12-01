@@ -37,10 +37,12 @@ describe('Mining director', () => {
         .spyOn(miningDirector, 'generateBlockToMine')
         .mockReturnValue(Promise.resolve())
 
-      const previous = await useMinerBlockFixture(chain, 2)
+      // onSynced can trigger while generating fixtures or if this test is run in isolation,
+      // which would call generateBlockToMine twice, so we can clear the listener to ensure it
+      // will only be called once.
+      chain.onSynced.clear()
 
-      // Fixture generation causes a call to generateBlockSpy
-      generateBlockSpy.mockClear()
+      const previous = await useMinerBlockFixture(chain, 2)
 
       await expect(chain).toAddBlock(previous)
       await flushTimeout()
