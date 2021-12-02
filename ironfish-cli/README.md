@@ -32,6 +32,13 @@ Then run these commands in two different terminals:
 
 You should see messages in the second terminal indicating that blocks are mined.
 
+### Mining with Multiple Threads
+After starting your node, run this command in a separate terminal.
+
+- `yarn start miners:start -t <num_threads>`
+
+Enter -1 as your num_threads to run the maximum possible number on your system.
+
 ### Multiple Nodes
 
 Run these commands in two different terminals:

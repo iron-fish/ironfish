@@ -27,6 +27,8 @@ See https://ironfish.network
       1. Run `brew install openssl`
       1. Run ``export OPENSSL_ROOT_DIR=`brew --prefix openssl` ``
       1. Run `yarn install` again.
+   * If `yarn install` fails with an error that includes "Error: not found: make", you may need to install coompilation tools for building C and C++ programs. For example, on Ubuntu:
+      1. Run `apt install build-essential`
 
 ## Usage
 
