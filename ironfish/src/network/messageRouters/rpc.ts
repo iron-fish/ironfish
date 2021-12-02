@@ -12,8 +12,7 @@ import {
   MessageType,
   PayloadType,
 } from '../messages'
-import { Connection } from '../peers/connections/connection'
-import { NetworkError } from '../peers/connections/errors'
+import { Connection, NetworkError } from '../peers/connections'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
 import { nextRpcId, RpcId, rpcTimeoutMillis } from './rpcId'

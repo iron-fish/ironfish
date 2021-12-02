@@ -782,6 +782,19 @@ export class Blockchain {
   }
 
   /**
+   * Returns true if the blockchain has any blocks at the given sequence
+   */
+  async hasHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<boolean> {
+    const hashes = await this.getHashesAtSequence(sequence, tx)
+
+    if (!hashes) {
+      return false
+    }
+
+    return hashes.length > 0
+  }
+
+  /**
    * Returns an array of hashes for any blocks at the given sequence
    */
   async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {

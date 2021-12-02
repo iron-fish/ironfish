@@ -27,7 +27,7 @@ export class ConnectionRefusedError extends ConnectionError {}
 /** Thrown when the connection is lost after you've successfully connected.
  *
  * @note In a stateless connection like HTTP this should happen after the request was sent out, but before the response has been returned.
- * @note In a stateful connection like websockets or IPC, this should be thrown any time after you've connected when the connection has been disconnected unexpectly. */
+ * @note In a stateful connection like websockets or IPC, this should be thrown any time after you've connected when the connection has been disconnected unexpectedly. */
 export class ConnectionLostError extends ConnectionError {}
 
 /** Thrown when a response comes back with a code that is between 400 to 500 */

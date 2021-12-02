@@ -3,14 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { JobErrorSerialized } from './errors'
-import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
-import { MineHeaderRequest, MineHeaderResponse } from './tasks/mineHeader'
-import { SleepRequest, SleepResponse } from './tasks/sleep'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
-import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
-import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
+import {
+  BoxMessageRequest,
+  BoxMessageResponse,
+  CreateMinersFeeRequest,
+  CreateMinersFeeResponse,
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  MineHeaderRequest,
+  MineHeaderResponse,
+  SleepRequest,
+  SleepResponse,
+  TransactionFeeRequest,
+  TransactionFeeResponse,
+  UnboxMessageRequest,
+  UnboxMessageResponse,
+  VerifyTransactionRequest,
+  VerifyTransactionResponse,
+} from './tasks'
 
 /**
  * Request and response message types used for communication

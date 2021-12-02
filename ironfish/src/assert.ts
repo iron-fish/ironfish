@@ -42,13 +42,13 @@ export class Assert {
   }
 
   static isTrue(x: boolean, message?: string): asserts x is true {
-    if (x === false) {
+    if (!x) {
       throw new Error(message || `Expected value to be true`)
     }
   }
 
   static isFalse(x: boolean, message?: string): asserts x is false {
-    if (x === true) {
+    if (x) {
       throw new Error(message || `Expected value to be false`)
     }
   }

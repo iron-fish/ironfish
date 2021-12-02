@@ -6,6 +6,14 @@ import { Response, ResponseEnded } from '../response'
 import {
   CreateAccountRequest,
   CreateAccountResponse,
+  ExportAccountRequest,
+  ExportAccountResponse,
+  ExportChainStreamRequest,
+  ExportChainStreamResponse,
+  ExportMinedStreamRequest,
+  ExportMinedStreamResponse,
+  FollowChainStreamRequest,
+  FollowChainStreamResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetBalanceRequest,
@@ -23,6 +31,10 @@ import {
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
+  GetPeerMessagesRequest,
+  GetPeerMessagesResponse,
+  GetPeerRequest,
+  GetPeerResponse,
   GetPeersRequest,
   GetPeersResponse,
   GetPublicKeyRequest,
@@ -31,8 +43,16 @@ import {
   GetStatusResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
+  ImportAccountRequest,
+  ImportAccountResponse,
   NewBlocksStreamRequest,
   NewBlocksStreamResponse,
+  OnGossipRequest,
+  OnGossipResponse,
+  RemoveAccountRequest,
+  RemoveAccountResponse,
+  RescanAccountRequest,
+  RescanAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetConfigRequest,
@@ -47,33 +67,11 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
-import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
-import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
-import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
-import {
-  ExportChainStreamRequest,
-  ExportChainStreamResponse,
-} from '../routes/chain/exportChain'
-import {
-  FollowChainStreamRequest,
-  FollowChainStreamResponse,
-} from '../routes/chain/followChain'
-import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  ExportMinedStreamRequest,
-  ExportMinedStreamResponse,
-} from '../routes/mining/exportMined'
-import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
-import {
-  GetPeerMessagesRequest,
-  GetPeerMessagesResponse,
-} from '../routes/peers/getPeerMessages'
 
 export abstract class IronfishRpcClient {
   readonly logger: Logger
 
-  constructor(logger: Logger) {
+  protected constructor(logger: Logger) {
     this.logger = logger
   }
 

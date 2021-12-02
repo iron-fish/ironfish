@@ -9,7 +9,7 @@ import { RollingAverage } from './rollingAverage'
  *  * bytes per second
  *
  * This metric will take a sample of how many units were
- * completd each tick cycle and record that in various
+ * completed each tick cycle and record that in various
  * rolling averages.
  *
  * @TODO: Move RollingAverages to exponentially-weighted moving average (EWMA)

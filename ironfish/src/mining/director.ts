@@ -9,10 +9,10 @@ import { Blockchain } from '../blockchain'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
-import { Block } from '../primitives/block'
+import { Block } from '../primitives'
+import { Transaction } from '../primitives'
 import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { submitMetric } from '../telemetry'
 import { AsyncUtils, ErrorUtils, GraffitiUtils } from '../utils'
@@ -221,7 +221,7 @@ export class MiningDirector {
    *  * adds any transactions that we were attempting to mine back to the pool
    *  * Creates a new block with transactions from the pool
    *  * emits the header of the new block to any listening miners
-   *  * stores block until either the head changes again or it is succesfully mined
+   *  * stores block until either the head changes again or it is successfully mined
    *
    * @param newChainHead The hash of the new head of the chain
    * @event onBlockToMine header of a new block that needs to have its randomness mined
@@ -410,8 +410,7 @@ export class MiningDirector {
 
     this.recentBlocks.set(this.miningRequestId, newBlock)
 
-    const canRetry = target.asBigInt() < Target.maxTarget().asBigInt()
-    return canRetry
+    return target.asBigInt() < Target.maxTarget().asBigInt()
   }
 
   /**
@@ -508,11 +507,7 @@ export class MiningDirector {
           return true
         }
 
-        if (await this.chain.nullifiers.contains(spend.nullifier)) {
-          return true
-        }
-
-        return false
+        return await this.chain.nullifiers.contains(spend.nullifier)
       })
 
       if (conflicted) {

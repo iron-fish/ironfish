@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
+import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RequestError } from '../../clients/errors'
+import { RequestError } from '../../clients'
 
 const TEST_PARAMS = {
   amount: BigInt(10).toString(),

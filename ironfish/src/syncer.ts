@@ -11,10 +11,10 @@ import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, SerializedBlock } from './primitives/block'
-import { BlockHeader } from './primitives/blockheader'
+import { BlockHeader } from './primitives'
 import { Strategy } from './strategy'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
-import { ArrayUtils } from './utils/array'
+import { ArrayUtils } from './utils'
 
 const SYNCER_TICK_MS = 4 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3

@@ -4,9 +4,9 @@
 import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
-import { StrEnumUtils } from '../../utils/enums'
+import { StrEnumUtils } from '../../utils'
 import { ERROR_CODES } from '../adapters'
-import { ResponseError, ValidationError } from '../adapters/errors'
+import { ResponseError, ValidationError } from '../adapters'
 import { Request } from '../request'
 import { RpcServer } from '../server'
 

@@ -26,8 +26,7 @@ describe('account/rescanAccount', () => {
 
   describe('if a rescan is already running', () => {
     it('returns a bad request status code', async () => {
-      const scan = new ScanState()
-      routeTest.node.accounts.scan = scan
+      routeTest.node.accounts.scan = new ScanState()
 
       try {
         await routeTest.adapter.request<RescanAccountResponse>('account/rescanAccount', {

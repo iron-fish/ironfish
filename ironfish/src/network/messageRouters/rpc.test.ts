@@ -5,7 +5,7 @@
 jest.mock('./rpcId')
 import { mocked } from 'ts-jest/utils'
 import { AddressManager } from '../peers/addressManager'
-import { NetworkError } from '../peers/connections/errors'
+import { NetworkError } from '../peers/connections'
 import { PeerManager } from '../peers/peerManager'
 import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
 import { CannotSatisfyRequestError, Direction, RequestTimeoutError, RpcRouter } from './rpc'

@@ -5,7 +5,7 @@
 import { generateKey } from 'ironfish-rust-nodejs'
 import tweetnacl from 'tweetnacl'
 import { Assert, privateIdentityToIdentity } from '..'
-import { createNodeTest } from '../testUtilities/nodeTest'
+import { createNodeTest } from '../testUtilities'
 
 describe('Worker Pool', () => {
   const nodeTest = createNodeTest(false, { config: { nodeWorkers: 1 } })

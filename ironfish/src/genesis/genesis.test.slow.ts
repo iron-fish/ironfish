@@ -35,12 +35,12 @@ describe('Read genesis block', () => {
 
     // We should also be able to create new blocks after the genesis block
     // has been added
-    const minersfee = await strategy.createMinersFee(
+    const minersFee = await strategy.createMinersFee(
       BigInt(0),
       chain.head.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock = await chain.newBlock([], minersfee)
+    const newBlock = await chain.newBlock([], minersFee)
     expect(newBlock).toBeTruthy()
   }, 60000)
 })
@@ -110,12 +110,12 @@ describe('Create genesis block', () => {
     })
 
     // Ensure we can construct blocks after that block
-    const minersfee = await strategy.createMinersFee(
+    const minersFee = await strategy.createMinersFee(
       BigInt(0),
       block.header.sequence + 1,
       generateKey().spending_key,
     )
-    const additionalBlock = await chain.newBlock([], minersfee)
+    const additionalBlock = await chain.newBlock([], minersFee)
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
@@ -148,12 +148,12 @@ describe('Create genesis block', () => {
     })
 
     // Ensure we can construct blocks after that block
-    const newMinersfee = await strategy.createMinersFee(
+    const newMinersFee = await strategy.createMinersFee(
       BigInt(0),
       deserializedBlock.header.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock = await newChain.newBlock([], newMinersfee)
+    const newBlock = await newChain.newBlock([], newMinersFee)
     expect(newBlock).toBeTruthy()
   }, 600000)
 })

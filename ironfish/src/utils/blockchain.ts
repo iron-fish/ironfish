@@ -4,7 +4,7 @@
 
 import { Account } from '../account'
 import { Blockchain } from '../blockchain'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Block } from '../primitives'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
 

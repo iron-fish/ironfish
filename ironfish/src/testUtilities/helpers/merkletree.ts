@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { MerkleTree } from '../../merkletree'
-import { StructureHasher } from '../../merkletree/hasher'
+import { StructureHasher } from '../../merkletree'
 import { IDatabase } from '../../storage'
-import { createDB } from '../helpers/storage'
+import { createDB } from './storage'
 
 export async function makeTree({
   name,

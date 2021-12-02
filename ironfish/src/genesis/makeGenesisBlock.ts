@@ -12,8 +12,8 @@ import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
-import { GraffitiUtils } from '../utils/graffiti'
+import { Transaction } from '../primitives'
+import { GraffitiUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {

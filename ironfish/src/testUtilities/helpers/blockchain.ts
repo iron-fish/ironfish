@@ -5,10 +5,9 @@
 import '../matchers/blockchain'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
-import { Block } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { Block, BlockHeader } from '../../primitives'
 import { Target } from '../../primitives/target'
-import { GraffitiUtils } from '../../utils/graffiti'
+import { GraffitiUtils } from '../../utils'
 
 export async function makeBlockAfter(
   chain: Blockchain,

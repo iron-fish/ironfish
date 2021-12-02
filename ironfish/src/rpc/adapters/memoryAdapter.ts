@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { PromiseUtils, SetTimeoutToken } from '../../utils'
-import { RequestError } from '../clients/errors'
+import { RequestError } from '../clients'
 import { Request } from '../request'
 import { Response, ResponseEnded } from '../response'
 import { ALL_API_NAMESPACES, Router } from '../routes'

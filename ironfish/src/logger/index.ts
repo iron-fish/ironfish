@@ -5,7 +5,7 @@
 import type { Consola } from 'consola'
 import consola, { LogLevel } from 'consola'
 import { parseLogLevelConfig } from './logLevelParser'
-import { ConsoleReporter } from './reporters/console'
+import { ConsoleReporter } from './reporters'
 export * from './reporters/intercept'
 
 export type Logger = Consola

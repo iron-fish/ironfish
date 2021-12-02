@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TransactionPosted } from 'ironfish-rust-nodejs'
-import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
+import { VerificationResult, VerificationResultReason } from '../consensus'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
@@ -70,10 +70,7 @@ export class Transaction {
    */
   async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
     const result = await this.workerPool.verify(this, options)
-
-    return result === true
-      ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
+    return result ? { valid: true } : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   /**

@@ -7,17 +7,15 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
-import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
+import { DEFAULT_WEBSOCKET_PORT } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
-import { Block } from '../primitives'
+import { Block, BlockHeader } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
-import { PrivateIdentity } from './identity'
-import { Identity } from './identity'
+import { Identity, PrivateIdentity } from './identity'
 import {
   CannotSatisfyRequestError,
   FireAndForgetRouter,
@@ -32,21 +30,19 @@ import {
   RpcRouter,
 } from './messageRouters'
 import {
-  GetBlockHashesResponse,
-  GetBlocksResponse,
-  isGetBlocksRequest,
-  isNewBlockPayload,
-} from './messages'
-import {
   DisconnectingMessage,
   DisconnectingReason,
   GetBlockHashesRequest,
+  GetBlockHashesResponse,
   GetBlocksRequest,
+  GetBlocksResponse,
   IncomingPeerMessage,
   InternalMessageType,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
+  isGetBlocksRequest,
   isGetBlocksResponse,
+  isNewBlockPayload,
   isNewTransactionPayload,
   LooseMessage,
   Message,
@@ -62,7 +58,7 @@ import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { IsomorphicWebSocketConstructor } from './types'
-import { parseUrl } from './utils/parseUrl'
+import { parseUrl } from './utils'
 import { VERSION_PROTOCOL } from './version'
 import { WebSocketServer } from './webSocketServer'
 
@@ -448,7 +444,7 @@ export class PeerNetwork {
         message: { ...msg.message, payload: resp },
       }
 
-      return await handler(newMsg as IncomingPeerMessage<RouteMap<T, P>[S]>)
+      return handler(newMsg as IncomingPeerMessage<RouteMap<T, P>[S]>)
     }
 
     switch (style) {
@@ -673,8 +669,7 @@ export class PeerNetwork {
         BAN_SCORE.MAX,
         `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
       )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
+      throw new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
     }
 
     const message = request.message
@@ -718,8 +713,7 @@ export class PeerNetwork {
         BAN_SCORE.MAX,
         `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
       )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
+      throw new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
     }
 
     const message = request.message

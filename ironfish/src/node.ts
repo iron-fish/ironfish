@@ -13,7 +13,7 @@ import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
-import { RpcServer } from './rpc/server'
+import { RpcServer } from './rpc'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { setDefaultTags, startCollecting, stopCollecting, submitMetric } from './telemetry'
@@ -358,7 +358,7 @@ export class IronfishNode {
       }
       case 'enableMiningDirector': {
         if (newValue && this.peerNetwork.isReady) {
-          void this.miningDirector.start()
+          void (await this.miningDirector.start())
         } else {
           this.miningDirector.shutdown()
         }

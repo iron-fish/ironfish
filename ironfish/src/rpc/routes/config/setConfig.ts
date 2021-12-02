@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
+import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores'
 import { ApiNamespace, router } from '../router'
 import { setUnknownConfigValue } from './uploadConfig'
 

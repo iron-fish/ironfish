@@ -5,9 +5,9 @@ import {
   useAccountFixture,
   useBlockWithTx,
   useMinersTxFixture,
-} from '../testUtilities/fixtures'
+  createNodeTest,
+} from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { createNodeTest } from '../testUtilities/nodeTest'
 import { SerializedBlock } from './block'
 
 describe('Block', () => {

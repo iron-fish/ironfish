@@ -6,7 +6,7 @@ import { VerificationResult } from '../../..'
 import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { createRootLogger, Logger } from '../../../logger'
-import { BlockHeader } from '../../../primitives/blockheader'
+import { BlockHeader } from '../../../primitives'
 import { BlockchainUtils, HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {

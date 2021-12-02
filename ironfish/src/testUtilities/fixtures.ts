@@ -77,7 +77,7 @@ export async function useFixture<TFixture, TSerialized = unknown>(
     fixtureCache.set(testPath, fixtures)
   }
 
-  let fixture: TFixture | null = null
+  let fixture: TFixture | null
 
   const serializedAll = fixtures.get(testName) || []
   fixtures.set(testName, serializedAll)
@@ -97,8 +97,7 @@ export async function useFixture<TFixture, TSerialized = unknown>(
   } else {
     // generate the fixture
     fixture = await generate()
-    const serialized = options.serialize ? await options?.serialize(fixture) : fixture
-    serializedAll[fixtureId] = serialized
+    serializedAll[fixtureId] = options.serialize ? await options?.serialize(fixture) : fixture
 
     if (!fs.existsSync(fixtureDir)) {
       await fs.promises.mkdir(fixtureDir)

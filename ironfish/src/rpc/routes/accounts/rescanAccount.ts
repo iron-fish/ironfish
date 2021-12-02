@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ValidationError } from '../../adapters/errors'
+import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type RescanAccountRequest = { follow?: boolean; reset?: boolean }
@@ -36,7 +36,7 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       if (request.data.reset) {
         await node.accounts.reset()
       }
-      void node.accounts.scanTransactions()
+      void (await node.accounts.scanTransactions())
       scan = node.accounts.scan
     }
 

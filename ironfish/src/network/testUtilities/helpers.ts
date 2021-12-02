@@ -20,7 +20,7 @@ export function getConnectingPeer(
   disposable = true,
   direction = ConnectionDirection.Outbound,
 ): { peer: Peer; connection: WebSocketConnection } {
-  let peer: Peer | null = null
+  let peer: Peer | null
 
   if (direction === ConnectionDirection.Outbound) {
     peer = pm.connectToWebSocketAddress('ws://testuri.com:9033')

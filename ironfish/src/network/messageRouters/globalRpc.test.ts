@@ -249,12 +249,12 @@ describe('Global Rpc', () => {
       payload: {},
     })
 
-    void router.handle(peer2, {
+    void (await router.handle(peer2, {
       rpcId: 11,
       direction: Direction.response,
       type: 'test',
       payload: { response: 'payload' },
-    })
+    }))
 
     await expect(promise).resolves.toMatchObject({
       peerIdentity: peer2.getIdentityOrThrow(),

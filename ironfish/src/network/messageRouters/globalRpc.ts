@@ -52,7 +52,7 @@ export class GlobalRpcRouter {
 
   /**
    * Register a callback function for a given type of handler. This handler
-   * is used for incoming RPC requents, and should be responded to as with
+   * is used for incoming RPC requests, and should be responded to as with
    * a normal RPC handler.
    */
   register<T extends MessageType>(
@@ -115,7 +115,7 @@ export class GlobalRpcRouter {
 
   /**
    * Handle an incoming global RPC message. This may be an incoming request for
-   * some data or an incoming repsonse. Either way, we just forward it to the
+   * some data or an incoming response. Either way, we just forward it to the
    * RPC handler.
    */
   async handle(peer: Peer, rpcMessage: IncomingRpcPeerMessage['message']): Promise<void> {
@@ -125,7 +125,7 @@ export class GlobalRpcRouter {
   /**
    * Choose a peer from the list of connected peers.
    *
-   * Prioritizes peers based on their pending RPC messaage count. Filters out
+   * Prioritizes peers based on their pending RPC message count. Filters out
    * saturated peers and peers who have failed this message type, unless all
    * peers have failed, then reset and try them all again.
    *

@@ -4,7 +4,7 @@
 
 import diff from 'jest-diff'
 import { Blockchain } from '../../blockchain'
-import { Block } from '../../primitives/block'
+import { Block } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
 import { makeError, makeResult } from './utils'

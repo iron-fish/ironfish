@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
-import { BigIntUtils } from '../utils/bigint'
+import { BigIntUtils } from '../utils'
 
 /**
  *  Minimum difficulty, which is equivalent to maximum target

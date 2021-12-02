@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IronfishNode } from '../node'
-import { DatabaseIsLockedError } from '../storage/database/errors'
+import { DatabaseIsLockedError } from '../storage'
 import { PromiseUtils } from './promise'
 
 /**

@@ -8,7 +8,7 @@
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
-import { RequestError } from '../../clients/errors'
+import { RequestError } from '../../clients'
 
 describe('Route account/create', () => {
   jest.setTimeout(15000)

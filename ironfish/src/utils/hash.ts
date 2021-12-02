@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { Block } from '../primitives'
+import { BlockHeader } from '../primitives'
 
 function renderHashHex(hashHex: string | null | undefined): string {
   if (!hashHex) {

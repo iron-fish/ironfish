@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { BlockchainUtils } from '../../../utils/blockchain'
+import { BlockchainUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
 export type ExportMinedStreamRequest =

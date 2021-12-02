@@ -99,7 +99,7 @@ export abstract class Connection {
    */
   abstract readonly close: (error?: unknown) => void
 
-  constructor(
+  protected constructor(
     type: ConnectionType,
     direction: ConnectionDirection,
     logger: Logger,

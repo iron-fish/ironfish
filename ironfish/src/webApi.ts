@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
-import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
-import { HasOwnProperty, UnwrapPromise } from './utils/types'
+import { FollowChainStreamResponse } from './rpc'
+import { HasOwnProperty, UnwrapPromise } from './utils'
 
 function IsAxiosError(e: unknown): e is AxiosError {
   return typeof e === 'object' && e != null && HasOwnProperty(e, 'isAxiosError')

@@ -19,7 +19,7 @@ import {
   SchemaValue,
   StringEncoding,
 } from '../database'
-import { DatabaseIsLockedError } from '../database/errors'
+import { DatabaseIsLockedError } from '../database'
 import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'

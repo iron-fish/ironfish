@@ -5,7 +5,7 @@
 import '../../../testUtilities/matchers'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
-import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { GetBlockResponse } from './getBlock'
 

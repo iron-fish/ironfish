@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
-import { GraffitiUtils } from '../../../utils/graffiti'
+import { GraffitiUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
 export type FollowChainStreamRequest =

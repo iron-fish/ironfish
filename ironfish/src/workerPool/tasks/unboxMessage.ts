@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Identity, PrivateIdentity } from '../../network/identity'
+import { Identity, PrivateIdentity } from '../../network'
 import { unboxMessage } from '../../network/peers/encryption'
 
 export type UnboxMessageRequest = {

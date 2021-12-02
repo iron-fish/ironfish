@@ -6,7 +6,7 @@ import { Assert } from './assert'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
-import { createNodeTest } from './testUtilities/nodeTest'
+import { createNodeTest } from './testUtilities'
 import { PromiseUtils } from './utils'
 
 describe('Syncer', () => {

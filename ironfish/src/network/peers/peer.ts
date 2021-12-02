@@ -9,7 +9,7 @@ import { Identity } from '../identity'
 import { DisconnectingReason, InternalMessageType, LooseMessage } from '../messages'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
-import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
+import { Connection, ConnectionDirection, ConnectionType } from './connections'
 
 export enum BAN_SCORE {
   NO = 0,

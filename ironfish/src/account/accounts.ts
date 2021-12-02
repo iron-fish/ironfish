@@ -1038,6 +1038,12 @@ export class Accounts {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
+
+  protected assertNotHasAccount(account: Account): void {
+    if (this.accounts.has(account.name)) {
+      throw new Error(`No account found with name ${account.name}`)
+    }
+  }
 }
 
 export class ScanState {
