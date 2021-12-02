@@ -9,10 +9,9 @@ import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
-import { BlockHeader } from '../primitives'
+import { BlockHeader, Transaction } from '../primitives'
 import { Note } from '../primitives/note'
-import { Transaction } from '../primitives/transaction'
-import { ValidationError } from '../rpc/adapters/errors'
+import { ValidationError } from '../rpc'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -412,7 +411,6 @@ export class Accounts {
               account: account,
             })
           }
-          continue
         }
       }
     }
@@ -845,7 +843,7 @@ export class Accounts {
       }
 
       // TODO: This algorithm suffers a deanonymization attack where you can
-      // watch to see what transactions node continously send out, then you can
+      // watch to see what transactions node continuously send out, then you can
       // know those transactions are theres. This should be randomized and made
       // less, predictable later to help prevent that attack.
       if (head.sequence - submittedSequence < this.rebroadcastAfter) {
@@ -946,7 +944,7 @@ export class Accounts {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    const account = {
+    const account: Account = {
       ...AccountDefaults,
       ...toImport,
     }
@@ -1040,12 +1038,6 @@ export class Accounts {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
-
-  protected assertNotHasAccount(account: Account): void {
-    if (this.accounts.has(account.name)) {
-      throw new Error(`No account found with name ${account.name}`)
-    }
-  }
 }
 
 export class ScanState {
@@ -1053,8 +1045,8 @@ export class ScanState {
 
   readonly startedAt: number
   private aborted: boolean
-  private runningPromise: Promise<void>
-  private runningResolve: PromiseResolve<void>
+  private readonly runningPromise: Promise<void>
+  private readonly runningResolve: PromiseResolve<void>
 
   constructor() {
     const [promise, resolve] = PromiseUtils.split<void>()

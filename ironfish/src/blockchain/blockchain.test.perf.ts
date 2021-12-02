@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import _ from 'lodash'
 import { Assert } from '../assert'
 import { Block } from '../primitives'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
@@ -130,7 +129,7 @@ describe('Blockchain', () => {
   }, 780000)
 })
 
-// Last results on Jason Spafford's Machine
+// Last results on Jason Stafford's Machine
 // If you decide to change addBlock() consider
 // running these tests and updating the results
 // here: yarn test test.perf.ts --testPathIgnorePatterns

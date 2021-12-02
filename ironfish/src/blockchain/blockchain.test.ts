@@ -402,7 +402,7 @@ describe('Blockchain', () => {
 
       // Check nodeA has notes from blockA1, blockA2
       expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)
-      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
+      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA)).element
       let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
       let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
       let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
@@ -413,12 +413,12 @@ describe('Blockchain', () => {
 
       // Check nodeA has nullifiers from blockA2
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      let addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
+      let addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA)).element
       expect(addedNullifierA1.equals(txA2.getSpend(0).nullifier)).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
       expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
-      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).element
+      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB)).element
       const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).element
       const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).element
       const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).element
@@ -431,8 +431,7 @@ describe('Blockchain', () => {
 
       // Check nodeB has nullifiers from blockB3
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = (await nodeB.chain.nullifiers.getLeaf(countNullifierB + 0))
-        .element
+      const addedNullifierB1 = (await nodeB.chain.nullifiers.getLeaf(countNullifierB)).element
       expect(addedNullifierB1.equals(txB3.getSpend(0).nullifier)).toBe(true)
 
       // Now cause reorg on nodeA
@@ -442,7 +441,7 @@ describe('Blockchain', () => {
 
       // Check nodeA's chain has removed blockA1 notes and added blockB1, blockB2, blockB3
       expect(await nodeA.chain.notes.size()).toBe(countNoteA + 5)
-      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
+      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA)).element
       addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
       addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
       addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
@@ -455,7 +454,7 @@ describe('Blockchain', () => {
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
+      addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA)).element
       expect(addedNullifierA1.equals(txB3.getSpend(0).nullifier)).toBe(true)
     }, 300000)
 

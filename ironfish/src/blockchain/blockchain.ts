@@ -10,14 +10,16 @@ import {
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_IN_SECONDS,
+  VerificationResultReason,
+  Verifier,
 } from '../consensus'
-import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
 import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
+import { Transaction } from '../primitives'
 import { Block, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
@@ -28,7 +30,6 @@ import {
 } from '../primitives/noteEncrypted'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import {
   BUFFER_ARRAY_ENCODING,
@@ -781,19 +782,6 @@ export class Blockchain {
   }
 
   /**
-   * Returns true if the blockchain has any blocks at the given sequence
-   */
-  async hasHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<boolean> {
-    const hashes = await this.getHashesAtSequence(sequence, tx)
-
-    if (!hashes) {
-      return false
-    }
-
-    return hashes.length > 0
-  }
-
-  /**
    * Returns an array of hashes for any blocks at the given sequence
    */
   async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
@@ -1005,15 +993,13 @@ export class Blockchain {
       return []
     }
 
-    const headers = await Promise.all(
+    return await Promise.all(
       hashes.map(async (h) => {
         const header = await this.getHeader(h, tx)
         Assert.isNotNull(header)
         return header
       }),
     )
-
-    return headers
   }
 
   async isHeadChain(header: BlockHeader): Promise<boolean> {

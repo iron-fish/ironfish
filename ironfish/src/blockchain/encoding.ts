@@ -17,14 +17,12 @@ export class BlockHeaderEncoding implements IDatabaseEncoding<BlockHeader> {
 
   serialize(value: BlockHeader): Buffer {
     const serialized = this.headerSerializer.serialize(value)
-    const buffer = this.jsonSerializer.serialize(serialized)
-    return buffer
+    return this.jsonSerializer.serialize(serialized)
   }
 
   deserialize(data: Buffer): BlockHeader {
     const json = this.jsonSerializer.deserialize(data)
-    const deserialized = this.headerSerializer.deserialize(json)
-    return deserialized
+    return this.headerSerializer.deserialize(json)
   }
 
   equals(): boolean {
@@ -43,14 +41,12 @@ export class TransactionArrayEncoding implements IDatabaseEncoding<Transaction[]
 
   serialize(value: Transaction[]): Buffer {
     const serialized = value.map((t) => this.transactionSerializer.serialize(t))
-    const buffer = this.jsonSerializer.serialize(serialized)
-    return buffer
+    return this.jsonSerializer.serialize(serialized)
   }
 
   deserialize(data: Buffer): Transaction[] {
     const json = this.jsonSerializer.deserialize(data)
-    const deserialized = json.map((st) => this.transactionSerializer.deserialize(st))
-    return deserialized
+    return json.map((st) => this.transactionSerializer.deserialize(st))
   }
 
   equals(): boolean {

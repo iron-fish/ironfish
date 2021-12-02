@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from 'ironfish-rust-nodejs'
 import { Target } from '../primitives/target'
-import { ValidationError } from '../rpc/adapters/errors'
+import { ValidationError } from '../rpc'
 import {
   createNodeTest,
   useAccountFixture,
@@ -55,8 +55,8 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await nodeTest.strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
+    const minersFee = await nodeTest.strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersFee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
@@ -92,8 +92,8 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
+    const minersFee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersFee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
@@ -147,8 +147,8 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
+    const minersFee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersFee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
@@ -172,12 +172,12 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersFee2 = await strategy.createMinersFee(
       await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const newBlock2 = await chain.newBlock([transaction], minersFee2)
     const addResult2 = await chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 
@@ -212,8 +212,8 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
+    const minersFee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersFee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
@@ -240,12 +240,12 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersFee2 = await strategy.createMinersFee(
       await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const newBlock2 = await chain.newBlock([transaction], minersFee2)
     const addResult2 = await chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 
@@ -303,8 +303,8 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
+    const minersFee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersFee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
@@ -340,12 +340,12 @@ describe('Accounts', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersFee2 = await strategy.createMinersFee(
       await transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock2 = await chain.newBlock([], minersfee2)
+    const newBlock2 = await chain.newBlock([], minersFee2)
     const addResult2 = await chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 

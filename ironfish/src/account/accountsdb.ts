@@ -4,7 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
-import { Transaction } from '../primitives/transaction'
+import { Transaction } from '../primitives'
 import {
   BufferEncoding,
   IDatabase,
