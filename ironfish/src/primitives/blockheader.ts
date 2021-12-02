@@ -16,7 +16,9 @@ import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   const hash = createHash()
   hash.update(serializedHeader)
-  return hash.digest()
+  const digest = hash.digest()
+  hash.dispose()
+  return digest
 }
 
 export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
