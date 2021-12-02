@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import blessed from 'blessed'
-import { PromiseUtils } from 'ironfish'
+import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from 'ironfish'
 import { RpcBlock } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-const STALE_THRESHOLD = 45000
+const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
 
 export default class ForksCommand extends IronfishCommand {
   static description = 'Try to detect forks that are being mined'
