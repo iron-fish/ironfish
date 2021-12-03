@@ -268,7 +268,7 @@ export class IronfishNode {
       this.metrics.start()
     }
 
-    this.accounts.start()
+    await this.accounts.start()
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
