@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
+import { Assert } from '..'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
@@ -133,7 +134,9 @@ export class Accounts {
       const accountHeadHash = Buffer.from(this.headHash, 'hex')
       const accountHead = await this.chain.getHeader(accountHeadHash)
 
-      if (!accountHead || chainHead.hash.equals(accountHead.hash)) {
+      Assert.isNotNull(accountHead, `Accounts head not found in chain: ${this.headHash}`)
+
+      if (chainHead.hash.equals(accountHead.hash)) {
         return
       }
 
@@ -220,11 +223,23 @@ export class Accounts {
     await this.db.close()
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
+
+    if (this.headHash) {
+      const headHashBuffer = Buffer.from(this.headHash, 'hex')
+      const hasHeadBlock = await this.chain.hasBlock(headHashBuffer)
+
+      if (!hasHeadBlock) {
+        this.logger.error(
+          `Resetting accounts database because accounts head was not found in chain: ${this.headHash}`,
+        )
+        await this.reset()
+      }
+    }
 
     if (this.shouldRescan && !this.scan) {
       void this.scanTransactions()
@@ -345,6 +360,7 @@ export class Accounts {
     this.noteToNullifier.clear()
     this.nullifierToNote.clear()
     await this.saveTransactionsToDb()
+    await this.updateHeadHash(null)
   }
 
   private decryptNotes(
