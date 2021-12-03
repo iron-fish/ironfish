@@ -70,6 +70,9 @@ export class Transaction {
    */
   async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
     const result = await this.workerPool.verify(this, options)
+
+    // Returns VerificationResult object that shows whenever the transactions has
+    // valid proofs or not.
     return result ? { valid: true } : { valid: false, reason: VerificationResultReason.ERROR }
   }
 

@@ -1006,6 +1006,7 @@ export class Blockchain {
       return []
     }
 
+    // Returns a list of headers for specified sequence
     return await Promise.all(
       hashes.map(async (h) => {
         const header = await this.getHeader(h, tx)

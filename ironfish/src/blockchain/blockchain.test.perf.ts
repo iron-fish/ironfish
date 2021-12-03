@@ -129,7 +129,7 @@ describe('Blockchain', () => {
   }, 780000)
 })
 
-// Last results on Jason Stafford's Machine
+// Last results on Jason Spafford's Machine
 // If you decide to change addBlock() consider
 // running these tests and updating the results
 // here: yarn test test.perf.ts --testPathIgnorePatterns

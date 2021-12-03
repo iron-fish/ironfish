@@ -410,6 +410,8 @@ export class MiningDirector {
 
     this.recentBlocks.set(this.miningRequestId, newBlock)
 
+    // Returns if mining that block can be retried with a lower difficulty
+    // Wrapped in a Promise
     return target.asBigInt() < Target.maxTarget().asBigInt()
   }
 
