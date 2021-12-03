@@ -27,6 +27,7 @@ See https://ironfish.network
       1. Run `brew install openssl`
       1. Run ``export OPENSSL_ROOT_DIR=`brew --prefix openssl` ``
       1. Run `yarn install` again.
+   * It may also fail with an error for `cmake`. In this case a `brew install cmake` on macOS would work. 
 
 ## Usage
 
