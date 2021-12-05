@@ -32,7 +32,7 @@
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rm -f oclif.manifest.json",
-    "clean": "rm -rf build",
+    "clean": "node clean",
     "pack": "oclif-dev pack",
     "prepack": "yarn clean && yarn build && oclif-dev manifest && oclif-dev readme",
     "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
