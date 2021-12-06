@@ -56,6 +56,7 @@ Run these commands in two different terminals:
            - To use 4 physical CPU cores
        - `yarn start miners:start --threads -1`
            - To use all the cores on your CPU
+           - BUT beware, -1 is not recommended on hyperthreaded CPUs. Use physical core count.
     - Note: hyperthreading (2 miner threads per CPU Core) is not supported yet
 
 You should see messages in the second terminal indicating that the miner is running:
