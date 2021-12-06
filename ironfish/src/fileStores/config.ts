@@ -10,8 +10,7 @@ export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'
 export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
-export const DEFAULT_GET_FUNDS_API =
-  'https://api-production.ironfish.network/faucet_transactions'
+export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/api/v1/writeTelemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
