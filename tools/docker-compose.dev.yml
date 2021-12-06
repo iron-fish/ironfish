@@ -1,0 +1,50 @@
+version: '3.7'
+
+services:
+    node1:
+        container_name: ironfish-1
+        image: ghcr.io/iron-fish/ironfish:latest
+        ports:
+            - "8001:8001"
+            - "9001:9001"
+        networks:
+            - node_network
+        deploy:
+            restart_policy: 
+                condition: on-failure       
+        command: start -v --name node1 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8001 --port 9001 --bootstrap='' --forceMining --datadir /ironfishdata
+        volumes:
+            - ~/.ironfish-1:/ironfishdata
+
+    node2:
+        container_name: ironfish-2
+        image: ghcr.io/iron-fish/ironfish:latest
+        ports:
+            - "8002:8002"
+            - "9002:9002"
+        networks:
+            - node_network
+        deploy:
+            restart_policy: 
+                condition: on-failure        
+        command: start -v --name node2 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8002 --port 9002 --bootstrap='node1:9001' --datadir /ironfishdata
+        volumes:
+            - ~/.ironfish-2:/ironfishdata
+
+    miner:
+        container_name: ironfish-miner
+        image: ghcr.io/iron-fish/ironfish:latest
+        depends_on:
+            - "node1"
+        networks:
+            - node_network
+        deploy:
+            resources:
+                limits:
+                    memory: 8192M
+            restart_policy: 
+                condition: on-failure       
+        command: miners:start --rpc.tcp --rpc.tcp.host=node1 --rpc.tcp.port=8001
+
+networks:
+    node_network:
