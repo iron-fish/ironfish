@@ -27,6 +27,9 @@ See https://ironfish.network
       1. Run `brew install openssl`
       1. Run ``export OPENSSL_ROOT_DIR=`brew --prefix openssl` ``
       1. Run `yarn install` again.
+   * If `yarn install` fails with a node gyp error like "make: cc: Command not found" or "make: g++: Command not found", you may need to [install a gcc compiler toolchain](https://github.com/nodejs/node-gyp#on-unix). For example, on Amazon Linux:
+      1. Run `sudo yum groupinstall "Development Tools"`
+      2. Run `yarn install` again
 
 ## Usage
 
