@@ -7,13 +7,13 @@ Ironfish SDK wraps all of the generic components of [Captain](./src/captain/READ
 ## Components
 
 ### Strategy
-It also contains a strategy, which is a collection of implementations that [Captain](./src/captain/README.md) uses to implement coin specific logic.
+It also contains a strategy, which is a collection of implementations that [Captain](./src/captain/README.md) uses to implement coin-specific logic.
 
 ### Accounts
  An account store used to manage, create, and update Ironfish accounts.
 
 ### Config
-This represents the IronfishConfig and all of it's options. It's a hierarchical config system that has 3 levels of options. If you use `config.get()` or `config.config` then you'll always get the top level config options.
+This represents the IronfishConfig and all of its options. It's a hierarchical config system that has 3 levels of options. If you use `config.get()` or `config.config` then you'll always get the top-level config options.
 
 ```
 -> config
@@ -26,10 +26,10 @@ This represents the IronfishConfig and all of it's options. It's a hierarchical 
 ```
 
 ### FileSystem
-This is an abtraction on top of any file system related APIs like `path` and `fs` in node. It makes it so you can perform file and file system related methods in a way that works in the browser and node. `NodeFileSystem` is one implementation that works for node.
+This is an abtraction on top of any file system-related APIs like `path` and `fs` in node. It makes it so you can perform file and file system-related methods in a way that works in the browser and node. `NodeFileSystem` is one implementation that works for node.
 
 ### RpcServer
-This is the server that handles clients connecting and making requests against the RPC routes. This server doesn't have much logic of it's own, but it contains a set of adapters that each implement a transport mechanism.
+This is the server that handles clients connecting and making requests against the RPC routes. This server doesn't have much logic of its own, but it contains a set of adapters that each implement a transport mechanism.
 
 When the RpcServer starts, so do the transports. They accept messages from clients, construct Requests, and route them into the routing layer which executes the proper route.
 
