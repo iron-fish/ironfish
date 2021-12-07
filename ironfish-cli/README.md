@@ -56,8 +56,10 @@ Run these commands in two different terminals:
            - To use 4 physical CPU cores
        - `yarn start miners:start --threads -1`
            - To use all the cores on your CPU
-           - BUT beware, -1 is not recommended on hyperthreaded CPUs. Use physical core count.
-    - Note: hyperthreading (2 miner threads per CPU Core) is not supported yet
+           - BUT beware, -1 can use all available cores and threads and make your machine unresponsive. 
+           - Worth checking your machine's performance with incrementally increasing thread count
+           - It'a a good idea to monitor the CPU temperature and stay below 70C for longer life.
+    - Note: hyperthreading (2 miner threads per CPU Core) is not fully optimized yet
 
 You should see messages in the second terminal indicating that the miner is running:
  - "Starting to mine with 8 threads"
