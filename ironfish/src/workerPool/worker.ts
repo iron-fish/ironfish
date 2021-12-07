@@ -137,6 +137,9 @@ export class Worker {
           },
         })
       })
+      .finally(() => {
+        this.jobs.delete(job.id)
+      })
   }
 
   private onMessageFromWorker = (response: WorkerResponseMessage): void => {
