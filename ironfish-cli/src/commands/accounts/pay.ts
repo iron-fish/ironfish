@@ -41,7 +41,7 @@ export class Pay extends IronfishCommand {
     }),
     fee: flags.string({
       char: 'o',
-      description: 'the fee amount in Ore',
+      description: 'the fee amount in IRON',
     }),
     memo: flags.string({
       char: 'm',
