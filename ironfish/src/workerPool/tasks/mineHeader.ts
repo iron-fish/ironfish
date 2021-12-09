@@ -8,7 +8,7 @@ import { mineHeader } from '../../mining/mineHeader'
 export type MineHeaderRequest = {
   type: 'mineHeader'
   batchSize: number
-  headerBytesWithoutRandomness: Buffer
+  headerBytesWithoutRandomness: Uint8Array
   initialRandomness: number
   miningRequestId: number
   targetValue: string
