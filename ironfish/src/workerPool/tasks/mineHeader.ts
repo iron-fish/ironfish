@@ -8,7 +8,7 @@ import { mineHeader } from '../../mining/mineHeader'
 export type MineHeaderRequest = {
   type: 'mineHeader'
   batchSize: number
-  headerBytesWithoutRandomness: Uint8Array
+  headerBytesWithoutRandomness: Buffer
   initialRandomness: number
   miningRequestId: number
   targetValue: string
@@ -33,7 +33,7 @@ export function handleMineHeader(
 ): MineHeaderResponse {
   const result = mineHeader({
     batchSize,
-    headerBytesWithoutRandomness: Buffer.from(headerBytesWithoutRandomness),
+    headerBytesWithoutRandomness,
     initialRandomness,
     miningRequestId,
     targetValue,
