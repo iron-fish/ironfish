@@ -16,7 +16,7 @@ export type MineRequest = {
 /**
  * Return value from a mining task.
  *
- * @param initialRandomness the value that waxs passed into the task
+ * @param initialRandomness the value that was passed into the task
  * for the initial randomness. Used by the calling code as a task id
  * @param randomness if defined, a value for randomness that was found
  * while mining the task. If undefined, none of the BATCH_SIZE attempts
