@@ -24,7 +24,7 @@ export class ImportCommand extends IronfishCommand {
       name: 'path',
       parse: (input: string): string => input.trim(),
       required: false,
-      description: 'a path to export the account to',
+      description: 'a path to import the account from',
     },
   ]
 
