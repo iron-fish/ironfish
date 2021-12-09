@@ -15,7 +15,7 @@ export function mineHeader({
   job,
 }: {
   miningRequestId: number
-  headerBytesWithoutRandomness: Buffer
+  headerBytesWithoutRandomness: Uint8Array
   initialRandomness: number
   targetValue: string
   batchSize: number
