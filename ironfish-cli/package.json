@@ -19,7 +19,8 @@
     "oclif": "1.16.1",
     "tsc-watch": "4.2.9",
     "typescript": "4.3.4",
-    "yarn": "^1.22.10"
+    "yarn": "^1.22.10",
+    "rimraf": "^3.0.2"
   },
   "scripts": {
     "build": "tsc -b",
@@ -31,10 +32,10 @@
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
-    "postpack": "rm -f oclif.manifest.json",
-    "clean": "node clean",
+    "postpack": "rimraf oclif.manifest.json",
+    "clean": "rimraf build",
     "pack": "oclif-dev pack",
-    "prepack": "yarn clean && yarn build && oclif-dev manifest && oclif-dev readme",
+    "prepack": "rimraf build && yarn build && oclif-dev manifest && oclif-dev readme",
     "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
     "oclif:test": "echo NO TESTS",
     "oclif:version": "oclif-dev readme && git add README.md"

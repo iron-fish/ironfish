@@ -19,6 +19,7 @@ testdbs
 .env.production.local
 **/*.test.js
 */**/yarn.lock
+.idea
 
 # logs
 npm-debug.log*
