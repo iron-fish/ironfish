@@ -71,7 +71,7 @@ export class MinedCommand extends IronfishCommand {
         const amount = MathUtils.round(oreToIron(block.minersFee), 2)
 
         const link = linkText(
-          `https://explorer.ironfish.network/blocks/${block.hash.toUpperCase()}`,
+          `https://explorer.ironfish.network/blocks/${block.hash}`,
           'view in web',
         )
 
