@@ -10,7 +10,7 @@ import { Target } from './target'
 
 export type BlockHash = Buffer
 
-import { createHash } from 'blake3-wasm'
+import { createHash } from 'blake3'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
