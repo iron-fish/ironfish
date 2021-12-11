@@ -4,7 +4,7 @@ There are 2 versions of docker-compose configuration:
 
  1. For the users to participate in incentivized testnet ->
     docker-compose.yml
- 3. For the developers to run testing node/miner with RPC
+ 2. For the developers to run testing node/miner with RPC
       connection -> docker-compose.dev.yml
 
 ## User config
@@ -24,13 +24,13 @@ Run node and miner at the same time in detached mode: `docker-compose up -d`
 
 Follow the logs: `docker-compose logs -f`
 
-Follow the status : `docker-compose exec ironfish_node ./bin/run status -f`
+Follow the status : `docker-compose exec node ironfish status -f`
 
-Create an account: `docker-compose exec ironfish_node ./bin/run accounts:create`
+Create an account: `docker-compose exec node ironfish accounts:create`
 
-Check balance: `docker-compose exec ironfish_node ./bin/run accounts:balance`
+Check balance: `docker-compose exec node ironfish accounts:balance`
 
-Make pay transaction: `docker-compose exec ironfish_node ./bin/run accounts:pay`
+Make pay transaction: `docker-compose exec node ironfish accounts:pay`
 
 And many other commands which you can find in main documentation.
 
