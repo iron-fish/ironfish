@@ -1,15 +1,15 @@
 version: "2.4"
 
 services:
-    ironfish_node:
+    node:
         image: ghcr.io/iron-fish/ironfish:latest
         volumes:
-            - ~/.ironfish/root/.ironfish
+            - ~/.ironfish:/root/.ironfish
         tty: true
         restart: always
         command: ["start", "--graffiti", "graffitiExample", "--name", "nodeExample",]
 
-    ironfish_miner:
+    miner:
         image: ghcr.io/iron-fish/ironfish:latest
         tty: true
         mem_limit: 8192M
