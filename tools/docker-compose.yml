@@ -11,6 +11,8 @@ services:
 
     miner:
         image: ghcr.io/iron-fish/ironfish:latest
+        volumes:
+            - ~/.ironfish:/root/.ironfish
         tty: true
         mem_limit: 8192M
         restart: always
