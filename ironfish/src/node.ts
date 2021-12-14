@@ -169,7 +169,7 @@ export class IronfishNode {
     if (workers === -1) {
       workers = os.cpus().length - 1
     }
-    const workerPool = new WorkerPool({ metrics, maxWorkers: workers })
+    const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
