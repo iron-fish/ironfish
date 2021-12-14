@@ -168,6 +168,11 @@ export class IronfishNode {
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
       workers = os.cpus().length - 1
+
+      const maxWorkers = config.get('nodeWorkersMax')
+      if (maxWorkers !== -1) {
+        workers = Math.min(workers, maxWorkers)
+      }
     }
     const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
