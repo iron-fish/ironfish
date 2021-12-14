@@ -99,7 +99,7 @@ export class LevelupDatabase extends Database {
     if (current !== version) {
       throw new Error(
         `You are running a newer version of ironfish on an older database.\n` +
-          `Wipe your database using "ironfish reset" or delete your data directory at ~/.ironfish/database\n`,
+          `Wipe your database using "ironfish reset" or delete your data directory at ~/.ironfish/database and ~/.ironfish/accounts\n`,
       )
     }
   }
