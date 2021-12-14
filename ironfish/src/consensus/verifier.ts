@@ -198,7 +198,7 @@ export class Verifier {
     }
   }
 
-  async verifyTransactionAdd(
+  async verifyTransactionSpends(
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
@@ -211,14 +211,22 @@ export class Verifier {
           return { valid: false, reason }
         }
       }
-
-      const validity = await transaction.verify()
-      if (!validity.valid) {
-        return validity
-      }
-
       return { valid: true }
     })
+  }
+
+  async verifyTransactionAdd(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    let validity = await this.verifyTransactionSpends(transaction, tx)
+
+    if (!validity.valid) {
+      return validity
+    }
+
+    validity = await transaction.verify()
+    return validity
   }
 
   isExpiredSequence(expirationSequence: number, headSequence?: number): boolean {
