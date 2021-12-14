@@ -458,14 +458,14 @@ export class MiningDirector {
       }) has ${block.transactions.length} transactions`,
     )
 
-    this.blocksMined++
-
     const { isAdded, reason } = await this.chain.addBlock(block)
 
     if (!isAdded) {
       this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
       return MINED_RESULT.ADD_FAILED
     }
+
+    this.blocksMined++
 
     this.onNewBlock.emit(block)
 
