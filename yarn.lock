@@ -2451,10 +2451,10 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blake3-wasm@2.1.5:
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/blake3-wasm/-/blake3-wasm-2.1.5.tgz#b22dbb84bc9419ed0159caa76af4b1b132e6ba52"
-  integrity sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==
+blake3@2.1.4:
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/blake3/-/blake3-2.1.4.tgz#78117bc9e80941097fdf7d03e897a9ee595ecd62"
+  integrity sha512-70hmx0lPd6zmtNwxPT4/1P0pqaEUlTJ0noUBvCXPLfMpN0o8PPaK3q7ZlpRIyhrqcXxeMAJSowNm/L9oi/x1XA==
 
 blessed@0.1.81:
   version "0.1.81"
