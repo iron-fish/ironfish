@@ -440,7 +440,12 @@ export class MiningDirector {
     this.recentBlocks.remove(miningRequestId)
 
     if (!this.chain.head || !block.header.previousBlockHash.equals(this.chain.head.hash)) {
-      this.logger.debug('Discarding block that no longer attaches to heaviest head')
+      this.logger.info(
+        `Discarding mined block ${block.header.hash.toString('hex')} (${
+          block.header.sequence
+        }) that no longer attaches to heaviest head`
+      )
+
       return MINED_RESULT.CHAIN_CHANGED
     }
 
