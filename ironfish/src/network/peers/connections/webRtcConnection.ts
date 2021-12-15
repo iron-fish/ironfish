@@ -6,12 +6,12 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import nodeDataChannel from 'node-datachannel'
 import { Assert } from '../../../assert'
+import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
-import { MAX_MESSAGE_SIZE } from '../../../consensus'
 
 export type SignalData =
   | {
