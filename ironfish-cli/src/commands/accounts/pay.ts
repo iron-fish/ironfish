@@ -210,9 +210,7 @@ ${displayIronAmountWithCurrency(
       stopProgressBar()
 
       const transaction = result.content
-      const recipients = transaction.receives
-        ?.map((receive) => receive.publicAddress)
-        .join(', ')
+      const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
       this.log(`
 Sending ${displayIronAmountWithCurrency(amount, true)} to ${recipients} from ${
         transaction.fromAccountName
