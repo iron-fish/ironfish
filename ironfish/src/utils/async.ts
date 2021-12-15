@@ -38,7 +38,7 @@ export class AsyncUtils {
 
   static async find<T>(
     iter: Iterable<T> | AsyncIterable<T>,
-    predicate: (item: T) => Promise<boolean>,
+    predicate: ((item: T) => boolean) | ((item: T) => Promise<boolean>),
   ): Promise<T | undefined> {
     for await (const item of iter) {
       if (await predicate(item)) {
