@@ -5,13 +5,12 @@
 import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { Spend } from '../primitives'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
-import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
@@ -27,41 +26,6 @@ export class Verifier {
   constructor(chain: Blockchain) {
     this.strategy = chain.strategy
     this.chain = chain
-  }
-
-  /**
-   * Verify that a new block received over the network has a valid header and
-   * list of transactions and extract the deserialized transaction.
-   *
-   * @param payload an unknown message payload that peerNetwork has received from the network.
-   *
-   * @returns the deserialized block to be processed by the main handler. Rejects
-   * the promise if the block is not valid so the gossip router knows not to
-   * forward it to other peers.
-   */
-  async verifyNewBlock(
-    newBlock: SerializedBlock,
-    workerPool: WorkerPool,
-  ): Promise<{
-    block: Block
-    serializedBlock: SerializedBlock
-  }> {
-    if (workerPool.saturated) {
-      return Promise.reject('Dropping block because worker pool message queue is full')
-    }
-
-    let block
-    try {
-      block = this.strategy.blockSerde.deserialize(newBlock)
-    } catch {
-      return Promise.reject('Could not deserialize block')
-    }
-
-    const validationResult = await this.verifyBlock(block)
-    if (!validationResult.valid) {
-      return Promise.reject('Block is invalid')
-    }
-    return Promise.resolve({ block, serializedBlock: newBlock })
   }
 
   /**
@@ -206,7 +170,7 @@ export class Verifier {
       const noteSize = await this.chain.notes.size(tx)
 
       for (const spend of transaction.spends()) {
-        const reason = await this.chain.verifier.verifySpend(spend, noteSize, tx)
+        const reason = await this.verifySpend(spend, noteSize, tx)
         if (reason) {
           return { valid: false, reason }
         }
