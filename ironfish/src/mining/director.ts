@@ -331,7 +331,7 @@ export class MiningDirector {
       throw Error('No miner account found to construct the transaction')
     }
 
-    const blockTransactions = []
+    const blockTransactions: Transaction[] = []
 
     // Fetch all transactions for the block
     for await (const transaction of this.getTransactions()) {
@@ -339,7 +339,6 @@ export class MiningDirector {
         break
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockTransactions.push(transaction)
     }
 
@@ -503,19 +502,16 @@ export class MiningDirector {
     const nullifiers = new BufferSet()
 
     for (const transaction of this.memPool.get()) {
-      const conflicted = await AsyncUtils.find(transaction.spends(), async (spend) => {
-        if (nullifiers.has(spend.nullifier)) {
-          return true
-        }
-
-        if (await this.chain.nullifiers.contains(spend.nullifier)) {
-          return true
-        }
-
-        return false
+      const conflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
+        return Promise.resolve(nullifiers.has(spend.nullifier))
       })
 
       if (conflicted) {
+        continue
+      }
+
+      const { valid } = await this.chain.verifier.verifyTransactionSpends(transaction)
+      if (!valid) {
         continue
       }
 
