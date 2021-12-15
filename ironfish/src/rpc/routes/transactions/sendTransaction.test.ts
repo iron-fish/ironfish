@@ -7,10 +7,14 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RequestError } from '../../clients/errors'
 
 const TEST_PARAMS = {
-  amount: BigInt(10).toString(),
   fromAccountName: 'existingAccount',
-  memo: '',
-  toPublicKey: 'test2',
+  receives: [
+    {
+      publicAddress: 'test2',
+      amount: BigInt(10).toString(),
+      memo: '',
+    },
+  ],
   fee: BigInt(1).toString(),
 }
 

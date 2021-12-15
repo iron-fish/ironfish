@@ -7,36 +7,58 @@ import { ApiNamespace, router } from '../router'
 
 export type SendTransactionRequest = {
   fromAccountName: string
-  toPublicKey: string
-  amount: string
+  receives: {
+    publicAddress: string
+    amount: string
+    memo: string
+  }[]
   fee: string
-  memo: string
   expirationSequence?: number | null
 }
 
 export type SendTransactionResponse = {
+  receives: {
+    publicAddress: string
+    amount: string
+    memo: string
+  }[]
   fromAccountName: string
-  toPublicKey: string
-  amount: string
   hash: string
 }
 
 export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionRequest> = yup
   .object({
     fromAccountName: yup.string().defined(),
-    toPublicKey: yup.string().defined(),
-    amount: yup.string().defined(),
+    receives: yup
+      .array(
+        yup
+          .object({
+            publicAddress: yup.string().defined(),
+            amount: yup.string().defined(),
+            memo: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     fee: yup.string().defined(),
-    memo: yup.string().defined(),
     expirationSequence: yup.number().nullable().optional(),
   })
   .defined()
 
 export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResponse> = yup
   .object({
+    receives: yup
+      .array(
+        yup
+          .object({
+            publicAddress: yup.string().defined(),
+            amount: yup.string().defined(),
+            memo: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     fromAccountName: yup.string().defined(),
-    toPublicKey: yup.string().defined(),
-    amount: yup.string().defined(),
     hash: yup.string().defined(),
   })
   .defined()
@@ -68,7 +90,10 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     // Check that the node account is updated
     const balance = node.accounts.getBalance(account)
-    const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
+    const sum =
+      transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
+      BigInt(transaction.fee)
+    // const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
 
     if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
@@ -86,20 +111,25 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
+    const receives = transaction.receives.map((receive) => {
+      return {
+        publicAddress: receive.publicAddress,
+        amount: BigInt(receive.amount),
+        memo: receive.memo,
+      }
+    })
+
     const transactionPosted = await node.accounts.pay(
       node.memPool,
       account,
-      BigInt(transaction.amount),
+      receives,
       BigInt(transaction.fee),
-      transaction.memo,
-      transaction.toPublicKey,
       node.config.get('defaultTransactionExpirationSequenceDelta'),
       transaction.expirationSequence,
     )
 
     request.end({
-      amount: transaction.amount,
-      toPublicKey: transaction.toPublicKey,
+      receives: transaction.receives,
       fromAccountName: account.name,
       hash: transactionPosted.hash().toString('hex'),
     })
