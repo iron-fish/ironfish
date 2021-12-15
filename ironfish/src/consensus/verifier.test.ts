@@ -49,34 +49,6 @@ describe('Verifier', () => {
   describe('Block', () => {
     const nodeTest = createNodeTest()
 
-    it('extracts a valid block', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      const serialized = nodeTest.strategy.blockSerde.serialize(block)
-
-      const result = await nodeTest.node.chain.verifier.verifyNewBlock(
-        serialized,
-        nodeTest.node.workerPool,
-      )
-
-      expect(result.block.header.hash.equals(block.header.hash)).toBe(true)
-
-      expect(result.serializedBlock.header.previousBlockHash).toEqual(
-        serialized.header.previousBlockHash,
-      )
-    })
-
-    it('rejects a invalid network block', async () => {
-      // should have invalid target
-      nodeTest.verifier.enableVerifyTarget = true
-
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      const serializedBlock = nodeTest.chain.strategy.blockSerde.serialize(block)
-
-      await expect(
-        nodeTest.chain.verifier.verifyNewBlock(serializedBlock, nodeTest.node.workerPool),
-      ).rejects.toEqual('Block is invalid')
-    })
-
     it('rejects a block with an invalid header', async () => {
       // should have invalid target
       nodeTest.verifier.enableVerifyTarget = true
