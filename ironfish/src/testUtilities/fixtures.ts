@@ -219,10 +219,14 @@ export async function useTxFixture(
     (() => {
       return accounts.createTransaction(
         from,
-        BigInt(1),
+        [
+          {
+            publicAddress: to.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+          },
+        ],
         fee ?? BigInt(0),
-        '',
-        to.publicAddress,
         0,
       )
     })
@@ -318,10 +322,14 @@ export async function useBlockWithTx(
 
     const transaction = await node.accounts.createTransaction(
       from,
+      [
+        {
+          publicAddress: to.publicAddress,
+          amount: BigInt(1),
+          memo: '',
+        },
+      ],
       BigInt(1),
-      BigInt(1),
-      '',
-      to.publicAddress,
       0,
     )
 

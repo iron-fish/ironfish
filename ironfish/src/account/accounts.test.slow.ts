@@ -163,10 +163,14 @@ describe('Accounts', () => {
     const transaction = await node.accounts.pay(
       node.memPool,
       account,
-      BigInt(2),
+      [
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: '',
+        },
+      ],
       BigInt(0),
-      '',
-      generateKey().public_address,
       node.config.get('defaultTransactionExpirationSequenceDelta'),
       0,
     )
@@ -228,10 +232,14 @@ describe('Accounts', () => {
     const transaction = await node.accounts.pay(
       node.memPool,
       account,
-      BigInt(2),
+      [
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: '',
+        },
+      ],
       BigInt(0),
-      '',
-      generateKey().public_address,
       node.config.get('defaultTransactionExpirationSequenceDelta'),
     )
 
@@ -268,10 +276,14 @@ describe('Accounts', () => {
       node.accounts.pay(
         node.memPool,
         account,
-        BigInt(2),
+        [
+          {
+            publicAddress: generateKey().public_address,
+            amount: BigInt(2),
+            memo: '',
+          },
+        ],
         BigInt(0),
-        '',
-        generateKey().public_address,
         node.config.get('defaultTransactionExpirationSequenceDelta'),
         1,
       ),
@@ -319,10 +331,14 @@ describe('Accounts', () => {
     const transaction = await node.accounts.pay(
       node.memPool,
       account,
-      BigInt(2),
+      [
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: '',
+        },
+      ],
       BigInt(0),
-      '',
-      generateKey().public_address,
       1,
     )
 
@@ -388,10 +404,14 @@ describe('Accounts', () => {
       // Generate a transaction from account A to account B
       const transaction = await nodeA.accounts.createTransaction(
         accountA,
+        [
+          {
+            publicAddress: accountB.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+          },
+        ],
         BigInt(1),
-        BigInt(1),
-        '',
-        accountB.publicAddress,
         0,
       )
 
@@ -414,10 +434,14 @@ describe('Accounts', () => {
     await expect(
       nodeA.accounts.createTransaction(
         accountA,
+        [
+          {
+            publicAddress: accountC.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+          },
+        ],
         BigInt(1),
-        BigInt(1),
-        '',
-        accountC.publicAddress,
         0,
       ),
     ).resolves.toBeTruthy()
@@ -516,10 +540,14 @@ describe('Accounts', () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeA.accounts.createTransaction(
           accountA,
-          BigInt(2),
+          [
+            {
+              publicAddress: accountB.publicAddress,
+              amount: BigInt(2),
+              memo: '',
+            },
+          ],
           BigInt(0),
-          '',
-          accountB.publicAddress,
           0,
         )
 
@@ -613,10 +641,14 @@ describe('Accounts', () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeB.accounts.createTransaction(
           accountA,
-          BigInt(2),
+          [
+            {
+              publicAddress: accountB.publicAddress,
+              amount: BigInt(2),
+              memo: '',
+            },
+          ],
           BigInt(0),
-          '',
-          accountB.publicAddress,
           0,
         )
 
