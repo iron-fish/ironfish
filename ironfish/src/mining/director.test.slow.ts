@@ -133,6 +133,51 @@ describe('Mining director', () => {
       expect(partial.minersFee).toEqual(BigInt(0))
       expect(partial.timestamp.valueOf()).toEqual(now)
     }, 15000)
+
+    it('should not add transactions to block if they have invalid spends', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.accounts, 'a')
+      const accountB = await useAccountFixture(nodeA.accounts, 'b')
+
+      const blockA1 = await useMinerBlockFixture(
+        nodeA.chain,
+        undefined,
+        accountA,
+        nodeA.accounts,
+      )
+      await expect(nodeA.chain).toAddBlock(blockA1)
+
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB1)
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB2)
+
+      // This transaction will be invalid after the reorg
+      await nodeA.accounts.updateHead()
+      const invalidTx = await useTxFixture(nodeA.accounts, accountA, accountB)
+
+      await expect(nodeA.chain).toAddBlock(blockB1)
+      await expect(nodeA.chain).toAddBlock(blockB2)
+      expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+
+      // invalidTx is trying to spend a note from A1 that has been removed once A1
+      // was disconnected from the blockchain after the reorg, so should it should not
+      // be added to the block
+      //
+      // G -> A1
+      //   -> B2 -> B3
+
+      const added = await nodeA.memPool.acceptTransaction(invalidTx)
+      expect(added).toBe(true)
+
+      nodeA.miningDirector.setMinerAccount(accountA)
+      const [, transactions] = await nodeA.miningDirector.constructTransactionsAndFees(
+        nodeA.chain.head.hash,
+      )
+      expect(transactions).toHaveLength(0)
+    }, 15000)
   })
 
   describe('During Mining', () => {
