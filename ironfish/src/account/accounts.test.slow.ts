@@ -265,6 +265,87 @@ describe('Accounts', () => {
     })
   }, 600000)
 
+  it('creates valid transactions with multiple outputs', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    const chain = nodeTest.chain
+    node.accounts['workerPool'].start()
+
+    const account = await node.accounts.createAccount('test', true)
+
+    // Initial balance should be 0
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Balance after adding the genesis block should be 0
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 2000000000 after adding the miner's fee
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+
+    const transaction = await node.accounts.pay(
+      node.memPool,
+      account,
+      [
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: 'recipient 1',
+        },
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: 'recipient 2',
+        },
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: 'recipient 3',
+        },
+      ],
+      BigInt(0),
+      node.config.get('defaultTransactionExpirationSequenceDelta'),
+    )
+
+    expect(transaction.expirationSequence()).toBe(
+      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
+    )
+
+    // Create a block with a miner's fee
+    const minersfee2 = await strategy.createMinersFee(
+      await transaction.fee(),
+      newBlock.header.sequence + 1,
+      generateKey().spending_key,
+    )
+    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const addResult2 = await chain.addBlock(newBlock2)
+    expect(addResult2.isAdded).toBeTruthy()
+
+    // Balance after adding the transaction that spends 2 should be 1999999998
+    await node.accounts.updateHead()
+    expect(node.accounts.getBalance(account)).toEqual({
+      confirmed: BigInt(1999999994),
+      unconfirmed: BigInt(1999999994),
+    })
+  }, 600000)
+
   it('throws a ValidationError with an invalid expiration sequence', async () => {
     const node = nodeTest.node
     node.accounts['workerPool'].start()
