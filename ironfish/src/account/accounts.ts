@@ -689,10 +689,8 @@ export class Accounts {
   async pay(
     memPool: MemPool,
     sender: Account,
-    amount: bigint,
+    receives: { publicAddress: string; amount: bigint; memo: string }[],
     transactionFee: bigint,
-    memo: string,
-    receiverPublicAddress: string,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
   ): Promise<Transaction> {
@@ -709,10 +707,8 @@ export class Accounts {
 
     const transaction = await this.createTransaction(
       sender,
-      amount,
+      receives,
       transactionFee,
-      memo,
-      receiverPublicAddress,
       expirationSequence,
     )
 
