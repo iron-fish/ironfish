@@ -11,6 +11,7 @@ import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
+import { MAX_MESSAGE_SIZE } from '../../../consensus'
 
 export type SignalData =
   | {
@@ -73,6 +74,7 @@ export class WebRtcConnection extends Connection {
     // TODO: Use our own STUN servers
     this.peer = new nodeDataChannel.PeerConnection('peer', {
       iceServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
+      maxMessageSize: MAX_MESSAGE_SIZE,
     })
 
     this.setState({ type: 'CONNECTING' })
