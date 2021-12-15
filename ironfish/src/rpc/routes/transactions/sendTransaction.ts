@@ -93,7 +93,6 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const sum =
       transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
       BigInt(transaction.fee)
-    // const sum = BigInt(transaction.amount) + BigInt(transaction.fee)
 
     if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
