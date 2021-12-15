@@ -39,7 +39,7 @@ export const MAX_REQUESTED_BLOCKS = 50
  * Max size for a message, for instance when requesting batches of blocks
  * TODO 256MB is way too big
  */
-export const MAX_MESSAGE_SIZE = 268435456 //256mb
+export const MAX_MESSAGE_SIZE = 256 * 1024 * 1024
 
 /**
  * The average time that all blocks should be mined
