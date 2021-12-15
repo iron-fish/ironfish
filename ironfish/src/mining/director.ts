@@ -503,7 +503,7 @@ export class MiningDirector {
 
     for (const transaction of this.memPool.get()) {
       const conflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
-        return Promise.resolve(nullifiers.has(spend.nullifier))
+        return nullifiers.has(spend.nullifier)
       })
 
       if (conflicted) {
