@@ -213,6 +213,7 @@ export async function useTxFixture(
   to: Account,
   generate?: FixtureGenerate<Transaction>,
   fee?: bigint,
+  expiration?: number,
 ): Promise<Transaction> {
   generate =
     generate ||
@@ -227,7 +228,7 @@ export async function useTxFixture(
           },
         ],
         fee ?? BigInt(0),
-        0,
+        expiration ?? 0,
       )
     })
 
@@ -267,16 +268,26 @@ export async function useMinersTxFixture(
 
 export async function useTxSpendsFixture(
   node: IronfishNode,
-  account?: Account,
+  options?: {
+    account?: Account
+    expiration?: number
+  },
 ): Promise<{ account: Account; transaction: Transaction }> {
-  account = account || (await useAccountFixture(node.accounts))
+  const account = options?.account ?? (await useAccountFixture(node.accounts))
 
   const block = await useMinerBlockFixture(node.chain, 2, account, node.accounts)
 
   await expect(node.chain).toAddBlock(block)
   await node.accounts.updateHead()
 
-  const transaction = await useTxFixture(node.accounts, account, account)
+  const transaction = await useTxFixture(
+    node.accounts,
+    account,
+    account,
+    undefined,
+    undefined,
+    options?.expiration,
+  )
 
   return {
     account: account,

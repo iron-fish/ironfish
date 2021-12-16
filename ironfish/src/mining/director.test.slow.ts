@@ -64,7 +64,8 @@ describe('Mining director', () => {
       await miningDirector.generateBlockToMine(chain.head.hash)
 
       expect(spy).toBeCalledTimes(1)
-      const [minersFee, transactions] = spy.mock.calls[0]
+      const [blockHash, minersFee, transactions] = spy.mock.calls[0]
+      expect(blockHash.equals(chain.head.hash)).toBe(true)
       expect(transactions).toHaveLength(0)
       expect(isTransactionMine(minersFee, account)).toBe(true)
     }, 10000)
@@ -93,8 +94,10 @@ describe('Mining director', () => {
       await miningDirector.generateBlockToMine(chain.head.hash)
 
       expect(spy).toBeCalledTimes(1)
-      const transactions = spy.mock.calls[0][1]
+      const [blockHash, minersFee, transactions] = spy.mock.calls[0]
+      expect(blockHash.equals(chain.head.hash)).toBe(true)
       expect(transactions).toHaveLength(1)
+      expect(isTransactionMine(minersFee, account)).toBe(true)
       expect(isTransactionMine(transactions[0], account)).toBe(true)
       expect(node.memPool.size()).toBe(1)
     }, 25000)
@@ -191,14 +194,15 @@ describe('Mining director', () => {
     })
 
     it('should recalculate block after interval', async () => {
-      const { node, miningDirector } = nodeTest
+      const { node, miningDirector, chain } = nodeTest
+
       const account = await useAccountFixture(node.accounts, 'a')
       const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
 
       const spy = jest.spyOn(miningDirector, 'constructAndMineBlock').mockResolvedValue(false)
       expect(spy).toBeCalledTimes(0)
 
-      await miningDirector.constructAndMineBlockWithRetry(tx, [])
+      await miningDirector.constructAndMineBlockWithRetry(chain.head.hash, tx, [])
       expect(spy).toBeCalledTimes(1)
 
       // Should not retry
@@ -206,7 +210,7 @@ describe('Mining director', () => {
       expect(spy).toBeCalledTimes(1)
 
       spy.mockResolvedValue(true)
-      await miningDirector.constructAndMineBlockWithRetry(tx, [])
+      await miningDirector.constructAndMineBlockWithRetry(chain.head.hash, tx, [])
       expect(spy).toBeCalledTimes(2)
 
       // should retry now
@@ -215,19 +219,23 @@ describe('Mining director', () => {
     })
 
     it('retries calculating target if target is not at max', async () => {
-      const { node, miningDirector } = nodeTest
+      const { node, miningDirector, chain } = nodeTest
       const account = await useAccountFixture(node.accounts, 'a')
       const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
 
       const targetSpy = jest.spyOn(Target, 'calculateTarget')
 
       targetSpy.mockReturnValueOnce(Target.maxTarget())
-      await expect(miningDirector.constructAndMineBlock(tx, [])).resolves.toBe(false)
+      await expect(miningDirector.constructAndMineBlock(chain.head.hash, tx, [])).resolves.toBe(
+        false,
+      )
 
       targetSpy.mockReturnValueOnce(
         Target.fromDifficulty(Target.minDifficulty() + BigInt(10000000000)),
       )
-      await expect(miningDirector.constructAndMineBlock(tx, [])).resolves.toBe(true)
+      await expect(miningDirector.constructAndMineBlock(chain.head.hash, tx, [])).resolves.toBe(
+        true,
+      )
     })
   })
 
