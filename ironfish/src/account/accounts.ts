@@ -689,10 +689,8 @@ export class Accounts {
   async pay(
     memPool: MemPool,
     sender: Account,
-    amount: bigint,
+    receives: { publicAddress: string; amount: bigint; memo: string }[],
     transactionFee: bigint,
-    memo: string,
-    receiverPublicAddress: string,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
   ): Promise<Transaction> {
@@ -709,10 +707,8 @@ export class Accounts {
 
     const transaction = await this.createTransaction(
       sender,
-      amount,
+      receives,
       transactionFee,
-      memo,
-      receiverPublicAddress,
       expirationSequence,
     )
 
@@ -725,15 +721,16 @@ export class Accounts {
 
   async createTransaction(
     sender: Account,
-    amount: bigint,
+    receives: { publicAddress: string; amount: bigint; memo: string }[],
     transactionFee: bigint,
-    memo: string,
-    receiverPublicAddress: string,
     expirationSequence: number,
   ): Promise<Transaction> {
     this.assertHasAccount(sender)
 
-    let amountNeeded = amount + transactionFee
+    // TODO: If we're spending from multiple accounts, we need to figure out a
+    // way to split the transaction fee. - deekerno
+    let amountNeeded =
+      receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
     const unspentNotes = this.getUnspentNotes(sender)
@@ -811,13 +808,7 @@ export class Accounts {
         authPath: n.witness.authenticationPath,
         rootHash: n.witness.rootHash,
       })),
-      [
-        {
-          publicAddress: receiverPublicAddress,
-          amount,
-          memo,
-        },
-      ],
+      receives,
       expirationSequence,
     )
   }
