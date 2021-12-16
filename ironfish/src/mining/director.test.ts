@@ -48,7 +48,7 @@ describe('Mining director', () => {
     expect(transactions).toEqual([transactionB, transactionA])
 
     // Should only have transactionB
-    transactions = await AsyncUtils.materialize(miningDirector['getTransactions']())
+    transactions = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
     expect(transactions).toHaveLength(1)
     expect(transactions).toEqual([transactionB])
 
@@ -70,7 +70,41 @@ describe('Mining director', () => {
     expect(memPool.size()).toEqual(2)
 
     // Should no longer try to add transactionB since transactionA is already in the chain
-    transactions = await AsyncUtils.materialize(miningDirector['getTransactions']())
+    transactions = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
     expect(transactions).toHaveLength(0)
+  })
+
+  it('should not add expired transaction to block', async () => {
+    const { node, miningDirector, chain, accounts } = nodeTest
+
+    // Create an account with some money
+    const account = await useAccountFixture(accounts)
+    const block1 = await useMinerBlockFixture(chain, undefined, account, accounts)
+    await expect(chain).toAddBlock(block1)
+    await accounts.updateHead()
+
+    const transaction = await useTxFixture(
+      accounts,
+      account,
+      account,
+      undefined,
+      undefined,
+      chain.head.sequence + 2,
+    )
+
+    jest.spyOn(node.memPool, 'get').mockImplementation(function* () {
+      yield transaction
+    })
+
+    let results = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    expect(results).toHaveLength(1)
+    expect(results[0].hash().equals(transaction.hash())).toBe(true)
+
+    // It shouldn't be returned after 1 more block is added
+    const block2 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block2)
+
+    results = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    expect(results).toHaveLength(0)
   })
 })

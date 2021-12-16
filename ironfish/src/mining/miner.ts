@@ -40,7 +40,7 @@ export class Miner {
   private randomness = 0
 
   constructor(numTasks: number, batchSize = 10000) {
-    this.workerPool = new WorkerPool({ maxWorkers: numTasks })
+    this.workerPool = new WorkerPool({ numWorkers: numTasks })
     this.batchSize = batchSize
     this.hashRate = new Meter()
   }
@@ -102,7 +102,7 @@ export class Miner {
     // Reset our search space
     this.randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
 
-    for (let i = 0; i < this.workerPool.maxWorkers; i++) {
+    for (let i = 0; i < this.workerPool.numWorkers; i++) {
       this.tasks[this.randomness] = this.workerPool.mineHeader(
         request.miningRequestId,
         request.bytes,
