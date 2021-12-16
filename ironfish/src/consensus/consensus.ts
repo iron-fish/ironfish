@@ -28,7 +28,7 @@ export const GENESIS_SUPPLY_IN_IRON = 42000000
 /**
  * The oldest the tip should be before we consider the chain synced
  */
-export const MAX_SYNCED_AGE_MS = 12 * 60 * 60 * 1000
+export const MAX_SYNCED_AGE_MS = 5 * 60 * 60 * 1000
 
 /**
  * The maximum allowed requested blocks by the network
