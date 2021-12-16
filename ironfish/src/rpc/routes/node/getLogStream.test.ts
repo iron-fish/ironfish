@@ -25,7 +25,10 @@ describe('Route node/getLogStream', () => {
       level: LogLevel.Info.toString(),
       tag: expect.stringContaining('ironfishnode'),
       type: 'info',
-      args: ['Hello', { foo: 2 }],
+      args: [
+        'Hello',
+        { foo: 2534271162310626895268494646183544190472310279255239332802358381294n },
+      ],
       date: expect.anything(),
     })
   })
