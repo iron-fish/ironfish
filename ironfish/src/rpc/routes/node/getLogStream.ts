@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
+import { IJSON } from '../../../serde'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetLogStreamRequest = {} | undefined
