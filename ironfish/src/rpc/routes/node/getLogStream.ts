@@ -4,6 +4,7 @@
 import { ConsolaReporterLogObject } from 'consola'
 import * as yup from 'yup'
 import { InterceptReporter } from '../../../logger'
+import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -41,7 +42,7 @@ router.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
         level: String(logObj.level),
         type: logObj.type,
         tag: logObj.tag,
-        args: logObj.args,
+        args: [IJSON.stringify(logObj.args)],
         date: logObj.date.toISOString(),
       })
     })

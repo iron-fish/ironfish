@@ -32,6 +32,7 @@ export default class LogsCommand extends IronfishCommand {
       })
     }
 
+
     this.exit(0)
   }
 }
