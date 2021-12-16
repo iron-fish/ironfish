@@ -109,9 +109,9 @@ export type ConfigOptions = {
    * The default delta of block sequence for which to expire transactions from the
    * mempool.
    */
-  defaultTransactionExpirationSequenceDelta: number,
+  defaultTransactionExpirationSequenceDelta: number
 
-    /**
+   /**
    * The default number of blocks to request per message when syncing.
    */
   blocksPerMessage: number
@@ -177,7 +177,7 @@ export class Config extends KeyStore<ConfigOptions> {
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
-      blocksPerMessage: 20
+      blocksPerMessage: 20,
     }
   }
 }
