@@ -195,10 +195,14 @@ ${displayIronAmountWithCurrency(
 
     try {
       const result = await client.sendTransaction({
-        amount: ironToOre(amount).toString(),
         fromAccountName: from,
-        memo: memo,
-        toPublicKey: to,
+        receives: [
+          {
+            publicAddress: to,
+            amount: ironToOre(amount).toString(),
+            memo: memo,
+          },
+        ],
         fee: ironToOre(fee).toString(),
         expirationSequence,
       })
@@ -206,8 +210,9 @@ ${displayIronAmountWithCurrency(
       stopProgressBar()
 
       const transaction = result.content
+      const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
       this.log(`
-Sending ${displayIronAmountWithCurrency(amount, true)} to ${transaction.toPublicKey} from ${
+Sending ${displayIronAmountWithCurrency(amount, true)} to ${recipients} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}

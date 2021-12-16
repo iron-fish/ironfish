@@ -50,7 +50,6 @@ export default class Status extends IronfishCommand {
 
       const response = this.sdk.client.getWorkersStatusStream()
       for await (const value of response.contentStream()) {
-        statusText.clearBaseLine(0)
         statusText.setContent(renderStatus(value))
         screen.render()
       }
@@ -74,6 +73,5 @@ function renderStatus(content: GetWorkersStatusResponse): string {
     )}\n`
   }
 
-  return `Workers              ${workersStatus}
-  ${status}`
+  return `Workers: ${workersStatus}\n${status}`
 }

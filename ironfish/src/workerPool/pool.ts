@@ -14,6 +14,7 @@ import type {
   VerifyTransactionRequest,
 } from './tasks'
 import _ from 'lodash'
+import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
@@ -29,7 +30,8 @@ import { getWorkerPath, Worker } from './worker'
 export class WorkerPool {
   readonly maxJobs: number
   readonly maxQueue: number
-  readonly maxWorkers: number
+  readonly numWorkers: number
+  readonly logger: Logger
 
   queue: Array<Job> = []
   workers: Array<Worker> = []
@@ -73,15 +75,17 @@ export class WorkerPool {
 
   constructor(options?: {
     metrics?: MetricsMonitor
-    maxWorkers?: number
+    numWorkers?: number
     maxQueue?: number
     maxJobs?: number
+    logger?: Logger
   }) {
-    this.maxWorkers = options?.maxWorkers ?? 1
+    this.numWorkers = options?.numWorkers ?? 1
     this.maxJobs = options?.maxJobs ?? 1
     this.maxQueue = options?.maxQueue ?? 200
     this.change = options?.metrics?.addMeter() ?? null
     this.speed = options?.metrics?.addMeter() ?? null
+    this.logger = options?.logger ?? createRootLogger()
   }
 
   start(): void {
@@ -93,10 +97,12 @@ export class WorkerPool {
 
     const path = getWorkerPath()
 
-    for (let i = 0; i < this.maxWorkers; i++) {
+    for (let i = 0; i < this.numWorkers; i++) {
       const worker = new Worker({ path, maxJobs: this.maxJobs })
       this.workers.push(worker)
     }
+
+    this.logger.debug(`Started worker pool with ${this.numWorkers} worker ${path}`)
   }
 
   async stop(): Promise<void> {
