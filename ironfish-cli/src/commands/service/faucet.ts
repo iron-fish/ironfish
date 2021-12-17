@@ -8,6 +8,7 @@ import { RemoteFlags } from '../../flags'
 
 const FAUCET_AMOUNT = 5
 const FAUCET_FEE = 1
+const MAX_RECIPIENTS_PER_TRANSACTION = 5
 
 export default class Faucet extends IronfishCommand {
   static hidden = true
@@ -126,12 +127,15 @@ export default class Faucet extends IronfishCommand {
 
     const response = await client.getAccountBalance({ account })
 
-    if (BigInt(response.content.confirmed) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
+    if (
+      BigInt(response.content.confirmed) <
+      BigInt(FAUCET_AMOUNT * MAX_RECIPIENTS_PER_TRANSACTION + FAUCET_FEE)
+    ) {
       if (!this.warnedFund) {
         this.log(
-          `Faucet has insufficient funds. Needs ${FAUCET_AMOUNT + FAUCET_FEE} but has ${
-            response.content.confirmed
-          }. Waiting on more funds.`,
+          `Faucet has insufficient funds. Needs ${
+            FAUCET_AMOUNT * MAX_RECIPIENTS_PER_TRANSACTION + FAUCET_FEE
+          } but has ${response.content.confirmed}. Waiting on more funds.`,
         )
 
         this.warnedFund = true
@@ -143,38 +147,44 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const faucetTransaction = await api.getNextFaucetTransaction()
+    const faucetTransactions = await api.getNextFaucetTransaction(
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
-    if (!faucetTransaction) {
+    if (!faucetTransactions) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
     }
 
-    this.log(`Starting ${JSON.stringify(faucetTransaction, undefined, '   ')}`)
+    this.log(`Starting ${JSON.stringify(faucetTransactions, undefined, '   ')}`)
 
-    await api.startFaucetTransaction(faucetTransaction.id)
+    for (const faucetTransaction of faucetTransactions) {
+      await api.startFaucetTransaction(faucetTransaction.id)
+    }
+
+    const receives = faucetTransactions.map((ft) => {
+      return {
+        publicAddress: ft.public_key,
+        amount: BigInt(FAUCET_AMOUNT).toString(),
+        memo: `Faucet for ${ft.id}`,
+      }
+    })
 
     const tx = await client.sendTransaction({
       fromAccountName: account,
-      receives: [
-        {
-          publicAddress: faucetTransaction.public_key,
-          amount: BigInt(FAUCET_AMOUNT).toString(),
-          memo: `Faucet for ${faucetTransaction.id}`,
-        },
-      ],
+      receives,
       fee: BigInt(FAUCET_FEE).toString(),
     })
 
     speed.add(1)
 
-    this.log(
-      `COMPLETING: ${faucetTransaction.id} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(
-        2,
-      )})`,
-    )
+    const ids = faucetTransactions.map((ft) => ft.id).join(', ')
 
-    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    this.log(`COMPLETING: ${ids} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(2)})`)
+
+    for (const faucetTransaction of faucetTransactions) {
+      await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    }
   }
 }
