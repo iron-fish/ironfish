@@ -6,7 +6,6 @@ import * as yup from 'yup'
 import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
-import { IJSON } from '../../../serde'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetLogStreamRequest = {} | undefined
@@ -43,7 +42,7 @@ router.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
         level: String(logObj.level),
         type: logObj.type,
         tag: logObj.tag,
-        args: [IJSON.stringify(logObj.args)],
+        args: [IJSON.stringify(logObj.args).replace(/[[\]"]+/g, '')],
         date: logObj.date.toISOString(),
       })
     })
