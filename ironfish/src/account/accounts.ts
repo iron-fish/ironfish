@@ -701,7 +701,8 @@ export class Accounts {
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
-    if (this.chain.verifier.isExpiredSequence(expirationSequence)) {
+
+    if (this.chain.verifier.isExpiredSequence(expirationSequence, this.chain.head.sequence)) {
       throw new ValidationError('Invalid expiration sequence for transaction')
     }
 
@@ -906,9 +907,12 @@ export class Accounts {
         continue
       }
 
-      if (
-        this.chain.verifier.isExpiredSequence(transaction.expirationSequence(), head.sequence)
-      ) {
+      const isExpired = this.chain.verifier.isExpiredSequence(
+        transaction.expirationSequence(),
+        head.sequence,
+      )
+
+      if (isExpired) {
         await this.removeTransaction(transaction)
       }
     }
