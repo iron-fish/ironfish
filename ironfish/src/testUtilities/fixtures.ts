@@ -307,6 +307,9 @@ export async function useBlockWithTx(
   from?: Account,
   to?: Account,
   useFee = true,
+  options: {
+    expiration?: number
+  } = { expiration: 0 },
 ): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
     from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
@@ -341,7 +344,7 @@ export async function useBlockWithTx(
         },
       ],
       BigInt(1),
-      0,
+      options.expiration ?? 0,
     )
 
     return node.chain.newBlock(
