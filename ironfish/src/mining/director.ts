@@ -393,11 +393,7 @@ export class MiningDirector {
 
     // For mining, we want a serialized form of the header without the randomness on it
     const target = newBlock.header.target
-<<<<<<< HEAD
     this.logger.debug('Target set to:', `${target.asBigInt()}`)
-=======
-    this.logger.debug('target set to', `${target.asBigInt()}`)
->>>>>>> 748554c (Revert "Get rid of quotes and bracets in logs and getting them prettier")
     const asBuffer = newBlock.header.serializePartial()
     this.miningRequestId++
 
