@@ -405,8 +405,12 @@ describe('Verifier', () => {
       it('returns TRANSACTION_EXPIRED', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
         })
@@ -417,10 +421,14 @@ describe('Verifier', () => {
       it('returns ERROR', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: false,
           reason: VerificationResultReason.ERROR,
         })
@@ -431,10 +439,14 @@ describe('Verifier', () => {
       it('returns valid', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(true))
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: true,
         })
       }, 60000)
