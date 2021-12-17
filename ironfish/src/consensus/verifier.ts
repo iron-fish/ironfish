@@ -170,10 +170,8 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const noteSize = await this.chain.notes.size(tx)
-
       for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, noteSize, tx)
+        const reason = await this.verifySpend(spend, tx)
         if (reason) {
           return { valid: false, reason }
         }
@@ -299,17 +297,14 @@ export class Verifier {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
 
-      const previousSpendCount =
-        block.header.nullifierCommitment.size - spendsInThisBlock.length
-
       const processedSpends = new BufferSet()
 
-      for (const [index, spend] of spendsInThisBlock.entries()) {
+      for (const [_, spend] of spendsInThisBlock.entries()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        const verificationError = await this.verifySpend(spend, previousSpendCount + index, tx)
+        const verificationError = await this.verifySpend(spend, tx)
         if (verificationError) {
           return { valid: false, reason: verificationError }
         }
@@ -333,10 +328,9 @@ export class Verifier {
    */
   async verifySpend(
     spend: Spend,
-    size: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
-    if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
+    if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
       return VerificationResultReason.DOUBLE_SPEND
     }
 
