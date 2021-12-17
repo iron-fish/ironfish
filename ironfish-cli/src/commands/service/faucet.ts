@@ -147,7 +147,7 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const faucetTransactions = await api.getNextFaucetTransaction(
+    const faucetTransactions = await api.getNextFaucetTransactions(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
