@@ -42,7 +42,7 @@ router.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
         level: String(logObj.level),
         type: logObj.type,
         tag: logObj.tag,
-        args: [IJSON.stringify(logObj.args).replace(/[[\]"]+/g, '')],
+        args: [IJSON.stringify(logObj.args)],
         date: logObj.date.toISOString(),
       })
     })
