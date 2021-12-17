@@ -5,19 +5,26 @@
 import { Assert } from '../assert'
 import { JsonSerializable } from '../serde'
 import {
+  DatabaseKey,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
+  NumberEncoding,
   SchemaValue,
 } from '../storage'
 import { LeafEncoding, NodeEncoding } from './encoding'
 import { MerkleHasher } from './hasher'
-import { CounterSchema, LeavesSchema, NodesSchema } from './schema'
+import { CounterSchema, LeavesIndexSchema, LeavesSchema, NodesSchema } from './schema'
 import { depthAtLeafCount, isEmpty, isRight } from './utils'
 import { Witness, WitnessNode } from './witness'
 
-export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerializable> {
+export class MerkleTree<
+  E,
+  H extends DatabaseKey,
+  SE extends JsonSerializable,
+  SH extends JsonSerializable,
+> {
   readonly hasher: MerkleHasher<E, H, SE, SH>
   readonly db: IDatabase
   readonly name: string = ''
@@ -25,6 +32,7 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
 
   readonly counter: IDatabaseStore<CounterSchema>
   readonly leaves: IDatabaseStore<LeavesSchema<E, H>>
+  readonly leavesIndex: IDatabaseStore<LeavesIndexSchema<H>>
   readonly nodes: IDatabaseStore<NodesSchema<H>>
 
   constructor({
@@ -53,6 +61,12 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
       name: `${name}l`,
       keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
       valueEncoding: new LeafEncoding<E, H, SE, SH>(hasher),
+    })
+
+    this.leavesIndex = db.addStore({
+      name: `${name}i`,
+      keyEncoding: new JsonEncoding<LeavesIndexSchema<H>['key']>(),
+      valueEncoding: new NumberEncoding(),
     })
 
     this.nodes = db.addStore({
@@ -211,7 +225,7 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
           tx,
         )
 
-        await this.leaves.put(
+        await this.addLeaf(
           leftLeafIndex,
           {
             element: leftLeaf.element,
@@ -324,7 +338,7 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
 
       await this.counter.put('Leaves', indexOfNewLeaf + 1, tx)
 
-      await this.leaves.put(
+      await this.addLeaf(
         indexOfNewLeaf,
         {
           element,
@@ -337,6 +351,25 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
 
       await this.rehashRightPath(tx)
     })
+  }
+
+  async addLeaf(
+    index: LeafIndex,
+    value: { index: LeafIndex; element: E; merkleHash: H; parentIndex: NodeIndex },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.leaves.put(
+      index,
+      {
+        index: index,
+        element: value.element,
+        merkleHash: value.merkleHash,
+        parentIndex: value.parentIndex,
+      },
+      tx,
+    )
+
+    await this.leavesIndex.put(this.hasher.merkleHash(value.element), index, tx)
   }
 
   /**
@@ -368,7 +401,8 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
         await this.counter.put('Nodes', 1, tx)
         const firstLeaf = await this.getLeaf(0, tx)
         firstLeaf.parentIndex = 0
-        await this.leaves.put(firstLeaf.index, firstLeaf, tx)
+
+        await this.addLeaf(firstLeaf.index, firstLeaf, tx)
         return
       }
 
@@ -479,23 +513,13 @@ export class MerkleTree<E, H, SE extends JsonSerializable, SH extends JsonSerial
 
   /**
    * Check if the tree contained the given element when it was the given size.
-   *
-   * This is an inefficient linear scan.
+   * TODO — pastSize is unecessary here now
    */
   async contained(value: E, pastSize: number, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.db.withTransaction(tx, async (tx) => {
-      for (let i = 0; i < pastSize; i++) {
-        const leaf = await this.getLeafOrNull(i, tx)
+      const elementIndex = await this.leavesIndex.get(this.hasher.merkleHash(value), tx)
 
-        if (leaf === null) {
-          break
-        }
-
-        if (this.hasher.elementSerde().equals(value, leaf.element)) {
-          return true
-        }
-      }
-      return false
+      return elementIndex !== undefined && elementIndex < pastSize
     })
   }
 

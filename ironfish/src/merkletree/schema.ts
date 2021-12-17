@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { DatabaseSchema } from '../storage'
+import { DatabaseKey, DatabaseSchema } from '../storage'
 import { LeafIndex, NodeIndex, Side } from './merkletree'
 
 interface CounterEntry<T extends string> extends DatabaseSchema {
@@ -20,6 +20,11 @@ export interface LeavesSchema<E, H> extends DatabaseSchema {
     merkleHash: H
     parentIndex: NodeIndex
   }
+}
+
+export interface LeavesIndexSchema<H extends DatabaseKey> extends DatabaseSchema {
+  key: H
+  value: LeafIndex
 }
 
 export type NodeValue<H> = {
