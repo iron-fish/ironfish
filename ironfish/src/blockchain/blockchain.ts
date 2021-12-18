@@ -1105,9 +1105,8 @@ export class Blockchain {
       to = this.head
     }
 
-    if (!to || !from) {
-      return
-    }
+    Assert.isNotNull(from, `Expected 'from' not to be null`)
+    Assert.isNotNull(to, `Expected 'to' not to be null`)
 
     for await (const header of this.iterateTo(from, to, tx)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {

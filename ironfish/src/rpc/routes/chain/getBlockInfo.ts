@@ -27,6 +27,9 @@ export type GetBlockInfoResponse = {
       spends: number
     }>
   }
+  metadata: {
+    main: boolean
+  }
 }
 
 export const GetBlockInfoRequestSchema: yup.ObjectSchema<GetBlockInfoRequest> = yup
@@ -60,6 +63,11 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
               .defined(),
           )
           .defined(),
+      })
+      .defined(),
+    metadata: yup
+      .object({
+        main: yup.boolean().defined(),
       })
       .defined(),
   })
@@ -119,6 +127,8 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
       }
     })
 
+    const main = await node.chain.isHeadChain(header)
+
     request.status(200).end({
       block: {
         graffiti: header.graffiti.toString('hex'),
@@ -127,6 +137,9 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         sequence: Number(header.sequence),
         timestamp: header.timestamp.valueOf(),
         transactions: transactions,
+      },
+      metadata: {
+        main: main,
       },
     })
   },

@@ -28,12 +28,18 @@ export const GENESIS_SUPPLY_IN_IRON = 42000000
 /**
  * The oldest the tip should be before we consider the chain synced
  */
-export const MAX_SYNCED_AGE_MS = 60 * 1000
+export const MAX_SYNCED_AGE_MS = 5 * 60 * 60 * 1000
 
 /**
  * The maximum allowed requested blocks by the network
  */
 export const MAX_REQUESTED_BLOCKS = 50
+
+/**
+ * Max size for a message, for instance when requesting batches of blocks
+ * TODO 256MB is way too big
+ */
+export const MAX_MESSAGE_SIZE = 256 * 1024 * 1024
 
 /**
  * The average time that all blocks should be mined

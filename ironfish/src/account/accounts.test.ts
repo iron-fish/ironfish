@@ -51,6 +51,19 @@ describe('Accounts', () => {
     expect(getTransactionsSpy).toBeCalledTimes(8)
   }, 8000)
 
+  it('should reset when headHash does not exist in chain', async () => {
+    const { node, strategy } = nodeTest
+    strategy.disableMiningReward()
+
+    const resetSpy = jest.spyOn(node.accounts, 'reset').mockImplementation()
+    jest.spyOn(node.accounts, 'eventLoop').mockImplementation(() => Promise.resolve())
+
+    node.accounts['headHash'] = '0'
+
+    await node.accounts.start()
+    expect(resetSpy).toBeCalledTimes(1)
+  }, 8000)
+
   it('should handle transaction created on fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()

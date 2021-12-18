@@ -8,6 +8,12 @@
 import DisabledTelemetry from './DisabledTelemetry'
 import NodeTelemetry from './NodeTelemetry'
 
+/**
+ * Set this to true when we should disable peoples telemetry even if they have it enabled in the config
+ * Used when the the telemetry system is having issues or offline
+ */
+const TELEMETRY_OFFLINE = true
+
 export { NodeTelemetry, DisabledTelemetry }
 
 export type Field = {
@@ -94,6 +100,10 @@ export function setTelemetry(newTelemetry: Telemetry): void {
  * Returns a status message intended for be displayed to the user
  */
 export function startCollecting(endpoint: string): string {
+  if (TELEMETRY_OFFLINE) {
+    return 'telemetry is disabled'
+  }
+
   const result = telemetry.startCollecting(endpoint)
   telemetry = result.next
   return result.status
@@ -141,5 +151,6 @@ export function submitMetric(metric: Metric): void {
     timestamp: metric.timestamp || new Date(),
     tags: metric.tags ? { ...defaultTags, ...metric.tags } : { ...defaultTags },
   }
+
   telemetry.submit(toSubmit)
 }

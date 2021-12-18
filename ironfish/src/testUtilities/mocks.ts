@@ -16,8 +16,15 @@ export function mockAccounts(): any {
   }
 }
 
+export function mockVerifier(): any {
+  return {
+    verifyNewTransaction: jest.fn().mockResolvedValue({}),
+  }
+}
+
 export function mockChain(): any {
   return {
+    verifier: mockVerifier(),
     head: { hash: 'mockhash', sequence: 1, work: BigInt(0) },
     synced: true,
   }
@@ -34,6 +41,7 @@ export function mockNode(): any {
     miningDirector: mockDirector(),
     syncer: mockSyncer(),
     workerPool: mockWorkerPool(),
+    chain: mockChain(),
   }
 }
 
