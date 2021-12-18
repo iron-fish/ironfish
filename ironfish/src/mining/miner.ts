@@ -99,6 +99,9 @@ export class Miner {
     // We don't care about the discarded tasks; they will exit soon enough
     this.tasks = {}
 
+    // Abort the ongoing jobs from the previous mine request
+    this.workerPool.abortJobs()
+
     // Reset our search space
     this.randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
 
