@@ -16,7 +16,7 @@ import { Strategy } from './strategy'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
 
-const SYNCER_TICK_MS = 4 * 1000
+const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
 
@@ -104,7 +104,7 @@ export class Syncer {
       return
     }
 
-    if (this.state === 'idle' && !this.chain.synced) {
+    if (this.state === 'idle') {
       this.findPeer()
     }
 
