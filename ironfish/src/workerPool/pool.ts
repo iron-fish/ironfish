@@ -123,10 +123,10 @@ export class WorkerPool {
   }
 
   abortJobs(): void {
-    this.workers.forEach(worker => 
-      worker.jobs.forEach(job => job.abort()))
+    this.workers.forEach((worker) => 
+      worker.jobs.forEach((job) => job.abort()))
   }
-  
+
   async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
     const request: CreateMinersFeeRequest = {
       type: 'createMinersFee',
