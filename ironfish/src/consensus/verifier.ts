@@ -46,7 +46,9 @@ export class Verifier {
 
     // Verify the transactions
     const verificationResults = await Promise.all(
-      block.transactions.map((t) => this.verifyTransaction(t, { verifyFees: false })),
+      block.transactions.map((t) =>
+        this.verifyTransaction(t, block.header, { verifyFees: false }),
+      ),
     )
 
     const invalidResult = verificationResults.find((f) => !f.valid)
@@ -146,9 +148,10 @@ export class Verifier {
 
   async verifyTransaction(
     transaction: Transaction,
+    block: BlockHeader,
     options?: VerifyTransactionOptions,
   ): Promise<VerificationResult> {
-    if (this.isExpiredSequence(transaction.expirationSequence())) {
+    if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
       return {
         valid: false,
         reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -193,9 +196,8 @@ export class Verifier {
     return validity
   }
 
-  isExpiredSequence(expirationSequence: number, headSequence?: number): boolean {
-    headSequence = headSequence ?? this.chain.head.sequence
-    return expirationSequence !== 0 && expirationSequence <= headSequence
+  isExpiredSequence(expirationSequence: number, sequence: number): boolean {
+    return expirationSequence !== 0 && expirationSequence <= sequence
   }
 
   /**
@@ -296,8 +298,10 @@ export class Verifier {
   async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
+
       const previousSpendCount =
         block.header.nullifierCommitment.size - spendsInThisBlock.length
+
       const processedSpends = new BufferSet()
 
       for (const [index, spend] of spendsInThisBlock.entries()) {
