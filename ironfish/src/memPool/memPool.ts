@@ -77,7 +77,11 @@ export class MemPool {
       return false
     }
 
-    const { valid, reason } = await this.chain.verifier.verifyTransaction(transaction)
+    const { valid, reason } = await this.chain.verifier.verifyTransaction(
+      transaction,
+      this.chain.head,
+    )
+
     if (!valid) {
       Assert.isNotUndefined(reason)
       this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
@@ -99,7 +103,12 @@ export class MemPool {
     }
 
     for (const transaction of this.transactions.values()) {
-      if (this.chain.verifier.isExpiredSequence(transaction.expirationSequence())) {
+      const isExpired = this.chain.verifier.isExpiredSequence(
+        transaction.expirationSequence(),
+        this.chain.head.sequence,
+      )
+
+      if (isExpired) {
         this.deleteTransaction(transaction)
       }
     }

@@ -4,13 +4,14 @@
 
 import http from 'http'
 import WSWebSocket from 'ws'
+import { MAX_MESSAGE_SIZE } from '../consensus/consensus'
 
 export class WebSocketServer {
   // The server instance
   readonly server: WSWebSocket.Server
 
   constructor(ctor: typeof WSWebSocket.Server, port: number) {
-    this.server = new ctor({ port })
+    this.server = new ctor({ port, maxPayload: MAX_MESSAGE_SIZE })
   }
 
   /**
