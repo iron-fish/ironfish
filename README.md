@@ -22,15 +22,16 @@ See https://ironfish.network
       1. On the next screen, click `Process`.
       1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
 1. Run `yarn install` from the root directory to install packages.
-
    - If `yarn install` fails with an error that includes "Failed to build cmake", you may need to first install cmake. For example, on macOS:
-
      1. Run `brew install cmake`, you'll need cmake version 3.15 or higher.
 
    - If `yarn install` fails with an error that includes "Could NOT find OpenSSL", you may need to first install OpenSSL and add an environment variable. For example, on macOS:
      1. Run `brew install openssl`
      1. Run `` export OPENSSL_ROOT_DIR=`brew --prefix openssl`  ``
      1. Run `yarn install` again.
+
+   - If `yarn install` fails with an error that includes "Error: not found: make", you may need to install C and C++ compilation tools. For example, on Ubuntu:
+      1. Run `apt install build-essential`
 
 ## Usage
 
