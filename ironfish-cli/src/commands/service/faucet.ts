@@ -157,10 +157,14 @@ export default class Faucet extends IronfishCommand {
 
     const tx = await client.sendTransaction({
       fromAccountName: account,
-      toPublicKey: faucetTransaction.public_key,
-      amount: BigInt(FAUCET_AMOUNT).toString(),
+      receives: [
+        {
+          publicAddress: faucetTransaction.public_key,
+          amount: BigInt(FAUCET_AMOUNT).toString(),
+          memo: `Faucet for ${faucetTransaction.id}`,
+        },
+      ],
       fee: BigInt(FAUCET_FEE).toString(),
-      memo: `Faucet for ${faucetTransaction.id}`,
     })
 
     speed.add(1)

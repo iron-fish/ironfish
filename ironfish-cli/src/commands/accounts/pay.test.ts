@@ -10,8 +10,30 @@ describe('accounts:pay command', () => {
 
   const ironFishSdkBackup = ironfishmodule.IronfishSdk.init
 
+  const fee = 1
+  const amount = 2
+  const to =
+    '997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
+  const from =
+    '197c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
+  const memo = 'test memo for a transaction'
+  const hash =
+    'aaaa586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
+
   beforeEach(() => {
-    sendTransaction = jest.fn().mockReturnValue({ content: {} })
+    sendTransaction = jest.fn().mockReturnValue({
+      content: {
+        receives: [
+          {
+            publicAddress: to,
+            amount,
+            memo,
+          },
+        ],
+        fromAccountName: from,
+        hash,
+      },
+    })
 
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => {
       const client = {
@@ -31,14 +53,6 @@ describe('accounts:pay command', () => {
     sendTransaction.mockReset()
     ironfishmodule.IronfishSdk.init = ironFishSdkBackup
   })
-
-  const fee = 1
-  const amount = 2
-  const to =
-    '997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
-  const from =
-    '197c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
-  const memo = 'test memo for a transaction'
 
   test
     .stub(cli, 'confirm', () => async () => await Promise.resolve(true))

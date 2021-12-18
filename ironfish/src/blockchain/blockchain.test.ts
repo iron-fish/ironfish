@@ -575,4 +575,49 @@ describe('Blockchain', () => {
     // We should have reorged to blockA5
     expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
   }, 120000)
+
+  it('should add block to fork with tx expiration', async () => {
+    /**
+     * The goal of this test is to ensure that transaction expiration
+     * on a forked block is validated against the forked block, and
+     * not the actual current head of the chain. Which it was not doing
+     * at the time of writing this test.
+     *
+     * G -> A1 -> A2 -> A3
+     *   -> B1 -> B2
+     */
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+
+    const { previous: blockB1, block: blockB2 } = await useBlockWithTx(
+      nodeB,
+      undefined,
+      undefined,
+      undefined,
+      { expiration: 4 },
+    )
+
+    await expect(nodeB.chain.hasBlock(blockB1.header.hash)).resolves.toBe(true)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+
+    // When we add blockB2 it will be expired on the chain head, but not on the
+    // block it's added to. Expiration is a function of the sequence that a
+    // transaction can be added, and even if the head is past the expiration if
+    // the block it's added to is not past that expiration then it should be
+    // valid.
+    await expect(nodeA.chain).toAddBlock(blockB1)
+    await expect(nodeA.chain).toAddBlock(blockB2)
+
+    expect(nodeA.chain.head.hash.equals(blockA3.header.hash)).toBe(true)
+    expect(nodeB.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+  })
 })
