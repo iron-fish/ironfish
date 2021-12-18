@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 
 const FAUCET_AMOUNT = 5
 const FAUCET_FEE = 1
-const MAX_RECIPIENTS_PER_TRANSACTION = 5
+const MAX_RECIPIENTS_PER_TRANSACTION = 50
 
 export default class Faucet extends IronfishCommand {
   static hidden = true
@@ -127,15 +127,12 @@ export default class Faucet extends IronfishCommand {
 
     const response = await client.getAccountBalance({ account })
 
-    if (
-      BigInt(response.content.confirmed) <
-      BigInt(FAUCET_AMOUNT * MAX_RECIPIENTS_PER_TRANSACTION + FAUCET_FEE)
-    ) {
+    if (BigInt(response.content.confirmed) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
       if (!this.warnedFund) {
         this.log(
-          `Faucet has insufficient funds. Needs ${
-            FAUCET_AMOUNT * MAX_RECIPIENTS_PER_TRANSACTION + FAUCET_FEE
-          } but has ${response.content.confirmed}. Waiting on more funds.`,
+          `Faucet has insufficient funds. Needs ${FAUCET_AMOUNT + FAUCET_FEE} but has ${
+            response.content.confirmed
+          }. Waiting on more funds.`,
         )
 
         this.warnedFund = true
@@ -147,11 +144,14 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const faucetTransactions = await api.getNextFaucetTransactions(
+    const count = Math.max(
+      Number(BigInt(response.content.confirmed) / BigInt(FAUCET_AMOUNT)),
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
-    if (!faucetTransactions) {
+    const faucetTransactions = await api.getNextFaucetTransactions(count)
+
+    if (!faucetTransactions || faucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
@@ -179,9 +179,11 @@ export default class Faucet extends IronfishCommand {
 
     speed.add(1)
 
-    const ids = faucetTransactions.map((ft) => ft.id).join(', ')
-
-    this.log(`COMPLETING: ${ids} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(2)})`)
+    this.log(
+      `COMPLETING: ${JSON.stringify(faucetTransactions)} ${
+        tx.content.hash
+      } (5m avg ${speed.rate5m.toFixed(2)})`,
+    )
 
     for (const faucetTransaction of faucetTransactions) {
       await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
