@@ -186,9 +186,11 @@ export default class Faucet extends IronfishCommand {
     speed.add(1)
 
     this.log(
-      `COMPLETING: ${JSON.stringify(faucetTransactions, ['id', 'public_key'], '   ')} ${
-        tx.content.hash
-      } (5m avg ${speed.rate5m.toFixed(2)})`,
+      `COMPLETING: ${JSON.stringify(
+        faucetTransactions,
+        ['id', 'public_key', 'started_at'],
+        '   ',
+      )} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(2)})`,
     )
 
     for (const faucetTransaction of faucetTransactions) {
