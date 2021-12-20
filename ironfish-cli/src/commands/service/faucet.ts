@@ -8,6 +8,7 @@ import { RemoteFlags } from '../../flags'
 
 const FAUCET_AMOUNT = 5
 const FAUCET_FEE = 1
+const MAX_RECIPIENTS_PER_TRANSACTION = 50
 
 export default class Faucet extends IronfishCommand {
   static hidden = true
@@ -143,38 +144,57 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const faucetTransaction = await api.getNextFaucetTransaction()
+    const count = Math.max(
+      Number(BigInt(response.content.confirmed) / BigInt(FAUCET_AMOUNT)),
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
-    if (!faucetTransaction) {
+    const faucetTransactions = await api.getNextFaucetTransactions(count)
+
+    if (!faucetTransactions || faucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
     }
 
-    this.log(`Starting ${JSON.stringify(faucetTransaction, undefined, '   ')}`)
+    this.log(
+      `Starting ${JSON.stringify(
+        faucetTransactions,
+        ['id', 'public_key', 'started_at'],
+        '   ',
+      )}`,
+    )
 
-    await api.startFaucetTransaction(faucetTransaction.id)
+    for (const faucetTransaction of faucetTransactions) {
+      await api.startFaucetTransaction(faucetTransaction.id)
+    }
+
+    const receives = faucetTransactions.map((ft) => {
+      return {
+        publicAddress: ft.public_key,
+        amount: BigInt(FAUCET_AMOUNT).toString(),
+        memo: `Faucet for ${ft.id}`,
+      }
+    })
 
     const tx = await client.sendTransaction({
       fromAccountName: account,
-      receives: [
-        {
-          publicAddress: faucetTransaction.public_key,
-          amount: BigInt(FAUCET_AMOUNT).toString(),
-          memo: `Faucet for ${faucetTransaction.id}`,
-        },
-      ],
+      receives,
       fee: BigInt(FAUCET_FEE).toString(),
     })
 
     speed.add(1)
 
     this.log(
-      `COMPLETING: ${faucetTransaction.id} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(
-        2,
-      )})`,
+      `COMPLETING: ${JSON.stringify(
+        faucetTransactions,
+        ['id', 'public_key', 'started_at'],
+        '   ',
+      )} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(2)})`,
     )
 
-    await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    for (const faucetTransaction of faucetTransactions) {
+      await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    }
   }
 }
