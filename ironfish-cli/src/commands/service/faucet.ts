@@ -157,7 +157,13 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
-    this.log(`Starting ${JSON.stringify(faucetTransactions, undefined, '   ')}`)
+    this.log(
+      `Starting ${JSON.stringify(
+        faucetTransactions,
+        ['id', 'public_key', 'started_at'],
+        '   ',
+      )}`,
+    )
 
     for (const faucetTransaction of faucetTransactions) {
       await api.startFaucetTransaction(faucetTransaction.id)
@@ -180,7 +186,7 @@ export default class Faucet extends IronfishCommand {
     speed.add(1)
 
     this.log(
-      `COMPLETING: ${JSON.stringify(faucetTransactions)} ${
+      `COMPLETING: ${JSON.stringify(faucetTransactions, ['id', 'public_key'], '   ')} ${
         tx.content.hash
       } (5m avg ${speed.rate5m.toFixed(2)})`,
     )

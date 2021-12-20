@@ -97,7 +97,7 @@ export class WebApi {
     this.requireToken()
 
     try {
-      const response = await axios.get<{ object: string; data: FaucetTransaction[] }>(
+      const response = await axios.get<{ data: FaucetTransaction[] }>(
         `${this.host}/faucet_transactions/next?count=${count}`,
         this.options(),
       )
