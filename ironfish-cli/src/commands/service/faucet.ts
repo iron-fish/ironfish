@@ -144,8 +144,8 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const count = Math.max(
-      Number(BigInt(response.content.confirmed) / BigInt(FAUCET_AMOUNT)),
+    const count = Math.min(
+      Number(BigInt(response.content.confirmed) / BigInt(FAUCET_AMOUNT + FAUCET_FEE)),
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
