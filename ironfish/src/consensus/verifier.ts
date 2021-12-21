@@ -170,10 +170,10 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const noteSize = await this.chain.notes.size(tx)
+      const nullifierSize = await this.chain.nullifiers.size(tx)
 
       for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, noteSize, tx)
+        const reason = await this.verifySpend(spend, nullifierSize, tx)
         if (reason) {
           return { valid: false, reason }
         }
