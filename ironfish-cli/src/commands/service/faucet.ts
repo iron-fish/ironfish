@@ -151,7 +151,7 @@ export default class Faucet extends IronfishCommand {
 
     const faucetTransactions = await api.getNextFaucetTransactions(count)
 
-    if (!faucetTransactions || faucetTransactions.length === 0) {
+    if (faucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
