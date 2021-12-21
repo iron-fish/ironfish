@@ -93,16 +93,16 @@ export class WebApi {
     return response.data
   }
 
-  async getNextFaucetTransaction(): Promise<FaucetTransaction | null> {
+  async getNextFaucetTransactions(count: number): Promise<FaucetTransaction[] | null> {
     this.requireToken()
 
     try {
-      const response = await axios.get<FaucetTransaction>(
-        `${this.host}/faucet_transactions/next`,
+      const response = await axios.get<{ data: FaucetTransaction[] }>(
+        `${this.host}/faucet_transactions/next?count=${count}`,
         this.options(),
       )
 
-      return response.data
+      return response.data.data
     } catch (e) {
       if (IsAxiosError(e) && e.response?.status === 404) {
         return null

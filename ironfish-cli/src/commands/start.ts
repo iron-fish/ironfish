@@ -121,7 +121,13 @@ export default class Start extends IronfishCommand {
     } = flags
 
     if (bootstrap !== undefined) {
-      this.sdk.config.setOverride('bootstrapNodes', bootstrap.filter(Boolean))
+      // Parse comma-separated bootstrap nodes
+      const bootstrapNodes = bootstrap
+        .flatMap((b) => b.split(','))
+        .filter(Boolean)
+        .map((b) => b.trim())
+
+      this.sdk.config.setOverride('bootstrapNodes', bootstrapNodes)
     }
     if (port !== undefined && port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', port)
