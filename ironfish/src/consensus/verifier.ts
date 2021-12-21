@@ -293,7 +293,10 @@ export class Verifier {
    *  -  The nullifier has not previously been spent
    *  -  the note being spent really existed in the tree at the time it was spent
    */
-  async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
+  async verifyConnectedSpends(
+    block: Block,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
 
@@ -389,7 +392,7 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
-      const spendVerification = await this.hasValidSpends(block, tx)
+      const spendVerification = await this.verifyConnectedSpends(block, tx)
       if (!spendVerification.valid) {
         return spendVerification
       }
