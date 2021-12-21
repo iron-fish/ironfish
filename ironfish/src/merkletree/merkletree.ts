@@ -369,7 +369,7 @@ export class MerkleTree<
       tx,
     )
 
-    await this.leavesIndex.put(this.hasher.merkleHash(value.element), index, tx)
+    await this.leavesIndex.put(value.merkleHash, index, tx)
   }
 
   /**
