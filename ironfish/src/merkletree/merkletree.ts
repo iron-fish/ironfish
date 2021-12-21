@@ -530,7 +530,7 @@ export class MerkleTree<
    * Check if the tree currently contains the given element.
    */
   async contains(value: E, tx?: IDatabaseTransaction): Promise<boolean> {
-    return await this.contained(value, await this.size(), tx)
+    return await this.contained(value, await this.size(tx), tx)
   }
 
   /**
