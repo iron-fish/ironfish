@@ -150,20 +150,20 @@ describe('Verifier', () => {
     })
   })
 
-  describe('hasValidSpends', () => {
+  describe('verifyConnectedSpends', () => {
     const nodeTest = createNodeTest()
 
     it('says the block with no spends is valid', async () => {
       const { chain, strategy } = nodeTest
       strategy.disableMiningReward()
       const block = await makeBlockAfter(chain, chain.head)
-      expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
+      expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
     })
 
     it('says the block with spends is valid', async () => {
       const { chain } = nodeTest
       const { block } = await useBlockWithTx(nodeTest.node)
-      expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
+      expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
       expect(Array.from(block.spends())).toHaveLength(1)
     }, 60000)
 
@@ -179,7 +179,7 @@ describe('Verifier', () => {
         }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
@@ -199,7 +199,7 @@ describe('Verifier', () => {
         .spyOn(nodeTest.chain.notes, 'getCount')
         .mockImplementationOnce(() => Promise.resolve(0))
 
-      expect(await nodeTest.verifier.hasValidSpends(block)).toEqual({
+      expect(await nodeTest.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.ERROR,
       })
@@ -224,7 +224,7 @@ describe('Verifier', () => {
         yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
@@ -239,7 +239,7 @@ describe('Verifier', () => {
         yield { nullifier, commitment: Buffer.from('noooo'), size: 1 }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
