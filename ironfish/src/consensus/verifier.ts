@@ -170,8 +170,10 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
+      const nullifierSize = await this.chain.nullifiers.size(tx)
+
       for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, tx)
+        const reason = await this.verifySpend(spend, nullifierSize, tx)
 
         if (reason) {
           return { valid: false, reason }
@@ -303,12 +305,15 @@ export class Verifier {
       const spendsInThisBlock = Array.from(block.spends())
       const processedSpends = new BufferSet()
 
+      const previousNullifierSize =
+        block.header.nullifierCommitment.size - spendsInThisBlock.length
+
       for (const spend of spendsInThisBlock.values()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        const verificationError = await this.verifySpend(spend, tx)
+        const verificationError = await this.verifySpend(spend, previousNullifierSize, tx)
         if (verificationError) {
           return { valid: false, reason: verificationError }
         }
@@ -326,14 +331,16 @@ export class Verifier {
    * spend's spend root.
    *
    * @param spend the spend to be verified
+   * @param nullifierSize the size of the nullifiers tree at which the spend must not exist
    * @param tx optional transaction context within which to check the spends.
    * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
   async verifySpend(
     spend: Spend,
+    nullifierSize: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
-    if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+    if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
       return VerificationResultReason.DOUBLE_SPEND
     }
 

@@ -514,11 +514,7 @@ export class MerkleTree<
   /**
    * Check if the tree contained the given element when it was the given size.
    */
-  private async contained(
-    value: E,
-    pastSize: number,
-    tx?: IDatabaseTransaction,
-  ): Promise<boolean> {
+  async contained(value: E, pastSize: number, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.db.withTransaction(tx, async (tx) => {
       const elementIndex = await this.leavesIndex.get(this.hasher.merkleHash(value), tx)
 
