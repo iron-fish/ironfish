@@ -7,9 +7,9 @@
   "main": "build/src",
   "license": "MPL-2.0",
   "dependencies": {
+    "@napi-rs/blake-hash": "1.3.1",
     "axios": "0.21.1",
     "bfilter": "1.0.5",
-    "blake3": "2.1.4",
     "blru": "0.1.6",
     "buffer": "6.0.3",
     "buffer-json": "2.0.0",
