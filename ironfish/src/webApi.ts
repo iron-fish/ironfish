@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import axios, { AxiosError, AxiosRequestConfig } from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
-import { HasOwnProperty, UnwrapPromise } from './utils/types'
-
-function IsAxiosError(e: unknown): e is AxiosError {
-  return typeof e === 'object' && e != null && HasOwnProperty(e, 'isAxiosError')
-}
+import { UnwrapPromise } from './utils/types'
 
 type FaucetTransaction = {
   object: 'faucet_transaction'
@@ -29,7 +25,7 @@ export class WebApi {
   getFundsEndpoint: string | null
 
   constructor(options?: { host?: string; token?: string; getFundsEndpoint?: string }) {
-    let host = options?.host ?? 'https://api-production.ironfish.network'
+    let host = options?.host ?? 'https://api.ironfish.network'
 
     if (host.endsWith('/')) {
       host = host.slice(0, -1)
@@ -93,23 +89,15 @@ export class WebApi {
     return response.data
   }
 
-  async getNextFaucetTransactions(count: number): Promise<FaucetTransaction[] | null> {
+  async getNextFaucetTransactions(count: number): Promise<FaucetTransaction[]> {
     this.requireToken()
 
-    try {
-      const response = await axios.get<{ data: FaucetTransaction[] }>(
-        `${this.host}/faucet_transactions/next?count=${count}`,
-        this.options(),
-      )
+    const response = await axios.get<{ data: FaucetTransaction[] }>(
+      `${this.host}/faucet_transactions/next?count=${count}`,
+      this.options(),
+    )
 
-      return response.data.data
-    } catch (e) {
-      if (IsAxiosError(e) && e.response?.status === 404) {
-        return null
-      }
-
-      throw e
-    }
+    return response.data.data
   }
 
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {
