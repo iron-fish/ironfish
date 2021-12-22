@@ -22,7 +22,8 @@ export function mineHeader({
   job?: Job
 }): { initialRandomness: number; randomness?: number; miningRequestId?: number } {
   const target = new Target(targetValue)
-  const randomnessBytes = new ArrayBuffer(8)
+  const headerBytes = Buffer.alloc(headerBytesWithoutRandomness.byteLength + 8)
+  headerBytes.set(headerBytesWithoutRandomness, 8)
 
   for (let i = 0; i < batchSize; i++) {
     if (job?.status === 'aborted') {
@@ -34,12 +35,7 @@ export function mineHeader({
       i > Number.MAX_SAFE_INTEGER - initialRandomness
         ? i - (Number.MAX_SAFE_INTEGER - initialRandomness) - 1
         : initialRandomness + i
-    new DataView(randomnessBytes).setFloat64(0, randomness, false)
-
-    const headerBytes = Buffer.concat([
-      Buffer.from(randomnessBytes),
-      headerBytesWithoutRandomness,
-    ])
+    headerBytes.writeDoubleBE(randomness, 0)
 
     const blockHash = hashBlockHeader(headerBytes)
 
