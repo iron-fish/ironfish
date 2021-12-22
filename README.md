@@ -16,21 +16,23 @@ See https://ironfish.network
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:
-   1. Install [Build Tools for Visual Studio 2019](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019), including the C++ Build Tools and the Windows 10 SDK, for Rust.
+   1. Install [Build Tools for Visual Studio 2019](https://docs.microsoft.com/en-us/visualstudio/releases/2019/history#release-dates-and-build-numbers), including the C++ Build Tools and the Windows 10 SDK, for Rust.
    1. Rust builds also require installing [MinGW-w64 via win-builds](http://win-builds.org/doku.php/download_and_installation_from_windows).
       1. Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
       1. On the next screen, click `Process`.
       1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
 1. Run `yarn install` from the root directory to install packages.
-
    - If `yarn install` fails with an error that includes "Failed to build cmake", you may need to first install cmake. For example, on macOS:
-
      1. Run `brew install cmake`, you'll need cmake version 3.15 or higher.
 
    - If `yarn install` fails with an error that includes "Could NOT find OpenSSL", you may need to first install OpenSSL and add an environment variable. For example, on macOS:
      1. Run `brew install openssl`
      1. Run `` export OPENSSL_ROOT_DIR=`brew --prefix openssl`  ``
      1. Run `yarn install` again.
+
+   - If `yarn install` fails with an error that includes "Error: not found: make", "make: cc: Command not found", or "make: g++: Command not found", you may need to [install a C/C++ compiler toolchain](https://github.com/nodejs/node-gyp#on-unix).
+     1. On Ubuntu: `apt install build-essential`
+     1. On Amazon Linux: `sudo yum groupinstall "Development Tools"`
 
 ## Usage
 

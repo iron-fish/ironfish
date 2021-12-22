@@ -32,6 +32,10 @@ Then run these commands in two different terminals:
 
 You should see messages in the second terminal indicating that blocks are mined.
 
+You can increase the number of threads by adding `--threads <number>`. Use `-1` to use all available threads.
+
+- `yarn start miners:start --threads 2`
+
 ### Multiple Nodes
 
 Run these commands in two different terminals:

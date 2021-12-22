@@ -75,6 +75,10 @@ export type ConfigOptions = {
    * consumption.
    */
   nodeWorkers: number
+  /**
+   * The max number of node workers. See config "nodeWorkers"
+   */
+  nodeWorkersMax: number
   p2pSimulateLatency: number
   peerPort: number
   rpcTcpHost: string
@@ -156,6 +160,7 @@ export class Config extends KeyStore<ConfigOptions> {
       blockGraffiti: '',
       nodeName: '',
       nodeWorkers: -1,
+      nodeWorkersMax: 6,
       p2pSimulateLatency: 0,
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',

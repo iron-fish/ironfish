@@ -36,7 +36,7 @@ describe('Worker Pool', () => {
   })
 
   it('if pool is empty, executes on main thread', async () => {
-    pool = new WorkerPool({ maxWorkers: 0 })
+    pool = new WorkerPool({ numWorkers: 0 })
     pool.start()
 
     expect(pool.workers.length).toBe(0)
@@ -45,7 +45,7 @@ describe('Worker Pool', () => {
   })
 
   it('executes in worker', async () => {
-    pool = new WorkerPool({ maxWorkers: 1 })
+    pool = new WorkerPool({ numWorkers: 1 })
     pool.start()
 
     expect(pool.workers.length).toBe(1)
@@ -54,7 +54,7 @@ describe('Worker Pool', () => {
   }, 10000)
 
   it('aborts job in worker', async () => {
-    pool = new WorkerPool({ maxWorkers: 1 })
+    pool = new WorkerPool({ numWorkers: 1 })
     pool.start()
 
     expect(pool.workers.length).toBe(1)
@@ -109,7 +109,7 @@ describe('Worker Pool', () => {
   }, 10000)
 
   it('handles job error', async () => {
-    pool = new WorkerPool({ maxWorkers: 1 })
+    pool = new WorkerPool({ numWorkers: 1 })
     pool.start()
 
     let job = pool.sleep(0, 'test')
@@ -138,7 +138,7 @@ describe('Worker Pool', () => {
   }, 10000)
 
   it('should queue up job', () => {
-    pool = new WorkerPool({ maxWorkers: 1, maxJobs: 0 })
+    pool = new WorkerPool({ numWorkers: 1, maxJobs: 0 })
     pool.start()
 
     expect(pool.workers.length).toBe(1)

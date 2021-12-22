@@ -175,6 +175,40 @@ describe('start command', () => {
       })
   })
 
+  describe('Allows for multiple bootstrap nodes', () => {
+    beforeAll(() => {
+      isFirstRun = false
+      hasGenesisBlock = true
+    })
+    test
+      .stdout()
+      .command(['start', '-b', '127.0.0.1:9033', '-b', '127.0.0.1:9034'])
+      .exit(0)
+      .it('Allows for multiple bootstrap nodes', () => {
+        expect(setOverrideConfig).toHaveBeenCalledWith('bootstrapNodes', [
+          '127.0.0.1:9033',
+          '127.0.0.1:9034',
+        ])
+      })
+  })
+
+  describe('Allows for comma-separated bootstrap nodes', () => {
+    beforeAll(() => {
+      isFirstRun = false
+      hasGenesisBlock = true
+    })
+    test
+      .stdout()
+      .command(['start', '-b', '127.0.0.1:9033, 127.0.0.1:9034'])
+      .exit(0)
+      .it('Allows for comma-separated bootstrap nodes', () => {
+        expect(setOverrideConfig).toHaveBeenCalledWith('bootstrapNodes', [
+          '127.0.0.1:9033',
+          '127.0.0.1:9034',
+        ])
+      })
+  })
+
   describe('with the graffiti override', () => {
     describe('when the graffiti is the same as the config graffiti', () => {
       test
