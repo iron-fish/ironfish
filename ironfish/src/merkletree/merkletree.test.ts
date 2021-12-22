@@ -342,6 +342,7 @@ describe('Merkle tree', function () {
       await tree.truncate(i)
 
       expect(await tree.contains(element)).toBe(false)
+      expect(await tree.contained(element, elementSize)).toBe(false)
 
       // check that the rest of the elements are still there
       for (let j = 0; j < i; j++) {

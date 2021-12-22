@@ -386,11 +386,17 @@ export class MerkleTree<
   async truncate(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
     return await this.db.withTransaction(tx, async (tx) => {
       const oldSize = await this.getCount('Leaves', tx)
+
       if (pastSize >= oldSize) {
         return
       }
 
       await this.counter.put('Leaves', pastSize, tx)
+
+      for (let index = oldSize - 1; index >= pastSize; --index) {
+        const leaf = await this.getLeaf(index, tx)
+        await this.leavesIndex.del(leaf.merkleHash, tx)
+      }
 
       if (pastSize === 0) {
         await this.counter.put('Nodes', 1, tx)
@@ -399,9 +405,9 @@ export class MerkleTree<
 
       if (pastSize === 1) {
         await this.counter.put('Nodes', 1, tx)
+
         const firstLeaf = await this.getLeaf(0, tx)
         firstLeaf.parentIndex = 0
-
         await this.addLeaf(firstLeaf.index, firstLeaf, tx)
         return
       }
