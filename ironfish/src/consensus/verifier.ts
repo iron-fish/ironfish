@@ -172,10 +172,12 @@ export class Verifier {
     return this.chain.db.withTransaction(tx, async (tx) => {
       for (const spend of transaction.spends()) {
         const reason = await this.verifySpend(spend, tx)
+
         if (reason) {
           return { valid: false, reason }
         }
       }
+
       return { valid: true }
     })
   }
@@ -296,10 +298,9 @@ export class Verifier {
   async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
-
       const processedSpends = new BufferSet()
 
-      for (const [_, spend] of spendsInThisBlock.entries()) {
+      for (const spend of spendsInThisBlock.values()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
@@ -322,7 +323,6 @@ export class Verifier {
    * spend's spend root.
    *
    * @param spend the spend to be verified
-   * @param size the size of the nullifiers tree at which the spend must not exist
    * @param tx optional transaction context within which to check the spends.
    * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
@@ -336,7 +336,7 @@ export class Verifier {
 
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-      if (!this.strategy.noteHasher.hashSerde().equals(spend.commitment, realSpendRoot)) {
+      if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
     } catch {
@@ -372,20 +372,12 @@ export class Verifier {
       }
 
       const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-      if (
-        !this.strategy.noteHasher
-          .hashSerde()
-          .equals(pastNoteRoot, header.noteCommitment.commitment)
-      ) {
+      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
 
       const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-      if (
-        !this.strategy.nullifierHasher
-          .hashSerde()
-          .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
-      ) {
+      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
