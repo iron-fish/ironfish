@@ -21,7 +21,7 @@ Run these command in the terminal:
 
 Interact with the node in a new tab:
 - `yarn start accounts:balance`
-- `yarn start faucet:giveme`
+- `yarn start faucet`
 - `yarn start accounts:pay`
 
 ### Mining
