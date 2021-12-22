@@ -52,9 +52,6 @@ describe('Blockchain', () => {
 
       await Promise.all([nodeA.accounts.updateHead(), nodeB.accounts.updateHead()])
 
-      console.log(nodeA.accounts.getBalance(accountA))
-      console.log(nodeB.accounts.getBalance(accountB))
-
       blocksA.push(blockA)
       blocksB.push(blockB)
     }
@@ -169,37 +166,37 @@ describe('Blockchain', () => {
 // here: yarn test test.perf.ts --testPathIgnorePatterns
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 1]
-// Total Test Average: 15.00ms
+// Total Test Average: 15.60ms
 // Insert 0 blocks linear: 0.00ms
 // Insert 0 blocks on fork: 0.00ms
-// Add head rewind fork blocks: 15.00ms
+// Add head rewind fork blocks: 15.60ms
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 3]
-// Total Test Average: 242.40ms
-// Insert 2 blocks linear: 33.60ms
-// Insert 2 blocks on fork: 18.50ms
-// Add head rewind fork blocks: 138.20ms
+// Total Test Average: 274.60ms
+// Insert 2 blocks linear: 38.20ms
+// Insert 2 blocks on fork: 20.20ms
+// Add head rewind fork blocks: 157.80ms
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 5]
-// Total Test Average: 548.60ms
-// Insert 4 blocks linear: 50.95ms
-// Insert 4 blocks on fork: 68.25ms
-// Add head rewind fork blocks: 71.80ms
+// Total Test Average: 612.20ms
+// Insert 4 blocks linear: 57.30ms
+// Insert 4 blocks on fork: 75.10ms
+// Add head rewind fork blocks: 82.60ms
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 10]
-// Total Test Average: 1478.80ms
-// Insert 9 blocks linear: 61.29ms
-// Insert 9 blocks on fork: 92.93ms
-// Add head rewind fork blocks: 90.80ms
+// Total Test Average: 1598.80ms
+// Insert 9 blocks linear: 67.49ms
+// Insert 9 blocks on fork: 99.64ms
+// Add head rewind fork blocks: 94.60ms
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 50]
-// Total Test Average: 12833.20ms
-// Insert 49 blocks linear: 73.35ms
-// Insert 49 blocks on fork: 184.97ms
-// Add head rewind fork blocks: 175.40ms
+// Total Test Average: 13709.40ms
+// Insert 49 blocks linear: 74.29ms
+// Insert 49 blocks on fork: 201.62ms
+// Add head rewind fork blocks: 189.00ms
 
 // [TEST RESULTS: Times Ran: 5, Fork Length: 100]
-// Total Test Average: 40005.60ms
-// Insert 99 blocks linear: 83.64ms
-// Insert 99 blocks on fork: 317.25ms
-// Add head rewind fork blocks: 316.40ms
+// Total Test Average: 43504.20ms
+// Insert 99 blocks linear: 84.23ms
+// Insert 99 blocks on fork: 351.67ms
+// Add head rewind fork blocks: 349.20ms
