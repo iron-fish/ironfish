@@ -15,7 +15,9 @@ describe('Route node/getLogStream', () => {
 
     const response = await routeTest.adapter.requestStream('node/getLogStream').waitForRoute()
 
-    routeTest.node.logger.info('Hello', { foo: 2 })
+    routeTest.node.logger.info('Hello', {
+      foo: 2534271162310626895268494646183544190472310279255239332802358381294n,
+    })
     const { value } = await response.contentStream().next()
 
     response.end()
