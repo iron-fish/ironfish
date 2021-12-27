@@ -86,6 +86,7 @@ export type ConfigOptions = {
   rpcTcpHost: string
   rpcTcpPort: number
   rpcTcpSecure: boolean
+  rpcTcpToken: string
   rpcRetryConnect: boolean
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
@@ -179,6 +180,7 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
       rpcTcpSecure: false,
+      rpcTcpToken: '',
       rpcRetryConnect: false,
       maxPeers: 50,
       minPeers: 1,

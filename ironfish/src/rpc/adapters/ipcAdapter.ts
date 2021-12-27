@@ -77,6 +77,7 @@ export type IpcAdapterConnectionInfo =
       mode: 'tcp'
       host: string
       port: number
+      token?: string
     }
 
 export class IpcAdapter implements IAdapter {
@@ -89,14 +90,17 @@ export class IpcAdapter implements IAdapter {
   pending = new Map<IpcSocketId, Request[]>()
   started = false
   connection: IpcAdapterConnectionInfo
+  unauthed = new Set<string>()
 
-  constructor(
-    namespaces: ApiNamespace[],
-    connection: IpcAdapterConnectionInfo,
-    logger: Logger = createRootLogger(),
-  ) {
-    this.namespaces = namespaces
-    this.connection = connection
+  constructor(options: {
+    namespaces: ApiNamespace[]
+    connection: IpcAdapterConnectionInfo
+    logger?: Logger
+  }) {
+    this.namespaces = options.namespaces
+    this.connection = options.connection
+
+    const logger = options.logger ?? createRootLogger()
     this.logger = logger.withTag('ipcadapter')
   }
 
@@ -104,6 +108,7 @@ export class IpcAdapter implements IAdapter {
     if (this.started) {
       return
     }
+
     this.started = true
 
     const { IPC } = await import('node-ipc')
@@ -197,19 +202,32 @@ export class IpcAdapter implements IAdapter {
     if (!socket.id) {
       socket.id = uuid()
     }
-    this.logger.debug(`IPC client connected: ${socket.id}`)
+
+    this.unauthed.add(socket.id)
+
+    this.logger.debug(
+      `${this.connection.mode.toUpperCase()} RPC client connected: ${socket.id}`,
+    )
   }
 
   onDisconnect(socket: IpcSocket, socketId: IpcSocketId | null): void {
-    this.logger.debug(`IPC client disconnected: ${socketId ? socketId : 'unknown'}`)
+    this.logger.debug(
+      `${this.connection.mode.toUpperCase()} RPC client disconnected: ${
+        socketId ? socketId : 'unknown'
+      }`,
+    )
 
     if (socketId !== null) {
+      // Check this isn't a memory leak
+      this.unauthed.delete(socketId)
+
       const pending = this.pending.get(socketId)
 
       if (pending) {
         for (const request of pending) {
           request.close()
         }
+
         this.pending.delete(socketId)
       }
     }
@@ -235,6 +253,25 @@ export class IpcAdapter implements IAdapter {
     Assert.isNotNull(node)
     Assert.isNotNull(router)
     Assert.isNotNull(server)
+
+    // Require auth on this connection
+    // TODO: We should add timeout to this process
+    if (
+      this.connection.mode === 'tcp' &&
+      this.connection.token &&
+      this.unauthed.has(socket.id)
+    ) {
+      if (message.data !== this.connection.token) {
+        Assert.isNotNull(this.ipc)
+        this.emitResponse(socket, message.mid, 402, this.renderError('Failed auth token'))
+        this.ipc.disconnect(socket.id)
+        this.logger.warn(`Incoming RPC failed auth: ${String(socket.remoteAddress)}`)
+        console.log(message)
+        return
+      }
+
+      this.unauthed.delete(socket.id)
+    }
 
     const request = new Request(
       message.data,

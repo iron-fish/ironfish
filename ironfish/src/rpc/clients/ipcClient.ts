@@ -30,6 +30,7 @@ export type IpcClientConnectionInfo =
       mode: 'tcp'
       host: string
       port: number
+      token: string
     }
 
 export class IronfishIpcClient extends IronfishRpcClient {
@@ -101,6 +102,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
           this.isConnected = true
           this.isConnecting = false
           this.onConnect()
+          this.sendToken()
           resolve()
         }
 
@@ -134,6 +136,22 @@ export class IronfishIpcClient extends IronfishRpcClient {
         ipc.connectToNet('server', connection.host, connection.port, onConnectTo)
       }
     })
+  }
+
+  sendToken(): void {
+    Assert.isNotNull(this.client, 'Connect first using IpcClient.connect()')
+
+    // When we are using TCP RPC, and we have a token, the token should be the
+    // first message we send to not get rejected.
+    if (this.connection.mode === 'tcp' && this.connection.token) {
+      const message: IpcRequest = {
+        mid: 0,
+        type: 'auth',
+        data: this.connection.token,
+      }
+
+      this.client.emit('message', message)
+    }
   }
 
   /** Like IpcClient.connect but doesn't throw an error if we cannot connect */

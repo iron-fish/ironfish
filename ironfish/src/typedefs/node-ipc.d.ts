@@ -27,6 +27,11 @@ declare module 'node-ipc' {
     id: IpcSocketId | undefined
     ipcBuffer: string | undefined
 
+    /**
+     * The remote address of the peer. This is only available in TPC mode
+     */
+    remoteAddress?: string
+
     emit(event: name, data: unknown)
     write(data: unknown)
     setEncoding(encoding: string)
