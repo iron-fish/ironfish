@@ -24,7 +24,8 @@ export class SetCommand extends IronfishCommand {
   ]
 
   static flags = {
-    ...RemoteFlags,
+    //just a quick fix for the rcp serurity problem. Avoid changed by some other bad boy.
+    //...RemoteFlags,
     local: flags.boolean({
       default: false,
       description: 'dont connect to the node when updating the config',
