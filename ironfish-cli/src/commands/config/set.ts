@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+//import { RemoteFlags } from '../../flags'
 
 export class SetCommand extends IronfishCommand {
   static description = `Set a value in the config`
