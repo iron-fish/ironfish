@@ -140,7 +140,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
-      defaultTransactionExpirationSequenceDelta: 450,
+      defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,

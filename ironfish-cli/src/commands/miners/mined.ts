@@ -10,6 +10,7 @@ import {
   oreToIron,
   TimeUtils,
 } from 'ironfish'
+import readline from 'readline'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -65,8 +66,8 @@ export class MinedCommand extends IronfishCommand {
 
     for await (const { sequence, block } of stream.contentStream()) {
       if (block) {
-        process.stdout.clearLine(-1)
-        process.stdout.cursorTo(0)
+        readline.clearLine(process.stdout, -1)
+        readline.cursorTo(process.stdout, 0)
 
         const amount = MathUtils.round(oreToIron(block.minersFee), 2)
 
