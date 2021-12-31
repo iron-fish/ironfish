@@ -290,6 +290,7 @@ describe('Mining director', () => {
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: false,
+        isFork: null,
         reason: VerificationResultReason.INVALID_TARGET,
         score: 0,
       })

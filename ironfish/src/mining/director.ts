@@ -463,18 +463,22 @@ export class MiningDirector {
       return MINED_RESULT.INVALID_BLOCK
     }
 
-    this.logger.info(
-      `Successfully mined block ${block.header.hash.toString('hex')} (${
-        block.header.sequence
-      }) has ${block.transactions.length} transactions`,
-    )
-
-    const { isAdded, reason } = await this.chain.addBlock(block)
+    const { isAdded, reason, isFork } = await this.chain.addBlock(block)
 
     if (!isAdded) {
       this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
       return MINED_RESULT.ADD_FAILED
     }
+
+    if (isFork) {
+      return MINED_RESULT.FORK
+    }
+
+    this.logger.info(
+      `Successfully mined block ${block.header.hash.toString('hex')} (${
+        block.header.sequence
+      }) has ${block.transactions.length} transactions`,
+    )
 
     this.blocksMined++
 
@@ -550,5 +554,6 @@ export enum MINED_RESULT {
   CHAIN_CHANGED = 'CHAIN_CHANGED',
   INVALID_BLOCK = 'INVALID_BLOCK',
   ADD_FAILED = 'ADD_FAILED',
+  FORK = 'FORK',
   SUCCESS = 'SUCCESS',
 }
