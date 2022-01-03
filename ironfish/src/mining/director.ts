@@ -290,7 +290,11 @@ export class MiningDirector {
       }
 
       const [minersFee, blockTransactions] = blockData
-      await this.constructAndMineBlockWithRetry(minersFee, blockTransactions)
+      await this.constructAndMineBlockWithRetry(
+        this.currentBlockUnderConstruction,
+        minersFee,
+        blockTransactions,
+      )
     }
 
     // No longer generating a block
@@ -298,6 +302,7 @@ export class MiningDirector {
   }
 
   async constructAndMineBlockWithRetry(
+    blockHash: Buffer,
     minersFee: Transaction,
     blockTransactions: Transaction[],
   ): Promise<void> {
@@ -305,7 +310,8 @@ export class MiningDirector {
       return
     }
 
-    const canRetry = await this.constructAndMineBlock(minersFee, blockTransactions)
+    const canRetry = await this.constructAndMineBlock(blockHash, minersFee, blockTransactions)
+
     // The current mining target is already at the initial - no need to try to lower it
     if (!canRetry) {
       return
@@ -314,8 +320,9 @@ export class MiningDirector {
     if (this.miningDifficultyChangeTimeout) {
       clearTimeout(this.miningDifficultyChangeTimeout)
     }
+
     this.miningDifficultyChangeTimeout = setTimeout(() => {
-      void this.constructAndMineBlockWithRetry(minersFee, blockTransactions)
+      void this.constructAndMineBlockWithRetry(blockHash, minersFee, blockTransactions)
     }, MINING_DIFFICULTY_CHANGE_TIMEOUT)
   }
 
@@ -331,15 +338,21 @@ export class MiningDirector {
       throw Error('No miner account found to construct the transaction')
     }
 
-    const blockTransactions = []
+    const blockHeader = await this.chain.getHeader(newChainHead)
+    if (!blockHeader) {
+      // Chain normally has a header for a heaviestHead. Block could be removed
+      // if a predecessor is proven invalid while this task is running. (unlikely but possible)
+      throw Error('No header for the new block')
+    }
+
+    const blockTransactions: Transaction[] = []
 
     // Fetch all transactions for the block
-    for await (const transaction of this.getTransactions()) {
+    for await (const transaction of this.getTransactions(blockHeader)) {
       if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
         break
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockTransactions.push(transaction)
     }
 
@@ -348,13 +361,6 @@ export class MiningDirector {
     const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
     for (const transactionFee of transactionFees) {
       totalTransactionFees += transactionFee
-    }
-
-    const blockHeader = await this.chain.getHeader(newChainHead)
-    if (!blockHeader) {
-      // Chain normally has a header for a heaviestHead. Block could be removed
-      // if a predecessor is proven invalid while this task is running. (unlikely but possible)
-      throw Error('No header for the new block')
     }
 
     const minersFee = await this.strategy.createMinersFee(
@@ -378,9 +384,14 @@ export class MiningDirector {
    * true if mining that block can be retried with a lower difficulty
    */
   async constructAndMineBlock(
+    blockHash: Buffer,
     minersFee: Transaction,
     blockTransactions: Transaction[],
   ): Promise<boolean> {
+    if (!this.chain.head.hash.equals(blockHash)) {
+      return false
+    }
+
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
@@ -393,7 +404,7 @@ export class MiningDirector {
 
     // For mining, we want a serialized form of the header without the randomness on it
     const target = newBlock.header.target
-    this.logger.debug('Target set to:', `${target.asBigInt()}`)
+    this.logger.debug('target set to', target.asBigInt())
     const asBuffer = newBlock.header.serializePartial()
     this.miningRequestId++
 
@@ -458,14 +469,14 @@ export class MiningDirector {
       }) has ${block.transactions.length} transactions`,
     )
 
-    this.blocksMined++
-
     const { isAdded, reason } = await this.chain.addBlock(block)
 
     if (!isAdded) {
       this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
       return MINED_RESULT.ADD_FAILED
     }
+
+    this.blocksMined++
 
     this.onNewBlock.emit(block)
 
@@ -499,23 +510,29 @@ export class MiningDirector {
     }
   }
 
-  protected async *getTransactions(): AsyncGenerator<Transaction> {
+  protected async *getTransactions(head: BlockHeader): AsyncGenerator<Transaction> {
     const nullifiers = new BufferSet()
 
     for (const transaction of this.memPool.get()) {
-      const conflicted = await AsyncUtils.find(transaction.spends(), async (spend) => {
-        if (nullifiers.has(spend.nullifier)) {
-          return true
-        }
+      const isExpired = this.chain.verifier.isExpiredSequence(
+        transaction.expirationSequence(),
+        head.sequence + 1,
+      )
 
-        if (await this.chain.nullifiers.contains(spend.nullifier)) {
-          return true
-        }
+      if (isExpired) {
+        continue
+      }
 
-        return false
+      const conflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
+        return nullifiers.has(spend.nullifier)
       })
 
       if (conflicted) {
+        continue
+      }
+
+      const { valid } = await this.chain.verifier.verifyTransactionSpends(transaction)
+      if (!valid) {
         continue
       }
 
