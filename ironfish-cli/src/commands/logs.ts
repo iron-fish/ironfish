@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { logType } from 'consola'
-import { ConsoleReporterInstance, IronfishNode } from 'ironfish'
+import { ConsoleReporterInstance, IJSON, IronfishNode } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
@@ -23,11 +23,19 @@ export default class LogsCommand extends IronfishCommand {
     const response = this.sdk.client.getLogStream()
 
     for await (const value of response.contentStream()) {
+      let parsedArgs
+      try {
+        parsedArgs = IJSON.parse(value.args) as unknown[]
+      } catch (e) {
+        this.logger.error(`Failed to deserialize args: ${value.args}`)
+        throw e
+      }
+
       ConsoleReporterInstance.log({
         level: Number(value.level),
         type: value.type as logType,
         tag: value.tag,
-        args: value.args,
+        args: parsedArgs,
         date: new Date(value.date),
       })
     }
