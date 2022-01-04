@@ -111,7 +111,7 @@ export type ConfigOptions = {
    */
   defaultTransactionExpirationSequenceDelta: number
 
-   /**
+  /**
    * The default number of blocks to request per message when syncing.
    */
   blocksPerMessage: number
