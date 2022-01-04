@@ -237,7 +237,7 @@ export class Blockchain {
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
-    Assert.isTrue(result.isFork === false)
+    Assert.isEqual(result.isFork, false)
 
     const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     Assert.isNotNull(
@@ -523,7 +523,8 @@ export class Blockchain {
   private async connect(
     block: Block,
     prev: BlockHeader | null,
-    tx: IDatabaseTransaction): Promise<void> {
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
     const start = BenchUtils.start()
 
     const work = block.header.target.toDifficulty()
