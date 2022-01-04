@@ -10,6 +10,7 @@ import {
   oreToIron,
   TimeUtils,
 } from 'ironfish'
+import readline from 'readline'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -43,7 +44,7 @@ export class MinedCommand extends IronfishCommand {
     const { args } = this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
-    this.log('Scanning for mined blocks')
+    this.log('Scanning for mined blocks...')
 
     const stream = client.exportMinedStream({
       start: args.start as number | null,
@@ -51,13 +52,13 @@ export class MinedCommand extends IronfishCommand {
     })
 
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
-    this.log(`Exporting mined block from ${start} -> ${stop}`)
+    this.log(`Scanning for mined blocks from ${start} -> ${stop}`)
 
     const speed = new Meter()
 
     const progress = cli.progress({
       format:
-        'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
+        'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
     }) as ProgressBar
 
     speed.start()
@@ -65,13 +66,13 @@ export class MinedCommand extends IronfishCommand {
 
     for await (const { sequence, block } of stream.contentStream()) {
       if (block) {
-        process.stdout.clearLine(-1)
-        process.stdout.cursorTo(0)
+        readline.clearLine(process.stdout, -1)
+        readline.cursorTo(process.stdout, 0)
 
         const amount = MathUtils.round(oreToIron(block.minersFee), 2)
 
         const link = linkText(
-          `https://explorer.ironfish.network/blocks/${block.hash.toUpperCase()}`,
+          `https://explorer.ironfish.network/blocks/${block.hash}`,
           'view in web',
         )
 

@@ -33,7 +33,7 @@ export function handleMineHeader(
 ): MineHeaderResponse {
   const result = mineHeader({
     batchSize,
-    headerBytesWithoutRandomness: Buffer.from(headerBytesWithoutRandomness),
+    headerBytesWithoutRandomness,
     initialRandomness,
     miningRequestId,
     targetValue,

@@ -64,10 +64,14 @@ describe('Accounts', () => {
 
     const transaction = await nodeA.accounts.createTransaction(
       accountA,
+      [
+        {
+          publicAddress: accountB.publicAddress,
+          amount: BigInt(1),
+          memo: '',
+        },
+      ],
       BigInt(1),
-      BigInt(1),
-      '',
-      accountB.publicAddress,
       0,
     )
     expect(await transaction.isMinersFee()).toBe(false)

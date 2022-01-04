@@ -21,7 +21,7 @@ Run these command in the terminal:
 
 Interact with the node in a new tab:
 - `yarn start accounts:balance`
-- `yarn start faucet:giveme`
+- `yarn start faucet`
 - `yarn start accounts:pay`
 
 ### Mining
@@ -31,6 +31,10 @@ Then run these commands in two different terminals:
 - `yarn start miners:start`
 
 You should see messages in the second terminal indicating that blocks are mined.
+
+You can increase the number of threads by adding `--threads <number>`. Use `-1` to use all available threads.
+
+- `yarn start miners:start --threads 2`
 
 ### Multiple Nodes
 

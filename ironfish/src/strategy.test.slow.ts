@@ -89,7 +89,9 @@ describe('Demonstrate the Sapling API', () => {
 
       const verifier = new Verifier(nodeTest.chain)
 
-      expect(await verifier.verifyTransaction(minersFee)).toMatchObject({ valid: false })
+      expect(await verifier.verifyTransaction(minersFee, nodeTest.chain.head)).toMatchObject({
+        valid: false,
+      })
     }, 60000)
   })
 

@@ -10,8 +10,7 @@ export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'
 export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
-export const DEFAULT_GET_FUNDS_API =
-  'https://api-production.ironfish.network/faucet_transactions'
+export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/api/v1/writeTelemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
@@ -76,6 +75,10 @@ export type ConfigOptions = {
    * consumption.
    */
   nodeWorkers: number
+  /**
+   * The max number of node workers. See config "nodeWorkers"
+   */
+  nodeWorkersMax: number
   p2pSimulateLatency: number
   peerPort: number
   rpcTcpHost: string
@@ -137,7 +140,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
-      defaultTransactionExpirationSequenceDelta: 450,
+      defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
@@ -157,6 +160,7 @@ export class Config extends KeyStore<ConfigOptions> {
       blockGraffiti: '',
       nodeName: '',
       nodeWorkers: -1,
+      nodeWorkersMax: 6,
       p2pSimulateLatency: 0,
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',

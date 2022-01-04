@@ -317,20 +317,37 @@ describe('Merkle tree', function () {
 
   it('finds contained values', async () => {
     const tree = await makeTree()
-    expect(await tree.contained('1', 0)).toBe(false)
-    expect(await tree.contained('1', 1)).toBe(false)
 
     for (let i = 1; i < 32; i++) {
       await tree.add(String(i))
-
-      for (let j = 1; j < i; j++) {
-        expect(await tree.contained(String(i), j)).toBe(false)
-        expect(await tree.contained(String(j), i)).toBe(true)
-      }
-
-      expect(await tree.contained(String(i), i)).toBe(true)
-      expect(await tree.contained(String(i), i + 1)).toBe(true)
       expect(await tree.contains(String(i))).toBe(true)
+      expect(await tree.contains(String(i + 1))).toBe(false)
+    }
+  })
+
+  it('does not find value after truncating tree', async () => {
+    const tree = await makeTree()
+    const elementSize = 32
+
+    for (let i = 0; i < elementSize; i++) {
+      const element = String(i)
+      await tree.add(element)
+
+      expect(await tree.contains(element)).toBe(true)
+    }
+
+    for (let i = elementSize - 1; i > 0; i--) {
+      // truncate the tree by 1 and check that the last value isn't there
+      const element = String(i)
+      await tree.truncate(i)
+
+      expect(await tree.contains(element)).toBe(false)
+      expect(await tree.contained(element, elementSize)).toBe(false)
+
+      // check that the rest of the elements are still there
+      for (let j = 0; j < i; j++) {
+        expect(await tree.contains(String(j))).toBe(true)
+      }
     }
   })
 

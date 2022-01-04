@@ -1208,6 +1208,90 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
+"@napi-rs/blake-hash-android-arm-eabi@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-android-arm-eabi/-/blake-hash-android-arm-eabi-1.3.1.tgz#5494bc755b1f89eca347a4a34175dd80e896f729"
+  integrity sha512-KdWI58uT4Y4d2SCIZ94XxrhEBFCiJhBQer4ZV3JMNZ7dJSl5423iF60yzg9JMqbiyv0k3bdEo6DeWSONul0Iug==
+
+"@napi-rs/blake-hash-android-arm64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-android-arm64/-/blake-hash-android-arm64-1.3.1.tgz#192fec518fea2fec2a9c632cf2f5db56fb3fbb98"
+  integrity sha512-vYRkG4ZwiK7ooseDJ9lYYT1tktbsv/QH/F0dPZiGnTToUstECwuk9qoMNUea7GtUY1XDjYg3oWkJ80jhfp1fMg==
+
+"@napi-rs/blake-hash-darwin-arm64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-darwin-arm64/-/blake-hash-darwin-arm64-1.3.1.tgz#6dd45230faff79a817005abd02ba6063e3465afe"
+  integrity sha512-IPvjzVjYbiF6+LSnX7a7odFCzV3bHfm3LiJWukIRzwNW2wXO/WmCRfbsNNZEwkwfa2P1lyCVawgzRym7kHYarw==
+
+"@napi-rs/blake-hash-darwin-x64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-darwin-x64/-/blake-hash-darwin-x64-1.3.1.tgz#2899b561f655c96d7fcf94ba0aab4c240e9df9cb"
+  integrity sha512-44kHNqSEWTNLRiS0JO4FRYKQBF1ODQwcRJWpPvnIe3P8B+/CNXGj8ljIxLNuKh90zAvPu8dxSXVylwAvsrB5GQ==
+
+"@napi-rs/blake-hash-freebsd-x64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-freebsd-x64/-/blake-hash-freebsd-x64-1.3.1.tgz#262364bce7361c32db90c7d87d1d8913042380fa"
+  integrity sha512-1eRrawhLi/e1YXjEqTU+rKRtwPa1MIdeXPguMcF8QTxynnN/FM6cEtp4KwJCfUOE2eTtECR7iS/fAl6/QtFxAw==
+
+"@napi-rs/blake-hash-linux-arm-gnueabihf@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm-gnueabihf/-/blake-hash-linux-arm-gnueabihf-1.3.1.tgz#b063f1c3a152e62bcfb462d7d7645c46c57c2a1e"
+  integrity sha512-iG3FiFnD+Y2+c5pSZXQHcjCq4rLJADzXxpGBmm4VoiSrdvLejqzFI7ew/aMTTBf31CjGxs7//xmuDi3dg8Jm4w==
+
+"@napi-rs/blake-hash-linux-arm64-gnu@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm64-gnu/-/blake-hash-linux-arm64-gnu-1.3.1.tgz#c01cdc32986eccc5680e229977f325e554340e11"
+  integrity sha512-9XdMKSj0Zbk2qNgAIuygbVhmT3/S9MRH7lVnYVseYI8MSI5gXzMQPp1uwxQx592ashfehja7KKK+aHs4+V0eow==
+
+"@napi-rs/blake-hash-linux-arm64-musl@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm64-musl/-/blake-hash-linux-arm64-musl-1.3.1.tgz#88c6bf6e01e212738c6684b1b887c1af9d962b89"
+  integrity sha512-e7uVxJKuhIY4EPTyOQrEd6j6a2jOjdyiYaIChEsF0ptv6GsKjhCVwh2DTimQOeBzk36DwKLdilWmrK0X1DtSsA==
+
+"@napi-rs/blake-hash-linux-x64-gnu@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-x64-gnu/-/blake-hash-linux-x64-gnu-1.3.1.tgz#5a5407c7f85b2913a546a25380669b99ec3ec4e3"
+  integrity sha512-uYmauh/qs5pBUg7jbADd8WHHHFVocFY3s2uUhjv+91zgaNpdjFJa1XoSMmuoxo56FpsSZ5eudRoTcL6q0nw10w==
+
+"@napi-rs/blake-hash-linux-x64-musl@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-x64-musl/-/blake-hash-linux-x64-musl-1.3.1.tgz#8f0534af9d0056a3d9374854be3e5ac072395353"
+  integrity sha512-pQxZfxYfPG+1rZE7R0TbocEzFnrDFhA7Iaz535ztKtI0umP3mOFlbB5fAVI+CxZrv2bg3Ar4LsIGTLs8ZWmqrg==
+
+"@napi-rs/blake-hash-win32-arm64-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-arm64-msvc/-/blake-hash-win32-arm64-msvc-1.3.1.tgz#9f1fc847735d1505687973ca2dbb9692c4f41548"
+  integrity sha512-k0aPdl8zPYHrpAIV/hWnsT3YnIWaOHE91MSbXGJD+ZJ6qpuHRIu3joCrUnit0g+NTEKUTfqDtWpkjpcFcjAr6g==
+
+"@napi-rs/blake-hash-win32-ia32-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-ia32-msvc/-/blake-hash-win32-ia32-msvc-1.3.1.tgz#f1d3eedfcabc9b173355d806aef610570ca55e84"
+  integrity sha512-Qw50YPzzwNwSEa8IcRQcPccar/fvDpqJ5B69A/CWm4c8KOcCaNBve1fHVtZPj3PR98TPhs4M0MCjeQsZYzoS7Q==
+
+"@napi-rs/blake-hash-win32-x64-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-x64-msvc/-/blake-hash-win32-x64-msvc-1.3.1.tgz#4f828ccd8f09e316698f81115a88df69d8f5fed8"
+  integrity sha512-4t3nQyquw4nb6eg/wXQ5LH9t3HSM++ZYTUGKu8hmBhiLieSnsJdepa8UIdeLiwgU3Rkxg6PLRjFUL6pmzwTTRQ==
+
+"@napi-rs/blake-hash@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash/-/blake-hash-1.3.1.tgz#6a67bad575df309582f62d06258b70842e4e2469"
+  integrity sha512-qmzQopWjupf4V84ZqtsrXcYIeW0w/1x2MbUYw1/NA1qgERqURxleXX6AHb1CCesi6Zl2c/vV3P9CAClWMOpfIA==
+  optionalDependencies:
+    "@napi-rs/blake-hash-android-arm-eabi" "1.3.1"
+    "@napi-rs/blake-hash-android-arm64" "1.3.1"
+    "@napi-rs/blake-hash-darwin-arm64" "1.3.1"
+    "@napi-rs/blake-hash-darwin-x64" "1.3.1"
+    "@napi-rs/blake-hash-freebsd-x64" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm-gnueabihf" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm64-gnu" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm64-musl" "1.3.1"
+    "@napi-rs/blake-hash-linux-x64-gnu" "1.3.1"
+    "@napi-rs/blake-hash-linux-x64-musl" "1.3.1"
+    "@napi-rs/blake-hash-win32-arm64-msvc" "1.3.1"
+    "@napi-rs/blake-hash-win32-ia32-msvc" "1.3.1"
+    "@napi-rs/blake-hash-win32-x64-msvc" "1.3.1"
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
@@ -2451,11 +2535,6 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blake3-wasm@2.1.5:
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/blake3-wasm/-/blake3-wasm-2.1.5.tgz#b22dbb84bc9419ed0159caa76af4b1b132e6ba52"
-  integrity sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==
-
 blessed@0.1.81:
   version "0.1.81"
   resolved "https://registry.yarnpkg.com/blessed/-/blessed-0.1.81.tgz#f962d687ec2c369570ae71af843256e6d0ca1129"
@@ -2996,16 +3075,16 @@ code-point-at@^1.0.0:
   resolved "https://registry.yarnpkg.com/code-point-at/-/code-point-at-1.1.0.tgz#0d070b4d043a5bea33a2f1a40e2edb3d9a4ccf77"
   integrity sha1-DQcLTQQ6W+ozovGkDi7bPZpMz3c=
 
-codecov@3.8.2:
-  version "3.8.2"
-  resolved "https://registry.yarnpkg.com/codecov/-/codecov-3.8.2.tgz#ab24f18783998c39e809ea210af899f8dbcc790e"
-  integrity sha512-6w/kt/xvmPsWMfDFPE/T054txA9RTgcJEw36PNa6MYX+YV29jCHCRFXwbQ3QZBTOgnex1J2WP8bo2AT8TWWz9g==
+codecov@3.8.3:
+  version "3.8.3"
+  resolved "https://registry.yarnpkg.com/codecov/-/codecov-3.8.3.tgz#9c3e364b8a700c597346ae98418d09880a3fdbe7"
+  integrity sha512-Y8Hw+V3HgR7V71xWH2vQ9lyS358CbGCldWlJFR0JirqoGtOoas3R3/OclRTvgUYFK29mmJICDPauVKmpqbwhOA==
   dependencies:
     argv "0.0.2"
-    ignore-walk "3.0.3"
+    ignore-walk "3.0.4"
     js-yaml "3.14.1"
-    teeny-request "7.0.1"
-    urlgrey "0.4.4"
+    teeny-request "7.1.1"
+    urlgrey "1.0.0"
 
 collect-v8-coverage@^1.0.0:
   version "1.0.1"
@@ -4341,6 +4420,13 @@ fast-levenshtein@^2.0.6, fast-levenshtein@~2.0.6:
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha1-PYpcZog6FqMMqGQ+hR8Zuqd5eRc=
 
+fast-url-parser@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/fast-url-parser/-/fast-url-parser-1.1.3.tgz#f4af3ea9f34d8a271cf58ad2b3759f431f0b318d"
+  integrity sha1-9K8+qfNNiicc9YrSs3WfQx8LMY0=
+  dependencies:
+    punycode "^1.3.2"
+
 fastpriorityqueue@0.7.1:
   version "0.7.1"
   resolved "https://registry.yarnpkg.com/fastpriorityqueue/-/fastpriorityqueue-0.7.1.tgz#740c02b2eba4006371822fb436d7e14ca075591c"
@@ -5215,14 +5301,7 @@ ieee754@^1.1.13, ieee754@^1.2.1:
   resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
 
-ignore-walk@3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/ignore-walk/-/ignore-walk-3.0.3.tgz#017e2447184bfeade7c238e4aefdd1e8f95b1e37"
-  integrity sha512-m7o6xuOaT1aqheYHKf8W6J5pYH85ZI9w077erOzLje3JsB1gkafkAhHHY19dqjulgIZHFm32Cp5uNZgcQqdJKw==
-  dependencies:
-    minimatch "^3.0.4"
-
-ignore-walk@^3.0.3:
+ignore-walk@3.0.4, ignore-walk@^3.0.3:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/ignore-walk/-/ignore-walk-3.0.4.tgz#c9a09f69b7c7b479a5d74ac1a3c0d4236d2a6335"
   integrity sha512-PY6Ii8o1jMRA1z4F2hRkH/xN59ox43DavKvD3oDpfurRlOJyAHpifIwpbdv1n4jt4ov0jSpw3kQ4GhJnpBL6WQ==
@@ -8245,6 +8324,11 @@ pump@^3.0.0:
     end-of-stream "^1.1.0"
     once "^1.3.1"
 
+punycode@^1.3.2:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/punycode/-/punycode-1.4.1.tgz#c0d5a63b2718800ad8e1eb0fa5269c84dd41845e"
+  integrity sha1-wNWmOycYgArY4esPpSachN1BhF4=
+
 punycode@^2.1.0, punycode@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.1.1.tgz#b58b010ac40c22c5657616c8d2c2c02c7bf479ec"
@@ -9506,10 +9590,10 @@ tar@^6.0.2, tar@^6.1.0:
     mkdirp "^1.0.3"
     yallist "^4.0.0"
 
-teeny-request@7.0.1:
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/teeny-request/-/teeny-request-7.0.1.tgz#bdd41fdffea5f8fbc0d29392cb47bec4f66b2b4c"
-  integrity sha512-sasJmQ37klOlplL4Ia/786M5YlOcoLGQyq2TE4WHSRupbAuDaQW0PfVxV4MtdBtRJ4ngzS+1qim8zP6Zp35qCw==
+teeny-request@7.1.1:
+  version "7.1.1"
+  resolved "https://registry.yarnpkg.com/teeny-request/-/teeny-request-7.1.1.tgz#2b0d156f4a8ad81de44303302ba8d7f1f05e20e6"
+  integrity sha512-iwY6rkW5DDGq8hE2YgNQlKbptYpY5Nn2xecjQiNjOXWbKzPGUfmeUBCSQbbr306d7Z7U2N0TPl+/SwYRfua1Dg==
   dependencies:
     http-proxy-agent "^4.0.0"
     https-proxy-agent "^5.0.0"
@@ -9973,10 +10057,12 @@ url-to-options@^1.0.1:
   resolved "https://registry.yarnpkg.com/url-to-options/-/url-to-options-1.0.1.tgz#1505a03a289a48cbd7a434efbaeec5055f5633a9"
   integrity sha1-FQWgOiiaSMvXpDTvuu7FBV9WM6k=
 
-urlgrey@0.4.4:
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/urlgrey/-/urlgrey-0.4.4.tgz#892fe95960805e85519f1cd4389f2cb4cbb7652f"
-  integrity sha1-iS/pWWCAXoVRnxzUOJ8stMu3ZS8=
+urlgrey@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/urlgrey/-/urlgrey-1.0.0.tgz#72d2f904482d0b602e3c7fa599343d699bbe1017"
+  integrity sha512-hJfIzMPJmI9IlLkby8QrsCykQ+SXDeO2W5Q9QTW3QpqZVTx4a/K7p8/5q+/isD8vsbVaFgql/gvAoQCRQ2Cb5w==
+  dependencies:
+    fast-url-parser "^1.1.3"
 
 use@^3.1.0:
   version "3.1.1"

@@ -5,13 +5,12 @@
 import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { Spend } from '../primitives'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
-import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
@@ -27,41 +26,6 @@ export class Verifier {
   constructor(chain: Blockchain) {
     this.strategy = chain.strategy
     this.chain = chain
-  }
-
-  /**
-   * Verify that a new block received over the network has a valid header and
-   * list of transactions and extract the deserialized transaction.
-   *
-   * @param payload an unknown message payload that peerNetwork has received from the network.
-   *
-   * @returns the deserialized block to be processed by the main handler. Rejects
-   * the promise if the block is not valid so the gossip router knows not to
-   * forward it to other peers.
-   */
-  async verifyNewBlock(
-    newBlock: SerializedBlock,
-    workerPool: WorkerPool,
-  ): Promise<{
-    block: Block
-    serializedBlock: SerializedBlock
-  }> {
-    if (workerPool.saturated) {
-      return Promise.reject('Dropping block because worker pool message queue is full')
-    }
-
-    let block
-    try {
-      block = this.strategy.blockSerde.deserialize(newBlock)
-    } catch {
-      return Promise.reject('Could not deserialize block')
-    }
-
-    const validationResult = await this.verifyBlock(block)
-    if (!validationResult.valid) {
-      return Promise.reject('Block is invalid')
-    }
-    return Promise.resolve({ block, serializedBlock: newBlock })
   }
 
   /**
@@ -82,7 +46,9 @@ export class Verifier {
 
     // Verify the transactions
     const verificationResults = await Promise.all(
-      block.transactions.map((t) => this.verifyTransaction(t, { verifyFees: false })),
+      block.transactions.map((t) =>
+        this.verifyTransaction(t, block.header, { verifyFees: false }),
+      ),
     )
 
     const invalidResult = verificationResults.find((f) => !f.valid)
@@ -182,9 +148,10 @@ export class Verifier {
 
   async verifyTransaction(
     transaction: Transaction,
+    block: BlockHeader,
     options?: VerifyTransactionOptions,
   ): Promise<VerificationResult> {
-    if (this.isExpiredSequence(transaction.expirationSequence())) {
+    if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
       return {
         valid: false,
         reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -198,32 +165,41 @@ export class Verifier {
     }
   }
 
-  async verifyTransactionAdd(
+  async verifyTransactionSpends(
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const noteSize = await this.chain.notes.size(tx)
+      const nullifierSize = await this.chain.nullifiers.size(tx)
 
       for (const spend of transaction.spends()) {
-        const reason = await this.chain.verifier.verifySpend(spend, noteSize, tx)
+        const reason = await this.verifySpend(spend, nullifierSize, tx)
+
         if (reason) {
           return { valid: false, reason }
         }
-      }
-
-      const validity = await transaction.verify()
-      if (!validity.valid) {
-        return validity
       }
 
       return { valid: true }
     })
   }
 
-  isExpiredSequence(expirationSequence: number, headSequence?: number): boolean {
-    headSequence = headSequence ?? this.chain.head.sequence
-    return expirationSequence !== 0 && expirationSequence <= headSequence
+  async verifyTransactionAdd(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    let validity = await this.verifyTransactionSpends(transaction, tx)
+
+    if (!validity.valid) {
+      return validity
+    }
+
+    validity = await transaction.verify()
+    return validity
+  }
+
+  isExpiredSequence(expirationSequence: number, sequence: number): boolean {
+    return expirationSequence !== 0 && expirationSequence <= sequence
   }
 
   /**
@@ -321,19 +297,23 @@ export class Verifier {
    *  -  The nullifier has not previously been spent
    *  -  the note being spent really existed in the tree at the time it was spent
    */
-  async hasValidSpends(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
+  async verifyConnectedSpends(
+    block: Block,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const spendsInThisBlock = Array.from(block.spends())
-      const previousSpendCount =
-        block.header.nullifierCommitment.size - spendsInThisBlock.length
       const processedSpends = new BufferSet()
 
-      for (const [index, spend] of spendsInThisBlock.entries()) {
+      const previousNullifierSize =
+        block.header.nullifierCommitment.size - spendsInThisBlock.length
+
+      for (const spend of spendsInThisBlock.values()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        const verificationError = await this.verifySpend(spend, previousSpendCount + index, tx)
+        const verificationError = await this.verifySpend(spend, previousNullifierSize, tx)
         if (verificationError) {
           return { valid: false, reason: verificationError }
         }
@@ -351,22 +331,22 @@ export class Verifier {
    * spend's spend root.
    *
    * @param spend the spend to be verified
-   * @param size the size of the nullifiers tree at which the spend must not exist
+   * @param nullifierSize the size of the nullifiers tree at which the spend must not exist
    * @param tx optional transaction context within which to check the spends.
    * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
   async verifySpend(
     spend: Spend,
-    size: number,
+    nullifierSize: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
-    if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
+    if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
       return VerificationResultReason.DOUBLE_SPEND
     }
 
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-      if (!this.strategy.noteHasher.hashSerde().equals(spend.commitment, realSpendRoot)) {
+      if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
     } catch {
@@ -402,24 +382,16 @@ export class Verifier {
       }
 
       const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-      if (
-        !this.strategy.noteHasher
-          .hashSerde()
-          .equals(pastNoteRoot, header.noteCommitment.commitment)
-      ) {
+      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
 
       const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-      if (
-        !this.strategy.nullifierHasher
-          .hashSerde()
-          .equals(pastNullifierRoot, header.nullifierCommitment.commitment)
-      ) {
+      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
-      const spendVerification = await this.hasValidSpends(block, tx)
+      const spendVerification = await this.verifyConnectedSpends(block, tx)
       if (!spendVerification.valid) {
         return spendVerification
       }

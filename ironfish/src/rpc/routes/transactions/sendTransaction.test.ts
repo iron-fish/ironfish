@@ -7,10 +7,31 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RequestError } from '../../clients/errors'
 
 const TEST_PARAMS = {
-  amount: BigInt(10).toString(),
   fromAccountName: 'existingAccount',
-  memo: '',
-  toPublicKey: 'test2',
+  receives: [
+    {
+      publicAddress: 'test2',
+      amount: BigInt(10).toString(),
+      memo: '',
+    },
+  ],
+  fee: BigInt(1).toString(),
+}
+
+const TEST_PARAMS_MULTI = {
+  fromAccountName: 'existingAccount',
+  receives: [
+    {
+      publicAddress: 'test2',
+      amount: BigInt(10).toString(),
+      memo: '',
+    },
+    {
+      publicAddress: 'test3',
+      amount: BigInt(10).toString(),
+      memo: '',
+    },
+  ],
   fee: BigInt(1).toString(),
 }
 
@@ -120,5 +141,64 @@ describe('Transactions sendTransaction', () => {
       const result = await routeTest.client.sendTransaction(TEST_PARAMS)
       expect(result.content.hash).toEqual(tx.hash().toString('hex'))
     }, 30000)
+
+    describe('with multiple recipients', () => {
+      it('throws if not enough funds', async () => {
+        routeTest.node.peerNetwork['_isReady'] = true
+        routeTest.chain.synced = true
+
+        try {
+          await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
+        } catch (e: unknown) {
+          if (!(e instanceof RequestError)) {
+            throw e
+          }
+          expect(e.message).toContain(
+            'Your balance is too low. Add funds to your account first',
+          )
+        }
+      })
+
+      it('throws if the confirmed balance is too low', async () => {
+        routeTest.node.peerNetwork['_isReady'] = true
+        routeTest.chain.synced = true
+
+        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
+          unconfirmed: BigInt(21),
+          confirmed: BigInt(0),
+        })
+
+        try {
+          await routeTest.client.sendTransaction(TEST_PARAMS)
+        } catch (e: unknown) {
+          if (!(e instanceof RequestError)) {
+            throw e
+          }
+
+          expect(e.message).toContain(
+            'Please wait a few seconds for your balance to update and try again',
+          )
+        }
+      })
+
+      it('calls the pay method on the node', async () => {
+        routeTest.node.peerNetwork['_isReady'] = true
+        routeTest.chain.synced = true
+        routeTest.node.accounts.pay = jest.fn()
+
+        const account = await useAccountFixture(routeTest.node.accounts, 'account_multi-output')
+        const tx = await useMinersTxFixture(routeTest.node.accounts, account)
+
+        jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
+
+        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
+          unconfirmed: BigInt(21),
+          confirmed: BigInt(21),
+        })
+
+        const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
+        expect(result.content.hash).toEqual(tx.hash().toString('hex'))
+      }, 30000)
+    })
   })
 })
