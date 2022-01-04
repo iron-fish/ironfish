@@ -318,14 +318,13 @@ export class Blockchain {
     reason: VerificationResultReason | null
     score: number | null
   }> {
-    let isFork = null
+    let connectResult = null
     try {
-      await this.db.transaction(async (tx) => {
+      connectResult = await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-          await this.connect(block, null, tx)
-          return
+          return await this.connect(block, null, tx)
         }
 
         if (this.isInvalid(block)) {
@@ -350,20 +349,20 @@ export class Blockchain {
           throw new VerifyError(VerificationResultReason.ORPHAN)
         }
 
-        await this.connect(block, previous, tx)
-
-        isFork = !this.head.hash.equals(block.header.hash)
+        const connectResult = await this.connect(block, previous, tx)
 
         await this.resolveOrphans(block)
+
+        return connectResult
       })
     } catch (e) {
       if (e instanceof VerifyError) {
-        return { isAdded: false, isFork: isFork, reason: e.reason, score: e.score }
+        return { isAdded: false, isFork: null, reason: e.reason, score: e.score }
       }
       throw e
     }
 
-    return { isAdded: true, isFork: isFork, reason: null, score: null }
+    return { isAdded: true, isFork: connectResult.isFork, reason: null, score: null }
   }
 
   /**
@@ -524,13 +523,15 @@ export class Blockchain {
     block: Block,
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
-  ): Promise<void> {
+  ): Promise<{ isFork: boolean }> {
     const start = BenchUtils.start()
 
     const work = block.header.target.toDifficulty()
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
-    if (!this.isEmpty && !isBlockHeavier(block.header, this.head)) {
+    const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
+
+    if (isFork) {
       await this.addForkToChain(block, prev, tx)
     } else {
       await this.addHeadToChain(block, prev, tx)
@@ -550,6 +551,8 @@ export class Blockchain {
           ` time: ${addTime.toFixed(1)}ms`,
       )
     }
+
+    return { isFork: isFork }
   }
 
   private async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
