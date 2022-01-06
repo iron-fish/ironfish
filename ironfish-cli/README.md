@@ -16,7 +16,7 @@ Next, start the CLI with one of these commands:
    - `yarn start:once`
 
 
-## Use Scenarios
+## Usage Scenarios
 
 ### Starting a single node
 Run this command in the terminal:
@@ -28,13 +28,12 @@ Interact with the node in a new terminal window:
 - `yarn start accounts:balance` 
    - Show the balance of your account, including $IRON from blocks you've mined
    - Tentative balance includes all known transactions. Spending balance includes only transactions on blocks on the main chain
-   - You earn 20 $IRON per confirmed block you mine
 - `yarn start faucet`
    - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
-   - Pay $IRON to another account
+   - Send $IRON to another account
 
-### Start a Node and start Mining
+### Start a node and start mining
 Run these commands in two different terminals:
 
 - `yarn start start`       
@@ -42,32 +41,29 @@ Run these commands in two different terminals:
    - This is equivalent to `yarn start start -d default -p 9033`
 
 - `yarn start miners:start`
-    - Default thread count = 1  (1 mining thread on 1 physical CPU core) 
-    - To control the number of CPU cores to dedicate to mining, use the --threads parameter
+   - The default thread count is 1.
+   - You can increase the number of threads by adding `--threads <number>`. Use `-1` to autodetect threads based on your CPU cores.
   
-    - Examples:
-       - `yarn start miners:start --threads 4`
-           - To use 4 physical CPU cores
-       - `yarn start miners:start --threads -1`
-           - To use all the cores on your CPU
-           - BUT beware, -1 can use all available cores and threads and make your machine unresponsive. 
-           - Worth checking your machine's performance with incrementally increasing thread count
-           - It'a a good idea to monitor the CPU temperature and stay below 70C for longer life.
-    - Note: hyperthreading (2 miner threads per CPU Core) is not fully optimized yet
+   - Examples:
+      - `yarn start miners:start --threads 4`
+         - To use 4 physical CPU cores
+      - `yarn start miners:start --threads -1`
+         - To use all the cores on your CPU
+         - This may make your machine unresponsive or perform worse than a lesser number.
+         - You may want to start with a low thread count and increase it until your hashrate stops increasing.
+   - Note: Hyperthreading (2 miner threads per CPU core) is not fully optimized yet
 
 You should see messages in the second terminal indicating that the miner is running:
- - "Starting to mine with 8 threads"
- - "Mining block 6261 on request 1264... \ 1105974 H/s" 
-  
-    - Where the H/s number corresponds to the hash rate power of your machine using the number of cores you allocated to minining threads. 
-    - Performance reference: 8-core 3.8+ GHz AMD Ryzen 7 4700G gave the above 1.1 M H/s.
- - You will see a status line when a block is mined 
-    - Mining 1 block can take several hours or even days depending on your machine's hashrate relative to the total network hashrate.
-    - Even if you haven't mined any blocks, you are contributing to the robustness of the Testnet by running a node and miner(s).
+   - `Starting to mine with 8 threads`
+   - `Mining block 6261 on request 1264... \ 1105974 H/s`
+      - The H/s number corresponds to the hash rate power of your machine with the given number of mining threads. 
+      - Performance reference: 8-core 3.8+ GHz AMD Ryzen 7 4700G with 8 threads gave the above 1.1 M H/s.
 
-You can increase the number of threads by adding `--threads <number>`. Use `-1` to use all available threads.
-
-- `yarn start miners:start --threads 2`
+When a block is mined, you will see a status line in the node's terminal (the first terminal):
+   - `Successfully mined block xxx (6543) has 1 transactions`
+   - Mining 1 block can take several hours or days, depending on your machine's hashrate.
+   - Your miner may display `Submitting hash for block`, but this does not necessarily mean you've mined a block. The block still needs to be created, validated, and checked to be heavier by the node before it can be added to the main chain.
+      - In these cases, your node will display "Discarding block" or "Failed to add block".
 
 ### Multiple Nodes
 
