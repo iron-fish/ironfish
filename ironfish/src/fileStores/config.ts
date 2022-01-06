@@ -110,6 +110,11 @@ export type ConfigOptions = {
    * mempool.
    */
   defaultTransactionExpirationSequenceDelta: number
+
+  /**
+   * The default number of blocks to request per message when syncing.
+   */
+  blocksPerMessage: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -140,7 +145,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
-      defaultTransactionExpirationSequenceDelta: 450,
+      defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
@@ -172,6 +177,7 @@ export class Config extends KeyStore<ConfigOptions> {
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
+      blocksPerMessage: 20,
     }
   }
 }

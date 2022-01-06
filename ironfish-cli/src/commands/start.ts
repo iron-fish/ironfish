@@ -121,7 +121,13 @@ export default class Start extends IronfishCommand {
     } = flags
 
     if (bootstrap !== undefined) {
-      this.sdk.config.setOverride('bootstrapNodes', bootstrap.filter(Boolean))
+      // Parse comma-separated bootstrap nodes
+      const bootstrapNodes = bootstrap
+        .flatMap((b) => b.split(','))
+        .filter(Boolean)
+        .map((b) => b.trim())
+
+      this.sdk.config.setOverride('bootstrapNodes', bootstrapNodes)
     }
     if (port !== undefined && port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', port)
@@ -159,6 +165,7 @@ export default class Start extends IronfishCommand {
     const node = await this.sdk.node({ privateIdentity: privateIdentity })
 
     const nodeName = this.sdk.config.get('nodeName').trim() || null
+    const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
     const peerAgent = Platform.getAgent('cli')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
@@ -166,6 +173,7 @@ export default class Start extends IronfishCommand {
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${Package.version} @ ${Package.git}`)
     this.log(`Node Name     ${nodeName || 'NONE'}`)
+    this.log(`Graffiti      ${blockGraffiti || 'NONE'}`)
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${peerAgent}`)
     this.log(`Peer Port     ${peerPort}`)

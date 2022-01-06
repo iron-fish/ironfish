@@ -1,42 +1,22 @@
-version: '3.9'
+version: "2.4"
 
 services:
-    node1:
-        container_name: ironfish-beta-1
-        image: ghcr.io/iron-fish/ironfish-beta:latest
-        ports:
-            - "8001:8001"
-            - "9001:9001"
-        networks:
-            - node_network
-        restart: unless-stopped    
-        command: start -v --name node1 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8001 --port 9001 --bootstrap='' --forceMining --datadir /ironfishdata
+    node:
+        image: ghcr.io/iron-fish/ironfish:latest
         volumes:
-            - ~/.ironfish-beta-1:/ironfishdata
-
-    node2:
-        container_name: ironfish-beta-2
-        image: ghcr.io/iron-fish/ironfish-beta:latest
-        ports:
-            - "8002:8002"
-            - "9002:9002"
-        networks:
-            - node_network
-        restart: unless-stopped     
-        command: start -v --name node2 --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8002 --port 9002 --bootstrap='node1:9001' --datadir /ironfishdata
-        volumes:
-            - ~/.ironfish-beta-2:/ironfishdata
+            - ~/.ironfish:/root/.ironfish
+        tty: true
+        restart: always
+        command: ["start", "--graffiti", "graffitiExample", "--name", "nodeExample"]
 
     miner:
-        container_name: ironfish-miner
-        image: ghcr.io/iron-fish/ironfish-beta:latest
-        depends_on:
-            - "node1"
-        networks:
-            - node_network
-        restart: unless-stopped    
-        command: miners:start --rpc.tcp --rpc.tcp.host=node1 --rpc.tcp.port=8001
+        image: ghcr.io/iron-fish/ironfish:latest
+        volumes:
+            - ~/.ironfish:/root/.ironfish
+        tty: true
+        mem_limit: 8192M
+        restart: always
+        command: miners:start --threads -1
 
 networks:
-    node_network:
-        
+    default:

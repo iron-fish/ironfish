@@ -10,13 +10,11 @@ import { Target } from './target'
 
 export type BlockHash = Buffer
 
-import { createHash } from 'blake3'
+import { blake3 } from '@napi-rs/blake-hash'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
-  const hash = createHash()
-  hash.update(serializedHeader)
-  return hash.digest()
+  return blake3(serializedHeader)
 }
 
 export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
@@ -171,9 +169,12 @@ export class BlockHeader {
    * header and the global trees it models.
    */
   recomputeHash(): BlockHash {
-    const randomnessBytes = new ArrayBuffer(8)
-    new DataView(randomnessBytes).setFloat64(0, this.randomness, false)
-    const headerBytes = Buffer.concat([Buffer.from(randomnessBytes), this.serializePartial()])
+    const partialHeader = this.serializePartial()
+
+    const headerBytes = Buffer.alloc(partialHeader.byteLength + 8)
+    headerBytes.writeDoubleBE(this.randomness, 0)
+    headerBytes.set(partialHeader, 8)
+
     const hash = this.strategy.hashBlockHeader(headerBytes)
     this.hash = hash
     return hash

@@ -1208,6 +1208,90 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
+"@napi-rs/blake-hash-android-arm-eabi@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-android-arm-eabi/-/blake-hash-android-arm-eabi-1.3.1.tgz#5494bc755b1f89eca347a4a34175dd80e896f729"
+  integrity sha512-KdWI58uT4Y4d2SCIZ94XxrhEBFCiJhBQer4ZV3JMNZ7dJSl5423iF60yzg9JMqbiyv0k3bdEo6DeWSONul0Iug==
+
+"@napi-rs/blake-hash-android-arm64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-android-arm64/-/blake-hash-android-arm64-1.3.1.tgz#192fec518fea2fec2a9c632cf2f5db56fb3fbb98"
+  integrity sha512-vYRkG4ZwiK7ooseDJ9lYYT1tktbsv/QH/F0dPZiGnTToUstECwuk9qoMNUea7GtUY1XDjYg3oWkJ80jhfp1fMg==
+
+"@napi-rs/blake-hash-darwin-arm64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-darwin-arm64/-/blake-hash-darwin-arm64-1.3.1.tgz#6dd45230faff79a817005abd02ba6063e3465afe"
+  integrity sha512-IPvjzVjYbiF6+LSnX7a7odFCzV3bHfm3LiJWukIRzwNW2wXO/WmCRfbsNNZEwkwfa2P1lyCVawgzRym7kHYarw==
+
+"@napi-rs/blake-hash-darwin-x64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-darwin-x64/-/blake-hash-darwin-x64-1.3.1.tgz#2899b561f655c96d7fcf94ba0aab4c240e9df9cb"
+  integrity sha512-44kHNqSEWTNLRiS0JO4FRYKQBF1ODQwcRJWpPvnIe3P8B+/CNXGj8ljIxLNuKh90zAvPu8dxSXVylwAvsrB5GQ==
+
+"@napi-rs/blake-hash-freebsd-x64@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-freebsd-x64/-/blake-hash-freebsd-x64-1.3.1.tgz#262364bce7361c32db90c7d87d1d8913042380fa"
+  integrity sha512-1eRrawhLi/e1YXjEqTU+rKRtwPa1MIdeXPguMcF8QTxynnN/FM6cEtp4KwJCfUOE2eTtECR7iS/fAl6/QtFxAw==
+
+"@napi-rs/blake-hash-linux-arm-gnueabihf@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm-gnueabihf/-/blake-hash-linux-arm-gnueabihf-1.3.1.tgz#b063f1c3a152e62bcfb462d7d7645c46c57c2a1e"
+  integrity sha512-iG3FiFnD+Y2+c5pSZXQHcjCq4rLJADzXxpGBmm4VoiSrdvLejqzFI7ew/aMTTBf31CjGxs7//xmuDi3dg8Jm4w==
+
+"@napi-rs/blake-hash-linux-arm64-gnu@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm64-gnu/-/blake-hash-linux-arm64-gnu-1.3.1.tgz#c01cdc32986eccc5680e229977f325e554340e11"
+  integrity sha512-9XdMKSj0Zbk2qNgAIuygbVhmT3/S9MRH7lVnYVseYI8MSI5gXzMQPp1uwxQx592ashfehja7KKK+aHs4+V0eow==
+
+"@napi-rs/blake-hash-linux-arm64-musl@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-arm64-musl/-/blake-hash-linux-arm64-musl-1.3.1.tgz#88c6bf6e01e212738c6684b1b887c1af9d962b89"
+  integrity sha512-e7uVxJKuhIY4EPTyOQrEd6j6a2jOjdyiYaIChEsF0ptv6GsKjhCVwh2DTimQOeBzk36DwKLdilWmrK0X1DtSsA==
+
+"@napi-rs/blake-hash-linux-x64-gnu@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-x64-gnu/-/blake-hash-linux-x64-gnu-1.3.1.tgz#5a5407c7f85b2913a546a25380669b99ec3ec4e3"
+  integrity sha512-uYmauh/qs5pBUg7jbADd8WHHHFVocFY3s2uUhjv+91zgaNpdjFJa1XoSMmuoxo56FpsSZ5eudRoTcL6q0nw10w==
+
+"@napi-rs/blake-hash-linux-x64-musl@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-linux-x64-musl/-/blake-hash-linux-x64-musl-1.3.1.tgz#8f0534af9d0056a3d9374854be3e5ac072395353"
+  integrity sha512-pQxZfxYfPG+1rZE7R0TbocEzFnrDFhA7Iaz535ztKtI0umP3mOFlbB5fAVI+CxZrv2bg3Ar4LsIGTLs8ZWmqrg==
+
+"@napi-rs/blake-hash-win32-arm64-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-arm64-msvc/-/blake-hash-win32-arm64-msvc-1.3.1.tgz#9f1fc847735d1505687973ca2dbb9692c4f41548"
+  integrity sha512-k0aPdl8zPYHrpAIV/hWnsT3YnIWaOHE91MSbXGJD+ZJ6qpuHRIu3joCrUnit0g+NTEKUTfqDtWpkjpcFcjAr6g==
+
+"@napi-rs/blake-hash-win32-ia32-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-ia32-msvc/-/blake-hash-win32-ia32-msvc-1.3.1.tgz#f1d3eedfcabc9b173355d806aef610570ca55e84"
+  integrity sha512-Qw50YPzzwNwSEa8IcRQcPccar/fvDpqJ5B69A/CWm4c8KOcCaNBve1fHVtZPj3PR98TPhs4M0MCjeQsZYzoS7Q==
+
+"@napi-rs/blake-hash-win32-x64-msvc@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-win32-x64-msvc/-/blake-hash-win32-x64-msvc-1.3.1.tgz#4f828ccd8f09e316698f81115a88df69d8f5fed8"
+  integrity sha512-4t3nQyquw4nb6eg/wXQ5LH9t3HSM++ZYTUGKu8hmBhiLieSnsJdepa8UIdeLiwgU3Rkxg6PLRjFUL6pmzwTTRQ==
+
+"@napi-rs/blake-hash@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash/-/blake-hash-1.3.1.tgz#6a67bad575df309582f62d06258b70842e4e2469"
+  integrity sha512-qmzQopWjupf4V84ZqtsrXcYIeW0w/1x2MbUYw1/NA1qgERqURxleXX6AHb1CCesi6Zl2c/vV3P9CAClWMOpfIA==
+  optionalDependencies:
+    "@napi-rs/blake-hash-android-arm-eabi" "1.3.1"
+    "@napi-rs/blake-hash-android-arm64" "1.3.1"
+    "@napi-rs/blake-hash-darwin-arm64" "1.3.1"
+    "@napi-rs/blake-hash-darwin-x64" "1.3.1"
+    "@napi-rs/blake-hash-freebsd-x64" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm-gnueabihf" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm64-gnu" "1.3.1"
+    "@napi-rs/blake-hash-linux-arm64-musl" "1.3.1"
+    "@napi-rs/blake-hash-linux-x64-gnu" "1.3.1"
+    "@napi-rs/blake-hash-linux-x64-musl" "1.3.1"
+    "@napi-rs/blake-hash-win32-arm64-msvc" "1.3.1"
+    "@napi-rs/blake-hash-win32-ia32-msvc" "1.3.1"
+    "@napi-rs/blake-hash-win32-x64-msvc" "1.3.1"
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz#7619c2eb21b25483f6d167548b4cfd5a7488c3d5"
@@ -2128,10 +2212,18 @@ aproba@^1.0.3:
   resolved "https://registry.yarnpkg.com/aproba/-/aproba-1.2.0.tgz#6802e6264efd18c790a1b0d517f0f2627bf2c94a"
   integrity sha512-Y9J6ZjXtoYh8RnXVCMOU/ttDmk1aBjunq9vO0ta5x85WDQiQfUF9sIPBITdbiiIVcBo03Hi3jMxigBtsddlXRw==
 
-aproba@^2.0.0:
+"aproba@^1.0.3 || ^2.0.0", aproba@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/aproba/-/aproba-2.0.0.tgz#52520b8ae5b569215b354efc0caa3fe1e45a8adc"
   integrity sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==
+
+are-we-there-yet@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/are-we-there-yet/-/are-we-there-yet-2.0.0.tgz#372e0e7bd279d8e94c653aaa1f67200884bf3e1c"
+  integrity sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==
+  dependencies:
+    delegates "^1.0.0"
+    readable-stream "^3.6.0"
 
 are-we-there-yet@~1.1.2:
   version "1.1.7"
@@ -2450,11 +2542,6 @@ bl@^4.0.3:
     buffer "^5.5.0"
     inherits "^2.0.4"
     readable-stream "^3.4.0"
-
-blake3@2.1.4:
-  version "2.1.4"
-  resolved "https://registry.yarnpkg.com/blake3/-/blake3-2.1.4.tgz#78117bc9e80941097fdf7d03e897a9ee595ecd62"
-  integrity sha512-70hmx0lPd6zmtNwxPT4/1P0pqaEUlTJ0noUBvCXPLfMpN0o8PPaK3q7ZlpRIyhrqcXxeMAJSowNm/L9oi/x1XA==
 
 blessed@0.1.81:
   version "0.1.81"
@@ -3052,6 +3139,11 @@ color-string@1.5.5:
     color-name "^1.0.0"
     simple-swizzle "^0.2.2"
 
+color-support@^1.1.2:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/color-support/-/color-support-1.1.3.tgz#93834379a1cc9a0c61f82f52f0d04322251bd5a2"
+  integrity sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==
+
 colors@*, colors@1.4.0, colors@^1.1.2:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.4.0.tgz#c50491479d4c1bdaed2c9ced32cf7c7dc2360f78"
@@ -3148,7 +3240,7 @@ consola@2.15.0:
   resolved "https://registry.yarnpkg.com/consola/-/consola-2.15.0.tgz#40fc4eefa4d2f8ef2e2806147f056ea207fcc0e9"
   integrity sha512-vlcSGgdYS26mPf7qNi+dCisbhiyDnrN1zaRbw3CSuc2wGOMEGGPsp46PdRG5gqXwgtJfjxDkxRNAgRPr1B77vQ==
 
-console-control-strings@^1.0.0, console-control-strings@~1.1.0:
+console-control-strings@^1.0.0, console-control-strings@^1.1.0, console-control-strings@~1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/console-control-strings/-/console-control-strings-1.1.0.tgz#3d7cf4464db6446ea644bf4b39507f9851008e8e"
   integrity sha1-PXz0Rk22RG6mRL9LOVB/mFEAjo4=
@@ -4605,6 +4697,21 @@ functional-red-black-tree@^1.0.1:
   resolved "https://registry.yarnpkg.com/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
   integrity sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=
 
+gauge@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/gauge/-/gauge-4.0.0.tgz#afba07aa0374a93c6219603b1fb83eaa2264d8f8"
+  integrity sha512-F8sU45yQpjQjxKkm1UOAhf0U/O0aFt//Fl7hsrNVto+patMHjs7dPI9mFOGUKbhrgKm0S3EjW3scMFuQmWSROw==
+  dependencies:
+    ansi-regex "^5.0.1"
+    aproba "^1.0.3 || ^2.0.0"
+    color-support "^1.1.2"
+    console-control-strings "^1.0.0"
+    has-unicode "^2.0.1"
+    signal-exit "^3.0.0"
+    string-width "^4.2.3"
+    strip-ansi "^6.0.1"
+    wide-align "^1.1.2"
+
 gauge@~2.7.3:
   version "2.7.4"
   resolved "https://registry.yarnpkg.com/gauge/-/gauge-2.7.4.tgz#2c03405c7538c39d7eb37b317022e325fb018bf7"
@@ -4963,7 +5070,7 @@ got@^7.0.0:
     url-parse-lax "^1.0.0"
     url-to-options "^1.0.1"
 
-graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.2, graceful-fs@^4.2.3, graceful-fs@^4.2.4:
+graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.2, graceful-fs@^4.2.3, graceful-fs@^4.2.4, graceful-fs@^4.2.6:
   version "4.2.8"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.8.tgz#e412b8d33f5e006593cbd3cee6df9f2cebbe802a"
   integrity sha512-qkIilPUYcNhJpd33n0GBXTB1MMPp14TxEsEs0pTrsSVucApsYzW5V+Q8Qxhik6KU3evy+qkAAowTByymK0avdg==
@@ -6708,7 +6815,7 @@ make-fetch-happen@^8.0.9:
     socks-proxy-agent "^5.0.0"
     ssri "^8.0.0"
 
-make-fetch-happen@^9.0.1:
+make-fetch-happen@^9.0.1, make-fetch-happen@^9.1.0:
   version "9.1.0"
   resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-9.1.0.tgz#53085a09e7971433e6765f7971bf63f4e05cb968"
   integrity sha512-+zopwDy7DNknmwPQplem5lAZX/eCOzSvSNNcSKm5eVwTkOBzoktEfXsa9L23J/GIRhxRsaxzkPEhrJEpE2F4Gg==
@@ -7243,6 +7350,22 @@ node-gyp-build@~4.1.0:
   resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.1.1.tgz#d7270b5d86717068d114cc57fff352f96d745feb"
   integrity sha512-dSq1xmcPDKPZ2EED2S6zw/b9NKsqzXRE6dVr8TVQnI3FJOTteUMuqF3Qqs6LZg+mLGYJWqQzMbIjMtJqTv87nQ==
 
+node-gyp@8.4.1:
+  version "8.4.1"
+  resolved "https://registry.yarnpkg.com/node-gyp/-/node-gyp-8.4.1.tgz#3d49308fc31f768180957d6b5746845fbd429937"
+  integrity sha512-olTJRgUtAb/hOXG0E93wZDs5YiJlgbXxTwQAFHyNlRsXQnYzUaF2aGgujZbw+hR8aF4ZG/rST57bWMWD16jr9w==
+  dependencies:
+    env-paths "^2.2.0"
+    glob "^7.1.4"
+    graceful-fs "^4.2.6"
+    make-fetch-happen "^9.1.0"
+    nopt "^5.0.0"
+    npmlog "^6.0.0"
+    rimraf "^3.0.2"
+    semver "^7.3.5"
+    tar "^6.1.2"
+    which "^2.0.2"
+
 node-gyp@^5.0.2:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/node-gyp/-/node-gyp-5.1.1.tgz#eb915f7b631c937d282e33aed44cb7a025f62a3e"
@@ -7487,6 +7610,16 @@ npmlog@^4.0.1, npmlog@^4.1.2:
     console-control-strings "~1.1.0"
     gauge "~2.7.3"
     set-blocking "~2.0.0"
+
+npmlog@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/npmlog/-/npmlog-6.0.0.tgz#ba9ef39413c3d936ea91553db7be49c34ad0520c"
+  integrity sha512-03ppFRGlsyUaQFbGC2C8QWJN/C/K7PsfyD9aQdhVKAQIH4sQBc8WASqFBP7O+Ut4d2oo5LoeoboB3cGdBZSp6Q==
+  dependencies:
+    are-we-there-yet "^2.0.0"
+    console-control-strings "^1.1.0"
+    gauge "^4.0.0"
+    set-blocking "^2.0.0"
 
 nps-utils@^1.7.0:
   version "1.7.0"
@@ -8467,7 +8600,7 @@ read@1, read@~1.0.1:
   dependencies:
     mute-stream "~0.0.4"
 
-"readable-stream@2 || 3", readable-stream@3, readable-stream@^3.0.0, readable-stream@^3.0.2, readable-stream@^3.1.1, readable-stream@^3.4.0:
+"readable-stream@2 || 3", readable-stream@3, readable-stream@^3.0.0, readable-stream@^3.0.2, readable-stream@^3.1.1, readable-stream@^3.4.0, readable-stream@^3.6.0:
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-3.6.0.tgz#337bbda3adc0706bd3e024426a286d4b4b2c9198"
   integrity sha512-BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==
@@ -9499,7 +9632,7 @@ tar@^4.4.12:
     safe-buffer "^5.2.1"
     yallist "^3.1.1"
 
-tar@^6.0.2, tar@^6.1.0:
+tar@^6.0.2, tar@^6.1.0, tar@^6.1.2:
   version "6.1.11"
   resolved "https://registry.yarnpkg.com/tar/-/tar-6.1.11.tgz#6760a38f003afa1b2ffd0ffe9e9abbd0eab3d621"
   integrity sha512-an/KZQzQUkZCkuoAA64hM92X0Urb6VpRhAFllDzz44U2mcD5scmT3zBc4VgVpkugF580+DQn8eAFSyoQt0tznA==
@@ -10180,7 +10313,7 @@ which@^2.0.1, which@^2.0.2:
   dependencies:
     isexe "^2.0.0"
 
-wide-align@^1.1.0:
+wide-align@^1.1.0, wide-align@^1.1.2:
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/wide-align/-/wide-align-1.1.5.tgz#df1d4c206854369ecf3c9a4898f1b23fbd9d15d3"
   integrity sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==

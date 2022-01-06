@@ -26,7 +26,7 @@ This represents the IronfishConfig and all of it's options. It's a hierarchical 
 ```
 
 ### FileSystem
-This is an abtraction on top of any file system related APIs like `path` and `fs` in node. It makes it so you can perform file and file system related methods in a way that works in the browser and node. `NodeFileSystem` is one implementation that works for node.
+This is an abstraction on top of any file system related APIs like `path` and `fs` in node. It makes it so you can perform file and file system related methods in a way that works in the browser and node. `NodeFileSystem` is one implementation that works for node.
 
 ### RpcServer
 This is the server that handles clients connecting and making requests against the RPC routes. This server doesn't have much logic of it's own, but it contains a set of adapters that each implement a transport mechanism.
@@ -34,7 +34,7 @@ This is the server that handles clients connecting and making requests against t
 When the RpcServer starts, so do the transports. They accept messages from clients, construct Requests, and route them into the routing layer which executes the proper route.
 
 #### Adapter
-An adapter exists to represent a single transport layer. For example, in an HTTP adapter you might listen on port 80 for requests, construct RPC layer Request objects, and feed them into the routing layer, then render the RPC responses as HTTP responses. See IPCAdapter for an example on how to implement an adapter.
+An adapter exists to represent a single transport layer. For example, in an HTTP adapter you might listen on port 80 for requests, construct RPC layer Request objects, and feed them into the routing layer, then render the RPC responses as HTTP responses. See IPCAdapter for an example of how to implement an adapter.
 
 ### Logs
 By default the log level is set to only display info.
@@ -42,7 +42,7 @@ By default the log level is set to only display info.
 Change the `logLevel` in the config file, from `*:info` to `*debug` if you want verbose logs.
 
 ### IronfishSDK
-This project contains the IronfishSdk which is just a simple wrapper around the ironfish components like Accounts, Config, and IronfishNode. You can use the individual components when ever you feel like it, though the SDK is aimed at making usage easier.
+This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like Accounts, Config, and IronfishNode. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
 
 #### SDK Example
 

@@ -112,6 +112,7 @@ export class IronfishNode {
       logger: logger,
       peerNetwork: this.peerNetwork,
       strategy: this.strategy,
+      blocksPerMessage: config.get('blocksPerMessage'),
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
