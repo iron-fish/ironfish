@@ -4,23 +4,16 @@ The main entry point for an Iron Fish CLI that is capable of mining blocks and s
 
 ## Starting the CLI
 
-If you're still in the 'ironfish" directory in your terminal window, 
-- `cd ironfish-cli`
-   - Otherwise, 'yarn start' won't be found and you'll get an error.
-   - Ironfish-cli is one level below the ironfish directory in the source tree.
-   - In Windows, it's typically in: 
-      - C:\users\<your-user-name>\source\repos\ironfish\ironfish-cli
-   - Yarn uses the start and start:once commands in ironfish-cli\package.json
+If you're still in the `ironfish` directory in your terminal window, run `cd ironfish-cli`.
+   * Otherwise, you'll get a "Command not found" error.
 
-CLI Actions:
+Next, start the CLI with one of these commands:
 
-Build, run, and restart when the code changes:
+* Build, run, and restart when the code changes:
+   - `yarn start`
 
-- `yarn start`
-
-Build, then run the CLI without watching for changes:
-
-- `yarn start:once`
+* Build, then run the CLI without watching for changes:
+   - `yarn start:once`
 
 
 ## Use Scenarios
@@ -29,16 +22,17 @@ Build, then run the CLI without watching for changes:
 Run this command in the terminal:
 - `yarn start start`
 
-Interact with the node in a new tab or terminal window:
+Interact with the node in a new terminal window:
 - `yarn start status`
-   - Show your Node's status
+   - Show your node's status
 - `yarn start accounts:balance` 
-   - Show the number of Iron you've mined: tentative and confirmed
-   - You earn 20 Iron per confirmed block you mined
+   - Show the balance of your account, including $IRON from blocks you've mined
+   - Tentative balance includes all known transactions. Spending balance includes only transactions on blocks on the main chain
+   - You earn 20 $IRON per confirmed block you mine
 - `yarn start faucet:giveme`
-   - Request a small amount of Iron Ore for testing payments
+   - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
-   - Pay Iron to another account
+   - Pay $IRON to another account
 
 ### Start a Node and start Mining
 Run these commands in two different terminals:
