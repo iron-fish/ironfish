@@ -450,11 +450,11 @@ export class MiningDirector {
     // code
     this.recentBlocks.remove(miningRequestId)
 
+    const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
+
     if (!this.chain.head || !block.header.previousBlockHash.equals(this.chain.head.hash)) {
       this.logger.info(
-        `Discarding mined block ${block.header.hash.toString('hex')} (${
-          block.header.sequence
-        }) that no longer attaches to heaviest head`
+        `Discarding mined block ${blockDisplay} that no longer attaches to heaviest head`,
       )
 
       return MINED_RESULT.CHAIN_CHANGED
@@ -464,25 +464,28 @@ export class MiningDirector {
     const validation = await this.chain.verifier.verifyBlock(block)
 
     if (!validation.valid) {
-      this.logger.warn('Discarding invalid block', validation.reason)
+      this.logger.warn(`Discarding invalid mined block ${blockDisplay}`, validation.reason)
       return MINED_RESULT.INVALID_BLOCK
     }
 
     const { isAdded, reason, isFork } = await this.chain.addBlock(block)
 
     if (!isAdded) {
-      this.logger.error(`Failed to add mined block to chain with reason ${String(reason)}`)
+      this.logger.error(
+        `Failed to add mined block ${blockDisplay} to chain with reason ${String(reason)}`,
+      )
       return MINED_RESULT.ADD_FAILED
     }
 
     if (isFork) {
+      this.logger.info(
+        `Failed to add mined block ${blockDisplay} to main chain. Block was added as a fork`,
+      )
       return MINED_RESULT.FORK
     }
 
     this.logger.info(
-      `Successfully mined block ${block.header.hash.toString('hex')} (${
-        block.header.sequence
-      }) has ${block.transactions.length} transactions`,
+      `Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
     )
 
     this.blocksMined++
