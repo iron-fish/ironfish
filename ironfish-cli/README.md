@@ -29,7 +29,7 @@ Interact with the node in a new terminal window:
    - Show the balance of your account, including $IRON from blocks you've mined
    - Tentative balance includes all known transactions. Spending balance includes only transactions on blocks on the main chain
    - You earn 20 $IRON per confirmed block you mine
-- `yarn start faucet:giveme`
+- `yarn start faucet`
    - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
    - Pay $IRON to another account
@@ -64,6 +64,10 @@ You should see messages in the second terminal indicating that the miner is runn
  - You will see a status line when a block is mined 
     - Mining 1 block can take several hours or even days depending on your machine's hashrate relative to the total network hashrate.
     - Even if you haven't mined any blocks, you are contributing to the robustness of the Testnet by running a node and miner(s).
+
+You can increase the number of threads by adding `--threads <number>`. Use `-1` to use all available threads.
+
+- `yarn start miners:start --threads 2`
 
 ### Multiple Nodes
 

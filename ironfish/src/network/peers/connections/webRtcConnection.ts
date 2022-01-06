@@ -6,6 +6,7 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import nodeDataChannel from 'node-datachannel'
 import { Assert } from '../../../assert'
+import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
@@ -73,6 +74,7 @@ export class WebRtcConnection extends Connection {
     // TODO: Use our own STUN servers
     this.peer = new nodeDataChannel.PeerConnection('peer', {
       iceServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
+      maxMessageSize: MAX_MESSAGE_SIZE,
     })
 
     this.setState({ type: 'CONNECTING' })

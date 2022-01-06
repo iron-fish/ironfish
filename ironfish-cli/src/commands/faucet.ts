@@ -65,7 +65,7 @@ export class FaucetCommand extends IronfishCommand {
     })
 
     try {
-      await this.sdk.client.getFunds({
+      await client.getFunds({
         accountName,
         email,
       })

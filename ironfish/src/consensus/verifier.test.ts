@@ -49,34 +49,6 @@ describe('Verifier', () => {
   describe('Block', () => {
     const nodeTest = createNodeTest()
 
-    it('extracts a valid block', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      const serialized = nodeTest.strategy.blockSerde.serialize(block)
-
-      const result = await nodeTest.node.chain.verifier.verifyNewBlock(
-        serialized,
-        nodeTest.node.workerPool,
-      )
-
-      expect(result.block.header.hash.equals(block.header.hash)).toBe(true)
-
-      expect(result.serializedBlock.header.previousBlockHash).toEqual(
-        serialized.header.previousBlockHash,
-      )
-    })
-
-    it('rejects a invalid network block', async () => {
-      // should have invalid target
-      nodeTest.verifier.enableVerifyTarget = true
-
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      const serializedBlock = nodeTest.chain.strategy.blockSerde.serialize(block)
-
-      await expect(
-        nodeTest.chain.verifier.verifyNewBlock(serializedBlock, nodeTest.node.workerPool),
-      ).rejects.toEqual('Block is invalid')
-    })
-
     it('rejects a block with an invalid header', async () => {
       // should have invalid target
       nodeTest.verifier.enableVerifyTarget = true
@@ -178,20 +150,20 @@ describe('Verifier', () => {
     })
   })
 
-  describe('hasValidSpends', () => {
+  describe('verifyConnectedSpends', () => {
     const nodeTest = createNodeTest()
 
     it('says the block with no spends is valid', async () => {
       const { chain, strategy } = nodeTest
       strategy.disableMiningReward()
       const block = await makeBlockAfter(chain, chain.head)
-      expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
+      expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
     })
 
     it('says the block with spends is valid', async () => {
       const { chain } = nodeTest
       const { block } = await useBlockWithTx(nodeTest.node)
-      expect((await chain.verifier.hasValidSpends(block)).valid).toBe(true)
+      expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
       expect(Array.from(block.spends())).toHaveLength(1)
     }, 60000)
 
@@ -207,7 +179,7 @@ describe('Verifier', () => {
         }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
@@ -227,7 +199,7 @@ describe('Verifier', () => {
         .spyOn(nodeTest.chain.notes, 'getCount')
         .mockImplementationOnce(() => Promise.resolve(0))
 
-      expect(await nodeTest.verifier.hasValidSpends(block)).toEqual({
+      expect(await nodeTest.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.ERROR,
       })
@@ -252,7 +224,7 @@ describe('Verifier', () => {
         yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
@@ -267,7 +239,7 @@ describe('Verifier', () => {
         yield { nullifier, commitment: Buffer.from('noooo'), size: 1 }
       })
 
-      expect(await chain.verifier.hasValidSpends(block)).toEqual({
+      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
@@ -433,8 +405,12 @@ describe('Verifier', () => {
       it('returns TRANSACTION_EXPIRED', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
         })
@@ -445,10 +421,14 @@ describe('Verifier', () => {
       it('returns ERROR', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: false,
           reason: VerificationResultReason.ERROR,
         })
@@ -459,10 +439,14 @@ describe('Verifier', () => {
       it('returns valid', async () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
         jest
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(true))
-        expect(await nodeTest.verifier.verifyTransaction(transaction)).toEqual({
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
           valid: true,
         })
       }, 60000)

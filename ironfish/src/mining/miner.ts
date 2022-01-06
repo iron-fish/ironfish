@@ -16,7 +16,7 @@ export type MineRequest = {
 /**
  * Return value from a mining task.
  *
- * @param initialRandomness the value that waxs passed into the task
+ * @param initialRandomness the value that was passed into the task
  * for the initial randomness. Used by the calling code as a task id
  * @param randomness if defined, a value for randomness that was found
  * while mining the task. If undefined, none of the BATCH_SIZE attempts
@@ -40,7 +40,7 @@ export class Miner {
   private randomness = 0
 
   constructor(numTasks: number, batchSize = 10000) {
-    this.workerPool = new WorkerPool({ maxWorkers: numTasks })
+    this.workerPool = new WorkerPool({ numWorkers: numTasks })
     this.batchSize = batchSize
     this.hashRate = new Meter()
   }
@@ -102,7 +102,7 @@ export class Miner {
     // Reset our search space
     this.randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
 
-    for (let i = 0; i < this.workerPool.maxWorkers; i++) {
+    for (let i = 0; i < this.workerPool.numWorkers; i++) {
       this.tasks[this.randomness] = this.workerPool.mineHeader(
         request.miningRequestId,
         request.bytes,

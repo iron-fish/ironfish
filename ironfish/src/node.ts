@@ -112,6 +112,7 @@ export class IronfishNode {
       logger: logger,
       peerNetwork: this.peerNetwork,
       strategy: this.strategy,
+      blocksPerMessage: config.get('blocksPerMessage'),
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
@@ -168,8 +169,13 @@ export class IronfishNode {
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
       workers = os.cpus().length - 1
+
+      const maxWorkers = config.get('nodeWorkersMax')
+      if (maxWorkers !== -1) {
+        workers = Math.min(workers, maxWorkers)
+      }
     }
-    const workerPool = new WorkerPool({ metrics, maxWorkers: workers })
+    const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)

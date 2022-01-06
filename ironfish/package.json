@@ -1,15 +1,15 @@
 {
   "name": "ironfish",
-  "version": "0.1.8",
+  "version": "0.1.15",
   "gitHash": "",
   "private": true,
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src",
   "license": "MPL-2.0",
   "dependencies": {
+    "@napi-rs/blake-hash": "1.3.1",
     "axios": "0.21.1",
     "bfilter": "1.0.5",
-    "blake3-wasm": "2.1.5",
     "blru": "0.1.6",
     "buffer": "6.0.3",
     "buffer-json": "2.0.0",
