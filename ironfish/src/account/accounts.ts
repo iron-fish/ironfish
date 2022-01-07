@@ -127,18 +127,17 @@ export class Accounts {
         await this.updateHeadHash(chainTail.hash.toString('hex'))
       }
 
-      if (!this.headHash) {
-        throw new Error('headHash should be set previously or to chainTail.hash')
-      }
+      Assert.isNotNull(this.headHash, 'headHash should be set previously or to chainTail.hash')
 
       const accountHeadHash = Buffer.from(this.headHash, 'hex')
+
+      if (chainHead.hash.equals(accountHeadHash)) {
+        return
+      }
+
       const accountHead = await this.chain.getHeader(accountHeadHash)
 
       Assert.isNotNull(accountHead, `Accounts head not found in chain: ${this.headHash}`)
-
-      if (chainHead.hash.equals(accountHead.hash)) {
-        return
-      }
 
       const { fork, isLinear } = await this.chain.findFork(accountHead, chainHead)
       if (!fork) {
