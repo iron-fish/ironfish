@@ -15,10 +15,11 @@ import {
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
+import { Account } from './account'
 
 const DATABASE_VERSION = 3
 
-export type Account = {
+export interface SerializedAccount {
   name: string
   spendingKey: string
   incomingViewKey: string
@@ -27,7 +28,7 @@ export type Account = {
   rescan: number | null
 }
 
-export const AccountDefaults: Account = {
+export const AccountDefaults: SerializedAccount = {
   name: '',
   spendingKey: '',
   incomingViewKey: '',
@@ -52,7 +53,7 @@ export class AccountsDB {
   location: string
   files: FileSystem
 
-  accounts: IDatabaseStore<{ key: string; value: Account }>
+  accounts: IDatabaseStore<{ key: string; value: SerializedAccount }>
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
@@ -99,7 +100,7 @@ export class AccountsDB {
       valueEncoding: new JsonEncoding(),
     })
 
-    this.accounts = this.database.addStore<{ key: string; value: Account }>({
+    this.accounts = this.database.addStore<{ key: string; value: SerializedAccount }>({
       name: 'accounts',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
@@ -149,7 +150,7 @@ export class AccountsDB {
   }
 
   async setAccount(account: Account): Promise<void> {
-    await this.accounts.put(account.name, account)
+    await this.accounts.put(account.name, account.serialize())
   }
 
   async removeAccount(name: string): Promise<void> {
@@ -176,7 +177,7 @@ export class AccountsDB {
 
   async *loadAccounts(): AsyncGenerator<Account, void, unknown> {
     for await (const account of this.accounts.getAllValuesIter()) {
-      yield account
+      yield new Account(account)
     }
   }
 

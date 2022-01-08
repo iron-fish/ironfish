@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Account } from './accountsdb'
+import { SerializedAccount } from './accountsdb'
 
 const PUBLIC_ADDRESS_LENGTH = 86
 const SPENDING_KEY_LENGTH = 64
@@ -31,7 +31,7 @@ export function isValidOutgoingViewKey(outgoingViewKey: string): boolean {
   )
 }
 
-export function validateAccount(toImport: Partial<Account>): void {
+export function validateAccount(toImport: Partial<SerializedAccount>): void {
   if (!toImport.name) {
     throw new Error(`Imported account has no name`)
   }

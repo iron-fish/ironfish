@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { cli } from 'cli-ux'
-import { Account, JSONUtils, PromiseUtils } from 'ironfish'
+import { JSONUtils, PromiseUtils, SerializedAccount } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -34,7 +34,7 @@ export class ImportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account: Account | null = null
+    let account: SerializedAccount | null = null
     if (importPath) {
       account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
@@ -63,13 +63,13 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  async importFile(path: string): Promise<Account> {
+  async importFile(path: string): Promise<SerializedAccount> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return JSONUtils.parse<Account>(data)
+    return JSONUtils.parse<SerializedAccount>(data)
   }
 
-  async importPipe(): Promise<Account> {
+  async importPipe(): Promise<SerializedAccount> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -85,10 +85,10 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return JSONUtils.parse<Account>(data)
+    return JSONUtils.parse<SerializedAccount>(data)
   }
 
-  async importTTY(): Promise<Account> {
+  async importTTY(): Promise<SerializedAccount> {
     const accountName = (await cli.prompt('Enter the account name', {
       required: true,
     })) as string
