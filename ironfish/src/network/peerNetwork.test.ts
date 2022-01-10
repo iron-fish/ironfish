@@ -200,11 +200,13 @@ describe('PeerNetwork', () => {
         message: {
           type: NodeMessageType.NewBlock,
           nonce: 'nonce',
-          payload: { block: Buffer.alloc(0) },
+          payload: { block: { header: { hash: '0' } } },
         },
       })
 
-      expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalled()
+      expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, {
+        header: { hash: undefined },
+      })
     })
 
     describe('when the worker pool is saturated', () => {
