@@ -16,6 +16,7 @@ export type GetBlockInfoRequest = {
 export type GetBlockInfoResponse = {
   block: {
     graffiti: string
+    difficulty: string
     hash: string
     previousBlockHash: string
     sequence: number
@@ -47,6 +48,7 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
     block: yup
       .object({
         graffiti: yup.string().defined(),
+        difficulty: yup.string().defined(),
         hash: yup.string().defined(),
         previousBlockHash: yup.string().defined(),
         sequence: yup.number().defined(),
@@ -141,6 +143,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
     request.status(200).end({
       block: {
         graffiti: header.graffiti.toString('hex'),
+        difficulty: header.target.toDifficulty().toString(),
         hash: header.hash.toString('hex'),
         previousBlockHash: header.previousBlockHash.toString('hex'),
         sequence: Number(header.sequence),

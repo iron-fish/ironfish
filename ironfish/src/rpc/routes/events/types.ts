@@ -10,6 +10,8 @@ export type RpcBlock = {
   previousBlockHash: string
   timestamp: number
   transactions: Array<unknown>
+  difficulty: string
+  graffiti: string
 }
 
 export function serializeRpcBlock(block: Block): RpcBlock {
@@ -19,6 +21,8 @@ export function serializeRpcBlock(block: Block): RpcBlock {
     previousBlockHash: block.header.previousBlockHash.toString('hex'),
     timestamp: block.header.timestamp.valueOf(),
     transactions: [],
+    difficulty: block.header.target.toDifficulty().toString(),
+    graffiti: block.header.graffiti.toString('hex'),
   }
 }
 
@@ -29,5 +33,7 @@ export const RpcBlockSchema: yup.ObjectSchema<RpcBlock> = yup
     previousBlockHash: yup.string().defined(),
     timestamp: yup.number().defined(),
     transactions: yup.array().defined(),
+    difficulty: yup.string().defined(),
+    graffiti: yup.string().defined(),
   })
   .defined()
