@@ -582,6 +582,11 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
     }
 
+    // Hashes sent by the network are untrusted. Future messages should remove this field.
+    for (const block of response.message.payload.blocks) {
+      block.header.hash = undefined
+    }
+
     return response.message.payload.blocks
   }
 
@@ -759,6 +764,9 @@ export class PeerNetwork {
     if (!peer) {
       return false
     }
+
+    // Hashes sent by the network are untrusted. Future messages should remove this field.
+    block.header.hash = undefined
 
     try {
       return await this.node.syncer.addNewBlock(peer, block)
