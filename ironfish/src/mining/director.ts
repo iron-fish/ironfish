@@ -371,7 +371,7 @@ export class MiningDirector {
       this._minerAccount.spendingKey,
     )
 
-    this.logger.info(
+    this.logger.debug(
       `Constructed miner's reward transaction for account ${this._minerAccount.displayName}, block sequence ${newSequence}`,
     )
 
