@@ -363,10 +363,16 @@ export class MiningDirector {
       totalTransactionFees += transactionFee
     }
 
+    const newSequence = blockHeader.sequence + 1
+
     const minersFee = await this.strategy.createMinersFee(
       totalTransactionFees,
-      blockHeader.sequence + 1,
+      newSequence,
       this._minerAccount.spendingKey,
+    )
+
+    this.logger.debug(
+      `Constructed miner's reward transaction for account ${this._minerAccount.displayName}, block sequence ${newSequence}`,
     )
 
     return [minersFee, blockTransactions]
