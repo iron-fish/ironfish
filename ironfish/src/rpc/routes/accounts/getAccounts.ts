@@ -6,7 +6,7 @@ import { Account } from '../../../account'
 import { ApiNamespace, router } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type GetAccountsRequest = { default?: boolean } | undefined
+export type GetAccountsRequest = { default?: boolean; displayName?: boolean } | undefined
 export type GetAccountsResponse = { accounts: string[] }
 
 export const GetAccountsRequestSchema: yup.ObjectSchema<GetAccountsRequest> = yup
@@ -37,7 +37,7 @@ router.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
       accounts = node.accounts.listAccounts()
     }
 
-    const names = accounts.map((a) => a.name)
+    const names = accounts.map((a) => (request.data?.displayName ? a.displayName : a.name))
     request.end({ accounts: names })
   },
 )

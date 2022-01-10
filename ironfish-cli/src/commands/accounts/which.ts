@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { flags } from '@oclif/command'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -13,10 +14,14 @@ export class WhichCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    displayName: flags.boolean({
+      default: false,
+      description: `Display a hash of the account's read-only keys along with the account name`,
+    }),
   }
 
   async start(): Promise<void> {
-    this.parse(WhichCommand)
+    const { flags } = this.parse(WhichCommand)
 
     const client = await this.sdk.connectRpc()
 
@@ -24,7 +29,7 @@ export class WhichCommand extends IronfishCommand {
       content: {
         accounts: [accountName],
       },
-    } = await client.getAccounts({ default: true })
+    } = await client.getAccounts({ default: true, displayName: flags.displayName })
 
     if (!accountName) {
       this.log(

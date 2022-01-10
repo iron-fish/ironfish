@@ -41,6 +41,6 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   ExportAccountRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    request.end({ account: account })
+    request.end({ account: account.serialize() })
   },
 )
