@@ -24,6 +24,7 @@ export type ExportChainStreamResponse = {
     graffiti: string
     timestamp: number
     work: string
+    difficulty: string
     head: boolean
     latest: boolean
   }
@@ -49,6 +50,7 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
         graffiti: yup.string().defined(),
         timestamp: yup.number().defined(),
         work: yup.string().defined(),
+        difficulty: yup.string().defined(),
         head: yup.boolean().defined(),
         latest: yup.boolean().defined(),
       })
@@ -84,6 +86,7 @@ router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
           graffiti: block.graffiti.toString('ascii'),
           timestamp: block.timestamp.getTime(),
           work: block.work.toString(),
+          difficulty: block.target.toDifficulty().toString(),
           head: block.hash.equals(node.chain.head.hash),
           latest: block.hash.equals(node.chain.latest.hash),
         }
