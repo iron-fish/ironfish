@@ -4,6 +4,7 @@
 
 import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
 import { generateKey } from 'ironfish-rust-nodejs'
+import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
@@ -174,12 +175,16 @@ if (parentPort !== null) {
 }
 
 export function getWorkerPath(): string {
-  // Works around different paths when run under ts-jest
-  let path = __dirname
+  let workerPath = __dirname
 
-  if (path.includes('ironfish/src/workerPool')) {
-    path = path.replace('ironfish/src/workerPool', 'ironfish/build/src/workerPool')
+  // Works around different paths when run under ts-jest
+  const workerPoolPath = path.join('ironfish', 'src', 'workerPool')
+  if (workerPath.includes(workerPoolPath)) {
+    workerPath = workerPath.replace(
+      workerPoolPath,
+      path.join('ironfish', 'build', 'src', 'workerPool'),
+    )
   }
 
-  return path + '/worker.js'
+  return workerPath + '/worker.js'
 }
