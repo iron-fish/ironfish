@@ -5,7 +5,7 @@ import { GraffitiUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
-export default class Block extends IronfishCommand {
+export default class ShowBlock extends IronfishCommand {
   static description = 'Show the block header of a requested hash'
 
   static args = [
@@ -22,7 +22,7 @@ export default class Block extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = this.parse(Block)
+    const { args } = this.parse(ShowBlock)
     const search = args.search as string
 
     const client = await this.sdk.connectRpc()
