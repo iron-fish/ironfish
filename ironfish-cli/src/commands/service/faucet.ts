@@ -180,7 +180,7 @@ export default class Faucet extends IronfishCommand {
     const tx = await client.sendTransaction({
       fromAccountName: account,
       receives,
-      fee: BigInt(count * FAUCET_FEE).toString(),
+      fee: BigInt(faucetTransactions.length * FAUCET_FEE).toString(),
     })
 
     speed.add(1)
