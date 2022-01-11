@@ -144,12 +144,12 @@ export default class Faucet extends IronfishCommand {
 
     this.warnedFund = false
 
-    const count = Math.min(
+    const maxPossibleRecipients = Math.min(
       Number(BigInt(response.content.confirmed) / BigInt(FAUCET_AMOUNT + FAUCET_FEE)),
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
-    const faucetTransactions = await api.getNextFaucetTransactions(count)
+    const faucetTransactions = await api.getNextFaucetTransactions(maxPossibleRecipients)
 
     if (faucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
