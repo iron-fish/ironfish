@@ -26,11 +26,12 @@ body:
       value: "A bug happened!"
     validations:
       required: true
-  - type: textarea
+  - type: input
     id: version
     attributes:
       label: Version
       description: What version of our software are you running?
+      placeholder: ex. v0.0.0
     validations:
       required: true
   - type: dropdown
