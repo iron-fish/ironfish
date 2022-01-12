@@ -1,0 +1,30 @@
+name: Report a general issue
+description: In need of help or not sure which other template to pick? Use this!
+title: "[issue name]"
+assignees:
+  - iron-fish/code-review
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this issue!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Description
+      description: What do you need help with?
+      placeholder: My issue is...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of our software are you running?
+      placeholder: ex. v0.0.0
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
