@@ -115,19 +115,21 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const send = async (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = await Promise.all(
         block.transactions.map(async (transaction) => {
-          return {
-            hash: BlockHashSerdeInstance.serialize(transaction.hash()),
-            size: Buffer.from(
-              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-            ).byteLength,
-            fee: Number(await transaction.fee()),
-            notes: [...transaction.notes()].map((note) => ({
-              commitment: note.merkleHash().toString('hex'),
-            })),
-            spends: [...transaction.spends()].map((spend) => ({
-              nullifier: spend.nullifier.toString('hex'),
-            })),
-          }
+          return transaction.withReference(async () => {
+            return {
+              hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+              size: Buffer.from(
+                JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
+              ).byteLength,
+              fee: Number(await transaction.fee()),
+              notes: [...transaction.notes()].map((note) => ({
+                commitment: note.merkleHash().toString('hex'),
+              })),
+              spends: [...transaction.spends()].map((spend) => ({
+                nullifier: spend.nullifier.toString('hex'),
+              })),
+            }
+          })
         }),
       )
 
