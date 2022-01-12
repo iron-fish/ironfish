@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
-import { GraffitiUtils } from '../../../utils/graffiti'
+import { GraffitiUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
 export type FollowChainStreamRequest =
@@ -180,6 +180,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
 
     while (!request.closed) {
       await processor.update()
+      await PromiseUtils.sleep(1000)
     }
 
     request.end()
