@@ -65,17 +65,20 @@ export default class Sync extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    this.log(`Fetching head from ${apiHost}`)
-
     const api = new WebApi({ host: apiHost, token: apiToken })
-    const head = await api.head()
+
+    let head = args.head as string | null
+    if (!head) {
+      this.log(`Fetching head from ${apiHost}`)
+      head = await api.head()
+    }
 
     if (head) {
       this.log(`Starting from head ${head}`)
     }
 
     const response = client.followChainStream({
-      head: (args.head || head) as string | null,
+      head: head,
     })
 
     const speed = new Meter()
