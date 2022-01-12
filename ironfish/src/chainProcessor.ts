@@ -63,8 +63,12 @@ export class ChainProcessor {
     // Freeze this value in case it changes while were updating the head
     const chainHead = this.chain.head
 
+    if (chainHead.hash.equals(this.hash)) {
+      return
+    }
+
     const head = await this.chain.getHeader(this.hash)
-    if (!head || chainHead.hash.equals(head.hash)) {
+    if (!head) {
       return
     }
 
