@@ -8,6 +8,8 @@ import { Assert } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
+const BYTES_PER_MB = 1024 * 1024
+
 export default class Status extends IronfishCommand {
   static description = 'Show the status of the node'
 
@@ -62,6 +64,8 @@ export default class Status extends IronfishCommand {
 
 function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
+  const nodeHeapUsedMb = (content.node.heapUsed / BYTES_PER_MB).toFixed(2)
+  const nodeRssMb = (content.node.rss / BYTES_PER_MB).toFixed(2)
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
@@ -102,6 +106,8 @@ function renderStatus(content: GetStatusResponse): string {
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
+Node Heap Used       ${nodeHeapUsedMb} MB
+Node RSS             ${nodeRssMb} MB
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}

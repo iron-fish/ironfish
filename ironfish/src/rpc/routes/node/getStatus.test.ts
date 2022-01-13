@@ -14,6 +14,8 @@ describe('Route node/getStatus', () => {
     expect(response.content).toMatchObject({
       node: {
         status: 'stopped',
+        heapUsed: expect.any(Number),
+        rss: expect.any(Number),
       },
       miningDirector: {
         status: 'stopped',
