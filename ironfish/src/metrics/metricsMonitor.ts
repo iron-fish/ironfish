@@ -3,16 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../logger'
+import { SetIntervalToken } from '../utils'
+import { Gauge } from './gauge'
 import { Meter } from './meter'
-
-type Metric = {
-  start: () => void
-  stop: () => void
-}
 
 export class MetricsMonitor {
   private _started = false
-  private _metrics: Metric[] = []
+  private _meters: Meter[] = []
   readonly logger: Logger
 
   readonly p2p_InboundTraffic: Meter
@@ -22,6 +19,11 @@ export class MetricsMonitor {
   readonly p2p_OutboundTraffic: Meter
   readonly p2p_OutboundTraffic_WS: Meter
   readonly p2p_OutboundTraffic_WebRTC: Meter
+
+  readonly heapUsed: Gauge
+  readonly rss: Gauge
+  private memoryInterval: SetIntervalToken | null
+  private readonly memoryRefreshPeriodMs = 1000
 
   constructor(logger: Logger = createRootLogger()) {
     this.logger = logger
@@ -33,6 +35,10 @@ export class MetricsMonitor {
     this.p2p_OutboundTraffic = this.addMeter()
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
+
+    this.heapUsed = new Gauge()
+    this.rss = new Gauge()
+    this.memoryInterval = null
   }
 
   get started(): boolean {
@@ -41,20 +47,32 @@ export class MetricsMonitor {
 
   start(): void {
     this._started = true
-    this._metrics.forEach((m) => m.start())
+    this._meters.forEach((m) => m.start())
+
+    this.memoryInterval = setInterval(() => this.refreshMemory(), this.memoryRefreshPeriodMs)
   }
 
   stop(): void {
     this._started = false
-    this._metrics.forEach((m) => m.stop())
+    this._meters.forEach((m) => m.stop())
+
+    if (this.memoryInterval) {
+      clearTimeout(this.memoryInterval)
+    }
   }
 
   addMeter(): Meter {
     const meter = new Meter()
-    this._metrics.push(meter)
+    this._meters.push(meter)
     if (this._started) {
       meter.start()
     }
     return meter
+  }
+
+  private refreshMemory(): void {
+    const memoryUsage = process.memoryUsage()
+    this.heapUsed.value = memoryUsage.heapUsed
+    this.rss.value = memoryUsage.rss
   }
 }
