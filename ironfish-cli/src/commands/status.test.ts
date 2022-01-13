@@ -15,6 +15,8 @@ describe('status', () => {
       status: 'started',
       version: '0.0.0',
       git: 'src',
+    },
+    memory: {
       heapUsed: 1,
       rss: 2,
     },
@@ -67,8 +69,8 @@ describe('status', () => {
       .it('logs out data for the chain, node, mempool, and syncer', (ctx) => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
-        expectCli(ctx.stdout).include('Node Heap Used')
-        expectCli(ctx.stdout).include('Node RSS')
+        expectCli(ctx.stdout).include('Heap Used')
+        expectCli(ctx.stdout).include('RSS')
         expectCli(ctx.stdout).include('P2P Network')
         expectCli(ctx.stdout).include('Mining')
         expectCli(ctx.stdout).include('Mem Pool')
