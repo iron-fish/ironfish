@@ -15,6 +15,10 @@ describe('Route node/getStatus', () => {
       node: {
         status: 'stopped',
       },
+      memory: {
+        heapUsed: expect.any(Number),
+        rss: expect.any(Number),
+      },
       miningDirector: {
         status: 'stopped',
       },

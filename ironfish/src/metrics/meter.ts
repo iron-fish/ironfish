@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { SetIntervalToken } from '../utils'
 import { RollingAverage } from './rollingAverage'
 
 /**
@@ -22,7 +23,7 @@ export class Meter {
   private _rate5m: RollingAverage
   private _average: RollingAverage
   private _count = 0
-  private _interval: ReturnType<typeof setInterval> | null = null
+  private _interval: SetIntervalToken | null = null
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
