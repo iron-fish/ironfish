@@ -182,11 +182,15 @@ describe('Demonstrate the Sapling API', () => {
       const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      minersFee.withReference(() => {
+      await minersFee.withReference(async () => {
         expect(minersFee['transactionPosted']).not.toBeNull()
 
         expect(minersFee.notesLength()).toEqual(1)
         expect(minersFee['transactionPosted']).not.toBeNull()
+
+        // Reference returning happens on the promise jobs queue, so use an await
+        // to delay until reference returning is expected to happen
+        return Promise.resolve()
       })
 
       expect(minersFee['transactionPosted']).toBeNull()

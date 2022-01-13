@@ -47,13 +47,15 @@ export class Block {
       t.takeReference()
     }
 
-    try {
-      return callback()
-    } finally {
+    const result = callback()
+
+    Promise.resolve(result).finally(() => {
       for (const t of this.transactions) {
         t.returnReference()
       }
-    }
+    })
+
+    return result
   }
 
   /**
