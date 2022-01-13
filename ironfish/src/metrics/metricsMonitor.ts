@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../logger'
-import { SetTimeoutToken } from '../utils'
+import { SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -22,7 +22,7 @@ export class MetricsMonitor {
 
   readonly heapUsed: Gauge
   readonly rss: Gauge
-  private memoryInterval: SetTimeoutToken | null
+  private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
 
   constructor(logger: Logger = createRootLogger()) {

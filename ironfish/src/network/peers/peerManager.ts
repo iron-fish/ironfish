@@ -7,7 +7,7 @@ import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
-import { ArrayUtils, SetTimeoutToken } from '../../utils'
+import { ArrayUtils, SetIntervalToken } from '../../utils'
 import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
@@ -90,13 +90,13 @@ export class PeerManager {
    * setInterval handle for distributePeerList, which sends out peer lists and
    * requests for peer lists
    */
-  private distributePeerListHandle: SetTimeoutToken | undefined
+  private distributePeerListHandle: SetIntervalToken | undefined
 
   /**
    * setInterval handle for peer disposal, which removes peers from the list that we
    * no longer care about
    */
-  private disposePeersHandle: SetTimeoutToken | undefined
+  private disposePeersHandle: SetIntervalToken | undefined
 
   /**
    * Event fired when a new connection is successfully opened. Sends some identifying

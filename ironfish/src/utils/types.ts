@@ -35,6 +35,11 @@ export type UnwrapPromise<T> = T extends Promise<infer U>
  * */
 export type SetTimeoutToken = ReturnType<typeof setTimeout>
 
+/**
+ * The return type of `setInterval`. This type can be used with `clearInterval`.
+ */
+export type SetIntervalToken = ReturnType<typeof setInterval>
+
 export function IsNodeTimeout(timer: number | NodeJS.Timeout): timer is NodeJS.Timeout {
   return typeof timer !== 'number'
 }
