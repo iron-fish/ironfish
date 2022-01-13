@@ -58,11 +58,14 @@ export class Transaction {
    */
   withReference<R>(callback: (transaction: TransactionPosted) => R): R {
     const transaction = this.takeReference()
-    try {
-      return callback(transaction)
-    } finally {
+
+    const result = callback(transaction)
+
+    Promise.resolve(result).finally(() => {
       this.returnReference()
-    }
+    })
+
+    return result
   }
 
   /**
