@@ -4,7 +4,7 @@
 
 import type { Peer } from './peer'
 import { createRootLogger, Logger } from '../../logger'
-import { ArrayUtils } from '../../utils'
+import { ArrayUtils, SetTimeoutToken } from '../../utils'
 import { PeerManager } from './peerManager'
 
 /**
@@ -27,7 +27,7 @@ export class PeerConnectionManager {
   readonly maxPeers: number
 
   private started = false
-  private eventLoopTimer?: ReturnType<typeof setTimeout>
+  private eventLoopTimer?: SetTimeoutToken
 
   constructor(
     peerManager: PeerManager,
