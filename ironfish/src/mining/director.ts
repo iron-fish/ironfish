@@ -15,7 +15,7 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { submitMetric } from '../telemetry'
-import { AsyncUtils, ErrorUtils, GraffitiUtils } from '../utils'
+import { AsyncUtils, ErrorUtils, GraffitiUtils, SetTimeoutToken } from '../utils'
 
 /**
  * Number of transactions we are willing to store in a single block.
@@ -110,7 +110,7 @@ export class MiningDirector {
    * Setting an interval every 10 seconds to re-calculate the target for the
    * currentBlock based on updated timestamp
    */
-  miningDifficultyChangeTimeout: null | ReturnType<typeof setTimeout>
+  miningDifficultyChangeTimeout: null | SetTimeoutToken
 
   private _state: Readonly<DirectorState> = { type: 'STOPPED' }
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../logger'
+import { SetTimeoutToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -21,7 +22,7 @@ export class MetricsMonitor {
 
   readonly heapUsed: Gauge
   readonly rss: Gauge
-  private memoryInterval: ReturnType<typeof setInterval> | undefined
+  private memoryInterval: SetTimeoutToken | null
   private readonly memoryRefreshPeriodMs = 1000
 
   constructor(logger: Logger = createRootLogger()) {
@@ -37,6 +38,7 @@ export class MetricsMonitor {
 
     this.heapUsed = new Gauge()
     this.rss = new Gauge()
+    this.memoryInterval = null
   }
 
   get started(): boolean {
@@ -70,7 +72,7 @@ export class MetricsMonitor {
 
   private refreshMemory(): void {
     const memoryUsage = process.memoryUsage()
-    this.heapUsed.set(memoryUsage.heapUsed)
-    this.rss.set(memoryUsage.rss)
+    this.heapUsed.value = memoryUsage.heapUsed
+    this.rss.value = memoryUsage.rss
   }
 }
