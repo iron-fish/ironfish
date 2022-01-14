@@ -39,7 +39,8 @@ export class Miner extends IronfishCommand {
     }
 
     const client = this.sdk.client
-    const miner = new IronfishMiner(flags.threads)
+    const batchSize = this.sdk.config.get('minerBatchSize')
+    const miner = new IronfishMiner(flags.threads, batchSize)
 
     const successfullyMined = (request: MineRequest, randomness: number) => {
       this.log(
