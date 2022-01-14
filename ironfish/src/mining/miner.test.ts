@@ -8,6 +8,7 @@ import { mineHeader } from './mineHeader'
 import { Miner, MineRequest } from './miner'
 
 jest.mock('../primitives/blockheader')
+const testBatchSize = 100
 
 /**
  * Make an iterable of blocks suitable for async generation
@@ -29,7 +30,7 @@ async function* makeAsync(
 
 describe('Miner', () => {
   it('mines', async () => {
-    const miner = new Miner(1)
+    const miner = new Miner(1, testBatchSize)
 
     const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
     const stopSpy = jest.spyOn(miner.workerPool, 'stop')
@@ -54,7 +55,7 @@ describe('Miner', () => {
   })
 
   it('reschedules on new block', async () => {
-    const miner = new Miner(1)
+    const miner = new Miner(1, testBatchSize)
 
     const mineHeaderSpy = jest.spyOn(miner.workerPool, 'mineHeader')
     const stopSpy = jest.spyOn(miner.workerPool, 'stop')
@@ -91,7 +92,7 @@ describe('Miner', () => {
   })
 
   it('calls successfullyMined', async () => {
-    const miner = new Miner(1)
+    const miner = new Miner(1, testBatchSize)
     jest
       .spyOn(miner.workerPool, 'mineHeader')
       .mockImplementation((_id, _bytes, initialRandomness, _targetValue, _batchSize) => {
