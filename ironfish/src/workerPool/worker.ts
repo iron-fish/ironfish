@@ -186,5 +186,5 @@ export function getWorkerPath(): string {
     )
   }
 
-  return workerPath + '/worker.js'
+  return path.join(workerPath, 'worker.js')
 }

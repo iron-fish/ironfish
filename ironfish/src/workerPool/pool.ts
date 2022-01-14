@@ -102,7 +102,7 @@ export class WorkerPool {
       this.workers.push(worker)
     }
 
-    this.logger.debug(`Started worker pool with ${this.numWorkers} worker ${path}`)
+    this.logger.debug(`Started worker pool with ${this.numWorkers} workers using ${path}`)
   }
 
   async stop(): Promise<void> {
