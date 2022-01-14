@@ -184,21 +184,21 @@ export class IronfishSdk {
       privateIdentity: privateIdentity,
     })
 
-    const namespaces = [
-      ApiNamespace.account,
-      ApiNamespace.chain,
-      ApiNamespace.config,
-      ApiNamespace.event,
-      ApiNamespace.faucet,
-      ApiNamespace.miner,
-      ApiNamespace.node,
-      ApiNamespace.peer,
-      ApiNamespace.transaction,
-      ApiNamespace.telemetry,
-      ApiNamespace.worker,
-    ]
-
     if (this.config.get('enableRpcIpc')) {
+      const namespaces = [
+        ApiNamespace.account,
+        ApiNamespace.chain,
+        ApiNamespace.config,
+        ApiNamespace.event,
+        ApiNamespace.faucet,
+        ApiNamespace.miner,
+        ApiNamespace.node,
+        ApiNamespace.peer,
+        ApiNamespace.transaction,
+        ApiNamespace.telemetry,
+        ApiNamespace.worker,
+      ]
+
       await node.rpc.mount(
         new IpcAdapter(
           namespaces,
@@ -212,6 +212,18 @@ export class IronfishSdk {
     }
 
     if (this.config.get('enableRpcTcp')) {
+      const namespaces = [
+        ApiNamespace.chain,
+        ApiNamespace.event,
+        ApiNamespace.faucet,
+        ApiNamespace.miner,
+        ApiNamespace.node,
+        ApiNamespace.peer,
+        ApiNamespace.transaction,
+        ApiNamespace.telemetry,
+        ApiNamespace.worker,
+      ]
+
       await node.rpc.mount(
         new IpcAdapter(
           namespaces,
