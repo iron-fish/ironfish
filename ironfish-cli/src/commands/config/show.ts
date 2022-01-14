@@ -4,21 +4,14 @@
 import { flags } from '@oclif/command'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
-import {
-  ColorFlag,
-  ColorFlagKey,
-  ConfigFlag,
-  ConfigFlagKey,
-  DataDirFlag,
-  DataDirFlagKey,
-} from '../../flags'
+import { ColorFlag, ColorFlagKey } from '../../flags'
+import { RemoteFlags } from '../../flags'
 
 export class ShowCommand extends IronfishCommand {
   static description = `Print out the entire config`
 
   static flags = {
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
+    ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
     user: flags.boolean({
       description: 'only show config from the users datadir and not overrides',
