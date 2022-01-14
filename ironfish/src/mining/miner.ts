@@ -39,7 +39,7 @@ export class Miner {
   private tasks: Record<number, Promise<MineResult>> = {}
   private randomness = 0
 
-  constructor(numTasks: number, batchSize = 10000) {
+  constructor(numTasks: number, batchSize: number) {
     this.workerPool = new WorkerPool({ numWorkers: numTasks })
     this.batchSize = batchSize
     this.hashRate = new Meter()
