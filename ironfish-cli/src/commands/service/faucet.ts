@@ -20,13 +20,13 @@ export default class Faucet extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     api: flags.string({
-      char: 'e',
+      char: 'a',
       parse: (input: string): string => input.trim(),
       required: false,
       description: 'API host to sync to',
     }),
     token: flags.string({
-      char: 'e',
+      char: 't',
       parse: (input: string): string => input.trim(),
       required: false,
       description: 'API host token to authenticate with',
@@ -43,7 +43,7 @@ export default class Faucet extends IronfishCommand {
 
     if (!apiHost) {
       this.log(
-        `No api host found to upload blocks to. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
+        `No api host found to upload blocks to. You must set IRONFISH_API_HOST env variable or pass --api flag.`,
       )
       this.exit(1)
     }
@@ -125,6 +125,14 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
+    let faucetTransactions = await api.getNextFaucetTransactions(MAX_RECIPIENTS_PER_TRANSACTION)
+
+    if (faucetTransactions.length === 0) {
+      this.log('No faucet jobs, waiting 5s')
+      await PromiseUtils.sleep(5000)
+      return
+    }
+
     const response = await client.getAccountBalance({ account })
 
     if (BigInt(response.content.confirmed) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
@@ -149,13 +157,7 @@ export default class Faucet extends IronfishCommand {
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
-    const faucetTransactions = await api.getNextFaucetTransactions(maxPossibleRecipients)
-
-    if (faucetTransactions.length === 0) {
-      this.log('No faucet jobs, waiting 5s')
-      await PromiseUtils.sleep(5000)
-      return
-    }
+    faucetTransactions = faucetTransactions.slice(0, maxPossibleRecipients)
 
     this.log(
       `Starting ${JSON.stringify(
