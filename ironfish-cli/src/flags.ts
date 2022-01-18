@@ -14,6 +14,7 @@ export const RpcUseIpcFlagKey = 'rpc.ipc'
 export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
+export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
 
 export const VerboseFlag = flags.boolean({
   char: 'v',
@@ -61,6 +62,11 @@ export const RpcTcpPortFlag = flags.integer({
   description: 'the TCP port to listen for connections on',
 })
 
+export const RpcTcpSecureFlag = flags.boolean({
+  default: false,
+  description: 'allow sensitive config to be changed over TCP',
+})
+
 const localFlags: Record<string, IOptionFlag<unknown>> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as IOptionFlag<unknown>
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as IOptionFlag<unknown>
@@ -81,6 +87,7 @@ remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as IOptionFlag<unknown>
 
 /**
  * These flags should usually be used on any command that uses an
