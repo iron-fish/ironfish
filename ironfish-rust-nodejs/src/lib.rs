@@ -4,8 +4,8 @@
 
 use neon::prelude::*;
 
-use ironfish_rust::sapling_bls12;
 use ironfish_rust::mining;
+use ironfish_rust::sapling_bls12;
 
 pub mod structs;
 
@@ -87,9 +87,7 @@ fn generate_new_public_address(mut cx: FunctionContext) -> JsResult<JsObject> {
 fn mine_header_batch(mut cx: FunctionContext) -> JsResult<JsObject> {
     // Argument 1
     let header_buffer = cx.argument::<JsBuffer>(0)?;
-    let header_bytes = cx.borrow(&header_buffer, |data| {
-        data.as_mut_slice::<u8>()
-    });
+    let header_bytes = cx.borrow(&header_buffer, |data| data.as_mut_slice::<u8>());
     // Argument 2
     let initial_randomness = cx.argument::<JsNumber>(1)?.value(&mut cx) as i64;
     // Argument 3
@@ -101,9 +99,8 @@ fn mine_header_batch(mut cx: FunctionContext) -> JsResult<JsObject> {
     let batch_size = cx.argument::<JsNumber>(3)?.value(&mut cx) as i64;
 
     // Execute batch mine operation
-    let mine_header_result = mining::mine_header_batch(
-        header_bytes, initial_randomness, target, batch_size
-    );
+    let mine_header_result =
+        mining::mine_header_batch(header_bytes, initial_randomness, target, batch_size);
 
     // Return result
     mine_header_result.to_object(&mut cx)
