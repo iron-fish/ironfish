@@ -40,11 +40,11 @@ export class ChainProcessor {
     this.hash = options.head
   }
 
-  async add(header: BlockHeader): Promise<void> {
+  private async add(header: BlockHeader): Promise<void> {
     await this.onAdd.emitAsync(header)
   }
 
-  async remove(header: BlockHeader): Promise<void> {
+  private async remove(header: BlockHeader): Promise<void> {
     await this.onRemove.emitAsync(header)
   }
 
