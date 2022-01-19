@@ -224,6 +224,10 @@ export class IronfishSdk {
         ApiNamespace.worker,
       ]
 
+      if (this.config.get('rpcTcpSecure')) {
+        namespaces.push(ApiNamespace.account, ApiNamespace.config)
+      }
+
       await node.rpc.mount(
         new IpcAdapter(
           namespaces,
