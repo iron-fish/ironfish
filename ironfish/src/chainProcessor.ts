@@ -77,11 +77,12 @@ export class ChainProcessor {
       const iter = this.chain.iterateFrom(head, fork, undefined, false)
 
       for await (const remove of iter) {
-        if (!remove.hash.equals(fork.hash)) {
-          await this.remove(remove)
+        if (remove.hash.equals(fork.hash)) {
+          continue
         }
 
-        this.hash = remove.hash
+        await this.remove(remove)
+        this.hash = remove.previousBlockHash
       }
     }
 
