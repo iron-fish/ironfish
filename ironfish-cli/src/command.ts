@@ -6,13 +6,18 @@ import { IConfig } from '@oclif/config'
 import { ConfigOptions, ConnectionError, createRootLogger, IronfishSdk, Logger } from 'ironfish'
 import {
   ConfigFlagKey,
+  DatabaseFlag,
   DatabaseFlagKey,
   DataDirFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
+  RpcTcpSecureFlag,
   RpcTcpSecureFlagKey,
+  RpcUseIpcFlag,
   RpcUseIpcFlagKey,
+  RpcUseTcpFlag,
   RpcUseTcpFlagKey,
+  VerboseFlag,
   VerboseFlagKey,
 } from './flags'
 import { hasUserResponseError } from './utils'
@@ -82,17 +87,17 @@ export abstract class IronfishCommand extends Command {
     const configOverrides: Partial<ConfigOptions> = {}
 
     const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
-    if (typeof databaseNameFlag === 'string') {
+    if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
       configOverrides.databaseName = databaseNameFlag
     }
 
     const rpcConnectIpcFlag = getFlag(flags, RpcUseIpcFlagKey)
-    if (typeof rpcConnectIpcFlag === 'boolean') {
+    if (typeof rpcConnectIpcFlag === 'boolean' && rpcConnectIpcFlag !== RpcUseIpcFlag.default) {
       configOverrides.enableRpcIpc = rpcConnectIpcFlag
     }
 
     const rpcConnectTcpFlag = getFlag(flags, RpcUseTcpFlagKey)
-    if (typeof rpcConnectTcpFlag === 'boolean') {
+    if (typeof rpcConnectTcpFlag === 'boolean' && rpcConnectTcpFlag !== RpcUseTcpFlag.default) {
       configOverrides.enableRpcTcp = rpcConnectTcpFlag
     }
 
@@ -107,12 +112,15 @@ export abstract class IronfishCommand extends Command {
     }
 
     const rpcTcpSecureFlag = getFlag(flags, RpcTcpSecureFlagKey)
-    if (typeof rpcTcpSecureFlag === 'boolean') {
+    if (
+      typeof rpcTcpSecureFlag === 'boolean' &&
+      rpcTcpSecureFlag !== RpcTcpSecureFlag.default
+    ) {
       configOverrides.rpcTcpSecure = rpcTcpSecureFlag
     }
 
     const verboseFlag = getFlag(flags, VerboseFlagKey)
-    if (typeof verboseFlag === 'boolean' && verboseFlag) {
+    if (typeof verboseFlag === 'boolean' && verboseFlag !== VerboseFlag.default) {
       configOverrides.logLevel = '*:verbose'
     }
 
