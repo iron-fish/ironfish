@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '.'
 import { Blockchain } from './blockchain'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
@@ -61,9 +62,11 @@ export class ChainProcessor {
     }
 
     const head = await this.chain.getHeader(this.hash)
-    if (!head) {
-      return
-    }
+
+    Assert.isNotNull(
+      head,
+      `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
+    )
 
     const { fork, isLinear } = await this.chain.findFork(head, chainHead)
     if (!fork) {
