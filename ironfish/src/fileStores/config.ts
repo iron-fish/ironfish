@@ -14,6 +14,8 @@ export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transa
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/api/v1/writeTelemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
+export const DEFAULT_USE_RPC_IPC = true
+export const DEFAULT_USE_RPC_TCP = false
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -157,8 +159,8 @@ export class Config extends KeyStore<ConfigOptions> {
       enableLogFile: false,
       enableMiningDirector: false,
       enableRpc: true,
-      enableRpcIpc: true,
-      enableRpcTcp: false,
+      enableRpcIpc: DEFAULT_USE_RPC_IPC,
+      enableRpcTcp: DEFAULT_USE_RPC_TCP,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,

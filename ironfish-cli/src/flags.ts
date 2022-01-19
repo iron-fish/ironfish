@@ -3,7 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IOptionFlag } from '@oclif/command/lib/flags'
-import { DEFAULT_CONFIG_NAME, DEFAULT_DATA_DIR, DEFAULT_DATABASE_NAME } from 'ironfish'
+import {
+  DEFAULT_CONFIG_NAME,
+  DEFAULT_DATA_DIR,
+  DEFAULT_DATABASE_NAME,
+  DEFAULT_USE_RPC_IPC,
+  DEFAULT_USE_RPC_TCP,
+} from 'ironfish'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
@@ -45,12 +51,12 @@ export const DatabaseFlag = flags.string({
 })
 
 export const RpcUseIpcFlag = flags.boolean({
-  default: true,
+  default: DEFAULT_USE_RPC_IPC,
   description: 'connect to the RPC over IPC (default)',
 })
 
 export const RpcUseTcpFlag = flags.boolean({
-  default: false,
+  default: DEFAULT_USE_RPC_TCP,
   description: 'connect to the RPC over TCP',
 })
 
