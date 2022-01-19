@@ -20,7 +20,7 @@ struct Key {
     public_address: String,
 }
 
-impl Key {
+impl ToObjectExt for Key {
     fn to_object<'a>(&self, cx: &mut impl Context<'a>) -> JsResult<'a, JsObject> {
         let obj = cx.empty_object();
 
