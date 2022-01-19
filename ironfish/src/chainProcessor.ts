@@ -35,7 +35,7 @@ export class ChainProcessor {
 
   constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
     this.chain = options.chain
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = (options.logger ?? createRootLogger()).withTag('chainprocessor')
     this.hash = options.head
   }
 
