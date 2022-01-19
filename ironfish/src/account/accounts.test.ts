@@ -24,7 +24,7 @@ describe('Accounts', () => {
     await expect(chain).toAddBlock(blockA1)
 
     await node.accounts.updateHead()
-    expect(node.accounts['headHash']).toEqual(blockA1.header.hash)
+    expect(node.accounts['chainProcessor'].hash).toEqual(blockA1.header.hash)
     expect(getTransactionsSpy).toBeCalledTimes(2)
 
     // G -> A1 -> A2
@@ -32,7 +32,7 @@ describe('Accounts', () => {
     await expect(chain).toAddBlock(blockA2)
 
     await node.accounts.updateHead()
-    expect(node.accounts['headHash']).toEqual(blockA2.header.hash)
+    expect(node.accounts['chainProcessor'].hash).toEqual(blockA2.header.hash)
     expect(getTransactionsSpy).toBeCalledTimes(3)
 
     // Add 3 more on a heavier fork. Chain A should be removed first, then chain B added
@@ -47,18 +47,18 @@ describe('Accounts', () => {
     await expect(chain).toAddBlock(blockB3)
 
     await node.accounts.updateHead()
-    expect(node.accounts['headHash']).toEqual(blockB3.header.hash)
+    expect(node.accounts['chainProcessor'].hash).toEqual(blockB3.header.hash)
     expect(getTransactionsSpy).toBeCalledTimes(8)
   }, 8000)
 
-  it('should reset when headHash does not exist in chain', async () => {
+  it('should reset when chain processor head does not exist in chain', async () => {
     const { node, strategy } = nodeTest
     strategy.disableMiningReward()
 
     const resetSpy = jest.spyOn(node.accounts, 'reset').mockImplementation()
     jest.spyOn(node.accounts, 'eventLoop').mockImplementation(() => Promise.resolve())
 
-    node.accounts['headHash'] = Buffer.from('0')
+    node.accounts['chainProcessor'].hash = Buffer.from('0')
 
     await node.accounts.start()
     expect(resetSpy).toBeCalledTimes(1)
