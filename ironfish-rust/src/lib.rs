@@ -17,6 +17,7 @@ pub mod errors;
 pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
+pub mod mining;
 pub mod note;
 pub mod nullifiers;
 pub mod receiving;
