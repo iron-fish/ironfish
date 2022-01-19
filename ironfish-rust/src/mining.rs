@@ -1,3 +1,6 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use byteorder::{BigEndian, WriteBytesExt};
 use num_bigint::BigUint;
 
@@ -5,8 +8,8 @@ use num_bigint::BigUint;
 const MAX_SAFE_INTEGER: i64 = 9007199254740991;
 
 pub struct MineHeaderResult {
-     pub randomness: f64,
-     pub found_match: bool,
+    pub randomness: f64,
+    pub found_match: bool,
 }
 
 pub fn slice_to_biguint(slice: &[u8]) -> BigUint {
@@ -21,13 +24,18 @@ pub fn randomize_header(initial_randomness: i64, i: i64, mut header_bytes: &mut 
         initial_randomness + i
     };
 
-    header_bytes.write_f64::<BigEndian>(randomness as f64).unwrap();
+    header_bytes
+        .write_f64::<BigEndian>(randomness as f64)
+        .unwrap();
 
     randomness
 }
 
 pub fn mine_header_batch(
-    header_bytes: &mut [u8], initial_randomness: i64, target: BigUint, batch_size: i64,
+    header_bytes: &mut [u8],
+    initial_randomness: i64,
+    target: BigUint,
+    batch_size: i64,
 ) -> MineHeaderResult {
     let mut result = MineHeaderResult {
         randomness: 0.0,
@@ -61,12 +69,7 @@ mod test {
         let target = 1.to_biguint().unwrap();
         let batch_size = 1;
 
-        let result = mine_header_batch(
-            header_bytes,
-            initial_randomness,
-            target,
-            batch_size,
-        );
+        let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
 
         assert_eq!(result.randomness, 0.0);
         assert_eq!(result.found_match, false);
@@ -82,15 +85,11 @@ mod test {
         // This allows us to test the looping and target comparison a little better
         let target = BigUint::parse_bytes(
             b"79252921311571896876741732122853158648377418256230310330051824308488495331022",
-            10
-        ).unwrap();
+            10,
+        )
+        .unwrap();
 
-        let result = mine_header_batch(
-            header_bytes,
-            initial_randomness,
-            target,
-            batch_size,
-        );
+        let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
 
         assert_eq!(result.randomness, 43.0);
         assert_eq!(result.found_match, true);
