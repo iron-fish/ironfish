@@ -48,17 +48,19 @@ export class ChainProcessor {
     await this.onRemove.emitAsync(header)
   }
 
-  async update(): Promise<void> {
+  async update(): Promise<{ hashChanged: boolean }> {
+    const oldHash = this.hash
+
     if (!this.hash) {
       await this.add(this.chain.genesis)
       this.hash = this.chain.genesis.hash
     }
 
-    // Freeze this value in case it changes while were updating the head
+    // Freeze this value in case it changes while we're updating the head
     const chainHead = this.chain.head
 
     if (chainHead.hash.equals(this.hash)) {
-      return
+      return { hashChanged: false }
     }
 
     const head = await this.chain.getHeader(this.hash)
@@ -70,7 +72,7 @@ export class ChainProcessor {
 
     const { fork, isLinear } = await this.chain.findFork(head, chainHead)
     if (!fork) {
-      return
+      return { hashChanged: false }
     }
 
     if (!isLinear) {
@@ -96,5 +98,7 @@ export class ChainProcessor {
       await this.add(add)
       this.hash = add.hash
     }
+
+    return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
   }
 }

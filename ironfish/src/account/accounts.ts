@@ -124,11 +124,13 @@ export class Accounts {
     this.updateHeadState = new ScanState()
 
     try {
-      await this.chainProcessor.update()
+      const { hashChanged } = await this.chainProcessor.update()
 
-      this.logger.debug(
-        `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
-      )
+      if (hashChanged) {
+        this.logger.debug(
+          `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
+        )
+      }
     } finally {
       this.updateHeadState.signalComplete()
       this.updateHeadState = null
