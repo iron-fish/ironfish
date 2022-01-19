@@ -28,20 +28,13 @@ import { BlockHeader } from './primitives'
  */
 export class ChainProcessor {
   chain: Blockchain
-  name: string | null
   hash: Buffer | null = null
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
 
-  constructor(options: {
-    name?: string
-    logger?: Logger
-    chain: Blockchain
-    head: Buffer | null
-  }) {
+  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
     this.chain = options.chain
-    this.name = options.name ?? null
     this.logger = options.logger ?? createRootLogger()
     this.hash = options.head
   }
