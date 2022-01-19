@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
-import { Package } from '../../../package'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
@@ -177,8 +176,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     node: {
       status: node.started ? 'started' : 'stopped',
-      version: Package.version,
-      git: Package.git,
+      version: node.pkg.version,
+      git: node.pkg.git,
     },
     memory: {
       heapUsed: node.metrics.heapUsed.value,

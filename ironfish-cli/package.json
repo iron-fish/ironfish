@@ -1,6 +1,6 @@
 {
   "name": "ironfish-cli",
-  "version": "0.0.0",
+  "version": "0.1.19",
   "description": "Command line Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "engines": {

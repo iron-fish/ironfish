@@ -20,6 +20,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from './flags'
+import { IronfishCliPKG } from './package'
 import { hasUserResponseError } from './utils'
 
 export type SIGNALS = 'SIGTERM' | 'SIGINT' | 'SIGUSR2'
@@ -125,7 +126,7 @@ export abstract class IronfishCommand extends Command {
     }
 
     this.sdk = await IronfishSdk.init({
-      agent: 'cli',
+      pkg: IronfishCliPKG,
       configOverrides: configOverrides,
       configName: typeof configFlag === 'string' ? configFlag : undefined,
       dataDir: typeof dataDirFlag === 'string' ? dataDirFlag : undefined,
