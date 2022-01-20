@@ -320,6 +320,7 @@ export class Accounts {
     this.transactionMap.clear()
     this.noteToNullifier.clear()
     this.nullifierToNote.clear()
+    this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
     await this.updateHeadHash(null)
   }
