@@ -20,6 +20,7 @@ export class MetricsMonitor {
   readonly p2p_OutboundTraffic_WS: Meter
   readonly p2p_OutboundTraffic_WebRTC: Meter
 
+  readonly heapTotal: Gauge
   readonly heapUsed: Gauge
   readonly rss: Gauge
   private memoryInterval: SetIntervalToken | null
@@ -36,6 +37,7 @@ export class MetricsMonitor {
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
 
+    this.heapTotal = new Gauge()
     this.heapUsed = new Gauge()
     this.rss = new Gauge()
     this.memoryInterval = null
@@ -72,6 +74,7 @@ export class MetricsMonitor {
 
   private refreshMemory(): void {
     const memoryUsage = process.memoryUsage()
+    this.heapTotal.value = memoryUsage.heapTotal
     this.heapUsed.value = memoryUsage.heapUsed
     this.rss.value = memoryUsage.rss
   }

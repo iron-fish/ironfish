@@ -3,8 +3,8 @@
 This is the core API for interacting with transactions and the chain. It's essentially a facade to a lot of different projects.
 
 This is the only Iron Fish project that knows about the
-[Sapling](https://github.com/zcash/librustzcash/tree/master/sapling-crypto)
-api and its zero knowledge proving mechanism.
+[Sapling](https://github.com/zcash/librustzcash/tree/master/zcash_primitives/src/sapling)
+API and its zero knowledge [proving mechanism](https://github.com/zcash/librustzcash/tree/master/zcash_proofs/src/sapling).
 
 There are theoretically different kinds of elliptical curves that can be used with Sapling, but we are currently
 depending on the BLS12 curve. Everything in ironfish-rust is parameterized on the curve type, but there

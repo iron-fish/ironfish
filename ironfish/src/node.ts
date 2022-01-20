@@ -13,6 +13,8 @@ import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
+import { Package } from './package'
+import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
@@ -34,13 +36,14 @@ export class IronfishNode {
   rpc: RpcServer
   peerNetwork: PeerNetwork
   syncer: Syncer
+  pkg: Package
 
   started = false
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
   private constructor({
-    agent,
+    pkg,
     chain,
     files,
     config,
@@ -56,7 +59,7 @@ export class IronfishNode {
     webSocket,
     privateIdentity,
   }: {
-    agent: string
+    pkg: Package
     files: FileSystem
     config: Config
     internal: InternalStore
@@ -84,10 +87,11 @@ export class IronfishNode {
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)
     this.logger = logger
+    this.pkg = pkg
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
-      agent: agent,
+      agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
       name: config.get('nodeName'),
       maxPeers: config.get('maxPeers'),
@@ -120,7 +124,7 @@ export class IronfishNode {
   }
 
   static async init({
-    agent,
+    pkg: pkg,
     databaseName,
     dataDir,
     config,
@@ -133,7 +137,7 @@ export class IronfishNode {
     webSocket,
     privateIdentity,
   }: {
-    agent: string
+    pkg: Package
     dataDir?: string
     config?: Config
     internal?: InternalStore
@@ -208,10 +212,10 @@ export class IronfishNode {
     })
 
     const anonymousTelemetryId = Math.random().toString().substring(2)
-    setDefaultTags({ version: agent, sessionId: anonymousTelemetryId })
+    setDefaultTags({ version: pkg.version, sessionId: anonymousTelemetryId })
 
     return new IronfishNode({
-      agent,
+      pkg,
       chain,
       strategy,
       files,

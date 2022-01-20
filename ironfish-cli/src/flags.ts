@@ -3,7 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { IOptionFlag } from '@oclif/command/lib/flags'
-import { DEFAULT_CONFIG_NAME, DEFAULT_DATA_DIR, DEFAULT_DATABASE_NAME } from 'ironfish'
+import {
+  DEFAULT_CONFIG_NAME,
+  DEFAULT_DATA_DIR,
+  DEFAULT_DATABASE_NAME,
+  DEFAULT_USE_RPC_IPC,
+  DEFAULT_USE_RPC_TCP,
+} from 'ironfish'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
@@ -14,6 +20,7 @@ export const RpcUseIpcFlagKey = 'rpc.ipc'
 export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
+export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
 
 export const VerboseFlag = flags.boolean({
   char: 'v',
@@ -44,12 +51,12 @@ export const DatabaseFlag = flags.string({
 })
 
 export const RpcUseIpcFlag = flags.boolean({
-  default: true,
+  default: DEFAULT_USE_RPC_IPC,
   description: 'connect to the RPC over IPC (default)',
 })
 
 export const RpcUseTcpFlag = flags.boolean({
-  default: false,
+  default: DEFAULT_USE_RPC_TCP,
   description: 'connect to the RPC over TCP',
 })
 
@@ -59,6 +66,11 @@ export const RpcTcpHostFlag = flags.string({
 
 export const RpcTcpPortFlag = flags.integer({
   description: 'the TCP port to listen for connections on',
+})
+
+export const RpcTcpSecureFlag = flags.boolean({
+  default: false,
+  description: 'allow sensitive config to be changed over TCP',
 })
 
 const localFlags: Record<string, IOptionFlag<unknown>> = {}
@@ -81,6 +93,7 @@ remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as IOptionFlag<unknown>
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as IOptionFlag<unknown>
+remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as IOptionFlag<unknown>
 
 /**
  * These flags should usually be used on any command that uses an

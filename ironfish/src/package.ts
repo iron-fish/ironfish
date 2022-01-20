@@ -2,11 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import pkg from '../package.json'
+import pkgJson from '../package.json'
 
-export const Package = {
-  name: pkg.name,
-  license: pkg.license,
-  version: pkg.version,
-  git: pkg.gitHash || 'src',
+interface PackageJson {
+  name: string
+  license: string
+  version: string
+  gitHash?: string
 }
+
+export type Package = {
+  name: string
+  license: string
+  version: string
+  git: string
+}
+
+export const getPackageFrom = (p: PackageJson): Package => ({
+  name: p.name,
+  license: p.license,
+  version: p.version,
+  git: p.gitHash || 'src',
+})
+
+export const IronfishPKG = getPackageFrom(pkgJson)

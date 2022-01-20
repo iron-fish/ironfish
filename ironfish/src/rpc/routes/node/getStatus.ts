@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
-import { Package } from '../../../package'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
@@ -20,6 +19,7 @@ export type GetStatusResponse = {
     git: string
   }
   memory: {
+    heapTotal: number
     heapUsed: number
     rss: number
   }
@@ -77,6 +77,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .defined(),
     memory: yup
       .object({
+        heapTotal: yup.number().defined(),
         heapUsed: yup.number().defined(),
         rss: yup.number().defined(),
       })
@@ -177,10 +178,11 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     node: {
       status: node.started ? 'started' : 'stopped',
-      version: Package.version,
-      git: Package.git,
+      version: node.pkg.version,
+      git: node.pkg.git,
     },
     memory: {
+      heapTotal: node.metrics.heapTotal.value,
       heapUsed: node.metrics.heapUsed.value,
       rss: node.metrics.rss.value,
     },

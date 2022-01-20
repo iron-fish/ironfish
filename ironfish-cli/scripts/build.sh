@@ -18,8 +18,13 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
-echo "Inserting GIT hash into ironfish/package.json as gitHash"
+
 GIT_HASH=$(git rev-parse --short HEAD)
+
+echo "Inserting GIT hash into ironfish-cli/package.json as gitHash"
+cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish-cli/package.json)" > ironfish-cli/package.json
+
+echo "Inserting GIT hash into ironfish/package.json as gitHash"
 cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
 
 echo "Installing from lockfile"

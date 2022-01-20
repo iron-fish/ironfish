@@ -1,0 +1,97 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use byteorder::{BigEndian, WriteBytesExt};
+use num_bigint::BigUint;
+
+// Javascript's Number.MAX_SAFE_INTEGER
+const MAX_SAFE_INTEGER: i64 = 9007199254740991;
+
+pub struct MineHeaderResult {
+    pub randomness: f64,
+    pub found_match: bool,
+}
+
+pub fn slice_to_biguint(slice: &[u8]) -> BigUint {
+    BigUint::from_bytes_be(slice)
+}
+
+pub fn randomize_header(initial_randomness: i64, i: i64, mut header_bytes: &mut [u8]) -> i64 {
+    // The intention here is to wrap randomness between 0 inclusive and Number.MAX_SAFE_INTEGER inclusive
+    let randomness = if i > MAX_SAFE_INTEGER + initial_randomness {
+        i - (MAX_SAFE_INTEGER - initial_randomness) - 1
+    } else {
+        initial_randomness + i
+    };
+
+    header_bytes
+        .write_f64::<BigEndian>(randomness as f64)
+        .unwrap();
+
+    randomness
+}
+
+pub fn mine_header_batch(
+    header_bytes: &mut [u8],
+    initial_randomness: i64,
+    target: BigUint,
+    batch_size: i64,
+) -> MineHeaderResult {
+    let mut result = MineHeaderResult {
+        randomness: 0.0,
+        found_match: false,
+    };
+
+    for i in 0..batch_size {
+        let randomness = randomize_header(initial_randomness, i, header_bytes);
+        let hash = blake3::hash(&header_bytes);
+        let new_target = BigUint::from_bytes_be(hash.as_bytes());
+
+        if new_target <= target {
+            result.randomness = randomness as f64;
+            result.found_match = true;
+            break;
+        }
+    }
+
+    result
+}
+
+#[cfg(test)]
+mod test {
+    use super::mine_header_batch;
+    use num_bigint::{BigUint, ToBigUint};
+
+    #[test]
+    fn test_mine_header_batch_no_match() {
+        let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
+        let initial_randomness = 42;
+        let target = 1.to_biguint().unwrap();
+        let batch_size = 1;
+
+        let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
+
+        assert_eq!(result.randomness, 0.0);
+        assert_eq!(result.found_match, false);
+    }
+
+    #[test]
+    fn test_mine_header_batch_match() {
+        let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
+        let initial_randomness = 42;
+        let batch_size = 2;
+
+        // Hardcoded target value derived from a randomness of 43, which is lower than 42
+        // This allows us to test the looping and target comparison a little better
+        let target = BigUint::parse_bytes(
+            b"79252921311571896876741732122853158648377418256230310330051824308488495331022",
+            10,
+        )
+        .unwrap();
+
+        let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
+
+        assert_eq!(result.randomness, 43.0);
+        assert_eq!(result.found_match, true);
+    }
+}

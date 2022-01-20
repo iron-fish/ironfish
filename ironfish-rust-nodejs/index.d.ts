@@ -16,6 +16,10 @@ interface IWitness {
     treeSize(): number;
     serializeRootHash(): Uint8Array;
 }
+export interface mineHeaderResult {
+    readonly randomness: number;
+    readonly foundMatch: boolean;
+}
 export declare class Note {
     boxedData: unknown;
     constructor();
@@ -84,5 +88,6 @@ export declare class TransactionPosted {
 }
 export declare const generateKey: () => Key;
 export declare const generateNewPublicAddress: (privateKey: string) => Key;
+export declare const mineHeaderBatch: (headerBytes: Buffer, initialRandomness: number, target: Buffer, batchSize: number) => mineHeaderResult;
 export {};
 //# sourceMappingURL=index.d.ts.map

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
 import * as ironfishmodule from 'ironfish'
+import { IronfishCliPKG } from '../package'
 
 jest.mock('ironfish', () => {
   const originalModule = jest.requireActual('ironfish')
@@ -106,6 +107,7 @@ describe('start command', () => {
       config: config,
       internal: internal,
       chain: chain,
+      pkg: IronfishCliPKG,
     }
 
     ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => ({

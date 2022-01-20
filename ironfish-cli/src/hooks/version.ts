@@ -4,8 +4,8 @@
 
 /* eslint-disable no-console */
 import { Hook } from '@oclif/config'
-import { Package } from 'ironfish'
 import { Platform } from 'ironfish'
+import { IronfishCliPKG } from '../package'
 
 const VersionHook: Hook<'init'> = (): void => {
   const isVersionCmd = process.argv[2] === 'version'
@@ -15,9 +15,9 @@ const VersionHook: Hook<'init'> = (): void => {
   if (showVersion) {
     const runtime = Platform.getRuntime()
 
-    console.log(`name       ${Package.name}`)
-    console.log(`version    ${Package.version}`)
-    console.log(`git        ${Package.git}`)
+    console.log(`name       ${IronfishCliPKG.name}`)
+    console.log(`version    ${IronfishCliPKG.version}`)
+    console.log(`git        ${IronfishCliPKG.git}`)
     console.log(`runtime    ${runtime.type}/${runtime.runtime}`)
 
     return process.exit(0)

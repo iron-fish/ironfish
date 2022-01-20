@@ -6,14 +6,21 @@ import { IConfig } from '@oclif/config'
 import { ConfigOptions, ConnectionError, createRootLogger, IronfishSdk, Logger } from 'ironfish'
 import {
   ConfigFlagKey,
+  DatabaseFlag,
   DatabaseFlagKey,
   DataDirFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
+  RpcTcpSecureFlag,
+  RpcTcpSecureFlagKey,
+  RpcUseIpcFlag,
   RpcUseIpcFlagKey,
+  RpcUseTcpFlag,
   RpcUseTcpFlagKey,
+  VerboseFlag,
   VerboseFlagKey,
 } from './flags'
+import { IronfishCliPKG } from './package'
 import { hasUserResponseError } from './utils'
 
 export type SIGNALS = 'SIGTERM' | 'SIGINT' | 'SIGUSR2'
@@ -26,6 +33,7 @@ export type FLAGS =
   | typeof RpcUseTcpFlagKey
   | typeof RpcTcpHostFlagKey
   | typeof RpcTcpPortFlagKey
+  | typeof RpcTcpSecureFlagKey
   | typeof VerboseFlagKey
 
 export abstract class IronfishCommand extends Command {
@@ -80,17 +88,17 @@ export abstract class IronfishCommand extends Command {
     const configOverrides: Partial<ConfigOptions> = {}
 
     const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
-    if (typeof databaseNameFlag === 'string') {
+    if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
       configOverrides.databaseName = databaseNameFlag
     }
 
     const rpcConnectIpcFlag = getFlag(flags, RpcUseIpcFlagKey)
-    if (typeof rpcConnectIpcFlag === 'boolean') {
+    if (typeof rpcConnectIpcFlag === 'boolean' && rpcConnectIpcFlag !== RpcUseIpcFlag.default) {
       configOverrides.enableRpcIpc = rpcConnectIpcFlag
     }
 
     const rpcConnectTcpFlag = getFlag(flags, RpcUseTcpFlagKey)
-    if (typeof rpcConnectTcpFlag === 'boolean') {
+    if (typeof rpcConnectTcpFlag === 'boolean' && rpcConnectTcpFlag !== RpcUseTcpFlag.default) {
       configOverrides.enableRpcTcp = rpcConnectTcpFlag
     }
 
@@ -104,13 +112,21 @@ export abstract class IronfishCommand extends Command {
       configOverrides.rpcTcpPort = rpcTcpPortFlag
     }
 
+    const rpcTcpSecureFlag = getFlag(flags, RpcTcpSecureFlagKey)
+    if (
+      typeof rpcTcpSecureFlag === 'boolean' &&
+      rpcTcpSecureFlag !== RpcTcpSecureFlag.default
+    ) {
+      configOverrides.rpcTcpSecure = rpcTcpSecureFlag
+    }
+
     const verboseFlag = getFlag(flags, VerboseFlagKey)
-    if (typeof verboseFlag === 'boolean' && verboseFlag) {
+    if (typeof verboseFlag === 'boolean' && verboseFlag !== VerboseFlag.default) {
       configOverrides.logLevel = '*:verbose'
     }
 
     this.sdk = await IronfishSdk.init({
-      agent: 'cli',
+      pkg: IronfishCliPKG,
       configOverrides: configOverrides,
       configName: typeof configFlag === 'string' ? configFlag : undefined,
       dataDir: typeof dataDirFlag === 'string' ? dataDirFlag : undefined,

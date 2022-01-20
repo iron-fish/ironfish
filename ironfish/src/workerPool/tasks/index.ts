@@ -51,7 +51,7 @@ export async function handleRequest(
       response = handleUnboxMessage(body)
       break
     case 'mineHeader':
-      response = handleMineHeader(body, job)
+      response = handleMineHeader(body)
       break
     case 'sleep':
       response = await handleSleep(body, job)

@@ -2,15 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import {
-  Assert,
-  IronfishNode,
-  NodeUtils,
-  Package,
-  PrivateIdentity,
-  PromiseUtils,
-} from 'ironfish'
-import { Platform } from 'ironfish'
+import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
 import tweetnacl from 'tweetnacl'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
@@ -24,6 +16,8 @@ import {
   RpcTcpHostFlagKey,
   RpcTcpPortFlag,
   RpcTcpPortFlagKey,
+  RpcTcpSecureFlag,
+  RpcTcpSecureFlagKey,
   RpcUseIpcFlag,
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
@@ -47,6 +41,7 @@ export default class Start extends IronfishCommand {
     [RpcUseTcpFlagKey]: { ...RpcUseTcpFlag, allowNo: true },
     [RpcTcpHostFlagKey]: RpcTcpHostFlag,
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
+    [RpcTcpSecureFlagKey]: RpcTcpSecureFlag,
     bootstrap: flags.string({
       char: 'b',
       description: 'comma-separated addresses of bootstrap nodes to connect to',
@@ -167,15 +162,14 @@ export default class Start extends IronfishCommand {
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
-    const peerAgent = Platform.getAgent('cli')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
-    this.log(`Version       ${Package.version} @ ${Package.git}`)
+    this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
     this.log(`Node Name     ${nodeName || 'NONE'}`)
     this.log(`Graffiti      ${blockGraffiti || 'NONE'}`)
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
-    this.log(`Peer Agent    ${peerAgent}`)
+    this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     this.log(` `)

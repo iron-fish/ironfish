@@ -32,6 +32,16 @@ function round(value: number, places: number): number {
 }
 
 /**
+ * Floor the decimal places to @places
+ */
+function floor(value: number, places: number): number {
+  const multiplier = Math.pow(10, places)
+  const adjusted = value * multiplier
+  const truncated = adjusted < 0 ? Math.ceil(adjusted) : Math.floor(adjusted)
+  return truncated / multiplier
+}
+
+/**
  * Round a number to the nearest threshold increment
  */
 function roundBy(num: number, threshold: number): number {
@@ -46,4 +56,4 @@ function min<T extends number | bigint>(a: T, b: T): T {
   return a > b ? b : a
 }
 
-export const MathUtils = { arrayAverage, arraySum, round, roundBy, min, max }
+export const MathUtils = { arrayAverage, arraySum, round, roundBy, min, max, floor }

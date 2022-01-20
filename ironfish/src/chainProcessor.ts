@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Blockchain } from './blockchain'
+import type { Blockchain } from './blockchain'
+import type { BlockHeader } from './primitives'
+import { Assert } from './assert'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
-import { BlockHeader } from './primitives'
 
 /**
  * This is used to get a non synchronous chain of block events from the blockchain
@@ -28,64 +29,62 @@ import { BlockHeader } from './primitives'
  */
 export class ChainProcessor {
   chain: Blockchain
-  name: string | null
   hash: Buffer | null = null
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
 
-  constructor(options: {
-    name?: string
-    logger?: Logger
-    chain: Blockchain
-    head: Buffer | null
-  }) {
+  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
     this.chain = options.chain
-    this.name = options.name ?? null
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = (options.logger ?? createRootLogger()).withTag('chainprocessor')
     this.hash = options.head
   }
 
-  async add(header: BlockHeader): Promise<void> {
+  private async add(header: BlockHeader): Promise<void> {
     await this.onAdd.emitAsync(header)
   }
 
-  async remove(header: BlockHeader): Promise<void> {
+  private async remove(header: BlockHeader): Promise<void> {
     await this.onRemove.emitAsync(header)
   }
 
-  async update(): Promise<void> {
+  async update(): Promise<{ hashChanged: boolean }> {
+    const oldHash = this.hash
+
     if (!this.hash) {
       await this.add(this.chain.genesis)
       this.hash = this.chain.genesis.hash
     }
 
-    // Freeze this value in case it changes while were updating the head
+    // Freeze this value in case it changes while we're updating the head
     const chainHead = this.chain.head
 
     if (chainHead.hash.equals(this.hash)) {
-      return
+      return { hashChanged: false }
     }
 
     const head = await this.chain.getHeader(this.hash)
-    if (!head) {
-      return
-    }
+
+    Assert.isNotNull(
+      head,
+      `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
+    )
 
     const { fork, isLinear } = await this.chain.findFork(head, chainHead)
     if (!fork) {
-      return
+      return { hashChanged: false }
     }
 
     if (!isLinear) {
       const iter = this.chain.iterateFrom(head, fork, undefined, false)
 
       for await (const remove of iter) {
-        if (!remove.hash.equals(fork.hash)) {
-          await this.remove(remove)
+        if (remove.hash.equals(fork.hash)) {
+          continue
         }
 
-        this.hash = remove.hash
+        await this.remove(remove)
+        this.hash = remove.previousBlockHash
       }
     }
 
@@ -99,5 +98,7 @@ export class ChainProcessor {
       await this.add(add)
       this.hash = add.hash
     }
+
+    return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
   }
 }
