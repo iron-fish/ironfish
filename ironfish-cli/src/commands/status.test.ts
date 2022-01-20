@@ -17,8 +17,9 @@ describe('status', () => {
       git: 'src',
     },
     memory: {
+      heapTotal: 2,
       heapUsed: 1,
-      rss: 2,
+      rss: 3,
     },
     miningDirector: { status: 'stopped', miners: 0, blocks: 0 },
     memPool: { size: 0 },

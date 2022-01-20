@@ -19,6 +19,7 @@ export type GetStatusResponse = {
     git: string
   }
   memory: {
+    heapTotal: number
     heapUsed: number
     rss: number
   }
@@ -76,6 +77,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .defined(),
     memory: yup
       .object({
+        heapTotal: yup.number().defined(),
         heapUsed: yup.number().defined(),
         rss: yup.number().defined(),
       })
@@ -180,6 +182,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       git: node.pkg.git,
     },
     memory: {
+      heapTotal: node.metrics.heapTotal.value,
       heapUsed: node.metrics.heapUsed.value,
       rss: node.metrics.rss.value,
     },
