@@ -34,8 +34,8 @@ export default class Debug extends IronfishCommand {
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
     this.log(`
-Ironfish version        ${Package.version} @ ${Package.git}
-Operating System        ${os.type()} ${process.arch}
+Iron Fish version       ${Package.version} @ ${Package.git}
+Operating system        ${os.type()} ${process.arch}
 CPU model               ${cpuName}
 CPU threads             ${cpuThreads}
 RAM total               ${memTotal}
