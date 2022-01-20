@@ -5,6 +5,7 @@ import { flags } from '@oclif/command'
 import cli from 'cli-ux'
 import {
   AsyncUtils,
+  FileUtils,
   Miner as IronfishMiner,
   MineRequest,
   NewBlocksStreamResponse,
@@ -58,7 +59,9 @@ export class Miner extends IronfishCommand {
     }
 
     const updateHashPower = () => {
-      cli.action.status = `${Math.max(0, Math.floor(miner.hashRate.rate5s))} H/s`
+      const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
+      const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
+      cli.action.status = formatted
     }
 
     const onStartMine = (request: MineRequest) => {
