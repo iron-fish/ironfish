@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeUtils, Package } from 'ironfish'
+import { FileUtils, NodeUtils, Package } from 'ironfish'
+import os from 'os'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -24,14 +25,22 @@ export default class Debug extends IronfishCommand {
     const accountsHeadInChain = !!accountsBlockHeader
     const accountsHeadSequence = accountsBlockHeader?.sequence || 'null'
 
-    // Note that this will return win32 for Windows even if on 64-bit
-    // Full list: https://nodejs.org/api/process.html#process_process_platform
-    const userOS = process.platform
+    const cpus = os.cpus()
+    const cpuName = cpus[0].model
+    const cpuThreads = cpus.length
+
+    const memTotal = FileUtils.formatMemorySize(os.totalmem())
+
+    const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
     this.log(`
 Ironfish version        ${Package.version} @ ${Package.git}
-Operating System        ${userOS}
+Operating System        ${os.type()} ${process.arch}
+CPU model               ${cpuName}
+CPU threads             ${cpuThreads}
+RAM total               ${memTotal}
 Node version            ${process.version}
+Telemetry enabled       ${telemetryEnabled}
 Accounts head hash      ${accountsHeadHash}
 Accounts head in chain  ${accountsHeadInChain.toString()}
 Accounts head sequence  ${accountsHeadSequence}
