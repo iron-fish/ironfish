@@ -17,8 +17,9 @@ describe('status', () => {
       git: 'src',
     },
     memory: {
+      heapTotal: 2,
       heapUsed: 1,
-      rss: 2,
+      rss: 3,
     },
     miningDirector: { status: 'stopped', miners: 0, blocks: 0 },
     memPool: { size: 0 },
@@ -70,7 +71,7 @@ describe('status', () => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
         expectCli(ctx.stdout).include('Heap Used')
-        expectCli(ctx.stdout).include('RSS')
+        expectCli(ctx.stdout).include('Memory')
         expectCli(ctx.stdout).include('P2P Network')
         expectCli(ctx.stdout).include('Mining')
         expectCli(ctx.stdout).include('Mem Pool')
