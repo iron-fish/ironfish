@@ -61,9 +61,9 @@
     "macos": {
       "identifier": "network.ironfish.cli"
     },
-    "commands": "./build/commands",
+    "commands": "./build/src/commands",
     "hooks": {
-      "init": "./build/hooks/version"
+      "init": "./build/src/hooks/version"
     },
     "bin": "ironfish",
     "plugins": [
@@ -105,7 +105,7 @@
   "keywords": [
     "oclif"
   ],
-  "main": "build/index.js",
+  "main": "build/src/index.js",
   "repository": "iron-fish/ironfish",
-  "types": "build/index.d.ts"
+  "types": "build/src/index.d.ts"
 }

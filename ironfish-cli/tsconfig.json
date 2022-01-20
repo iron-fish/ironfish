@@ -2,10 +2,10 @@
   "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "build",
-    "rootDir": "src",
+    "rootDir": "./",
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
+  "include": ["src", "./package.json"],
   "references": [
     { "path": "../ironfish" },
     { "path": "../ironfish-rust-nodejs" },
