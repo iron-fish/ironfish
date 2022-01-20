@@ -24,6 +24,11 @@ interface IWitness {
   serializeRootHash(): Uint8Array;
 }
 
+export interface mineHeaderResult {
+  readonly randomness: number;
+  readonly foundMatch: boolean;
+}
+
 export class Note {
   boxedData: unknown
 
@@ -245,3 +250,4 @@ export class TransactionPosted {
 
 export const generateKey: () => Key = native.generateKey
 export const generateNewPublicAddress: (privateKey: string) => Key = native.generateNewPublicAddress
+export const mineHeaderBatch: (headerBytes: Buffer, initialRandomness: number, target: Buffer, batchSize: number) => mineHeaderResult = native.mineHeaderBatch

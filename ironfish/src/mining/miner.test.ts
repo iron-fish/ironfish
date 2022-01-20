@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import * as nativeModule from 'ironfish-rust-nodejs'
 import { mocked } from 'ts-jest/utils'
-import * as blockHeaderModule from '../primitives/blockheader'
 import { mineHeader } from './mineHeader'
 import { Miner, MineRequest } from './miner'
 
-jest.mock('../primitives/blockheader')
+jest.mock('ironfish-rust-nodejs')
 const testBatchSize = 100
 
 /**
@@ -122,14 +122,14 @@ describe('Miner', () => {
 
 describe('mineHeader', () => {
   beforeEach(() => {
-    mocked(blockHeaderModule.hashBlockHeader).mockReset()
+    mocked(nativeModule.mineHeaderBatch).mockReset()
   })
 
-  it('attempt batch size times', () => {
-    const targetTooBig = Buffer.alloc(8)
-    targetTooBig[0] = 10
-    mocked(blockHeaderModule.hashBlockHeader).mockReturnValue(targetTooBig)
-
+  it('calls native mineHeaderBatch', () => {
+    mocked(nativeModule.mineHeaderBatch).mockReturnValue({
+      randomness: 0,
+      foundMatch: false,
+    })
     const result = mineHeader({
       headerBytesWithoutRandomness: Buffer.alloc(8),
       initialRandomness: 42,
@@ -139,51 +139,23 @@ describe('mineHeader', () => {
     })
 
     expect(result).toStrictEqual({ initialRandomness: 42 })
-    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(10)
+    expect(nativeModule.mineHeaderBatch).toBeCalledTimes(1)
   })
-  it('finds the randomness', () => {
-    const targetTooBig = Buffer.alloc(8)
-    targetTooBig[0] = 10
-    mocked(blockHeaderModule.hashBlockHeader)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValue(Buffer.alloc(0))
 
-    const result = mineHeader({
-      headerBytesWithoutRandomness: Buffer.alloc(0),
-      initialRandomness: 42,
-      targetValue: '100',
-      batchSize: 10,
-      miningRequestId: 2,
+  it('returns found randomness', () => {
+    mocked(nativeModule.mineHeaderBatch).mockReturnValue({
+      randomness: 43,
+      foundMatch: true,
     })
-
-    expect(result).toStrictEqual({ initialRandomness: 42, randomness: 45, miningRequestId: 2 })
-    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(4)
-  })
-  it('wraps the randomness', () => {
-    const targetTooBig = Buffer.alloc(8)
-    targetTooBig[0] = 10
-    mocked(blockHeaderModule.hashBlockHeader)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValueOnce(targetTooBig)
-      .mockReturnValue(Buffer.alloc(0))
-
     const result = mineHeader({
-      headerBytesWithoutRandomness: Buffer.alloc(0),
-      initialRandomness: Number.MAX_SAFE_INTEGER - 1,
+      headerBytesWithoutRandomness: Buffer.alloc(8),
+      initialRandomness: 42,
       targetValue: '0',
       batchSize: 10,
-      miningRequestId: 3,
+      miningRequestId: 1,
     })
 
-    expect(result).toStrictEqual({
-      initialRandomness: Number.MAX_SAFE_INTEGER - 1,
-      randomness: 2,
-      miningRequestId: 3,
-    })
-    expect(blockHeaderModule.hashBlockHeader).toBeCalledTimes(5)
+    expect(result).toStrictEqual({ initialRandomness: 42, randomness: 43, miningRequestId: 1 })
+    expect(nativeModule.mineHeaderBatch).toBeCalledTimes(1)
   })
 })
