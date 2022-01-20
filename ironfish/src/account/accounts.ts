@@ -3,14 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
-import { Assert } from '..'
+import { ChainProcessor } from '..'
 import { Blockchain } from '../blockchain'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
-import { BlockHeader } from '../primitives'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
@@ -60,7 +58,7 @@ export class Accounts {
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
-  protected headHash: Buffer | null = null
+  protected chainProcessor: ChainProcessor
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
@@ -83,6 +81,39 @@ export class Accounts {
     this.db = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
+
+    this.chainProcessor = new ChainProcessor({
+      logger: this.logger,
+      chain: chain,
+      head: null,
+    })
+
+    this.chainProcessor.onAdd.on(async (header) => {
+      this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
+
+      for await (const {
+        transaction,
+        blockHash,
+        initialNoteIndex,
+      } of this.chain.iterateBlockTransactions(header)) {
+        await this.syncTransaction(transaction, {
+          blockHash: blockHash,
+          initialNoteIndex: initialNoteIndex,
+        })
+      }
+
+      await this.updateHeadHash(header.hash)
+    })
+
+    this.chainProcessor.onRemove.on(async (header) => {
+      this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
+
+      for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
+        await this.syncTransaction(transaction, {})
+      }
+
+      await this.updateHeadHash(header.previousBlockHash)
+    })
   }
 
   async updateHead(): Promise<void> {
@@ -93,99 +124,13 @@ export class Accounts {
     this.updateHeadState = new ScanState()
 
     try {
-      const addBlock = async (header: BlockHeader): Promise<void> => {
+      const { hashChanged } = await this.chainProcessor.update()
+
+      if (hashChanged) {
         this.logger.debug(
-          `AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`,
+          `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
         )
-
-        for await (const {
-          transaction,
-          blockHash,
-          initialNoteIndex,
-        } of this.chain.iterateBlockTransactions(header)) {
-          await this.syncTransaction(transaction, {
-            blockHash: blockHash,
-            initialNoteIndex: initialNoteIndex,
-          })
-        }
       }
-
-      const removeBlock = async (header: BlockHeader): Promise<void> => {
-        this.logger.debug(
-          `AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`,
-        )
-
-        for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
-          await this.syncTransaction(transaction, {})
-        }
-      }
-
-      const chainHead = this.chain.head
-      const chainTail = this.chain.genesis
-
-      if (!this.headHash) {
-        await addBlock(chainTail)
-        await this.updateHeadHash(chainTail.hash)
-      }
-
-      Assert.isNotNull(this.headHash, 'headHash should be set previously or to chainTail.hash')
-
-      const accountHeadHash = this.headHash
-
-      if (chainHead.hash.equals(accountHeadHash)) {
-        return
-      }
-
-      const accountHead = await this.chain.getHeader(accountHeadHash)
-
-      Assert.isNotNull(
-        accountHead,
-        `Accounts head not found in chain: ${this.headHash.toString('hex')}`,
-      )
-
-      const { fork, isLinear } = await this.chain.findFork(accountHead, chainHead)
-      if (!fork) {
-        return
-      }
-
-      // Remove the old fork chain
-      if (!isLinear) {
-        for await (const header of this.chain.iterateFrom(
-          accountHead,
-          fork,
-          undefined,
-          false,
-        )) {
-          // Don't remove the fork
-          if (!header.hash.equals(fork.hash)) {
-            await removeBlock(header)
-          }
-
-          await this.updateHeadHash(header.hash)
-        }
-      }
-
-      for await (const header of this.chain.iterateTo(fork, chainHead, undefined, false)) {
-        if (header.hash.equals(fork.hash)) {
-          continue
-        }
-        await addBlock(header)
-        await this.updateHeadHash(header.hash)
-      }
-
-      this.logger.debug(
-        '\nUpdated Head: \n',
-        `Fork: ${fork.hash.toString('hex')} (${
-          fork.sequence === GENESIS_BLOCK_SEQUENCE ? 'GENESIS' : '???'
-        })`,
-        '\n',
-        'Account:',
-        accountHead?.hash.toString('hex'),
-        '\n',
-        'Chain:',
-        chainHead?.hash.toString('hex'),
-        '\n',
-      )
     } finally {
       this.updateHeadState.signalComplete()
       this.updateHeadState = null
@@ -217,6 +162,18 @@ export class Accounts {
     }
   }
 
+  async load(): Promise<void> {
+    for await (const account of this.db.loadAccounts()) {
+      this.accounts.set(account.name, account)
+    }
+
+    const meta = await this.db.loadAccountsMeta()
+    this.defaultAccount = meta.defaultAccountName
+    this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
+
+    await this.loadTransactionsFromDb()
+  }
+
   async close(): Promise<void> {
     if (!this.isOpen) {
       return
@@ -232,12 +189,12 @@ export class Accounts {
     }
     this.isStarted = true
 
-    if (this.headHash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.headHash)
+    if (this.chainProcessor.hash) {
+      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
-          `Resetting accounts database because accounts head was not found in chain: ${this.headHash.toString(
+          `Resetting accounts database because accounts head was not found in chain: ${this.chainProcessor.hash.toString(
             'hex',
           )}`,
         )
@@ -272,7 +229,7 @@ export class Accounts {
 
     if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
-      await this.updateHeadHash(this.headHash)
+      await this.updateHeadHash(this.chainProcessor.hash)
     }
   }
 
@@ -355,7 +312,6 @@ export class Accounts {
   }
 
   async updateHeadHash(headHash: Buffer | null): Promise<void> {
-    this.headHash = headHash
     const hashString = headHash && headHash.toString('hex')
     await this.db.setHeadHash(hashString)
   }
@@ -364,6 +320,7 @@ export class Accounts {
     this.transactionMap.clear()
     this.noteToNullifier.clear()
     this.nullifierToNote.clear()
+    this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
     await this.updateHeadHash(null)
   }
@@ -582,7 +539,7 @@ export class Accounts {
       return
     }
 
-    if (this.headHash === null) {
+    if (this.chainProcessor.hash === null) {
       this.logger.debug('Skipping scan, there is no blocks to scan')
       return
     }
@@ -594,7 +551,7 @@ export class Accounts {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const accountHeadHash = this.headHash
+    const accountHeadHash = this.chainProcessor.hash
 
     const scanFor = Array.from(this.accounts.values())
       .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
@@ -832,11 +789,11 @@ export class Accounts {
       return
     }
 
-    if (this.headHash === null) {
+    if (this.chainProcessor.hash === null) {
       return
     }
 
-    const head = await this.chain.getHeader(this.headHash)
+    const head = await this.chain.getHeader(this.chainProcessor.hash)
 
     if (head === null) {
       return
@@ -894,11 +851,11 @@ export class Accounts {
       return
     }
 
-    if (this.headHash === null) {
+    if (this.chainProcessor.hash === null) {
       return
     }
 
-    const head = await this.chain.getHeader(this.headHash)
+    const head = await this.chain.getHeader(this.chainProcessor.hash)
 
     if (head === null) {
       return
@@ -1041,18 +998,6 @@ export class Accounts {
     const key = generateNewPublicAddress(account.spendingKey)
     account.publicAddress = key.public_address
     await this.db.setAccount(account)
-  }
-
-  async load(): Promise<void> {
-    for await (const account of this.db.loadAccounts()) {
-      this.accounts.set(account.name, account)
-    }
-
-    const meta = await this.db.loadAccountsMeta()
-    this.defaultAccount = meta.defaultAccountName
-    this.headHash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
-
-    await this.loadTransactionsFromDb()
   }
 
   protected assertHasAccount(account: Account): void {

@@ -108,7 +108,6 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const processor = new ChainProcessor({
       chain: node.chain,
       logger: node.logger,
-      name: 'FollowChain',
       head: head,
     })
 
