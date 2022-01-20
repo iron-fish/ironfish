@@ -11,6 +11,8 @@ import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
+import { IronfishPKG } from '../package'
+import { Platform } from '../platform'
 import { Block } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
@@ -128,7 +130,7 @@ export class PeerNetwork {
 
   constructor(options: {
     identity?: PrivateIdentity
-    agent: string
+    agent?: string
     webSocket: IsomorphicWebSocketConstructor
     listen?: boolean
     port?: number
@@ -159,7 +161,7 @@ export class PeerNetwork {
 
     this.localPeer = new LocalPeer(
       identity,
-      options.agent,
+      options.agent || Platform.getAgent(IronfishPKG),
       VERSION_PROTOCOL,
       options.chain,
       options.node.workerPool,

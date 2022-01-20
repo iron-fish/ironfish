@@ -23,12 +23,15 @@ const getRuntime = ():
   return { type: 'unknown', runtime: 'unknown' }
 }
 
-const getAgent = (name: string): string => {
-  let agent = `if/${name}`
-  if (Package.git) {
-    agent += `/${Package.git.slice(0, 8)}`
-  }
-  return agent
+/**
+ * Returns a user agent that combines the name and version components
+ *
+ * ironfish-cli/0.1.19/src
+ * ironfish-sdk/0.1.19/36c71af
+ * ironfish-sdk/0.1.19/src
+ */
+const getAgent = (pkg: Package): string => {
+  return `${pkg.name}/${pkg.version}/${pkg.git.slice(0, 8)}`
 }
 
 export const Platform = { getAgent, getRuntime }

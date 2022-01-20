@@ -16,6 +16,7 @@ import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
+import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
 import {
   ApiNamespace,
@@ -28,7 +29,7 @@ import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
 export class IronfishSdk {
-  agent: string
+  pkg: Package
   client: IronfishIpcClient
   clientMemory: IronfishMemoryClient
   config: Config
@@ -40,7 +41,7 @@ export class IronfishSdk {
   privateIdentity: BoxKeyPair | null | undefined
 
   private constructor(
-    agent: string,
+    pkg: Package,
     client: IronfishIpcClient,
     clientMemory: IronfishMemoryClient,
     config: Config,
@@ -50,7 +51,7 @@ export class IronfishSdk {
     metrics: MetricsMonitor,
     strategyClass: typeof Strategy | null = null,
   ) {
-    this.agent = agent
+    this.pkg = pkg
     this.client = client
     this.clientMemory = clientMemory
     this.config = config
@@ -62,7 +63,7 @@ export class IronfishSdk {
   }
 
   static async init({
-    agent,
+    pkg,
     configName,
     configOverrides,
     fileSystem,
@@ -71,7 +72,7 @@ export class IronfishSdk {
     metrics,
     strategyClass,
   }: {
-    agent?: string
+    pkg?: Package
     configName?: string
     configOverrides?: Partial<ConfigOptions>
     fileSystem?: FileSystem
@@ -144,10 +145,8 @@ export class IronfishSdk {
 
     const clientMemory = new IronfishMemoryClient(logger)
 
-    agent = agent || 'sdk'
-
     return new IronfishSdk(
-      agent,
+      pkg || IronfishPKG,
       client,
       clientMemory,
       config,
@@ -171,7 +170,7 @@ export class IronfishSdk {
     const webSocket = (await require('ws')) as IsomorphicWebSocketConstructor
 
     const node = await IronfishNode.init({
-      agent: Platform.getAgent(this.agent),
+      pkg: this.pkg,
       config: this.config,
       internal: this.internal,
       files: this.fileSystem,
