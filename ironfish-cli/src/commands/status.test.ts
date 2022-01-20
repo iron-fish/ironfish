@@ -71,7 +71,7 @@ describe('status', () => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
         expectCli(ctx.stdout).include('Heap Used')
-        expectCli(ctx.stdout).include('RSS')
+        expectCli(ctx.stdout).include('Memory')
         expectCli(ctx.stdout).include('P2P Network')
         expectCli(ctx.stdout).include('Mining')
         expectCli(ctx.stdout).include('Mem Pool')
