@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '.'
-import { Blockchain } from './blockchain'
+import type { Blockchain } from './blockchain'
+import type { BlockHeader } from './primitives'
+import { Assert } from './assert'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
-import { BlockHeader } from './primitives'
 
 /**
  * This is used to get a non synchronous chain of block events from the blockchain
