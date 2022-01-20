@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FileUtils, NodeUtils, Package } from 'ironfish'
+import { FileUtils, IronfishPKG, NodeUtils } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
@@ -34,7 +34,8 @@ export default class Debug extends IronfishCommand {
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
     this.log(`
-Iron Fish version       ${Package.version} @ ${Package.git}
+Iron Fish version       ${node.pkg.version} @ ${node.pkg.git}
+Iron Fish library       ${IronfishPKG.version} @ ${IronfishPKG.git}
 Operating system        ${os.type()} ${process.arch}
 CPU model               ${cpuName}
 CPU threads             ${cpuThreads}
