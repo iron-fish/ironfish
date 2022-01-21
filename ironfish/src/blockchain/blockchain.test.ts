@@ -620,4 +620,36 @@ describe('Blockchain', () => {
     expect(nodeA.chain.head.hash.equals(blockA3.header.hash)).toBe(true)
     expect(nodeB.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
   })
+
+  it('should remember invalid blocks', async () => {
+    const { node } = await nodeTest.createSetup()
+    const block = await useMinerBlockFixture(node.chain)
+
+    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: true,
+    })
+
+    block.header.timestamp = new Date(0)
+
+    result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.BLOCK_TOO_OLD,
+    })
+
+    expect(node.chain.isInvalid(block)).toBe(null)
+
+    await expect(node.chain.addBlock(block)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.BLOCK_TOO_OLD,
+    })
+
+    expect(node.chain.isInvalid(block)).toBe(VerificationResultReason.BLOCK_TOO_OLD)
+
+    await expect(node.chain.addBlock(block)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.BLOCK_TOO_OLD,
+    })
+  })
 })
