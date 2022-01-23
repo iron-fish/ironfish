@@ -594,32 +594,30 @@ export class Accounts {
     this.scan = null
   }
 
-  private getUnspentNotes(
+  private async getUnspentNotes(
     account: Account,
-  ): ReadonlyArray<{ hash: string; note: Note; index: number | null }> {
+  ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
     const unspentNotes = []
 
     for (const transactionMapValue of this.transactionMap.values()) {
-      for (const note of transactionMapValue.transaction.notes()) {
-        // Notes can be spent and received by the same Account.
-        // Try decrypting the note as its owner
-        const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
+      const result = await this.workerPool.getUnspentNotes(
+        transactionMapValue.transaction.serialize(),
+        [account.incomingViewKey],
+      )
 
-        if (receivedNote) {
-          const noteHashHex = Buffer.from(note.merkleHash()).toString('hex')
+      for (const note of result.notes) {
+        const map = this.noteToNullifier.get(note.hash)
 
-          const map = this.noteToNullifier.get(noteHashHex)
-          if (!map) {
-            throw new Error('All decryptable notes should be in the noteToNullifier map')
-          }
+        if (!map) {
+          throw new Error('All decryptable notes should be in the noteToNullifier map')
+        }
 
-          if (!map.spent) {
-            unspentNotes.push({
-              hash: noteHashHex,
-              note: receivedNote,
-              index: map.noteIndex,
-            })
-          }
+        if (!map.spent) {
+          unspentNotes.push({
+            hash: note.hash,
+            note: new Note(note.note),
+            index: map.noteIndex,
+          })
         }
       }
     }
@@ -627,10 +625,10 @@ export class Accounts {
     return unspentNotes
   }
 
-  getBalance(account: Account): { unconfirmed: BigInt; confirmed: BigInt } {
+  async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
 
-    const notes = this.getUnspentNotes(account)
+    const notes = await this.getUnspentNotes(account)
 
     let unconfirmed = BigInt(0)
     let confirmed = BigInt(0)
@@ -696,7 +694,7 @@ export class Accounts {
       receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-    const unspentNotes = this.getUnspentNotes(sender)
+    const unspentNotes = await this.getUnspentNotes(sender)
 
     for (const unspentNote of unspentNotes) {
       // Skip unconfirmed notes
