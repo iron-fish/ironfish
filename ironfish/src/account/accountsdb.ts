@@ -228,13 +228,13 @@ export class AccountsDB {
       submittedSequence: number | null
     }>,
   ): Promise<void> {
-    for await (const value of this.transactions.getAllValuesIter()) {
+    for await (const [key, value] of this.transactions.getAllIter()) {
       const deserialized = {
         ...value,
         transaction: new Transaction(value.transaction, this.workerPool),
       }
 
-      map.set(deserialized.transaction.hash(), deserialized)
+      map.set(key, deserialized)
     }
   }
 
