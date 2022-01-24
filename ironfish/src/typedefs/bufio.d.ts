@@ -8,6 +8,7 @@ declare module 'bufio' {
   class StaticWriter {
     render(): Buffer
     slice(): Buffer
+    writeU32(value: number): BufferWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
     writeVarString(value: string, enc?: Encoding | null): StaticWriter
@@ -20,6 +21,7 @@ declare module 'bufio' {
   class BufferWriter {
     render(): Buffer
     slice(): Buffer
+    writeU32(value: number): BufferWriter
     writeU64(value: number): BufferWriter
     writeI64(value: number): BufferWriter
     writeVarString(value: string, enc?: Encoding | null): BufferWriter
@@ -30,6 +32,7 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    readU32(): number
     readU64(): number
     readVarString(enc?: Encoding | null, limit?: number): string
     readVarBytes(): Buffer
@@ -37,6 +40,7 @@ declare module 'bufio' {
 
     readHash(enc: BufferEncoding): string
     readHash(enc?: null): Buffer
+    offset: number
   }
 
   export function write(size?: number): StaticWriter | BufferWriter
