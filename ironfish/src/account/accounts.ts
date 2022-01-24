@@ -124,7 +124,9 @@ export class Accounts {
     this.updateHeadState = new ScanState()
 
     try {
-      const { hashChanged } = await this.chainProcessor.update()
+      const { hashChanged } = await this.chainProcessor.update({
+        signal: this.updateHeadState.abortController.signal,
+      })
 
       if (hashChanged) {
         this.logger.debug(
@@ -1017,7 +1019,7 @@ export class ScanState {
   onTransaction = new Event<[sequence: number]>()
 
   readonly startedAt: number
-  private aborted: boolean
+  readonly abortController: AbortController
   private runningPromise: Promise<void>
   private runningResolve: PromiseResolve<void>
 
@@ -1026,12 +1028,12 @@ export class ScanState {
     this.runningPromise = promise
     this.runningResolve = resolve
 
-    this.aborted = false
+    this.abortController = new AbortController()
     this.startedAt = Date.now()
   }
 
   get isAborted(): boolean {
-    return this.aborted
+    return this.abortController.signal.aborted
   }
 
   signalComplete(): void {
@@ -1039,7 +1041,7 @@ export class ScanState {
   }
 
   async abort(): Promise<void> {
-    this.aborted = true
+    this.abortController.abort()
     return this.wait()
   }
 
