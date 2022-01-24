@@ -105,10 +105,12 @@ describe('Transactions sendTransaction', () => {
       routeTest.node.peerNetwork['_isReady'] = true
       routeTest.chain.synced = true
 
-      jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-        unconfirmed: BigInt(11),
-        confirmed: BigInt(0),
-      })
+      jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
+        Promise.resolve({
+          unconfirmed: BigInt(11),
+          confirmed: BigInt(0),
+        }),
+      )
 
       try {
         await routeTest.client.sendTransaction(TEST_PARAMS)
@@ -133,10 +135,12 @@ describe('Transactions sendTransaction', () => {
 
       jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
 
-      jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-        unconfirmed: BigInt(11),
-        confirmed: BigInt(11),
-      })
+      jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
+        Promise.resolve({
+          unconfirmed: BigInt(11),
+          confirmed: BigInt(11),
+        }),
+      )
 
       const result = await routeTest.client.sendTransaction(TEST_PARAMS)
       expect(result.content.hash).toEqual(tx.hash().toString('hex'))
@@ -163,10 +167,12 @@ describe('Transactions sendTransaction', () => {
         routeTest.node.peerNetwork['_isReady'] = true
         routeTest.chain.synced = true
 
-        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-          unconfirmed: BigInt(21),
-          confirmed: BigInt(0),
-        })
+        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
+          Promise.resolve({
+            unconfirmed: BigInt(21),
+            confirmed: BigInt(0),
+          }),
+        )
 
         try {
           await routeTest.client.sendTransaction(TEST_PARAMS)
@@ -191,10 +197,12 @@ describe('Transactions sendTransaction', () => {
 
         jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
 
-        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce({
-          unconfirmed: BigInt(21),
-          confirmed: BigInt(21),
-        })
+        jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
+          Promise.resolve({
+            unconfirmed: BigInt(21),
+            confirmed: BigInt(21),
+          }),
+        )
 
         const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
         expect(result.content.hash).toEqual(tx.hash().toString('hex'))
