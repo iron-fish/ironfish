@@ -94,8 +94,21 @@ function getNodes() {
     return [nodes, links, lowest, highest]
 }
 
-function renderHash(hash) {
-    return `${hash.slice(0, 5)}...${hash.slice(-5)}`
+function renderHash(hashHex) {
+
+    /* Chop off leading zeroes of the hash */
+    var n = 0
+    while (hashHex.charAt(n) == "0") {
+      n++
+    }
+  
+    /* Overflow check on string end */
+    if ((n+5) > hashHex.length) {
+      /* We've exceeded the end of the string, so just revert to the beginning - it's all zeroes anyway. */
+      n = 0
+    }
+  
+    return `${hashHex.slice(n, n+5)}...${hashHex.slice(-5)}`
 }
 
 function makeLabel(node) {
