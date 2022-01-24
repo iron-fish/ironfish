@@ -41,7 +41,7 @@ export async function handleRequest(
       : type === WorkerMessageType.createTransaction
       ? handleCreateTransaction(body)
       : type === WorkerMessageType.mineHeader
-      ? handleMineHeader(body, job)
+      ? handleMineHeader(body)
       : type === WorkerMessageType.sleep
       ? await handleSleep(body, job)
       : type === WorkerMessageType.transactionFee

@@ -147,10 +147,10 @@ export class MineHeaderResp {
   }
 }
 
-export function handleMineHeader(
-  requestBody: Buffer,
-  job: Job,
-): { responseType: WorkerMessageType; response: Buffer } {
+export function handleMineHeader(requestBody: Buffer): {
+  responseType: WorkerMessageType
+  response: Buffer
+} {
   const request = new MineHeaderReq(requestBody)
   const result = mineHeader({
     batchSize: request.batchSize(),
@@ -158,7 +158,6 @@ export function handleMineHeader(
     initialRandomness: request.initialRandomness(),
     miningRequestId: request.miningRequestId(),
     targetValue: request.targetValue(),
-    job,
   })
 
   return {
