@@ -20,22 +20,24 @@ import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/ver
  */
 
 export type JobAbortRequest = {
-  type: 'jobAbort'
+  type: WorkerMessageType.jobAbort
 }
 
 export type JobErrorResponse = {
-  type: 'jobError'
+  type: WorkerMessageType.jobError
   error: JobErrorSerialized
 }
 
 export type WorkerRequestMessage = {
   jobId: number
-  body: WorkerRequest
+  type: WorkerMessageType
+  body: Buffer
 }
 
 export type WorkerResponseMessage = {
   jobId: number
-  body: WorkerResponse
+  type: WorkerMessageType
+  body: Buffer
 }
 
 export type WorkerRequest =
@@ -63,3 +65,17 @@ export type WorkerResponse =
   | TransactionFeeResponse
   | UnboxMessageResponse
   | VerifyTransactionResponse
+  | JobErrorResponse
+
+export const enum WorkerMessageType {
+  boxMessage = 'boxMessage',
+  createMinersFee = 'createMinersFee',
+  createTransaction = 'createTransaction',
+  jobAbort = 'jobAbort',
+  jobError = 'jobError',
+  mineHeader = 'mineHeader',
+  sleep = 'sleep',
+  transactionFee = 'transactionFee',
+  unboxMessage = 'unboxMessage',
+  verify = 'verify',
+}
