@@ -66,4 +66,31 @@ describe('ChainProcessor', () => {
     expect(onEvent).toHaveBeenNthCalledWith(9, blockA3.header, 'add')
     expect(onEvent).toHaveBeenCalledTimes(9)
   })
+
+  it('cancels updates when abort signal is triggered', async () => {
+    const { strategy, chain } = nodeTest
+    strategy.disableMiningReward()
+
+    const blockA1 = await makeBlockAfter(chain, chain.genesis)
+
+    await expect(chain).toAddBlock(blockA1)
+    expect(chain.head.hash).toEqual(blockA1.header.hash)
+
+    const ac = new AbortController()
+
+    const processor = new ChainProcessor({
+      chain: chain,
+      head: chain.genesis.hash,
+    })
+
+    const updatePromise = processor.update({ signal: ac.signal })
+
+    // abort should trigger before any blocks have been loaded
+    ac.abort()
+
+    const result = await updatePromise
+
+    expect(result.hashChanged).toEqual(false)
+    expect(processor.hash).toEqual(chain.genesis.hash)
+  })
 })
