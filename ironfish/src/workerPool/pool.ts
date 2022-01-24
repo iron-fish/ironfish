@@ -20,9 +20,20 @@ import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Job } from './job'
-import { WorkerRequest } from './messages'
-import { VerifyTransactionOptions } from './tasks/verifyTransaction'
+import { WorkerMessageType, WorkerRequest, WorkerRequestMessage } from './messages'
+import {
+  VerifyTransactionOptions,
+  VerifyTransactionReq,
+  VerifyTransactionResp,
+} from './tasks/verifyTransaction'
 import { getWorkerPath, Worker } from './worker'
+import { CreateMinersFeeReq, CreateMinersFeeResp } from './tasks/createMinersFee'
+import { CreateTransactionReq, CreateTransactionResp } from './tasks/createTransaction'
+import { TransactionFeeReq, TransactionFeeResp } from './tasks/transactionFee'
+import { BoxMessageReq, BoxMessageResp } from './tasks/boxMessage'
+import { UnboxMessageReq, UnboxMessageResp } from './tasks/unboxMessage'
+import { MineHeaderReq, MineHeaderResp } from './tasks/mineHeader'
+import { SleepReq } from './tasks/sleep'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
@@ -43,18 +54,18 @@ export class WorkerPool {
   private lastJobId = 0
 
   readonly stats = new Map<
-    WorkerRequest['type'],
+    WorkerMessageType,
     { complete: number; error: number; queue: number; execute: number }
   >([
-    ['createMinersFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['verify', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['mineHeader', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.createMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.verify, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.createTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.boxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.unboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.mineHeader, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.transactionFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.jobAbort, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -124,17 +135,21 @@ export class WorkerPool {
 
   async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
     const request: CreateMinersFeeRequest = {
-      type: 'createMinersFee',
+      type: WorkerMessageType.createMinersFee,
       spendKey,
       amount,
       memo,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = CreateMinersFeeReq.serialize(request)
 
-    if (request.type !== response.type) {
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
+
+    if (request.type !== serializedResponse.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new CreateMinersFeeResp(serializedResponse.body).deserialize()
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
@@ -155,53 +170,65 @@ export class WorkerPool {
     expirationSequence: number,
   ): Promise<Transaction> {
     const request: CreateTransactionRequest = {
-      type: 'createTransaction',
+      type: WorkerMessageType.createTransaction,
       spendKey,
       transactionFee,
       expirationSequence,
       spends: spends.map((s) => ({
         ...s,
+        authPathLength: s.authPath.length,
         note: s.note.serialize(),
       })),
       receives,
+      spendsLength: spends.length,
+      receivesLength: receives.length,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = CreateTransactionReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new CreateTransactionResp(serializedResponse.body).deserialize()
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   async transactionFee(transaction: Transaction): Promise<bigint> {
     const request: TransactionFeeRequest = {
-      type: 'transactionFee',
+      type: WorkerMessageType.transactionFee,
       serializedTransactionPosted: transaction.serialize(),
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = TransactionFeeReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new TransactionFeeResp(serializedResponse.body).deserialize()
 
     return response.transactionFee
   }
 
   async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
     const request: VerifyTransactionRequest = {
-      type: 'verify',
+      type: WorkerMessageType.verify,
       serializedTransactionPosted: transaction.serialize(),
       options,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = VerifyTransactionReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new VerifyTransactionResp(serializedResponse.body).deserialize()
 
     return response.verified
   }
@@ -212,17 +239,20 @@ export class WorkerPool {
     recipient: Identity,
   ): Promise<{ nonce: string; boxedMessage: string }> {
     const request: BoxMessageRequest = {
-      type: 'boxMessage',
+      type: WorkerMessageType.boxMessage,
       message: plainTextMessage,
       sender: sender,
       recipient: recipient,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = BoxMessageReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new BoxMessageResp(serializedResponse.body).deserialize()
 
     return { nonce: response.nonce, boxedMessage: response.boxedMessage }
   }
@@ -234,18 +264,21 @@ export class WorkerPool {
     recipient: PrivateIdentity,
   ): Promise<{ message: string | null }> {
     const request: UnboxMessageRequest = {
-      type: 'unboxMessage',
+      type: WorkerMessageType.unboxMessage,
       boxedMessage: boxedMessage,
       nonce: nonce,
       recipient: recipient,
       sender: sender,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = UnboxMessageReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new UnboxMessageResp(serializedResponse.body).deserialize()
 
     return { message: response.message }
   }
@@ -258,7 +291,7 @@ export class WorkerPool {
     batchSize: number,
   ): Promise<{ initialRandomness: number; miningRequestId?: number; randomness?: number }> {
     const request: MineHeaderRequest = {
-      type: 'mineHeader',
+      type: WorkerMessageType.mineHeader,
       headerBytesWithoutRandomness,
       miningRequestId,
       initialRandomness,
@@ -266,11 +299,14 @@ export class WorkerPool {
       batchSize,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = MineHeaderReq.serialize(request)
+    const serializedResponse = await this.execute(request.type, serializedRequest).result()
 
-    if (response === null || response.type !== request.type) {
+    if (serializedResponse === null || serializedResponse.type !== request.type) {
       throw new Error('Response type must match request type')
     }
+
+    const response = new MineHeaderResp(serializedResponse.body).deserialize()
 
     return {
       initialRandomness: response.initialRandomness,
@@ -284,20 +320,21 @@ export class WorkerPool {
    */
   sleep(sleep = 0, error = ''): Job {
     const request: SleepRequest = {
-      type: 'sleep',
+      type: WorkerMessageType.sleep,
       sleep,
       error,
     }
 
-    const job = this.execute(request)
+    const serializedRequest = SleepReq.serialize(request)
+    const job = this.execute(request.type, serializedRequest)
     job.enableJobAbortError = true
 
     return job
   }
 
-  private execute(request: Readonly<WorkerRequest>): Job {
+  private execute(type: WorkerMessageType, request: Readonly<Buffer>): Job {
     const jobId = this.lastJobId++
-    const job = new Job({ jobId: jobId, body: request })
+    const job = new Job({ jobId: jobId, type, body: request })
     job.onEnded.once(this.jobEnded)
     job.onChange.on(this.jobChange)
     job.onChange.emit(job, 'init')
@@ -353,7 +390,7 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
-    const stats = this.stats.get(job.request.body.type)
+    const stats = this.stats.get(job.request.type)
 
     if (!stats) {
       return

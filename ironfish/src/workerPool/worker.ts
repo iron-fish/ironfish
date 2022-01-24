@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
+import { WorkerMessageType, WorkerRequestMessage, WorkerResponseMessage } from './messages'
 import { generateKey } from 'ironfish-rust-nodejs'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
@@ -10,6 +10,7 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { JobError } from './errors'
 import { Job } from './job'
+import { JobErrorResp } from './tasks/jobAbort'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -110,7 +111,7 @@ export class Worker {
   }
 
   private onMessageFromParent = (request: WorkerRequestMessage): void => {
-    if (request.body.type === 'jobAbort') {
+    if (request.type === WorkerMessageType.jobAbort) {
       const job = this.jobs.get(request.jobId)
 
       if (job) {
@@ -132,10 +133,11 @@ export class Worker {
       .catch((e: unknown) => {
         this.send({
           jobId: job.id,
-          body: {
-            type: 'jobError',
+          type: WorkerMessageType.jobError,
+          body: JobErrorResp.serialize({
+            type: WorkerMessageType.jobError,
             error: new JobError(e).serialize(),
-          },
+          }),
         })
       })
       .finally(() => {
@@ -154,12 +156,13 @@ export class Worker {
     Assert.isNotNull(job.resolve)
     Assert.isNotNull(job.reject)
 
-    if (response.body.type === 'jobError') {
+    if (response.type === WorkerMessageType.jobError) {
       const prevStatus = job.status
+      const jobErrorResponse = new JobErrorResp(response.body).deserialize()
       job.status = 'error'
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
-      job.reject(JobError.deserialize(response.body.error))
+      job.reject(JobError.deserialize(jobErrorResponse.error))
     } else {
       const prevStatus = job.status
       job.status = 'success'

@@ -5,8 +5,9 @@
 import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
 import { JobAbortedError } from './errors'
-import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
+import { WorkerMessageType, WorkerRequestMessage, WorkerResponseMessage } from './messages'
 import { handleRequest } from './tasks'
+import { JobAbortReq } from './tasks/jobAbort'
 import { Worker } from './worker'
 
 export class Job {
@@ -55,7 +56,11 @@ export class Job {
     this.onEnded.emit(this)
 
     if (this.worker) {
-      this.worker.send({ jobId: this.id, body: { type: 'jobAbort' } })
+      this.worker.send({
+        jobId: this.id,
+        type: WorkerMessageType.jobAbort,
+        body: JobAbortReq.serialize({ type: WorkerMessageType.jobAbort }),
+      })
       this.worker.jobs.delete(this.id)
     }
 
@@ -101,9 +106,9 @@ export class Job {
   async response(): Promise<WorkerResponseMessage> {
     const response = await this.promise
 
-    if (response === null || response?.body?.type !== this.request.body.type) {
+    if (response === null || response.type !== this.request.type) {
       throw new Error(
-        `Response type must match request type ${this.request.body.type} but was ${String(
+        `Response type must match request type ${this.request.type} but was ${String(
           response,
         )} with job status ${this.status}`,
       )
@@ -112,8 +117,8 @@ export class Job {
     return response
   }
 
-  async result(): Promise<WorkerResponse> {
+  async result(): Promise<WorkerResponseMessage> {
     const response = await this.response()
-    return response.body
+    return response
   }
 }
