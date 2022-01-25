@@ -12,7 +12,6 @@ import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
-import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
 import { Platform } from './platform'
@@ -49,7 +48,6 @@ export class IronfishNode {
     files,
     config,
     internal,
-    hosts,
     accounts,
     strategy,
     metrics,
@@ -59,6 +57,7 @@ export class IronfishNode {
     logger,
     webSocket,
     privateIdentity,
+    dataDir,
   }: {
     pkg: Package
     files: FileSystem
@@ -75,6 +74,7 @@ export class IronfishNode {
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
+    dataDir?: string
   }) {
     this.files = files
     this.config = config
@@ -108,7 +108,8 @@ export class IronfishNode {
       chain: chain,
       strategy: strategy,
       metrics: this.metrics,
-      addressManager: new AddressManager(hosts),
+      files: this.files,
+      dataDir: dataDir,
     })
 
     this.syncer = new Syncer({

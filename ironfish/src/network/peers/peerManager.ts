@@ -5,6 +5,7 @@
 import type { SignalData } from './connections/webRtcConnection'
 import WSWebSocket from 'ws'
 import { Event } from '../../event'
+import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ArrayUtils, SetIntervalToken } from '../../utils'
@@ -147,20 +148,21 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
-    addressManager: AddressManager,
+    files: FileSystem,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
     targetPeers = 50,
     logPeerMessages = false,
+    dataDir?: string,
   ) {
     this.logger = logger.withTag('peermanager')
-    this.addressManager = addressManager
     this.metrics = metrics || new MetricsMonitor(this.logger)
     this.localPeer = localPeer
     this.maxPeers = maxPeers
     this.targetPeers = targetPeers
     this.logPeerMessages = logPeerMessages
+    this.addressManager = new AddressManager(files, dataDir)
   }
 
   /**

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
+import { FileSystem } from '../../fileSystems'
 import { PeerAddress } from './peerAddress'
 
 /**
@@ -9,17 +10,19 @@ import { PeerAddress } from './peerAddress'
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
-  hosts: HostsStore
+  hostsStore: HostsStore
 
-  constructor(hostsStore: HostsStore) {
-    this.hosts = hostsStore
+  constructor(files: FileSystem, dataDir?: string) {
+    this.hostsStore = new HostsStore(files, dataDir)
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.hostsStore.load()
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hosts.getArray('priorPeers')
+    return this.hostsStore.getArray('priorPeers')
   }
 
   get possiblePeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hosts.getArray('possiblePeers')
+    return this.hostsStore.getArray('possiblePeers')
   }
 }

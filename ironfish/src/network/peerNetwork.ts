@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
+import { FileSystem } from '../fileSystems'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
@@ -58,7 +59,6 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
-import { AddressManager } from './peers/addressManager'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -147,7 +147,8 @@ export class PeerNetwork {
     node: IronfishNode
     strategy: Strategy
     chain: Blockchain
-    addressManager: AddressManager
+    files: FileSystem
+    dataDir?: string
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -178,7 +179,7 @@ export class PeerNetwork {
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      options.addressManager,
+      options.files,
       this.logger,
       this.metrics,
       maxPeers,
