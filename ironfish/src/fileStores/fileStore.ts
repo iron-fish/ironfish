@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { promises as fs } from 'fs'
 import path from 'path'
 import { FileSystem } from '../fileSystems'
 import { JSONUtils, PartialRecursive } from '../utils'
@@ -22,7 +21,7 @@ export class FileStore<T extends Record<string, unknown>> {
   }
 
   async load(): Promise<PartialRecursive<T> | null> {
-    const configExists = await fs
+    const configExists = await this.files
       .access(this.configPath)
       .then(() => true)
       .catch(() => false)
@@ -30,7 +29,7 @@ export class FileStore<T extends Record<string, unknown>> {
     let config = null
 
     if (configExists) {
-      const data = await fs.readFile(this.configPath, { encoding: 'utf8' })
+      const data = await this.files.readFile(this.configPath)
       config = JSONUtils.parse<PartialRecursive<T>>(data, this.configName)
     }
 
@@ -39,7 +38,7 @@ export class FileStore<T extends Record<string, unknown>> {
 
   async save(data: PartialRecursive<T>): Promise<void> {
     const json = JSON.stringify(data, undefined, '    ')
-    await fs.mkdir(this.dataDir, { recursive: true })
-    await fs.writeFile(this.configPath, json)
+    await this.files.mkdir(this.dataDir, { recursive: true })
+    await this.files.writeFile(this.configPath, json)
   }
 }

@@ -24,12 +24,17 @@ class MockFileSystem extends FileSystem {
     return this
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async access(): Promise<void> {
+    throw new Error('File does not exist')
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async writeFile(): Promise<void> {}
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async readFile(): Promise<string> {
-    return ''
+    return '{}'
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -51,14 +56,16 @@ class MockHostsStore extends HostsStore {
       {
         address: '127.0.0.1',
         port: 9999,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
     super.set('possiblePeers', [
       {
         address: '1.1.1.1',
         port: 1111,
-        identity: undefined,
+        identity: null,
+        name: null,
       },
     ])
   }
@@ -79,4 +86,8 @@ class MockHostsStore extends HostsStore {
 
 export function mockHostsStore(): MockHostsStore {
   return new MockHostsStore()
+}
+
+export function mockFileSystem(): MockFileSystem {
+  return new MockFileSystem()
 }
