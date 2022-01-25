@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use byteorder::{BigEndian, WriteBytesExt};
-use num_bigint::BigUint;
 
 // Javascript's Number.MAX_SAFE_INTEGER
 const MAX_SAFE_INTEGER: i64 = 9007199254740991;
@@ -10,10 +9,6 @@ const MAX_SAFE_INTEGER: i64 = 9007199254740991;
 pub struct MineHeaderResult {
     pub randomness: f64,
     pub found_match: bool,
-}
-
-pub fn slice_to_biguint(slice: &[u8]) -> BigUint {
-    BigUint::from_bytes_be(slice)
 }
 
 pub fn randomize_header(initial_randomness: i64, i: i64, mut header_bytes: &mut [u8]) -> i64 {
@@ -34,7 +29,7 @@ pub fn randomize_header(initial_randomness: i64, i: i64, mut header_bytes: &mut 
 pub fn mine_header_batch(
     header_bytes: &mut [u8],
     initial_randomness: i64,
-    target: BigUint,
+    target: &[u8; 32],
     batch_size: i64,
 ) -> MineHeaderResult {
     let mut result = MineHeaderResult {
@@ -42,14 +37,12 @@ pub fn mine_header_batch(
         found_match: false,
     };
 
-    let target_bytes = biguint_to_bytes(&target);
-
     for i in 0..batch_size {
         let randomness = randomize_header(initial_randomness, i, header_bytes);
         let hash = blake3::hash(&header_bytes);
         let new_target_bytes = hash.as_bytes();
 
-        if bytes_lte(*new_target_bytes, target_bytes) {
+        if bytes_lte(new_target_bytes, target) {
             result.randomness = randomness as f64;
             result.found_match = true;
             break;
@@ -59,24 +52,8 @@ pub fn mine_header_batch(
     result
 }
 
-/// Converts a BigUInt to 32 bytes, big endian.
-fn biguint_to_bytes(num: &BigUint) -> [u8; 32] {
-    let bytes = num.to_bytes_le();
-
-    if bytes.len() > 32 {
-        return [255; 32];
-    }
-
-    let mut ret: [u8; 32] = [0; 32];
-    for (i, b) in bytes.into_iter().enumerate() {
-        ret[i] = b;
-    }
-    ret.reverse();
-    ret
-}
-
 /// returns true if a <= b when treating both as 32 byte big endian numbers.
-fn bytes_lte(a: [u8; 32], b: [u8; 32]) -> bool {
+fn bytes_lte(a: &[u8; 32], b: &[u8; 32]) -> bool {
     for i in 0..32 {
         if a[i] < b[i] {
             return true;
@@ -91,14 +68,13 @@ fn bytes_lte(a: [u8; 32], b: [u8; 32]) -> bool {
 
 #[cfg(test)]
 mod test {
-    use super::{biguint_to_bytes, bytes_lte, mine_header_batch};
-    use num_bigint::{BigUint, ToBigUint};
+    use super::{bytes_lte, mine_header_batch};
 
     #[test]
     fn test_mine_header_batch_no_match() {
         let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
         let initial_randomness = 42;
-        let target = 1.to_biguint().unwrap();
+        let target = &[0u8; 32];
         let batch_size = 1;
 
         let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
@@ -115,11 +91,10 @@ mod test {
 
         // Hardcoded target value derived from a randomness of 43, which is lower than 42
         // This allows us to test the looping and target comparison a little better
-        let target = BigUint::parse_bytes(
-            b"79252921311571896876741732122853158648377418256230310330051824308488495331022",
-            10,
-        )
-        .unwrap();
+        let target: &[u8; 32] = &[
+            189, 32, 143, 150, 173, 48, 164, 172, 76, 199, 72, 88, 197, 68, 105, 250, 191, 202,
+            126, 52, 252, 66, 35, 112, 87, 238, 229, 149, 47, 55, 233, 45,
+        ];
 
         let result = mine_header_batch(header_bytes, initial_randomness, target, batch_size);
 
@@ -128,29 +103,12 @@ mod test {
     }
 
     #[test]
-    fn test_mine_biguint_to_bytes() {
-        let actual1 = biguint_to_bytes(&1.to_biguint().unwrap());
-        let expected1 = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 1,
-        ];
-        assert_eq!(actual1, expected1);
-
-        let actual256 = biguint_to_bytes(&256.to_biguint().unwrap());
-        let expected256 = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 1, 0,
-        ];
-        assert_eq!(actual256, expected256);
-    }
-
-    #[test]
     fn test_mine_bytes_lte() {
-        let big = [
+        let big: &[u8; 32] = &[
             255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let small = [
+        let small: &[u8; 32] = &[
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 1,
         ];

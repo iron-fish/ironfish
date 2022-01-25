@@ -24,7 +24,7 @@ export function mineHeader({
   const { randomness, foundMatch } = nativeMineHeaderBatch(
     headerBytes,
     initialRandomness,
-    BigIntUtils.toBytes(BigInt(targetValue)),
+    BigIntUtils.toBytesBE(BigInt(targetValue), 32),
     batchSize,
   )
 
