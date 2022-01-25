@@ -39,6 +39,7 @@ describe('accounts:rescan', () => {
   })
 
   describe('with no flags', () => {
+    jest.setTimeout(10000)
     test
       .stdout()
       .command(['accounts:rescan'])

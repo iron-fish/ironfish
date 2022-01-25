@@ -63,6 +63,7 @@ describe('status', () => {
   })
 
   describe('it logs out the status of the node', () => {
+    jest.setTimeout(10000)
     test
       .stdout()
       .command(['status'])

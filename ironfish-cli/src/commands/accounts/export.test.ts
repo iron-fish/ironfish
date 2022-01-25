@@ -59,6 +59,7 @@ describe('accounts:export', () => {
   })
 
   describe('with no flags', () => {
+    jest.setTimeout(10000)
     test
       .stdout()
       .command(['accounts:export', 'default'])
