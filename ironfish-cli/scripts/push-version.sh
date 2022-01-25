@@ -20,7 +20,8 @@ STATUS="$(curl \
     --output /dev/null \
     --request POST \
     --header "authorization:Bearer $IRON_FISH_API_KEY" \
-    "$IRON_FISH_API_URL/versions?version=$VERSION")"
+    --data "version=$VERSION" \
+    "$IRON_FISH_API_URL/versions")"
 
 if [[ $STATUS -ne 201 ]]; then
     echo "There was an error pushing the version to the API. See API logs for more information."
