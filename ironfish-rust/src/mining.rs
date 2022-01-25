@@ -42,12 +42,14 @@ pub fn mine_header_batch(
         found_match: false,
     };
 
+    let target_bytes = biguint_to_bytes(&target);
+
     for i in 0..batch_size {
         let randomness = randomize_header(initial_randomness, i, header_bytes);
         let hash = blake3::hash(&header_bytes);
-        let new_target = BigUint::from_bytes_be(hash.as_bytes());
+        let new_target_bytes = hash.as_bytes();
 
-        if new_target <= target {
+        if bytes_lte(*new_target_bytes, target_bytes) {
             result.randomness = randomness as f64;
             result.found_match = true;
             break;
@@ -57,9 +59,39 @@ pub fn mine_header_batch(
     result
 }
 
+/// Converts a BigUInt to 32 bytes, big endian.
+fn biguint_to_bytes(num: &BigUint) -> [u8; 32] {
+    let bytes = num.to_bytes_le();
+
+    if bytes.len() > 32 {
+        return [255; 32];
+    }
+
+    let mut ret: [u8; 32] = [0; 32];
+    for (i, b) in bytes.into_iter().enumerate() {
+        ret[i] = b;
+    }
+    ret.reverse();
+    ret
+}
+
+/// returns true if a <= b when treating both as 32 byte big endian numbers.
+fn bytes_lte(a: [u8; 32], b: [u8; 32]) -> bool {
+    for i in 0..32 {
+        if a[i] < b[i] {
+            return true;
+        }
+        if a[i] > b[i] {
+            return false;
+        }
+    }
+
+    true
+}
+
 #[cfg(test)]
 mod test {
-    use super::mine_header_batch;
+    use super::{biguint_to_bytes, bytes_lte, mine_header_batch};
     use num_bigint::{BigUint, ToBigUint};
 
     #[test]
@@ -93,5 +125,38 @@ mod test {
 
         assert_eq!(result.randomness, 43.0);
         assert_eq!(result.found_match, true);
+    }
+
+    #[test]
+    fn test_mine_biguint_to_bytes() {
+        let actual1 = biguint_to_bytes(&1.to_biguint().unwrap());
+        let expected1 = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1,
+        ];
+        assert_eq!(actual1, expected1);
+
+        let actual256 = biguint_to_bytes(&256.to_biguint().unwrap());
+        let expected256 = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0,
+        ];
+        assert_eq!(actual256, expected256);
+    }
+
+    #[test]
+    fn test_mine_bytes_lte() {
+        let big = [
+            255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let small = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1,
+        ];
+
+        assert_eq!(true, bytes_lte(small, big));
+        assert_eq!(true, bytes_lte(small, small));
+        assert_eq!(false, bytes_lte(big, small));
     }
 }
