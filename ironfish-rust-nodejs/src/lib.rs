@@ -92,15 +92,15 @@ fn mine_header_batch(mut cx: FunctionContext) -> JsResult<JsObject> {
     let initial_randomness = cx.argument::<JsNumber>(1)?.value(&mut cx) as i64;
     // Argument 3
     let target_buffer = cx.argument::<JsBuffer>(2)?;
-    let target = cx.borrow(&target_buffer, |data| {
-        mining::slice_to_biguint(data.as_mut_slice::<u8>())
-    });
+    let target_slice = cx.borrow(&target_buffer, |data| data.as_slice::<u8>());
+    let mut target_array = [0u8; 32];
+    target_array.copy_from_slice(&target_slice[..32]);
     // Argument 4
     let batch_size = cx.argument::<JsNumber>(3)?.value(&mut cx) as i64;
 
     // Execute batch mine operation
     let mine_header_result =
-        mining::mine_header_batch(header_bytes, initial_randomness, target, batch_size);
+        mining::mine_header_batch(header_bytes, initial_randomness, &target_array, batch_size);
 
     // Return result
     mine_header_result.to_object(&mut cx)
