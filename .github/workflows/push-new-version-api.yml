@@ -1,5 +1,11 @@
 name: Push new version number to API
-on: workflow_dispatch
+on:
+  pull_request:
+    branches:
+      - "mat/push-version-to-api"
+  push:
+    branches:
+      - "mat/push-version-to-api"
 
 jobs:
   Push:
@@ -11,7 +17,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Push version string to API
-        run: ./ironfish-cli/scripts/push-new-version-api.sh
+        run: ./ironfish-cli/scripts/push-version.sh
         env:
           IRON_FISH_API_KEY: ${{ secrets.IRON_FISH_API_KEY }}
           IRON_FISH_API_URL: ${{ secrets.IRON_FISH_API_URL }}
