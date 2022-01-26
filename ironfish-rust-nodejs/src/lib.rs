@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use neon::prelude::*;
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
+use napi::Error;
 
 use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
@@ -13,11 +16,12 @@ pub trait ToObjectExt {
     fn to_object<'a>(&self, cx: &mut impl Context<'a>) -> JsResult<'a, JsObject>;
 }
 
-struct Key {
-    spending_key: String,
-    incoming_view_key: String,
-    outgoing_view_key: String,
-    public_address: String,
+#[napi(object)]
+pub struct Key {
+    pub spending_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub public_address: String,
 }
 
 impl ToObjectExt for Key {
@@ -54,62 +58,56 @@ impl ToObjectExt for mining::MineHeaderResult {
     }
 }
 
-fn generate_key(mut cx: FunctionContext) -> JsResult<JsObject> {
+#[napi]
+pub fn generate_key() -> Key {
     let hasher = sapling_bls12::SAPLING.clone();
     let sapling_key = sapling_bls12::Key::generate_key(hasher);
 
-    let key = Key {
+    Key {
         spending_key: sapling_key.hex_spending_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.generate_public_address().hex_public_address(),
-    };
-
-    key.to_object(&mut cx)
+    }
 }
 
-fn generate_new_public_address(mut cx: FunctionContext) -> JsResult<JsObject> {
-    let private_key = cx.argument::<JsString>(0)?.value(&mut cx);
+#[napi]
+pub fn generate_new_public_address(private_key: String) -> Result<Key> {
     let hasher = sapling_bls12::SAPLING.clone();
     let sapling_key = sapling_bls12::Key::from_hex(hasher, &private_key)
-        .or_else(|err| cx.throw_error(err.to_string()))?;
+        .map_err(|err| Error::from_reason(err.to_string()))?;
 
-    let key = Key {
+    Ok(Key {
         spending_key: sapling_key.hex_spending_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.generate_public_address().hex_public_address(),
-    };
-
-    key.to_object(&mut cx)
+    })
 }
 
-fn mine_header_batch(mut cx: FunctionContext) -> JsResult<JsObject> {
-    // Argument 1
-    let header_buffer = cx.argument::<JsBuffer>(0)?;
-    let header_bytes = cx.borrow(&header_buffer, |data| data.as_mut_slice::<u8>());
-    // Argument 2
-    let initial_randomness = cx.argument::<JsNumber>(1)?.value(&mut cx) as i64;
-    // Argument 3
-    let target_buffer = cx.argument::<JsBuffer>(2)?;
-    let target_slice = cx.borrow(&target_buffer, |data| data.as_slice::<u8>());
+#[napi(object)]
+pub struct MineHeaderNapiResult {
+    pub randomness: f64,
+    pub found_match: bool,
+}
+
+#[napi]
+pub fn mine_header_batch(mut header_bytes: Buffer, initial_randomness: i64, target_buffer: Buffer, batch_size: i64) -> MineHeaderNapiResult {
     let mut target_array = [0u8; 32];
-    target_array.copy_from_slice(&target_slice[..32]);
-    // Argument 4
-    let batch_size = cx.argument::<JsNumber>(3)?.value(&mut cx) as i64;
+    target_array.copy_from_slice(&target_buffer[..32]);
 
     // Execute batch mine operation
     let mine_header_result =
-        mining::mine_header_batch(header_bytes, initial_randomness, &target_array, batch_size);
+        mining::mine_header_batch(header_bytes.as_mut(), initial_randomness, &target_array, batch_size);
 
-    // Return result
-    mine_header_result.to_object(&mut cx)
+    MineHeaderNapiResult {
+        randomness: mine_header_result.randomness,
+        found_match: mine_header_result.found_match,
+    }
 }
 
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
-    cx.export_function("generateKey", generate_key)?;
-    cx.export_function("generateNewPublicAddress", generate_new_public_address)?;
     cx.export_function("combineHash", structs::NativeNoteEncrypted::combine_hash)?;
 
     cx.export_function(
@@ -219,8 +217,6 @@ fn main(mut cx: ModuleContext) -> NeonResult<()> {
         "transactionExpirationSequence",
         structs::NativeTransactionPosted::expiration_sequence,
     )?;
-
-    cx.export_function("mineHeaderBatch", mine_header_batch)?;
 
     Ok(())
 }
