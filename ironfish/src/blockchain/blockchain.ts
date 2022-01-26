@@ -423,13 +423,30 @@ export class Blockchain {
     tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHeader, void, void> {
+    let lastHeader: BlockHeader | null = null
+
     for await (const hash of this.iterateToHashes(start, end, tx, reachable)) {
       const header = await this.getHeader(hash, tx)
       Assert.isNotNull(header)
+
+      // Checks that the main chain has not re-orged during iteration.
+      // Read docs on iterateToHashes() for more information.
+      if (lastHeader && !header.previousBlockHash.equals(lastHeader.hash)) {
+        return
+      }
+
+      lastHeader = header
       yield header
     }
   }
 
+  /**
+   * This iterates the main chain from start (or genesis) to end (or the head).
+   *
+   * NOTE: Be warned that it's possible these hashes could change during a re-org and
+   * "jump" chains. If you need safety, or are not sure what this means then you
+   * should instead use Blockchain.iterateTo() instead.
+   */
   async *iterateToHashes(
     start: BlockHeader,
     end?: BlockHeader,
@@ -1083,12 +1100,14 @@ export class Blockchain {
   }
 
   /**
-   * Iterates through all transactions, starting from the heaviest head and walking backward.
+   * Iterates through transactions, starting from fromHash or the genesis block,
+   * to toHash or the heaviest head.
    */
-  async *iterateAllTransactions(
+  async *iterateTransactions(
     fromHash: Buffer | null = null,
     toHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
+    reachable = true,
   ): AsyncGenerator<
     { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
     void,
@@ -1111,7 +1130,7 @@ export class Blockchain {
     Assert.isNotNull(from, `Expected 'from' not to be null`)
     Assert.isNotNull(to, `Expected 'to' not to be null`)
 
-    for await (const header of this.iterateTo(from, to, tx)) {
+    for await (const header of this.iterateTo(from, to, tx, reachable)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
         yield transaction
       }
