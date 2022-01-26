@@ -22,19 +22,17 @@ export const MAX_QUEUE_BEFORE_SUBMIT = 1000
 /// Max length of queue before dumping metrics (in event of network outage)
 const MAX_QUEUE_BEFORE_DUMP = 10000
 
-type MetricOnWire = Omit<Metric, 'fields'> & {
-  fields: Record<string, string | boolean | number>[]
+type MetricOnWire = Metric & {
+  measurement: 'node'
 }
 
 let metrics: MetricOnWire[] = []
 
 export function handleMetric(metric: Metric, endpoint: string, logger?: Logger): void {
-  const fields = metric.fields.map((field) => {
-    const httpField: Record<string, string | boolean | number> = { name: field.name }
-    httpField[field.type] = field.value
-    return httpField
+  metrics.push({
+    ...metric,
+    measurement: 'node',
   })
-  metrics.push({ ...metric, fields })
   if (metrics.length > MAX_QUEUE_BEFORE_SUBMIT) {
     sendMetrics(endpoint, logger)
   }
@@ -49,7 +47,7 @@ export function sendMetrics(endpoint: string, logger?: Logger): void {
   metrics = []
 
   axios
-    .post(endpoint, toSubmit)
+    .post(endpoint, { points: toSubmit })
     .then(() => {
       if (logger) {
         logger.debug(`Submitted batch of ${toSubmit.length} metrics`)

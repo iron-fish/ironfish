@@ -27,13 +27,16 @@ describe('Telemetry background thread', () => {
     handleMetric(metric, endpoint)
     expect(postMock).not.toHaveBeenCalled()
     sendMetrics(endpoint)
-    expect(axios.post).toHaveBeenCalledWith('http://localhost:8000/writeMetric', [
-      {
-        name: 'test metric',
-        timestamp: new Date('2020-12-31'),
-        fields: [{ name: 'hello', string: 'world' }],
-      },
-    ])
+    expect(axios.post).toHaveBeenCalledWith('http://localhost:8000/writeMetric', {
+      points: [
+        {
+          measurement: 'node',
+          name: 'test metric',
+          timestamp: new Date('2020-12-31'),
+          fields: [{ name: 'hello', type: 'string', value: 'world' }],
+        },
+      ],
+    })
   })
 
   it('posts immediately if there are many metrics', () => {

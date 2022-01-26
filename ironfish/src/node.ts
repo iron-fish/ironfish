@@ -212,7 +212,10 @@ export class IronfishNode {
     })
 
     const anonymousTelemetryId = Math.random().toString().substring(2)
-    setDefaultTags({ version: pkg.version, sessionId: anonymousTelemetryId })
+    setDefaultTags([
+      { name: 'version', value: pkg.version },
+      { name: 'session_id', value: anonymousTelemetryId },
+    ])
 
     return new IronfishNode({
       pkg,
