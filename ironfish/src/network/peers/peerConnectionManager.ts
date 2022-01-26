@@ -86,6 +86,13 @@ export class PeerConnectionManager {
       }
     }
 
+    if (this.peerManager.canCreateNewConnections()) {
+      const peer = this.peerManager.getRandomDisconnectedPeer()
+      if (peer) {
+        this.connectToEligiblePeers(peer)
+      }
+    }
+
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
   }
 

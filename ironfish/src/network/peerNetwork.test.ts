@@ -13,14 +13,13 @@ import { createNodeTest } from '../testUtilities'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage, NodeMessageType } from './messages'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
-import { AddressManager } from './peers/addressManager'
-import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
+import { getConnectedPeer, mockFileSystem, mockPrivateIdentity } from './testUtilities'
 
 jest.useFakeTimers()
 
 describe('PeerNetwork', () => {
   describe('stop', () => {
-    it('stops the peer manager', () => {
+    it('stops the peer manager', async () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -28,17 +27,17 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
-      peerNetwork.stop()
+      await peerNetwork.stop()
       expect(stopSpy).toBeCalled()
     })
   })
 
   describe('registerHandler', () => {
-    it('stores the type in the routingStyles', () => {
+    it('stores the type in the routingStyles', async () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -46,7 +45,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       const type = 'hello'
@@ -57,7 +56,7 @@ describe('PeerNetwork', () => {
         () => {},
       )
       expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.gossip)
-      peerNetwork.stop()
+      await peerNetwork.stop()
     })
   })
 
@@ -70,7 +69,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       const handlerMock = jest.fn(() => {})
@@ -88,12 +87,12 @@ describe('PeerNetwork', () => {
         message,
       })
       expect(handlerMock).not.toBeCalled()
-      peerNetwork.stop()
+      await peerNetwork.stop()
     })
   })
 
   describe('when peers connect', () => {
-    it('changes isReady', () => {
+    it('changes isReady', async () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -102,7 +101,7 @@ describe('PeerNetwork', () => {
         chain: mockChain(),
         strategy: mockStrategy(),
         minPeers: 1,
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       expect(peerNetwork.isReady).toBe(false)
@@ -110,7 +109,7 @@ describe('PeerNetwork', () => {
       const readyChanged = jest.fn()
       peerNetwork.onIsReadyChanged.on(readyChanged)
 
-      peerNetwork.start()
+      await peerNetwork.start()
       expect(peerNetwork.isReady).toBe(false)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -119,7 +118,7 @@ describe('PeerNetwork', () => {
       peer.close()
       expect(peerNetwork.isReady).toBe(false)
 
-      peerNetwork.stop()
+      await peerNetwork.stop()
       expect(peerNetwork.isReady).toBe(false)
 
       expect(readyChanged).toBeCalledTimes(2)
@@ -129,7 +128,7 @@ describe('PeerNetwork', () => {
   })
 
   describe('when at max peers', () => {
-    it('rejects websocket connections', () => {
+    it('rejects websocket connections', async () => {
       const wsActual = jest.requireActual<typeof WSWebSocket>('ws')
 
       const peerNetwork = new PeerNetwork({
@@ -143,7 +142,7 @@ describe('PeerNetwork', () => {
         port: 0,
         minPeers: 1,
         maxPeers: 0,
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       const rejectSpy = jest
@@ -151,7 +150,7 @@ describe('PeerNetwork', () => {
         .mockReturnValue(true)
 
       // Start the network so it creates the webSocketServer
-      peerNetwork.start()
+      await peerNetwork.start()
       const server = peerNetwork['webSocketServer']
       Assert.isNotUndefined(server, `server`)
 
@@ -162,7 +161,7 @@ describe('PeerNetwork', () => {
       const sendSpy = jest.spyOn(conn, 'send').mockReturnValue(undefined)
       const closeSpy = jest.spyOn(conn, 'close').mockReturnValue(undefined)
       server.server.emit('connection', conn, req)
-      peerNetwork.stop()
+      await peerNetwork.stop()
 
       expect(rejectSpy).toHaveBeenCalled()
       expect(sendSpy).toHaveBeenCalled()
@@ -185,7 +184,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       })
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -224,7 +223,7 @@ describe('PeerNetwork', () => {
             },
           },
           strategy: mockStrategy(),
-          addressManager: new AddressManager(mockHostsStore()),
+          files: mockFileSystem(),
         })
 
         const { accounts, memPool, workerPool } = node
@@ -274,7 +273,7 @@ describe('PeerNetwork', () => {
           node,
           chain,
           strategy: mockStrategy(),
-          addressManager: new AddressManager(mockHostsStore()),
+          files: mockFileSystem(),
         })
 
         const { accounts, memPool } = node
@@ -323,7 +322,7 @@ describe('PeerNetwork', () => {
           node,
           chain,
           strategy: mockStrategy(),
-          addressManager: new AddressManager(mockHostsStore()),
+          files: mockFileSystem(),
         })
 
         // Spy on new transactions
@@ -372,7 +371,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       }
 
       const peerNetwork1 = new PeerNetwork({ ...networkArgs, enableSyncing: false })
@@ -425,7 +424,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         strategy: mockStrategy(),
-        addressManager: new AddressManager(mockHostsStore()),
+        files: mockFileSystem(),
       }
 
       const peerNetwork1 = new PeerNetwork({ ...networkArgs, enableSyncing: false })

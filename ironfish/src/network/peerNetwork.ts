@@ -7,8 +7,8 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
-import { FileSystem } from '../fileSystems'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
+import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
@@ -292,7 +292,7 @@ export class PeerNetwork {
     })
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.started) {
       return
     }
@@ -369,7 +369,7 @@ export class PeerNetwork {
     }
 
     // Start up the PeerManager
-    this.peerManager.start()
+    await this.peerManager.start()
 
     // Start up the PeerConnectionManager
     this.peerConnectionManager.start()
@@ -397,12 +397,14 @@ export class PeerNetwork {
    * Call close when shutting down the PeerNetwork to clean up
    * outstanding connections.
    */
-  stop(): void {
-    this.started = false
-    this.peerConnectionManager.stop()
-    this.peerManager.stop()
-    this.webSocketServer?.close()
-    this.updateIsReady()
+  async stop(): Promise<void> {
+    await Promise.allSettled([
+      (this.started = false),
+      this.peerConnectionManager.stop(),
+      await this.peerManager.stop(),
+      this.webSocketServer?.close(),
+      this.updateIsReady(),
+    ])
   }
 
   /**

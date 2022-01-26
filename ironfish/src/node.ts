@@ -284,7 +284,7 @@ export class IronfishNode {
     }
 
     await this.accounts.start()
-    this.peerNetwork.start()
+    await this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
       await this.rpc.start()
@@ -304,7 +304,7 @@ export class IronfishNode {
     await Promise.allSettled([
       this.accounts.stop(),
       this.syncer.stop(),
-      this.peerNetwork.stop(),
+      await this.peerNetwork.stop(),
       this.rpc.stop(),
       stopCollecting(),
       this.metrics.stop(),

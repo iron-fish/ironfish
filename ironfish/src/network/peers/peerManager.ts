@@ -54,12 +54,6 @@ import { Peer } from './peer'
 const MAX_WEBRTC_BROKERING_ATTEMPTS = 5
 
 /**
- * The minimum version at which the peer manager will send peer list requests
- * to a connected peer
- */
-const MIN_VERSION_FOR_PEER_LIST_REQUESTS = 9
-
-/**
  * PeerManager keeps the state of Peers and their underlying connections up to date,
  * determines how to establish a connection to a given Peer, and provides an event
  * bus for Peers, e.g. for listening to incoming messages from all connected peers.
@@ -91,13 +85,21 @@ export class PeerManager {
    * setInterval handle for distributePeerList, which sends out peer lists and
    * requests for peer lists
    */
-  private distributePeerListHandle: SetIntervalToken | undefined
+  private requestPeerListHandle: SetIntervalToken | undefined
 
+  /**
+   * setInterval handle for 
   /**
    * setInterval handle for peer disposal, which removes peers from the list that we
    * no longer care about
    */
   private disposePeersHandle: SetIntervalToken | undefined
+
+  /**
+   * setInterval handle for peer address persistence, which saves connected
+   * peers to disk
+   */
+  private savePeerAddressesHandle: ReturnType<typeof setInterval> | undefined
 
   /**
    * Event fired when a new connection is successfully opened. Sends some identifying
@@ -454,8 +456,7 @@ export class PeerManager {
     }
 
     const canEstablishNewConnection =
-      peer.state.type !== 'DISCONNECTED' ||
-      this.getPeersWithConnection().length < this.targetPeers
+      peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
     const disconnectOk =
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
@@ -482,8 +483,7 @@ export class PeerManager {
     }
 
     const canEstablishNewConnection =
-      peer.state.type !== 'DISCONNECTED' ||
-      this.getPeersWithConnection().length < this.targetPeers
+      peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
     const disconnectOk =
       peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
@@ -562,6 +562,14 @@ export class PeerManager {
     return [...this.identifiedPeers.values()].filter((p) => {
       return p.state.type === 'CONNECTED'
     })
+  }
+
+  /**
+   * Returns true if the total number of connected peers is less
+   * than the target amount of peers
+   */
+  canCreateNewConnections(): boolean {
+    return this.getPeersWithConnection().length < this.targetPeers
   }
 
   /**
@@ -784,55 +792,54 @@ export class PeerManager {
     }
   }
 
-  start(): void {
-    this.distributePeerListHandle = setInterval(() => this.distributePeerList(), 5000)
-    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
+  async start(): Promise<void> {
+    await Promise.allSettled([
+      (this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 5000)),
+      (this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)),
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      (this.savePeerAddressesHandle = setInterval(async () => {
+        await this.addressManager.save(this.peers)
+      }, 60000)),
+    ])
   }
 
   /**
    * Call when shutting down the PeerManager to clean up
    * outstanding connections.
    */
-  stop(): void {
-    this.distributePeerListHandle && clearInterval(this.distributePeerListHandle)
+  async stop(): Promise<void> {
+    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
+    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
+    await this.addressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
   }
 
-  private distributePeerList() {
-    const connectedPeers = []
-
-    for (const p of this.identifiedPeers.values()) {
-      if (p.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      connectedPeers.push({
-        identity: p.state.identity,
-        name: p.name || undefined,
-        address: p.address,
-        port: p.port,
-      })
-    }
-
-    const peerList: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: { connectedPeers },
-    }
-
+  private requestPeerList() {
     const peerListRequest: PeerListRequest = {
       type: InternalMessageType.peerListRequest,
     }
 
     for (const peer of this.getConnectedPeers()) {
-      if (peer.version !== null && peer.version >= MIN_VERSION_FOR_PEER_LIST_REQUESTS) {
-        peer.send(peerListRequest)
-        continue
-      }
+      peer.send(peerListRequest)
+    }
+  }
 
-      peer.send(peerList)
+  /**
+   * Gets a random disconnected peer address and returns a peer created from
+   * said address
+   */
+  getRandomDisconnectedPeer(): Peer | null {
+    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(this.peers)
+    if (peerAddress) {
+      const peer = this.getOrCreatePeer(peerAddress.identity)
+      peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
+      peer.name = peerAddress.name || null
+      return peer
+    } else {
+      return null
     }
   }
 
@@ -867,6 +874,8 @@ export class PeerManager {
         this.identifiedPeers.delete(peer.state.identity)
       }
       this.peers = this.peers.filter((p) => p !== peer)
+
+      this.addressManager.removePeerAddress(peer)
 
       return true
     }
@@ -1479,6 +1488,8 @@ export class PeerManager {
     }
 
     let changed = false
+
+    this.addressManager.addAddressesFromPeerList(peerList)
 
     const newPeerSet = peerList.payload.connectedPeers.reduce(
       (memo, peer) => {

@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Peer, PeerList } from '..'
 import { HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { ArrayUtils } from '../../utils'
+import { Peer, PeerList } from '..'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 
