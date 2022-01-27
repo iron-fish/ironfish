@@ -68,7 +68,7 @@ describe('Telemetry submitMetric function', () => {
   const metric: Metric = {
     name: 'test metric',
     timestamp: new Date('2020-12-31'),
-    tags: { 'you know': 'me' },
+    tags: [{ name: 'you know', value: 'me' }],
     fields: [{ name: 'hello', type: 'string', value: 'world' }],
   }
 
@@ -79,7 +79,7 @@ describe('Telemetry submitMetric function', () => {
 
   beforeEach(() => {
     mockSubmit.mockClear()
-    setDefaultTags({})
+    setDefaultTags([])
   })
 
   it('Succeeds with a validly formatted metric', () => {
@@ -104,11 +104,14 @@ describe('Telemetry submitMetric function', () => {
   })
 
   it('submits with default tags', () => {
-    setDefaultTags({ my: 'default tag' })
+    setDefaultTags([{ name: 'my', value: 'default tag' }])
     submitMetric(metric)
     const expectedMetric = {
       ...metric,
-      tags: { my: 'default tag', 'you know': 'me' },
+      tags: [
+        { name: 'my', value: 'default tag' },
+        { name: 'you know', value: 'me' },
+      ],
     }
     expect(mockSubmit.mock.calls).toMatchObject([[expectedMetric]])
   })

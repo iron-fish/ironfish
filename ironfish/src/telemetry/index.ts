@@ -22,6 +22,11 @@ export type Field = {
   value: string | boolean | number
 }
 
+interface Tag {
+  name: string
+  value: string
+}
+
 /**
  * A specific datapoint being collected.
  */
@@ -43,7 +48,7 @@ export type Metric = {
    * Expected values will be something like: "clientid": "xxx"
    * or "software version": "xxx".
    */
-  tags?: Record<string, string>
+  tags?: Tag[]
   /**
    * Array of measured values for this particular measurement.
    * There must be at least one field.
@@ -72,7 +77,7 @@ export const EnabledTelemetry = NodeTelemetry
 let telemetry: Telemetry = new DisabledTelemetry()
 
 // List of tags that get added to every metric.
-let defaultTags: Record<string, string> = {}
+let defaultTags: Tag[] = []
 
 /**
  * Check if telemetry reporting is currently active
@@ -131,7 +136,7 @@ export async function stopCollecting(): Promise<string> {
  *
  * They can be set before telemetry is enabled.
  */
-export function setDefaultTags(tags: Record<string, string>): void {
+export function setDefaultTags(tags: Tag[]): void {
   defaultTags = tags
 }
 
@@ -146,10 +151,16 @@ export function submitMetric(metric: Metric): void {
   if (metric.fields.length === 0) {
     throw new Error('Metric must have at least one field')
   }
+
+  let tags = defaultTags
+  if (metric.tags) {
+    tags = tags.concat(metric.tags)
+  }
+
   const toSubmit = {
     ...metric,
     timestamp: metric.timestamp || new Date(),
-    tags: metric.tags ? { ...defaultTags, ...metric.tags } : { ...defaultTags },
+    tags,
   }
 
   telemetry.submit(toSubmit)
