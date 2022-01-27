@@ -108,37 +108,6 @@ pub fn mine_header_batch(mut header_bytes: Buffer, initial_randomness: i64, targ
 
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
-    cx.export_function("combineHash", structs::NativeNoteEncrypted::combine_hash)?;
-
-    cx.export_function(
-        "noteEncryptedDeserialize",
-        structs::NativeNoteEncrypted::deserialize,
-    )?;
-    cx.export_function(
-        "noteEncryptedSerialize",
-        structs::NativeNoteEncrypted::serialize,
-    )?;
-    cx.export_function("noteEncryptedEquals", structs::NativeNoteEncrypted::equals)?;
-    cx.export_function(
-        "noteEncryptedMerkleHash",
-        structs::NativeNoteEncrypted::merkle_hash,
-    )?;
-    cx.export_function(
-        "noteEncryptedDecryptNoteForOwner",
-        structs::NativeNoteEncrypted::decrypt_note_for_owner,
-    )?;
-    cx.export_function(
-        "noteEncryptedDecryptNoteForSpender",
-        structs::NativeNoteEncrypted::decrypt_note_for_spender,
-    )?;
-
-    cx.export_function("noteNew", structs::NativeNote::new)?;
-    cx.export_function("noteDeserialize", structs::NativeNote::deserialize)?;
-    cx.export_function("noteSerialize", structs::NativeNote::serialize)?;
-    cx.export_function("noteValue", structs::NativeNote::value)?;
-    cx.export_function("noteMemo", structs::NativeNote::memo)?;
-    cx.export_function("noteNullifier", structs::NativeNote::nullifier)?;
-
     cx.export_function(
         "simpleTransactionNew",
         structs::NativeSimpleTransaction::new,

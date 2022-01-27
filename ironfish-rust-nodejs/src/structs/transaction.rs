@@ -5,6 +5,9 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
+
 use neon::prelude::*;
 
 use ironfish_rust::sapling_bls12::{
@@ -15,210 +18,143 @@ use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
 
+#[napi]
 pub struct NativeTransactionPosted {
     transaction: Transaction,
 }
 
-impl Finalize for NativeTransactionPosted {}
-
+#[napi]
 impl NativeTransactionPosted {
-    pub fn deserialize(mut cx: FunctionContext) -> JsResult<JsBox<NativeTransactionPosted>> {
-        let bytes = cx.argument::<JsBuffer>(0)?;
+    #[napi(factory)]
+    pub fn deserialize(bytes: Buffer) -> Result<NativeTransactionPosted> {
+        let cursor = std::io::Cursor::new(bytes);
 
-        let transaction = cx
-            .borrow(&bytes, |data| {
-                let mut cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(data.as_slice());
-                Transaction::read(SAPLING.clone(), &mut cursor)
-            })
-            .or_else(|err| cx.throw_error(err.to_string()))?;
+        let transaction = Transaction::read(SAPLING.clone(), &mut cursor).map_err(|err| Error::from_reason(err.to_string()))?;
 
-        Ok(cx.boxed(NativeTransactionPosted { transaction }))
+        Ok(NativeTransactionPosted { transaction })
     }
 
-    pub fn serialize(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-
-        let mut arr: Vec<u8> = vec![];
-        transaction
+    #[napi]
+    pub fn serialize(&self) -> Result<Buffer> {
+        let mut vec: Vec<u8> = vec![];
+        self
             .transaction
-            .write(&mut arr)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
+            .write(&mut vec)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let mut bytes = cx.buffer(arr.len().try_into().unwrap())?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&arr[..slice.len()]);
-        });
-
-        Ok(bytes)
+        Ok(Buffer::from(vec))
     }
 
-    pub fn verify(mut cx: FunctionContext) -> JsResult<JsBoolean> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
+    #[napi]
+    pub fn verify(&self) -> bool {
+        match self.transaction.verify() {
+            Ok(_) => true,
+            Err(_e) => false,
+        }
+    }
 
-        Ok(match transaction.transaction.verify() {
-            Ok(_) => cx.boolean(true),
-            Err(_e) => cx.boolean(false),
+    #[napi]
+    pub fn notes_length(&self) -> Result<i64> {
+        let notes_len: i64 = self.transaction.receipts().len().try_into().map_err(|_| Error::from_reason("Value out of range".to_string()))?;
+
+        Ok(notes_len)
+    }
+
+    #[napi]
+    pub fn get_note(&self, index: i64) -> Result<Buffer> {
+        let index_usize: usize = index.try_into().map_err(|_| Error::from_reason("Value out of range".to_string()))?;
+
+        let proof = &self.transaction.receipts()[index_usize];
+        // Note bytes are 275
+        let mut vec: Vec<u8> = Vec::with_capacity(275);
+        proof
+            .merkle_note()
+            .write(&mut vec)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
+    pub fn spends_length(&self) -> Result<i64> {
+        let spends_len: i64 = self.transaction.spends().len().try_into().map_err(|_| Error::from_reason("Value out of range".to_string()))?;
+
+        Ok(spends_len)
+    }
+
+    #[napi]
+    pub fn get_spend(&self, index: i64) -> Result<NativeSpendProof> {
+        let index_usize: usize = index.try_into().map_err(|_| Error::from_reason("Value out of range".to_string()))?;
+
+        let proof = &self.transaction.spends()[index_usize];
+        Ok(NativeSpendProof {
+            proof: proof.clone(),
         })
     }
 
-    pub fn notes_length(mut cx: FunctionContext) -> JsResult<JsNumber> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-
-        Ok(cx.number(transaction.transaction.receipts().len() as f64))
+    #[napi]
+    pub fn fee(&self) -> i64n {
+        i64n(self.transaction.transaction_fee())
     }
 
-    pub fn get_note(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-        let index = cx.argument::<JsNumber>(0)?.value(&mut cx) as usize;
-
-        let proof = &transaction.transaction.receipts()[index];
-        // Note bytes are 275
-        let mut arr: Vec<u8> = Vec::with_capacity(275);
-        proof
-            .merkle_note()
-            .write(&mut arr)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
-
-        let mut bytes = cx.buffer(arr.len() as u32)?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&arr[..slice.len()]);
-        });
-
-        Ok(bytes)
-    }
-
-    pub fn spends_length(mut cx: FunctionContext) -> JsResult<JsNumber> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-
-        Ok(cx.number(transaction.transaction.spends().len() as f64))
-    }
-
-    pub fn get_spend(mut cx: FunctionContext) -> JsResult<JsBox<NativeSpendProof>> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-        let index = cx.argument::<JsNumber>(0)?.value(&mut cx) as usize;
-
-        let proof = &transaction.transaction.spends()[index];
-        Ok(cx.boxed(NativeSpendProof {
-            proof: proof.clone(),
-        }))
-    }
-
-    pub fn fee(mut cx: FunctionContext) -> JsResult<JsString> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-
-        // TODO: Should be BigInt, but no first-class Neon support
-        Ok(cx.string(transaction.transaction.transaction_fee().to_string()))
-    }
-
-    pub fn transaction_signature(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-
+    #[napi]
+    pub fn transaction_signature(&self) -> Result<Buffer> {
         let mut serialized_signature = vec![];
-        transaction
+        self
             .transaction
             .binding_signature()
             .write(&mut serialized_signature)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let mut bytes = cx.buffer(serialized_signature.len() as u32)?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&serialized_signature[..slice.len()]);
-        });
-
-        Ok(bytes)
+        Ok(Buffer::from(serialized_signature))
     }
 
-    pub fn hash(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
+    #[napi]
+    pub fn hash(&self) -> Buffer {
+        let hash = self.transaction.transaction_signature_hash();
 
-        let hash = transaction.transaction.transaction_signature_hash();
-
-        let mut bytes = cx.buffer(hash.len() as u32)?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&hash[..slice.len()]);
-        });
-
-        Ok(bytes)
+        Buffer::from(hash.as_ref())
     }
 
-    pub fn expiration_sequence(mut cx: FunctionContext) -> JsResult<JsNumber> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeTransactionPosted>, _>(&mut cx)?;
-        Ok(cx.number(transaction.transaction.expiration_sequence()))
+    #[napi]
+    pub fn expiration_sequence(&self) -> u32 {
+        self.transaction.expiration_sequence()
     }
 }
 
 type BoxedNativeTransaction = JsBox<RefCell<NativeTransaction>>;
 
+#[napi]
 pub struct NativeTransaction {
     transaction: ProposedTransaction,
 }
 
-impl Finalize for NativeTransaction {}
-
+#[napi]
 impl NativeTransaction {
-    pub fn new(mut cx: FunctionContext) -> JsResult<BoxedNativeTransaction> {
-        Ok(cx.boxed(RefCell::new(NativeTransaction {
+    #[napi(constructor)]
+    pub fn new() -> NativeTransaction {
+        NativeTransaction {
             transaction: ProposedTransaction::new(SAPLING.clone()),
-        })))
+        }
     }
 
     /// Create a proof of a new note owned by the recipient in this transaction.
-    pub fn receive(mut cx: FunctionContext) -> JsResult<JsString> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<BoxedNativeTransaction, _>(&mut cx)?;
-        let spender_hex_key = cx.argument::<JsString>(0)?.value(&mut cx);
-        let note = cx.argument::<JsBox<NativeNote>>(1)?;
-
+    #[napi]
+    pub fn receive(&self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
         let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
-        transaction
-            .borrow_mut()
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        self
             .transaction
             .receive(&spender_key, &note.note)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
-        Ok(cx.string(""))
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        Ok("".to_string())
     }
 
     /// Spend the note owned by spender_hex_key at the given witness location.
-    pub fn spend(mut cx: FunctionContext) -> JsResult<JsString> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<BoxedNativeTransaction, _>(&mut cx)?;
-        let spender_hex_key = cx.argument::<JsString>(0)?.value(&mut cx);
-        let note = cx.argument::<JsBox<NativeNote>>(1)?;
+    #[napi]
+    pub fn spend(&self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
         // JsBox<JsWitness>
         let witness = cx.argument::<JsObject>(2)?;
-
-        let ret = cx.string("");
 
         let w = JsWitness {
             cx: RefCell::new(cx),
@@ -226,14 +162,13 @@ impl NativeTransaction {
         };
 
         let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .or_else(|err| w.cx.borrow_mut().throw_error(err.to_string()))?;
-        transaction
-            .borrow_mut()
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        self
             .transaction
             .spend(spender_key, &note.note, &w)
-            .or_else(|err| w.cx.borrow_mut().throw_error(err.to_string()))?;
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        Ok(ret)
+        Ok("".to_string())
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
@@ -241,17 +176,13 @@ impl NativeTransaction {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(mut cx: FunctionContext) -> JsResult<JsBox<NativeTransactionPosted>> {
-        let transaction = cx
-            .this()
-            .downcast_or_throw::<BoxedNativeTransaction, _>(&mut cx)?;
-
-        let transaction = transaction
-            .borrow_mut()
+    #[napi]
+    pub fn post_miners_fee(&self) -> Result<NativeTransactionPosted> {
+        let transaction = self
             .transaction
             .post_miners_fee()
-            .or_else(|err| cx.throw_error(err.to_string()))?;
-        Ok(cx.boxed(NativeTransactionPosted { transaction }))
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        Ok(NativeTransactionPosted { transaction })
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -264,6 +195,7 @@ impl NativeTransaction {
     ///
     /// sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
     /// aka: self.transaction_fee - intended_transaction_fee - change = 0
+    #[napi]
     pub fn post(mut cx: FunctionContext) -> JsResult<JsBox<NativeTransactionPosted>> {
         let transaction = cx
             .this()
