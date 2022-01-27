@@ -417,6 +417,10 @@ export class Blockchain {
     return { fork: base, isLinear: linear }
   }
 
+  /**
+   * Iterate the main chain from left to right inclusive.
+   * Start and end being included in the yielded blocks.
+   * */
   async *iterateTo(
     start: BlockHeader,
     end?: BlockHeader,
@@ -482,8 +486,8 @@ export class Blockchain {
   }
 
   /**
-   * Iterate from start to end with start and end being
-   * included in the yielded blocks.
+   * Iterate the main chain from right to left inclusive.
+   * Start and end being included in the yielded blocks.
    * */
   async *iterateFrom(
     start: BlockHeader,
