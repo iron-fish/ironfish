@@ -13,7 +13,7 @@ pub struct MineHeaderResult {
 
 pub fn randomize_header(initial_randomness: i64, i: i64, mut header_bytes: &mut [u8]) -> i64 {
     // The intention here is to wrap randomness between 0 inclusive and Number.MAX_SAFE_INTEGER inclusive
-    let randomness = if i > MAX_SAFE_INTEGER + initial_randomness {
+    let randomness = if i > MAX_SAFE_INTEGER - initial_randomness {
         i - (MAX_SAFE_INTEGER - initial_randomness) - 1
     } else {
         initial_randomness + i
