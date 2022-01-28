@@ -53,8 +53,8 @@ export default class Testnet extends IronfishCommand {
 
     let userId: number | null = null
 
-    if (userArg.indexOf('/users/') !== -1) {
-      const index = userArg.indexOf('/users/')
+    const index = userArg.indexOf('/users/')
+    if (index !== -1) {
       const id = Number(userArg.slice(index + '/users/'.length))
 
       if (!isNaN(id)) {
