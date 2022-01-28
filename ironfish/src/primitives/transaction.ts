@@ -48,7 +48,6 @@ export class Transaction {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.transactionPosted?.free()
       this.transactionPosted = null
     }
   }
@@ -83,7 +82,7 @@ export class Transaction {
    * The number of notes in the transaction.
    */
   notesLength(): number {
-    return this.withReference((t) => t.notesLength)
+    return this.withReference((t) => t.notesLength())
   }
 
   getNote(index: number): NoteEncrypted {
@@ -112,7 +111,7 @@ export class Transaction {
    * The number of spends in the transaction.
    */
   spendsLength(): number {
-    return this.withReference((t) => t.spendsLength)
+    return this.withReference((t) => t.spendsLength())
   }
 
   /**
@@ -133,12 +132,11 @@ export class Transaction {
       const spend = t.getSpend(index)
 
       const jsSpend = {
-        size: spend.treeSize,
-        nullifier: Buffer.from(spend.nullifier),
-        commitment: Buffer.from(spend.rootHash),
+        size: spend.treeSize(),
+        nullifier: spend.nullifier(),
+        commitment: spend.rootHash(),
       }
 
-      spend.free()
       return jsSpend
     })
   }
@@ -165,14 +163,14 @@ export class Transaction {
    * Get transaction signature for this transaction.
    */
   transactionSignature(): Buffer {
-    return this.withReference((t) => Buffer.from(t.transactionSignature))
+    return this.withReference((t) => t.transactionSignature())
   }
 
   /**
    * Get the transaction hash.
    */
   hash(): TransactionHash {
-    return this.withReference((t) => Buffer.from(t.hash))
+    return this.withReference((t) => t.hash())
   }
 
   equals(other: Transaction): boolean {
@@ -180,7 +178,7 @@ export class Transaction {
   }
 
   expirationSequence(): number {
-    return this.withReference<number>((t) => t.expirationSequence)
+    return this.withReference<number>((t) => t.expirationSequence())
   }
 }
 

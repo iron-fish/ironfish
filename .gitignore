@@ -42,7 +42,6 @@ lerna-debug.log*
 *.node
 
 # ironfish-rust-nodejs
-ironfish-rust-nodejs/*.map
 ironfish-rust-nodejs/*.tsbuildinfo
 ironfish-rust-nodejs/index.d.ts
 ironfish-rust-nodejs/index.js

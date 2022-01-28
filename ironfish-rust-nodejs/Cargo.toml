@@ -3,7 +3,6 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 license = "ISC"
 edition = "2021"
-exclude = ["index.node"]
 
 [lib]
 crate-type = ["cdylib"]
@@ -17,17 +16,6 @@ ironfish_rust= { path = "../ironfish-rust", features = ["native"] }
 [dependencies.napi]
 version = "2"
 features = ["napi6"]
-
-[dependencies.neon]
-version = "0.9.1"
-default-features = false
-features = ["napi-6"]
-
-[profile.release]
-lto = true
-
-[target.'cfg(all(any(windows, unix), target_arch = "x86_64", not(target_env = "musl")))'.dependencies]
-mimalloc = {version = "0.1"}
 
 [build-dependencies]
 napi-build = "1"

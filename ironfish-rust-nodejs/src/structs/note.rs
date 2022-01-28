@@ -8,7 +8,7 @@ use napi_derive::napi;
 use ironfish_rust::note::Memo;
 use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
 
-#[napi]
+#[napi(js_name = "Note")]
 pub struct NativeNote {
     pub(crate) note: Note,
 }
@@ -29,7 +29,8 @@ impl NativeNote {
     #[napi(factory)]
     pub fn deserialize(bytes: Buffer) -> Result<Self> {
         let hasher = SAPLING.clone();
-        let note = Note::read(bytes.as_ref(), hasher).map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = Note::read(bytes.as_ref(), hasher)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNote { note })
     }

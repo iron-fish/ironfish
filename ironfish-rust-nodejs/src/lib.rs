@@ -2,60 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use neon::prelude::*;
 use napi::bindgen_prelude::*;
-use napi_derive::napi;
 use napi::Error;
+use napi_derive::napi;
 
 use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
 
 pub mod structs;
 
-pub trait ToObjectExt {
-    fn to_object<'a>(&self, cx: &mut impl Context<'a>) -> JsResult<'a, JsObject>;
-}
-
 #[napi(object)]
 pub struct Key {
+    #[napi(js_name = "spending_key")]
     pub spending_key: String,
+    #[napi(js_name = "incoming_view_key")]
     pub incoming_view_key: String,
+    #[napi(js_name = "outgoing_view_key")]
     pub outgoing_view_key: String,
+    #[napi(js_name = "public_address")]
     pub public_address: String,
-}
-
-impl ToObjectExt for Key {
-    fn to_object<'a>(&self, cx: &mut impl Context<'a>) -> JsResult<'a, JsObject> {
-        let obj = cx.empty_object();
-
-        let spending_key = cx.string(&self.spending_key);
-        obj.set(cx, "spending_key", spending_key)?;
-
-        let incoming_view_key = cx.string(&self.incoming_view_key);
-        obj.set(cx, "incoming_view_key", incoming_view_key)?;
-
-        let outgoing_view_key = cx.string(&self.outgoing_view_key);
-        obj.set(cx, "outgoing_view_key", outgoing_view_key)?;
-
-        let public_address = cx.string(&self.public_address);
-        obj.set(cx, "public_address", public_address)?;
-
-        Ok(obj)
-    }
-}
-
-impl ToObjectExt for mining::MineHeaderResult {
-    fn to_object<'a>(&self, cx: &mut impl Context<'a>) -> JsResult<'a, JsObject> {
-        let obj = cx.empty_object();
-
-        let randomness = cx.number(self.randomness);
-        obj.set(cx, "randomness", randomness)?;
-
-        let found_match = cx.boolean(self.found_match);
-        obj.set(cx, "foundMatch", found_match)?;
-
-        Ok(obj)
-    }
 }
 
 #[napi]
@@ -92,100 +57,26 @@ pub struct MineHeaderNapiResult {
 }
 
 #[napi]
-pub fn mine_header_batch(mut header_bytes: Buffer, initial_randomness: i64, target_buffer: Buffer, batch_size: i64) -> MineHeaderNapiResult {
+pub fn mine_header_batch(
+    mut header_bytes: Buffer,
+    initial_randomness: i64,
+    target_buffer: Buffer,
+    batch_size: i64,
+) -> MineHeaderNapiResult {
     let mut target_array = [0u8; 32];
     target_array.copy_from_slice(&target_buffer[..32]);
+    print!("");
 
     // Execute batch mine operation
-    let mine_header_result =
-        mining::mine_header_batch(header_bytes.as_mut(), initial_randomness, &target_array, batch_size);
+    let mine_header_result = mining::mine_header_batch(
+        header_bytes.as_mut(),
+        initial_randomness,
+        &target_array,
+        batch_size,
+    );
 
     MineHeaderNapiResult {
         randomness: mine_header_result.randomness,
         found_match: mine_header_result.found_match,
     }
-}
-
-#[neon::main]
-fn main(mut cx: ModuleContext) -> NeonResult<()> {
-    cx.export_function(
-        "simpleTransactionNew",
-        structs::NativeSimpleTransaction::new,
-    )?;
-    cx.export_function(
-        "simpleTransactionSpend",
-        structs::NativeSimpleTransaction::spend,
-    )?;
-    cx.export_function(
-        "simpleTransactionReceive",
-        structs::NativeSimpleTransaction::receive,
-    )?;
-    cx.export_function(
-        "simpleTransactionPost",
-        structs::NativeSimpleTransaction::post,
-    )?;
-
-    cx.export_function("transactionNew", structs::NativeTransaction::new)?;
-    cx.export_function("transactionSpend", structs::NativeTransaction::spend)?;
-    cx.export_function("transactionReceive", structs::NativeTransaction::receive)?;
-    cx.export_function("transactionPost", structs::NativeTransaction::post)?;
-    cx.export_function(
-        "transactionPostMinersFee",
-        structs::NativeTransaction::post_miners_fee,
-    )?;
-    cx.export_function(
-        "transactionSetExpirationSequence",
-        structs::NativeTransaction::set_expiration_sequence,
-    )?;
-
-    cx.export_function("spendProofNullifier", structs::NativeSpendProof::nullifier)?;
-    cx.export_function("spendProofRootHash", structs::NativeSpendProof::root_hash)?;
-    cx.export_function("spendProofTreeSize", structs::NativeSpendProof::tree_size)?;
-
-    cx.export_function(
-        "transactionPostedDeserialize",
-        structs::NativeTransactionPosted::deserialize,
-    )?;
-    cx.export_function(
-        "transactionPostedSerialize",
-        structs::NativeTransactionPosted::serialize,
-    )?;
-    cx.export_function(
-        "transactionPostedVerify",
-        structs::NativeTransactionPosted::verify,
-    )?;
-    cx.export_function(
-        "transactionPostedNotesLength",
-        structs::NativeTransactionPosted::notes_length,
-    )?;
-    cx.export_function(
-        "transactionPostedGetNote",
-        structs::NativeTransactionPosted::get_note,
-    )?;
-    cx.export_function(
-        "transactionPostedSpendsLength",
-        structs::NativeTransactionPosted::spends_length,
-    )?;
-    cx.export_function(
-        "transactionPostedGetSpend",
-        structs::NativeTransactionPosted::get_spend,
-    )?;
-    cx.export_function(
-        "transactionPostedFee",
-        structs::NativeTransactionPosted::fee,
-    )?;
-    cx.export_function(
-        "transactionPostedTransactionSignature",
-        structs::NativeTransactionPosted::transaction_signature,
-    )?;
-    cx.export_function(
-        "transactionPostedHash",
-        structs::NativeTransactionPosted::hash,
-    )?;
-    cx.export_function(
-        "transactionExpirationSequence",
-        structs::NativeTransactionPosted::expiration_sequence,
-    )?;
-
-    Ok(())
 }

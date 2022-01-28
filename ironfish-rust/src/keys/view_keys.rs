@@ -49,7 +49,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
         sapling: Arc<Sapling<J>>,
         value: &str,
     ) -> Result<Self, errors::SaplingKeyError> {
-        match hex_to_bytes(&value) {
+        match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
@@ -155,7 +155,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
         sapling: Arc<Sapling<J>>,
         value: &str,
     ) -> Result<Self, errors::SaplingKeyError> {
-        match hex_to_bytes(&value) {
+        match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
@@ -245,7 +245,7 @@ pub(crate) fn shared_secret<J: JubjubEngine + pairing::MultiMillerLoop>(
     let shared_secret = point_to_bytes(&other_public_key.mul(*secret_key, jubjub))
         .expect("should be able to convert point to bytes");
     let reference_bytes =
-        point_to_bytes(&reference_public_key).expect("should be able to convert point to bytes");
+        point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");
 
     let mut hasher = Blake2b::new()
         .hash_length(32)
@@ -255,6 +255,6 @@ pub(crate) fn shared_secret<J: JubjubEngine + pairing::MultiMillerLoop>(
     hasher.update(&shared_secret);
     hasher.update(&reference_bytes);
     let mut hash_result = [0; 32];
-    hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
+    hash_result[..].clone_from_slice(hasher.finalize().as_ref());
     hash_result
 }

@@ -9,7 +9,7 @@ use super::NativeNote;
 use ironfish_rust::sapling_bls12;
 use ironfish_rust::MerkleNote;
 
-#[napi]
+#[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
     pub(crate) note: sapling_bls12::MerkleNote,
 }
@@ -20,7 +20,8 @@ impl NativeNoteEncrypted {
     pub fn deserialize(bytes: Buffer) -> Result<NativeNoteEncrypted> {
         let hasher = sapling_bls12::SAPLING.clone();
 
-        let note = MerkleNote::read(bytes.as_ref(), hasher).map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = MerkleNote::read(bytes.as_ref(), hasher)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNoteEncrypted { note })
     }
@@ -53,13 +54,17 @@ impl NativeNoteEncrypted {
 
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
-    #[napi(factory)]
+    #[napi]
     pub fn combine_hash(depth: i64, left: Buffer, right: Buffer) -> Result<Buffer> {
-        let left_hash = sapling_bls12::MerkleNoteHash::read(left.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
-        
-        let right_hash = sapling_bls12::MerkleNoteHash::read(right.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
+        let left_hash = sapling_bls12::MerkleNoteHash::read(left.as_ref())
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let converted_depth: usize = depth.try_into().map_err(|err| Error::from_reason("Value could not fit in usize".to_string()))?;
+        let right_hash = sapling_bls12::MerkleNoteHash::read(right.as_ref())
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        let converted_depth: usize = depth
+            .try_into()
+            .map_err(|_| Error::from_reason("Value could not fit in usize".to_string()))?;
 
         let mut vec = Vec::with_capacity(32);
 

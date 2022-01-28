@@ -3,153 +3,116 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::ops::DerefMut;
+use std::ops::Deref;
 
-use neon::prelude::*;
+use napi::bindgen_prelude::*;
+use napi::Env;
+use napi::JsObject;
 
 use ironfish_rust::sapling_bls12::{Bls12, Fr, MerkleNoteHash};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
-pub struct JsWitness<'a> {
-    pub cx: RefCell<FunctionContext<'a>>,
-    pub obj: Handle<'a, JsObject>,
+pub struct JsWitness {
+    pub cx: RefCell<Env>,
+    pub obj: Object,
 }
 
 /// Implements WitnessTrait on JsWitness so that witnesses from the
 /// TypeScript side can be passed into classes that require witnesses,
 /// like transactions.
-impl WitnessTrait<Bls12> for JsWitness<'_> {
+impl WitnessTrait<Bls12> for JsWitness {
     fn verify(&self, hash: &MerkleNoteHash) -> bool {
-        let mut cx = self.cx.borrow_mut();
-        let cxm = cx.deref_mut();
+        let f: JsFunction = self.obj.get("verify").unwrap().unwrap();
 
-        let f = self
-            .obj
-            .get(cxm, "verify")
-            .unwrap()
-            .downcast_or_throw::<JsFunction, _>(cxm)
-            .unwrap();
+        let cx = self.cx.borrow();
 
         let mut arr: Vec<u8> = vec![];
         hash.write(&mut arr).unwrap();
-        let mut bytes = cxm.buffer(arr.len() as u32).unwrap();
 
-        cxm.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&arr[..slice.len()]);
-        });
+        let buf = cx.create_buffer_with_data(arr).unwrap().into_raw();
+        let args = [buf];
 
-        f.call(cxm, self.obj, vec![bytes])
+        f.call(Some(&self.obj), &args)
             .unwrap()
-            .downcast_or_throw::<JsBoolean, _>(cxm)
+            .coerce_to_bool()
             .unwrap()
-            .value(cxm)
+            .get_value()
+            .unwrap()
     }
 
     fn get_auth_path(&self) -> Vec<WitnessNode<Fr>> {
-        let mut cx = self.cx.borrow_mut();
-        let cxm = cx.deref_mut();
+        let f: JsFunction = self.obj.get("authPath").unwrap().unwrap();
 
-        let f = self
-            .obj
-            .get(cxm, "authPath")
+        let args: &[napi::JsBuffer; 0] = &[];
+
+        let arr: JsObject = f
+            .call(Some(&self.obj), args)
             .unwrap()
-            .downcast_or_throw::<JsFunction, _>(cxm)
+            .coerce_to_object()
             .unwrap();
 
-        let arr = f
-            .call::<_, _, JsArray, _>(cxm, self.obj, vec![])
-            .unwrap()
-            .downcast_or_throw::<JsArray, _>(cxm)
-            .unwrap()
-            .to_vec(cxm)
-            .unwrap();
+        let len = arr.get_array_length().unwrap();
 
-        arr.iter()
-            .map(|element| {
-                let cast = element.downcast_or_throw::<JsObject, _>(cxm).unwrap();
+        let mut witness_nodes: Vec<WitnessNode<Fr>> = vec![];
 
-                let bytes = cast
-                    .get(cxm, "hashOfSibling")
-                    .unwrap()
-                    .downcast_or_throw::<JsFunction, _>(cxm)
-                    .unwrap()
-                    .call::<_, _, JsBuffer, _>(cxm, cast, vec![])
-                    .unwrap()
-                    .downcast_or_throw::<JsBuffer, _>(cxm)
-                    .unwrap();
+        for i in 0..len {
+            let element: JsObject = arr.get_element(i).unwrap();
 
-                // hashOfSibling returns a serialized hash, so convert it
-                // back into a MerkleNoteHash
-                let fr = cxm
-                    .borrow(&bytes, |data| {
-                        let mut cursor: std::io::Cursor<&[u8]> =
-                            std::io::Cursor::new(data.as_slice());
-                        MerkleNoteHash::read(&mut cursor)
-                    })
-                    .unwrap()
-                    .0;
+            let hash_of_sibling: JsFunction = element.get("hashOfSibling").unwrap().unwrap();
 
-                let side = cast
-                    .get(cxm, "side")
-                    .unwrap()
-                    .downcast_or_throw::<JsFunction, _>(cxm)
-                    .unwrap()
-                    .call::<_, _, JsString, _>(cxm, cast, vec![])
-                    .unwrap()
-                    .downcast_or_throw::<JsString, _>(cxm)
-                    .unwrap()
-                    .value(cxm);
+            let bytes: napi::JsBuffer = hash_of_sibling
+                .call(Some(&element), args)
+                .unwrap()
+                .try_into()
+                .unwrap();
 
-                if side == "Left" {
-                    WitnessNode::Left(fr)
-                } else {
-                    WitnessNode::Right(fr)
-                }
-            })
-            .collect()
+            let fr = MerkleNoteHash::read(bytes.into_value().unwrap().deref())
+                .unwrap()
+                .0;
+
+            let side_fn: JsFunction = element.get("side").unwrap().unwrap();
+
+            let side_utf8 = side_fn
+                .call(Some(&element), args)
+                .unwrap()
+                .coerce_to_string()
+                .unwrap()
+                .into_utf8()
+                .unwrap();
+            let side = side_utf8.as_str().unwrap();
+
+            if side == "Left" {
+                witness_nodes.push(WitnessNode::Left(fr))
+            } else {
+                witness_nodes.push(WitnessNode::Right(fr))
+            }
+        }
+
+        witness_nodes
     }
 
     fn root_hash(&self) -> Fr {
-        let mut cx = self.cx.borrow_mut();
-        let cxm = cx.deref_mut();
+        let f: JsFunction = self.obj.get("serializeRootHash").unwrap().unwrap();
 
-        let f = self
-            .obj
-            .get(cxm, "serializeRootHash")
+        let args: &[napi::JsBuffer; 0] = &[];
+
+        let bytes: napi::JsBuffer = f.call(Some(&self.obj), args).unwrap().try_into().unwrap();
+
+        MerkleNoteHash::read(bytes.into_value().unwrap().deref())
             .unwrap()
-            .downcast_or_throw::<JsFunction, _>(cxm)
-            .unwrap();
-
-        let bytes = f
-            .call::<_, _, JsBuffer, _>(cxm, self.obj, vec![])
-            .unwrap()
-            .downcast_or_throw::<JsBuffer, _>(cxm)
-            .unwrap();
-
-        cx.borrow(&bytes, |data| {
-            let mut cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(data.as_slice());
-            MerkleNoteHash::read(&mut cursor)
-        })
-        .unwrap()
-        .0
+            .0
     }
 
     fn tree_size(&self) -> u32 {
-        let mut cx = self.cx.borrow_mut();
-        let cxm = cx.deref_mut();
+        let f: JsFunction = self.obj.get("treeSize").unwrap().unwrap();
 
-        let f = self
-            .obj
-            .get(cxm, "treeSize")
-            .unwrap()
-            .downcast_or_throw::<JsFunction, _>(cxm)
-            .unwrap();
+        let args: &[napi::JsBuffer; 0] = &[];
 
-        f.call::<_, _, JsNumber, _>(cxm, self.obj, vec![])
+        f.call(Some(&self.obj), args)
             .unwrap()
-            .downcast_or_throw::<JsNumber, _>(cxm)
+            .coerce_to_number()
             .unwrap()
-            .value(cxm) as u32
+            .get_uint32()
+            .unwrap()
     }
 }

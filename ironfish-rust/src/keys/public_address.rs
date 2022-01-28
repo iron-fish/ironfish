@@ -69,7 +69,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
         sapling_key: &SaplingKey<J>,
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
-        Self::from_view_key(&sapling_key.incoming_view_key(), diversifier)
+        Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
     }
 
     pub fn from_view_key(
