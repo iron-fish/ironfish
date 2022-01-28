@@ -10,7 +10,7 @@ import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
-import { PeerNetwork, PrivateIdentity } from './network'
+import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
@@ -212,10 +212,14 @@ export class IronfishNode {
     })
 
     const anonymousTelemetryId = Math.random().toString().substring(2)
-    setDefaultTags([
+    const defaultTags = [
       { name: 'version', value: pkg.version },
       { name: 'session_id', value: anonymousTelemetryId },
-    ])
+    ]
+    if (privateIdentity) {
+      defaultTags.push({ name: 'node_id', value: privateIdentityToIdentity(privateIdentity) })
+    }
+    setDefaultTags(defaultTags)
 
     return new IronfishNode({
       pkg,
