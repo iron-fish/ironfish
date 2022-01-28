@@ -44,7 +44,6 @@ impl WitnessTrait<Bls12> for JsWitness {
         let f: JsFunction = self.obj.get("authPath").unwrap().unwrap();
 
         let args: &[napi::JsBuffer; 0] = &[];
-
         let arr: JsObject = f
             .call(Some(&self.obj), args)
             .unwrap()

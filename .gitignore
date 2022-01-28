@@ -41,11 +41,6 @@ lerna-debug.log*
 **/*/target/*
 *.node
 
-# ironfish-rust-nodejs
-ironfish-rust-nodejs/*.tsbuildinfo
-ironfish-rust-nodejs/index.d.ts
-ironfish-rust-nodejs/index.js
-
 # ironfish-cli
 bin/ironfish-cli/databases
 .dockerignore

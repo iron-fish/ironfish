@@ -114,7 +114,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can add the miner transaction note to the tree', async () => {
-      for (let i = 0; i < minerTransaction.notesLength; i++) {
+      for (let i = 0; i < minerTransaction.notesLength(); i++) {
         const note = Buffer.from(minerTransaction.getNote(i))
         await tree.add(new NoteEncrypted(note))
       }
@@ -150,14 +150,14 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can verify the transaction', async () => {
       expect(publicTransaction.verify()).toBeTruthy()
-      for (let i = 0; i < publicTransaction.notesLength; i++) {
+      for (let i = 0; i < publicTransaction.notesLength(); i++) {
         const note = Buffer.from(publicTransaction.getNote(i))
         await tree.add(new NoteEncrypted(note))
       }
     })
 
     it('Exposes binding signature on the transaction', () => {
-      const hex_signature = Buffer.from(publicTransaction.transactionSignature).toString('hex')
+      const hex_signature = publicTransaction.transactionSignature().toString('hex')
       expect(hex_signature.toString().length).toBe(128)
     })
 
