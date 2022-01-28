@@ -70,7 +70,7 @@ export default class Testnet extends IronfishCommand {
     }
 
     // request user from API
-    this.log(`Asking Ironfish who user ${userId} is...`)
+    this.log(`Asking Iron Fish who user ${userId} is...`)
 
     const api = new WebApi()
     const user = await api.getUser(userId)
