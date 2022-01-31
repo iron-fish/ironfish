@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
+import { v4 as uuid } from 'uuid'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
@@ -10,7 +11,7 @@ import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
-import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
+import { PeerNetwork, PrivateIdentity } from './network'
 import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
@@ -211,14 +212,11 @@ export class IronfishNode {
       force: config.get('miningForce'),
     })
 
-    const anonymousTelemetryId = Math.random().toString().substring(2)
     const defaultTags = [
+      { name: 'node_id', value: internal.get('telemetryNodeId') },
+      { name: 'session_id', value: uuid() },
       { name: 'version', value: pkg.version },
-      { name: 'session_id', value: anonymousTelemetryId },
     ]
-    if (privateIdentity) {
-      defaultTags.push({ name: 'node_id', value: privateIdentityToIdentity(privateIdentity) })
-    }
     setDefaultTags(defaultTags)
 
     return new IronfishNode({

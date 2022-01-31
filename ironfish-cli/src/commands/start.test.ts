@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
 import * as ironfishmodule from 'ironfish'
+import { v4 as uuid } from 'uuid'
 import { IronfishCliPKG } from '../package'
 
 jest.mock('ironfish', () => {
@@ -31,6 +32,7 @@ jest.mock('ironfish', () => {
 describe('start command', () => {
   let isFirstRun = true
   let hasGenesisBlock = false
+  let telemetryNodeId = ''
   const defaultGraffiti = 'default-graffiti'
 
   const verifier = {
@@ -64,6 +66,7 @@ describe('start command', () => {
     const internalOptions = {
       isFirstRun,
       networkIdentity: '',
+      telemetryNodeId,
     }
 
     const config = {
@@ -138,6 +141,7 @@ describe('start command', () => {
           `To help improve Ironfish, opt in to collecting telemetry`,
         )
         expect(setConfig).toHaveBeenCalledWith('isFirstRun', false)
+        expect(setConfig).toHaveBeenCalledWith('telemetryNodeId', expect.any(String))
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()
@@ -148,6 +152,7 @@ describe('start command', () => {
     beforeAll(() => {
       isFirstRun = false
       chain.hasGenesisBlock = true
+      telemetryNodeId = uuid()
     })
     test
       .stdout()
@@ -160,6 +165,21 @@ describe('start command', () => {
         // start the node
         expect(start).toHaveBeenCalled()
         expect(waitForShutdown).toHaveBeenCalled()
+      })
+  })
+
+  describe('when first run is false and without a node id in the store', () => {
+    beforeAll(() => {
+      isFirstRun = false
+      telemetryNodeId = ''
+    })
+    test
+      .stdout()
+      .command(['start'])
+      .exit(0)
+      .it('sets the node id', () => {
+        expect(setConfig).toHaveBeenCalledTimes(2)
+        expect(setConfig).toHaveBeenCalledWith('telemetryNodeId', expect.any(String))
       })
   })
 
