@@ -212,12 +212,11 @@ export class IronfishNode {
       force: config.get('miningForce'),
     })
 
-    const defaultTags = [
+    setDefaultTags([
       { name: 'node_id', value: internal.get('telemetryNodeId') },
       { name: 'session_id', value: uuid() },
       { name: 'version', value: pkg.version },
-    ]
-    setDefaultTags(defaultTags)
+    ])
 
     return new IronfishNode({
       pkg,
