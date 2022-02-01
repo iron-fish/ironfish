@@ -56,8 +56,8 @@ describe('Blockchain', () => {
       blocksB.push(blockB)
     }
 
-    const balanceA = nodeA.accounts.getBalance(accountA)
-    const balanceB = nodeB.accounts.getBalance(accountB)
+    const balanceA = await nodeA.accounts.getBalance(accountA)
+    const balanceB = await nodeB.accounts.getBalance(accountB)
 
     // You'll need to update this if the block reward changes
     expect(balanceA.confirmed).toEqual(BigInt(1999999901))

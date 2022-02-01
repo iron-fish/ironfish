@@ -24,9 +24,9 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
 router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.account}/getBalance`,
   GetBalanceRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { confirmed, unconfirmed } = node.accounts.getBalance(account)
+    const { confirmed, unconfirmed } = await node.accounts.getBalance(account)
 
     request.end({
       confirmed: confirmed.toString(),

@@ -6,6 +6,7 @@ import { JobErrorSerialized } from './errors'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { MineHeaderRequest, MineHeaderResponse } from './tasks/mineHeader'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
@@ -39,6 +40,7 @@ export type WorkerResponseMessage = {
 export type WorkerRequest =
   | CreateMinersFeeRequest
   | CreateTransactionRequest
+  | GetUnspentNotesRequest
   | TransactionFeeRequest
   | VerifyTransactionRequest
   | BoxMessageRequest
@@ -50,6 +52,7 @@ export type WorkerRequest =
 export type WorkerResponse =
   | CreateMinersFeeResponse
   | CreateTransactionResponse
+  | GetUnspentNotesResponse
   | TransactionFeeResponse
   | VerifyTransactionResponse
   | BoxMessageResponse

@@ -7,6 +7,7 @@ import type {
   BoxMessageRequest,
   CreateMinersFeeRequest,
   CreateTransactionRequest,
+  GetUnspentNotesRequest,
   MineHeaderRequest,
   SleepRequest,
   TransactionFeeRequest,
@@ -50,6 +51,7 @@ export class WorkerPool {
     ['verify', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
+    ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['mineHeader', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -276,6 +278,33 @@ export class WorkerPool {
       initialRandomness: response.initialRandomness,
       miningRequestId: response.miningRequestId,
       randomness: response.randomness,
+    }
+  }
+
+  async getUnspentNotes(
+    serializedTransactionPosted: Buffer,
+    accountIncomingViewKeys: Array<string>,
+  ): Promise<{
+    notes: ReadonlyArray<{
+      account: string
+      hash: string
+      note: Buffer
+    }>
+  }> {
+    const request: GetUnspentNotesRequest = {
+      type: 'getUnspentNotes',
+      serializedTransactionPosted,
+      accounts: accountIncomingViewKeys,
+    }
+
+    const response = await this.execute(request).result()
+
+    if (response === null || response.type !== request.type) {
+      throw new Error('Response type must match request type')
+    }
+
+    return {
+      notes: response.notes,
     }
   }
 

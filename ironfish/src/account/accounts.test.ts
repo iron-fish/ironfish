@@ -44,7 +44,7 @@ describe('Accounts', () => {
 
     // Check nodeA balance
     await nodeA.accounts.updateHead()
-    expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -54,7 +54,7 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     await nodeA.accounts.updateHead()
-    expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(1999999999),
     })
@@ -77,7 +77,7 @@ describe('Accounts', () => {
     })
 
     await nodeA.accounts.updateHead()
-    expect(nodeA.accounts.getBalance(accountA)).toMatchObject({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(3999999999),
     })
