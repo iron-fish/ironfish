@@ -73,7 +73,7 @@ export class Blockchain {
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
   addSpeed: Meter
-  invalid: LRU<Buffer, boolean>
+  invalid: LRU<Buffer, VerificationResultReason>
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
@@ -327,8 +327,9 @@ export class Blockchain {
           return await this.connect(block, null, tx)
         }
 
-        if (this.isInvalid(block)) {
-          throw new VerifyError(VerificationResultReason.ERROR, BAN_SCORE.MAX)
+        const invalid = this.isInvalid(block)
+        if (invalid) {
+          throw new VerifyError(invalid, BAN_SCORE.MAX)
         }
 
         const verify = this.verifier.verifyBlockHeader(block.header)
@@ -502,21 +503,22 @@ export class Blockchain {
     }
   }
 
-  isInvalid(block: Block): boolean {
-    if (this.invalid.has(block.header.hash)) {
-      return true
+  isInvalid(block: Block): VerificationResultReason | null {
+    const invalid = this.invalid.get(block.header.hash)
+    if (invalid) {
+      return invalid
     }
 
     if (this.invalid.has(block.header.previousBlockHash)) {
-      this.addInvalid(block.header)
-      return true
+      this.addInvalid(block.header, VerificationResultReason.INVALID_PARENT)
+      return VerificationResultReason.INVALID_PARENT
     }
 
-    return false
+    return null
   }
 
-  addInvalid(header: BlockHeader): void {
-    this.invalid.set(header.hash, true)
+  addInvalid(header: BlockHeader, reason: VerificationResultReason): void {
+    this.invalid.set(header.hash, reason)
   }
 
   private async connect(
@@ -616,7 +618,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header)
+      this.addInvalid(block.header, reason)
 
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
@@ -665,7 +667,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header)
+      this.addInvalid(block.header, reason)
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
@@ -1180,9 +1182,8 @@ export class Blockchain {
     })
 
     if (!verify.valid) {
-      this.addInvalid(block.header)
-
       Assert.isNotUndefined(verify.reason)
+      this.addInvalid(block.header, verify.reason)
       throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
   }

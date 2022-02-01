@@ -413,6 +413,7 @@ export enum VerificationResultReason {
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
+  INVALID_PARENT = 'invalid_parent',
   NOTE_COMMITMENT = 'note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NULLIFIER_COMMITMENT = 'nullifier_commitment',
