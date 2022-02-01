@@ -450,7 +450,7 @@ describe('PeerManager', () => {
           sdpMid: '0',
         },
       })
-      expect(sendSpy).toBeCalledTimes(1)
+      expect(sendSpy).toBeCalledTimes(2)
     })
 
     it('Attempts to request WebRTC signaling through brokering peer', () => {

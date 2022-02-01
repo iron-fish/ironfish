@@ -82,7 +82,7 @@ export class PeerManager {
   addressManager: AddressManager
 
   /**
-   * setInterval handle for distributePeerList, which sends out peer lists and
+   * setInterval handle for requestPeerList, which sends out peer lists and
    * requests for peer lists
    */
   private requestPeerListHandle: SetIntervalToken | undefined
@@ -727,6 +727,7 @@ export class PeerManager {
         if (peer.state.type === 'CONNECTED') {
           this.updateIdentifiedPeerMap(peer)
           peer.onStateChanged.off(handler)
+          peer.send({ type: InternalMessageType.peerListRequest })
         }
       }
       peer.onStateChanged.on(handler)
@@ -794,7 +795,7 @@ export class PeerManager {
 
   async start(): Promise<void> {
     await Promise.allSettled([
-      (this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 5000)),
+      (this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)),
       (this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)),
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       (this.savePeerAddressesHandle = setInterval(async () => {
