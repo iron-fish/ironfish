@@ -7,11 +7,13 @@ import { KeyStore } from './keyStore'
 export type InternalOptions = {
   isFirstRun: boolean
   networkIdentity: string
+  telemetryNodeId: string
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
   isFirstRun: true,
   networkIdentity: '',
+  telemetryNodeId: '',
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {

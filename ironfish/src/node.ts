@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
+import { v4 as uuid } from 'uuid'
 import { Account, Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
@@ -211,10 +212,10 @@ export class IronfishNode {
       force: config.get('miningForce'),
     })
 
-    const anonymousTelemetryId = Math.random().toString().substring(2)
     setDefaultTags([
+      { name: 'node_id', value: internal.get('telemetryNodeId') },
+      { name: 'session_id', value: uuid() },
       { name: 'version', value: pkg.version },
-      { name: 'session_id', value: anonymousTelemetryId },
     ])
 
     return new IronfishNode({
