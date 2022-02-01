@@ -48,7 +48,7 @@ export class ChainProcessor {
     await this.onRemove.emitAsync(header)
   }
 
-  async update(): Promise<{ hashChanged: boolean }> {
+  async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
     const oldHash = this.hash
 
     if (!this.hash) {
@@ -79,6 +79,10 @@ export class ChainProcessor {
       const iter = this.chain.iterateFrom(head, fork, undefined, false)
 
       for await (const remove of iter) {
+        if (signal?.aborted) {
+          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        }
+
         if (remove.hash.equals(fork.hash)) {
           continue
         }
@@ -91,6 +95,10 @@ export class ChainProcessor {
     const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
 
     for await (const add of iter) {
+      if (signal?.aborted) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+      }
+
       if (add.hash.equals(fork.hash)) {
         continue
       }
