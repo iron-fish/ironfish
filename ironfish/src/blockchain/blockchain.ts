@@ -418,19 +418,40 @@ export class Blockchain {
     return { fork: base, isLinear: linear }
   }
 
+  /**
+   * Iterate the main chain from left to right inclusive.
+   * Start and end being included in the yielded blocks.
+   * */
   async *iterateTo(
     start: BlockHeader,
     end?: BlockHeader,
     tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHeader, void, void> {
+    let lastHeader: BlockHeader | null = null
+
     for await (const hash of this.iterateToHashes(start, end, tx, reachable)) {
       const header = await this.getHeader(hash, tx)
       Assert.isNotNull(header)
+
+      // Checks that the main chain has not re-orged during iteration.
+      // Read docs on iterateToHashes() for more information.
+      if (lastHeader && !header.previousBlockHash.equals(lastHeader.hash)) {
+        return
+      }
+
+      lastHeader = header
       yield header
     }
   }
 
+  /**
+   * This iterates the main chain from start (or genesis) to end (or the head).
+   *
+   * NOTE: Be warned that it's possible these hashes could change during a re-org and
+   * "jump" chains. If you need safety, or are not sure what this means then you
+   * should instead use Blockchain.iterateTo() instead.
+   */
   async *iterateToHashes(
     start: BlockHeader,
     end?: BlockHeader,
@@ -438,36 +459,40 @@ export class Blockchain {
     reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
     let current = start.hash as BlockHash | null
-    const max = end ? end.sequence - start.sequence : null
+    let last = null as BlockHash | null
+
+    const max = end ? end.sequence - start.sequence + 1 : null
     let count = 0
 
     while (current) {
+      count++
       yield current
 
       if (end && current.equals(end.hash)) {
         break
       }
 
-      if (max !== null && count++ >= max) {
+      if (max !== null && count >= max) {
         break
       }
 
+      last = current
       current = await this.getNextHash(current, tx)
     }
 
     if (reachable && end && !current?.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
-          ` curr: ${HashUtils.renderHash(current)},` +
+          ` curr: ${HashUtils.renderHash(last)},` +
           ` end: ${HashUtils.renderHash(end.hash)},` +
-          ` progress: ${count}/${String(max)}`,
+          ` progress: ${count}/${String(max ?? '?')}`,
       )
     }
   }
 
   /**
-   * Iterate from start to end with start and end being
-   * included in the yielded blocks.
+   * Iterate the main chain from right to left inclusive.
+   * Start and end being included in the yielded blocks.
    * */
   async *iterateFrom(
     start: BlockHeader,
@@ -1085,12 +1110,14 @@ export class Blockchain {
   }
 
   /**
-   * Iterates through all transactions, starting from the heaviest head and walking backward.
+   * Iterates through transactions, starting from fromHash or the genesis block,
+   * to toHash or the heaviest head.
    */
-  async *iterateAllTransactions(
+  async *iterateTransactions(
     fromHash: Buffer | null = null,
     toHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
+    reachable = true,
   ): AsyncGenerator<
     { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
     void,
@@ -1113,7 +1140,7 @@ export class Blockchain {
     Assert.isNotNull(from, `Expected 'from' not to be null`)
     Assert.isNotNull(to, `Expected 'to' not to be null`)
 
-    for await (const header of this.iterateTo(from, to, tx)) {
+    for await (const header of this.iterateTo(from, to, tx, reachable)) {
       for await (const transaction of this.iterateBlockTransactions(header, tx)) {
         yield transaction
       }
