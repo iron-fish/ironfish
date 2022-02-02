@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use napi::bindgen_prelude::*;
-use napi_derive::napi;
 use napi::JsBigInt;
+use napi_derive::napi;
 
 use ironfish_rust::note::Memo;
 use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};

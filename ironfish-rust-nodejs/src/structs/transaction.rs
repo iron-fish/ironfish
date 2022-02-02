@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use napi::bindgen_prelude::*;
-use napi_derive::napi;
 use napi::JsBigInt;
+use napi_derive::napi;
 
 use ironfish_rust::sapling_bls12::{
     Key, ProposedTransaction, PublicAddress, SimpleTransaction, Transaction, SAPLING,
