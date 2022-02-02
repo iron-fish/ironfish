@@ -39,6 +39,7 @@ describe('accounts:pay command', () => {
       const client = {
         connect: jest.fn(),
         getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmed: 1000 } }),
+        status: jest.fn().mockResolvedValue({ content: { blockchain: { synced: true } } }),
         sendTransaction,
       }
 
