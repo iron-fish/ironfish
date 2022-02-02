@@ -4,6 +4,7 @@
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use napi::JsBigInt;
 
 use ironfish_rust::note::Memo;
 use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
@@ -16,8 +17,8 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
-        let value_u64 = value.get_u64().1;
+    pub fn new(owner: String, value: JsBigInt, memo: String) -> Result<Self> {
+        let value_u64 = value.get_u64()?.0;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -66,8 +67,8 @@ impl NativeNote {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     #[napi]
-    pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
-        let position_u64 = position.get_u64().1;
+    pub fn nullifier(&self, owner_private_key: String, position: JsBigInt) -> Result<Buffer> {
+        let position_u64 = position.get_u64()?.0;
 
         let private_key = Key::from_hex(SAPLING.clone(), &owner_private_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
