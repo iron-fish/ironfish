@@ -950,5 +950,37 @@
         }
       ]
     }
+  ],
+  "Blockchain should remember invalid blocks": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "8FB5B576EB519E03911C8768D7C8AC97252F7BE49FEC77279C43AF2DA9F82068",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:1ffl+tE381BWz2Y+CfG+PmA8sDhzhCp6sJTElYop9XE="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1642724514669,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "03AC82C72D113E05930F5A511ADA3F6842207CDFA4282B8CB595FE34508439AE",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJH/0BUGlnAZZj1aO30Mep1mRilE9TEXq+xOU0Y6HtjxVoRvvj2VBkstYFWoM/3cSqveDCBXOz3Zj7sPTU+yUnXQDBn1COSuwaBirNOGx7QmV2eYFaUyXxDrNOX3CkAq3wjFYIXDVuN8iZ3UQhhixFjwFPBXjSCY3DV2MvSM4IGHZS96va2fQG3XVPi4WevU75Dowituf0m3IwjOP1Z6RxvZgyWFKuFbyfCU9NiTsVx+BM0U+J5uZYFXo1HwM7UUrPa+gD26unhpdd39Lw0bZoMmfFwd370qjmxjIyYZhVFe8/qEp7edcNNrqbw+syVyofswWnPIbgX2OqAjDGO9QA8k7kjCRxRO0ifLxA7ioIU9rK4/nebR9NWiR23m9eKRVucspT9Fnn1Zu2zmhAnbiiDnYfYgXX915k1OC+yKfArhFHbTScdlHtKMz/vvXf67Xkx1GO6wmRjQSrYUyNf5i3wIlfq2Uj98zN2+TjT4Yf21xE2Cv5SlywgKRmwDRFIFlDFPoEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwbDQ9DPTsN1NlNl2wJf8sfAy/Wia90UhKqXwe74YSN5Mca/nm9uLnNcnDQ4T1vaj4u8zPGKFd7sHHfmfBemubDQ=="
+        }
+      ]
+    }
   ]
 }

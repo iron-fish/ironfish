@@ -69,6 +69,15 @@ export class Pay extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
+    const status = await client.status()
+
+    if (!status.content.blockchain.synced) {
+      this.log(
+        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+      )
+      this.exit(1)
+    }
+
     if (!amount || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 

@@ -4,6 +4,7 @@
 import { flags } from '@oclif/command'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from 'ironfish'
 import tweetnacl from 'tweetnacl'
+import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
   ConfigFlag,
@@ -204,6 +205,11 @@ export default class Start extends IronfishCommand {
       await this.firstRun(node)
     }
 
+    if (!node.internal.get('telemetryNodeId')) {
+      node.internal.set('telemetryNodeId', uuid())
+      await node.internal.save()
+    }
+
     await node.start()
     this.node = node
 
@@ -247,6 +253,7 @@ export default class Start extends IronfishCommand {
     }
 
     node.internal.set('isFirstRun', false)
+    node.internal.set('telemetryNodeId', uuid())
     await node.internal.save()
   }
 

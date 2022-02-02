@@ -172,15 +172,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     processor.onAdd.on(onAdd)
     processor.onRemove.on(onRemove)
     node.chain.onForkBlock.on(onFork)
+    const abortController = new AbortController()
 
     request.onClose.on(() => {
+      abortController.abort()
       processor.onAdd.off(onAdd)
       processor.onRemove.off(onRemove)
       node.chain.onForkBlock.off(onFork)
     })
 
     while (!request.closed) {
-      await processor.update()
+      await processor.update({ signal: abortController.signal })
       await PromiseUtils.sleep(1000)
     }
 

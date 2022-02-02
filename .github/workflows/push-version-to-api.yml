@@ -1,0 +1,17 @@
+name: Push new version number to API
+on: workflow_dispatch
+
+jobs:
+  Push:
+    name: Push Version to API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Push version string to API
+        run: ./ironfish-cli/scripts/push-version.sh
+        env:
+          IRON_FISH_API_KEY: ${{ secrets.IRON_FISH_API_KEY }}
+          IRON_FISH_API_URL: ${{ secrets.IRON_FISH_API_URL }}

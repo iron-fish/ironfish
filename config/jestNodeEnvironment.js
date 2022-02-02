@@ -13,6 +13,7 @@ class CustomNodeEnvironment extends NodeEnvironment {
           Uint32Array: Uint32Array,
           Uint8Array: Uint8Array,
           ArrayBuffer: ArrayBuffer,
+          AbortController: AbortController,
         }),
       }),
     );

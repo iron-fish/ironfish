@@ -89,7 +89,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     // Check that the node account is updated
-    const balance = node.accounts.getBalance(account)
+    const balance = await node.accounts.getBalance(account)
     const sum =
       transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
       BigInt(transaction.fee)

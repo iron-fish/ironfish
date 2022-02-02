@@ -14,6 +14,14 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
+type ApiUser = {
+  id: number
+  country_code: string
+  graffiti: string
+  total_points: number
+  rank: number
+}
+
 /**
  *  The API should be compatible with the Ironfish API here
  *  used to host our Facuet, BlockExplorer, and other things.
@@ -98,6 +106,13 @@ export class WebApi {
     )
 
     return response.data.data
+  }
+
+  async getUser(id: number): Promise<ApiUser | null> {
+    return await axios
+      .get<ApiUser>(`${this.host}/users/${id}`, this.options())
+      .then((r) => r.data)
+      .catch(() => null)
   }
 
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {

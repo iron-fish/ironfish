@@ -8,18 +8,17 @@
 import DisabledTelemetry from './DisabledTelemetry'
 import NodeTelemetry from './NodeTelemetry'
 
-/**
- * Set this to true when we should disable peoples telemetry even if they have it enabled in the config
- * Used when the the telemetry system is having issues or offline
- */
-const TELEMETRY_OFFLINE = true
-
 export { NodeTelemetry, DisabledTelemetry }
 
 export type Field = {
   name: string
   type: 'string' | 'boolean' | 'float' | 'integer'
   value: string | boolean | number
+}
+
+interface Tag {
+  name: string
+  value: string
 }
 
 /**
@@ -43,7 +42,7 @@ export type Metric = {
    * Expected values will be something like: "clientid": "xxx"
    * or "software version": "xxx".
    */
-  tags?: Record<string, string>
+  tags?: Tag[]
   /**
    * Array of measured values for this particular measurement.
    * There must be at least one field.
@@ -72,7 +71,7 @@ export const EnabledTelemetry = NodeTelemetry
 let telemetry: Telemetry = new DisabledTelemetry()
 
 // List of tags that get added to every metric.
-let defaultTags: Record<string, string> = {}
+let defaultTags: Tag[] = []
 
 /**
  * Check if telemetry reporting is currently active
@@ -100,10 +99,6 @@ export function setTelemetry(newTelemetry: Telemetry): void {
  * Returns a status message intended for be displayed to the user
  */
 export function startCollecting(endpoint: string): string {
-  if (TELEMETRY_OFFLINE) {
-    return 'telemetry is disabled'
-  }
-
   const result = telemetry.startCollecting(endpoint)
   telemetry = result.next
   return result.status
@@ -131,7 +126,7 @@ export async function stopCollecting(): Promise<string> {
  *
  * They can be set before telemetry is enabled.
  */
-export function setDefaultTags(tags: Record<string, string>): void {
+export function setDefaultTags(tags: Tag[]): void {
   defaultTags = tags
 }
 
@@ -146,10 +141,16 @@ export function submitMetric(metric: Metric): void {
   if (metric.fields.length === 0) {
     throw new Error('Metric must have at least one field')
   }
+
+  let tags = defaultTags
+  if (metric.tags) {
+    tags = tags.concat(metric.tags)
+  }
+
   const toSubmit = {
     ...metric,
     timestamp: metric.timestamp || new Date(),
-    tags: metric.tags ? { ...defaultTags, ...metric.tags } : { ...defaultTags },
+    tags,
   }
 
   telemetry.submit(toSubmit)
