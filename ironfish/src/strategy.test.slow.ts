@@ -104,7 +104,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
       minerTransaction = transaction.post_miners_fee()
       expect(minerTransaction).toBeTruthy()
-      expect(minerTransaction.notesLength).toEqual(1)
+      expect(minerTransaction.notesLength()).toEqual(1)
     })
 
     it('Can verify the miner transaction', () => {
@@ -162,7 +162,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Exposes transaction hash', () => {
-      expect(publicTransaction.hash.length).toBe(32)
+      expect(publicTransaction.hash().length).toBe(32)
     })
   })
 
