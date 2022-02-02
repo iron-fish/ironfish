@@ -164,7 +164,7 @@ describe('Blockchain', () => {
     expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
   })
 
-  it('should not iterate and jump chains', async () => {
+  it('should not iterate and jump chains and throw error', async () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
 
@@ -175,27 +175,32 @@ describe('Blockchain', () => {
     // have a lock on the main chain table. We try to iterate to A2, then do a
     // reorg and see if the next iteration incorrectly yields B3.
     //
-    // G -> A1 -> A2 -> A3
-    //         -> B2 -> B3 -> B4
+    // G -> A1 -> A2 -> A3 -> A4
+    //         -> B2 -> B3 -> B4 -> B5
 
     const blockA1 = await makeBlockAfter(chain, genesis)
     const blockA2 = await makeBlockAfter(chain, blockA1)
     const blockA3 = await makeBlockAfter(chain, blockA2)
+    const blockA4 = await makeBlockAfter(chain, blockA3)
+
     const blockB2 = await makeBlockAfter(chain, blockA1)
     const blockB3 = await makeBlockAfter(chain, blockB2)
     const blockB4 = await makeBlockAfter(chain, blockB3)
+    const blockB5 = await makeBlockAfter(chain, blockB4)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockA2)
     await expect(chain).toAddBlock(blockA3)
+    await expect(chain).toAddBlock(blockA4)
 
-    expect(chain.head.hash.equals(blockA3.header.hash)).toBe(true)
-    expect(chain.latest.hash.equals(blockA3.header.hash)).toBe(true)
+    expect(chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+    expect(chain.latest.hash.equals(blockA4.header.hash)).toBe(true)
 
-    const iter = chain.iterateTo(genesis, blockA2.header)
-    const block1 = await iter.next()
-    const block2 = await iter.next()
-    const block3 = await iter.next()
+    const iter1 = chain.iterateTo(genesis, blockA4.header, undefined, true)
+
+    const block1 = await iter1.next()
+    const block2 = await iter1.next()
+    const block3 = await iter1.next()
 
     expect(block1).toMatchObject({ done: false, value: { hash: genesis.hash } })
     expect(block2).toMatchObject({ done: false, value: { hash: blockA1.header.hash } })
@@ -204,12 +209,65 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockB2)
     await expect(chain).toAddBlock(blockB3)
     await expect(chain).toAddBlock(blockB4)
+    await expect(chain).toAddBlock(blockB5)
 
-    expect(chain.head.hash.equals(blockB4.header.hash)).toBe(true)
-    expect(chain.latest.hash.equals(blockB4.header.hash)).toBe(true)
+    expect(chain.head.hash.equals(blockB5.header.hash)).toBe(true)
+    expect(chain.latest.hash.equals(blockB5.header.hash)).toBe(true)
 
-    // Should stop instad of yielding block B3
-    const block4 = await iter.next()
+    await expect(iter1.next()).rejects.toThrowError('progress: 3/5')
+  })
+
+  it('should not iterate and jump chains and not throw error', async () => {
+    const { strategy, chain } = nodeTest
+    strategy.disableMiningReward()
+
+    const genesis = chain.genesis
+
+    // This test checks that when iterating a reorg is happening, we don't
+    // suddenly jump chains while the table is being re-written when we don't
+    // have a lock on the main chain table. We try to iterate to A2, then do a
+    // reorg and see if the next iteration incorrectly yields B3.
+    //
+    // G -> A1 -> A2 -> A3 -> A4
+    //         -> B2 -> B3 -> B4 -> B5
+
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockA3 = await makeBlockAfter(chain, blockA2)
+    const blockA4 = await makeBlockAfter(chain, blockA3)
+
+    const blockB2 = await makeBlockAfter(chain, blockA1)
+    const blockB3 = await makeBlockAfter(chain, blockB2)
+    const blockB4 = await makeBlockAfter(chain, blockB3)
+    const blockB5 = await makeBlockAfter(chain, blockB4)
+
+    await expect(chain).toAddBlock(blockA1)
+    await expect(chain).toAddBlock(blockA2)
+    await expect(chain).toAddBlock(blockA3)
+    await expect(chain).toAddBlock(blockA4)
+
+    expect(chain.head.hash.equals(blockA4.header.hash)).toBe(true)
+    expect(chain.latest.hash.equals(blockA4.header.hash)).toBe(true)
+
+    const iter1 = chain.iterateTo(genesis, blockA4.header, undefined, false)
+
+    const block1 = await iter1.next()
+    const block2 = await iter1.next()
+    const block3 = await iter1.next()
+
+    expect(block1).toMatchObject({ done: false, value: { hash: genesis.hash } })
+    expect(block2).toMatchObject({ done: false, value: { hash: blockA1.header.hash } })
+    expect(block3).toMatchObject({ done: false, value: { hash: blockA2.header.hash } })
+
+    await expect(chain).toAddBlock(blockB2)
+    await expect(chain).toAddBlock(blockB3)
+    await expect(chain).toAddBlock(blockB4)
+    await expect(chain).toAddBlock(blockB5)
+
+    expect(chain.head.hash.equals(blockB5.header.hash)).toBe(true)
+    expect(chain.latest.hash.equals(blockB5.header.hash)).toBe(true)
+
+    const block4 = await iter1.next()
     expect(block4).toMatchObject({ done: true })
   })
 
