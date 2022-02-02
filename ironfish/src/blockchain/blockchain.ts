@@ -458,29 +458,33 @@ export class Blockchain {
     reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
     let current = start.hash as BlockHash | null
-    const max = end ? end.sequence - start.sequence : null
+    let last = null as BlockHash | null
+
+    const max = end ? end.sequence - start.sequence + 1 : null
     let count = 0
 
     while (current) {
+      count++
       yield current
 
       if (end && current.equals(end.hash)) {
         break
       }
 
-      if (max !== null && count++ >= max) {
+      if (max !== null && count >= max) {
         break
       }
 
+      last = current
       current = await this.getNextHash(current, tx)
     }
 
     if (reachable && end && !current?.equals(end.hash)) {
       throw new Error(
         'Failed to iterate between blocks on diverging forks:' +
-          ` curr: ${HashUtils.renderHash(current)},` +
+          ` curr: ${HashUtils.renderHash(last)},` +
           ` end: ${HashUtils.renderHash(end.hash)},` +
-          ` progress: ${count}/${String(max)}`,
+          ` progress: ${count}/${String(max ?? '?')}`,
       )
     }
   }
