@@ -185,6 +185,7 @@ export class PeerNetwork {
       maxPeers,
       targetPeers,
       logPeerMessages,
+      options.dataDir,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => this.updateIsReady())
