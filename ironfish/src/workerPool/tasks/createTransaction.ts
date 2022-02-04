@@ -49,21 +49,16 @@ export function handleCreateTransaction({
       note,
       new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
     )
-    note.free()
   }
 
   for (const { publicAddress, amount, memo } of receives) {
     const note = new Note(publicAddress, amount, memo)
     transaction.receive(spendKey, note)
-    note.free()
   }
 
   const postedTransaction = transaction.post(spendKey, undefined, transactionFee)
 
   const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
-
-  transaction.free()
-  postedTransaction.free()
 
   return { type: 'createTransaction', serializedTransactionPosted }
 }

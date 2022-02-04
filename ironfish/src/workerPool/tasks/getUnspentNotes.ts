@@ -27,7 +27,7 @@ export function handleGetUnspentNotes({
 
   const results: GetUnspentNotesResponse['notes'] = []
 
-  for (let i = 0; i < transaction.notesLength; i++) {
+  for (let i = 0; i < transaction.notesLength(); i++) {
     const serializedNote = transaction.getNote(i)
     const note = NoteEncrypted.deserialize(serializedNote)
 

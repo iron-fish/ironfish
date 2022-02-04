@@ -29,15 +29,13 @@ export function handleVerifyTransaction({
   try {
     transaction = TransactionPosted.deserialize(serializedTransactionPosted)
 
-    if (verifyFees && transaction.fee < BigInt(0)) {
+    if (verifyFees && transaction.fee() < BigInt(0)) {
       throw new Error('Transaction has negative fees')
     }
 
     verified = transaction.verify()
   } catch {
     verified = false
-  } finally {
-    transaction?.free()
   }
 
   return { type: 'verify', verified }

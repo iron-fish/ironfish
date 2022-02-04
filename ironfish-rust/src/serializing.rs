@@ -111,13 +111,13 @@ pub(crate) mod aead {
     pub(crate) fn decrypt(
         key: &[u8],
         ciphertext: &[u8],
-        mut plaintext_output: &mut [u8],
+        plaintext_output: &mut [u8],
     ) -> Result<(), errors::NoteError> {
         assert!(plaintext_output.len() == ciphertext.len() - MAC_SIZE);
         let mut decryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
         let success = decryptor.decrypt(
             &ciphertext[..ciphertext.len() - MAC_SIZE],
-            &mut plaintext_output,
+            plaintext_output,
             &ciphertext[ciphertext.len() - MAC_SIZE..],
         );
 

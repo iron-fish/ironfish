@@ -33,9 +33,5 @@ export function handleCreateMinersFee({
 
   const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
 
-  minerNote.free()
-  transaction.free()
-  postedTransaction.free()
-
   return { type: 'createMinersFee', serializedTransactionPosted }
 }

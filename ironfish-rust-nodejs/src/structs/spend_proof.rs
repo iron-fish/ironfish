@@ -2,61 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
-
-use neon::prelude::*;
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
 
 use ironfish_rust::sapling_bls12::{MerkleNoteHash, SpendProof};
 
+#[napi]
 pub struct NativeSpendProof {
     pub(crate) proof: SpendProof,
 }
 
-impl Finalize for NativeSpendProof {}
-
+#[napi]
 impl NativeSpendProof {
-    pub fn tree_size(mut cx: FunctionContext) -> JsResult<JsNumber> {
-        let spend_proof = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeSpendProof>, _>(&mut cx)?;
-
-        Ok(cx.number(spend_proof.proof.tree_size()))
+    #[napi]
+    pub fn tree_size(&self) -> u32 {
+        self.proof.tree_size()
     }
 
-    pub fn root_hash(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let spend_proof = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeSpendProof>, _>(&mut cx)?;
+    #[napi]
+    pub fn root_hash(&self) -> Result<Buffer> {
+        let mut vec: Vec<u8> = vec![];
 
-        let mut arr: Vec<u8> = vec![];
-        MerkleNoteHash::new(spend_proof.proof.root_hash())
-            .write(&mut arr)
-            .or_else(|err| cx.throw_error(err.to_string()))?;
+        MerkleNoteHash::new(self.proof.root_hash())
+            .write(&mut vec)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let mut bytes = cx.buffer(arr.len().try_into().unwrap())?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&arr[..slice.len()]);
-        });
-
-        Ok(bytes)
+        Ok(Buffer::from(vec))
     }
 
-    pub fn nullifier(mut cx: FunctionContext) -> JsResult<JsBuffer> {
-        let spend_proof = cx
-            .this()
-            .downcast_or_throw::<JsBox<NativeSpendProof>, _>(&mut cx)?;
+    #[napi]
+    pub fn nullifier(&self) -> Buffer {
+        let nullifier = self.proof.nullifier();
 
-        let nullifier = spend_proof.proof.nullifier();
-
-        let mut bytes = cx.buffer(nullifier.len().try_into().unwrap())?;
-
-        cx.borrow_mut(&mut bytes, |data| {
-            let slice = data.as_mut_slice();
-            slice.clone_from_slice(&nullifier[..slice.len()]);
-        });
-
-        Ok(bytes)
+        Buffer::from(nullifier.as_ref())
     }
 }

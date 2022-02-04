@@ -39,7 +39,7 @@ pub fn mine_header_batch(
 
     for i in 0..batch_size {
         let randomness = randomize_header(initial_randomness, i, header_bytes);
-        let hash = blake3::hash(&header_bytes);
+        let hash = blake3::hash(header_bytes);
         let new_target_bytes = hash.as_bytes();
 
         if bytes_lte(new_target_bytes, target) {

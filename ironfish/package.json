@@ -39,8 +39,8 @@
     "lint:fix": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start": "tsc -b -w",
     "test": "tsc -b && tsc -b tsconfig.test.json && jest",
-    "test:slow": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns",
-    "test:perf": "tsc -b && tsc -b tsconfig.test.json && TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
+    "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns",
+    "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest  --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false"
   },
@@ -57,6 +57,7 @@
     "@types/yup": "0.29.10",
     "@typescript-eslint/eslint-plugin": "4.28.1",
     "@typescript-eslint/parser": "4.28.1",
+    "cross-env": "7.0.3",
     "eslint": "7.29.0",
     "eslint-config-ironfish": "*",
     "eslint-config-prettier": "8.3.0",

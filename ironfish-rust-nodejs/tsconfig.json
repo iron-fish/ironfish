@@ -1,9 +1,0 @@
-{
-  "extends": "../config/tsconfig.base.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": ".",
-  },
-  "include": ["index.ts", "index.node", "index.node.d.ts"],
-  "exclude": []
-}

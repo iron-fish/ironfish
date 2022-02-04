@@ -280,8 +280,8 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> SpendProof<J> {
         mut reader: R,
     ) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, &jubjub)?;
-        let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader, &jubjub)?;
+        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, jubjub)?;
+        let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader, jubjub)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = [0; 32];

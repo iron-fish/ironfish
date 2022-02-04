@@ -18,9 +18,7 @@ export function handleTransactionFee({
   serializedTransactionPosted,
 }: TransactionFeeRequest): TransactionFeeResponse {
   const transaction = TransactionPosted.deserialize(serializedTransactionPosted)
-  const fee = transaction.fee
+  const fee = transaction.fee()
 
-  transaction.free()
-
-  return { type: 'transactionFee', transactionFee: fee.valueOf() }
+  return { type: 'transactionFee', transactionFee: fee }
 }

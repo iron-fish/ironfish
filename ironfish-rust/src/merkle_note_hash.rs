@@ -28,7 +28,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNoteHash<J> {
         MerkleNoteHash(fr)
     }
 
-    pub fn read<R: io::Read>(reader: &mut R) -> io::Result<MerkleNoteHash<J>> {
+    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash<J>> {
         let res = read_scalar(reader).map_err(|_| {
             io::Error::new(io::ErrorKind::InvalidInput, "Unable to convert note hash")
         });
