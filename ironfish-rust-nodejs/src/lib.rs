@@ -65,7 +65,6 @@ pub fn mine_header_batch(
 ) -> MineHeaderNapiResult {
     let mut target_array = [0u8; 32];
     target_array.copy_from_slice(&target_buffer[..32]);
-    print!("");
 
     // Execute batch mine operation
     let mine_header_result = mining::mine_header_batch(
