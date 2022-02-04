@@ -28,6 +28,7 @@ export class AddressManager {
   get possiblePeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
     return this.hostsStore.getArray('possiblePeers')
   }
+
   /**
    * Adds addresses associated to peers received from peer list
    */
@@ -35,7 +36,7 @@ export class AddressManager {
     const newAddresses: PeerAddress[] = peerList.payload.connectedPeers.map((peer) => ({
       address: peer.address,
       port: peer.port,
-      identity: peer.identity ?? null,
+      identity: peer.identity,
       name: peer.name ?? null,
     }))
 
@@ -74,24 +75,24 @@ export class AddressManager {
       return null
     }
 
-    const currentPeerAddresses = new Set(
+    const currentPeerIdentities = new Set(
       //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       peers.filter((peer) => peer.state.identity !== null).map((peer) => peer.state.identity!),
     )
 
     const priorConnectedAddressSet = new Set([...this.priorConnectedPeerAddresses])
 
-    const disconnectedPriorAddresses = this.filterConnectedAddresses(
+    const disconnectedPriorAddresses = this.filterConnectedIdentities(
       priorConnectedAddressSet,
-      currentPeerAddresses,
+      currentPeerIdentities,
     )
     if (disconnectedPriorAddresses.length) {
       return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
     } else {
       const possibleAddressSet = new Set([...this.possiblePeerAddresses])
-      const disconnectedPossibleAddresses = this.filterConnectedAddresses(
+      const disconnectedPossibleAddresses = this.filterConnectedIdentities(
         possibleAddressSet,
-        currentPeerAddresses,
+        currentPeerIdentities,
       )
       if (disconnectedPossibleAddresses.length) {
         return ArrayUtils.sampleOrThrow(disconnectedPossibleAddresses)
@@ -101,12 +102,12 @@ export class AddressManager {
     }
   }
 
-  private filterConnectedAddresses(
+  private filterConnectedIdentities(
     addressSet: Set<Readonly<PeerAddress>>,
-    connectedPeerAdresses: Set<string>,
+    connectedPeerIdentities: Set<string>,
   ): PeerAddress[] {
     const disconnectedAddresses = [...addressSet].filter(
-      (address) => address.identity !== null && !connectedPeerAdresses.has(address.identity),
+      (address) => address.identity !== null && !connectedPeerIdentities.has(address.identity),
     )
 
     return disconnectedAddresses
@@ -136,7 +137,7 @@ export class AddressManager {
         (peer) =>
           peer.state.type === 'CONNECTED' &&
           !peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-            ?.willNeverRetryConnecting,
+            .willNeverRetryConnecting,
       )
       .map((peer) => ({
         address: peer.address,

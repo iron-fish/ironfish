@@ -88,8 +88,6 @@ export class PeerManager {
   private requestPeerListHandle: SetIntervalToken | undefined
 
   /**
-   * setInterval handle for 
-  /**
    * setInterval handle for peer disposal, which removes peers from the list that we
    * no longer care about
    */
@@ -99,7 +97,7 @@ export class PeerManager {
    * setInterval handle for peer address persistence, which saves connected
    * peers to disk
    */
-  private savePeerAddressesHandle: ReturnType<typeof setInterval> | undefined
+  private savePeerAddressesHandle: SetIntervalToken | undefined
 
   /**
    * Event fired when a new connection is successfully opened. Sends some identifying
@@ -793,15 +791,13 @@ export class PeerManager {
     }
   }
 
-  async start(): Promise<void> {
-    await Promise.allSettled([
-      (this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)),
-      (this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)),
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      (this.savePeerAddressesHandle = setInterval(async () => {
-        await this.addressManager.save(this.peers)
-      }, 60000)),
-    ])
+  start(): void {
+    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
+    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
+    this.savePeerAddressesHandle = setInterval(
+      () => void this.addressManager.save(this.peers),
+      60000,
+    )
   }
 
   /**
@@ -832,7 +828,7 @@ export class PeerManager {
    * Gets a random disconnected peer address and returns a peer created from
    * said address
    */
-  getRandomDisconnectedPeer(): Peer | null {
+  createRandomDisconnectedPeer(): Peer | null {
     const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(this.peers)
     if (peerAddress) {
       const peer = this.getOrCreatePeer(peerAddress.identity)

@@ -109,7 +109,7 @@ describe('PeerNetwork', () => {
       const readyChanged = jest.fn()
       peerNetwork.onIsReadyChanged.on(readyChanged)
 
-      await peerNetwork.start()
+      peerNetwork.start()
       expect(peerNetwork.isReady).toBe(false)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -150,7 +150,7 @@ describe('PeerNetwork', () => {
         .mockReturnValue(true)
 
       // Start the network so it creates the webSocketServer
-      await peerNetwork.start()
+      peerNetwork.start()
       const server = peerNetwork['webSocketServer']
       Assert.isNotUndefined(server, `server`)
 

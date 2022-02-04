@@ -293,7 +293,7 @@ export class PeerNetwork {
     })
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.started) {
       return
     }
@@ -370,7 +370,7 @@ export class PeerNetwork {
     }
 
     // Start up the PeerManager
-    await this.peerManager.start()
+    this.peerManager.start()
 
     // Start up the PeerConnectionManager
     this.peerConnectionManager.start()
@@ -399,13 +399,11 @@ export class PeerNetwork {
    * outstanding connections.
    */
   async stop(): Promise<void> {
-    await Promise.allSettled([
-      (this.started = false),
-      this.peerConnectionManager.stop(),
-      await this.peerManager.stop(),
-      this.webSocketServer?.close(),
-      this.updateIsReady(),
-    ])
+    this.started = false
+    this.peerConnectionManager.stop()
+    await this.peerManager.stop()
+    this.webSocketServer?.close()
+    this.updateIsReady()
   }
 
   /**
