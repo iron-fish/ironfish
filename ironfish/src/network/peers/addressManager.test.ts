@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
-import { InternalMessageType, PeerList } from '../messages'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -30,49 +29,6 @@ describe('AddressManager', () => {
         port: 9999,
       },
     ])
-    expect(addressManager.possiblePeerAddresses).toMatchObject([
-      {
-        address: '1.1.1.1',
-        port: 1111,
-        identity: null,
-        name: null,
-      },
-    ])
-  })
-
-  it('addAddressesFromPeerList should add new addresses from a peer list', () => {
-    const addressManager = new AddressManager(mockFileSystem())
-    addressManager.hostsStore = mockHostsStore()
-    expect(addressManager.possiblePeerAddresses.length).toEqual(1)
-    expect(addressManager.possiblePeerAddresses).toMatchObject([
-      {
-        address: '1.1.1.1',
-        port: 1111,
-        identity: null,
-        name: null,
-      },
-    ])
-    const peerList: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: {
-        connectedPeers: [
-          {
-            address: '2.2.2.2',
-            identity: 'blah',
-            name: 'blah',
-            port: 2222,
-          },
-        ],
-      },
-    }
-    addressManager.addAddressesFromPeerList(peerList)
-    expect(addressManager.possiblePeerAddresses.length).toEqual(2)
-    expect(addressManager.possiblePeerAddresses).toContainEqual({
-      address: '2.2.2.2',
-      identity: 'blah',
-      name: 'blah',
-      port: 2222,
-    })
   })
 
   it('removePeerAddress should remove a peer address', () => {
@@ -94,7 +50,6 @@ describe('AddressManager', () => {
     addressManager.hostsStore.set('possiblePeers', allPeerAddresses)
     addressManager.hostsStore.set('priorPeers', allPeerAddresses)
     addressManager.removePeerAddress(peer1)
-    expect(addressManager.possiblePeerAddresses.length).toEqual(0)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
@@ -117,9 +72,17 @@ describe('AddressManager', () => {
       })
     }
 
+    const nonDisconnectedIdentities = nonDisconnectedPeers.flatMap((peer) => {
+      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
+        return peer.state.identity
+      } else {
+        return []
+      }
+    })
+
     addressManager.hostsStore.set('priorPeers', allPeerAddresses)
-    addressManager.hostsStore.set('possiblePeers', allPeerAddresses)
-    const sample = addressManager.getRandomDisconnectedPeerAddress(nonDisconnectedPeers)
+
+    const sample = addressManager.getRandomDisconnectedPeerAddress(nonDisconnectedIdentities)
     expect(sample).not.toBeNull()
     if (sample !== null) {
       expect(allPeerAddresses).toContainEqual(sample)

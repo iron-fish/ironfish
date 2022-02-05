@@ -829,7 +829,9 @@ export class PeerManager {
    * said address
    */
   createRandomDisconnectedPeer(): Peer | null {
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(this.peers)
+    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(
+      Array.from(this.identifiedPeers.keys()),
+    )
     if (peerAddress) {
       const peer = this.getOrCreatePeer(peerAddress.identity)
       peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
@@ -1485,8 +1487,6 @@ export class PeerManager {
     }
 
     let changed = false
-
-    this.addressManager.addAddressesFromPeerList(peerList)
 
     const newPeerSet = peerList.payload.connectedPeers.reduce(
       (memo, peer) => {
