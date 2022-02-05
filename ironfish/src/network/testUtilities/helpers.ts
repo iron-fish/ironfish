@@ -94,12 +94,7 @@ export function getConnectedPeer(
   return { peer, connection: connection }
 }
 
-export function getDisconnectedPeer(
-  pm: PeerManager,
-  identity?: string | Identity,
-): { peer: Peer; connection: WebSocketConnection } {
-  const { peer, connection } = getConnectingPeer(pm)
-
+export function getDisconnectedPeer(pm: PeerManager, identity?: string | Identity): Peer {
   if (!identity) {
     identity = jest.requireActual<typeof import('uuid')>('uuid').v4()
   }
@@ -108,9 +103,8 @@ export function getDisconnectedPeer(
     identity = mockIdentity(identity)
   }
 
-  connection.setState({ type: 'DISCONNECTED' })
-
-  return { peer, connection: connection }
+  const peer = pm.getOrCreatePeer(identity)
+  return peer
 }
 
 export function getSignalingWebRtcPeer(

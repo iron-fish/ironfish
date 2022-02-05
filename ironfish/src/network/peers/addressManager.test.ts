@@ -59,7 +59,7 @@ describe('AddressManager', () => {
     const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
-    const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+    const disconnectedPeer = getDisconnectedPeer(pm)
     const nonDisconnectedPeers: Peer[] = [connectedPeer, connectingPeer]
     const allPeerAddresses: PeerAddress[] = []
 
@@ -67,7 +67,7 @@ describe('AddressManager', () => {
       allPeerAddresses.push({
         address: peer.address,
         port: peer.port,
-        identity: 'boop',
+        identity: peer.state.identity,
         name: peer.name,
       })
     }
@@ -98,7 +98,7 @@ describe('AddressManager', () => {
       const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
-      const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+      const disconnectedPeer = getDisconnectedPeer(pm)
       const address: PeerAddress = {
         address: connectedPeer.address,
         port: connectedPeer.port,
@@ -117,7 +117,7 @@ describe('AddressManager', () => {
       const pm = new PeerManager(mockLocalPeer(), mockFileSystem())
       const { peer: connectedPeer } = getConnectedPeer(pm)
       const { peer: connectingPeer } = getConnectingPeer(pm)
-      const { peer: disconnectedPeer } = getDisconnectedPeer(pm)
+      const disconnectedPeer = getDisconnectedPeer(pm)
       connectedPeer
         .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
         ?.neverRetryConnecting()
