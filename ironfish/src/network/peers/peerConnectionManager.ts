@@ -86,10 +86,10 @@ export class PeerConnectionManager {
       }
     }
 
-    if (this.peerManager.canCreateNewConnections()) {
+    if (connectAttempts < CONNECT_ATTEMPTS_MAX && this.peerManager.canCreateNewConnections()) {
       const peer = this.peerManager.createRandomDisconnectedPeer()
-      if (peer) {
-        this.connectToEligiblePeers(peer)
+      if (peer && this.connectToEligiblePeers(peer)) {
+        connectAttempts++
       }
     }
 
