@@ -860,21 +860,22 @@ export class PeerManager {
 
     if (
       peer.state.type === 'DISCONNECTED' &&
-      !hasAConnectedPeer &&
       peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
         ?.willNeverRetryConnecting
     ) {
-      this.logger.debug(
-        `Disposing of peer with identity ${String(peer.state.identity)} (may be a duplicate)`,
-      )
-
-      peer.dispose()
-      if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
-        this.identifiedPeers.delete(peer.state.identity)
-      }
-      this.peers = this.peers.filter((p) => p !== peer)
-
       this.addressManager.removePeerAddress(peer)
+
+      if (!hasAConnectedPeer) {
+        this.logger.debug(
+          `Disposing of peer with identity ${String(peer.state.identity)} (may be a duplicate)`,
+        )
+
+        peer.dispose()
+        if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
+          this.identifiedPeers.delete(peer.state.identity)
+        }
+        this.peers = this.peers.filter((p) => p !== peer)
+      }
 
       return true
     }
