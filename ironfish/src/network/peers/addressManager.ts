@@ -75,6 +75,9 @@ export class AddressManager {
    * Persist all currently connected peers and unused peer addresses to disk
    */
   async save(peers: Peer[]): Promise<void> {
+    // TODO: Ideally, we would like persist peers with whom we've
+    // successfully established an outbound Websocket connection at
+    // least once.
     const inUsePeerAddresses: PeerAddress[] = peers.flatMap((peer) => {
       if (
         peer.state.type === 'CONNECTED' &&
