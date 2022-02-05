@@ -44,9 +44,9 @@ export class AddressManager {
     )
     if (disconnectedPriorAddresses.length) {
       return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
-    } else {
-      return null
     }
+
+    return null
   }
 
   private filterConnectedIdentities(
@@ -75,20 +75,23 @@ export class AddressManager {
    * Persist all currently connected peers and unused peer addresses to disk
    */
   async save(peers: Peer[]): Promise<void> {
-    const inUsePeerAddresses = peers
-      .filter(
-        (peer) =>
-          peer.state.type === 'CONNECTED' &&
-          !peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-            .willNeverRetryConnecting,
-      )
-      .map((peer) => ({
-        address: peer.address,
-        port: peer.port,
-        identity: peer.state.identity ?? null,
-        name: peer.name ?? null,
-      }))
-    this.hostsStore.set('priorPeers', [...inUsePeerAddresses])
+    const inUsePeerAddresses: PeerAddress[] = peers.flatMap((peer) => {
+      if (
+        peer.state.type === 'CONNECTED' &&
+        !peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
+          .willNeverRetryConnecting
+      ) {
+        return {
+          address: peer.address,
+          port: peer.port,
+          identity: peer.state.identity ?? null,
+          name: peer.name ?? null,
+        }
+      } else {
+        return []
+      }
+    })
+    this.hostsStore.set('priorPeers', inUsePeerAddresses)
     await this.hostsStore.save()
   }
 }

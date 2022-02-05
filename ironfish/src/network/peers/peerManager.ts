@@ -832,14 +832,14 @@ export class PeerManager {
     const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(
       Array.from(this.identifiedPeers.keys()),
     )
-    if (peerAddress) {
-      const peer = this.getOrCreatePeer(peerAddress.identity)
-      peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-      peer.name = peerAddress.name || null
-      return peer
-    } else {
+    if (!peerAddress) {
       return null
     }
+
+    const peer = this.getOrCreatePeer(peerAddress.identity)
+    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
+    peer.name = peerAddress.name || null
+    return peer
   }
 
   private disposePeers(): void {
