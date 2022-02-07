@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -28,11 +28,11 @@ export default class ReAddBlock extends IronfishCommand {
     const { args } = this.parse(ReAddBlock)
     const hash = Buffer.from(args.hash as string, 'hex')
 
-    cli.action.start(`Opening node`)
+    CliUx.ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    cli.action.stop('done.')
+    CliUx.ux.action.stop('done.')
 
     const block = await node.chain.getBlock(hash)
 
