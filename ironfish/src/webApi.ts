@@ -4,6 +4,7 @@
 
 import axios, { AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
+import { Metric } from './telemetry'
 import { UnwrapPromise } from './utils/types'
 
 type FaucetTransaction = {
@@ -137,6 +138,10 @@ export class WebApi {
     )
 
     return response.data
+  }
+
+  async submitTelemetry(payload: { points: Metric[] }): Promise<void> {
+    await axios.post(`${this.host}/telemetry`, payload)
   }
 
   options(headers: Record<string, string> = {}): AxiosRequestConfig {

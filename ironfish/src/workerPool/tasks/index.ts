@@ -11,6 +11,7 @@ import { handleCreateTransaction } from './createTransaction'
 import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handleMineHeader } from './mineHeader'
 import { handleSleep } from './sleep'
+import { submitTelemetry } from './submitTelemetry'
 import { handleTransactionFee } from './transactionFee'
 import { handleUnboxMessage } from './unboxMessage'
 import { handleVerifyTransaction } from './verifyTransaction'
@@ -63,6 +64,9 @@ export async function handleRequest(
       break
     case 'jobAbort':
       throw new Error('ControlMessage not handled')
+    case 'submitTelemetry':
+      response = await submitTelemetry(body)
+      break
     default: {
       Assert.isNever(body)
     }
