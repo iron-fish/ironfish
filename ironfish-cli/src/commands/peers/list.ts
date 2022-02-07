@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
+import { CliUx } from '@oclif/core'
 import blessed from 'blessed'
-import { cli, Table } from 'cli-ux'
 import { GetPeersResponse, PromiseUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -104,7 +104,7 @@ function renderTable(
     sequence: boolean
   },
 ): string {
-  let columns: Table.table.Columns<GetPeerResponsePeer> = {
+  let columns: CliUx.Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
       header: 'IDENTITY',
       get: (row: GetPeerResponsePeer) => {
@@ -200,7 +200,7 @@ function renderTable(
 
   let result = ''
 
-  cli.table(peers, columns, {
+  CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     extended: flags.extended,
     sort: flags.sort,
