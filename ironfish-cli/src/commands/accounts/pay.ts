@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
@@ -81,7 +81,7 @@ export class Pay extends IronfishCommand {
     if (!amount || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 
-      amount = (await cli.prompt(
+      amount = (await CliUx.ux.prompt(
         `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
           oreToIron(Number(response.content.confirmed)),
           false,
@@ -97,7 +97,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!fee || Number.isNaN(Number(fee))) {
-      fee = (await cli.prompt('Enter the fee amount in $IRON', {
+      fee = (await CliUx.ux.prompt('Enter the fee amount in $IRON', {
         required: true,
         default: '0.00000001',
       })) as number
@@ -108,7 +108,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!to) {
-      to = (await cli.prompt('Enter the the public address of the recipient', {
+      to = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
         required: true,
       })) as string
 
@@ -170,7 +170,7 @@ ${displayIronAmountWithCurrency(
 * This action is NOT reversible *
 `)
 
-      const confirm = await cli.confirm('Do you confirm (Y/N)?')
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
         this.exit(0)
@@ -179,7 +179,7 @@ ${displayIronAmountWithCurrency(
 
     // Run the progress bar for about 2 minutes
     // Chances are that the transaction will finish faster (error or faster computer)
-    const bar = cli.progress({
+    const bar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
       format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',
