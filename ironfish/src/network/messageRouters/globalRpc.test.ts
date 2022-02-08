@@ -9,7 +9,7 @@ import '../testUtilities'
 import { mocked } from 'ts-jest/utils'
 import { InternalMessageType, MessageType } from '../messages'
 import { PeerManager } from '../peers/peerManager'
-import { getConnectedPeer, mockFileSystem, mockLocalPeer } from '../testUtilities'
+import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
 import { GlobalRpcRouter } from './globalRpc'
 import { CannotSatisfyRequestError, Direction, RpcRouter } from './rpc'
 import { nextRpcId } from './rpcId'
@@ -24,7 +24,7 @@ describe('select peers', () => {
 
   it('Returns null when no peers available', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     router.register('take', jest.fn())
@@ -33,7 +33,7 @@ describe('select peers', () => {
 
   it('Selects the peer if there is only one', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -45,7 +45,7 @@ describe('select peers', () => {
 
   it('Selects peer2 if peer1 is saturated`', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
     router.register('take', jest.fn())
     const pm = router.rpcRouter.peerManager
@@ -62,7 +62,7 @@ describe('select peers', () => {
 
   it('Selects peer2 if peer1 failed', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -83,7 +83,7 @@ describe('select peers', () => {
 
   it('Selects the peer1 if both failed', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -109,7 +109,7 @@ describe('select peers', () => {
 
   it('Clears requestFails when peers disconnect', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -129,14 +129,14 @@ describe('Global Rpc', () => {
 
   it('Constructs a global RPC Router correctly', () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
     expect(router.requestFails.size).toBe(0)
   })
 
   it('Registers a global RPC Handler with the direct rpc router', async () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
     const handler = jest.fn()
     router.register('test', handler)
@@ -160,7 +160,7 @@ describe('Global Rpc', () => {
 
   it('throws when there are no peers available', async () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     router.register('test', () => Promise.resolve(undefined))
@@ -172,7 +172,7 @@ describe('Global Rpc', () => {
     mocked(nextRpcId).mockReturnValue(44)
 
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -197,7 +197,7 @@ describe('Global Rpc', () => {
 
   it('handles a round trip successfully with one peer', async () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager
@@ -228,7 +228,7 @@ describe('Global Rpc', () => {
 
   it('retries if first attempt returns cannot fulfill request', async () => {
     const router = new GlobalRpcRouter(
-      new RpcRouter(new PeerManager(mockLocalPeer(), mockFileSystem())),
+      new RpcRouter(new PeerManager(mockLocalPeer(), mockHostsStore())),
     )
 
     const pm = router.rpcRouter.peerManager

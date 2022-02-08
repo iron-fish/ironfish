@@ -11,7 +11,6 @@ import { AddressManager } from '../peers/addressManager'
 import { PeerManager } from '../peers/peerManager'
 import {
   getConnectedPeer,
-  mockFileSystem,
   mockHostsStore,
   mockLocalPeer,
   mockPrivateIdentity,
@@ -22,7 +21,7 @@ jest.useFakeTimers()
 
 describe('FireAndForget Router', () => {
   it('sends a fire and forget message', () => {
-    const peers = new PeerManager(mockLocalPeer(), mockFileSystem())
+    const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
     const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const router = new FireAndForgetRouter(peers)
@@ -35,7 +34,7 @@ describe('FireAndForget Router', () => {
   })
 
   it('handles an incoming fire and forget message', async () => {
-    const peers = new PeerManager(mockLocalPeer(), mockFileSystem())
+    const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
     const router = new FireAndForgetRouter(peers)
 
     const handleMock = jest.fn((_message: IncomingFireAndForgetGeneric<'incoming'>) =>
@@ -53,7 +52,7 @@ describe('FireAndForget Router', () => {
   })
 
   it('routes a fire and forget message as fire and forget', async () => {
-    const addressManager = new AddressManager(mockFileSystem())
+    const addressManager = new AddressManager(mockHostsStore())
     addressManager.hostsStore = mockHostsStore()
     const network = new PeerNetwork({
       identity: mockPrivateIdentity('local'),
@@ -62,7 +61,7 @@ describe('FireAndForget Router', () => {
       node: mockNode(),
       chain: mockChain(),
       strategy: mockStrategy(),
-      files: mockFileSystem(),
+      hostsStore: mockHostsStore(),
     })
 
     const fireAndForgetMock = jest.fn(async () => {})

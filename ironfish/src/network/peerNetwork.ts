@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import tweetnacl from 'tweetnacl'
+import { HostsStore } from '..'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
-import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
@@ -147,8 +147,7 @@ export class PeerNetwork {
     node: IronfishNode
     strategy: Strategy
     chain: Blockchain
-    files: FileSystem
-    dataDir?: string
+    hostsStore: HostsStore
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -179,13 +178,12 @@ export class PeerNetwork {
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      options.files,
+      options.hostsStore,
       this.logger,
       this.metrics,
       maxPeers,
       targetPeers,
       logPeerMessages,
-      options.dataDir,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => this.updateIsReady())
