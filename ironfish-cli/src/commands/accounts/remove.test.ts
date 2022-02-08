@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import * as ironfish from 'ironfish'
 
 describe('accounts:remove', () => {
@@ -31,7 +31,7 @@ describe('accounts:remove', () => {
 
   describe('with no flags', () => {
     test
-      .stub(cli, 'prompt', () => async () => await Promise.resolve(name))
+      .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve(name))
       .stdout()
       .command(['accounts:remove', name])
       .exit(0)
@@ -47,7 +47,7 @@ describe('accounts:remove', () => {
     const incorrectName = 'foobar'
 
     test
-      .stub(cli, 'prompt', () => async () => await Promise.resolve(incorrectName))
+      .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve(incorrectName))
       .stdout()
       .command(['accounts:remove', name])
       .exit(1)

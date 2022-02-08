@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { flags } from '@oclif/command'
-import { cli } from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -35,7 +35,7 @@ export class RemoveCommand extends IronfishCommand {
     const response = await client.removeAccount({ name, confirm })
 
     if (response.content.needsConfirm) {
-      const value = (await cli.prompt(`Are you sure? Type ${name} to confirm`)) as string
+      const value = (await CliUx.ux.prompt(`Are you sure? Type ${name} to confirm`)) as string
 
       if (value !== name) {
         this.log(`Aborting: ${value} did not match ${name}`)
