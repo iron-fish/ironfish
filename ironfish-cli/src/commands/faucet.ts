@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { DEFAULT_DISCORD_INVITE, RequestError } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -41,7 +41,7 @@ export class FaucetCommand extends IronfishCommand {
     let email = flags.email
 
     if (!email) {
-      email = (await cli.prompt('Enter your email to stay updated with Iron Fish', {
+      email = (await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
         required: false,
       })) as string
     }
@@ -53,14 +53,14 @@ export class FaucetCommand extends IronfishCommand {
     if (!accountName) {
       this.log(`You don't have a default account set up yet. Let's create one first!`)
       accountName =
-        ((await cli.prompt('Please enter the name of your new Iron Fish account', {
+        ((await CliUx.ux.prompt('Please enter the name of your new Iron Fish account', {
           required: false,
         })) as string) || 'default'
 
       await client.createAccount({ name: accountName, default: true })
     }
 
-    cli.action.start('Collecting your funds', 'Sending a request to the Iron Fish network', {
+    CliUx.ux.action.start('Collecting your funds', 'Sending a request to the Iron Fish network', {
       stdout: true,
     })
 
@@ -71,15 +71,15 @@ export class FaucetCommand extends IronfishCommand {
       })
     } catch (error: unknown) {
       if (error instanceof RequestError) {
-        cli.action.stop(error.codeMessage)
+        CliUx.ux.action.stop(error.codeMessage)
       } else {
-        cli.action.stop('Unfortunately, the faucet request failed. Please try again later.')
+        CliUx.ux.action.stop('Unfortunately, the faucet request failed. Please try again later.')
       }
 
       this.exit(1)
     }
 
-    cli.action.stop('Success')
+    CliUx.ux.action.stop('Success')
     this.log(
       `
 

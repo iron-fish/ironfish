@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import * as ironfishmodule from 'ironfish'
 
 describe('faucet command', () => {
@@ -50,7 +50,7 @@ describe('faucet command', () => {
     .do(() => {
       accountName = null
     })
-    .stub(cli, 'prompt', () => async () => await Promise.resolve('nameOfTheAccount'))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('nameOfTheAccount'))
     .stdout()
     .command(['faucet', '--force'])
     .exit(0)
@@ -65,7 +65,7 @@ describe('faucet command', () => {
     .do(() => {
       accountName = 'myAccount'
     })
-    .stub(cli, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
     .stdout()
     .command(['faucet', '--force'])
     .exit(0)
@@ -86,7 +86,7 @@ describe('faucet command', () => {
       accountName = 'myAccount'
       getFunds.mockRejectedValue('Error')
     })
-    .stub(cli, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('johann@ironfish.network'))
     .stdout()
     .command(['faucet', '--force'])
     .exit(1)
