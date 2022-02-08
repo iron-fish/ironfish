@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import {
   AsyncUtils,
   FileUtils,
@@ -61,16 +61,16 @@ export class Miner extends IronfishCommand {
     const updateHashPower = () => {
       const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
       const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
-      cli.action.status = formatted
+      CliUx.ux.action.status = formatted
     }
 
     const onStartMine = (request: MineRequest) => {
-      cli.action.start(`Mining block ${request.sequence} on request ${request.miningRequestId}`)
+      CliUx.ux.action.start(`Mining block ${request.sequence} on request ${request.miningRequestId}`)
       updateHashPower()
     }
 
     const onStopMine = () => {
-      cli.action.start('Waiting for next block')
+      CliUx.ux.action.start('Waiting for next block')
       updateHashPower()
     }
 
@@ -108,7 +108,7 @@ export class Miner extends IronfishCommand {
         (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
       )
 
-      cli.action.start('Waiting for director to send work.')
+      CliUx.ux.action.start('Waiting for director to send work.')
 
       const hashPowerInterval = setInterval(updateHashPower, 1000)
 
