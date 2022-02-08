@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
@@ -42,7 +42,7 @@ export default class Testnet extends IronfishCommand {
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
-      userArg = (await cli.prompt(
+      userArg = (await CliUx.ux.prompt(
         'Enter the user id or url to a testnet user like https://testnet.ironfish.network/users/1080\nUser ID or URL',
         {
           required: true,
@@ -116,7 +116,7 @@ export default class Testnet extends IronfishCommand {
         )
       }
 
-      const confirmed = flags.confirm || (await cli.confirm(`Are you SURE? (y)es / (n)o`))
+      const confirmed = flags.confirm || (await CliUx.ux.confirm(`Are you SURE? (y)es / (n)o`))
       if (!confirmed) {
         return
       }
