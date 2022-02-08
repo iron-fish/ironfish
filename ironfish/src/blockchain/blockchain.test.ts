@@ -759,4 +759,65 @@ describe('Blockchain', () => {
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })
   })
+
+  it('reject block with null previous hash', async () => {
+    const { node } = await nodeTest.createSetup()
+    const block = await useMinerBlockFixture(node.chain)
+
+    let result = await node.chain.verifier.verifyBlockAdd(block, null)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.PREV_HASH_NULL,
+    })
+  })
+
+  //try zeroing out genesis.hash to see if it generates an error. Ie zero not equivalent to null.
+  it('jkTODO 2 A', async () => {
+    const { node } = await nodeTest.createSetup()
+    const block = await useMinerBlockFixture(node.chain)
+    
+    for (let i = 0; i < node.chain.genesis.hash.length; i++) {
+      node.chain.genesis.hash[i] = 0
+    }
+
+    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.PREV_HASH_UNEQUAL,
+    })
+  })
+
+  it('jkTODO 3', async () => {
+
+    const { node } = await nodeTest.createSetup()
+
+    const blockA1 = await useMinerBlockFixture(node.chain)
+    await expect(node.chain).toAddBlock(blockA1)
+
+    const blockA2 = await useMinerBlockFixture(node.chain)
+    await expect(node.chain).toAddBlock(blockA2)
+
+    let result = await node.chain.verifier.verifyBlockAdd(blockA2, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.PREV_HASH_UNEQUAL,
+    })
+  })
+
+  it('reject block with hash not matching previous hash', async () => {
+
+    const { node } = await nodeTest.createSetup()
+
+    const block = await useMinerBlockFixture(node.chain)
+    await expect(node.chain).toAddBlock(block)
+
+    //Force one byte of the hash to not match the previous hash of the block.
+    node.chain.genesis.hash[0] = node.chain.genesis.hash[0]^0xFF
+
+    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.PREV_HASH_UNEQUAL,
+    })
+  })
 })
