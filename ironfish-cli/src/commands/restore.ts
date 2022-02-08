@@ -4,7 +4,7 @@
 import { flags } from '@oclif/command'
 import axios from 'axios'
 import { spawn } from 'child_process'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
 import { NodeUtils, PromiseUtils } from 'ironfish'
@@ -71,7 +71,7 @@ export default class Restore extends IronfishCommand {
 
     this.log(`Downloading\n    SRC: ${downloadFrom}\n    DST:   ${downloadDir}`)
 
-    const progress = cli.progress({
+    const progress = CliUx.ux.progress({
       format: 'Downloading backup: [{bar}] {percentage}% | ETA: {eta}s',
     }) as ProgressBar
 
@@ -84,23 +84,23 @@ export default class Restore extends IronfishCommand {
     progress.stop()
 
     this.log(`Unzipping\n    SRC ${downloadTo}\n    DST ${unzipTo}`)
-    cli.action.start(`Unzipping ${path.basename(downloadTo)}`)
+    CliUx.ux.action.start(`Unzipping ${path.basename(downloadTo)}`)
     await this.unzipTar(downloadTo, unzipTo)
-    cli.action.stop('done\n')
+    CliUx.ux.action.stop('done\n')
 
     // We do this because the backup can be created with any datadir name
     // So anything could be inside of the zip file. We want it to match our
     // specified data dir though.
-    cli.action.start(`Gettting backup name`)
+    CliUx.ux.action.start(`Gettting backup name`)
     const backupName = (await fsAsync.readdir(unzipTo))[0]
     const unzipFrom = path.join(unzipTo, backupName)
-    cli.action.stop(`${backupName}\n`)
+    CliUx.ux.action.stop(`${backupName}\n`)
 
     this.log(`Moving\n    SRC ${unzipFrom}\n    DST ${this.sdk.config.dataDir}`)
-    cli.action.start(`Moving to ${this.sdk.config.dataDir}`)
+    CliUx.ux.action.start(`Moving to ${this.sdk.config.dataDir}`)
     await fsAsync.rm(this.sdk.config.dataDir, { recursive: true, force: true })
     await fsAsync.rename(unzipFrom, this.sdk.config.dataDir)
-    cli.action.stop(`done\n`)
+    CliUx.ux.action.stop(`done\n`)
   }
 
   unzipTar(source: string, dest: string): Promise<number | null> {
