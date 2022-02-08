@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import fs from 'fs'
 import { ErrorUtils } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
@@ -61,7 +61,7 @@ export class ExportCommand extends IronfishCommand {
         if (fs.existsSync(resolved)) {
           this.log(`There is already an account backup at ${exportPath}`)
 
-          const confirmed = await cli.confirm(
+          const confirmed = await CliUx.ux.confirm(
             `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
           )
 
