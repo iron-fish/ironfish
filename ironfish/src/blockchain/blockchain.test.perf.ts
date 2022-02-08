@@ -12,8 +12,33 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
 } from '../testUtilities'
-import { MathUtils, UnwrapPromise } from '../utils'
+import { FileUtils, MathUtils, PromiseUtils, UnwrapPromise } from '../utils'
 
+const g = global as { gc: () => void }
+
+async function sweepAndTest(): Promise<void> {
+  g.gc()
+  g.gc()
+  g.gc()
+  g.gc()
+
+  await PromiseUtils.sleep(100)
+
+  g.gc()
+  g.gc()
+  g.gc()
+  g.gc()
+
+  const mem = process.memoryUsage()
+  console.log(
+    'TESTMEM',
+    FileUtils.formatMemorySize(mem.heapUsed),
+    '/',
+    FileUtils.formatMemorySize(mem.heapTotal),
+    `${(mem.heapUsed / mem.heapTotal).toFixed(2)}%`,
+    FileUtils.formatMemorySize(mem.rss),
+  )
+}
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
 
@@ -29,7 +54,7 @@ describe('Blockchain', () => {
 
     // Create 100 blocks each on nodeA and nodeB
     for (let i = 0; i < 100; ++i) {
-      console.log(`Creating Blocks ${i}`)
+      // console.log(`Creating Blocks ${i}`)
 
       let blockA: Block
       let blockB: Block
@@ -84,7 +109,7 @@ describe('Blockchain', () => {
       const samplesRewind = []
 
       for (let i = 0; i < testCount; i++) {
-        console.log(`Running Test ${i}`)
+        // console.log(`Running Test ${i}`)
 
         const { node } = await nodeTest.createSetup()
 
@@ -123,6 +148,8 @@ describe('Blockchain', () => {
         expect(actualHead.hash.toString('hex')).toEqual(
           expectedHead.header.hash.toString('hex'),
         )
+
+        await sweepAndTest()
       }
 
       return {
@@ -151,12 +178,13 @@ describe('Blockchain', () => {
       )
     }
 
-    printResults(await runTest(5, 1))
-    printResults(await runTest(5, 3))
-    printResults(await runTest(5, 5))
-    printResults(await runTest(5, 10))
-    printResults(await runTest(5, 50))
-    printResults(await runTest(5, 100))
+    // printResults(await runTest(5, 1))
+    await sweepAndTest()
+    // printResults(await runTest(5, 3))
+    printResults(await runTest(100, 100))
+    // printResults(await runTest(5, 10))
+    // printResults(await runTest(5, 50))
+    // printResults(await runTest(5, 100))
   }, 780000)
 })
 
