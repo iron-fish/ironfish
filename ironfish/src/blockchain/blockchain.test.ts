@@ -820,4 +820,17 @@ describe('Blockchain', () => {
       reason: VerificationResultReason.PREV_HASH_UNEQUAL,
     })
   })
+
+  it('reject added block with invalid miners fee', async () => {
+    const { node } = await nodeTest.createSetup()
+    const block = await useMinerBlockFixture(node.chain)
+
+    block.header.minersFee = BigInt(-1)
+
+    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    expect(result).toMatchObject({
+      valid: false,
+      reason: VerificationResultReason.INVALID_MINERS_FEE,
+    })
+  })
 })

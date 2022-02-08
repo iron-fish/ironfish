@@ -65,7 +65,7 @@ export class Verifier {
     for (let i = 0; i < transactionFees.length; i++) {
       const fee = transactionFees[i]
 
-      // Miner's fee should be only the first transaction   Block.4 testcase in verifier suite
+      // Miner's fee should be only the first transaction
       if (i === 0 && fee > 0) {
         return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
       }
@@ -82,12 +82,11 @@ export class Verifier {
       }
     }
 
-    // minersFee should match the block header   Block.3 testcase in verifier suite
+    // minersFee should match the block header
     if (block.header.minersFee !== minersFee) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
     
-    //jkTODO
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = block.header.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
