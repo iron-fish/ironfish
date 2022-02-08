@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
 import { spawn } from 'child_process'
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { FileUtils, NodeUtils } from 'ironfish'
 import os from 'os'
@@ -59,7 +59,7 @@ export default class Backup extends IronfishCommand {
     const dest = path.join(destDir, `node.${id}.tar.gz`)
 
     this.log(`Zipping\n    SRC ${source}\n    DST ${dest}\n`)
-    cli.action.start(`Zipping ${source}`)
+    CliUx.ux.action.start(`Zipping ${source}`)
 
     await this.zipDir(
       source,
@@ -68,11 +68,11 @@ export default class Backup extends IronfishCommand {
     )
 
     const stat = await fsAsync.stat(dest)
-    cli.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
+    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
 
-    cli.action.start(`Uploading to ${bucket}`)
+    CliUx.ux.action.start(`Uploading to ${bucket}`)
     await this.uploadToS3(dest, bucket)
-    cli.action.stop(`done`)
+    CliUx.ux.action.stop(`done`)
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
