@@ -441,7 +441,9 @@ describe('PeerManager', () => {
       // Emitting new signal data should trigger a send on the WS connection
       expect(pm.identifiedPeers.size).toBe(1)
       expect(pm.peers).toHaveLength(1)
-      const sendSpy = jest.spyOn(connection, 'send')
+
+      const sendSpy = mocked(connection.send)
+
       await peer.state.connections.webRtc.onSignal.emitAsync({
         type: 'candidate',
         candidate: {
@@ -450,7 +452,16 @@ describe('PeerManager', () => {
           sdpMid: '0',
         },
       })
-      expect(sendSpy).toBeCalledTimes(2)
+
+      expect(sendSpy).toBeCalledWith({
+        type: 'signal',
+        payload: {
+          sourceIdentity: 'bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=',
+          destinationIdentity: 'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=',
+          nonce: 'boxMessageNonce',
+          signal: 'boxMessageMessage',
+        },
+      })
     })
 
     it('Attempts to request WebRTC signaling through brokering peer', () => {
@@ -580,10 +591,18 @@ describe('PeerManager', () => {
         throw new Error('Peer should have a WebRTC connection')
       }
       const webRtcConnection = peer.state.connections.webRtc
+
+      // TODO: webRtcConnection.datachannel never actually opens during a test
+      // so when peer.send() gets called as part of the onConnect event, it
+      // closes the webRTC connection. For now, we'll mock the close function,
+      // but in the future, we should mock the datachannel class to make tests
+      // more robust -- deekerno
+      const closeSpy = jest.spyOn(webRtcConnection, 'close').mockImplementationOnce(() => {})
       webRtcConnection.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
       })
+      expect(closeSpy).toBeCalledTimes(1)
 
       expect(pm.peers.length).toBe(2)
       expect(pm.identifiedPeers.size).toBe(2)

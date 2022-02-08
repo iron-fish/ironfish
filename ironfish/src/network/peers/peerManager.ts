@@ -725,7 +725,6 @@ export class PeerManager {
         if (peer.state.type === 'CONNECTED') {
           this.updateIdentifiedPeerMap(peer)
           peer.onStateChanged.off(handler)
-          peer.send({ type: InternalMessageType.peerListRequest })
         }
       }
       peer.onStateChanged.on(handler)
@@ -751,6 +750,12 @@ export class PeerManager {
         this.onDisconnect.emit(peer)
         this.onConnectedPeersChanged.emit()
         this.tryDisposePeer(peer)
+      }
+    })
+
+    peer.onStateChanged.on(({ prevState }) => {
+      if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
+        peer.send({ type: InternalMessageType.peerListRequest })
       }
     })
 
