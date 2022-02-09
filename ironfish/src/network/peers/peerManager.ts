@@ -833,9 +833,15 @@ export class PeerManager {
    * said address
    */
   createRandomDisconnectedPeer(): Peer | null {
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(
-      Array.from(this.identifiedPeers.keys()),
-    )
+    const connectedPeers = Array.from(this.identifiedPeers.values()).flatMap((peer) => {
+      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
+        return peer.state.identity
+      } else {
+        return []
+      }
+    })
+
+    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(connectedPeers)
     if (!peerAddress) {
       return null
     }

@@ -25,8 +25,7 @@ export class AddressManager {
   /**
    * Returns a peer address for a disconnected peer by using current peers to
    * filter out peer addresses. It attempts to find a previously-connected
-   * peer address that is not part of an active connection. If there are none,
-   * then it attempts to find a previously-known peer address.
+   * peer address that is not part of an active connection.
    */
   getRandomDisconnectedPeerAddress(peerIdentities: string[]): PeerAddress | null {
     if (this.priorConnectedPeerAddresses.length === 0) {
