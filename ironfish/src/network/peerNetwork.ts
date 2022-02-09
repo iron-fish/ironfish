@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import tweetnacl from 'tweetnacl'
+import { HostsStore } from '..'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
@@ -58,7 +59,6 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
-import { AddressManager } from './peers/addressManager'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -147,7 +147,7 @@ export class PeerNetwork {
     node: IronfishNode
     strategy: Strategy
     chain: Blockchain
-    addressManager: AddressManager
+    hostsStore: HostsStore
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
     const enableSyncing = options.enableSyncing ?? true
@@ -178,7 +178,7 @@ export class PeerNetwork {
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      options.addressManager,
+      options.hostsStore,
       this.logger,
       this.metrics,
       maxPeers,
@@ -396,10 +396,10 @@ export class PeerNetwork {
    * Call close when shutting down the PeerNetwork to clean up
    * outstanding connections.
    */
-  stop(): void {
+  async stop(): Promise<void> {
     this.started = false
     this.peerConnectionManager.stop()
-    this.peerManager.stop()
+    await this.peerManager.stop()
     this.webSocketServer?.close()
     this.updateIsReady()
   }

@@ -39,6 +39,7 @@ export class IronfishSdk {
   internal: InternalStore
   strategyClass: typeof Strategy | null
   privateIdentity: BoxKeyPair | null | undefined
+  dataDir?: string
 
   private constructor(
     pkg: Package,
@@ -50,6 +51,7 @@ export class IronfishSdk {
     logger: Logger,
     metrics: MetricsMonitor,
     strategyClass: typeof Strategy | null = null,
+    dataDir?: string,
   ) {
     this.pkg = pkg
     this.client = client
@@ -60,6 +62,7 @@ export class IronfishSdk {
     this.logger = logger
     this.metrics = metrics
     this.strategyClass = strategyClass
+    this.dataDir = dataDir
   }
 
   static async init({
@@ -155,6 +158,7 @@ export class IronfishSdk {
       logger,
       metrics,
       strategyClass,
+      dataDir,
     )
   }
 
@@ -181,6 +185,7 @@ export class IronfishSdk {
       strategyClass: this.strategyClass,
       webSocket: webSocket,
       privateIdentity: privateIdentity,
+      dataDir: this.dataDir,
     })
 
     if (this.config.get('enableRpcIpc')) {
