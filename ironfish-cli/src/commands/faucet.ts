@@ -60,9 +60,13 @@ export class FaucetCommand extends IronfishCommand {
       await client.createAccount({ name: accountName, default: true })
     }
 
-    CliUx.ux.action.start('Collecting your funds', 'Sending a request to the Iron Fish network', {
-      stdout: true,
-    })
+    CliUx.ux.action.start(
+      'Collecting your funds',
+      'Sending a request to the Iron Fish network',
+      {
+        stdout: true,
+      },
+    )
 
     try {
       await client.getFunds({
@@ -73,7 +77,9 @@ export class FaucetCommand extends IronfishCommand {
       if (error instanceof RequestError) {
         CliUx.ux.action.stop(error.codeMessage)
       } else {
-        CliUx.ux.action.stop('Unfortunately, the faucet request failed. Please try again later.')
+        CliUx.ux.action.stop(
+          'Unfortunately, the faucet request failed. Please try again later.',
+        )
       }
 
       this.exit(1)

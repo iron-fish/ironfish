@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { spawn } from 'child_process'
 import { CliUx } from '@oclif/core'
+import { spawn } from 'child_process'
 import fsAsync from 'fs/promises'
 import { FileUtils, NodeUtils } from 'ironfish'
 import os from 'os'

@@ -65,7 +65,9 @@ export class Miner extends IronfishCommand {
     }
 
     const onStartMine = (request: MineRequest) => {
-      CliUx.ux.action.start(`Mining block ${request.sequence} on request ${request.miningRequestId}`)
+      CliUx.ux.action.start(
+        `Mining block ${request.sequence} on request ${request.miningRequestId}`,
+      )
       updateHashPower()
     }
 
