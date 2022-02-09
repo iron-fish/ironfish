@@ -27,13 +27,13 @@ export const oreToIron = (amount: number): number => {
  * Return a string with the format $IRON X.XXXXXXXX ($ORE X^8)
  */
 export const displayIronAmountWithCurrency = (amount: number, displayOre: boolean): string => {
-  let iron = `${IRON_TICKER} ${amount.toLocaleString(undefined, {
+  let iron = `${IRON_TICKER} ${amount.toLocaleString("en-US", {
     minimumFractionDigits: FLOAT,
     maximumFractionDigits: FLOAT,
   })}`
 
   if (displayOre) {
-    iron += ` (${ORE_TICKER} ${ironToOre(amount).toLocaleString(undefined, {
+    iron += ` (${ORE_TICKER} ${ironToOre(amount).toLocaleString("en-US", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     })})`
