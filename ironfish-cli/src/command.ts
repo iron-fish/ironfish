@@ -78,6 +78,7 @@ export abstract class IronfishCommand extends Command {
   async init(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const commandClass = this.constructor as any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { flags } = await this.parse(commandClass)
 
     // Get the flags from the flag object which is unknown
