@@ -13,6 +13,7 @@ import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Strategy } from './strategy'
+import { Telemetry } from './telemetry'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
 
@@ -45,6 +46,7 @@ export class Syncer {
     peerNetwork: PeerNetwork
     chain: Blockchain
     strategy: Strategy
+    telemetry: Telemetry
     metrics?: MetricsMonitor
     logger?: Logger
     blocksPerMessage?: number
@@ -54,8 +56,10 @@ export class Syncer {
     this.peerNetwork = options.peerNetwork
     this.chain = options.chain
     this.strategy = options.strategy
-    this.metrics = options.metrics || new MetricsMonitor()
     this.logger = logger.withTag('syncer')
+    this.metrics =
+      options.metrics ||
+      new MetricsMonitor({ telemetry: options.telemetry, logger: this.logger })
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()

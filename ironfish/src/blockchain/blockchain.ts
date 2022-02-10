@@ -148,7 +148,7 @@ export class Blockchain {
 
     this.strategy = options.strategy
     this.logger = logger.withTag('blockchain')
-    this.metrics = options.metrics || new MetricsMonitor(this.logger)
+    this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this)
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()

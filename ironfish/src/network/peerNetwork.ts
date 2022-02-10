@@ -156,7 +156,7 @@ export class PeerNetwork {
     this.chain = options.chain
     this.strategy = options.strategy
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
-    this.metrics = options.metrics || new MetricsMonitor(this.logger)
+    this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.bootstrapNodes = options.bootstrapNodes || []
 
     this.localPeer = new LocalPeer(

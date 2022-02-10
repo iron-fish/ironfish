@@ -128,7 +128,7 @@ export class IronfishSdk {
     }
 
     if (!metrics) {
-      metrics = metrics || new MetricsMonitor(logger)
+      metrics = metrics || new MetricsMonitor({ logger })
     }
 
     const client = new IronfishIpcClient(
