@@ -501,22 +501,7 @@ export class MiningDirector {
 
     this.onNewBlock.emit(block)
 
-    await this.telemetry.submit({
-      measurement: 'node',
-      name: 'block_mined',
-      fields: [
-        {
-          name: 'difficulty',
-          type: 'integer',
-          value: Number(block.header.target.toDifficulty()),
-        },
-        {
-          name: 'sequence',
-          type: 'integer',
-          value: Number(block.header.sequence),
-        },
-      ],
-    })
+    await this.telemetry.submitBlockMined(block)
 
     return MINED_RESULT.SUCCESS
   }
