@@ -21,7 +21,7 @@ export class ImportCommand extends IronfishCommand {
   static args = [
     {
       name: 'path',
-      parse: async (input: string) => Promise.resolve(input.trim()),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'a path to import the account from',
     },

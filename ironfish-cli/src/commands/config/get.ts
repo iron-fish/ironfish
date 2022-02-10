@@ -13,7 +13,7 @@ export class GetCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: async (input: string) => Promise.resolve(input.trim()),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'name of the config item',
     },

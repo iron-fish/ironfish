@@ -21,13 +21,13 @@ export default class Sync extends IronfishCommand {
     ...RemoteFlags,
     endpoint: Flags.string({
       char: 'e',
-      parse: async (input: string) => Promise.resolve(input.trim()),
+      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host to sync to',
     }),
     token: Flags.string({
       char: 'e',
-      parse: async (input: string) => Promise.resolve(input.trim()),
+      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host token to authenticate with',
     }),
