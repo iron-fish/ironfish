@@ -5,16 +5,20 @@ import { displayIronAmountWithCurrency, ironToOre, isValidAmount, oreToIron } fr
 
 describe('Currency utils', () => {
   test('displayIronAmountWithCurrency returns the right string', () => {
-    expect(displayIronAmountWithCurrency(0.00000002, true)).toEqual('$IRON 0.00000002 ($ORE 2)')
-    expect(displayIronAmountWithCurrency(0.0000001, true)).toEqual('$IRON 0.00000010 ($ORE 10)')
-    expect(displayIronAmountWithCurrency(0, true)).toEqual('$IRON 0.00000000 ($ORE 0)')
+    const displayLocale = (value: number, decimals: number) => {
+      return value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    expect(displayIronAmountWithCurrency(0.00000002, true)).toEqual(`$IRON ${displayLocale(0.00000002, 8)} ($ORE ${displayLocale(2, 0)})`)
+    expect(displayIronAmountWithCurrency(0.0000001, true)).toEqual(`$IRON ${displayLocale(0.00000010, 8)} ($ORE ${displayLocale(10, 0)})`)
+    expect(displayIronAmountWithCurrency(0, true)).toEqual(`$IRON ${displayLocale(0.00000000, 8)} ($ORE ${displayLocale(0, 0)})`)
     expect(displayIronAmountWithCurrency(1, true)).toEqual(
-      '$IRON 1.00000000 ($ORE 100,000,000)',
+      `$IRON ${displayLocale(1.00000000, 8)} ($ORE ${displayLocale(100000000, 0)})`,
     )
     expect(displayIronAmountWithCurrency(100, true)).toEqual(
-      '$IRON 100.00000000 ($ORE 10,000,000,000)',
+      `$IRON ${displayLocale(100.00000000, 8)} ($ORE ${displayLocale(10000000000, 0)})`,
     )
-    expect(displayIronAmountWithCurrency(100, false)).toEqual('$IRON 100.00000000')
+    expect(displayIronAmountWithCurrency(100, false)).toEqual(`$IRON ${displayLocale(100.00000000, 8)}`)
   })
 
   test('isValidAmount returns the right value', () => {
