@@ -42,6 +42,16 @@ describe('Telemetry', () => {
     telemetry = mockTelemetry()
   })
 
+  describe('stop', () => {
+    it('sends a message for the node to stop and flushes remaining points', async () => {
+      const flush = jest.spyOn(telemetry, 'flush')
+      const submitNodeStopped = jest.spyOn(telemetry, 'submitNodeStopped')
+      await telemetry.stop()
+      expect(flush).toHaveBeenCalledTimes(1)
+      expect(submitNodeStopped).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('submit', () => {
     describe('when disabled', () => {
       it('does nothing', async () => {

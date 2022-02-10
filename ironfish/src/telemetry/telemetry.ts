@@ -37,7 +37,12 @@ export class Telemetry {
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    if (this.enabled) {
+      await this.submitNodeStopped()
+      await this.flush()
+    }
+
     if (this.flushInterval) {
       clearTimeout(this.flushInterval)
     }
@@ -90,6 +95,14 @@ export class Telemetry {
       measurement: 'node',
       name: 'started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
+    })
+  }
+
+  async submitNodeStopped(): Promise<void> {
+    await this.submit({
+      measurement: 'node',
+      name: 'started',
+      fields: [{ name: 'online', type: 'boolean', value: false }],
     })
   }
 

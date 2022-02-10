@@ -354,7 +354,7 @@ export class IronfishNode {
         if (newValue) {
           this.telemetry.start()
         } else {
-          this.telemetry.stop()
+          await this.telemetry.stop()
         }
         break
       }
