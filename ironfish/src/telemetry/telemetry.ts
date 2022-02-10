@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger } from '../logger'
+import { createRootLogger, Logger } from '../logger'
 import { Block } from '../primitives/block'
 import { renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -14,16 +14,16 @@ export class Telemetry {
 
   private readonly defaultTags: Tag[]
   private readonly logger: Logger
-  private readonly pool: WorkerPool
+  private readonly workerPool: WorkerPool
 
   private started: boolean
   private flushInterval: SetIntervalToken | null
   private points: Metric[]
 
-  constructor(pool: WorkerPool, logger: Logger, defaultTags: Tag[]) {
-    this.logger = logger
-    this.pool = pool
-    this.defaultTags = defaultTags
+  constructor(options: { workerPool: WorkerPool; logger?: Logger; defaultTags?: Tag[] }) {
+    this.logger = options.logger ?? createRootLogger()
+    this.workerPool = options.workerPool
+    this.defaultTags = options.defaultTags ?? []
 
     this.started = false
     this.flushInterval = null
@@ -92,7 +92,7 @@ export class Telemetry {
     }
 
     try {
-      await this.pool.submitTelemetry(points)
+      await this.workerPool.submitTelemetry(points)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
     } catch (error: unknown) {
       this.logger.error(`Error submitting telemetry to API: ${renderError(error)}`)
