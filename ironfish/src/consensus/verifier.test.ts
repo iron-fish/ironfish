@@ -417,6 +417,22 @@ describe('Verifier', () => {
         },
       )
     })
+
+    it('returns any error from verifyConnectedSpends()', async () => {
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      jest.spyOn(nodeTest.verifier, 'verifySpend').mockResolvedValue(
+        VerificationResultReason.ERROR
+      )
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.ERROR,
+        },
+      )
+    })
   })
 
   describe('verifyTransaction', () => {
@@ -469,6 +485,35 @@ describe('Verifier', () => {
           await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
         ).toEqual({
           valid: true,
+        })
+      }, 60000)
+    })
+
+    describe('when verify() returns a error', () => {
+      it('returns VERIFY_TRANSACTION', async () => {
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+/*
+        jest.spyOn(transaction, 'verify').mockResolvedValue({
+          valid: false,
+          reason: VerificationResultReason.ERROR,
+        })
+        */
+      // jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(new Error('Async error'))
+
+       /*
+       jest
+       .spyOn(transaction['workerPool'], 'verify')
+       .mockRejectedValue(() => throw new Error('Async error'))
+*/
+
+        jest.spyOn(transaction['workerPool'], 'result').mockRejectedValue(null)
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
+          valid: false,
+          reason: VerificationResultReason.VERIFY_TRANSACTION,
         })
       }, 60000)
     })
