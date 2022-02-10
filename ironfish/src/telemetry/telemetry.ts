@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores'
 import { Logger } from '../logger'
+import { Block } from '../primitives/block'
 import { renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Metric } from './interfaces/metric'
@@ -82,5 +83,51 @@ export class Telemetry {
         this.points = points
       }
     }
+  }
+
+  async submitNodeStarted(): Promise<void> {
+    await this.submit({
+      measurement: 'node',
+      name: 'started',
+      fields: [{ name: 'online', type: 'boolean', value: true }],
+    })
+  }
+
+  async submitBlockMined(block: Block): Promise<void> {
+    await this.submit({
+      measurement: 'node',
+      name: 'block_mined',
+      fields: [
+        {
+          name: 'difficulty',
+          type: 'integer',
+          value: Number(block.header.target.toDifficulty()),
+        },
+        {
+          name: 'sequence',
+          type: 'integer',
+          value: Number(block.header.sequence),
+        },
+      ],
+    })
+  }
+
+  async submitMemoryUsage(heapUsed: number, heapTotal: number): Promise<void> {
+    await this.submit({
+      measurement: 'node',
+      name: 'memory',
+      fields: [
+        {
+          name: 'heap_used',
+          type: 'integer',
+          value: heapUsed,
+        },
+        {
+          name: 'heap_total',
+          type: 'integer',
+          value: heapTotal,
+        },
+      ],
+    })
   }
 }
