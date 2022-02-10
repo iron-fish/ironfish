@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { mockLogger, mockWorkerPool } from '../testUtilities/mocks'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -9,22 +10,6 @@ import { Telemetry } from './telemetry'
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 describe('Telemetry', () => {
   let telemetry: Telemetry
-
-  const mockTelemetry = (enabled = true): Telemetry => {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const mockConfig: any = {
-      get: jest.fn().mockResolvedValueOnce(enabled),
-    }
-    const mockPool: any = {
-      submitTelemetry: jest.fn(),
-    }
-    const mockLogger: any = {
-      debug: jest.fn(),
-      error: jest.fn(),
-    }
-    /* eslint-enable @typescript-eslint/no-explicit-any */
-    return new Telemetry(mockConfig, mockPool, mockLogger, [])
-  }
 
   const mockMetric: Metric = {
     measurement: 'node',
@@ -39,7 +24,12 @@ describe('Telemetry', () => {
   }
 
   beforeEach(() => {
-    telemetry = mockTelemetry()
+    telemetry = new Telemetry(mockWorkerPool(), mockLogger(), [])
+    telemetry.start()
+  })
+
+  afterEach(() => {
+    telemetry?.stop()
   })
 
   describe('stop', () => {
@@ -55,7 +45,7 @@ describe('Telemetry', () => {
   describe('submit', () => {
     describe('when disabled', () => {
       it('does nothing', () => {
-        const disabledTelemetry = mockTelemetry(false)
+        const disabledTelemetry = new Telemetry(mockWorkerPool(), mockLogger(), [])
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)
         expect(disabledTelemetry['points']).toEqual(currentPoints)
