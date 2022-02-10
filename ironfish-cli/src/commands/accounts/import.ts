@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { flags } from '@oclif/command'
-import { cli } from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { JSONUtils, PromiseUtils, SerializedAccount } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -89,23 +89,23 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<SerializedAccount> {
-    const accountName = (await cli.prompt('Enter the account name', {
+    const accountName = (await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })) as string
 
-    const spendingKey = (await cli.prompt('Enter the account spending key', {
+    const spendingKey = (await CliUx.ux.prompt('Enter the account spending key', {
       required: true,
     })) as string
 
-    const incomingViewKey = (await cli.prompt('Enter the account incoming view key', {
+    const incomingViewKey = (await CliUx.ux.prompt('Enter the account incoming view key', {
       required: true,
     })) as string
 
-    const outgoingViewKey = (await cli.prompt('Enter the account outgoing view key', {
+    const outgoingViewKey = (await CliUx.ux.prompt('Enter the account outgoing view key', {
       required: true,
     })) as string
 
-    const publicAddress = (await cli.prompt('Enter the account public address', {
+    const publicAddress = (await CliUx.ux.prompt('Enter the account public address', {
       required: true,
     })) as string
 

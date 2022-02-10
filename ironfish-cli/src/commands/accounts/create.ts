@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -27,7 +27,7 @@ export class CreateCommand extends IronfishCommand {
     let name = args.name as string
 
     if (!name) {
-      name = (await cli.prompt('Enter the name of the account', {
+      name = (await CliUx.ux.prompt('Enter the name of the account', {
         required: true,
       })) as string
     }
