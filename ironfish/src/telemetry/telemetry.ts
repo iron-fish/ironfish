@@ -38,8 +38,10 @@ export class Telemetry {
   }
 
   async stop(): Promise<void> {
-    await this.submitNodeStopped()
-    await this.flush()
+    if (this.enabled) {
+      await this.submitNodeStopped()
+      await this.flush()
+    }
 
     if (this.flushInterval) {
       clearTimeout(this.flushInterval)
