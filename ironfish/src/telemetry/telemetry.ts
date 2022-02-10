@@ -112,7 +112,7 @@ export class Telemetry {
     })
   }
 
-  async submitMemUsage(heapUsed: number, heapTotal: number): Promise<void> {
+  async submitMemoryUsage(heapUsed: number, heapTotal: number): Promise<void> {
     await this.submit({
       measurement: 'node',
       name: 'memory',
