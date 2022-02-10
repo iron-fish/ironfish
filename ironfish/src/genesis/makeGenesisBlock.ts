@@ -6,6 +6,7 @@ import type { Account } from '../account'
 import {
   generateKey,
   Note as NativeNote,
+  NoteBuilder as NativeNoteBuilder,
   Transaction as NativeTransaction,
 } from 'ironfish-rust-nodejs'
 import { Blockchain } from '../blockchain'
@@ -52,9 +53,11 @@ export async function makeGenesisBlock(
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
   const genesisNote = new NativeNote(
-    genesisKey.public_address,
-    BigInt(allocationSum),
-    info.memo,
+    new NativeNoteBuilder(
+      genesisKey.public_address,
+      BigInt(allocationSum),
+      info.memo,
+    ).serialize(),
   )
 
   // Create a miner's fee transaction for the block.
@@ -64,7 +67,9 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+  const note = new NativeNote(
+    new NativeNoteBuilder(account.publicAddress, BigInt(0), '').serialize(),
+  )
   const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new Transaction(
@@ -126,7 +131,9 @@ export async function makeGenesisBlock(
     logger.info(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
+    const note = new NativeNote(
+      new NativeNoteBuilder(alloc.publicAddress, BigInt(alloc.amount), info.memo).serialize(),
+    )
     transaction.receive(genesisKey.spending_key, note)
   }
 

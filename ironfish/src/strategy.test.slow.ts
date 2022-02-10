@@ -7,6 +7,7 @@ import {
   generateNewPublicAddress,
   Key,
   Note as NativeNote,
+  NoteBuilder as NativeNoteBuilder,
   SimpleTransaction as NativeSimpleTransaction,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
@@ -99,7 +100,8 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '')
+      minerNote = new NativeNote(new NativeNoteBuilder(owner, BigInt(42), '').serialize())
+
       const transaction = new NativeTransaction()
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
       minerTransaction = transaction.post_miners_fee()
@@ -109,7 +111,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can verify the miner transaction', () => {
       const serializedTransaction = minerTransaction.serialize()
-      const deserializedTransaction = NativeTransactionPosted.deserialize(serializedTransaction)
+      const deserializedTransaction = new NativeTransactionPosted(serializedTransaction)
       expect(deserializedTransaction.verify()).toBeTruthy()
     })
 
@@ -138,7 +140,9 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
-      const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
+      const receivingNote = new NativeNote(
+        new NativeNoteBuilder(receiverKey.public_address, BigInt(40), '').serialize(),
+      )
       const result = simpleTransaction.receive(receivingNote)
       expect(result).toEqual('')
     })
@@ -270,11 +274,15 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
+      const noteForSpender = new NativeNote(
+        new NativeNoteBuilder(spenderKey.public_address, BigInt(10), '').serialize(),
+      )
       const receiverNoteToSelf = new NativeNote(
-        generateNewPublicAddress(receiverKey.spending_key).public_address,
-        BigInt(29),
-        '',
+        new NativeNoteBuilder(
+          generateNewPublicAddress(receiverKey.spending_key).public_address,
+          BigInt(29),
+          '',
+        ).serialize(),
       )
 
       expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')

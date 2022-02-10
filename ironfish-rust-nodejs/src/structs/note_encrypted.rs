@@ -16,8 +16,8 @@ pub struct NativeNoteEncrypted {
 
 #[napi]
 impl NativeNoteEncrypted {
-    #[napi(factory)]
-    pub fn deserialize(bytes: Buffer) -> Result<NativeNoteEncrypted> {
+    #[napi(constructor)]
+    pub fn new(bytes: Buffer) -> Result<NativeNoteEncrypted> {
         let hasher = sapling_bls12::SAPLING.clone();
 
         let note = MerkleNote::read(bytes.as_ref(), hasher)

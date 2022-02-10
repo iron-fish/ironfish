@@ -24,7 +24,7 @@ export interface MineHeaderNapiResult {
 export function mineHeaderBatch(headerBytes: Buffer, initialRandomness: number, targetBuffer: Buffer, batchSize: number): MineHeaderNapiResult
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
-  static deserialize(bytes: Buffer): NativeNoteEncrypted
+  constructor(bytes: Buffer)
   serialize(): Buffer
   equals(other: NoteEncrypted): boolean
   merkleHash(): Buffer
@@ -38,10 +38,18 @@ export class NoteEncrypted {
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): NativeNote | undefined | null
 }
+export type NativeNoteBuilder = NoteBuilder
+export class NoteBuilder {
+  /**
+   * TODO: This works around a concurrency bug when using #[napi(factory)]
+   * in worker threads. It can be merged into NativeNote once the bug is fixed.
+   */
+  constructor(owner: string, value: bigint, memo: string)
+  serialize(): Buffer
+}
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string)
-  static deserialize(bytes: Buffer): NativeNote
+  constructor(bytes: Buffer)
   serialize(): Buffer
   /** Value this note represents. */
   value(): bigint
@@ -68,7 +76,7 @@ export class NativeSpendProof {
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {
-  static deserialize(bytes: Buffer): NativeTransactionPosted
+  constructor(bytes: Buffer)
   serialize(): Buffer
   verify(): boolean
   notesLength(): number
