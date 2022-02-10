@@ -61,7 +61,6 @@ export default class Testnet extends IronfishCommand {
       userId = Number(userArg)
     }
 
-    //Assert.isNotNull(userId, `Could not figure out testnet user id from ${userArg}`)
     if (userId === null) {
       this.log(`Could not figure out testnet user id from ${userArg}`)
       return this.exit(1)
