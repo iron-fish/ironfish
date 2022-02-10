@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { ConnectionError, IronfishIpcClient, Meter, PromiseUtils, WebApi } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -19,15 +19,15 @@ export default class Faucet extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    api: flags.string({
+    api: Flags.string({
       char: 'a',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'API host to sync to',
     }),
-    token: flags.string({
+    token: Flags.string({
       char: 't',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'API host token to authenticate with',
     }),
@@ -36,7 +36,7 @@ export default class Faucet extends IronfishCommand {
   warnedFund = false
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Faucet)
+    const { flags } = await this.parse(Faucet)
 
     const apiHost = (flags.api || process.env.IRONFISH_API_HOST || '').trim()
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()

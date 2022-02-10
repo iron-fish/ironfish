@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import fs from 'fs'
 import { ErrorUtils } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
@@ -16,7 +15,7 @@ export class ExportCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
-    local: flags.boolean({
+    local: Flags.boolean({
       default: false,
       description: 'Export an account without an online node',
     }),
@@ -25,20 +24,20 @@ export class ExportCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'name of the account to export',
     },
     {
       name: 'path',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'a path to export the account to',
     },
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(ExportCommand)
+    const { flags, args } = await this.parse(ExportCommand)
     const { color, local } = flags
     const account = args.account as string
     const exportPath = args.path as string | undefined

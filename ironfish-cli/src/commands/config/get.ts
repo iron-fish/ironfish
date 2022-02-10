@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { ConfigOptions } from 'ironfish'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
@@ -13,7 +13,7 @@ export class GetCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: true,
       description: 'name of the config item',
     },
@@ -21,14 +21,14 @@ export class GetCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    user: flags.boolean({
+    user: Flags.boolean({
       description: 'only show config from the users datadir and not overrides',
     }),
-    local: flags.boolean({
+    local: Flags.boolean({
       default: false,
       description: 'dont connect to the node when displaying the config',
     }),
-    color: flags.boolean({
+    color: Flags.boolean({
       default: true,
       allowNo: true,
       description: 'should colorize the output',
@@ -36,7 +36,7 @@ export class GetCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args, flags } = this.parse(GetCommand)
+    const { args, flags } = await this.parse(GetCommand)
     const name = (args.name as string).trim()
 
     const client = await this.sdk.connectRpc(flags.local)

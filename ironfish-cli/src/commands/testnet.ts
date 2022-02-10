@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
-import { WebApi } from 'ironfish'
+import { Flags, CliUx } from '@oclif/core'
+import { Assert, WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 
@@ -14,15 +13,15 @@ export default class Testnet extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
-    skipName: flags.boolean({
+    skipName: Flags.boolean({
       default: false,
       description: "Don't update your node name",
     }),
-    skipGraffiti: flags.boolean({
+    skipGraffiti: Flags.boolean({
       default: false,
       description: "Don't update your graffiti",
     }),
@@ -38,7 +37,7 @@ export default class Testnet extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Testnet)
+    const { flags, args } = await this.parse(Testnet)
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
@@ -62,6 +61,7 @@ export default class Testnet extends IronfishCommand {
       userId = Number(userArg)
     }
 
+    //Assert.isNotNull(userId, `Could not figure out testnet user id from ${userArg}`)
     if (userId === null) {
       this.log(`Could not figure out testnet user id from ${userArg}`)
       this.exit(1)
@@ -71,12 +71,13 @@ export default class Testnet extends IronfishCommand {
     this.log(`Asking Iron Fish who user ${userId} is...`)
 
     const api = new WebApi()
-    const user = await api.getUser(userId)
+    const user = await api.getUser(userId!)
 
     if (!user) {
       this.log(`Could not find a user with id ${userId}`)
       this.exit(1)
     }
+    Assert.isNotNull(user, 'error')
 
     this.log('')
     this.log(`Hello ${user.graffiti}!`)
@@ -90,8 +91,8 @@ export default class Testnet extends IronfishCommand {
     const existingGraffiti = (await node.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
 
-    const updateNodeName = existingNodeName !== user.graffiti && !flags.skipName
-    const updateGraffiti = existingGraffiti !== user.graffiti && !flags.skipGraffiti
+    const updateNodeName = existingNodeName !== user!.graffiti && !flags.skipName
+    const updateGraffiti = existingGraffiti !== user!.graffiti && !flags.skipGraffiti
     const needsUpdate = updateNodeName || updateGraffiti
 
     if (!needsUpdate) {
@@ -103,7 +104,7 @@ export default class Testnet extends IronfishCommand {
       if (updateNodeName) {
         this.log(
           `You are about to change your NODE NAME from ${existingNodeName || '{NOT SET}'} to ${
-            user.graffiti
+            user!.graffiti
           }`,
         )
       }
@@ -111,7 +112,7 @@ export default class Testnet extends IronfishCommand {
       if (updateGraffiti) {
         this.log(
           `You are about to change your GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${
-            user.graffiti
+            user!.graffiti
           }`,
         )
       }
@@ -125,16 +126,16 @@ export default class Testnet extends IronfishCommand {
     }
 
     if (updateNodeName) {
-      await node.setConfig({ name: 'nodeName', value: user.graffiti })
+      await node.setConfig({ name: 'nodeName', value: user!.graffiti })
       this.log(
-        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${user.graffiti}`,
+        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${user!.graffiti}`,
       )
     }
 
     if (updateGraffiti) {
-      await node.setConfig({ name: 'blockGraffiti', value: user.graffiti })
+      await node.setConfig({ name: 'blockGraffiti', value: user!.graffiti })
       this.log(
-        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user.graffiti}`,
+        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user!.graffiti}`,
       )
     }
   }

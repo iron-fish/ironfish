@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import { spawn } from 'child_process'
 import fsAsync from 'fs/promises'
 import { FileUtils, NodeUtils } from 'ironfish'
@@ -19,12 +18,12 @@ export default class Backup extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    lock: flags.boolean({
+    lock: Flags.boolean({
       default: true,
       allowNo: true,
       description: 'wait for the database to stop being used',
     }),
-    accounts: flags.boolean({
+    accounts: Flags.boolean({
       default: false,
       allowNo: true,
       description: 'export the accounts',
@@ -40,7 +39,7 @@ export default class Backup extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Backup)
+    const { flags, args } = await this.parse(Backup)
     const bucket = (args.bucket as string).trim()
 
     let id = uuid().slice(0, 5)

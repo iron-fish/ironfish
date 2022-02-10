@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import fs from 'fs'
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from 'ironfish'
 import { parseNumber } from '../../args'
@@ -15,9 +14,9 @@ export default class Export extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    path: flags.string({
+    path: Flags.string({
       char: 'p',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       default: '../ironfish-graph-explorer/src/data.json',
       description: 'a path to export the chain to',
@@ -27,21 +26,21 @@ export default class Export extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: parseNumber,
+      parse: async (input: string) => parseNumber,
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: parseNumber,
+      parse: async (input: string) => parseNumber,
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Export)
+    const { flags, args } = await this.parse(Export)
     const path = this.sdk.fileSystem.resolve(flags.path)
 
     const client = await this.sdk.connectRpc()

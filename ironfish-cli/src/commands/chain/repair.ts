@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import { Assert, BlockHeader, IDatabaseTransaction, IronfishNode, TimeUtils } from 'ironfish'
 import { Meter } from 'ironfish'
 import { IronfishCommand } from '../../command'
@@ -21,12 +20,12 @@ export default class RepairChain extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       char: 'c',
       default: false,
       description: 'force confirmation to repair',
     }),
-    force: flags.boolean({
+    force: Flags.boolean({
       char: 'f',
       default: false,
       description: 'force merkle tree reconstruction',
@@ -34,7 +33,7 @@ export default class RepairChain extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(RepairChain)
+    const { flags } = await this.parse(RepairChain)
 
     const speed = new Meter()
     const progress = CliUx.ux.progress({
@@ -194,8 +193,8 @@ export default class RepairChain extends IronfishCommand {
       }
 
       prev = block.header
-      header = await node.chain.getNext(block.header, tx)
-      block = header ? await node.chain.getBlock(header, tx) : null
+      header = await node.chain.getNext(block.header, tx!)
+      block = header ? await node.chain.getBlock(header, tx!) : null
 
       speed.add(1)
       progress.increment()
@@ -204,8 +203,8 @@ export default class RepairChain extends IronfishCommand {
         speed: speed.rate1s.toFixed(0),
       })
 
-      if (tx.size > TREE_BATCH) {
-        await tx.commit()
+      if (tx!.size > TREE_BATCH) {
+        await tx!.commit()
         tx = null
       }
     }

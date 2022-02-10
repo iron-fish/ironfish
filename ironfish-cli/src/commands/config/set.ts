@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -11,13 +11,13 @@ export class SetCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: true,
       description: 'name of the config item',
     },
     {
       name: 'value',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: true,
       description: 'value of the config item',
     },
@@ -25,7 +25,7 @@ export class SetCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    local: flags.boolean({
+    local: Flags.boolean({
       default: false,
       description: 'dont connect to the node when updating the config',
     }),
@@ -36,7 +36,7 @@ export class SetCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args, flags } = this.parse(SetCommand)
+    const { args, flags } = await this.parse(SetCommand)
     const name = args.name as string
     const value = args.value as string
 

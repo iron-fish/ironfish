@@ -18,14 +18,14 @@ export default class ReAddBlock extends IronfishCommand {
   static args = [
     {
       name: 'hash',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: true,
       description: 'the hash of the block in hex format',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(ReAddBlock)
+    const { args } = await this.parse(ReAddBlock)
     const hash = Buffer.from(args.hash as string, 'hex')
 
     CliUx.ux.action.start(`Opening node`)
@@ -42,7 +42,7 @@ export default class ReAddBlock extends IronfishCommand {
     }
 
     await node.chain.removeBlock(hash)
-    await node.chain.addBlock(block)
+    await node.chain.addBlock(block!)
 
     this.log('Block has been reimported.')
   }

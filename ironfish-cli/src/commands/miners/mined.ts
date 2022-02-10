@@ -27,21 +27,21 @@ export class MinedCommand extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: parseNumber,
+      parse: async (input: string) => parseNumber,
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: parseNumber,
+      parse: async (input: string) => parseNumber,
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(MinedCommand)
+    const { args } = await this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
     this.log('Scanning for mined blocks...')

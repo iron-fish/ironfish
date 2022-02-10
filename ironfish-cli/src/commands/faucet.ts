@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import { DEFAULT_DISCORD_INVITE, RequestError } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -16,18 +15,18 @@ export class FaucetCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    force: flags.boolean({
+    force: Flags.boolean({
       default: false,
       description: 'Force the faucet to try to give you coins even if its disabled',
     }),
-    email: flags.string({
+    email: Flags.string({
       hidden: true,
       description: 'Email to use to get funds',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(FaucetCommand)
+    const { flags } = await this.parse(FaucetCommand)
 
     if (FAUCET_DISABLED && !flags.force) {
       this.log(`❌ The faucet is currently disabled. Check ${DEFAULT_DISCORD_INVITE} ❌`)

@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
@@ -27,31 +26,31 @@ export class Pay extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    account: flags.string({
+    account: Flags.string({
       char: 'f',
       description: 'the account to send money from',
     }),
-    amount: flags.string({
+    amount: Flags.string({
       char: 'a',
       description: 'amount of coins to send',
     }),
-    to: flags.string({
+    to: Flags.string({
       char: 't',
       description: 'the public address of the recipient',
     }),
-    fee: flags.string({
+    fee: Flags.string({
       char: 'o',
       description: 'the fee amount in IRON',
     }),
-    memo: flags.string({
+    memo: Flags.string({
       char: 'm',
       description: 'the memo of transaction',
     }),
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
-    expirationSequence: flags.integer({
+    expirationSequence: Flags.integer({
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
@@ -59,7 +58,7 @@ export class Pay extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Pay)
+    const { flags } = await this.parse(Pay)
     let amount = flags.amount as unknown as number
     let fee = flags.fee as unknown as number
     let to = flags.to

@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import axios from 'axios'
 import { spawn } from 'child_process'
 import fs from 'fs'
@@ -23,7 +22,7 @@ export default class Restore extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    lock: flags.boolean({
+    lock: Flags.boolean({
       default: true,
       allowNo: true,
       description: 'wait for the database to stop being used',
@@ -44,7 +43,7 @@ export default class Restore extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Restore)
+    const { flags, args } = await this.parse(Restore)
 
     const bucket = (args.bucket as string).trim()
     let name = (args.name as string).trim()

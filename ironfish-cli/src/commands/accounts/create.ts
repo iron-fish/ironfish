@@ -12,7 +12,7 @@ export class CreateCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'name of the account',
     },
@@ -23,7 +23,7 @@ export class CreateCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = this.parse(CreateCommand)
+    const { args } = await this.parse(CreateCommand)
     let name = args.name as string
 
     if (!name) {

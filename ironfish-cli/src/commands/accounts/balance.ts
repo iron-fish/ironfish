@@ -15,14 +15,14 @@ export class BalanceCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'name of the account to get balance for',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(BalanceCommand)
+    const { args } = await this.parse(BalanceCommand)
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()

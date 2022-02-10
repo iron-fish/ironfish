@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import { JSONUtils, PromiseUtils, SerializedAccount } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -12,7 +11,7 @@ export class ImportCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    rescan: flags.boolean({
+    rescan: Flags.boolean({
       allowNo: true,
       default: true,
       description: 'rescan the blockchain once the account is imported',
@@ -22,14 +21,14 @@ export class ImportCommand extends IronfishCommand {
   static args = [
     {
       name: 'path',
-      parse: (input: string): string => input.trim(),
+      parse: async (input: string) => input.trim(),
       required: false,
       description: 'a path to import the account from',
     },
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(ImportCommand)
+    const { flags, args } = await this.parse(ImportCommand)
     const importPath = args.path as string | undefined
 
     const client = await this.sdk.connectRpc()
@@ -49,7 +48,7 @@ export class ImportCommand extends IronfishCommand {
     }
 
     const result = await client.importAccount({
-      account: account,
+      account: account!,
       rescan: flags.rescan,
     })
 

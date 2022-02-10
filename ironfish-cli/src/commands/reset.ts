@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { Flags, CliUx } from '@oclif/core'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
 import { IronfishNode, NodeUtils, PeerNetwork } from 'ironfish'
@@ -27,7 +26,7 @@ export default class Reset extends IronfishCommand {
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
     [DatabaseFlagKey]: DatabaseFlag,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
@@ -38,7 +37,7 @@ export default class Reset extends IronfishCommand {
   peerNetwork: PeerNetwork | null = null
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Reset)
+    const { flags } = await this.parse(Reset)
 
     let node = await this.sdk.node({ autoSeed: false })
     await NodeUtils.waitForOpen(node, null, { upgrade: false, load: false })
