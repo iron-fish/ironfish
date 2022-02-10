@@ -13,39 +13,46 @@ export class Telemetry {
   private readonly FLUSH_INTERVAL = 5000
   private readonly MAX_QUEUE_SIZE = 1000
 
-  private readonly enabled: boolean
   private readonly defaultTags: Tag[]
   private readonly logger: Logger
   private readonly pool: WorkerPool
 
+  private started: boolean
   private flushInterval: SetIntervalToken | null
   private points: Metric[]
 
-  constructor(config: Config, pool: WorkerPool, logger: Logger, defaultTags: Tag[]) {
-    this.enabled = config.get('enableTelemetry')
+  constructor(pool: WorkerPool, logger: Logger, defaultTags: Tag[]) {
     this.logger = logger
     this.pool = pool
     this.defaultTags = defaultTags
 
+    this.started = false
     this.flushInterval = null
     this.points = []
   }
 
   start(): void {
-    if (this.enabled) {
-      void this.flushLoop()
+    if (this.started) {
+      return
     }
+
+    this.started = true
+    void this.flushLoop()
   }
 
   async stop(): Promise<void> {
-    if (this.enabled) {
-      this.submitNodeStopped()
-      await this.flush()
+    if (!this.started) {
+      return
     }
+
+    this.started = false
 
     if (this.flushInterval) {
       clearTimeout(this.flushInterval)
     }
+
+    this.submitNodeStopped()
+    await this.flush()
   }
 
   async flushLoop(): Promise<void> {
@@ -57,7 +64,7 @@ export class Telemetry {
   }
 
   submit(metric: Metric): void {
-    if (!this.enabled) {
+    if (!this.started) {
       return
     }
 
