@@ -20,7 +20,7 @@ export class PublicKeyCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'name of the account to get a public key',
     },

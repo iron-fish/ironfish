@@ -7,6 +7,7 @@ import { Hook } from '@oclif/core'
 import { Platform } from 'ironfish'
 import { IronfishCliPKG } from '../package'
 
+// eslint-disable-next-line @typescript-eslint/require-await
 const VersionHook: Hook<'init'> = async () => {
   const isVersionCmd = process.argv[2] === 'version'
   const hasDashVersion = process.argv.some((a) => a === '--version')

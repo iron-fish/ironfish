@@ -12,7 +12,7 @@ export class CreateCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'name of the account',
     },

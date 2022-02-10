@@ -24,13 +24,13 @@ export class ExportCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'name of the account to export',
     },
     {
       name: 'path',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'a path to export the account to',
     },

@@ -21,13 +21,13 @@ export default class Faucet extends IronfishCommand {
     ...RemoteFlags,
     api: Flags.string({
       char: 'a',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host to sync to',
     }),
     token: Flags.string({
       char: 't',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host token to authenticate with',
     }),

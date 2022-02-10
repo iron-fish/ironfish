@@ -18,7 +18,7 @@ export default class ReAddBlock extends IronfishCommand {
   static args = [
     {
       name: 'hash',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: true,
       description: 'the hash of the block in hex format',
     },

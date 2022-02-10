@@ -16,7 +16,7 @@ export default class Export extends IronfishCommand {
     ...RemoteFlags,
     path: Flags.string({
       char: 'p',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: false,
       default: '../ironfish-graph-explorer/src/data.json',
       description: 'a path to export the chain to',
@@ -26,14 +26,14 @@ export default class Export extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: async (input: string) => parseNumber(input),
+      parse: async (input: string) => Promise.resolve(parseNumber(input)),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: async (input: string) => parseNumber(input),
+      parse: async (input: string) => Promise.resolve(parseNumber(input)),
       required: false,
       description: 'the sequence to end at (inclusive)',
     },

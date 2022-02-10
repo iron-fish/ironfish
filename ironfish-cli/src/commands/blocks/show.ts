@@ -11,7 +11,7 @@ export default class ShowBlock extends IronfishCommand {
   static args = [
     {
       name: 'search',
-      parse: async (input: string) => input.trim(),
+      parse: async (input: string) => Promise.resolve(input.trim()),
       required: true,
       description: 'the hash or sequence of the block to look at',
     },
