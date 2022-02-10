@@ -54,42 +54,29 @@ describe('Telemetry', () => {
 
   describe('submit', () => {
     describe('when disabled', () => {
-      it('does nothing', async () => {
+      it('does nothing', () => {
         const disabledTelemetry = mockTelemetry(false)
         const currentPoints = disabledTelemetry['points']
-        await disabledTelemetry.submit(mockMetric)
+        disabledTelemetry.submit(mockMetric)
         expect(disabledTelemetry['points']).toEqual(currentPoints)
       })
     })
 
     describe('when submitting a metric without fields', () => {
-      it('throws an error', async () => {
+      it('throws an error', () => {
         const metric: Metric = {
           measurement: 'node',
           name: 'memory',
           fields: [],
         }
-        await expect(telemetry.submit(metric)).rejects.toThrowError()
+
+        expect(() => telemetry.submit(metric)).toThrowError()
       })
     })
 
-    describe('when the queue max size has been reached', () => {
-      it('flushes the queue', async () => {
-        const flush = jest.spyOn(telemetry, 'flush')
-        const points = []
-        for (let i = 0; i < telemetry['MAX_QUEUE_SIZE']; i++) {
-          points.push(mockMetric)
-        }
-        telemetry['points'] = points
-
-        await telemetry.submit(mockMetric)
-        expect(flush).toHaveBeenCalled()
-      })
-    })
-
-    it('stores the metric', async () => {
+    it('stores the metric', () => {
       const currentPointsLength = telemetry['points'].length
-      await telemetry.submit(mockMetric)
+      telemetry.submit(mockMetric)
 
       const points = telemetry['points']
       expect(points).toHaveLength(currentPointsLength + 1)
@@ -119,7 +106,7 @@ describe('Telemetry', () => {
 
     it('submits telemetry to the pool', async () => {
       const submitTelemetry = jest.spyOn(telemetry['pool'], 'submitTelemetry')
-      await telemetry.submit(mockMetric)
+      telemetry.submit(mockMetric)
       await telemetry.flush()
 
       expect(submitTelemetry).toHaveBeenCalled()

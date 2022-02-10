@@ -296,7 +296,7 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    await this.telemetry.submitNodeStarted()
+    this.telemetry.submitNodeStarted()
   }
 
   async waitForShutdown(): Promise<void> {

@@ -33,13 +33,13 @@ export class Telemetry {
 
   start(): void {
     if (this.enabled) {
-      this.flushInterval = setInterval(() => void this.flush(), this.FLUSH_INTERVAL)
+      void this.flushLoop()
     }
   }
 
   async stop(): Promise<void> {
     if (this.enabled) {
-      await this.submitNodeStopped()
+      this.submitNodeStopped()
       await this.flush()
     }
 
@@ -48,7 +48,15 @@ export class Telemetry {
     }
   }
 
-  async submit(metric: Metric): Promise<void> {
+  async flushLoop(): Promise<void> {
+    await this.flush()
+
+    this.flushInterval = setTimeout(() => {
+      void this.flushLoop()
+    }, this.FLUSH_INTERVAL)
+  }
+
+  submit(metric: Metric): void {
     if (!this.enabled) {
       return
     }
@@ -67,15 +75,15 @@ export class Telemetry {
       timestamp: metric.timestamp || new Date(),
       tags,
     })
-
-    if (this.points.length >= this.MAX_QUEUE_SIZE) {
-      await this.flush()
-    }
   }
 
   async flush(): Promise<void> {
     const points = this.points
     this.points = []
+
+    if (points.length === 0) {
+      return
+    }
 
     try {
       await this.pool.submitTelemetry(points)
@@ -90,24 +98,24 @@ export class Telemetry {
     }
   }
 
-  async submitNodeStarted(): Promise<void> {
-    await this.submit({
+  submitNodeStarted(): void {
+    this.submit({
       measurement: 'node',
       name: 'started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
     })
   }
 
-  async submitNodeStopped(): Promise<void> {
-    await this.submit({
+  submitNodeStopped(): void {
+    this.submit({
       measurement: 'node',
       name: 'started',
       fields: [{ name: 'online', type: 'boolean', value: false }],
     })
   }
 
-  async submitBlockMined(block: Block): Promise<void> {
-    await this.submit({
+  submitBlockMined(block: Block): void {
+    this.submit({
       measurement: 'node',
       name: 'block_mined',
       fields: [
@@ -125,8 +133,8 @@ export class Telemetry {
     })
   }
 
-  async submitMemoryUsage(heapUsed: number, heapTotal: number): Promise<void> {
-    await this.submit({
+  submitMemoryUsage(heapUsed: number, heapTotal: number): void {
+    this.submit({
       measurement: 'node',
       name: 'memory',
       fields: [

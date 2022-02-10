@@ -60,7 +60,7 @@ export class MetricsMonitor {
     this.memoryInterval = setInterval(() => this.refreshMemory(), this.memoryRefreshPeriodMs)
     if (this.telemetry) {
       this.memoryTelemetryInterval = setInterval(
-        () => void this.submitMemoryTelemetry(),
+        () => this.submitMemoryTelemetry(),
         this.memoryTelemetryPeriodMs,
       )
     }
@@ -95,9 +95,9 @@ export class MetricsMonitor {
     this.rss.value = memoryUsage.rss
   }
 
-  private async submitMemoryTelemetry(): Promise<void> {
+  private submitMemoryTelemetry(): void {
     if (this.telemetry) {
-      await this.telemetry.submitMemoryUsage(this.heapUsed.value, this.heapTotal.value)
+      this.telemetry.submitMemoryUsage(this.heapUsed.value, this.heapTotal.value)
     }
   }
 }
