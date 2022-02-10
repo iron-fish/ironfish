@@ -27,14 +27,14 @@ export class MinedCommand extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: async (input: string) => parseNumber,
+      parse: async (input: string) => parseNumber(input),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: async (input: string) => parseNumber,
+      parse: async (input: string) => parseNumber(input),
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
