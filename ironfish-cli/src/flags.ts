@@ -10,6 +10,8 @@ import {
   DEFAULT_USE_RPC_TCP,
 } from 'ironfish'
 
+type CompletableOptionFlag = Interfaces.CompletableOptionFlag<unknown>
+
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
 export const ColorFlagKey = 'color'
@@ -72,11 +74,11 @@ export const RpcTcpSecureFlag = Flags.boolean({
   description: 'allow sensitive config to be changed over TCP',
 })
 
-const localFlags: Record<string, Interfaces.CompletableOptionFlag<unknown>> = {}
-localFlags[VerboseFlagKey] = VerboseFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-localFlags[ConfigFlagKey] = ConfigFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-localFlags[DataDirFlagKey] = DataDirFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-localFlags[DatabaseFlagKey] = DatabaseFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
+const localFlags: Record<string, CompletableOptionFlag> = {}
+localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
+localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
+localFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
+localFlags[DatabaseFlagKey] = DatabaseFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that starts a node,
@@ -84,15 +86,15 @@ localFlags[DatabaseFlagKey] = DatabaseFlag as unknown as Interfaces.CompletableO
  */
 export const LocalFlags = localFlags
 
-const remoteFlags: Record<string, Interfaces.CompletableOptionFlag<unknown>> = {}
-remoteFlags[VerboseFlagKey] = VerboseFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[ConfigFlagKey] = ConfigFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[DataDirFlagKey] = DataDirFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
-remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as Interfaces.CompletableOptionFlag<unknown>
+const remoteFlags: Record<string, CompletableOptionFlag> = {}
+remoteFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
+remoteFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
+remoteFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that uses an
