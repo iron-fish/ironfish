@@ -296,11 +296,7 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    await this.telemetry.submit({
-      measurement: 'node',
-      name: 'started',
-      fields: [{ name: 'online', type: 'boolean', value: true }],
-    })
+    await this.telemetry.submitNodeStarted()
   }
 
   async waitForShutdown(): Promise<void> {

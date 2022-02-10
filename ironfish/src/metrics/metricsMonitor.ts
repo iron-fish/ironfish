@@ -97,22 +97,7 @@ export class MetricsMonitor {
 
   private async submitMemoryTelemetry(): Promise<void> {
     if (this.telemetry) {
-      await this.telemetry.submit({
-        measurement: 'node',
-        name: 'memory',
-        fields: [
-          {
-            name: 'heap_used',
-            type: 'integer',
-            value: this.heapUsed.value,
-          },
-          {
-            name: 'heap_total',
-            type: 'integer',
-            value: this.heapTotal.value,
-          },
-        ],
-      })
+      await this.telemetry.submitMemoryUsage(this.heapUsed.value, this.heapTotal.value)
     }
   }
 }
