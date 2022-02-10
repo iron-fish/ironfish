@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { mockLogger, mockWorkerPool } from '../testUtilities/mocks'
+import { mockWorkerPool } from '../testUtilities/mocks'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -24,7 +24,10 @@ describe('Telemetry', () => {
   }
 
   beforeEach(() => {
-    telemetry = new Telemetry(mockWorkerPool(), mockLogger(), [])
+    telemetry = new Telemetry({
+      workerPool: mockWorkerPool(),
+    })
+
     telemetry.start()
   })
 
@@ -45,7 +48,7 @@ describe('Telemetry', () => {
   describe('submit', () => {
     describe('when disabled', () => {
       it('does nothing', () => {
-        const disabledTelemetry = new Telemetry(mockWorkerPool(), mockLogger(), [])
+        const disabledTelemetry = new Telemetry({ workerPool: mockWorkerPool() })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)
         expect(disabledTelemetry['points']).toEqual(currentPoints)
@@ -77,7 +80,7 @@ describe('Telemetry', () => {
   describe('flush', () => {
     describe('when the pool throws an error and the queue is not saturated', () => {
       it('retries the points and logs an error', async () => {
-        jest.spyOn(telemetry['pool'], 'submitTelemetry').mockImplementationOnce(() => {
+        jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
           throw new Error()
         })
         const error = jest.spyOn(telemetry['logger'], 'error')
@@ -95,7 +98,7 @@ describe('Telemetry', () => {
     })
 
     it('submits telemetry to the pool', async () => {
-      const submitTelemetry = jest.spyOn(telemetry['pool'], 'submitTelemetry')
+      const submitTelemetry = jest.spyOn(telemetry['workerPool'], 'submitTelemetry')
       telemetry.submit(mockMetric)
       await telemetry.flush()
 

@@ -188,11 +188,15 @@ export class IronfishNode {
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
 
-    const telemetry = new Telemetry(workerPool, logger, [
-      { name: 'node_id', value: internal.get('telemetryNodeId') },
-      { name: 'session_id', value: uuid() },
-      { name: 'version', value: pkg.version },
-    ])
+    const telemetry = new Telemetry({
+      workerPool,
+      logger,
+      defaultTags: [
+        { name: 'node_id', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', value: uuid() },
+        { name: 'version', value: pkg.version },
+      ],
+    })
 
     metrics = metrics || new MetricsMonitor({ telemetry, logger })
 
