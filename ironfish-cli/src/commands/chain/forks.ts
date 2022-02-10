@@ -17,7 +17,7 @@ export default class ForksCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    this.parse(ForksCommand)
+    await this.parse(ForksCommand)
     this.logger.pauseLogs()
 
     let connected = false

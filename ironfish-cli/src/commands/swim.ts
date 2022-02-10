@@ -12,7 +12,7 @@ export default class SwimCommand extends IronfishCommand {
   static hidden = true
 
   async start(): Promise<void> {
-    this.parse(SwimCommand)
+    await this.parse(SwimCommand)
 
     const images = [ONE_FISH_IMAGE, TWO_FISH_IMAGE]
     const image = images[Math.round(Math.random() * (images.length - 1))]
