@@ -501,7 +501,7 @@ export class MiningDirector {
 
     this.onNewBlock.emit(block)
 
-    await this.telemetry.submitBlockMined(block)
+    this.telemetry.submitBlockMined(block)
 
     return MINED_RESULT.SUCCESS
   }
