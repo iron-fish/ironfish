@@ -64,20 +64,19 @@ export default class Testnet extends IronfishCommand {
     //Assert.isNotNull(userId, `Could not figure out testnet user id from ${userArg}`)
     if (userId === null) {
       this.log(`Could not figure out testnet user id from ${userArg}`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     // request user from API
     this.log(`Asking Iron Fish who user ${userId} is...`)
 
     const api = new WebApi()
-    const user = await api.getUser(userId!)
+    const user = await api.getUser(userId)
 
     if (!user) {
       this.log(`Could not find a user with id ${userId}`)
-      this.exit(1)
+      return this.exit(1)
     }
-    Assert.isNotNull(user, 'error')
 
     this.log('')
     this.log(`Hello ${user.graffiti}!`)
@@ -91,8 +90,8 @@ export default class Testnet extends IronfishCommand {
     const existingGraffiti = (await node.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
 
-    const updateNodeName = existingNodeName !== user!.graffiti && !flags.skipName
-    const updateGraffiti = existingGraffiti !== user!.graffiti && !flags.skipGraffiti
+    const updateNodeName = existingNodeName !== user.graffiti && !flags.skipName
+    const updateGraffiti = existingGraffiti !== user.graffiti && !flags.skipGraffiti
     const needsUpdate = updateNodeName || updateGraffiti
 
     if (!needsUpdate) {
@@ -104,7 +103,7 @@ export default class Testnet extends IronfishCommand {
       if (updateNodeName) {
         this.log(
           `You are about to change your NODE NAME from ${existingNodeName || '{NOT SET}'} to ${
-            user!.graffiti
+            user.graffiti
           }`,
         )
       }
@@ -112,7 +111,7 @@ export default class Testnet extends IronfishCommand {
       if (updateGraffiti) {
         this.log(
           `You are about to change your GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${
-            user!.graffiti
+            user.graffiti
           }`,
         )
       }
@@ -126,16 +125,16 @@ export default class Testnet extends IronfishCommand {
     }
 
     if (updateNodeName) {
-      await node.setConfig({ name: 'nodeName', value: user!.graffiti })
+      await node.setConfig({ name: 'nodeName', value: user.graffiti })
       this.log(
-        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${user!.graffiti}`,
+        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${user.graffiti}`,
       )
     }
 
     if (updateGraffiti) {
-      await node.setConfig({ name: 'blockGraffiti', value: user!.graffiti })
+      await node.setConfig({ name: 'blockGraffiti', value: user.graffiti })
       this.log(
-        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user!.graffiti}`,
+        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user.graffiti}`,
       )
     }
   }

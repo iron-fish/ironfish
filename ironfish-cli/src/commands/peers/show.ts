@@ -37,10 +37,10 @@ export class ShowCommand extends IronfishCommand {
 
     if (peer.content.peer === null) {
       this.log(`No peer found containing identity '${identity}'.`)
-      this.exit(1)
+      return this.exit(1)
     }
 
-    this.log(this.renderPeer(peer.content.peer!))
+    this.log(this.renderPeer(peer.content.peer))
     if (messages.content.messages.length === 0) {
       this.log('No messages sent or received. Did you start your node with --logPeerMessages?')
     } else {

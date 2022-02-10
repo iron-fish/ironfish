@@ -44,11 +44,11 @@ export class ImportCommand extends IronfishCommand {
 
     if (account === null) {
       this.log('No account to import provided')
-      this.exit(1)
+      return this.exit(1)
     }
 
     const result = await client.importAccount({
-      account: account!,
+      account: account,
       rescan: flags.rescan,
     })
 

@@ -183,7 +183,7 @@ export default class RepairChain extends IronfishCommand {
           `\nDelete your database at ${node.config.chainDatabasePath}\n`
 
         this.log(error)
-        this.exit(1)
+        return this.exit(1)
       }
 
       done++
@@ -193,8 +193,8 @@ export default class RepairChain extends IronfishCommand {
       }
 
       prev = block.header
-      header = await node.chain.getNext(block.header, tx!)
-      block = header ? await node.chain.getBlock(header, tx!) : null
+      header = await node.chain.getNext(block.header, tx)
+      block = header ? await node.chain.getBlock(header, tx) : null
 
       speed.add(1)
       progress.increment()
@@ -203,8 +203,8 @@ export default class RepairChain extends IronfishCommand {
         speed: speed.rate1s.toFixed(0),
       })
 
-      if (tx!.size > TREE_BATCH) {
-        await tx!.commit()
+      if (tx.size > TREE_BATCH) {
+        await tx.commit()
         tx = null
       }
     }

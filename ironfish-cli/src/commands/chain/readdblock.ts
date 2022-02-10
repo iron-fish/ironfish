@@ -38,11 +38,11 @@ export default class ReAddBlock extends IronfishCommand {
 
     if (!block) {
       this.log(`No block found with hash ${hash.toString('hex')}`)
-      this.exit(0)
+      return this.exit(0)
     }
 
     await node.chain.removeBlock(hash)
-    await node.chain.addBlock(block!)
+    await node.chain.addBlock(block)
 
     this.log('Block has been reimported.')
   }
