@@ -764,24 +764,23 @@ describe('Blockchain', () => {
     const { node } = await nodeTest.createSetup()
     const block = await useMinerBlockFixture(node.chain)
 
-    let result = await node.chain.verifier.verifyBlockAdd(block, null)
+    const result = await node.chain.verifier.verifyBlockAdd(block, null)
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.PREV_HASH_NULL,
     })
   })
-  
-  it('reject block with hash not matching previous hash', async () => {
 
+  it('reject block with hash not matching previous hash', async () => {
     const { node } = await nodeTest.createSetup()
 
     const block = await useMinerBlockFixture(node.chain)
     await expect(node.chain).toAddBlock(block)
 
     //Force one byte of the hash to not match the previous hash of the block.
-    node.chain.genesis.hash[0] = node.chain.genesis.hash[0]^0xFF
+    node.chain.genesis.hash[0] = node.chain.genesis.hash[0] ^ 0xff
 
-    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.PREV_HASH_UNEQUAL,
@@ -794,7 +793,7 @@ describe('Blockchain', () => {
 
     block.header.minersFee = BigInt(-1)
 
-    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.INVALID_MINERS_FEE,
