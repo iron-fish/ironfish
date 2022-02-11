@@ -17,7 +17,7 @@ export type TransactionFeeResponse = {
 export function handleTransactionFee({
   serializedTransactionPosted,
 }: TransactionFeeRequest): TransactionFeeResponse {
-  const transaction = TransactionPosted.deserialize(serializedTransactionPosted)
+  const transaction = new TransactionPosted(serializedTransactionPosted)
   const fee = transaction.fee()
 
   return { type: 'transactionFee', transactionFee: fee }

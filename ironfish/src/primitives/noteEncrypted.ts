@@ -26,7 +26,7 @@ export class NoteEncrypted {
   takeReference(): NativeNoteEncrypted {
     this.referenceCount++
     if (this.noteEncrypted === null) {
-      this.noteEncrypted = NativeNoteEncrypted.deserialize(this.noteEncryptedSerialized)
+      this.noteEncrypted = new NativeNoteEncrypted(this.noteEncryptedSerialized)
     }
     return this.noteEncrypted
   }

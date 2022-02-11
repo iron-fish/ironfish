@@ -24,8 +24,8 @@ pub struct NativeTransactionPosted {
 
 #[napi]
 impl NativeTransactionPosted {
-    #[napi(factory)]
-    pub fn deserialize(bytes: Buffer) -> Result<NativeTransactionPosted> {
+    #[napi(constructor)]
+    pub fn new(bytes: Buffer) -> Result<NativeTransactionPosted> {
         let mut cursor = std::io::Cursor::new(bytes);
 
         let transaction = Transaction::read(SAPLING.clone(), &mut cursor)

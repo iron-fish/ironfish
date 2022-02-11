@@ -27,7 +27,7 @@ export function handleVerifyTransaction({
 
   let verified = false
   try {
-    transaction = TransactionPosted.deserialize(serializedTransactionPosted)
+    transaction = new TransactionPosted(serializedTransactionPosted)
 
     if (verifyFees && transaction.fee() < BigInt(0)) {
       throw new Error('Transaction has negative fees')

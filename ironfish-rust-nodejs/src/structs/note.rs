@@ -9,6 +9,37 @@ use napi_derive::napi;
 use ironfish_rust::note::Memo;
 use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
 
+#[napi(js_name = "NoteBuilder")]
+pub struct NativeNoteBuilder {
+    pub(crate) note: Note,
+}
+
+#[napi]
+impl NativeNoteBuilder {
+    /// TODO: This works around a concurrency bug when using #[napi(factory)]
+    /// in worker threads. It can be merged into NativeNote once the bug is fixed.
+    #[napi(constructor)]
+    pub fn new(owner: String, value: JsBigInt, memo: String) -> Result<Self> {
+        let value_u64 = value.get_u64()?.0;
+
+        let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        Ok(NativeNoteBuilder {
+            note: Note::new(SAPLING.clone(), owner_address, value_u64, Memo::from(memo)),
+        })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Result<Buffer> {
+        let mut arr: Vec<u8> = vec![];
+        self.note
+            .write(&mut arr)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(Buffer::from(arr))
+    }
+}
+
 #[napi(js_name = "Note")]
 pub struct NativeNote {
     pub(crate) note: Note,
@@ -17,18 +48,7 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: JsBigInt, memo: String) -> Result<Self> {
-        let value_u64 = value.get_u64()?.0;
-
-        let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-        Ok(NativeNote {
-            note: Note::new(SAPLING.clone(), owner_address, value_u64, Memo::from(memo)),
-        })
-    }
-
-    #[napi(factory)]
-    pub fn deserialize(bytes: Buffer) -> Result<Self> {
+    pub fn new(bytes: Buffer) -> Result<Self> {
         let hasher = SAPLING.clone();
         let note = Note::read(bytes.as_ref(), hasher)
             .map_err(|err| Error::from_reason(err.to_string()))?;
