@@ -88,6 +88,9 @@ describe('start command', () => {
     const accounts = {
       accountExists: jest.fn(),
       getDefaultAccount: jest.fn(),
+      createAccount: jest.fn().mockImplementation((name: string) => {
+        name
+      }),
     }
 
     const peerNetwork = {
@@ -138,7 +141,7 @@ describe('start command', () => {
         expectCli(ctx.stdout).include(`Peer Identity`)
         // telemetry
         expectCli(ctx.stdout).include(
-          `To help improve Ironfish, opt in to collecting telemetry`,
+          `To help improve Iron Fish, opt in to collecting telemetry`,
         )
         expect(setConfig).toHaveBeenCalledWith('isFirstRun', false)
         expect(setConfig).toHaveBeenCalledWith('telemetryNodeId', expect.any(String))
