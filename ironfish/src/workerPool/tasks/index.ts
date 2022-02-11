@@ -2,9 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
 import { Assert } from '../../assert'
 import { Job } from '../job'
+import {
+  WorkerRequestMessage,
+  WorkerRequestMessageSerialized,
+  WorkerResponse,
+  WorkerResponseMessage,
+  WorkerResponseMessageSerialized,
+} from '../messages'
 import { handleBoxMessage } from './boxMessage'
 import { handleCreateMinersFee } from './createMinersFee'
 import { handleCreateTransaction } from './createTransaction'
@@ -27,6 +33,27 @@ export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
 export { VerifyTransactionRequest, VerifyTransactionResponse } from './verifyTransaction'
 
 export async function handleRequest(
+  request: WorkerRequestMessage | WorkerRequestMessageSerialized,
+  job: Job,
+): Promise<WorkerResponseMessage | WorkerResponseMessageSerialized> {
+  if (request.body instanceof Buffer) {
+    return handleSerializedRequest(request as WorkerRequestMessageSerialized, job)
+  } else {
+    return handleUnserializedRequest(request as WorkerRequestMessage, job)
+  }
+}
+
+export function handleSerializedRequest(
+  serializedRequest: WorkerRequestMessageSerialized,
+  job: Job,
+): WorkerResponseMessageSerialized {
+  // This will be changed to a discriminating structure between
+  // request types when additional serializers exist
+  const { responseType, response } = handleCreateMinersFee(serializedRequest.body)
+  return { jobId: job.id, type: responseType, body: response }
+}
+
+export async function handleUnserializedRequest(
   request: WorkerRequestMessage,
   job: Job,
 ): Promise<WorkerResponseMessage> {
@@ -36,8 +63,7 @@ export async function handleRequest(
 
   switch (body.type) {
     case 'createMinersFee':
-      response = handleCreateMinersFee(body)
-      break
+      throw new Error('createMinersFee should be serialized')
     case 'createTransaction':
       response = handleCreateTransaction(body)
       break
