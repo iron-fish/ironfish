@@ -10,7 +10,8 @@ import { Tag } from './interfaces/tag'
 
 export class Telemetry {
   private readonly FLUSH_INTERVAL = 5000
-  private readonly MAX_QUEUE_SIZE = 1000
+  private readonly MAX_POINTS_TO_SUBMIT = 1000
+  private readonly MAX_RETRIES = 5
 
   private readonly defaultTags: Tag[]
   private readonly logger: Logger
@@ -19,15 +20,17 @@ export class Telemetry {
   private started: boolean
   private flushInterval: SetIntervalToken | null
   private points: Metric[]
+  private retries: number
 
   constructor(options: { workerPool: WorkerPool; logger?: Logger; defaultTags?: Tag[] }) {
     this.logger = options.logger ?? createRootLogger()
     this.workerPool = options.workerPool
     this.defaultTags = options.defaultTags ?? []
 
-    this.started = false
     this.flushInterval = null
     this.points = []
+    this.retries = 0
+    this.started = false
   }
 
   start(): void {
@@ -84,8 +87,8 @@ export class Telemetry {
   }
 
   async flush(): Promise<void> {
-    const points = this.points
-    this.points = []
+    const points = this.points.slice(0, this.MAX_POINTS_TO_SUBMIT)
+    this.points = this.points.slice(this.MAX_POINTS_TO_SUBMIT)
 
     if (points.length === 0) {
       return
@@ -94,12 +97,18 @@ export class Telemetry {
     try {
       await this.workerPool.submitTelemetry(points)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
+      this.retries = 0
     } catch (error: unknown) {
       this.logger.error(`Error submitting telemetry to API: ${renderError(error)}`)
 
-      if (points.length < this.MAX_QUEUE_SIZE) {
+      if (this.retries < this.MAX_RETRIES) {
         this.logger.debug('Retrying telemetry submission')
-        this.points = points
+        this.retries++
+        this.points = points.concat(this.points)
+      } else {
+        this.logger.debug('Max retries reached. Resetting telemetry points')
+        this.retries = 0
+        this.points = []
       }
     }
   }
