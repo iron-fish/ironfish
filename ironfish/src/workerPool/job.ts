@@ -5,17 +5,25 @@
 import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
 import { JobAbortedError } from './errors'
-import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
+import {
+  WorkerRequestMessage,
+  WorkerRequestMessageSerialized,
+  WorkerResponse,
+  WorkerResponseMessage,
+  WorkerResponseMessageSerialized,
+} from './messages'
 import { handleRequest } from './tasks'
 import { Worker } from './worker'
 
+type AllWorkerRequestMessages = WorkerRequestMessage | WorkerRequestMessageSerialized
+type AllWorkerResponseMessages = WorkerResponseMessage | WorkerResponseMessageSerialized
 export class Job {
   id: number
-  request: WorkerRequestMessage
+  request: AllWorkerRequestMessages
   worker: Worker | null
   status: 'init' | 'queued' | 'executing' | 'success' | 'error' | 'aborted'
-  promise: Promise<WorkerResponseMessage>
-  resolve: PromiseResolve<WorkerResponseMessage>
+  promise: Promise<AllWorkerResponseMessages>
+  resolve: PromiseResolve<AllWorkerResponseMessages>
   reject: PromiseReject
 
   onEnded = new Event<[Job]>()
@@ -27,13 +35,13 @@ export class Job {
   // Then this should be removed.
   enableJobAbortError = false
 
-  constructor(request: WorkerRequestMessage) {
+  constructor(request: AllWorkerRequestMessages) {
     this.id = request.jobId
     this.request = request
     this.worker = null
     this.status = 'queued'
 
-    const [promise, resolve, reject] = PromiseUtils.split<WorkerResponseMessage>()
+    const [promise, resolve, reject] = PromiseUtils.split<AllWorkerResponseMessages>()
     this.promise = promise
     this.resolve = resolve
     this.reject = reject
@@ -98,12 +106,22 @@ export class Job {
     return this
   }
 
-  async response(): Promise<WorkerResponseMessage> {
+  async response(): Promise<AllWorkerResponseMessages> {
     const response = await this.promise
 
-    if (response === null || response?.body?.type !== this.request.body.type) {
+    const responseType =
+      'type' in response.body
+        ? response.body.type
+        : (response as WorkerResponseMessageSerialized).type
+
+    const requestType =
+      'type' in this.request.body
+        ? this.request.body.type
+        : (this.request as WorkerRequestMessageSerialized).type.type
+
+    if (response === null || responseType !== requestType) {
       throw new Error(
-        `Response type must match request type ${this.request.body.type} but was ${String(
+        `Response type must match request type ${requestType} but was ${String(
           response,
         )} with job status ${this.status}`,
       )
@@ -112,7 +130,7 @@ export class Job {
     return response
   }
 
-  async result(): Promise<WorkerResponse> {
+  async result(): Promise<Buffer | WorkerResponse> {
     const response = await this.response()
     return response.body
   }

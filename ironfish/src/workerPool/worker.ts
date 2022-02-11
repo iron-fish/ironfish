@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
+import type {
+  WorkerRequestMessage,
+  WorkerRequestMessageSerialized,
+  WorkerResponseMessage,
+  WorkerResponseMessageSerialized,
+} from './messages'
 import { generateKey } from 'ironfish-rust-nodejs'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
@@ -53,7 +58,13 @@ export class Worker {
     job.execute(this)
   }
 
-  send(message: WorkerRequestMessage | WorkerResponseMessage): void {
+  send(
+    message:
+      | WorkerRequestMessage
+      | WorkerRequestMessageSerialized
+      | WorkerResponseMessage
+      | WorkerResponseMessageSerialized,
+  ): void {
     if (this.thread) {
       this.thread.postMessage(message)
     } else if (this.parent) {
@@ -126,7 +137,7 @@ export class Worker {
     job
       .execute()
       .response()
-      .then((response: WorkerResponseMessage) => {
+      .then((response: WorkerResponseMessage | WorkerResponseMessageSerialized) => {
         this.send(response)
       })
       .catch((e: unknown) => {

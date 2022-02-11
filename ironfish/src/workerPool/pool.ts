@@ -22,7 +22,8 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
-import { WorkerRequest } from './messages'
+import { WorkerRequest, WorkerRequestMessageSerialized } from './messages'
+import { CreateMinersFeeReq, CreateMinersFeeResp } from './tasks/createMinersFee'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { VerifyTransactionOptions } from './tasks/verifyTransaction'
 import { getWorkerPath, Worker } from './worker'
@@ -135,13 +136,21 @@ export class WorkerPool {
       memo,
     }
 
-    const response = await this.execute(request).result()
+    const serializedRequest = CreateMinersFeeReq.serialize(request)
 
-    if (request.type !== response.type) {
-      throw new Error('Response type must match request type')
+    const serializedResponse = await this.execute(serializedRequest, request).result()
+    if (!(serializedResponse instanceof Buffer)) {
+      throw new Error('createMinersFee returning unserialized object')
+    } else {
+      const { type: responseType, serializedTransactionPosted } = new CreateMinersFeeResp(
+        serializedResponse,
+      ).deserialize()
+      if (request.type !== responseType) {
+        throw new Error('Response type must match request type')
+      }
+
+      return new Transaction(Buffer.from(serializedTransactionPosted), this)
     }
-
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   async createTransaction(
@@ -171,13 +180,17 @@ export class WorkerPool {
       receives,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    if (response instanceof Buffer) {
+      throw new Error('createTransaction returing serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
+
+      return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
     }
-
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
   }
 
   async transactionFee(transaction: Transaction): Promise<bigint> {
@@ -186,13 +199,16 @@ export class WorkerPool {
       serializedTransactionPosted: transaction.serialize(),
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('transactionFee returning serialized object')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+      return response.transactionFee
     }
-
-    return response.transactionFee
   }
 
   async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
@@ -202,13 +218,16 @@ export class WorkerPool {
       options,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('verify returning serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+      return response.verified
     }
-
-    return response.verified
   }
 
   async boxMessage(
@@ -223,13 +242,16 @@ export class WorkerPool {
       recipient: recipient,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('boxMessage returning serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+      return { nonce: response.nonce, boxedMessage: response.boxedMessage }
     }
-
-    return { nonce: response.nonce, boxedMessage: response.boxedMessage }
   }
 
   async unboxMessage(
@@ -246,13 +268,16 @@ export class WorkerPool {
       sender: sender,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('unboxMessage returning serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+      return { message: response.message }
     }
-
-    return { message: response.message }
   }
 
   async mineHeader(
@@ -271,16 +296,19 @@ export class WorkerPool {
       batchSize,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('mineHeader returning serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
-    }
-
-    return {
-      initialRandomness: response.initialRandomness,
-      miningRequestId: response.miningRequestId,
-      randomness: response.randomness,
+      return {
+        initialRandomness: response.initialRandomness,
+        miningRequestId: response.miningRequestId,
+        randomness: response.randomness,
+      }
     }
   }
 
@@ -300,14 +328,17 @@ export class WorkerPool {
       accounts: accountIncomingViewKeys,
     }
 
-    const response = await this.execute(request).result()
+    const response = await this.execute(request, request).result()
+    if (response instanceof Buffer) {
+      throw new Error('getUnspentNotes returning serialized response')
+    } else {
+      if (response === null || response.type !== request.type) {
+        throw new Error('Response type must match request type')
+      }
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
-    }
-
-    return {
-      notes: response.notes,
+      return {
+        notes: response.notes,
+      }
     }
   }
 
@@ -321,7 +352,7 @@ export class WorkerPool {
       error,
     }
 
-    const job = this.execute(request)
+    const job = this.execute(request, request)
     job.enableJobAbortError = true
 
     return job
@@ -333,12 +364,15 @@ export class WorkerPool {
       points,
     }
 
-    await this.execute(request).result()
+    await this.execute(request, request).result()
   }
 
-  private execute(request: Readonly<WorkerRequest>): Job {
+  private execute(request: Readonly<WorkerRequest | Buffer>, requestType: WorkerRequest): Job {
     const jobId = this.lastJobId++
-    const job = new Job({ jobId: jobId, body: request })
+    const job =
+      request instanceof Buffer
+        ? new Job({ jobId: jobId, type: requestType, body: request })
+        : new Job({ jobId: jobId, type: requestType, body: request as WorkerRequest })
     job.onEnded.once(this.jobEnded)
     job.onChange.on(this.jobChange)
     job.onChange.emit(job, 'init')
@@ -394,7 +428,13 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
-    const stats = this.stats.get(job.request.body.type)
+    let stats = null
+    if (job.request.body instanceof Buffer) {
+      const request = job.request as WorkerRequestMessageSerialized
+      stats = this.stats.get(request.type['type'])
+    } else {
+      stats = this.stats.get(job.request.body.type)
+    }
 
     if (!stats) {
       return
