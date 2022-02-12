@@ -88,9 +88,17 @@ describe('start command', () => {
     const accounts = {
       accountExists: jest.fn(),
       getDefaultAccount: jest.fn(),
-      createAccount: jest.fn().mockImplementation((name: string) => {
-        name
-      }),
+      createAccount: jest.fn().mockImplementation(
+        (name: string) =>
+          new ironfishmodule.Account({
+            incomingViewKey: '',
+            outgoingViewKey: '',
+            publicAddress: '',
+            rescan: null,
+            spendingKey: '',
+            name,
+          }),
+      ),
     }
 
     const peerNetwork = {
