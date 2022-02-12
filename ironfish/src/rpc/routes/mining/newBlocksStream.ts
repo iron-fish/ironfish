@@ -67,11 +67,19 @@ router.register<typeof NewBlocksStreamRequestSchema, NewBlocksStreamResponse>(
       })
     }
 
+    if (node.miningDirector.isStarted() === false) {
+      void node.miningDirector.start()
+    }
+
     node.miningDirector.miners++
 
     request.onClose.once(() => {
       node.miningDirector.miners--
       node.miningDirector.onBlockToMine.off(onBlock)
+
+      if (node.miningDirector.miners === 0) {
+        node.miningDirector.shutdown()
+      }
     })
 
     node.miningDirector.onBlockToMine.on(onBlock)
