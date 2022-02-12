@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Command } from '@oclif/command'
-import { IConfig } from '@oclif/config'
+import { Command, Config } from '@oclif/core'
 import { ConfigOptions, ConnectionError, createRootLogger, IronfishSdk, Logger } from 'ironfish'
 import {
   ConfigFlagKey,
@@ -53,7 +52,7 @@ export abstract class IronfishCommand extends Command {
    */
   closing = false
 
-  constructor(argv: string[], config: IConfig) {
+  constructor(argv: string[], config: Config) {
     super(argv, config)
     this.logger = createRootLogger().withTag(this.ctor.id)
   }
@@ -79,7 +78,8 @@ export abstract class IronfishCommand extends Command {
   async init(): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const commandClass = this.constructor as any
-    const { flags } = this.parse(commandClass)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { flags } = await this.parse(commandClass)
 
     // Get the flags from the flag object which is unknown
     const dataDirFlag = getFlag(flags, DataDirFlagKey)

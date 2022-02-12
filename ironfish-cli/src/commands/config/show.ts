@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey } from '../../flags'
@@ -13,17 +13,17 @@ export class ShowCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
-    user: flags.boolean({
+    user: Flags.boolean({
       description: 'only show config from the users datadir and not overrides',
     }),
-    local: flags.boolean({
+    local: Flags.boolean({
       default: false,
       description: 'dont connect to the node when displaying the config',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(ShowCommand)
+    const { flags } = await this.parse(ShowCommand)
 
     const client = await this.sdk.connectRpc(flags.local)
     const response = await client.getConfig({ user: flags.user })

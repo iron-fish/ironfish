@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
@@ -14,15 +13,15 @@ export default class Testnet extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
-    skipName: flags.boolean({
+    skipName: Flags.boolean({
       default: false,
       description: "Don't update your node name",
     }),
-    skipGraffiti: flags.boolean({
+    skipGraffiti: Flags.boolean({
       default: false,
       description: "Don't update your graffiti",
     }),
@@ -38,7 +37,7 @@ export default class Testnet extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Testnet)
+    const { flags, args } = await this.parse(Testnet)
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
@@ -64,7 +63,7 @@ export default class Testnet extends IronfishCommand {
 
     if (userId === null) {
       this.log(`Could not figure out testnet user id from ${userArg}`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     // request user from API
@@ -75,7 +74,7 @@ export default class Testnet extends IronfishCommand {
 
     if (!user) {
       this.log(`Could not find a user with id ${userId}`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     this.log('')

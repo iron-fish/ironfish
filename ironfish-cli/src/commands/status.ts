@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { FileUtils, GetStatusResponse, PromiseUtils } from 'ironfish'
 import { Assert } from 'ironfish'
@@ -13,7 +13,7 @@ export default class Status extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    follow: flags.boolean({
+    follow: Flags.boolean({
       char: 'f',
       default: false,
       description: 'follow the status of the node live',
@@ -21,7 +21,7 @@ export default class Status extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Status)
+    const { flags } = await this.parse(Status)
 
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { GenesisBlockInfo, IJSON, makeGenesisBlock } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -13,19 +13,19 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
-    account: flags.string({
+    account: Flags.string({
       char: 'a',
       required: false,
       default: 'IronFishGenesisAccount',
       description: 'the name of the account to use for keys to assign the genesis block to',
     }),
-    coins: flags.integer({
+    coins: Flags.integer({
       char: 'c',
       required: false,
       default: 4200000000000000,
       description: 'The amount of coins to generate',
     }),
-    memo: flags.string({
+    memo: Flags.string({
       char: 'm',
       required: false,
       default: 'Genesis Block',
@@ -34,7 +34,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(GenesisBlockCommand)
+    const { flags } = await this.parse(GenesisBlockCommand)
 
     const node = await this.sdk.node({ autoSeed: false })
     await node.openDB()

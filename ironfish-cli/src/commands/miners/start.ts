@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import {
   AsyncUtils,
   FileUtils,
@@ -20,7 +19,7 @@ export class Miner extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    threads: flags.integer({
+    threads: Flags.integer({
       char: 't',
       default: 1,
       description:
@@ -29,7 +28,7 @@ export class Miner extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Miner)
+    const { flags } = await this.parse(Miner)
 
     if (flags.threads === 0 || flags.threads < -1) {
       throw new Error('--threads must be a positive integer or -1.')
