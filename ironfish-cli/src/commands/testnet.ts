@@ -26,7 +26,7 @@ export default class Testnet extends IronfishCommand {
       default: false,
       description: "Don't update your graffiti",
     }),
-    skipTelemetry: flags.boolean({
+    skipTelemetry: Flags.boolean({
       default: false,
       description: "Don't update your telemetry",
     }),
