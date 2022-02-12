@@ -90,5 +90,8 @@ export class MinedCommand extends IronfishCommand {
         sequence,
       })
     }
+
+    progress.update(stop, { estimate: 0, sequence: stop })
+    progress.stop()
   }
 }
