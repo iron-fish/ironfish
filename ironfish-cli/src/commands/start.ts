@@ -26,8 +26,9 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
-import { ONE_FISH_IMAGE, TELEMETRY_BANNER } from '../images'
+import { ONE_FISH_IMAGE } from '../images'
 
+export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
 
 export default class Start extends IronfishCommand {
@@ -229,29 +230,30 @@ export default class Start extends IronfishCommand {
    * Information displayed the first time a node is running
    */
   async firstRun(node: IronfishNode): Promise<void> {
-    // Try to get the user to display telementry
-    if (!node.config.get('enableTelemetry')) {
-      this.log(TELEMETRY_BANNER)
+    this.log('')
+    this.log('Thank you for installing the Iron Fish Node.')
+
+    if (!node.config.get(ENABLE_TELEMETRY_CONFIG_KEY)) {
+      this.log('')
+      this.log('To help improve Iron Fish, opt in to collecting telemetry by running')
+      this.log(` > ironfish config:set ${ENABLE_TELEMETRY_CONFIG_KEY} true`)
     }
 
-    // Create a default account on startup
     if (!node.accounts.getDefaultAccount()) {
-      if (node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
-        await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
-        this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}\n`)
+      this.log('')
+
+      if (!node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
+        const account = await node.accounts.createAccount(DEFAULT_ACCOUNT_NAME, true)
+
+        this.log(`New default account created: ${account.name}`)
+        this.log(`Account's public address: ${account.publicAddress}`)
       } else {
-        await this.sdk.clientMemory.connect(node)
-
-        const result = await this.sdk.clientMemory.createAccount({
-          name: DEFAULT_ACCOUNT_NAME,
-        })
-
-        this.log(
-          `New default account created: ${DEFAULT_ACCOUNT_NAME} \nAccount's public address: ${result?.content.publicAddress}\n`,
-        )
+        this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}`)
+        await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
       }
     }
 
+    this.log('')
     node.internal.set('isFirstRun', false)
     node.internal.set('telemetryNodeId', uuid())
     await node.internal.save()

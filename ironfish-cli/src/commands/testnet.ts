@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
+import { ENABLE_TELEMETRY_CONFIG_KEY } from './start'
 
 export default class Testnet extends IronfishCommand {
   static hidden = false
@@ -24,6 +25,10 @@ export default class Testnet extends IronfishCommand {
     skipGraffiti: Flags.boolean({
       default: false,
       description: "Don't update your graffiti",
+    }),
+    skipTelemetry: Flags.boolean({
+      default: false,
+      description: "Don't update your telemetry",
     }),
   }
 
@@ -88,10 +93,14 @@ export default class Testnet extends IronfishCommand {
     const existingNodeName = (await node.getConfig({ name: 'nodeName' })).content.nodeName
     const existingGraffiti = (await node.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
+    const telemetryEnabled = (await node.getConfig({ name: ENABLE_TELEMETRY_CONFIG_KEY }))
+      .content.enableTelemetry
 
     const updateNodeName = existingNodeName !== user.graffiti && !flags.skipName
     const updateGraffiti = existingGraffiti !== user.graffiti && !flags.skipGraffiti
     const needsUpdate = updateNodeName || updateGraffiti
+
+    let updateTelemetry = !telemetryEnabled && !flags.skipTelemetry
 
     if (!needsUpdate) {
       this.log('Your node is already up to date!')
@@ -123,6 +132,14 @@ export default class Testnet extends IronfishCommand {
       this.log('')
     }
 
+    if (!flags.confirm && updateTelemetry) {
+      updateTelemetry = await CliUx.ux.confirm(
+        'Do you want to help improve Iron Fish by enabling Telemetry? (y)es / (n)o',
+      )
+
+      this.log('')
+    }
+
     if (updateNodeName) {
       await node.setConfig({ name: 'nodeName', value: user.graffiti })
       this.log(
@@ -135,6 +152,11 @@ export default class Testnet extends IronfishCommand {
       this.log(
         `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user.graffiti}`,
       )
+    }
+
+    if (updateTelemetry) {
+      await node.setConfig({ name: ENABLE_TELEMETRY_CONFIG_KEY, value: true })
+      this.log('✅ Telemetry Enabled 🙏')
     }
   }
 }
