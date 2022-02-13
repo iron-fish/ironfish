@@ -111,14 +111,10 @@ export class Miner extends IronfishCommand {
 
       CliUx.ux.action.start('Waiting for director to send work.')
 
-      const hashPowerInterval = setInterval(updateHashPower, 1000)
-
       miner.onStartMine.on(onStartMine)
       miner.onStopMine.on(onStopMine)
 
       await miner.mine(nextBlock(transformed), successfullyMined)
-
-      clearInterval(hashPowerInterval)
     }
   }
 }
