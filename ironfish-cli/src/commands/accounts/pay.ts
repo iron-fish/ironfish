@@ -98,7 +98,7 @@ export class Pay extends IronfishCommand {
     if (!fee || Number.isNaN(Number(fee))) {
       fee = (await CliUx.ux.prompt('Enter the fee amount in $IRON', {
         required: true,
-        default: '0.00000001',
+        default: `minimum ${displayIronAmountWithCurrency(MINIMUM_IRON_AMOUNT, false)}`,
       })) as number
 
       if (Number.isNaN(fee)) {
