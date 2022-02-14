@@ -166,4 +166,30 @@ export class Telemetry {
       ],
     })
   }
+
+  submitNewBlockSeen(block: Block, seenAt: Date): void {
+    this.submit({
+      measurement: 'propagation',
+      name: 'propagation',
+      timestamp: seenAt,
+      tags: [
+        {
+          name: 'block_hash',
+          value: block.header.hash.toString('hex'),
+        },
+      ],
+      fields: [
+        {
+          name: 'block_timestamp',
+          type: 'integer',
+          value: block.header.timestamp.valueOf(),
+        },
+        {
+          name: 'block_sequence',
+          type: 'integer',
+          value: block.header.sequence,
+        },
+      ],
+    })
+  }
 }

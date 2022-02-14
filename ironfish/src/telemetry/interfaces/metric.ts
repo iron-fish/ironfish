@@ -12,7 +12,7 @@ export interface Metric {
    * A description for the container that the fields measure. Defaults to
    * 'node' because all metrics are submitted from an Iron Fish node.
    */
-  measurement: 'node'
+  measurement: string
 
   /**
    * The name of whatever is being measured.
