@@ -78,31 +78,58 @@ describe('Telemetry', () => {
   })
 
   describe('flush', () => {
-    describe('when the pool throws an error and the queue is not saturated', () => {
-      it('retries the points and logs an error', async () => {
-        jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
-          throw new Error()
+    describe('when the pool throws an error', () => {
+      describe('when max retries have not been hit', () => {
+        it('retries the points and logs an error', async () => {
+          jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
+            throw new Error()
+          })
+          const error = jest.spyOn(telemetry['logger'], 'error')
+
+          const points = [mockMetric]
+          const retries = telemetry['retries']
+          telemetry['points'] = points
+
+          await telemetry.flush()
+          expect(error).toHaveBeenCalled()
+          expect(telemetry['points']).toEqual(points)
+          expect(telemetry['retries']).toBe(retries + 1)
         })
-        const error = jest.spyOn(telemetry['logger'], 'error')
+      })
 
-        const points = []
-        for (let i = 0; i < telemetry['MAX_QUEUE_SIZE'] - 1; i++) {
-          points.push(mockMetric)
-        }
-        telemetry['points'] = points
+      describe('when max retries have been hit', () => {
+        it('clears the points and logs an error', async () => {
+          jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
+            throw new Error()
+          })
+          const error = jest.spyOn(telemetry['logger'], 'error')
 
-        await telemetry.flush()
-        expect(telemetry['points']).toEqual(points)
-        expect(error).toHaveBeenCalled()
+          telemetry['retries'] = telemetry['MAX_RETRIES']
+          telemetry['points'] = [mockMetric]
+
+          await telemetry.flush()
+          expect(error).toHaveBeenCalled()
+          expect(telemetry['points']).toEqual([])
+          expect(telemetry['retries']).toBe(0)
+        })
       })
     })
 
-    it('submits telemetry to the pool', async () => {
+    it('submits a slice of telemetry points to the pool', async () => {
       const submitTelemetry = jest.spyOn(telemetry['workerPool'], 'submitTelemetry')
-      telemetry.submit(mockMetric)
+      const points = Array(telemetry['MAX_POINTS_TO_SUBMIT'] + 1).fill(mockMetric)
+      telemetry['points'] = points
+
       await telemetry.flush()
 
-      expect(submitTelemetry).toHaveBeenCalled()
+      expect(submitTelemetry).toHaveBeenCalledWith(
+        points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
+      )
+      expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
+      expect(telemetry['points']).toHaveLength(
+        points.slice(telemetry['MAX_POINTS_TO_SUBMIT']).length,
+      )
+      expect(telemetry['retries']).toBe(0)
     })
   })
 })
