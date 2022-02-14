@@ -80,18 +80,17 @@ describe('Verifier', () => {
       block.header.minersFee = BigInt(-1)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_MINERS_FEE,
+        reason: VerificationResultReason.MINERS_FEE_MISMATCH,
         valid: false,
       })
     })
 
-    //this actually fails for transaction fee in the miners slot
-    it('rejects a block with transaction fee as first transaction', async () => {
+    it("rejects a block with non-miner's transaction fee fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_MINERS_FEE,
+        reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
     })
@@ -111,7 +110,7 @@ describe('Verifier', () => {
       block.transactions[2] = block.transactions[1]
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_FEE_SUM,
+        reason: VerificationResultReason.INVALID_MINERS_FEE,
         valid: false,
       })
     })

@@ -67,7 +67,7 @@ export class Verifier {
 
       // Miner's fee should be only the first transaction
       if (i === 0 && fee > 0) {
-        return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
+        return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
       }
 
       if (i !== 0 && fee < 0) {
@@ -84,13 +84,13 @@ export class Verifier {
 
     // minersFee should match the block header
     if (block.header.minersFee !== minersFee) {
-      return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
+      return { valid: false, reason: VerificationResultReason.MINERS_FEE_MISMATCH }
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = block.header.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
-      return { valid: false, reason: VerificationResultReason.INVALID_FEE_SUM }
+      return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 
     return { valid: true }
@@ -278,7 +278,7 @@ export class Verifier {
     }
 
     if (!block.header.previousBlockHash.equals(prev.hash)) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_UNEQUAL }
+      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
     }
 
     return block.withTransactionReferences(async () => {
@@ -408,28 +408,29 @@ export class Verifier {
 export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
   DOUBLE_SPEND = 'Double spend',
-  DUPLICATE = 'duplicate',
-  ERROR = 'error',
+  DUPLICATE = 'Duplicate',
+  ERROR = 'Error',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
-  HASH_NOT_MEET_TARGET = 'hash does not meet target',
+  HASH_NOT_MEET_TARGET = 'Hash does not meet target',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
-  INVALID_FEE_SUM = 'Fee sum is incorrect',
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
-  INVALID_TRANSACTION_PROOF = 'invalid transaction proof',
-  INVALID_PARENT = 'invalid_parent',
-  NOTE_COMMITMENT = 'note_commitment',
+  INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
+  INVALID_PARENT = 'Invalid_parent',
+  MINERS_FEE_EXPECTED = 'Miners fee expected',
+  MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
+  NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
-  NULLIFIER_COMMITMENT = 'nullifier_commitment',
+  NULLIFIER_COMMITMENT = 'Nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   ORPHAN = 'Block is an orphan',
-  PREV_HASH_NULL = 'Previous hash is null',
-  PREV_HASH_UNEQUAL = 'previous hash not equal',
+  PREV_HASH_NULL = 'Previous block hash is null',
+  PREV_HASH_MISMATCH = 'Previous block hash does not match expected hash',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
-  TOO_FAR_IN_FUTURE = 'timestamp is in future',
+  TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
-  VERIFY_TRANSACTION = 'verify_transaction',
+  VERIFY_TRANSACTION = 'Verify_transaction',
 }
 
 /**

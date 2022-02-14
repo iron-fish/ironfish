@@ -783,7 +783,7 @@ describe('Blockchain', () => {
     const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
     expect(result).toMatchObject({
       valid: false,
-      reason: VerificationResultReason.PREV_HASH_UNEQUAL,
+      reason: VerificationResultReason.PREV_HASH_MISMATCH,
     })
   })
 
@@ -796,7 +796,7 @@ describe('Blockchain', () => {
     const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
     expect(result).toMatchObject({
       valid: false,
-      reason: VerificationResultReason.INVALID_MINERS_FEE,
+      reason: VerificationResultReason.MINERS_FEE_MISMATCH,
     })
   })
 })
