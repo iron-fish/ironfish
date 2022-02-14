@@ -26,7 +26,7 @@ export default class Debug extends IronfishCommand {
     const accountsHeadSequence = accountsBlockHeader?.sequence || 'null'
 
     const cpus = os.cpus()
-    const cpuName = cpus[0].model
+    const cpuNames = [...new Set(cpus.map((c) => c.model))]
     const cpuThreads = cpus.length
 
     const memTotal = FileUtils.formatMemorySize(os.totalmem())
@@ -37,7 +37,7 @@ export default class Debug extends IronfishCommand {
 Iron Fish version       ${node.pkg.version} @ ${node.pkg.git}
 Iron Fish library       ${IronfishPKG.version} @ ${IronfishPKG.git}
 Operating system        ${os.type()} ${process.arch}
-CPU model               ${cpuName}
+CPU model(s)            ${cpuNames.toString()}
 CPU threads             ${cpuThreads}
 RAM total               ${memTotal}
 Node version            ${process.version}
