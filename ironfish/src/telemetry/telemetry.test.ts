@@ -117,10 +117,7 @@ describe('Telemetry', () => {
 
     it('submits a slice of telemetry points to the pool', async () => {
       const submitTelemetry = jest.spyOn(telemetry['workerPool'], 'submitTelemetry')
-      const points = []
-      for (let i = 0; i < telemetry['MAX_POINTS_TO_SUBMIT'] + 1; i++) {
-        points.push(mockMetric)
-      }
+      const points = Array(telemetry['MAX_POINTS_TO_SUBMIT'] + 1).fill(mockMetric)
       telemetry['points'] = points
 
       await telemetry.flush()
@@ -129,6 +126,9 @@ describe('Telemetry', () => {
         points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
       )
       expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
+      expect(telemetry['points']).toHaveLength(
+        points.slice(telemetry['MAX_POINTS_TO_SUBMIT']).length,
+      )
       expect(telemetry['retries']).toBe(0)
     })
   })
