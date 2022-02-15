@@ -115,24 +115,21 @@ export class Telemetry {
 
   submitNodeStarted(): void {
     this.submit({
-      measurement: 'node',
-      name: 'started',
+      measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
     })
   }
 
   submitNodeStopped(): void {
     this.submit({
-      measurement: 'node',
-      name: 'started',
+      measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: false }],
     })
   }
 
   submitBlockMined(block: Block): void {
     this.submit({
-      measurement: 'node',
-      name: 'block_mined',
+      measurement: 'block_mined',
       fields: [
         {
           name: 'difficulty',
@@ -150,8 +147,7 @@ export class Telemetry {
 
   submitMemoryUsage(heapUsed: number, heapTotal: number): void {
     this.submit({
-      measurement: 'node',
-      name: 'memory',
+      measurement: 'node_memory',
       fields: [
         {
           name: 'heap_used',
@@ -169,23 +165,22 @@ export class Telemetry {
 
   submitNewBlockSeen(block: Block, seenAt: Date): void {
     this.submit({
-      measurement: 'propagation',
-      name: 'propagation',
+      measurement: 'block_propagation',
       timestamp: seenAt,
       tags: [
         {
-          name: 'block_hash',
+          name: 'hash',
           value: block.header.hash.toString('hex'),
         },
       ],
       fields: [
         {
-          name: 'block_timestamp',
+          name: 'timestamp',
           type: 'integer',
           value: block.header.timestamp.valueOf(),
         },
         {
-          name: 'block_sequence',
+          name: 'sequence',
           type: 'integer',
           value: block.header.sequence,
         },
