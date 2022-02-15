@@ -4,6 +4,7 @@
 
 export { default as StringSerde } from './StringSerde'
 export { default as Uint8ArraySerde } from './Uint8ArraySerde'
+export * from './BlockTemplateSerde'
 export * from './BufferSerde'
 export * from './serdeInstances'
 export { IJSON } from './iJson'
