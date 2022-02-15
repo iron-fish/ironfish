@@ -39,7 +39,7 @@ An adapter exists to represent a single transport layer. For example, in an HTTP
 ### Logs
 By default the log level is set to only display info.
 
-Change the `logLevel` in the config file, from `*:info` to `*debug` if you want verbose logs.
+Change the `logLevel` in the config file, from `*:info` to `*:debug` if you want verbose logs.
 
 ### IronfishSDK
 This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like Accounts, Config, and IronfishNode. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
