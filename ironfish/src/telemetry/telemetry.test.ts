@@ -13,7 +13,6 @@ describe('Telemetry', () => {
 
   const mockMetric: Metric = {
     measurement: 'node',
-    name: 'memory',
     fields: [
       {
         name: 'heap_used',
@@ -59,7 +58,6 @@ describe('Telemetry', () => {
       it('throws an error', () => {
         const metric: Metric = {
           measurement: 'node',
-          name: 'memory',
           fields: [],
         }
 
