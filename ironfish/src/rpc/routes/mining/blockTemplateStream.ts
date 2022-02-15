@@ -1,22 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferSet } from 'buffer-map'
 import * as yup from 'yup'
 import {
   Assert,
-  AsyncUtils,
   Block,
   BlockTemplateSerde,
   GraffitiUtils,
   SerializedBlockTemplate,
-  Transaction,
 } from '../../..'
 import { ValidationError } from '../..'
 import { ApiNamespace, router } from '..'
-
-// TODO: This should live somewhere else
-const MAX_TRANSACTIONS_PER_BLOCK = 10
 
 export type BlockTemplateStreamRequest = Record<string, never> | undefined
 export type BlockTemplateStreamResponse = SerializedBlockTemplate
@@ -74,57 +68,17 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
     // Construct a new block template and send it to the stream listener
     const onConnectBlock = async (block: Block) => {
       const newBlockSequence = block.header.sequence + 1
-      // TODO: is there somewhere we can put this that makes more sense and is easier to test? memPool kinda makes sense
-      // Fetch pending transactions and associated fees
-      const blockTransactions: Transaction[] = []
-      const nullifiers = new BufferSet()
-      for (const transaction of node.memPool.get()) {
-        if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
-          break
-        }
 
-        const isExpired = node.chain.verifier.isExpiredSequence(
-          transaction.expirationSequence(),
-          newBlockSequence,
-        )
-        if (isExpired) {
-          continue
-        }
-
-        const isConflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
-          return nullifiers.has(spend.nullifier)
-        })
-        if (isConflicted) {
-          continue
-        }
-
-        const { valid: isValid } = await node.chain.verifier.verifyTransactionSpends(
-          transaction,
-        )
-        if (!isValid) {
-          continue
-        }
-
-        for (const spend of transaction.spends()) {
-          nullifiers.add(spend.nullifier)
-        }
-
-        blockTransactions.push(transaction)
-      }
-
-      // Sum the transaction fees
-      let totalTransactionFees = BigInt(0)
-      const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
-      for (const transactionFee of transactionFees) {
-        totalTransactionFees += transactionFee
-      }
+      const { totalFees, blockTransactions } = await node.memPool.getNewBlockTransactions(
+        newBlockSequence,
+      )
 
       const account = node.accounts.getDefaultAccount()
       Assert.isNotNull(account)
 
       // Calculate the final fee for the miner of this block
       const minersFee = await node.strategy.createMinersFee(
-        totalTransactionFees,
+        totalFees,
         newBlockSequence,
         account.spendingKey,
       )
