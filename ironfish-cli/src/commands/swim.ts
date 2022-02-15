@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
 
@@ -12,7 +12,7 @@ export default class SwimCommand extends IronfishCommand {
   static hidden = true
 
   async start(): Promise<void> {
-    this.parse(SwimCommand)
+    await this.parse(SwimCommand)
 
     const images = [ONE_FISH_IMAGE, TWO_FISH_IMAGE]
     const image = images[Math.round(Math.random() * (images.length - 1))]
@@ -40,7 +40,7 @@ export default class SwimCommand extends IronfishCommand {
       console.clear()
       this.renderPixels(pixels)
       this.log('The hex fish are coming...')
-      await cli.wait(32)
+      await CliUx.ux.wait(32)
     }
 
     // eslint-disable-next-line no-console

@@ -23,13 +23,13 @@ export function handleGetUnspentNotes({
   accounts,
   serializedTransactionPosted,
 }: GetUnspentNotesRequest): GetUnspentNotesResponse {
-  const transaction = TransactionPosted.deserialize(serializedTransactionPosted)
+  const transaction = new TransactionPosted(serializedTransactionPosted)
 
   const results: GetUnspentNotesResponse['notes'] = []
 
-  for (let i = 0; i < transaction.notesLength; i++) {
+  for (let i = 0; i < transaction.notesLength(); i++) {
     const serializedNote = transaction.getNote(i)
-    const note = NoteEncrypted.deserialize(serializedNote)
+    const note = new NoteEncrypted(serializedNote)
 
     // Notes can be spent and received by the same Account.
     // Try decrypting the note as its owner

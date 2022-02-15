@@ -26,7 +26,7 @@ export class NoteEncrypted {
   takeReference(): NativeNoteEncrypted {
     this.referenceCount++
     if (this.noteEncrypted === null) {
-      this.noteEncrypted = NativeNoteEncrypted.deserialize(this.noteEncryptedSerialized)
+      this.noteEncrypted = new NativeNoteEncrypted(this.noteEncryptedSerialized)
     }
     return this.noteEncrypted
   }
@@ -35,7 +35,6 @@ export class NoteEncrypted {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.noteEncrypted?.free()
       this.noteEncrypted = null
     }
   }
@@ -45,7 +44,6 @@ export class NoteEncrypted {
     this.returnReference()
     if (note) {
       const serializedNote = note.serialize()
-      note.free()
       return new Note(Buffer.from(serializedNote))
     }
   }
@@ -55,7 +53,6 @@ export class NoteEncrypted {
     this.returnReference()
     if (note) {
       const serializedNote = note.serialize()
-      note.free()
       return new Note(Buffer.from(serializedNote))
     }
   }

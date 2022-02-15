@@ -166,7 +166,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
                 change_amount as u64, // we checked it was positive
                 Memo([0; 32]),
             );
-            self.receive(&spender_key, &change_note)?;
+            self.receive(spender_key, &change_note)?;
         }
         self._partial_post()
     }
@@ -254,7 +254,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
         }
 
         let mut hash_result = [0; 32];
-        hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
+        hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         hash_result
     }
 
@@ -529,7 +529,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         }
 
         let mut hash_result = [0; 32];
-        hash_result[..].clone_from_slice(&hasher.finalize().as_ref());
+        hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         hash_result
     }
 

@@ -67,8 +67,16 @@ export function mockSyncer(): any {
   }
 }
 
-function mockWorkerPool(): unknown {
+export function mockLogger(): any {
+  return {
+    debug: jest.fn(),
+    error: jest.fn(),
+  }
+}
+
+export function mockWorkerPool(): any {
   return {
     saturated: jest.fn(),
+    submitTelemetry: jest.fn(),
   }
 }

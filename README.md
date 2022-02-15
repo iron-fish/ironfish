@@ -34,6 +34,9 @@ See https://ironfish.network
      1. On Ubuntu: `apt install build-essential`
      1. On Amazon Linux: `sudo yum groupinstall "Development Tools"`
 
+   - If `yarn install` fails with an error that includes "Error: Could not find any Python installation to use", you may need to install Python3 (required by node-gyp). on MacOS:
+     1. Run `brew install python`
+
 ## Usage
 
 Once your environment is setup - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../logger'
-import { submitMetric } from '../telemetry'
+import { Telemetry } from '../telemetry/telemetry'
 import { SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
@@ -11,7 +11,8 @@ import { Meter } from './meter'
 export class MetricsMonitor {
   private _started = false
   private _meters: Meter[] = []
-  readonly logger: Logger
+  private readonly telemetry: Telemetry | null
+  private readonly logger: Logger
 
   readonly p2p_InboundTraffic: Meter
   readonly p2p_InboundTraffic_WS: Meter
@@ -29,8 +30,9 @@ export class MetricsMonitor {
   private readonly memoryRefreshPeriodMs = 1000
   private readonly memoryTelemetryPeriodMs = 15 * 1000
 
-  constructor(logger: Logger = createRootLogger()) {
-    this.logger = logger
+  constructor({ telemetry, logger }: { telemetry?: Telemetry; logger?: Logger }) {
+    this.telemetry = telemetry ?? null
+    this.logger = logger ?? createRootLogger()
 
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()
@@ -56,10 +58,12 @@ export class MetricsMonitor {
     this._meters.forEach((m) => m.start())
 
     this.memoryInterval = setInterval(() => this.refreshMemory(), this.memoryRefreshPeriodMs)
-    this.memoryTelemetryInterval = setInterval(
-      () => this.submitMemoryTelemetry(),
-      this.memoryTelemetryPeriodMs,
-    )
+    if (this.telemetry) {
+      this.memoryTelemetryInterval = setInterval(
+        () => this.submitMemoryTelemetry(),
+        this.memoryTelemetryPeriodMs,
+      )
+    }
   }
 
   stop(): void {
@@ -92,20 +96,8 @@ export class MetricsMonitor {
   }
 
   private submitMemoryTelemetry(): void {
-    submitMetric({
-      name: 'memory',
-      fields: [
-        {
-          name: 'heap_used',
-          type: 'integer',
-          value: this.heapUsed.value,
-        },
-        {
-          name: 'heap_total',
-          type: 'integer',
-          value: this.heapTotal.value,
-        },
-      ],
-    })
+    if (this.telemetry) {
+      this.telemetry.submitMemoryUsage(this.heapUsed.value, this.heapTotal.value)
+    }
   }
 }

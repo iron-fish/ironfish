@@ -7,6 +7,7 @@ import {
   generateNewPublicAddress,
   Key,
   Note as NativeNote,
+  NoteBuilder as NativeNoteBuilder,
   SimpleTransaction as NativeSimpleTransaction,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
@@ -99,22 +100,23 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '')
+      minerNote = new NativeNote(new NativeNoteBuilder(owner, BigInt(42), '').serialize())
+
       const transaction = new NativeTransaction()
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
       minerTransaction = transaction.post_miners_fee()
       expect(minerTransaction).toBeTruthy()
-      expect(minerTransaction.notesLength).toEqual(1)
+      expect(minerTransaction.notesLength()).toEqual(1)
     })
 
     it('Can verify the miner transaction', () => {
       const serializedTransaction = minerTransaction.serialize()
-      const deserializedTransaction = NativeTransactionPosted.deserialize(serializedTransaction)
+      const deserializedTransaction = new NativeTransactionPosted(serializedTransaction)
       expect(deserializedTransaction.verify()).toBeTruthy()
     })
 
     it('Can add the miner transaction note to the tree', async () => {
-      for (let i = 0; i < minerTransaction.notesLength; i++) {
+      for (let i = 0; i < minerTransaction.notesLength(); i++) {
         const note = Buffer.from(minerTransaction.getNote(i))
         await tree.add(new NoteEncrypted(note))
       }
@@ -138,7 +140,9 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
-      const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
+      const receivingNote = new NativeNote(
+        new NativeNoteBuilder(receiverKey.public_address, BigInt(40), '').serialize(),
+      )
       const result = simpleTransaction.receive(receivingNote)
       expect(result).toEqual('')
     })
@@ -150,19 +154,19 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can verify the transaction', async () => {
       expect(publicTransaction.verify()).toBeTruthy()
-      for (let i = 0; i < publicTransaction.notesLength; i++) {
+      for (let i = 0; i < publicTransaction.notesLength(); i++) {
         const note = Buffer.from(publicTransaction.getNote(i))
         await tree.add(new NoteEncrypted(note))
       }
     })
 
     it('Exposes binding signature on the transaction', () => {
-      const hex_signature = Buffer.from(publicTransaction.transactionSignature).toString('hex')
+      const hex_signature = publicTransaction.transactionSignature().toString('hex')
       expect(hex_signature.toString().length).toBe(128)
     })
 
     it('Exposes transaction hash', () => {
-      expect(publicTransaction.hash.length).toBe(32)
+      expect(publicTransaction.hash().length).toBe(32)
     })
   })
 
@@ -270,11 +274,15 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
+      const noteForSpender = new NativeNote(
+        new NativeNoteBuilder(spenderKey.public_address, BigInt(10), '').serialize(),
+      )
       const receiverNoteToSelf = new NativeNote(
-        generateNewPublicAddress(receiverKey.spending_key).public_address,
-        BigInt(29),
-        '',
+        new NativeNoteBuilder(
+          generateNewPublicAddress(receiverKey.spending_key).public_address,
+          BigInt(29),
+          '',
+        ).serialize(),
       )
 
       expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')

@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { CliUx, Flags } from '@oclif/core'
 import { spawn } from 'child_process'
-import cli from 'cli-ux'
 import fsAsync from 'fs/promises'
 import { FileUtils, NodeUtils } from 'ironfish'
 import os from 'os'
@@ -19,12 +18,12 @@ export default class Backup extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    lock: flags.boolean({
+    lock: Flags.boolean({
       default: true,
       allowNo: true,
       description: 'wait for the database to stop being used',
     }),
-    accounts: flags.boolean({
+    accounts: Flags.boolean({
       default: false,
       allowNo: true,
       description: 'export the accounts',
@@ -40,7 +39,7 @@ export default class Backup extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Backup)
+    const { flags, args } = await this.parse(Backup)
     const bucket = (args.bucket as string).trim()
 
     let id = uuid().slice(0, 5)
@@ -59,7 +58,7 @@ export default class Backup extends IronfishCommand {
     const dest = path.join(destDir, `node.${id}.tar.gz`)
 
     this.log(`Zipping\n    SRC ${source}\n    DST ${dest}\n`)
-    cli.action.start(`Zipping ${source}`)
+    CliUx.ux.action.start(`Zipping ${source}`)
 
     await this.zipDir(
       source,
@@ -68,11 +67,11 @@ export default class Backup extends IronfishCommand {
     )
 
     const stat = await fsAsync.stat(dest)
-    cli.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
+    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
 
-    cli.action.start(`Uploading to ${bucket}`)
+    CliUx.ux.action.start(`Uploading to ${bucket}`)
     await this.uploadToS3(dest, bucket)
-    cli.action.stop(`done`)
+    CliUx.ux.action.stop(`done`)
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {

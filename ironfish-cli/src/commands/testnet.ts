@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx, Flags } from '@oclif/core'
 import { WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
+import { ENABLE_TELEMETRY_CONFIG_KEY } from './start'
 
 export default class Testnet extends IronfishCommand {
   static hidden = false
@@ -14,17 +14,21 @@ export default class Testnet extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
-    skipName: flags.boolean({
+    skipName: Flags.boolean({
       default: false,
       description: "Don't update your node name",
     }),
-    skipGraffiti: flags.boolean({
+    skipGraffiti: Flags.boolean({
       default: false,
       description: "Don't update your graffiti",
+    }),
+    skipTelemetry: Flags.boolean({
+      default: false,
+      description: "Don't update your telemetry",
     }),
   }
 
@@ -38,11 +42,11 @@ export default class Testnet extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Testnet)
+    const { flags, args } = await this.parse(Testnet)
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
-      userArg = (await cli.prompt(
+      userArg = (await CliUx.ux.prompt(
         'Enter the user id or url to a testnet user like https://testnet.ironfish.network/users/1080\nUser ID or URL',
         {
           required: true,
@@ -64,7 +68,7 @@ export default class Testnet extends IronfishCommand {
 
     if (userId === null) {
       this.log(`Could not figure out testnet user id from ${userArg}`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     // request user from API
@@ -75,7 +79,7 @@ export default class Testnet extends IronfishCommand {
 
     if (!user) {
       this.log(`Could not find a user with id ${userId}`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     this.log('')
@@ -89,10 +93,14 @@ export default class Testnet extends IronfishCommand {
     const existingNodeName = (await node.getConfig({ name: 'nodeName' })).content.nodeName
     const existingGraffiti = (await node.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
+    const telemetryEnabled = (await node.getConfig({ name: ENABLE_TELEMETRY_CONFIG_KEY }))
+      .content.enableTelemetry
 
     const updateNodeName = existingNodeName !== user.graffiti && !flags.skipName
     const updateGraffiti = existingGraffiti !== user.graffiti && !flags.skipGraffiti
     const needsUpdate = updateNodeName || updateGraffiti
+
+    let updateTelemetry = !telemetryEnabled && !flags.skipTelemetry
 
     if (!needsUpdate) {
       this.log('Your node is already up to date!')
@@ -116,10 +124,18 @@ export default class Testnet extends IronfishCommand {
         )
       }
 
-      const confirmed = flags.confirm || (await cli.confirm(`Are you SURE? (y)es / (n)o`))
+      const confirmed = flags.confirm || (await CliUx.ux.confirm(`Are you SURE? (y)es / (n)o`))
       if (!confirmed) {
         return
       }
+
+      this.log('')
+    }
+
+    if (!flags.confirm && updateTelemetry) {
+      updateTelemetry = await CliUx.ux.confirm(
+        'Do you want to help improve Iron Fish by enabling Telemetry? (y)es / (n)o',
+      )
 
       this.log('')
     }
@@ -136,6 +152,11 @@ export default class Testnet extends IronfishCommand {
       this.log(
         `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user.graffiti}`,
       )
+    }
+
+    if (updateTelemetry) {
+      await node.setConfig({ name: ENABLE_TELEMETRY_CONFIG_KEY, value: true })
+      this.log('✅ Telemetry Enabled 🙏')
     }
   }
 }

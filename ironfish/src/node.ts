@@ -12,14 +12,13 @@ import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { MiningDirector } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
-import { AddressManager } from './network/peers/addressManager'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
 import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
-import { setDefaultTags, startCollecting, stopCollecting, submitMetric } from './telemetry'
+import { Telemetry } from './telemetry/telemetry'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
@@ -38,6 +37,7 @@ export class IronfishNode {
   peerNetwork: PeerNetwork
   syncer: Syncer
   pkg: Package
+  telemetry: Telemetry
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -49,7 +49,6 @@ export class IronfishNode {
     files,
     config,
     internal,
-    hosts,
     accounts,
     strategy,
     metrics,
@@ -58,13 +57,14 @@ export class IronfishNode {
     workerPool,
     logger,
     webSocket,
+    telemetry,
     privateIdentity,
+    hostsStore,
   }: {
     pkg: Package
     files: FileSystem
     config: Config
     internal: InternalStore
-    hosts: HostsStore
     accounts: Accounts
     chain: Blockchain
     strategy: Strategy
@@ -74,7 +74,9 @@ export class IronfishNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
+    telemetry: Telemetry
     privateIdentity?: PrivateIdentity
+    hostsStore: HostsStore
   }) {
     this.files = files
     this.config = config
@@ -89,6 +91,7 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
+    this.telemetry = telemetry
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
@@ -108,13 +111,14 @@ export class IronfishNode {
       chain: chain,
       strategy: strategy,
       metrics: this.metrics,
-      addressManager: new AddressManager(hosts),
+      hostsStore: hostsStore,
     })
 
     this.syncer = new Syncer({
-      chain: chain,
-      metrics: metrics,
-      logger: logger,
+      chain,
+      metrics,
+      logger,
+      telemetry,
       peerNetwork: this.peerNetwork,
       strategy: this.strategy,
       blocksPerMessage: config.get('blocksPerMessage'),
@@ -152,7 +156,6 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
-    metrics = metrics || new MetricsMonitor(logger)
 
     if (!config) {
       config = new Config(files, dataDir)
@@ -164,8 +167,8 @@ export class IronfishNode {
       await internal.load()
     }
 
-    const hosts = new HostsStore(files, dataDir)
-    await hosts.load()
+    const hostsStore = new HostsStore(files, dataDir)
+    await hostsStore.load()
 
     if (databaseName) {
       config.setOverride('databaseName', databaseName)
@@ -184,6 +187,18 @@ export class IronfishNode {
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
+
+    const telemetry = new Telemetry({
+      workerPool,
+      logger,
+      defaultTags: [
+        { name: 'node_id', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', value: uuid() },
+        { name: 'version', value: pkg.version },
+      ],
+    })
+
+    metrics = metrics || new MetricsMonitor({ telemetry, logger })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -204,19 +219,14 @@ export class IronfishNode {
     const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
 
     const mining = new MiningDirector({
-      chain: chain,
+      chain,
+      memPool,
+      telemetry,
       strategy: strategy,
-      memPool: memPool,
       logger: logger,
       graffiti: config.get('blockGraffiti'),
       force: config.get('miningForce'),
     })
-
-    setDefaultTags([
-      { name: 'node_id', value: internal.get('telemetryNodeId') },
-      { name: 'session_id', value: uuid() },
-      { name: 'version', value: pkg.version },
-    ])
 
     return new IronfishNode({
       pkg,
@@ -225,7 +235,6 @@ export class IronfishNode {
       files,
       config,
       internal,
-      hosts,
       accounts,
       metrics,
       miningDirector: mining,
@@ -233,7 +242,9 @@ export class IronfishNode {
       workerPool,
       logger,
       webSocket,
+      telemetry,
       privateIdentity,
+      hostsStore,
     })
   }
 
@@ -275,7 +286,7 @@ export class IronfishNode {
     this.workerPool.start()
 
     if (this.config.get('enableTelemetry')) {
-      startCollecting(this.config.get('telemetryApi'))
+      this.telemetry.start()
     }
 
     if (this.config.get('enableMetrics')) {
@@ -289,10 +300,7 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    submitMetric({
-      name: 'started',
-      fields: [{ name: 'online', type: 'boolean', value: true }],
-    })
+    this.telemetry.submitNodeStarted()
   }
 
   async waitForShutdown(): Promise<void> {
@@ -305,7 +313,7 @@ export class IronfishNode {
       this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
-      stopCollecting(),
+      this.telemetry.stop(),
       this.metrics.stop(),
       this.workerPool.stop(),
       this.miningDirector.shutdown(),
@@ -348,9 +356,9 @@ export class IronfishNode {
       }
       case 'enableTelemetry': {
         if (newValue) {
-          startCollecting(this.config.get('telemetryApi'))
+          this.telemetry.start()
         } else {
-          await stopCollecting()
+          await this.telemetry.stop()
         }
         break
       }

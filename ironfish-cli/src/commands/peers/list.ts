@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
-import { cli, Table } from 'cli-ux'
 import { GetPeersResponse, PromiseUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -17,36 +16,36 @@ export class ListCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    follow: flags.boolean({
+    follow: Flags.boolean({
       char: 'f',
       default: false,
       description: 'follow the peers list live',
     }),
-    all: flags.boolean({
+    all: Flags.boolean({
       default: false,
       description: 'show all peers, not just connected peers',
     }),
-    extended: flags.boolean({
+    extended: Flags.boolean({
       char: 'e',
       default: false,
       description: 'display all information',
     }),
-    sort: flags.string({
+    sort: Flags.string({
       char: 'o',
       default: STATE_COLUMN_HEADER,
       description: 'sort by column header',
     }),
-    agents: flags.boolean({
+    agents: Flags.boolean({
       char: 'a',
       default: false,
       description: 'display peer agents',
     }),
-    sequence: flags.boolean({
+    sequence: Flags.boolean({
       char: 's',
       default: false,
       description: 'display peer head sequence',
     }),
-    names: flags.boolean({
+    names: Flags.boolean({
       char: 'n',
       default: false,
       description: 'display node names',
@@ -55,7 +54,7 @@ export class ListCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(ListCommand)
+    const { flags } = await this.parse(ListCommand)
 
     if (!flags.follow) {
       await this.sdk.client.connect()
@@ -104,7 +103,7 @@ function renderTable(
     sequence: boolean
   },
 ): string {
-  let columns: Table.table.Columns<GetPeerResponsePeer> = {
+  let columns: CliUx.Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
       header: 'IDENTITY',
       get: (row: GetPeerResponsePeer) => {
@@ -200,7 +199,7 @@ function renderTable(
 
   let result = ''
 
-  cli.table(peers, columns, {
+  CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     extended: flags.extended,
     sort: flags.sort,

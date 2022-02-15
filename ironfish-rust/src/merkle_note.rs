@@ -90,10 +90,10 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(
-            &spender_key.outgoing_view_key(),
+            spender_key.outgoing_view_key(),
             &value_commitment.cm(&spender_key.sapling.jubjub).into(),
             &note.commitment_point(),
-            &public_key,
+            public_key,
         );
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
