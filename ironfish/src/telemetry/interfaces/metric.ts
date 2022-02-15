@@ -9,15 +9,10 @@ import { Tag } from './tag'
  */
 export interface Metric {
   /**
-   * A description for the container that the fields measure. Defaults to
-   * 'node' because all metrics are submitted from an Iron Fish node.
+   * A description for the container that the fields measure. This is equivilent
+   * to a SQL table.
    */
   measurement: string
-
-  /**
-   * The name of whatever is being measured.
-   */
-  name: string
 
   /**
    * The exact time at which the metric was recorded.
