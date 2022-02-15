@@ -3,27 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { TransactionPosted } from 'ironfish-rust-nodejs'
 import {
-  CreateMinersFeeReq,
+  BinaryCreateMinersFeeRequest,
+  BinaryCreateMinersFeeResponse,
   CreateMinersFeeRequest,
-  CreateMinersFeeResp,
   handleCreateMinersFee,
 } from './createMinersFee'
 
 describe('CreateMinersFee', () => {
-  const spendKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-  const amount = BigInt(20)
-  const memo = ''
-
-  const req: CreateMinersFeeRequest = {
-    type: 'createMinersFee',
-    spendKey,
-    amount,
-    memo,
-  }
-
   it('properly serializes request', () => {
-    const serializedRequest = CreateMinersFeeReq.serialize(req)
-    const createMinersFee = new CreateMinersFeeReq(serializedRequest)
+    const spendKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    const amount = BigInt(20)
+    const memo = ''
+
+    const req: CreateMinersFeeRequest = {
+      type: 'createMinersFee',
+      spendKey,
+      amount,
+      memo,
+    }
+
+    const serializedRequest = BinaryCreateMinersFeeRequest.serialize(req)
+    const createMinersFee = new BinaryCreateMinersFeeRequest(serializedRequest)
 
     expect(createMinersFee.spendKey()).toEqual(spendKey)
     expect(createMinersFee.amount()).toEqual(amount)
@@ -32,10 +32,23 @@ describe('CreateMinersFee', () => {
 
   // TODO: Need to properly mock transaction
   it('properly deserializes response', () => {
-    const { responseType, response } = handleCreateMinersFee(CreateMinersFeeReq.serialize(req))
+    const spendKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    const amount = BigInt(20)
+    const memo = ''
+
+    const req: CreateMinersFeeRequest = {
+      type: 'createMinersFee',
+      spendKey,
+      amount,
+      memo,
+    }
+
+    const { responseType, response } = handleCreateMinersFee(
+      BinaryCreateMinersFeeRequest.serialize(req),
+    )
     expect(responseType).toEqual('createMinersFee')
     expect(response).toBeInstanceOf(Uint8Array)
-    const resp = new CreateMinersFeeResp(response)
+    const resp = new BinaryCreateMinersFeeResponse(response)
 
     const transaction = new TransactionPosted(Buffer.from(resp.serializedTransactionPosted()))
     expect(transaction.fee()).toEqual(BigInt(-20))

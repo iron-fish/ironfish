@@ -21,7 +21,7 @@ export type CreateMinersFeeResponse = {
   serializedTransactionPosted: Uint8Array
 }
 
-export class CreateMinersFeeReq {
+export class BinaryCreateMinersFeeRequest {
   readonly br: bufio.BufferReader
   // TODO: Look into caching fields that have been read once
 
@@ -53,7 +53,7 @@ export class CreateMinersFeeReq {
   }
 }
 
-export class CreateMinersFeeResp {
+export class BinaryCreateMinersFeeResponse {
   readonly br: bufio.BufferReader
   readonly bufferLength: number
 
@@ -86,7 +86,7 @@ export function handleCreateMinersFee(requestBody: Buffer): {
   responseType: string
   response: Buffer
 } {
-  const request = new CreateMinersFeeReq(requestBody)
+  const request = new BinaryCreateMinersFeeRequest(requestBody)
 
   // Generate a public address from the miner's spending key
   const minerPublicAddress = generateNewPublicAddress(request.spendKey()).public_address
@@ -104,7 +104,7 @@ export function handleCreateMinersFee(requestBody: Buffer): {
 
   return {
     responseType: 'createMinersFee',
-    response: CreateMinersFeeResp.serialize({
+    response: BinaryCreateMinersFeeResponse.serialize({
       type: 'createMinersFee',
       serializedTransactionPosted,
     }),
