@@ -1265,5 +1265,20 @@
         }
       ]
     }
+  ],
+  "Verifier verifyTransaction when verify() throws an error returns VERIFY_TRANSACTION": [
+    {
+      "name": "test",
+      "spendingKey": "c8cd9bfac35e3dfb0d03ab6c66c0dccd8c872ff450c589715187eea65259d27e",
+      "incomingViewKey": "45b2b8ea186b5c596cf8c93ab1809cf048ddddbb727ea923baa1173474b64c05",
+      "outgoingViewKey": "798a4e4d27d48cedd362a2ecf79849695d7fa34d9fa98e69a3b8392d06906d71",
+      "publicAddress": "f6fb452fdf44680094c789880685f5ebc30dcd635229f4f250c2b910781d69c993a59b1b5528c62b307745",
+      "rescan": null,
+      "displayName": "test (4666402)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALPBfJppYb2GjkxIRMjj3Ky69R0O82JYJzz/3sYjNj2BTQlewSzyck5BH8Qq/5zbHZH95YcSBQ1Fe9Abzf3/8bo2uqvofxu0eh5uTTyKrVowAwFPWx8v09VhJXX35sRjIBZJrxbIQ+b5Q/KAWUgzyUczzg7ikC5PNaUteTBQSTeMcKQybIFbSlg4Mq7rD5j5Jov8QUZeNvY9iZXXWqGx1r+ESKuMNC80Z2G1nQkSCAOLMY6IwUNQKuAM76SBXLtNsnJbyMsUyElloHnrqH3Kqw5d0L7BDJLsE9lElTek2BfzVQbxjxXjsyk/2Kj5+4vLj08XHfMykhR6s27o1QdYj0nwceho0GylX8Wcp1IM1QoXk5UcuBNftrjCPJTRvPO82Y+eksB/vmGSm+gXlabI43Up/wUcsB4c2a5kWhsTtoHXEyLtsBDy1WWOifPEiPgKf6jmdWNIwkjWZG/LCV0jataNQWVnHAPMzHA026ubsbrg9GEwWfbPGPHMhNZHrGYlK4UtvEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwDQTaSskkFVpVEp56DPelC4iOqiddW6hp0pmCYDxS4OJ9iIqGlTG0mKJSwWeWKhwswXkO/1jjbrJYD2CDO56eAA=="
+    }
   ]
 }

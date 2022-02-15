@@ -487,5 +487,25 @@ describe('Verifier', () => {
         })
       }, 60000)
     })
+
+    describe('when verify() throws an error', () => {
+      it('returns VERIFY_TRANSACTION', async () => {
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        //jest.spyOn(transaction, 'verify').mockImplementation(() => {throw new Error('Response type must match request type')})
+
+        jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
+          throw new Error('Response type must match request type')
+        })
+
+        expect(
+          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).toEqual({
+          valid: false,
+          reason: VerificationResultReason.VERIFY_TRANSACTION,
+        })
+      }, 60000)
+    })
   })
 })
