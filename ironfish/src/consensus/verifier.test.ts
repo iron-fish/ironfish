@@ -493,8 +493,6 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        //jest.spyOn(transaction, 'verify').mockImplementation(() => {throw new Error('Response type must match request type')})
-
         jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
           throw new Error('Response type must match request type')
         })
