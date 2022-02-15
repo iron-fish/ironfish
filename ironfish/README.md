@@ -2,12 +2,9 @@
 
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=PCSVEVEW5V&flag=ironfish)](https://codecov.io/gh/iron-fish/ironfish)
 
-Ironfish SDK wraps all of the generic components of [Captain](./src/captain/README.md) into a project that is specific to Ironfish.
+Ironfish contains the implementation of the Ironfish node and all relavent components that run it including the Blockchain, MemPool, RPC layer, PeerNetwork, and more.
 
 ## Components
-
-### Strategy
-It also contains a strategy, which is a collection of implementations that [Captain](./src/captain/README.md) uses to implement coin specific logic.
 
 ### Accounts
  An account store used to manage, create, and update Ironfish accounts.
@@ -33,16 +30,16 @@ This is the server that handles clients connecting and making requests against t
 
 When the RpcServer starts, so do the transports. They accept messages from clients, construct Requests, and route them into the routing layer which executes the proper route.
 
-#### Adapter
+#### RpcAdapter
 An adapter exists to represent a single transport layer. For example, in an HTTP adapter you might listen on port 80 for requests, construct RPC layer Request objects, and feed them into the routing layer, then render the RPC responses as HTTP responses. See IPCAdapter for an example of how to implement an adapter.
 
-### Logs
+### Logger
 By default the log level is set to only display info.
 
 Change the `logLevel` in the config file, from `*:info` to `*:debug` if you want verbose logs.
 
 ### IronfishSDK
-This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like Accounts, Config, and IronfishNode. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
+This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like IronfishNode, Blockchain, Config, Accounts. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
 
 #### SDK Example
 
