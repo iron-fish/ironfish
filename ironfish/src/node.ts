@@ -307,12 +307,12 @@ export class IronfishNode {
     await this.shutdownPromise
   }
 
-  async shutdown(): Promise<void> {
+  async shutdown(ignoreRpc?: boolean): Promise<void> {
     await Promise.allSettled([
       this.accounts.stop(),
       this.syncer.stop(),
       this.peerNetwork.stop(),
-      this.rpc.stop(),
+      ...(ignoreRpc === true ? [] : [this.rpc.stop()]),
       this.telemetry.stop(),
       this.metrics.stop(),
       this.workerPool.stop(),
