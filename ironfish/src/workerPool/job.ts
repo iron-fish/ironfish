@@ -6,17 +6,14 @@ import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
 import { JobAbortedError } from './errors'
 import {
-  WorkerRequestMessage,
+  AllWorkerRequestMessages,
+  AllWorkerResponseMessages,
   WorkerRequestMessageSerialized,
-  WorkerResponse,
-  WorkerResponseMessage,
   WorkerResponseMessageSerialized,
 } from './messages'
 import { handleRequest } from './tasks'
 import { Worker } from './worker'
 
-type AllWorkerRequestMessages = WorkerRequestMessage | WorkerRequestMessageSerialized
-type AllWorkerResponseMessages = WorkerResponseMessage | WorkerResponseMessageSerialized
 export class Job {
   id: number
   request: AllWorkerRequestMessages
@@ -130,8 +127,8 @@ export class Job {
     return response
   }
 
-  async result(): Promise<Buffer | WorkerResponse> {
+  async result(): Promise<AllWorkerResponseMessages> {
     const response = await this.response()
-    return response.body
+    return response
   }
 }

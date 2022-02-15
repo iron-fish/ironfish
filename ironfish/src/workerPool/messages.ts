@@ -50,6 +50,9 @@ export type WorkerResponseMessageSerialized = {
   body: Buffer
 }
 
+export type AllWorkerRequestMessages = WorkerRequestMessage | WorkerRequestMessageSerialized
+export type AllWorkerResponseMessages = WorkerResponseMessage | WorkerResponseMessageSerialized
+
 export type WorkerRequest =
   | BoxMessageRequest
   | CreateMinersFeeRequest

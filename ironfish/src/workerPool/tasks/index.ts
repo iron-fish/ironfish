@@ -36,7 +36,7 @@ export async function handleRequest(
   request: WorkerRequestMessage | WorkerRequestMessageSerialized,
   job: Job,
 ): Promise<WorkerResponseMessage | WorkerResponseMessageSerialized> {
-  if (request.body instanceof Buffer) {
+  if (request.body instanceof Uint8Array) {
     return handleSerializedRequest(request as WorkerRequestMessageSerialized, job)
   } else {
     return handleUnserializedRequest(request as WorkerRequestMessage, job)
@@ -49,7 +49,7 @@ export function handleSerializedRequest(
 ): WorkerResponseMessageSerialized {
   // This will be changed to a discriminating structure between
   // request types when additional serializers exist
-  const { responseType, response } = handleCreateMinersFee(serializedRequest.body)
+  const { responseType, response } = handleCreateMinersFee(Buffer.from(serializedRequest.body))
   return { jobId: job.id, type: responseType, body: response }
 }
 
