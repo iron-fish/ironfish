@@ -198,7 +198,7 @@ export class IronfishNode {
       ],
     })
 
-    metrics = metrics || new MetricsMonitor({ telemetry, logger })
+    metrics = metrics || new MetricsMonitor({ logger })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,

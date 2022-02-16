@@ -60,9 +60,7 @@ export class Syncer {
     this.logger = logger.withTag('syncer')
     this.telemetry = options.telemetry
 
-    this.metrics =
-      options.metrics ||
-      new MetricsMonitor({ telemetry: options.telemetry, logger: this.logger })
+    this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
