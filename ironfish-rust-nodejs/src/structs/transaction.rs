@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use napi::bindgen_prelude::*;
-use napi::JsBigInt;
 use napi_derive::napi;
 
 use ironfish_rust::sapling_bls12::{
@@ -217,9 +216,9 @@ impl NativeTransaction {
         &mut self,
         spender_hex_key: String,
         change_goes_to: Option<String>,
-        intended_transaction_fee: JsBigInt,
+        intended_transaction_fee: BigInt,
     ) -> Result<NativeTransactionPosted> {
-        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64()?.0;
+        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
         let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -258,9 +257,9 @@ impl NativeSimpleTransaction {
     #[napi(constructor)]
     pub fn new(
         spender_hex_key: String,
-        intended_transaction_fee: JsBigInt,
+        intended_transaction_fee: BigInt,
     ) -> Result<NativeSimpleTransaction> {
-        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64()?.0;
+        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
         let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
