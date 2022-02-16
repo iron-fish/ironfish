@@ -5,6 +5,7 @@ import { createRootLogger, Logger } from '../logger'
 import { Block } from '../primitives/block'
 import { renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { Field } from './interfaces/field'
 import { Metric } from './interfaces/metric'
 import { Tag } from './interfaces/tag'
 
@@ -14,6 +15,7 @@ export class Telemetry {
   private readonly MAX_RETRIES = 5
 
   private readonly defaultTags: Tag[]
+  private readonly defaultFields: Field[]
   private readonly logger: Logger
   private readonly workerPool: WorkerPool
 
@@ -22,10 +24,16 @@ export class Telemetry {
   private points: Metric[]
   private retries: number
 
-  constructor(options: { workerPool: WorkerPool; logger?: Logger; defaultTags?: Tag[] }) {
+  constructor(options: {
+    workerPool: WorkerPool
+    logger?: Logger
+    defaultTags?: Tag[]
+    defaultFields?: Field[]
+  }) {
     this.logger = options.logger ?? createRootLogger()
     this.workerPool = options.workerPool
     this.defaultTags = options.defaultTags ?? []
+    this.defaultFields = options.defaultFields ?? []
 
     this.flushInterval = null
     this.points = []
@@ -79,10 +87,13 @@ export class Telemetry {
       tags = tags.concat(metric.tags)
     }
 
+    const fields = this.defaultFields.concat(metric.fields)
+
     this.points.push({
       ...metric,
       timestamp: metric.timestamp || new Date(),
       tags,
+      fields,
     })
   }
 

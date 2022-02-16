@@ -191,10 +191,10 @@ export class IronfishNode {
     const telemetry = new Telemetry({
       workerPool,
       logger,
-      defaultTags: [
-        { name: 'node_id', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', value: uuid() },
-        { name: 'version', value: pkg.version },
+      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
       ],
     })
 
