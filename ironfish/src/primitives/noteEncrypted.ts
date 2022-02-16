@@ -43,8 +43,7 @@ export class NoteEncrypted {
     const note = this.takeReference().decryptNoteForOwner(ownerHexKey)
     this.returnReference()
     if (note) {
-      const serializedNote = note.serialize()
-      return new Note(Buffer.from(serializedNote))
+      return new Note(note)
     }
   }
 
@@ -52,8 +51,7 @@ export class NoteEncrypted {
     const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
     this.returnReference()
     if (note) {
-      const serializedNote = note.serialize()
-      return new Note(Buffer.from(serializedNote))
+      return new Note(note)
     }
   }
 
