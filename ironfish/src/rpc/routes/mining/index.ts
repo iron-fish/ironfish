@@ -5,4 +5,5 @@
 export * from './blockTemplateStream'
 export * from './exportMined'
 export * from './newBlocksStream'
+export * from './submitBlock'
 export * from './successfullyMined'
