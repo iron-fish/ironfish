@@ -39,7 +39,7 @@ export function handleGetUnspentNotes({
       if (decryptedNote) {
         results.push({
           hash: note.merkleHash().toString('hex'),
-          note: decryptedNote.serialize(),
+          note: decryptedNote,
           account: account,
         })
 
