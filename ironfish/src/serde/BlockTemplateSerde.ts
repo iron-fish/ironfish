@@ -29,7 +29,7 @@ export type SerializedBlockTemplate = {
     graffiti: string
   }
   transactions: string[]
-  previousBlockInfo: {
+  previousBlockInfo?: {
     target: string
     timestamp: number
   }
