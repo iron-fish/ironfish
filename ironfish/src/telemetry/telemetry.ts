@@ -4,6 +4,7 @@
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { PeerNetwork } from '../network'
 import { Block } from '../primitives/block'
 import { renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -21,6 +22,7 @@ export class Telemetry {
   private readonly defaultFields: Field[]
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
+  private readonly peerNetwork: PeerNetwork | null
   private readonly workerPool: WorkerPool
 
   private started: boolean
@@ -32,12 +34,14 @@ export class Telemetry {
   constructor(options: {
     workerPool: WorkerPool
     metrics?: MetricsMonitor
+    peerNetwork?: PeerNetwork
     logger?: Logger
     defaultTags?: Tag[]
     defaultFields?: Field[]
   }) {
     this.logger = options.logger ?? createRootLogger()
     this.metrics = options.metrics ?? null
+    this.peerNetwork = options.peerNetwork ?? null
     this.workerPool = options.workerPool
     this.defaultTags = options.defaultTags ?? []
     this.defaultFields = options.defaultFields ?? []
@@ -92,7 +96,41 @@ export class Telemetry {
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
 
-    this.submitMemoryUsage(this.metrics.heapUsed.value, this.metrics.heapTotal.value)
+    const fields: Field[] = [
+      {
+        name: 'heap_used',
+        type: 'integer',
+        value: this.metrics.heapUsed.value,
+      },
+      {
+        name: 'heap_used',
+        type: 'integer',
+        value: this.metrics.heapUsed.value,
+      },
+      {
+        name: 'inbound_traffic',
+        type: 'integer',
+        value: this.metrics.p2p_InboundTraffic.rate1s,
+      },
+      {
+        name: 'outbound_traffic',
+        type: 'integer',
+        value: this.metrics.p2p_OutboundTraffic.rate1s,
+      },
+    ]
+
+    if (this.peerNetwork) {
+      fields.push({
+        name: 'peers_count',
+        type: 'integer',
+        value: this.peerNetwork.peerManager.getConnectedPeers().length,
+      })
+    }
+
+    this.submit({
+      measurement: 'node_stats',
+      fields,
+    })
 
     this.metricsInterval = setTimeout(() => {
       void this.metricsLoop()
@@ -177,24 +215,6 @@ export class Telemetry {
           name: 'sequence',
           type: 'integer',
           value: Number(block.header.sequence),
-        },
-      ],
-    })
-  }
-
-  submitMemoryUsage(heapUsed: number, heapTotal: number): void {
-    this.submit({
-      measurement: 'node_memory',
-      fields: [
-        {
-          name: 'heap_used',
-          type: 'integer',
-          value: heapUsed,
-        },
-        {
-          name: 'heap_total',
-          type: 'integer',
-          value: heapTotal,
         },
       ],
     })
