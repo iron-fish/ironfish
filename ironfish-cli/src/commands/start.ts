@@ -157,6 +157,11 @@ export default class Start extends IronfishCommand {
       this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
     }
 
+    if (!this.sdk.internal.get('telemetryNodeId')) {
+      this.sdk.internal.set('telemetryNodeId', uuid())
+      await this.sdk.internal.save()
+    }
+
     const privateIdentity = this.getPrivateIdentity()
 
     const node = await this.sdk.node({ privateIdentity: privateIdentity })
@@ -204,11 +209,6 @@ export default class Start extends IronfishCommand {
 
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
-    }
-
-    if (!node.internal.get('telemetryNodeId')) {
-      node.internal.set('telemetryNodeId', uuid())
-      await node.internal.save()
     }
 
     await node.start()
