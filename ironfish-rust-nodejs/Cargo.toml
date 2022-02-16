@@ -10,12 +10,12 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-napi-derive = "2"
+napi-derive = "2.1.0"
 ironfish_rust= { path = "../ironfish-rust", features = ["native"] }
 
 [dependencies.napi]
-version = "2"
+version = "2.1.0"
 features = ["napi6"]
 
 [build-dependencies]
-napi-build = "1"
+napi-build = "1.2.1"
