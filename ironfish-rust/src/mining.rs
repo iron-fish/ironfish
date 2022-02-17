@@ -3,6 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use byteorder::{BigEndian, WriteBytesExt};
 
+mod mine;
+mod thread;
+pub mod threadpool;
+
 // Javascript's Number.MAX_SAFE_INTEGER
 const MAX_SAFE_INTEGER: i64 = 9007199254740991;
 
