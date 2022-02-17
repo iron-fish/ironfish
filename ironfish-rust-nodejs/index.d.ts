@@ -34,9 +34,9 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, left: Buffer, right: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): NativeNote | undefined | null
+  decryptNoteForOwner(incomingHexKey: string): Buffer | undefined | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): NativeNote | undefined | null
+  decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
 }
 export type NativeNoteBuilder = NoteBuilder
 export class NoteBuilder {
@@ -115,7 +115,7 @@ export class Transaction {
    * sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
    * aka: self.transaction_fee - intended_transaction_fee - change = 0
    */
-  post(spenderHexKey: string, changeGoesTo?: string | undefined | null, intendedTransactionFee: bigint): TransactionPosted
+  post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): TransactionPosted
   setExpirationSequence(expirationSequence: number): void
 }
 export type NativeSimpleTransaction = SimpleTransaction

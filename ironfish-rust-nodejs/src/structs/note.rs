@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use napi::bindgen_prelude::*;
-use napi::JsBigInt;
 use napi_derive::napi;
 
 use ironfish_rust::note::Memo;
@@ -19,8 +18,8 @@ impl NativeNoteBuilder {
     /// TODO: This works around a concurrency bug when using #[napi(factory)]
     /// in worker threads. It can be merged into NativeNote once the bug is fixed.
     #[napi(constructor)]
-    pub fn new(owner: String, value: JsBigInt, memo: String) -> Result<Self> {
-        let value_u64 = value.get_u64()?.0;
+    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
+        let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -87,8 +86,8 @@ impl NativeNote {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     #[napi]
-    pub fn nullifier(&self, owner_private_key: String, position: JsBigInt) -> Result<Buffer> {
-        let position_u64 = position.get_u64()?.0;
+    pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
+        let position_u64 = position.get_u64().1;
 
         let private_key = Key::from_hex(SAPLING.clone(), &owner_private_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;

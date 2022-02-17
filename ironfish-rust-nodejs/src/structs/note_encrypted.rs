@@ -5,7 +5,6 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use super::NativeNote;
 use ironfish_rust::sapling_bls12;
 use ironfish_rust::MerkleNote;
 
@@ -82,7 +81,7 @@ impl NativeNoteEncrypted {
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<NativeNote>> {
+    pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
         let incoming_view_key = sapling_bls12::IncomingViewKey::from_hex(
             sapling_bls12::SAPLING.clone(),
             &incoming_hex_key,
@@ -90,14 +89,19 @@ impl NativeNoteEncrypted {
         .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
-            Ok(note) => Some(NativeNote { note: { note } }),
+            Ok(note) => {
+                let mut vec = vec![];
+                note.write(&mut vec)
+                    .map_err(|err| Error::from_reason(err.to_string()))?;
+                Some(Buffer::from(vec))
+            }
             Err(_) => None,
         })
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<NativeNote>> {
+    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
         let outgoing_view_key = sapling_bls12::OutgoingViewKey::from_hex(
             sapling_bls12::SAPLING.clone(),
             &outgoing_hex_key,
@@ -105,7 +109,12 @@ impl NativeNoteEncrypted {
         .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {
-                Ok(note) => Some(NativeNote { note: { note } }),
+                Ok(note) => {
+                    let mut vec = vec![];
+                    note.write(&mut vec)
+                        .map_err(|err| Error::from_reason(err.to_string()))?;
+                    Some(Buffer::from(vec))
+                }
                 Err(_) => None,
             },
         )
