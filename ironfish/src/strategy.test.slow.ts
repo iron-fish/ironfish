@@ -103,7 +103,7 @@ describe('Demonstrate the Sapling API', () => {
 
       const transaction = new NativeTransaction()
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
-      minerTransaction = transaction.post_miners_fee()
+      minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
     })
@@ -147,7 +147,9 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can post the transaction', () => {
-      publicTransaction = transaction.post(spenderKey.spending_key, null, BigInt(0))
+      publicTransaction = new NativeTransactionPosted(
+        transaction.post(spenderKey.spending_key, null, BigInt(0)),
+      )
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -289,7 +291,9 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can post a transaction', () => {
-      const postedTransaction = transaction.post(receiverKey.spending_key, undefined, BigInt(1))
+      const postedTransaction = new NativeTransactionPosted(
+        transaction.post(receiverKey.spending_key, undefined, BigInt(1)),
+      )
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()
     })

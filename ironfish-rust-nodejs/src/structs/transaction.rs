@@ -8,7 +8,9 @@ use std::convert::TryInto;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::sapling_bls12::{Key, ProposedTransaction, PublicAddress, Transaction, SAPLING};
+use ironfish_rust::sapling_bls12::{
+    Key, MerkleNoteHash, ProposedTransaction, PublicAddress, Transaction, SAPLING,
+};
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
@@ -97,8 +99,19 @@ impl NativeTransactionPosted {
             .map_err(|_| Error::from_reason("Value out of range".to_string()))?;
 
         let proof = &self.transaction.spends()[index_usize];
+
+        let mut root_hash: Vec<u8> = vec![];
+
+        MerkleNoteHash::new(proof.root_hash())
+            .write(&mut root_hash)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        let nullifier = Buffer::from(proof.nullifier().as_ref());
+
         Ok(NativeSpendProof {
-            proof: proof.clone(),
+            tree_size: proof.tree_size(),
+            root_hash: Buffer::from(root_hash),
+            nullifier,
         })
     }
 
@@ -191,12 +204,17 @@ impl NativeTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     #[napi(js_name = "post_miners_fee")]
-    pub fn post_miners_fee(&mut self) -> Result<NativeTransactionPosted> {
+    pub fn post_miners_fee(&mut self) -> Result<Buffer> {
         let transaction = self
             .transaction
             .post_miners_fee()
             .map_err(|err| Error::from_reason(err.to_string()))?;
-        Ok(NativeTransactionPosted { transaction })
+
+        let mut vec: Vec<u8> = vec![];
+        transaction
+            .write(&mut vec)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        Ok(Buffer::from(vec))
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -215,7 +233,7 @@ impl NativeTransaction {
         spender_hex_key: String,
         change_goes_to: Option<String>,
         intended_transaction_fee: BigInt,
-    ) -> Result<NativeTransactionPosted> {
+    ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
         let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
@@ -233,9 +251,12 @@ impl NativeTransaction {
             .post(&spender_key, change_key, intended_transaction_fee_u64)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        Ok(NativeTransactionPosted {
-            transaction: posted_transaction,
-        })
+        let mut vec: Vec<u8> = vec![];
+        posted_transaction
+            .write(&mut vec)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(Buffer::from(vec))
     }
 
     #[napi]

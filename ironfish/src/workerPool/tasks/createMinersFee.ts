@@ -29,9 +29,7 @@ export function handleCreateMinersFee({
   const transaction = new Transaction()
   transaction.receive(spendKey, minerNote)
 
-  const postedTransaction = transaction.post_miners_fee()
-
-  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
+  const serializedTransactionPosted = transaction.post_miners_fee()
 
   return { type: 'createMinersFee', serializedTransactionPosted }
 }
