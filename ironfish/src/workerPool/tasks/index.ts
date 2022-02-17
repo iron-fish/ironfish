@@ -49,7 +49,19 @@ export function handleSerializedRequest(
 ): WorkerResponseMessageSerialized {
   // This will be changed to a discriminating structure between
   // request types when additional serializers exist
-  const { responseType, response } = handleCreateMinersFee(Buffer.from(serializedRequest.body))
+  const body = serializedRequest.body
+  const type = serializedRequest.type.type
+
+  if (type !== 'createMinersFee' && type !== 'createTransaction') {
+    throw new Error('unserialized message type being processed by serialized message handler')
+  }
+
+  const { responseType, response } =
+    type === 'createMinersFee'
+      ? handleCreateMinersFee(Buffer.from(body))
+      : type === 'createTransaction'
+      ? handleCreateTransaction(Buffer.from(body))
+      : Assert.isNever(type)
   return { jobId: job.id, type: responseType, body: response }
 }
 
@@ -65,8 +77,7 @@ export async function handleUnserializedRequest(
     case 'createMinersFee':
       throw new Error('createMinersFee should be serialized')
     case 'createTransaction':
-      response = handleCreateTransaction(body)
-      break
+      throw new Error('createTransaction should be serialized')
     case 'getUnspentNotes':
       response = handleGetUnspentNotes(body)
       break

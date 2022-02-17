@@ -27,6 +27,10 @@ import {
   BinaryCreateMinersFeeRequest,
   BinaryCreateMinersFeeResponse,
 } from './tasks/createMinersFee'
+import {
+  BinaryCreateTransactionRequest,
+  BinaryCreateTransactionResponse,
+} from './tasks/createTransaction'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { VerifyTransactionOptions } from './tasks/verifyTransaction'
 import { getWorkerPath, Worker } from './worker'
@@ -182,15 +186,18 @@ export class WorkerPool {
       receives,
     }
 
-    const response = await this.execute(request, request).result()
+    const serializedRequest = BinaryCreateTransactionRequest.serialize(request)
+    const serializedResponse = await this.execute(serializedRequest, request).result()
 
-    if (response.body instanceof Buffer) {
-      throw new Error('createTransaction returing serialized response')
+    if (!(serializedResponse.body instanceof Uint8Array)) {
+      throw new Error('createTransaction returing unserialized response')
     } else {
-      if (response === null || response.body.type !== request.type) {
+      const { type: responseType, serializedTransactionPosted } =
+        new BinaryCreateTransactionResponse(Buffer.from(serializedResponse.body)).deserialize()
+      if (request.type !== responseType) {
         throw new Error('Response type must match request type')
       } else {
-        return new Transaction(Buffer.from(response.body.serializedTransactionPosted), this)
+        return new Transaction(Buffer.from(serializedTransactionPosted), this)
       }
     }
   }
