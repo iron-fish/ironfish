@@ -10,7 +10,7 @@ import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
-import { MiningDirector } from './mining'
+import { MiningDirector, MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
@@ -29,6 +29,7 @@ export class IronfishNode {
   accounts: Accounts
   logger: Logger
   miningDirector: MiningDirector
+  miningManager: MiningManager
   metrics: MetricsMonitor
   memPool: MemPool
   workerPool: WorkerPool
@@ -86,6 +87,7 @@ export class IronfishNode {
     this.strategy = strategy
     this.metrics = metrics
     this.miningDirector = miningDirector
+    this.miningManager = new MiningManager({ chain, memPool, node: this })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BufferMap, BufferSet } from 'buffer-map'
+import { BufferMap } from 'buffer-map'
 import FastPriorityQueue from 'fastpriorityqueue'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -11,9 +11,6 @@ import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
-import { AsyncUtils } from '../utils'
-
-const MAX_TRANSACTIONS_PER_BLOCK = 10
 
 interface MempoolEntry {
   fee: bigint
@@ -111,58 +108,6 @@ export class MemPool {
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
-  }
-
-  async getNewBlockTransactions(sequence: number): Promise<{
-    totalFees: bigint
-    blockTransactions: Transaction[]
-  }> {
-    // Fetch pending transactions
-    const blockTransactions: Transaction[] = []
-    const nullifiers = new BufferSet()
-    for (const transaction of this.get()) {
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
-        break
-      }
-
-      const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.expirationSequence(),
-        sequence,
-      )
-      if (isExpired) {
-        continue
-      }
-
-      const isConflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
-        return nullifiers.has(spend.nullifier)
-      })
-      if (isConflicted) {
-        continue
-      }
-
-      const { valid: isValid } = await this.chain.verifier.verifyTransactionSpends(transaction)
-      if (!isValid) {
-        continue
-      }
-
-      for (const spend of transaction.spends()) {
-        nullifiers.add(spend.nullifier)
-      }
-
-      blockTransactions.push(transaction)
-    }
-
-    // Sum the transaction fees
-    let totalTransactionFees = BigInt(0)
-    const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
-    for (const transactionFee of transactionFees) {
-      totalTransactionFees += transactionFee
-    }
-
-    return {
-      totalFees: totalTransactionFees,
-      blockTransactions,
-    }
   }
 
   onConnectBlock(block: Block): void {
