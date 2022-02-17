@@ -62,6 +62,7 @@ export default class Status extends IronfishCommand {
 
 function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
+  const telemetryStatus = `${content.telemetry.status.toUpperCase()}`
   const heapTotal = FileUtils.formatMemorySize(content.memory.heapTotal)
   const heapUsed = FileUtils.formatMemorySize(content.memory.heapUsed)
   const rss = FileUtils.formatMemorySize(content.memory.rss)
@@ -112,5 +113,6 @@ Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
 Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
+Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}`
 }
