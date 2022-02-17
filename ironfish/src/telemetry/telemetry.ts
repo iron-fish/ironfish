@@ -16,7 +16,7 @@ export class Telemetry {
   private readonly FLUSH_INTERVAL = 5 * 60 * 1000
   private readonly MAX_POINTS_TO_SUBMIT = 1000
   private readonly MAX_RETRIES = 5
-  private readonly METRICS_INTERVAL = 60 * 1000
+  private readonly METRICS_INTERVAL = 5 * 60 * 1000
 
   private readonly defaultTags: Tag[]
   private readonly defaultFields: Field[]
