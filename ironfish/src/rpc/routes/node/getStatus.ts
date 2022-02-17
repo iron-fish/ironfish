@@ -48,6 +48,9 @@ export type GetStatusResponse = {
     inboundTraffic: number
     outboundTraffic: number
   }
+  telemetry: {
+    status: string
+  }
   workers: {
     started: boolean
     workers: number
@@ -118,6 +121,11 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
             speed: yup.number().defined(),
           })
           .optional(),
+      })
+      .defined(),
+    telemetry: yup
+      .object({
+        status: yup.string().oneOf(['started', 'stopped']).defined(),
       })
       .defined(),
     workers: yup
@@ -200,6 +208,9 @@ function getStatus(node: IronfishNode): GetStatusResponse {
         blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
         speed: MathUtils.round(node.syncer.speed.rate1m, 2),
       },
+    },
+    telemetry: {
+      status: node.telemetry.isStarted() ? 'started' : 'stopped',
     },
     workers: {
       started: node.workerPool.started,

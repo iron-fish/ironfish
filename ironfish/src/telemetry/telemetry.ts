@@ -85,6 +85,10 @@ export class Telemetry {
     await this.flush()
   }
 
+  isStarted(): boolean {
+    return this.started
+  }
+
   async flushLoop(): Promise<void> {
     await this.flush()
 
