@@ -61,7 +61,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
   }
 }
 
-type PartialBlockHeader = {
+export type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {

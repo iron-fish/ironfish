@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
-import net from 'net'
+import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { IronfishRpcClient } from '../rpc/clients/rpcClient'
 import { IronfishSdk } from '../sdk'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
-import { PromiseUtils } from '../utils/promise'
 import { StratumServer } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
 
@@ -28,24 +27,9 @@ export class MiningPool {
 
   currentHeadTimestamp: number
   currentHeadDifficulty: string
+  logger: Logger
 
   // TODO: Disconnects
-
-  private constructor(
-    sdk: IronfishSdk,
-    nodeClient: IronfishRpcClient,
-    { timestamp, difficulty }: { timestamp: number; difficulty: string },
-  ) {
-    this.sdk = sdk
-    this.nodeClient = nodeClient
-    this.hashRate = new Meter()
-    this.stratum = new StratumServer(this)
-    this.nextMiningRequestId = 0
-    this.miningRequestBlocks = {}
-    this.target.writeUInt32BE(65535)
-    this.currentHeadTimestamp = timestamp
-    this.currentHeadDifficulty = difficulty
-  }
 
   static async init(): Promise<MiningPool> {
     // TODO: Hashrate
@@ -59,20 +43,37 @@ export class MiningPool {
     const sdk = await IronfishSdk.init({ configOverrides: configOverrides })
     const nodeClient = await sdk.connectRpc()
     const currentBlock = (await nodeClient.getBlockInfo({ sequence: -1 })).content.block
-    return new MiningPool(sdk, nodeClient, currentBlock)
+
+    return new MiningPool({ sdk, nodeClient, currentBlock })
   }
 
-  async start() {
+  private constructor(options: {
+    sdk: IronfishSdk
+    nodeClient: IronfishRpcClient
+    currentBlock: GetBlockInfoResponse['block']
+    logger?: Logger
+  }) {
+    this.sdk = options.sdk
+    this.nodeClient = options.nodeClient
+    this.hashRate = new Meter()
+    this.logger = options.logger ?? createRootLogger()
+    this.stratum = new StratumServer({ pool: this, logger: this.logger })
+    this.nextMiningRequestId = 0
+    this.miningRequestBlocks = {}
+    this.target.writeUInt32BE(65535)
+    this.currentHeadTimestamp = options.currentBlock.timestamp
+    this.currentHeadDifficulty = options.currentBlock.difficulty
+  }
+
+  start(): void {
     this.hashRate.start()
     this.stratum.start()
-    this.processNewBlocks()
+    void this.processNewBlocks()
+  }
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      await PromiseUtils.sleep(1000)
-    }
-
-    console.log('Stopping, goodbye')
+  stop(): void {
+    this.logger.debug('Stopping, goodbye')
+    this.stratum.stop()
     this.hashRate.stop()
   }
 
@@ -93,13 +94,13 @@ export class MiningPool {
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader < this.target) {
-      console.log('Valid pool share submitted')
+      this.logger.info('Valid pool share submitted')
     }
 
     if (hashedHeader < Buffer.from(blockTemplate.header.target, 'hex')) {
       // TODO: this seems to (sometimes?) have significant delay, look into why.
       // is it a socket buffer flush issue or a slowdown on the node side?
-      console.log('Valid block, submitting to node')
+      this.logger.info('Valid block, submitting to node')
       this.nodeClient.submitBlock(blockTemplate)
     }
   }

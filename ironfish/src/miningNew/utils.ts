@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export function mineableHeaderString(header: PartialHeader): Buffer {
+import bufio from 'bufio'
+import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
+
+export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
   const bw = bufio.write(208)
   bw.writeDoubleBE(header.randomness)
   bw.writeU64(header.sequence)
@@ -20,7 +23,7 @@ export function mineableHeaderString(header: PartialHeader): Buffer {
 }
 
 // deserialize into a partial header
-export function minedPartialHeader(data: Buffer): PartialHeader {
+export function minedPartialHeader(data: Buffer): unknown {
   const br = bufio.read(data)
   const randomness = br.readDoubleBE()
   const sequence = br.readU64()
