@@ -187,7 +187,7 @@ export class PeerNetwork {
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => {
-      this.metrics.peersCount.value = this.peerManager.getConnectedPeers().length
+      this.metrics.p2p_PeersCount.value = this.peerManager.getConnectedPeers().length
       this.updateIsReady()
     })
 

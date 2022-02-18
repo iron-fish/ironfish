@@ -12,13 +12,13 @@ export class MetricsMonitor {
   private _meters: Meter[] = []
   private readonly logger: Logger
 
-  readonly peersCount: Gauge
   readonly p2p_InboundTraffic: Meter
   readonly p2p_InboundTraffic_WS: Meter
   readonly p2p_InboundTraffic_WebRTC: Meter
   readonly p2p_OutboundTraffic: Meter
   readonly p2p_OutboundTraffic_WS: Meter
   readonly p2p_OutboundTraffic_WebRTC: Meter
+  readonly p2p_PeersCount: Gauge
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
@@ -29,13 +29,13 @@ export class MetricsMonitor {
   constructor({ logger }: { logger?: Logger }) {
     this.logger = logger ?? createRootLogger()
 
-    this.peersCount = new Gauge()
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()
     this.p2p_InboundTraffic_WebRTC = this.addMeter()
     this.p2p_OutboundTraffic = this.addMeter()
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
+    this.p2p_PeersCount = new Gauge()
 
     this.heapTotal = new Gauge()
     this.heapUsed = new Gauge()

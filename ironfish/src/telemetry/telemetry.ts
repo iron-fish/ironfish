@@ -118,7 +118,7 @@ export class Telemetry {
         {
           name: 'peers_count',
           type: 'integer',
-          value: this.metrics.peersCount.value,
+          value: this.metrics.p2p_PeersCount.value,
         },
       ],
     })
