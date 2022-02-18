@@ -169,11 +169,9 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 )
 
 function getStatus(node: IronfishNode): GetStatusResponse {
-  const peers = node.peerNetwork.peerManager.getConnectedPeers()
-
   const status: GetStatusResponse = {
     peerNetwork: {
-      peers: peers.length,
+      peers: node.metrics.p2p_PeersCount.value,
       isReady: node.peerNetwork.isReady,
       inboundTraffic: Math.max(node.metrics.p2p_InboundTraffic.rate1s, 0),
       outboundTraffic: Math.max(node.metrics.p2p_OutboundTraffic.rate1s, 0),
