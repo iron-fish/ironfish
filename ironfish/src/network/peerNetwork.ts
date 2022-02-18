@@ -186,7 +186,10 @@ export class PeerNetwork {
       logPeerMessages,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
-    this.peerManager.onConnectedPeersChanged.on(() => this.updateIsReady())
+    this.peerManager.onConnectedPeersChanged.on(() => {
+      this.metrics.p2p_PeersCount.value = this.peerManager.getConnectedPeers().length
+      this.updateIsReady()
+    })
 
     this.peerConnectionManager = new PeerConnectionManager(this.peerManager, this.logger, {
       maxPeers,
