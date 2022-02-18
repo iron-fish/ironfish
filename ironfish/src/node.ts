@@ -188,17 +188,18 @@ export class IronfishNode {
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
 
+    metrics = metrics || new MetricsMonitor({ logger })
+
     const telemetry = new Telemetry({
-      workerPool,
       logger,
+      metrics,
+      workerPool,
       defaultTags: [{ name: 'version', value: pkg.version }],
       defaultFields: [
         { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
         { name: 'session_id', type: 'string', value: uuid() },
       ],
     })
-
-    metrics = metrics || new MetricsMonitor({ logger })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
