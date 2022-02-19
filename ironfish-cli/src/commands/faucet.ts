@@ -77,7 +77,7 @@ export class FaucetCommand extends IronfishCommand {
         CliUx.ux.action.stop(error.codeMessage)
 
         if (
-          error.codeMessage === 'faucet_max_requests_reached' ||
+          error.codeMessage === 'Too many faucet requests' ||
           error.codeMessage === 'You entered an invalid email.'
         ) {
           this.exit(0)
