@@ -41,7 +41,7 @@ export class FaucetCommand extends IronfishCommand {
 
     if (!email) {
       email = (await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
-        required: false,
+        required: true,
       })) as string
     }
 
@@ -75,6 +75,13 @@ export class FaucetCommand extends IronfishCommand {
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         CliUx.ux.action.stop(error.codeMessage)
+
+        if (
+          error.codeMessage === 'faucet_max_requests_reached' ||
+          error.codeMessage === 'You entered an invalid email.'
+        ) {
+          this.exit(0)
+        }
       } else {
         CliUx.ux.action.stop(
           'Unfortunately, the faucet request failed. Please try again later.',
