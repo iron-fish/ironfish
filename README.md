@@ -45,11 +45,12 @@ Once your environment is setup - you can run the CLI by following [these directi
 
 1. To test the entire monorepo:
    1. Run `yarn test` at the root of the repository
+   1. Run `yarn test:slow` in ./ironfish/ to run slow tests
    1. Run `yarn test:coverage` at the root of the repository for tests and coverage
 1. To test a specific project
    1. Run `yarn test` at the root of the project
-   1. Run `yarn test:watch` if you want the tests to run on change
-   1. Run `test:coverage:html` if you want to export the coverage in an easy to use format (open the index.html file in the coverage folder of the project)
+   1. Run `yarn test:watch` in ./ironfish or ./ironfish-cli if you want the tests to run on change
+   1. Run `yarn test:coverage:html` if you want to export the coverage in an easy to use format (open the index.html file in the coverage folder of the project)
 
 ## Structure of the repository
 
