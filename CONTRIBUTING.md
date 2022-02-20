@@ -34,9 +34,9 @@ To create a new pull request:
 7. Add the right label to your PR `documentation`, `bug`, `security-issue`, or `enhancement`.
 8. Add a description of what the PR is changing:
    * What problem is the PR solving
+   * References to any bugs you're fixing with single lines of the form `Fix #123`
    * Explain if it's adding a breaking change for clients
    * Explain how you've tested your change
-   * Reference any existing bugs you're fixing with single lines of the form `Fix #123` to have Github link the PR to the bug.
 
 Once the PR is created, one of the maintainers will review it and merge it into the master branch.
 
