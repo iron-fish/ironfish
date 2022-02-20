@@ -27,8 +27,9 @@ Pull requests are the best way to propose a new change to the codebase (we use t
 To create a new pull request:
 1. Fork the repo and check out a new branch from `master`.
 2. Add test - if your code change doesn't require a test change, please explain why in the PR description.
+   * To run tests from a specific .test.ts file, run `yarn test NAME` where your tests are in NAME.test.ts
 3. Update the documentation - Especially if you've changed APIs or created new functions.
-4. Ensure the test suite passes by running `yarn test`.
+4. Ensure the entire test suite passes by running `yarn test`.
 5. Make sure your code lints by running `yarn lint`.
 6. Once 4 & 5 are passing, create a new pull request on GitHub.
 7. Add the right label to your PR `documentation`, `bug`, `security-issue`, or `enhancement`.
