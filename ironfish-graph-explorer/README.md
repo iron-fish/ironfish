@@ -22,4 +22,4 @@ yarn start
 open http://localhost:9000
 ```
 
-Note: you may need to run `yarn install` in /ironfish-graph-explorer to install all required packages.
+Note: you may need to run `yarn install` in ./ironfish-graph-explorer to install all required packages.
