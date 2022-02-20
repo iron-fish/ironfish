@@ -51,8 +51,8 @@ export class MinedCommand extends IronfishCommand {
     args.start = MathUtils.floor(args.start, 0)
 
     //Fix parameters so 1 <= start <= stop
-    args.start = MathUtils.max(args.start, 1)
-    args.stop = MathUtils.max(args.stop, args.start)
+    args.start = Math.max(args.start, 1)
+    args.stop = Math.max(args.stop, args.start)
 
     const stream = client.exportMinedStream({
       start: args.start as number | null,
