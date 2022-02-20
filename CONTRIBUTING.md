@@ -36,6 +36,7 @@ To create a new pull request:
    * What problem is the PR solving
    * Explain if it's adding a breaking change for clients
    * Explain how you've tested your change
+   * Reference any existing bugs you're fixing with single lines of the form `Fix #123` to have Github link the PR to the bug.
 
 Once the PR is created, one of the maintainers will review it and merge it into the master branch.
 
