@@ -1,8 +1,12 @@
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert, isNoteRequestPayload } from '..'
+import { IJSON } from '../serde'
 import {
   DisconnectingMessage,
   DisconnectingReason,
@@ -21,9 +25,6 @@ import {
   Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
-import { IJSON } from '../serde'
-import { Assert, isNoteRequestPayload } from '..'
-
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -134,26 +135,13 @@ describe('isDisconnectingMessage', () => {
 })
 
 describe('parseMessage', () => {
-  it('Throws error on JSON parse error', () => {
-    //jest.spyOn(IJSON, 'parse').mockImplementation(() => {null})
-    /*
-    try {
-      parseMessage('{"Iron": "Fish!"}')
-    } catch (e) {
-      expect(e.message).toContain('Message must have a type field')
-    }
-    */
-
+  it('Throws error when no type field found in the json', () => {
     try {
       expect(parseMessage('{"Iron": "Fish!"}')).toThrowError('Message must have a type field')
     } catch (e) {}
-    
-
-    //Clean up. Not liking this being part of each case.
-    //jest.spyOn(IJSON, 'parse').mockRestore()
   })
 
-  it('Parses JSON successfully', () => {
+  it('Parses json successfully', () => {
     const msg: NoteRequest = {
       type: NodeMessageType.Note,
       payload: {
@@ -163,18 +151,7 @@ describe('parseMessage', () => {
 
     const data = JSON.stringify(msg)
     const output = parseMessage(data)
-console.log(output)
-    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
 
-    /*
-let output
-    try {
-      //output = parseMessage('{type: "disconnecting",payload: {sourceIdentity: "DPvVzupTg",destinationIdentity:"mwsd55Kw0xzsCXA/FaBprjQUtkohXI8LrQZnccYn6Ck=",reason: 1,disconnectUntil: 1645421463764}} ') //{"type":"disconnecting","payload":"sourceIdentity":"DPvVzupTgPynIemjckqv7BT7Tjx5VQvgnv6Z5vn63c=","destinationIdentity":"mwsd55Kw0xzsCXA/FaBprjQUtkohXI8LrQZnccYn6Ck=","reason":1,"disconnectUntil":1645421463764}}')
-      output = parseMessage(data)
-    } catch (e) {
-      //Assert.isNull(e,  data)
-    }
-    Assert.isTrue(false, 'jjjjjj')
-    */
+    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
   })
 })
