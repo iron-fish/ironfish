@@ -5,8 +5,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, isNoteRequestPayload } from '..'
-import { IJSON } from '../serde'
+import { Assert } from '..'
 import {
   DisconnectingMessage,
   DisconnectingReason,
@@ -137,11 +136,15 @@ describe('isDisconnectingMessage', () => {
 describe('parseMessage', () => {
   it('Throws error when no type field found in the json', () => {
     try {
-      expect(parseMessage('{"Iron": "Fish!"}')).toThrowError('Message must have a type field')
+      parseMessage('{"Iron": "Fish!"}')
+      //Ensure we are not reporting a false positive
+      Assert.isFalse(true, "parseMessage found a type field")
     } catch (e) {
-      //Duplication here, but lint does not like empty blocks
+      if (!(e instanceof Error)) {
+        throw e
+      }
       expect(e.message).toContain('Message must have a type field')
-    }
+    }    
   })
 
   it('Parses json successfully', () => {
@@ -155,6 +158,6 @@ describe('parseMessage', () => {
     const data = JSON.stringify(msg)
     const output = parseMessage(data)
     const blah = JSON.stringify(output)
-    expect(data).toEqual(expect.stringMatching(blah));
+    expect(data).toEqual(expect.stringMatching(blah))
   })
 })
