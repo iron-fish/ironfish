@@ -1,3 +1,4 @@
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
@@ -12,11 +13,16 @@ import {
   isPeerList,
   isPeerListRequest,
   isSignal,
+  NodeMessageType,
+  NoteRequest,
+  parseMessage,
   PeerList,
   PeerListRequest,
   Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
+import { IJSON } from '../serde'
+import { Assert } from '..'
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -123,5 +129,55 @@ describe('isDisconnectingMessage', () => {
       },
     }
     expect(isDisconnectingMessage(msg)).toBeTruthy()
+  })
+})
+
+describe('parseMessage', () => {
+  it('Throws error on JSON parse error', () => {
+    jest.spyOn(IJSON, 'parse').mockImplementation(() => {null})
+/*
+    try {
+      parseMessage('Go Iron Fish!')
+    } catch (e) {
+      expect(e.message).toContain('Message must have a type field')
+    }
+*/
+    try {
+      expect(parseMessage('dsfdsf')).toThrowError('Message must have a type field')
+    } catch (e) {}
+  })
+
+  it('Parses JSON successfully', () => {
+    //jktodo: try and log the web messages to see what the format is.
+    const msg: DisconnectingMessage = {
+      type: InternalMessageType.disconnecting,
+      payload: {
+        sourceIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
+        destinationIdentity: null,
+        reason: DisconnectingReason.ShuttingDown,
+        disconnectUntil: Date.now(),
+      },
+    }
+    
+    //export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
+    const msg2: NoteRequest = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 3,
+      },
+    }
+
+    const data = JSON.stringify(msg2)
+let output
+    try {
+      output = parseMessage(data)
+      //output = parseMessage('{"type":"Note"}')
+      //Assert.isTrue(false,  output.type)
+      //expect(output).toContain('Message must have a type field')
+    } catch (e) {
+      //Assert.isTrue(false,  data)
+      Assert.isNull(e,  data)
+    }
+    Assert.isTrue(false, 'jjjjjj')
   })
 })
