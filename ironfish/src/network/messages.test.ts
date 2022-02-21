@@ -138,7 +138,10 @@ describe('parseMessage', () => {
   it('Throws error when no type field found in the json', () => {
     try {
       expect(parseMessage('{"Iron": "Fish!"}')).toThrowError('Message must have a type field')
-    } catch (e) {}
+    } catch (e) {
+      //Duplication here, but lint does not like empty blocks
+      expect(e.message).toContain('Message must have a type field')
+    }
   })
 
   it('Parses json successfully', () => {
@@ -151,7 +154,7 @@ describe('parseMessage', () => {
 
     const data = JSON.stringify(msg)
     const output = parseMessage(data)
-
-    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
+    const blah = JSON.stringify(output)
+    expect(data).toEqual(expect.stringMatching(blah));
   })
 })
