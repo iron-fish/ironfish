@@ -22,7 +22,8 @@ import {
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
 import { IJSON } from '../serde'
-import { Assert } from '..'
+import { Assert, isNoteRequestPayload } from '..'
+
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -134,50 +135,46 @@ describe('isDisconnectingMessage', () => {
 
 describe('parseMessage', () => {
   it('Throws error on JSON parse error', () => {
-    jest.spyOn(IJSON, 'parse').mockImplementation(() => {null})
-/*
+    //jest.spyOn(IJSON, 'parse').mockImplementation(() => {null})
+    /*
     try {
-      parseMessage('Go Iron Fish!')
+      parseMessage('{"Iron": "Fish!"}')
     } catch (e) {
       expect(e.message).toContain('Message must have a type field')
     }
-*/
+    */
+
     try {
-      expect(parseMessage('dsfdsf')).toThrowError('Message must have a type field')
+      expect(parseMessage('{"Iron": "Fish!"}')).toThrowError('Message must have a type field')
     } catch (e) {}
+    
+
+    //Clean up. Not liking this being part of each case.
+    //jest.spyOn(IJSON, 'parse').mockRestore()
   })
 
   it('Parses JSON successfully', () => {
-    //jktodo: try and log the web messages to see what the format is.
-    const msg: DisconnectingMessage = {
-      type: InternalMessageType.disconnecting,
-      payload: {
-        sourceIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        destinationIdentity: null,
-        reason: DisconnectingReason.ShuttingDown,
-        disconnectUntil: Date.now(),
-      },
-    }
-    
-    //export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
-    const msg2: NoteRequest = {
+    const msg: NoteRequest = {
       type: NodeMessageType.Note,
       payload: {
         position: 3,
       },
     }
 
-    const data = JSON.stringify(msg2)
+    const data = JSON.stringify(msg)
+    const output = parseMessage(data)
+console.log(output)
+    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
+
+    /*
 let output
     try {
+      //output = parseMessage('{type: "disconnecting",payload: {sourceIdentity: "DPvVzupTg",destinationIdentity:"mwsd55Kw0xzsCXA/FaBprjQUtkohXI8LrQZnccYn6Ck=",reason: 1,disconnectUntil: 1645421463764}} ') //{"type":"disconnecting","payload":"sourceIdentity":"DPvVzupTgPynIemjckqv7BT7Tjx5VQvgnv6Z5vn63c=","destinationIdentity":"mwsd55Kw0xzsCXA/FaBprjQUtkohXI8LrQZnccYn6Ck=","reason":1,"disconnectUntil":1645421463764}}')
       output = parseMessage(data)
-      //output = parseMessage('{"type":"Note"}')
-      //Assert.isTrue(false,  output.type)
-      //expect(output).toContain('Message must have a type field')
     } catch (e) {
-      //Assert.isTrue(false,  data)
-      Assert.isNull(e,  data)
+      //Assert.isNull(e,  data)
     }
     Assert.isTrue(false, 'jjjjjj')
+    */
   })
 })
