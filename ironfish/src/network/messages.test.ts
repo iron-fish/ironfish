@@ -5,6 +5,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { isMessage } from '.'
 import { Assert } from '..'
 import {
   DisconnectingMessage,
@@ -103,6 +104,14 @@ describe('isPeerList', () => {
     }
     expect(isPeerList(msg)).toBeTruthy()
   })
+
+  it('Returns false on a message without a payload', () => {
+    const msg: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+
+    expect(isPeerList(msg)).toBeFalsy()
+  })
 })
 
 describe('isDisconnectingMessage', () => {
@@ -138,13 +147,13 @@ describe('parseMessage', () => {
     try {
       parseMessage('{"Iron": "Fish!"}')
       //Ensure we are not reporting a false positive
-      Assert.isFalse(true, "parseMessage found a type field")
+      Assert.isFalse(true, 'parseMessage found a type field')
     } catch (e) {
       if (!(e instanceof Error)) {
         throw e
       }
       expect(e.message).toContain('Message must have a type field')
-    }    
+    }
   })
 
   it('Parses json successfully', () => {
@@ -161,3 +170,81 @@ describe('parseMessage', () => {
     expect(data).toEqual(expect.stringMatching(blah))
   })
 })
+
+describe('isMessage', () => {
+  it('returns false on null parameter', () => {
+    expect(isMessage(null)).toBeFalsy()
+  })
+
+  it('returns false when parameter is not an object', () => {
+    const msg: NoteRequest = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 3,
+      },
+    }
+
+    const data = JSON.stringify(msg)
+    expect(isMessage(data)).toBeFalsy()
+  })
+
+  it('returns false when there is no payload', () => {
+    const msg: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+
+    expect(isPeerList(msg)).toBeFalsy()
+  })
+
+  it("returns false when the parameter's payload is not an object", () => {
+    const msg: NoteRequest = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 3,
+      },
+    }
+
+    const data = JSON.stringify(msg.payload)
+    expect(isMessage(data)).toBeFalsy()
+  })
+})
+
+describe('isPeerLista', () => {
+  it('returns false if message does not have a payload', () => {
+  })
+})
+
+describe('isPeerListb', () => {
+  it('returns false if message does not have a payload', () => {
+  })
+})
+
+describe('isPeerList', () => {
+  it('returns false if message does not have a payload', () => {
+  })
+})
+
+describe('isPeerList', () => {
+  it('returns false if message does not have a payload', () => {
+  })
+})
+
+describe('isPeerList', () => {
+  it('returns false if message does not have a payload', () => {
+  })
+})
+//Other functions to improve, ignoring the 4x conditional return functions
+//isNoteRequestPayload more conditionals on return to test, only run once
+//isNoteResponsePayload
+//isNoteResponse
+//isNullifierRequestPayload
+//isNullifierResponse
+//isNullifierResponsePayload
+//isGetBlocksResponse
+//isGetBlocksRequest
+//isGetBlockHashesResponse
+//isGetBlockHashesRequest
+//isBlockHash
+//isBlock
+//isNewBlockPayload - 2 executions only
+
