@@ -14,6 +14,9 @@ import {
   InternalMessageType,
   isDisconnectingMessage,
   isIdentify,
+  isNoteRequestPayload,
+  isNoteResponse,
+  isNoteResponsePayload,
   isPeerList,
   isPeerListRequest,
   isSignal,
@@ -209,34 +212,95 @@ describe('isMessage', () => {
   })
 })
 
-describe('isPeerLista', () => {
-  it('returns false if message does not have a payload', () => {
-  })
-})
-
-describe('isPeerListb', () => {
-  it('returns false if message does not have a payload', () => {
-  })
-})
-
-describe('isPeerList', () => {
-  it('returns false if message does not have a payload', () => {
-  })
-})
-
-describe('isPeerList', () => {
-  it('returns false if message does not have a payload', () => {
-  })
-})
-
-describe('isPeerList', () => {
-  it('returns false if message does not have a payload', () => {
-  })
-})
-//Other functions to improve, ignoring the 4x conditional return functions
 //isNoteRequestPayload more conditionals on return to test, only run once
-//isNoteResponsePayload
-//isNoteResponse
+describe('isNoteRequestPayload', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isNoteRequestPayload(undefined)).toBeFalsy()
+  })
+  
+  it('returns false if message does not have a payload', () => {
+    const msg: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+  
+  it('returns false if payload.position is not a number', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 'three',
+      },
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+})
+
+describe('isNoteResponsePayload', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isNoteResponsePayload(undefined)).toBeFalsy()
+  })
+  
+  it('returns false if message does not have a note field', () => {
+    const msg = {
+      type: NodeMessageType.Nullifier,
+      payload: {
+        position: 3,
+      },
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+  
+  it('returns false if message does not have a payload field', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+  
+  it('returns false if payload.position is not a number', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 'three',
+      },
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+})
+
+describe('isNoteResponse', () => {
+  it('returns false if the message type is not Note', () => {
+    const msg: PeerListRequest = {
+      type: InternalMessageType.peerListRequest,
+    }
+    expect(isNoteRequestPayload(msg)).toBeFalsy()
+  })
+  
+  it('returns false if message does not have a payload field', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+    }
+    expect(isNoteResponse(msg)).toBeFalsy()
+  })
+  
+  it('returns false if the payload is not for a valid note', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 'three',
+      },
+    }
+    expect(isNoteResponse(msg)).toBeFalsy()
+  })
+})
+
+describe('isPeerList', () => {
+  it('a', () => {
+    // toBeTruthy()
+  })
+})
+
 //isNullifierRequestPayload
 //isNullifierResponse
 //isNullifierResponsePayload
@@ -248,3 +312,10 @@ describe('isPeerList', () => {
 //isBlock
 //isNewBlockPayload - 2 executions only
 
+
+//Other functions to improve, ignoring the 4x conditional return functions
+  //isPayloadMessage
+  //isIdentify
+  //isSignalRequest
+  //isSignal
+  //isPeerList
