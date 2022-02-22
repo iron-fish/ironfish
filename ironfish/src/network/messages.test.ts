@@ -167,10 +167,10 @@ describe('parseMessage', () => {
       },
     }
 
-    const data = JSON.stringify(msg)
-    const output = parseMessage(data)
-    const blah = JSON.stringify(output)
-    expect(data).toEqual(expect.stringMatching(blah))
+    const firstJson = JSON.stringify(msg)
+    const output = parseMessage(firstJson)
+    const secondJson = JSON.stringify(output)
+    expect(firstJson).toEqual(expect.stringMatching(secondJson))
   })
 })
 
@@ -191,9 +191,10 @@ describe('isMessage', () => {
     expect(isMessage(data)).toBeFalsy()
   })
 
-  it('returns false when there is no payload', () => {
-    const msg: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
+  it('returns false when there is no payload object', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+      payload: 'three',
     }
 
     expect(isMessage(msg)).toBeFalsy()
@@ -212,19 +213,18 @@ describe('isMessage', () => {
   })
 })
 
-//isNoteRequestPayload more conditionals on return to test, only run once
 describe('isNoteRequestPayload', () => {
   it('returns false if the object is undefined', () => {
     expect(isNoteRequestPayload(undefined)).toBeFalsy()
   })
-  
+
   it('returns false if message does not have a payload', () => {
     const msg: PeerListRequest = {
       type: InternalMessageType.peerListRequest,
     }
     expect(isNoteRequestPayload(msg)).toBeFalsy()
   })
-  
+
   it('returns false if payload.position is not a number', () => {
     const msg = {
       type: NodeMessageType.Note,
@@ -240,7 +240,7 @@ describe('isNoteResponsePayload', () => {
   it('returns false if the object is undefined', () => {
     expect(isNoteResponsePayload(undefined)).toBeFalsy()
   })
-  
+
   it('returns false if message does not have a note field', () => {
     const msg = {
       type: NodeMessageType.Nullifier,
@@ -250,14 +250,14 @@ describe('isNoteResponsePayload', () => {
     }
     expect(isNoteResponsePayload(msg)).toBeFalsy()
   })
-  
+
   it('returns false if message does not have a payload field', () => {
     const msg = {
       type: NodeMessageType.Note,
     }
     expect(isNoteResponsePayload(msg)).toBeFalsy()
   })
-  
+
   it('returns false if payload.position is not a number', () => {
     const msg = {
       type: NodeMessageType.Note,
@@ -276,14 +276,14 @@ describe('isNoteResponse', () => {
     }
     expect(isNoteResponse(msg)).toBeFalsy()
   })
-  
+
   it('returns false if message does not have a payload field', () => {
     const msg = {
       type: NodeMessageType.Note,
     }
     expect(isNoteResponse(msg)).toBeFalsy()
   })
-  
+
   it('returns false if the payload is not for a valid note', () => {
     const msg = {
       type: NodeMessageType.Note,
@@ -298,6 +298,7 @@ describe('isNoteResponse', () => {
 describe('test', () => {
   it('a', () => {
     // toBeTruthy()
+    expect(isNoteResponsePayload(undefined)).toBeFalsy()
   })
 })
 
@@ -312,10 +313,9 @@ describe('test', () => {
 //isBlock
 //isNewBlockPayload - 2 executions only
 
-
-//Other functions to improve, mostly multiple conditional return functions
-  //isPayloadMessage
-  //isIdentify
-  //isSignalRequest
-  //isSignal
-  //isPeerList
+//Other functions to improve, they mostly have multiple conditional returns
+//isPayloadMessage
+//isIdentify
+//isSignalRequest
+//isSignal
+//isPeerList
