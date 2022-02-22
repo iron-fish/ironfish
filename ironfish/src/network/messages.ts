@@ -285,7 +285,7 @@ export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
 export function isNoteRequestPayload(obj: PayloadType): obj is MessagePayload<NoteRequest> {
   return obj !== undefined && 'position' in obj && typeof obj.position === 'number'
 }
-//jktodo: split these functions up into separate checks for CC
+
 /**
  * A response to a note request, returned by the handler in TreeSyncer
  *
