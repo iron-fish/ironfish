@@ -5,7 +5,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { isMessage } from '.'
 import { Assert } from '..'
 import {
   DisconnectingMessage,
@@ -14,6 +13,7 @@ import {
   InternalMessageType,
   isDisconnectingMessage,
   isIdentify,
+  isMessage,
   isNoteRequestPayload,
   isNoteResponse,
   isNoteResponsePayload,
@@ -196,7 +196,7 @@ describe('isMessage', () => {
       type: InternalMessageType.peerListRequest,
     }
 
-    expect(isPeerList(msg)).toBeFalsy()
+    expect(isMessage(msg)).toBeFalsy()
   })
 
   it("returns false when the parameter's payload is not an object", () => {
@@ -248,14 +248,14 @@ describe('isNoteResponsePayload', () => {
         position: 3,
       },
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg)).toBeFalsy()
   })
   
   it('returns false if message does not have a payload field', () => {
     const msg = {
       type: NodeMessageType.Note,
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg)).toBeFalsy()
   })
   
   it('returns false if payload.position is not a number', () => {
@@ -265,7 +265,7 @@ describe('isNoteResponsePayload', () => {
         position: 'three',
       },
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg)).toBeFalsy()
   })
 })
 
@@ -274,7 +274,7 @@ describe('isNoteResponse', () => {
     const msg: PeerListRequest = {
       type: InternalMessageType.peerListRequest,
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteResponse(msg)).toBeFalsy()
   })
   
   it('returns false if message does not have a payload field', () => {
@@ -295,7 +295,7 @@ describe('isNoteResponse', () => {
   })
 })
 
-describe('isPeerList', () => {
+describe('test', () => {
   it('a', () => {
     // toBeTruthy()
   })
@@ -313,7 +313,7 @@ describe('isPeerList', () => {
 //isNewBlockPayload - 2 executions only
 
 
-//Other functions to improve, ignoring the 4x conditional return functions
+//Other functions to improve, mostly multiple conditional return functions
   //isPayloadMessage
   //isIdentify
   //isSignalRequest
