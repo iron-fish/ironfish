@@ -46,14 +46,6 @@ export class MinedCommand extends IronfishCommand {
 
     this.log('Scanning for mined blocks...')
 
-    //Truncate fractions from parameters
-    args.stop = MathUtils.floor(args.stop, 0)
-    args.start = MathUtils.floor(args.start, 0)
-
-    //Fix parameters so 1 <= start <= stop
-    args.start = Math.max(args.start, 1)
-    args.stop = Math.max(args.stop, args.start)
-
     const stream = client.exportMinedStream({
       start: args.start as number | null,
       stop: args.stop as number | null,

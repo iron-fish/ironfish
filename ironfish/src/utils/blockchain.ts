@@ -29,6 +29,10 @@ export function getBlockRange(
     stop = max + stop
   }
 
+  // Truncate fractions from parameters
+  stop = Math.floor(stop)
+  start = Math.floor(start)
+
   // Ensure values are in valid range and start < stop
   start = Math.min(Math.max(start, min), max)
   stop = Math.max(Math.min(Math.max(stop, min), max), start)
