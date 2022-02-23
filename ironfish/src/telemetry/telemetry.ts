@@ -28,6 +28,7 @@ export class Telemetry {
   private metricsInterval: SetIntervalToken | null
   private points: Metric[]
   private retries: number
+  private _submitted: number
 
   constructor(options: {
     workerPool: WorkerPool
@@ -46,7 +47,16 @@ export class Telemetry {
     this.metricsInterval = null
     this.points = []
     this.retries = 0
+    this._submitted = 0
     this.started = false
+  }
+
+  get pending(): number {
+    return this.points.length
+  }
+
+  get submitted(): number {
+    return this._submitted
   }
 
   start(): void {
@@ -173,6 +183,7 @@ export class Telemetry {
       await this.workerPool.submitTelemetry(points)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0
+      this._submitted += points.length
     } catch (error: unknown) {
       this.logger.error(`Error submitting telemetry to API: ${renderError(error)}`)
 
