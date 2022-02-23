@@ -63,9 +63,6 @@ export default class Status extends IronfishCommand {
 function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
-  const heapTotal = FileUtils.formatMemorySize(content.memory.heapTotal)
-  const heapUsed = FileUtils.formatMemorySize(content.memory.heapUsed)
-  const rss = FileUtils.formatMemorySize(content.memory.rss)
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
@@ -108,11 +105,26 @@ function renderStatus(content: GetStatusResponse): string {
     workersStatus += ` - ${content.workers.queued} -> ${content.workers.executing} / ${content.workers.capacity} - ${content.workers.change} jobs Δ, ${content.workers.speed} jobs/s`
   }
 
+  const heapTotal = FileUtils.formatMemorySize(content.memory.heapTotal)
+  const heapUsed = FileUtils.formatMemorySize(content.memory.heapUsed)
+  const rss = FileUtils.formatMemorySize(content.memory.rss)
+  const memFree = FileUtils.formatMemorySize(content.memory.memFree)
+
+  const memoryStatus = `Heap: ${heapUsed} / ${heapTotal} (${(
+    (content.memory.heapUsed / content.memory.heapTotal) *
+    100
+  ).toFixed(1)}%), RSS: ${rss} (${(
+    (content.memory.rss / content.memory.memTotal) *
+    100
+  ).toFixed(1)}%), Free: ${memFree} (${(
+    (1 - content.memory.memFree / content.memory.memTotal) *
+    100
+  ).toFixed(1)}%)`
+
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
-Heap Used            ${heapUsed} / ${heapTotal}
-Memory               ${rss}
+Memory               ${memoryStatus}
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
