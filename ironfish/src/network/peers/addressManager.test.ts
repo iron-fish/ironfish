@@ -46,7 +46,6 @@ describe('AddressManager', () => {
         name: peer.name,
       })
     }
-    addressManager.hostsStore.set('possiblePeers', allPeerAddresses)
     addressManager.hostsStore.set('priorPeers', allPeerAddresses)
     addressManager.removePeerAddress(peer1)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
