@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
+import { Assert } from '..'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { IronfishRpcClient } from '../rpc/clients/rpcClient'
@@ -20,7 +21,7 @@ export class MiningPool {
   // TODO: Rename to job id or something
   nextMiningRequestId: number
   // TODO: LRU
-  miningRequestBlocks: { [index: number]: SerializedBlockTemplate }
+  miningRequestBlocks: Map<number, SerializedBlockTemplate>
 
   // TODO: Difficulty adjustment!
   // baseTargetValue: number = 1
@@ -60,7 +61,7 @@ export class MiningPool {
     this.logger = options.logger ?? createRootLogger()
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
     this.nextMiningRequestId = 0
-    this.miningRequestBlocks = {}
+    this.miningRequestBlocks = new Map()
     this.target.writeUInt32BE(65535)
     this.currentHeadTimestamp = options.currentBlock.timestamp
     this.currentHeadDifficulty = options.currentBlock.difficulty
@@ -86,7 +87,8 @@ export class MiningPool {
     const graffitiBuff = Buffer.alloc(32)
     graffitiBuff.write(graffiti)
 
-    const blockTemplate = this.miningRequestBlocks[miningRequestId]
+    const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
+    Assert.isNotUndefined(blockTemplate)
 
     blockTemplate.header.graffiti = graffitiBuff.toString('hex')
     blockTemplate.header.randomness = randomness
@@ -117,7 +119,7 @@ export class MiningPool {
       this.currentHeadTimestamp = currentBlock.timestamp
 
       const miningRequestId = this.nextMiningRequestId++
-      this.miningRequestBlocks[miningRequestId] = payload
+      this.miningRequestBlocks.set(miningRequestId, payload)
 
       this.stratum.newWork(
         miningRequestId,
