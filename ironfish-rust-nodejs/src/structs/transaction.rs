@@ -8,9 +8,7 @@ use std::convert::TryInto;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::sapling_bls12::{
-    Key, ProposedTransaction, PublicAddress, SimpleTransaction, Transaction, SAPLING,
-};
+use ironfish_rust::sapling_bls12::{Key, ProposedTransaction, PublicAddress, Transaction, SAPLING};
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
@@ -244,67 +242,5 @@ impl NativeTransaction {
     pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> Undefined {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
-    }
-}
-
-#[napi(js_name = "SimpleTransaction")]
-pub struct NativeSimpleTransaction {
-    transaction: SimpleTransaction,
-}
-
-#[napi]
-impl NativeSimpleTransaction {
-    #[napi(constructor)]
-    pub fn new(
-        spender_hex_key: String,
-        intended_transaction_fee: BigInt,
-    ) -> Result<NativeSimpleTransaction> {
-        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
-
-        let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-
-        Ok(NativeSimpleTransaction {
-            transaction: SimpleTransaction::new(
-                SAPLING.clone(),
-                spender_key,
-                intended_transaction_fee_u64,
-            ),
-        })
-    }
-
-    #[napi]
-    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) -> Result<String> {
-        let witness = JsWitness {
-            cx: RefCell::new(env),
-            obj: witness,
-        };
-
-        self.transaction
-            .spend(&note.note, &witness)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-
-        Ok("".to_string())
-    }
-
-    #[napi]
-    pub fn receive(&mut self, note: &NativeNote) -> Result<String> {
-        self.transaction
-            .receive(&note.note)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-
-        Ok("".to_string())
-    }
-
-    #[napi]
-    pub fn post(&mut self) -> Result<NativeTransactionPosted> {
-        let posted_transaction = self
-            .transaction
-            .post()
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-
-        Ok(NativeTransactionPosted {
-            transaction: posted_transaction,
-        })
     }
 }

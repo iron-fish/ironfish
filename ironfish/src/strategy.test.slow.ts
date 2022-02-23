@@ -8,7 +8,6 @@ import {
   Key,
   Note as NativeNote,
   NoteBuilder as NativeNoteBuilder,
-  SimpleTransaction as NativeSimpleTransaction,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from 'ironfish-rust-nodejs'
@@ -71,7 +70,7 @@ describe('Demonstrate the Sapling API', () => {
   let spenderKey: Key
   let minerNote: NativeNote
   let minerTransaction: NativeTransactionPosted
-  let simpleTransaction: NativeSimpleTransaction
+  let transaction: NativeTransaction
   let publicTransaction: NativeTransactionPosted
 
   beforeAll(async () => {
@@ -125,8 +124,8 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      simpleTransaction = new NativeSimpleTransaction(spenderKey.spending_key, BigInt(0))
-      expect(simpleTransaction).toBeTruthy()
+      transaction = new NativeTransaction()
+      expect(transaction).toBeTruthy()
     })
 
     it('Can add a spend to the transaction', async () => {
@@ -134,7 +133,7 @@ describe('Demonstrate the Sapling API', () => {
       if (witness === null) {
         throw new Error('Witness should not be null')
       }
-      const result = simpleTransaction.spend(minerNote, witness)
+      const result = transaction.spend(spenderKey.spending_key, minerNote, witness)
       expect(result).toEqual('')
     })
 
@@ -143,12 +142,12 @@ describe('Demonstrate the Sapling API', () => {
       const receivingNote = new NativeNote(
         new NativeNoteBuilder(receiverKey.public_address, BigInt(40), '').serialize(),
       )
-      const result = simpleTransaction.receive(receivingNote)
+      const result = transaction.receive(spenderKey.spending_key, receivingNote)
       expect(result).toEqual('')
     })
 
     it('Can post the transaction', () => {
-      publicTransaction = simpleTransaction.post()
+      publicTransaction = transaction.post(spenderKey.spending_key, null, BigInt(0))
       expect(publicTransaction).toBeTruthy()
     })
 

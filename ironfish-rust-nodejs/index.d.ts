@@ -118,10 +118,3 @@ export class Transaction {
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): TransactionPosted
   setExpirationSequence(expirationSequence: number): void
 }
-export type NativeSimpleTransaction = SimpleTransaction
-export class SimpleTransaction {
-  constructor(spenderHexKey: string, intendedTransactionFee: bigint)
-  spend(note: Note, witness: object): string
-  receive(note: Note): string
-  post(): TransactionPosted
-}

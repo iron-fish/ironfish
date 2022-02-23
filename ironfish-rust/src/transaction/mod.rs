@@ -22,8 +22,6 @@ use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
 use std::{io, slice::Iter, sync::Arc};
 use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubEngine, JubjubParams, Unknown};
 
-mod simple;
-pub use simple::SimpleTransaction;
 use std::ops::AddAssign;
 use std::ops::SubAssign;
 

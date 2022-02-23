@@ -4,9 +4,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use ironfish_rust::sapling_bls12::{
-    Key, ProposedTransaction, PublicAddress, SimpleTransaction, Transaction, SAPLING,
-};
+use ironfish_rust::sapling_bls12::{Key, ProposedTransaction, PublicAddress, Transaction, SAPLING};
 
 use super::errors::*;
 use super::note::WasmNote;
@@ -205,55 +203,5 @@ impl WasmTransaction {
 impl Default for WasmTransaction {
     fn default() -> Self {
         WasmTransaction::new()
-    }
-}
-
-#[wasm_bindgen]
-pub struct WasmSimpleTransaction {
-    transaction: SimpleTransaction,
-}
-
-#[wasm_bindgen]
-impl WasmSimpleTransaction {
-    #[wasm_bindgen(constructor)]
-    pub fn new(
-        spender_hex_key: &str,
-        intended_transaction_fee: u64,
-    ) -> Result<WasmSimpleTransaction, JsValue> {
-        panic_hook::set_once();
-
-        let spender_key =
-            Key::from_hex(SAPLING.clone(), spender_hex_key).map_err(WasmSaplingKeyError)?;
-        Ok(WasmSimpleTransaction {
-            transaction: SimpleTransaction::new(
-                SAPLING.clone(),
-                spender_key,
-                intended_transaction_fee,
-            ),
-        })
-    }
-
-    #[wasm_bindgen]
-    pub fn spend(&mut self, note: &WasmNote, witness: &JsWitness) -> Result<String, JsValue> {
-        self.transaction
-            .spend(&note.note, witness)
-            .map_err(WasmSaplingProofError)?;
-        Ok("".to_string())
-    }
-
-    #[wasm_bindgen]
-    pub fn receive(&mut self, note: &WasmNote) -> Result<String, JsValue> {
-        self.transaction
-            .receive(&note.note)
-            .map_err(WasmSaplingProofError)?;
-        Ok("".to_string())
-    }
-
-    #[wasm_bindgen]
-    pub fn post(&mut self) -> Result<WasmTransactionPosted, JsValue> {
-        let posted_transaction = self.transaction.post().map_err(WasmTransactionError)?;
-        Ok(WasmTransactionPosted {
-            transaction: posted_transaction,
-        })
     }
 }

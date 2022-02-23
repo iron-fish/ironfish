@@ -17,7 +17,6 @@ mod spend_proof;
 pub use spend_proof::WasmSpendProof;
 
 mod transaction;
-pub use transaction::WasmSimpleTransaction;
 pub use transaction::WasmTransaction;
 pub use transaction::WasmTransactionPosted;
 
