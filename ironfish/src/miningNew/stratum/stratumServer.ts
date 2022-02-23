@@ -63,7 +63,7 @@ export class StratumServer {
   ): void {
     this.currentMiningRequestId = miningRequestId
     this.currentWork = mineableHeaderString(block.header)
-    this.logger.info('setting current work', this.currentMiningRequestId, this.currentWork)
+    this.logger.info('setting current work', this.currentMiningRequestId, this.currentWork.toString('hex'))
 
     this.broadcast(this.notifyMessage())
   }
