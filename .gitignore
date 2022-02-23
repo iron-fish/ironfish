@@ -20,6 +20,7 @@ testdbs
 **/*.test.js
 */**/yarn.lock
 .idea
+Brewfile.lock.json
 
 # logs
 npm-debug.log*
