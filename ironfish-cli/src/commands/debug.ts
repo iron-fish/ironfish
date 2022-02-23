@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { execSync } from 'child_process'
 import { FileUtils, IronfishPKG, NodeUtils } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../command'
@@ -33,6 +34,14 @@ export default class Debug extends IronfishCommand {
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
+    let cmdInPath: boolean
+    try {
+      execSync('ironfish --help &>/dev/null')
+      cmdInPath = true
+    } catch {
+      cmdInPath = false
+    }
+
     this.log(`
 Iron Fish version       ${node.pkg.version} @ ${node.pkg.git}
 Iron Fish library       ${IronfishPKG.version} @ ${IronfishPKG.git}
@@ -41,6 +50,7 @@ CPU model(s)            ${cpuNames.toString()}
 CPU threads             ${cpuThreads}
 RAM total               ${memTotal}
 Node version            ${process.version}
+ironfish in PATH        ${cmdInPath.toString()}
 Telemetry enabled       ${telemetryEnabled}
 Accounts head hash      ${accountsHeadHash}
 Accounts head in chain  ${accountsHeadInChain.toString()}
