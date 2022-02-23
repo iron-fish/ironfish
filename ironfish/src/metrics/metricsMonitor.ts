@@ -22,7 +22,9 @@ export class MetricsMonitor {
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
+  readonly memPoolSize: Gauge
   readonly rss: Gauge
+
   private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
 
@@ -40,6 +42,7 @@ export class MetricsMonitor {
     this.heapTotal = new Gauge()
     this.heapUsed = new Gauge()
     this.rss = new Gauge()
+    this.memPoolSize = new Gauge()
     this.memoryInterval = null
   }
 

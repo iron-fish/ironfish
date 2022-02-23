@@ -198,7 +198,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       blocks: node.miningDirector.blocksMined,
     },
     memPool: {
-      size: node.memPool.size(),
+      size: node.metrics.memPoolSize.value,
     },
     blockSyncer: {
       status: node.syncer.state,

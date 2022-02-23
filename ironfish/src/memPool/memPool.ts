@@ -7,6 +7,7 @@ import FastPriorityQueue from 'fastpriorityqueue'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
+import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
@@ -17,26 +18,35 @@ interface MempoolEntry {
 }
 
 export class MemPool {
-  transactions = new BufferMap<Transaction>()
-  queue: FastPriorityQueue<MempoolEntry>
-  chain: Blockchain
+  readonly transactions = new BufferMap<Transaction>()
+  readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
-  strategy: Strategy
-  logger: Logger
 
-  constructor(options: { strategy: Strategy; chain: Blockchain; logger?: Logger }) {
+  private readonly chain: Blockchain
+  private readonly logger: Logger
+  private readonly metrics: MetricsMonitor
+  private readonly strategy: Strategy
+
+  constructor(options: {
+    strategy: Strategy
+    chain: Blockchain
+    metrics: MetricsMonitor
+    logger?: Logger
+  }) {
     const logger = options.logger || createRootLogger()
 
+    this.head = null
     this.queue = new FastPriorityQueue<MempoolEntry>((firstTransaction, secondTransaction) => {
       if (firstTransaction.fee === secondTransaction.fee) {
         return firstTransaction.hash.compare(secondTransaction.hash) > 0
       }
       return firstTransaction.fee > secondTransaction.fee
     })
+
     this.chain = options.chain
-    this.head = null
-    this.strategy = options.strategy
     this.logger = logger.withTag('mempool')
+    this.metrics = options.metrics
+    this.strategy = options.strategy
 
     this.chain.onConnectBlock.on((block) => {
       this.onConnectBlock(block)
@@ -145,11 +155,13 @@ export class MemPool {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
     this.queue.add({ fee: await transaction.fee(), hash })
+    this.metrics.memPoolSize.value = this.size()
   }
 
   private deleteTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.delete(hash)
     this.queue.removeOne((t) => t.hash.equals(hash))
+    this.metrics.memPoolSize.value = this.size()
   }
 }

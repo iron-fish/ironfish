@@ -209,7 +209,7 @@ export class IronfishNode {
       autoSeed,
     })
 
-    const memPool = new MemPool({ chain: chain, strategy, logger: logger })
+    const memPool = new MemPool({ chain, metrics, strategy, logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,
