@@ -124,6 +124,11 @@ export class Telemetry {
           type: 'integer',
           value: this.metrics.p2p_PeersCount.value,
         },
+        {
+          name: 'mempool_size',
+          type: 'integer',
+          value: this.metrics.memPoolSize.value,
+        },
       ],
     })
 
