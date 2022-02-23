@@ -25,13 +25,13 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 Pull requests are the best way to propose a new change to the codebase (we use the classic [GitHub Flow](https://guides.github.com/introduction/flow/index.html)).
 
 To create a new pull request:
-1. Fork the repo and check out a new branch from `master`.
+1. Fork the repo and check out a new branch from `staging`.
 2. Add test - if your code change doesn't require a test change, please explain why in the PR description.
    * To run tests from a specific .test.ts file, run `yarn test NAME` where your tests are in NAME.test.ts
 3. Update the documentation - Especially if you've changed APIs or created new functions.
 4. Ensure the entire test suite passes by running `yarn test`.
 5. Make sure your code lints by running `yarn lint`.
-6. Once 4 & 5 are passing, create a new pull request on GitHub.
+6. Once 4 & 5 are passing, create a new pull request on GitHub targeted at the `staging` branch.
 7. Add the right label to your PR `documentation`, `bug`, `security-issue`, or `enhancement`.
 8. Add a description of what the PR is changing:
    * What problem is the PR solving
