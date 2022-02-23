@@ -36,7 +36,7 @@ export default class Debug extends IronfishCommand {
 
     let cmdInPath: boolean
     try {
-      execSync('ironfish --help &>/dev/null')
+      execSync('ironfish --help', { stdio: 'ignore' })
       cmdInPath = true
     } catch {
       cmdInPath = false
