@@ -28,7 +28,7 @@ export class StratumServer {
   // TODO: replace any
   connectedClients: Map<number, StratumClient>
   // TODO: LRU?
-  requestsSent: { [index: number]: any }
+  requestsSent: { [index: number]: unknown }
   nextMinerId: number
   nextMessageId: number
 
