@@ -40,9 +40,10 @@ export class FaucetCommand extends IronfishCommand {
     let email = flags.email
 
     if (!email) {
-      email = (await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
-        required: true,
-      })) as string
+      email =
+        ((await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
+          required: false,
+        })) as string) || undefined
     }
 
     // Create an account if one is not set
@@ -75,13 +76,6 @@ export class FaucetCommand extends IronfishCommand {
     } catch (error: unknown) {
       if (error instanceof RequestError) {
         CliUx.ux.action.stop(error.codeMessage)
-
-        if (
-          error.codeMessage === 'Too many faucet requests' ||
-          error.codeMessage === 'You entered an invalid email.'
-        ) {
-          this.exit(0)
-        }
       } else {
         CliUx.ux.action.stop(
           'Unfortunately, the faucet request failed. Please try again later.',
