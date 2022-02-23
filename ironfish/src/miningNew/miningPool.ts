@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
-import { Logger } from '../logger'
+import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { IronfishRpcClient } from '../rpc/clients/rpcClient'
+import { GetBlockInfoResponse } from '../rpc/routes/chain/getBlockInfo'
 import { IronfishSdk } from '../sdk'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { StratumServer } from './stratum/stratumServer'
