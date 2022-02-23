@@ -33,16 +33,17 @@ export class MiningPool {
 
   // TODO: Disconnects
 
-  static async init(): Promise<MiningPool> {
-    // TODO: Hashrate
-    // TODO: Add IPC support for slightly improved speed?
-    const configOverrides = {
-      enableRpcTcp: true,
-      rpcTcpHost: 'localhost',
-      rpcTcpPort: 8001,
-    }
+  static async init(options?: { sdk?: IronfishSdk }): Promise<MiningPool> {
+    const sdk =
+      options?.sdk ??
+      (await IronfishSdk.init({
+        configOverrides: {
+          enableRpcTcp: true,
+          rpcTcpHost: 'localhost',
+          rpcTcpPort: 8001,
+        },
+      }))
 
-    const sdk = await IronfishSdk.init({ configOverrides: configOverrides })
     const nodeClient = await sdk.connectRpc()
     const currentBlock = (await nodeClient.getBlockInfo({ sequence: -1 })).content.block
 
@@ -130,3 +131,8 @@ export class MiningPool {
     }
   }
 }
+
+// DISCONNECTED
+// CONNECTING
+// CONNECTED
+//   processNewBlocks()
