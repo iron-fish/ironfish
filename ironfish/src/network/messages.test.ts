@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { string } from 'yup'
 import { Assert } from '..'
 import {
   DisconnectingMessage,
@@ -14,17 +18,21 @@ import {
   isNoteRequestPayload,
   isNoteResponse,
   isNoteResponsePayload,
+  isNullifierRequestPayload,
   isPeerList,
   isPeerListRequest,
   isSignal,
   NodeMessageType,
   NoteRequest,
+  NoteResponse,
+  NullifierRequest,
   parseMessage,
   PeerList,
   PeerListRequest,
   Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
+import { Direction } from './messageRouters'
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -144,8 +152,16 @@ describe('isDisconnectingMessage', () => {
 
 describe('parseMessage', () => {
   it('Throws error when no type field found in the json', () => {
+    const msg = {
+      payload: {
+        position: 3,
+      },
+    }
+    
+    const output = JSON.stringify(msg)
+
     try {
-      parseMessage('{"Iron": "Fish!"}')
+      parseMessage(output)
       //Ensure we are not reporting a false positive
       Assert.isFalse(true, 'parseMessage found a type field')
     } catch (e) {
@@ -188,25 +204,35 @@ describe('isMessage', () => {
     expect(isMessage(data)).toBeFalsy()
   })
 
-  it('returns false when there is no payload object', () => {
+  it('returns false when the payload is not an object', () => {
     const msg = {
       type: NodeMessageType.Note,
-      payload: 'three',
+      payload: 3,
+      }
+
+    expect(isMessage(msg)).toBeFalsy()
+  })
+
+  it('returns false when the message type is not a string', () => {
+    const msg = {
+      type: 0,
+      payload: {
+        position: 3,
+      },
     }
 
     expect(isMessage(msg)).toBeFalsy()
   })
 
-  it("returns false when the parameter's payload is not an object", () => {
-    const msg: NoteRequest = {
+  it('returns true when the message type is a string', () => {
+    const msg = {
       type: NodeMessageType.Note,
       payload: {
         position: 3,
       },
     }
 
-    const data = JSON.stringify(msg.payload)
-    expect(isMessage(data)).toBeFalsy()
+    expect(isMessage(msg)).toBeTruthy()
   })
 })
 
@@ -215,21 +241,34 @@ describe('isNoteRequestPayload', () => {
     expect(isNoteRequestPayload(undefined)).toBeFalsy()
   })
 
-  it('returns false if message does not have a payload', () => {
-    const msg: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
+  it('returns false if message does not have the position field', () => {
+    const msg = {
+      type: NodeMessageType.Note,
+      payload: {
+        location: 3,
+      },
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteRequestPayload(msg.payload)).toBeFalsy()
   })
 
   it('returns false if payload.position is not a number', () => {
     const msg = {
       type: NodeMessageType.Note,
       payload: {
-        position: 'three',
+        position: '3',
       },
     }
-    expect(isNoteRequestPayload(msg)).toBeFalsy()
+    expect(isNoteRequestPayload(msg.payload)).toBeFalsy()
+  })
+
+  it('returns true if NoteRequest message received', () => {
+    const msg: NoteRequest = {
+      type: NodeMessageType.Note,
+      payload: {
+        position: 3,
+      },
+    }
+    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
   })
 })
 
@@ -240,36 +279,62 @@ describe('isNoteResponsePayload', () => {
 
   it('returns false if message does not have a note field', () => {
     const msg = {
-      type: NodeMessageType.Nullifier,
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Note,
       payload: {
         position: 3,
       },
     }
-    expect(isNoteResponsePayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns false if message does not have a payload field', () => {
+  it('returns false if message does not have a position field', () => {
     const msg = {
+      rpcId: 1,
+      direction: Direction.response,
       type: NodeMessageType.Note,
+      payload: {
+        note: 'someString',
+      },
     }
-    expect(isNoteResponsePayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
   })
 
   it('returns false if payload.position is not a number', () => {
     const msg = {
+      rpcId: 1,
+      direction: Direction.response,
       type: NodeMessageType.Note,
       payload: {
-        position: 'three',
+        note: 'someString',
+        position: '3',
       },
     }
-    expect(isNoteResponsePayload(msg)).toBeFalsy()
+    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
+  })
+
+  it('returns true if NoteResponse message received', () => {
+    const msg: NoteResponse<string> = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Note,
+      payload: {
+        note: 'someString',
+        position: 3,
+      },
+    }
+    expect(isNoteResponsePayload(msg.payload)).toBeTruthy()
   })
 })
 
 describe('isNoteResponse', () => {
   it('returns false if the message type is not Note', () => {
-    const msg: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
+    const msg = {
+      type: NodeMessageType.Nullifier,
+      payload: {
+        position: 3,
+      },
     }
     expect(isNoteResponse(msg)).toBeFalsy()
   })
@@ -285,21 +350,63 @@ describe('isNoteResponse', () => {
     const msg = {
       type: NodeMessageType.Note,
       payload: {
-        position: 'three',
+        position: '3',
       },
     }
     expect(isNoteResponse(msg)).toBeFalsy()
   })
+
+  it('returns true if NoteResponse message received', () => {
+    const msg: NoteResponse<string> = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Note,
+      payload: {
+        note: 'someString',
+        position: 3,
+      },
+    }
+    expect(isNoteResponse(msg)).toBeTruthy()
+  })
+})
+
+//jktodo this needs work!
+describe('isNullifierRequestPayload', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isNullifierRequestPayload(undefined)).toBeFalsy()
+  })
+
+  it('returns false if message does not have a payload field', () => {
+    const msg = {
+      type: NodeMessageType.Nullifier,
+    }
+    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+  })
+
+  it('returns false if payload.position is not a number', () => {
+    const msg = {
+      type: NodeMessageType.Nullifier,
+      payload: { position: 'three' },
+    }
+    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+  })
+
+  it('returns true on nullifier message', () => {
+    const msg: NullifierRequest = {
+      type: NodeMessageType.Nullifier,
+      payload: { position: 3.0 },
+    }
+    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+  })
 })
 
 describe('test', () => {
-  it('a', () => {
+  it('returns false', () => {
     // toBeTruthy()
     expect(isNoteResponsePayload(undefined)).toBeFalsy()
   })
 })
 
-//isNullifierRequestPayload
 //isNullifierResponse
 //isNullifierResponsePayload
 //isGetBlocksResponse
