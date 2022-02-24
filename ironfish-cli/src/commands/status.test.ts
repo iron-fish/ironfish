@@ -24,7 +24,7 @@ describe('status', () => {
     miningDirector: { status: 'stopped', miners: 0, blocks: 0 },
     memPool: { size: 0 },
     blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0 } },
-    telemetry: { status: 'stopped' },
+    telemetry: { status: 'stopped', pending: 0, submitted: 0 },
     workers: {
       started: true,
       workers: 1,

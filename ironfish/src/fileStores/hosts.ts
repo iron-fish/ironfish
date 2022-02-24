@@ -8,12 +8,10 @@ import { KeyStore } from './keyStore'
 
 export type HostsOptions = {
   priorPeers: PeerAddress[]
-  possiblePeers: PeerAddress[]
 }
 
 export const HostOptionsDefaults: HostsOptions = {
   priorPeers: [],
-  possiblePeers: [],
 }
 
 export class HostsStore extends KeyStore<HostsOptions> {

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { execSync } from 'child_process'
 import { DatabaseIsLockedError, FileUtils, IronfishNode, IronfishPKG } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../command'
@@ -47,6 +48,14 @@ export default class Debug extends IronfishCommand {
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
+    let cmdInPath: boolean
+    try {
+      execSync('ironfish --help', { stdio: 'ignore' })
+      cmdInPath = true
+    } catch {
+      cmdInPath = false
+    }
+
     return new Map<string, string>([
       ['Iron Fish version', `${node.pkg.version} @ ${node.pkg.git}`],
       ['Iron Fish library', `${IronfishPKG.version} @ ${IronfishPKG.git}`],
@@ -55,6 +64,7 @@ export default class Debug extends IronfishCommand {
       ['CPU threads', `${cpuThreads}`],
       ['RAM total', `${memTotal}`],
       ['Node version', `${process.version}`],
+      ['ironfish in PATH', `${cmdInPath.toString()}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
     ])
   }

@@ -17,7 +17,6 @@ pub type ProposedTransaction = super::ProposedTransaction<Bls12>;
 pub type ProposedSpend = super::SpendParams<Bls12>;
 pub type Transaction = super::Transaction<Bls12>;
 pub type ReceiptProof = super::ReceiptProof<Bls12>;
-pub type SimpleTransaction = super::SimpleTransaction<Bls12>;
 pub type SpendProof = super::SpendProof<Bls12>;
 pub type Note = super::Note<Bls12>;
 pub type MerkleNote = super::MerkleNote<Bls12>;

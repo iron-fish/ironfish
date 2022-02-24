@@ -31,7 +31,7 @@ pub use {
     note::Note,
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
-    transaction::{ProposedTransaction, SimpleTransaction, Transaction},
+    transaction::{ProposedTransaction, Transaction},
 };
 pub mod sapling_bls12;
 

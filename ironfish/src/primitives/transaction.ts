@@ -132,9 +132,9 @@ export class Transaction {
       const spend = t.getSpend(index)
 
       const jsSpend = {
-        size: spend.treeSize(),
-        nullifier: spend.nullifier(),
-        commitment: spend.rootHash(),
+        size: spend.treeSize,
+        nullifier: spend.nullifier,
+        commitment: spend.rootHash,
       }
 
       return jsSpend
