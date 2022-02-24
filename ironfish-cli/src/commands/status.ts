@@ -82,6 +82,10 @@ function renderStatus(content: GetStatusResponse): string {
     blockSyncerStatus += ` | avg time to add block ${avgTimeToAddBlock} ms`
   }
 
+  if (content.blockSyncer.status === 'syncing') {
+    blockSyncerStatus += `, progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`
+  }
+
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
   } - In: ${FileUtils.formatFileSize(
