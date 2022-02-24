@@ -11,7 +11,6 @@ import {
   NewBlocksStreamResponse,
   PromiseUtils,
 } from 'ironfish'
-import os from 'os'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -27,13 +26,11 @@ export class StartPool extends IronfishCommand {
   async start(): Promise<void> {
     await this.parse(StartPool)
 
-    this.pool = await MiningPool.init({ sdk: this.sdk })
-    this.pool.start()
+    const rpc = this.sdk.client
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      await PromiseUtils.sleep(10000)
-    }
+    this.pool = new MiningPool({ rpc })
+    await this.pool.start()
+    await this.pool.waitForStop()
   }
 
   async closeFromSignal(): Promise<void> {

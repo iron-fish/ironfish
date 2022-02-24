@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { isThisISOWeek } from 'date-fns'
 import { IPC, IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
@@ -44,6 +45,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
   retryConnect: boolean
 
   onError = new Event<[error: unknown]>()
+  onClose = new Event<[]>()
 
   pending = new Map<
     number,
@@ -67,11 +69,12 @@ export class IronfishIpcClient extends IronfishRpcClient {
     this.retryConnect = retryConnect
   }
 
-  async connect(
-    { retryConnect = this.retryConnect }: { retryConnect?: boolean } = {},
-    connection: Partial<IpcClientConnectionInfo> = {},
-  ): Promise<void> {
-    connection = { ...connection, ...this.connection }
+  async connect(options?: {
+    retryConnect?: boolean
+    connection?: Partial<IpcClientConnectionInfo>
+  }): Promise<void> {
+    const retryConnect = options?.retryConnect ?? this.retryConnect
+    const connection = { ...options?.connection, ...this.connection }
 
     if (connection.mode === 'ipc' && !connection.socketPath) {
       throw new Error('No IPC socket path given to connect to.')
@@ -148,7 +151,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
       })
   }
 
-  disconnect(): void {
+  close(): void {
     if (this.isConnected) {
       this.ipc?.disconnect('server')
       this.ipc = null
@@ -249,6 +252,8 @@ export class IronfishIpcClient extends IronfishRpcClient {
       request.reject(new ConnectionLostError(request.type))
     }
     this.pending.clear()
+
+    this.onClose.emit()
   }
 
   protected onClientError = (error: unknown): void => {

@@ -82,6 +82,9 @@ export abstract class IronfishRpcClient {
     this.logger = logger
   }
 
+  abstract connect(options?: Record<string, unknown>): Promise<void> | void
+  abstract close(): void
+
   abstract request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,

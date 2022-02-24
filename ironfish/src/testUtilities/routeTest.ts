@@ -40,8 +40,8 @@ export class RouteTest extends NodeTest {
   }> {
     const setup = await super.createSetup()
 
-    const client = new IronfishMemoryClient()
-    await client.connect(setup.node)
+    const client = new IronfishMemoryClient({ node: setup.node })
+    await client.connect()
     const adapter = client.adapter
 
     return { ...setup, adapter, client }

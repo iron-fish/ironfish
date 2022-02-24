@@ -156,6 +156,10 @@ export class Accounts {
   async open(
     options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
   ): Promise<void> {
+    if (this.isOpen) {
+      return
+    }
+
     this.isOpen = true
     await this.db.open(options)
 
