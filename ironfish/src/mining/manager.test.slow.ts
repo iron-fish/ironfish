@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { VerificationResultReason } from '../consensus/verifier'
 import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
 import {
   createNodeTest,
@@ -9,13 +10,13 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
+import { MINED_RESULT } from './director'
 
 // TODO: Tests from director that need to be either ported or decided that we can remove them:
 // creates a new block to be mined when chain head changes: this should be an endpoint test
 // should emit block to be mined: this is more of a BlockTemplateSerde test
 // should recalculate block after interval: this logic is going to live on the pool/miner
 // retries calculating target if target is not at max: this logic is going to live on the pool/miner
-// all of the "After mining" describe: validation for submitBlockTemplate fn
 
 describe('Mining manager', () => {
   const nodeTest = createNodeTest()
@@ -108,4 +109,111 @@ describe('Mining manager', () => {
     )
     expect(blockTransactions).toHaveLength(0)
   }, 15000)
+
+  describe('submit block template', () => {
+    it('discards block if chain changed', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.accounts.createAccount('account', true)
+
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockA2 = await useMinerBlockFixture(chain, 3)
+
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+      await expect(chain).toAddBlock(blockA1)
+      const blockTemplateA2 = await miningManager.createNewBlockTemplate(blockA2)
+
+      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+        MINED_RESULT.CHAIN_CHANGED,
+      )
+      await expect(miningManager.submitBlockTemplate(blockTemplateA2)).resolves.toBe(
+        MINED_RESULT.SUCCESS,
+      )
+    })
+
+    it('discards block if not valid', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.accounts.createAccount('account', true)
+
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+
+      jest
+        .spyOn(chain.verifier, 'verifyBlock')
+        .mockResolvedValue({ valid: false, reason: VerificationResultReason.INVALID_TARGET })
+
+      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+        MINED_RESULT.INVALID_BLOCK,
+      )
+    })
+
+    it('discard block if cannot add to chain', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.accounts.createAccount('account', true)
+
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+
+      jest.spyOn(chain, 'addBlock').mockResolvedValue({
+        isAdded: false,
+        isFork: null,
+        reason: VerificationResultReason.INVALID_TARGET,
+        score: 0,
+      })
+
+      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+        MINED_RESULT.ADD_FAILED,
+      )
+    })
+
+    it('discard block if on a fork', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.accounts.createAccount('account', true)
+
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+
+      jest.spyOn(chain, 'addBlock').mockResolvedValue({
+        isAdded: true,
+        isFork: true,
+        reason: null,
+        score: 0,
+      })
+
+      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+        MINED_RESULT.FORK,
+      )
+    })
+
+    it('adds block on successful mining', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.accounts.createAccount('account', true)
+
+      const onNewBlockSpy = jest.spyOn(node.miningDirector.onNewBlock, 'emit')
+
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+
+      const validBlock = BlockTemplateSerde.deserialize(strategy, blockTemplateA1)
+      // This value is what the code generates from the fixture block
+      validBlock.header.work = BigInt(262144)
+
+      await miningManager.submitBlockTemplate(blockTemplateA1)
+      expect(onNewBlockSpy).toBeCalledWith(validBlock)
+    })
+  })
 })
