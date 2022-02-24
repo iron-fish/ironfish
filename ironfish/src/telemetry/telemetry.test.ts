@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { mockWorkerPool } from '../testUtilities/mocks'
+import { mockChain, mockWorkerPool } from '../testUtilities/mocks'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -24,6 +24,7 @@ describe('Telemetry', () => {
 
   beforeEach(() => {
     telemetry = new Telemetry({
+      chain: mockChain(),
       workerPool: mockWorkerPool(),
     })
 
@@ -47,7 +48,10 @@ describe('Telemetry', () => {
   describe('submit', () => {
     describe('when disabled', () => {
       it('does nothing', () => {
-        const disabledTelemetry = new Telemetry({ workerPool: mockWorkerPool() })
+        const disabledTelemetry = new Telemetry({
+          chain: mockChain(),
+          workerPool: mockWorkerPool(),
+        })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)
         expect(disabledTelemetry['points']).toEqual(currentPoints)
