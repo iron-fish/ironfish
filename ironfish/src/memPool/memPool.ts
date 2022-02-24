@@ -72,7 +72,13 @@ export class MemPool {
       const feeAndHash = clone.poll()
       Assert.isNotUndefined(feeAndHash)
       const transaction = this.transactions.get(feeAndHash.hash)
-      Assert.isNotUndefined(transaction)
+
+      // The queue is cloned above, but this.transactions is not, so the
+      // transaction may be removed from this.transactions while iterating.
+      if (transaction === undefined) {
+        continue
+      }
+
       yield transaction
     }
   }
