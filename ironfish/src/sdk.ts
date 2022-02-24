@@ -146,7 +146,7 @@ export class IronfishSdk {
       config.get('rpcRetryConnect'),
     )
 
-    const clientMemory = new IronfishMemoryClient(logger)
+    const clientMemory = new IronfishMemoryClient({ logger })
 
     return new IronfishSdk(
       pkg || IronfishPKG,
@@ -264,7 +264,7 @@ export class IronfishSdk {
     }
 
     const node = await this.node()
-    await this.clientMemory.connect(node)
+    await this.clientMemory.connect({ node })
     await NodeUtils.waitForOpen(node)
     return this.clientMemory
   }

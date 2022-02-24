@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { RequestError } from '..'
+
 /**
  * This is used to unwrap a message from an error
  *
@@ -12,9 +14,16 @@ export function renderError(error: unknown, stack = false): string {
     return ''
   }
 
-  if (stack && error instanceof Error && error.stack) {
-    // stack also contains the error message
-    return error.stack
+  if (stack) {
+    if (error instanceof RequestError && error.codeStack) {
+      // stack also contains the error message
+      return `${error.message}\n${error.codeStack}`
+    }
+
+    if (error instanceof Error && error.stack) {
+      // stack also contains the error message
+      return error.stack
+    }
   }
 
   if (error instanceof Error) {
