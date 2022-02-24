@@ -25,6 +25,8 @@ export class JobError extends Error {
       this.code = undefined
       this.stack = undefined
       this.message = ErrorUtils.renderError(error)
+      this.stack = undefined
+      this.code = undefined
 
       if (error instanceof Error) {
         this.code = error.name
