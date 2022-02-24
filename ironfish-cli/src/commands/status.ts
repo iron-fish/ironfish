@@ -72,7 +72,8 @@ function renderStatus(content: GetStatusResponse): string {
 
   const avgTimeToAddBlock = content.blockSyncer.syncing.blockSpeed
   const speed = content.blockSyncer.syncing.speed
-  if (content.blockSyncer.status !== 'IDLE') {
+
+  if (content.blockSyncer.status !== 'idle') {
     blockSyncerStatus += ` @ ${speed} blocks per seconds`
   }
 

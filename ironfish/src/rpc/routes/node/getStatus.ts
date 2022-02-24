@@ -36,7 +36,7 @@ export type GetStatusResponse = {
     head: string
   }
   blockSyncer: {
-    status: string
+    status: 'stopped' | 'idle' | 'stopping' | 'syncing'
     syncing?: {
       blockSpeed: number
       speed: number
