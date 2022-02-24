@@ -115,7 +115,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .defined(),
     blockSyncer: yup
       .object({
-        status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
+        status: yup.string().oneOf(['stopped', 'idle', 'stopping', 'syncing']).defined(),
         error: yup.string().optional(),
         syncing: yup
           .object({
