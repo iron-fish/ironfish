@@ -11,7 +11,7 @@ export default class ShowBlock extends IronfishCommand {
   static args = [
     {
       name: 'search',
-      parse: (input: string): string => input.trim(),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'the hash or sequence of the block to look at',
     },
@@ -22,7 +22,7 @@ export default class ShowBlock extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = this.parse(ShowBlock)
+    const { args } = await this.parse(ShowBlock)
     const search = args.search as string
 
     const client = await this.sdk.connectRpc()

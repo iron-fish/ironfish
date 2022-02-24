@@ -25,7 +25,7 @@ export class ShowCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = this.parse(ShowCommand)
+    const { args } = await this.parse(ShowCommand)
 
     const identity = (args.identity as string).trim()
 
@@ -37,7 +37,7 @@ export class ShowCommand extends IronfishCommand {
 
     if (peer.content.peer === null) {
       this.log(`No peer found containing identity '${identity}'.`)
-      this.exit(1)
+      return this.exit(1)
     }
 
     this.log(this.renderPeer(peer.content.peer))

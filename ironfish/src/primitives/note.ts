@@ -20,7 +20,7 @@ export class Note {
   takeReference(): NativeNote {
     this.referenceCount++
     if (this.note === null) {
-      this.note = NativeNote.deserialize(this.noteSerialized)
+      this.note = new NativeNote(this.noteSerialized)
     }
     return this.note
   }
@@ -29,19 +29,18 @@ export class Note {
     this.referenceCount--
     if (this.referenceCount <= 0) {
       this.referenceCount = 0
-      this.note?.free()
       this.note = null
     }
   }
 
   value(): bigint {
-    const value = this.takeReference().value
+    const value = this.takeReference().value()
     this.returnReference()
-    return value.valueOf()
+    return value
   }
 
   memo(): string {
-    const memo = this.takeReference().memo
+    const memo = this.takeReference().memo()
     this.returnReference()
     return memo
   }

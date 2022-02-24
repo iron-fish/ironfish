@@ -20,7 +20,7 @@ export class UseCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = this.parse(UseCommand)
+    const { args } = await this.parse(UseCommand)
     const name = (args.name as string).trim()
 
     const client = await this.sdk.connectRpc()

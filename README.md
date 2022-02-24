@@ -34,6 +34,9 @@ See https://ironfish.network
      1. On Ubuntu: `apt install build-essential`
      1. On Amazon Linux: `sudo yum groupinstall "Development Tools"`
 
+   - If `yarn install` fails with an error that includes "Error: Could not find any Python installation to use", you may need to install Python3 (required by node-gyp). on MacOS:
+     1. Run `brew install python`
+
 ## Usage
 
 Once your environment is setup - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).
@@ -42,12 +45,12 @@ Once your environment is setup - you can run the CLI by following [these directi
 
 1. To test the entire monorepo:
    1. Run `yarn test` at the root of the repository
-   1. Run `yarn test:slow` at the root of the repository to run slow tests
+   1. Run `yarn test:slow` in ./ironfish/ to run slow tests
    1. Run `yarn test:coverage` at the root of the repository for tests and coverage
 1. To test a specific project
    1. Run `yarn test` at the root of the project
-   1. Run `yarn test:watch` if you want the tests to run on change
-   1. Run `test:coverage:html` if you want to export the coverage in an easy to use format (open the index.html file in the coverage folder of the project)
+   1. Run `yarn test:watch` in ./ironfish or ./ironfish-cli if you want the tests to run on change
+   1. Run `yarn test:coverage:html` if you want to export the coverage in an easy to use format (open the index.html file in the coverage folder of the project)
 
 ## Structure of the repository
 

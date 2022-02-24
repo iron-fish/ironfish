@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import { Hook } from '@oclif/config'
+import { Hook } from '@oclif/core'
 import { Platform } from 'ironfish'
 import { IronfishCliPKG } from '../package'
 
-const VersionHook: Hook<'init'> = (): void => {
+// eslint-disable-next-line @typescript-eslint/require-await
+const VersionHook: Hook<'init'> = async () => {
   const isVersionCmd = process.argv[2] === 'version'
   const hasDashVersion = process.argv.some((a) => a === '--version')
   const showVersion = isVersionCmd || hasDashVersion

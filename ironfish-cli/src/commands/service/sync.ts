@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -19,15 +19,15 @@ export default class Sync extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    endpoint: flags.string({
+    endpoint: Flags.string({
       char: 'e',
-      parse: (input: string): string => input.trim(),
+      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host to sync to',
     }),
-    token: flags.string({
+    token: Flags.string({
       char: 'e',
-      parse: (input: string): string => input.trim(),
+      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host token to authenticate with',
     }),
@@ -42,7 +42,7 @@ export default class Sync extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = this.parse(Sync)
+    const { flags, args } = await this.parse(Sync)
 
     const apiHost = (flags.endpoint || process.env.IRONFISH_API_HOST || '').trim()
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()

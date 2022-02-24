@@ -14,7 +14,7 @@ import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockhea
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
-import { submitMetric } from '../telemetry'
+import { Telemetry } from '../telemetry/telemetry'
 import { AsyncUtils, ErrorUtils, GraffitiUtils, SetTimeoutToken } from '../utils'
 
 /**
@@ -41,6 +41,7 @@ type DirectorState = { type: 'STARTED' } | { type: 'STOPPED' }
 export class MiningDirector {
   readonly chain: Blockchain
   readonly memPool: MemPool
+  readonly telemetry: Telemetry
 
   /**
    * The event creates a block header with loose transactions that have been
@@ -148,6 +149,7 @@ export class MiningDirector {
     chain: Blockchain
     memPool: MemPool
     strategy: Strategy
+    telemetry: Telemetry
     logger?: Logger
     graffiti?: string
     account?: Account
@@ -157,6 +159,7 @@ export class MiningDirector {
 
     this.chain = options.chain
     this.memPool = options.memPool
+    this.telemetry = options.telemetry
     this.strategy = options.strategy
     this.logger = logger.withTag('director')
 
@@ -498,21 +501,7 @@ export class MiningDirector {
 
     this.onNewBlock.emit(block)
 
-    submitMetric({
-      name: 'minedBlock',
-      fields: [
-        {
-          name: 'difficulty',
-          type: 'integer',
-          value: Number(block.header.target.toDifficulty()),
-        },
-        {
-          name: 'sequence',
-          type: 'integer',
-          value: Number(block.header.sequence),
-        },
-      ],
-    })
+    this.telemetry.submitBlockMined(block)
 
     return MINED_RESULT.SUCCESS
   }

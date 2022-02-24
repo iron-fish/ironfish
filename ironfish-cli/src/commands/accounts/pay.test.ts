@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CliUx } from '@oclif/core'
 import { expect as expectCli, test } from '@oclif/test'
-import cli from 'cli-ux'
 import * as ironfishmodule from 'ironfish'
 
 describe('accounts:pay command', () => {
@@ -56,7 +56,7 @@ describe('accounts:pay command', () => {
   })
 
   test
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command([
       'accounts:pay',
@@ -79,7 +79,7 @@ describe('accounts:pay command', () => {
     )
 
   test
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
     .exit(0)
@@ -95,8 +95,8 @@ describe('accounts:pay command', () => {
     )
 
   test
-    .stub(cli, 'prompt', () => async () => await Promise.resolve(to))
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve(to))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-a ${amount}`, `-f ${from}`, `-o ${fee}`])
     .exit(0)
@@ -109,8 +109,8 @@ describe('accounts:pay command', () => {
     )
 
   test
-    .stub(cli, 'prompt', () => async () => await Promise.resolve('not correct address'))
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('not correct address'))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-a ${amount}`, `-f ${from}`])
     .exit(2)
@@ -119,8 +119,8 @@ describe('accounts:pay command', () => {
     })
 
   test
-    .stub(cli, 'prompt', () => async () => await Promise.resolve(3))
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve(3))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
     .exit(0)
@@ -136,8 +136,8 @@ describe('accounts:pay command', () => {
     )
 
   test
-    .stub(cli, 'prompt', () => async () => await Promise.resolve('non right value'))
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('non right value'))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
     .exit(0)
@@ -146,7 +146,7 @@ describe('accounts:pay command', () => {
     })
 
   test
-    .stub(cli, 'confirm', () => async () => await Promise.resolve(false))
+    .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(false))
     .stdout()
     .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
     .exit(0)
@@ -156,7 +156,7 @@ describe('accounts:pay command', () => {
 
   describe('with an invalid expiration sequence', () => {
     test
-      .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+      .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
       .stdout()
       .command([
         'accounts:pay',
@@ -179,7 +179,7 @@ describe('accounts:pay command', () => {
       sendTransaction = jest.fn().mockRejectedValue('an error')
     })
     test
-      .stub(cli, 'confirm', () => async () => await Promise.resolve(true))
+      .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
       .stdout()
       .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
       .exit(2)

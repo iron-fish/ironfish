@@ -48,6 +48,11 @@ export type GetStatusResponse = {
     inboundTraffic: number
     outboundTraffic: number
   }
+  telemetry: {
+    status: 'started' | 'stopped'
+    pending: number
+    submitted: number
+  }
   workers: {
     started: boolean
     workers: number
@@ -120,6 +125,13 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
           .optional(),
       })
       .defined(),
+    telemetry: yup
+      .object({
+        status: yup.string().oneOf(['started', 'stopped']).defined(),
+        pending: yup.number().defined(),
+        submitted: yup.number().defined(),
+      })
+      .defined(),
     workers: yup
       .object({
         started: yup.boolean().defined(),
@@ -161,11 +173,9 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 )
 
 function getStatus(node: IronfishNode): GetStatusResponse {
-  const peers = node.peerNetwork.peerManager.getConnectedPeers()
-
   const status: GetStatusResponse = {
     peerNetwork: {
-      peers: peers.length,
+      peers: node.metrics.p2p_PeersCount.value,
       isReady: node.peerNetwork.isReady,
       inboundTraffic: Math.max(node.metrics.p2p_InboundTraffic.rate1s, 0),
       outboundTraffic: Math.max(node.metrics.p2p_OutboundTraffic.rate1s, 0),
@@ -192,7 +202,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       blocks: node.miningDirector.blocksMined,
     },
     memPool: {
-      size: node.memPool.size(),
+      size: node.metrics.memPoolSize.value,
     },
     blockSyncer: {
       status: node.syncer.state,
@@ -200,6 +210,11 @@ function getStatus(node: IronfishNode): GetStatusResponse {
         blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
         speed: MathUtils.round(node.syncer.speed.rate1m, 2),
       },
+    },
+    telemetry: {
+      status: node.telemetry.isStarted() ? 'started' : 'stopped',
+      pending: node.telemetry.pending,
+      submitted: node.telemetry.submitted,
     },
     workers: {
       started: node.workerPool.started,

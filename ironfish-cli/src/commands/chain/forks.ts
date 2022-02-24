@@ -17,7 +17,7 @@ export default class ForksCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    this.parse(ForksCommand)
+    await this.parse(ForksCommand)
     this.logger.pauseLogs()
 
     let connected = false
@@ -48,14 +48,12 @@ export default class ForksCommand extends IronfishCommand {
 
     const footer = blessed.text({
       bottom: 0,
-      parent: screen,
       content: 'Press Q to quit',
     })
 
     setInterval(() => {
       const now = Date.now()
 
-      footer.clearBaseLine(0)
       status.clearBaseLine(0)
       list.clearBaseLine(0)
       list.setContent('')
@@ -85,6 +83,8 @@ export default class ForksCommand extends IronfishCommand {
       }
 
       status.setContent(`Node: ${String(connected)}, Forks: ${count.toString().padEnd(2, ' ')}`)
+
+      screen.append(footer)
 
       screen.render()
     }, 1000)

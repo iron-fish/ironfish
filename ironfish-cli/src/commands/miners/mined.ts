@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import cli from 'cli-ux'
+import { CliUx } from '@oclif/core'
 import {
   AsyncUtils,
   GENESIS_BLOCK_SEQUENCE,
@@ -27,21 +27,21 @@ export class MinedCommand extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: parseNumber,
+      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: parseNumber,
+      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(MinedCommand)
+    const { args } = await this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
     this.log('Scanning for mined blocks...')
@@ -56,7 +56,7 @@ export class MinedCommand extends IronfishCommand {
 
     const speed = new Meter()
 
-    const progress = cli.progress({
+    const progress = CliUx.ux.progress({
       format:
         'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
     }) as ProgressBar
@@ -90,5 +90,8 @@ export class MinedCommand extends IronfishCommand {
         sequence,
       })
     }
+
+    progress.update(stop, { estimate: 0, sequence: stop })
+    progress.stop()
   }
 }

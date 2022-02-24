@@ -13,6 +13,7 @@ import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Strategy } from './strategy'
+import { Telemetry } from './telemetry'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
 
@@ -30,6 +31,7 @@ export class Syncer {
   readonly chain: Blockchain
   readonly strategy: Strategy
   readonly metrics: MetricsMonitor
+  readonly telemetry: Telemetry
   readonly logger: Logger
   readonly speed: Meter
 
@@ -45,6 +47,7 @@ export class Syncer {
     peerNetwork: PeerNetwork
     chain: Blockchain
     strategy: Strategy
+    telemetry: Telemetry
     metrics?: MetricsMonitor
     logger?: Logger
     blocksPerMessage?: number
@@ -54,8 +57,10 @@ export class Syncer {
     this.peerNetwork = options.peerNetwork
     this.chain = options.chain
     this.strategy = options.strategy
-    this.metrics = options.metrics || new MetricsMonitor()
     this.logger = logger.withTag('syncer')
+    this.telemetry = options.telemetry
+
+    this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
@@ -480,6 +485,8 @@ export class Syncer {
       return false
     }
 
+    const seenAt = new Date()
+
     const { added, block } = await this.addBlock(peer, newBlock)
 
     if (!peer.sequence || block.header.sequence > peer.sequence) {
@@ -487,6 +494,10 @@ export class Syncer {
     }
 
     this.onGossip.emit(block)
+
+    if (added) {
+      this.telemetry.submitNewBlockSeen(block, seenAt)
+    }
 
     return added
   }

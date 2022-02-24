@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(test)]
-use super::{ProposedTransaction, SimpleTransaction, Transaction};
+use super::{ProposedTransaction, Transaction};
 use crate::{
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
@@ -105,36 +105,6 @@ fn test_transaction() {
 }
 
 #[test]
-fn test_simple_transaction() {
-    let sapling = sapling_bls12::SAPLING.clone();
-    let spender_key = SaplingKey::generate_key(sapling.clone());
-    let receiver_key = SaplingKey::generate_key(sapling.clone());
-    let spender_address = spender_key.generate_public_address();
-    let receiver_address = receiver_key.generate_public_address();
-
-    let mut transaction = SimpleTransaction::new(sapling.clone(), spender_key, 0);
-    let in_note = Note::new(sapling.clone(), spender_address.clone(), 42, Memo([0; 32]));
-    let out_note = Note::new(sapling.clone(), receiver_address.clone(), 41, Memo([0; 32]));
-    let witness = make_fake_witness(sapling.clone(), &in_note);
-
-    transaction
-        .spend(&in_note, &witness)
-        .expect("should be able to spend note");
-
-    transaction
-        .receive(&out_note)
-        .expect("Should be able to receive note");
-
-    let public_transaction = transaction
-        .post()
-        .expect("should be able to post transaction");
-
-    public_transaction
-        .verify()
-        .expect("should be able to verify transaction")
-}
-
-#[test]
 fn test_miners_fee() {
     let sapling = &*sapling_bls12::SAPLING;
     let mut transaction = ProposedTransaction::new(sapling.clone());
@@ -171,23 +141,23 @@ fn test_transaction_signature() {
     let spender_address = spender_key.generate_public_address();
     let receiver_address = receiver_key.generate_public_address();
 
-    let mut transaction = SimpleTransaction::new(sapling.clone(), spender_key, 0);
+    let mut transaction = ProposedTransaction::new(sapling.clone());
     let in_note = Note::new(sapling.clone(), spender_address.clone(), 42, Memo([0; 32]));
     let out_note = Note::new(sapling.clone(), receiver_address.clone(), 41, Memo([0; 32]));
     let witness = make_fake_witness(sapling.clone(), &in_note);
 
     transaction
-        .spend(&in_note, &witness)
+        .spend(spender_key.clone(), &in_note, &witness)
         .expect("should be able to spend note");
 
     transaction
-        .receive(&out_note)
+        .receive(&spender_key, &out_note)
         .expect("Should be able to receive note");
 
     transaction.set_expiration_sequence(1337);
 
     let public_transaction = transaction
-        .post()
+        .post(&spender_key, None, 0)
         .expect("should be able to post transaction");
 
     let mut serialized_signature = vec![];

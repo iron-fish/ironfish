@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CliUx } from '@oclif/core'
 import { expect as expectCli, test } from '@oclif/test'
-import cli from 'cli-ux'
 import * as ironfishmodule from 'ironfish'
 
 describe('accounts:create command', () => {
@@ -47,7 +47,7 @@ describe('accounts:create command', () => {
     })
 
   test
-    .stub(cli, 'prompt', () => async () => await Promise.resolve(name))
+    .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve(name))
     .stdout()
     .command(['accounts:create'])
     .exit(0)

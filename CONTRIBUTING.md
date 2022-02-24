@@ -15,31 +15,33 @@ We welcome contributions from anyone on the internet, and are grateful for even 
 Thanks in advance for your help.
 
 
-## We develop with Github
+## We develop with GitHub
 
-We use Github to host code, to track issues and feature requests, as well as accept pull requests.
+We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
 
 
 ## Pull Requests Guidelines
 
-Pull requests are the best way to propose a new change to the codebase (we use the classic [Github Flow](https://guides.github.com/introduction/flow/index.html)).
+Pull requests are the best way to propose a new change to the codebase (we use the classic [GitHub Flow](https://guides.github.com/introduction/flow/index.html)).
 
 To create a new pull request:
-1. Fork the repo and check out a new branch from `master`.
+1. Fork the repo and check out a new branch from `staging`.
 2. Add test - if your code change doesn't require a test change, please explain why in the PR description.
+   * To run tests from a specific .test.ts file, run `yarn test NAME` where your tests are in NAME.test.ts
 3. Update the documentation - Especially if you've changed APIs or created new functions.
-4. Ensure the test suite passes by running `yarn test`.
+4. Ensure the entire test suite passes by running `yarn test`.
 5. Make sure your code lints by running `yarn lint`.
-6. Once 4 & 5 are passing, create a new pull request on Github.
+6. Once 4 & 5 are passing, create a new pull request on GitHub targeted at the `staging` branch.
 7. Add the right label to your PR `documentation`, `bug`, `security-issue`, or `enhancement`.
 8. Add a description of what the PR is changing:
    * What problem is the PR solving
+   * References to any bugs you're fixing with single lines of the form `Fix #123`
    * Explain if it's adding a breaking change for clients
    * Explain how you've tested your change
 
 Once the PR is created, one of the maintainers will review it and merge it into the master branch.
 
-If you are thinking of working on a complex change, do not hesitate to discuss the change you wish to make via a Github Issue. You can also request feedback early, by opening a WIP pull request or discuss with a maintainer to ensure your work is in line with the philosophy and roadmap of Iron Fish.
+If you are thinking of working on a complex change, do not hesitate to discuss the change you wish to make via a GitHub Issue. You can also request feedback early, by opening a WIP pull request or discuss with a maintainer to ensure your work is in line with the philosophy and roadmap of Iron Fish.
 
 
 ## Where to start
@@ -62,7 +64,7 @@ For our Rust codebase, you can run the test suites for each project by running `
 
 ## Continuous integration
 
-After creating a PR on Github, the code will be tested automatically by GitHub Action. The tests can take up to 15 minutes to pass. We ask you to test your code on your machine before submitting a PR.
+After creating a PR on GitHub, the code will be tested automatically by GitHub Action. The tests can take up to 15 minutes to pass. We ask you to test your code on your machine before submitting a PR.
 
 
 ## Style Guide

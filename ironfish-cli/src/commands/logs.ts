@@ -16,7 +16,7 @@ export default class LogsCommand extends IronfishCommand {
   node: IronfishNode | null = null
 
   async start(): Promise<void> {
-    this.parse(LogsCommand)
+    await this.parse(LogsCommand)
 
     await this.sdk.client.connect()
 

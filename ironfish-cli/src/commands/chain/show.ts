@@ -15,21 +15,21 @@ export default class Show extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: parseNumber,
+      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       default: -50,
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: parseNumber,
+      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = this.parse(Show)
+    const { args } = await this.parse(Show)
     const start = args.start as number | null
     const stop = args.stop as number | null
 

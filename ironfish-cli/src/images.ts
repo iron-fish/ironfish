@@ -31,11 +31,3 @@ export const TWO_FISH_IMAGE =
 :::::::::::::     :::::::::::::::::::::           :::::::::::::     :::::::::::::::::::::        \n\
 ::::::::::::       :::::::::::::::::::            ::::::::::::       :::::::::::::::::::         \n\
 ::::::::::           ::::::::::::::::             ::::::::::           ::::::::::::::::          '
-
-export const TELEMETRY_BANNER = `
-#################################################################
-#    Thank you for installing the Iron Fish Node.               #
-#    To help improve Ironfish, opt in to collecting telemetry   #
-#    by setting telemetry=true in your configuration file       #
-#################################################################
-`

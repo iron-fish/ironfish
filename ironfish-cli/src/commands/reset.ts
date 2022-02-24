@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
 import { IronfishNode, NodeUtils, PeerNetwork } from 'ironfish'
@@ -27,7 +26,7 @@ export default class Reset extends IronfishCommand {
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
     [DatabaseFlagKey]: DatabaseFlag,
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
@@ -38,7 +37,7 @@ export default class Reset extends IronfishCommand {
   peerNetwork: PeerNetwork | null = null
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Reset)
+    const { flags } = await this.parse(Reset)
 
     let node = await this.sdk.node({ autoSeed: false })
     await NodeUtils.waitForOpen(node, null, { upgrade: false, load: false })
@@ -48,7 +47,7 @@ export default class Reset extends IronfishCommand {
     if (fs.existsSync(backupPath)) {
       this.log(`There is already an account backup at ${backupPath}`)
 
-      const confirmed = await cli.confirm(
+      const confirmed = await CliUx.ux.confirm(
         `\nThis means this failed to run. Delete the accounts backup?\nAre you sure? (Y)es / (N)o`,
       )
 
@@ -61,7 +60,7 @@ export default class Reset extends IronfishCommand {
 
     const confirmed =
       flags.confirm ||
-      (await cli.confirm(
+      (await CliUx.ux.confirm(
         `\nYou are about to destroy your node data at ${node.config.dataDir}\nAre you sure? (Y)es / (N)o`,
       ))
 
@@ -75,14 +74,14 @@ export default class Reset extends IronfishCommand {
     await fsAsync.writeFile(backupPath, backup)
     await node.closeDB()
 
-    cli.action.start('Deleting databases')
+    CliUx.ux.action.start('Deleting databases')
 
     await Promise.all([
       fsAsync.rm(node.config.accountDatabasePath, { recursive: true }),
       fsAsync.rm(node.config.chainDatabasePath, { recursive: true }),
     ])
 
-    cli.action.status = `Importing ${accounts.length} accounts`
+    CliUx.ux.action.status = `Importing ${accounts.length} accounts`
 
     // We create a new node because the old node has cached account data
     node = await this.sdk.node()
@@ -95,6 +94,6 @@ export default class Reset extends IronfishCommand {
 
     await fsAsync.rm(backupPath)
 
-    cli.action.stop('Reset the node successfully.')
+    CliUx.ux.action.stop('Reset the node successfully.')
   }
 }

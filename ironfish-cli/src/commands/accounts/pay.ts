@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { flags } from '@oclif/command'
-import cli from 'cli-ux'
+import { CliUx, Flags } from '@oclif/core'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
@@ -27,31 +26,31 @@ export class Pay extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    account: flags.string({
+    account: Flags.string({
       char: 'f',
       description: 'the account to send money from',
     }),
-    amount: flags.string({
+    amount: Flags.string({
       char: 'a',
       description: 'amount of coins to send',
     }),
-    to: flags.string({
+    to: Flags.string({
       char: 't',
       description: 'the public address of the recipient',
     }),
-    fee: flags.string({
+    fee: Flags.string({
       char: 'o',
       description: 'the fee amount in IRON',
     }),
-    memo: flags.string({
+    memo: Flags.string({
       char: 'm',
       description: 'the memo of transaction',
     }),
-    confirm: flags.boolean({
+    confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
-    expirationSequence: flags.integer({
+    expirationSequence: Flags.integer({
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
@@ -59,7 +58,7 @@ export class Pay extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(Pay)
+    const { flags } = await this.parse(Pay)
     let amount = flags.amount as unknown as number
     let fee = flags.fee as unknown as number
     let to = flags.to
@@ -81,7 +80,7 @@ export class Pay extends IronfishCommand {
     if (!amount || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 
-      amount = (await cli.prompt(
+      amount = (await CliUx.ux.prompt(
         `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
           oreToIron(Number(response.content.confirmed)),
           false,
@@ -97,7 +96,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!fee || Number.isNaN(Number(fee))) {
-      fee = (await cli.prompt('Enter the fee amount in $IRON', {
+      fee = (await CliUx.ux.prompt('Enter the fee amount in $IRON', {
         required: true,
         default: '0.00000001',
       })) as number
@@ -108,7 +107,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!to) {
-      to = (await cli.prompt('Enter the the public address of the recipient', {
+      to = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
         required: true,
       })) as string
 
@@ -170,7 +169,7 @@ ${displayIronAmountWithCurrency(
 * This action is NOT reversible *
 `)
 
-      const confirm = await cli.confirm('Do you confirm (Y/N)?')
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
         this.exit(0)
@@ -179,7 +178,7 @@ ${displayIronAmountWithCurrency(
 
     // Run the progress bar for about 2 minutes
     // Chances are that the transaction will finish faster (error or faster computer)
-    const bar = cli.progress({
+    const bar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
       format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',

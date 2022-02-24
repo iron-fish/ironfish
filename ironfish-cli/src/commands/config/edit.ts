@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { mkdtemp, readFile, writeFile } from 'fs'
 import { DEFAULT_CONFIG_NAME, JSONUtils } from 'ironfish'
 import os from 'os'
@@ -23,19 +23,19 @@ export class EditCommand extends IronfishCommand {
   static flags = {
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
-    remote: flags.boolean({
+    remote: Flags.boolean({
       default: false,
       description: 'connect to the node when editing the config',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = this.parse(EditCommand)
+    const { flags } = await this.parse(EditCommand)
 
     if (!flags.remote) {
       const configPath = this.sdk.config.storage.configPath
       this.log(`Editing ${configPath}`)
-      const code = await launchEditor(configPath)
+      const code = await launchEditor(configPath, this.sdk.config)
       this.exit(code || undefined)
     }
 
@@ -48,7 +48,7 @@ export class EditCommand extends IronfishCommand {
     const filePath = path.join(folderPath, DEFAULT_CONFIG_NAME)
 
     await writeFileAsync(filePath, output)
-    const code = await launchEditor(filePath)
+    const code = await launchEditor(filePath, this.sdk.config)
 
     if (code !== 0) {
       this.exit(code || undefined)
