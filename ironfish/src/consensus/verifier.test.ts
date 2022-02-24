@@ -85,9 +85,10 @@ describe('Verifier', () => {
       })
     })
 
-    it("rejects a block with non-miner's transaction fee fee as first transaction", async () => {
+    it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
+      await expect(block.transactions[0].fee()).resolves.toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
@@ -462,9 +463,9 @@ describe('Verifier', () => {
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
 
-        expect(
-          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
-        ).toEqual({
+        await expect(
+          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).resolves.toEqual({
           valid: false,
           reason: VerificationResultReason.ERROR,
         })
@@ -497,9 +498,9 @@ describe('Verifier', () => {
           throw new Error('Response type must match request type')
         })
 
-        expect(
-          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
-        ).toEqual({
+        await expect(
+          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).resolves.toEqual({
           valid: false,
           reason: VerificationResultReason.VERIFY_TRANSACTION,
         })
