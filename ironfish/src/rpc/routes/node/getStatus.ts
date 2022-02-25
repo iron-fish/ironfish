@@ -22,6 +22,8 @@ export type GetStatusResponse = {
     heapTotal: number
     heapUsed: number
     rss: number
+    memFree: number
+    memTotal: number
   }
   miningDirector: {
     status: 'started' | 'stopped'
@@ -85,6 +87,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         heapTotal: yup.number().defined(),
         heapUsed: yup.number().defined(),
         rss: yup.number().defined(),
+        memFree: yup.number().defined(),
+        memTotal: yup.number().defined(),
       })
       .defined(),
     miningDirector: yup
@@ -195,6 +199,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       heapTotal: node.metrics.heapTotal.value,
       heapUsed: node.metrics.heapUsed.value,
       rss: node.metrics.rss.value,
+      memFree: node.metrics.memFree.value,
+      memTotal: node.metrics.memTotal,
     },
     miningDirector: {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
