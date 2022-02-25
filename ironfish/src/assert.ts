@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Constructor } from './utils/types'
+
 export class Assert {
   static isUnreachable(x: never): never {
     throw new Error(x)
@@ -49,6 +51,16 @@ export class Assert {
 
   static isFalse(x: boolean, message?: string): asserts x is false {
     if (x === true) {
+      throw new Error(message || `Expected value to be false`)
+    }
+  }
+
+  static isInstanceOf<T>(
+    x: unknown,
+    constructor: Constructor<T>,
+    message?: string,
+  ): asserts x is T {
+    if (!(x instanceof constructor)) {
       throw new Error(message || `Expected value to be false`)
     }
   }
