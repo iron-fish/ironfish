@@ -4,6 +4,7 @@
 import { ThreadPoolHandler } from 'ironfish-rust-nodejs'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
+import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
 import { StratumClient } from './stratum/stratumClient'
 
@@ -58,8 +59,15 @@ export class MiningPoolMiner {
       const blockResult = this.threadPool.getFoundBlock()
 
       if (blockResult != null) {
-        const { miningRequestId, randomness, blockHash } = blockResult
-        this.logger.info('Found block:', randomness, miningRequestId, blockHash)
+        const { miningRequestId, randomness } = blockResult
+
+        this.logger.info(
+          'Found block:',
+          randomness,
+          miningRequestId,
+          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+        )
+
         this.stratum.submit(miningRequestId, randomness, this.graffiti)
       }
 
