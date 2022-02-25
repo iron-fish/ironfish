@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import os from 'os'
 import { createRootLogger, Logger } from '../logger'
 import { SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
@@ -22,7 +23,11 @@ export class MetricsMonitor {
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
+  readonly memPoolSize: Gauge
   readonly rss: Gauge
+  readonly memFree: Gauge
+  readonly memTotal: number
+
   private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
 
@@ -40,6 +45,9 @@ export class MetricsMonitor {
     this.heapTotal = new Gauge()
     this.heapUsed = new Gauge()
     this.rss = new Gauge()
+    this.memFree = new Gauge()
+    this.memTotal = os.totalmem()
+    this.memPoolSize = new Gauge()
     this.memoryInterval = null
   }
 
@@ -77,5 +85,6 @@ export class MetricsMonitor {
     this.heapTotal.value = memoryUsage.heapTotal
     this.heapUsed.value = memoryUsage.heapUsed
     this.rss.value = memoryUsage.rss
+    this.memFree.value = os.freemem()
   }
 }

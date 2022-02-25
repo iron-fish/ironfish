@@ -982,5 +982,101 @@
         }
       ]
     }
+  ],
+  "Blockchain reject block with null previous hash": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "8FB5B576EB519E03911C8768D7C8AC97252F7BE49FEC77279C43AF2DA9F82068",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:ULnOVyydV91QnAxobm0Y3lFd9R2M/UMlZyBGj4t3bAc="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1644821616230,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "5CFD3A427FA2531B4E3B697F3998F1723E480DAAC76FDA814F1C7CC996A82392",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIoA18HqgTpOXN95b2tEQL9/h/fMj/JpspMdi6pM7flDW+viiB1kXGpzEsMsv3KGQpM9/XU14nSfW4vZULoOeNl+kRuXPm1A928EqMtzHlXBNGTr4TNfa4yOH3WLxBONlwzI7bUpjX5NIHQzWHnpgN4ko4UBnUCOOUOMuflXzv3mNJmznKTADLxa5lJaxHQs8Zkq3v4HHI87u1T0t7ZuOUBnWzh5GEHngEAk5OQ9sqeQo4udToESfQY6OYoLhsmtj1D4JbEammyzU8mCKjfW9JBUWlOECh1Y5b4rPMYtxOnF7kl3bN+TNRpE6azgM8cAJDIDIj+zhW7/QrYITdcsF0/4rNvIoxzWfQEtlGBNCX0Ak4vaM1PXLoP6PR43GHeAaGpdqcSRKLtrckBCe3Zpw7bT46Xx6laTfeB3U6Czmf/hkyVZWML4YTITsK5oORT3YE56yVyXEvtpr2QpZnW0i6+gwpMvIEebx7Hh8LgpJQMYyd0RJY+WqhWLFD8pGFpxt7AlfEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwnqs/UOQF8GJExW6UYDD+5vm+IFQ6q/7B4dgRj7SqeOff2xVHOmY2vosXnXzioxNyb7Af/U5XoEpeLj+NeLY8CA=="
+        }
+      ]
+    }
+  ],
+  "Blockchain reject block with hash not matching previous hash": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "8FB5B576EB519E03911C8768D7C8AC97252F7BE49FEC77279C43AF2DA9F82068",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:+lx/eQpe+N8R7OSKpARuZ1+utsb2+WBHDEx1cwmp5xk="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1644821617175,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "6585EC1AFED1EB26177736BBB3C60B55DF88C4007A371502B25EB83951D43F3B",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJgyIcNKa2RBBSZF5ppm/KWcSqLnpsfJ63FE4NDK537KbBfn61wKRkIH8hCnVnwCn4MX88Bb80YEZhrtTkSRCnFLgSiYPTEkZYtjLfw3HiaiXg+DLiBzL/Yvcum1h+bvjxd754+MbcsW6ssk41iSgUaM3ltogswubcYGR/J5FvQXmeh7y1tmybnpjvK37G8TAqAKIUnBedLbzKsjT+6xPFTZkDL0EtQO2+QJPDB8of5wAxbuiFCp+yy85XKT2yFBTYKt8ugo/R2fbPtfTNylSU9xSrimHktbNHTxcLP2VVmS7L0C9iRwghekNAFgH3bsPbr9zamI36q6a6NDlYt14i5DdhpqksponooQhKdsEeCe7ZHdNkB4IB/BIBDShag0Il+8T/XBMNI8o84QcWo3SjE4VR4+35k/B9Pa7+nCQIoe/rgwtyELwHVGQGXn/cuHe8awbUyeLa+ZtWqZH8qRou4I6jKH0Bvzj/MDzVKvw43HKtFkbGHcDn9zB+FTb97z3Yxb7EJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwvcTDefiaUwKsfpsrY4HF2riXKTxGP+u1JTi5oBLqc28A/uQMd1MoWeP7hf50TMTzs/hHdFhJIvGX2ty1qdWYCw=="
+        }
+      ]
+    }
+  ],
+  "Blockchain reject added block with invalid miners fee": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "8FB5B576EB519E03911C8768D7C8AC97252F7BE49FEC77279C43AF2DA9F82068",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:DfZda4T8cJ4IOwrZ4+xZPAZ3nT1dzoHdRT71csKgBDU="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1644821617918,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "0ED431F00ADEED667C1CFDAE7D1D0E4B104C1CFDFE5FB46116B1D282EBB98F98",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJRaseSocQyqzpQHc6EJyAE/9CdvxOc5Viyd0uwvhRc37o63+9+DpNbqOZb35PJf26Vl0SW7BgZdbvbWNMXcr2smDNRvxBqHsA+uwLbXuOMUDFkOGa25gcvO8qKdX+/6XA7AA1Hvum2hfkwtya592SxAzkTpUQraNsZ288ETTBxObmL3kyFMGm13YxJNMNi4tI4rAmh5diiHqo//OfolQWoc5RbHdN1PjKAGB9kxz322uo54I22PuSmDFN5TMg324xMCELtVXRaeXbbtkQOZhBR5zVG6kd8R4GHuBDVODUtaUv7wHFS3qYZJEe8PnWTVkyVO1FXRwHXnmOueFPgt/jwEXP6Rj7INReFPKkz5l+iCT6V/hzz5QjQA2prdFt0KuRTPKJ01+aUAW6/NiLodXD1FBY0mCcO+Bh8mCFh7yBvX4t48ilPMavonUtzRH6iUvCcAuiCIpjpUok3+QprJnMKb3+1+2HHqhWBYMudBTMAJCflgndUnrFmZgSS4emH0RU0GV0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwy3dcXMgakrbIvs2MUGMhIyw2EWzQeuXrX5ydfKVFIsSbH5FRHIm6s+IVBKbwIdOY4wC+Z2vmAgta9RniJb2QAA=="
+        }
+      ]
+    }
   ]
 }

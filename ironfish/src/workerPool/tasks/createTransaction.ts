@@ -56,9 +56,7 @@ export function handleCreateTransaction({
     transaction.receive(spendKey, note)
   }
 
-  const postedTransaction = transaction.post(spendKey, undefined, transactionFee)
-
-  const serializedTransactionPosted = Buffer.from(postedTransaction.serialize())
+  const serializedTransactionPosted = transaction.post(spendKey, undefined, transactionFee)
 
   return { type: 'createTransaction', serializedTransactionPosted }
 }

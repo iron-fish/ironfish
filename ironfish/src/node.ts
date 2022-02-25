@@ -190,7 +190,16 @@ export class IronfishNode {
 
     metrics = metrics || new MetricsMonitor({ logger })
 
+    const chain = new Blockchain({
+      location: config.chainDatabasePath,
+      strategy,
+      logger,
+      metrics,
+      autoSeed,
+    })
+
     const telemetry = new Telemetry({
+      chain,
       logger,
       metrics,
       workerPool,
@@ -201,15 +210,7 @@ export class IronfishNode {
       ],
     })
 
-    const chain = new Blockchain({
-      location: config.chainDatabasePath,
-      strategy,
-      logger,
-      metrics,
-      autoSeed,
-    })
-
-    const memPool = new MemPool({ chain: chain, strategy, logger: logger })
+    const memPool = new MemPool({ chain, metrics, strategy, logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,

@@ -22,6 +22,8 @@ export type GetStatusResponse = {
     heapTotal: number
     heapUsed: number
     rss: number
+    memFree: number
+    memTotal: number
   }
   miningDirector: {
     status: 'started' | 'stopped'
@@ -36,7 +38,7 @@ export type GetStatusResponse = {
     head: string
   }
   blockSyncer: {
-    status: string
+    status: 'stopped' | 'idle' | 'stopping' | 'syncing'
     syncing?: {
       blockSpeed: number
       speed: number
@@ -49,7 +51,9 @@ export type GetStatusResponse = {
     outboundTraffic: number
   }
   telemetry: {
-    status: string
+    status: 'started' | 'stopped'
+    pending: number
+    submitted: number
   }
   workers: {
     started: boolean
@@ -83,6 +87,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         heapTotal: yup.number().defined(),
         heapUsed: yup.number().defined(),
         rss: yup.number().defined(),
+        memFree: yup.number().defined(),
+        memTotal: yup.number().defined(),
       })
       .defined(),
     miningDirector: yup
@@ -113,7 +119,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .defined(),
     blockSyncer: yup
       .object({
-        status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
+        status: yup.string().oneOf(['stopped', 'idle', 'stopping', 'syncing']).defined(),
         error: yup.string().optional(),
         syncing: yup
           .object({
@@ -126,6 +132,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
     telemetry: yup
       .object({
         status: yup.string().oneOf(['started', 'stopped']).defined(),
+        pending: yup.number().defined(),
+        submitted: yup.number().defined(),
       })
       .defined(),
     workers: yup
@@ -191,6 +199,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       heapTotal: node.metrics.heapTotal.value,
       heapUsed: node.metrics.heapUsed.value,
       rss: node.metrics.rss.value,
+      memFree: node.metrics.memFree.value,
+      memTotal: node.metrics.memTotal,
     },
     miningDirector: {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
@@ -198,7 +208,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       blocks: node.miningDirector.blocksMined,
     },
     memPool: {
-      size: node.memPool.size(),
+      size: node.metrics.memPoolSize.value,
     },
     blockSyncer: {
       status: node.syncer.state,
@@ -209,6 +219,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     telemetry: {
       status: node.telemetry.isStarted() ? 'started' : 'stopped',
+      pending: node.telemetry.pending,
+      submitted: node.telemetry.submitted,
     },
     workers: {
       started: node.workerPool.started,

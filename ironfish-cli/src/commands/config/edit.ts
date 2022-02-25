@@ -35,7 +35,7 @@ export class EditCommand extends IronfishCommand {
     if (!flags.remote) {
       const configPath = this.sdk.config.storage.configPath
       this.log(`Editing ${configPath}`)
-      const code = await launchEditor(configPath)
+      const code = await launchEditor(configPath, this.sdk.config)
       this.exit(code || undefined)
     }
 
@@ -48,7 +48,7 @@ export class EditCommand extends IronfishCommand {
     const filePath = path.join(folderPath, DEFAULT_CONFIG_NAME)
 
     await writeFileAsync(filePath, output)
-    const code = await launchEditor(filePath)
+    const code = await launchEditor(filePath, this.sdk.config)
 
     if (code !== 0) {
       this.exit(code || undefined)
