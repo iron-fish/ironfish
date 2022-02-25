@@ -22,9 +22,18 @@ export class JobError extends Error {
       this.type =
         typeof error === 'object' ? error?.constructor.name ?? typeof error : 'unknown'
 
+      this.code = undefined
+      this.stack = undefined
       this.message = ErrorUtils.renderError(error)
-      this.stack = ErrorUtils.isNodeError(error) ? error.stack : undefined
-      this.code = ErrorUtils.isNodeError(error) ? error.code : undefined
+
+      if (error instanceof Error) {
+        this.code = error.name
+        this.stack = error.stack
+
+        if (ErrorUtils.isNodeError(error)) {
+          this.code = error.code
+        }
+      }
     }
   }
 
