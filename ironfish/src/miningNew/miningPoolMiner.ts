@@ -33,6 +33,7 @@ export class MiningPoolMiner {
     this.graffiti = options.graffiti
 
     this.stratum = new StratumClient(this)
+    this.stratum.start()
     this.hashRate = new Meter()
     this.miningRequestId = 0
     this.target = Buffer.alloc(32)

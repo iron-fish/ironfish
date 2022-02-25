@@ -7,6 +7,7 @@ import {
   FileUtils,
   Miner as IronfishMiner,
   MineRequest,
+  MiningPoolMiner,
   NewBlocksStreamResponse,
   PromiseUtils,
 } from 'ironfish'
@@ -38,87 +39,11 @@ export class Miner extends IronfishCommand {
       flags.threads = os.cpus().length
     }
 
-    const client = this.sdk.client
-    const batchSize = this.sdk.config.get('minerBatchSize')
-    const miner = new IronfishMiner(flags.threads, batchSize)
+    const miner = MiningPoolMiner.init({
+      threadCount: flags.threads,
+      graffiti: Buffer.alloc(32),
+    })
 
-    const successfullyMined = (request: MineRequest, randomness: number) => {
-      this.log(
-        `Submitting hash for block ${request.sequence} on request ${request.miningRequestId} (${randomness})`,
-      )
-
-      const response = client.successfullyMined({
-        randomness,
-        miningRequestId: request.miningRequestId,
-      })
-
-      response.waitForEnd().catch(() => {
-        this.log('Unable to submit mined block')
-      })
-    }
-
-    const updateHashPower = () => {
-      const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
-      const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
-      CliUx.ux.action.status = formatted
-    }
-
-    const onStartMine = (request: MineRequest) => {
-      CliUx.ux.action.start(
-        `Mining block ${request.sequence} on request ${request.miningRequestId}`,
-      )
-      updateHashPower()
-    }
-
-    const onStopMine = () => {
-      CliUx.ux.action.start('Waiting for next block')
-      updateHashPower()
-    }
-
-    async function* nextBlock(blocksStream: AsyncGenerator<MineRequest, void, void>) {
-      for (;;) {
-        const blocksResult = await blocksStream.next()
-
-        if (blocksResult.done) {
-          return
-        }
-
-        yield blocksResult.value
-      }
-    }
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const connected = await client.tryConnect()
-
-      if (!connected) {
-        this.logger.log('Not connected to a node - waiting 5s before retrying')
-        await PromiseUtils.sleep(5000)
-        continue
-      }
-
-      this.logger.log(
-        `Starting to mine with ${flags.threads} thread${flags.threads === 1 ? '' : 's'}`,
-      )
-
-      const blocksStream = client.newBlocksStream().contentStream()
-
-      // We do this to tranform the JSON bytes back to a buffer
-      const transformed = AsyncUtils.transform<NewBlocksStreamResponse, MineRequest>(
-        blocksStream,
-        (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
-      )
-
-      CliUx.ux.action.start('Waiting for director to send work.')
-
-      const hashPowerInterval = setInterval(updateHashPower, 1000)
-
-      miner.onStartMine.on(onStartMine)
-      miner.onStopMine.on(onStopMine)
-
-      await miner.mine(nextBlock(transformed), successfullyMined)
-
-      clearInterval(hashPowerInterval)
-    }
+    await miner.mine()
   }
 }
