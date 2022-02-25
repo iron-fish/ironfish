@@ -9,9 +9,6 @@ use super::mine;
 // Javascript's Number.MAX_SAFE_INTEGER
 const MAX_SAFE_INTEGER: usize = 9007199254740991;
 
-// TODO: allow this to be configured
-pub(crate) const BATCH_SIZE: usize = 10_000;
-
 #[derive(Debug)]
 pub(crate) enum Command {
     // TODO Provide a proper struct instead of a tuple?
@@ -28,6 +25,7 @@ impl Thread {
         block_found_channel: Sender<(usize, u32)>,
         hash_rate_channel: Sender<u32>,
         pool_size: usize,
+        batch_size: u32,
     ) -> Self {
         let (work_sender, work_receiver): (Sender<Command>, Receiver<Command>) = mpsc::channel();
 
@@ -40,6 +38,7 @@ impl Thread {
                     hash_rate_channel,
                     id,
                     pool_size,
+                    batch_size as usize,
                 )
             })
             .unwrap();
@@ -71,6 +70,7 @@ fn process_commands(
     hash_rate_channel: Sender<u32>,
     start: usize,
     step_size: usize,
+    default_batch_size: usize,
 ) {
     // TODO: This loop only exists as a temporary hack for 'stop on match' for debugging. Fix and remove this
     loop {
@@ -81,10 +81,10 @@ fn process_commands(
                 Command::NewWork(mut header_bytes, target, mining_request_id) => {
                     let mut batch_start = start;
                     loop {
-                        let batch_size = if batch_start + BATCH_SIZE > MAX_SAFE_INTEGER {
+                        let batch_size = if batch_start + default_batch_size > MAX_SAFE_INTEGER {
                             MAX_SAFE_INTEGER - batch_start
                         } else {
-                            BATCH_SIZE
+                            default_batch_size
                         };
                         let match_found = mine::mine_batch(
                             &mut header_bytes,
@@ -118,7 +118,7 @@ fn process_commands(
                             // break 'outer;
                         }
 
-                        batch_start += BATCH_SIZE;
+                        batch_start += default_batch_size;
                         if batch_start >= MAX_SAFE_INTEGER {
                             // miner has exhausted it's search space, stop mining
                             // TODO: add a timestamp rollover

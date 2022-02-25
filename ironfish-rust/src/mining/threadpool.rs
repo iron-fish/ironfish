@@ -9,7 +9,7 @@ pub struct ThreadPool {
     mining_request_id: u32,
 }
 impl ThreadPool {
-    pub fn new(thread_count: i32) -> Self {
+    pub fn new(thread_count: i32, batch_size: u32) -> Self {
         assert!(thread_count == -1 || thread_count > 0);
 
         let count = match thread_count {
@@ -31,6 +31,7 @@ impl ThreadPool {
                 block_found_channel.clone(),
                 hash_rate_channel.clone(),
                 count,
+                batch_size,
             ));
         }
 
