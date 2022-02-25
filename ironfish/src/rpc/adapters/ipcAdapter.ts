@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import net from 'net'
 import { IPC, IpcServer, IpcSocket, IpcSocketId } from 'node-ipc'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
@@ -155,10 +156,14 @@ export class IpcAdapter implements IAdapter {
   async stop(): Promise<void> {
     if (this.started && this.ipc) {
       this.ipc.server.stop()
+
+      for (const socket of this.ipc.server.sockets) {
+        Assert.isInstanceOf(socket, net.Socket)
+        socket.destroy()
+      }
+
       await this.waitForAllToDisconnect()
     }
-
-    return Promise.resolve()
   }
 
   async waitForAllToDisconnect(): Promise<void> {
