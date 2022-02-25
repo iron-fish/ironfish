@@ -1,10 +1,16 @@
 use std::{
     sync::mpsc::{self, Receiver, SendError, Sender},
     thread,
-    time::Duration,
 };
 
-use super::mine::{self, BATCH_SIZE};
+use super::mine;
+
+// TODO: Remove this when we change the header serializer randomness to use a u64 field instead of a double
+// Javascript's Number.MAX_SAFE_INTEGER
+const MAX_SAFE_INTEGER: usize = 9007199254740991;
+
+// TODO: allow this to be configured
+pub(crate) const BATCH_SIZE: usize = 10_000;
 
 #[derive(Debug)]
 pub(crate) enum Command {
@@ -75,13 +81,23 @@ fn process_commands(
                 Command::NewWork(mut header_bytes, target, mining_request_id) => {
                     let mut batch_start = start;
                     loop {
-                        let match_found =
-                            mine::mine_batch(&mut header_bytes, &target, batch_start, step_size);
+                        let batch_size = if batch_start + BATCH_SIZE > MAX_SAFE_INTEGER {
+                            MAX_SAFE_INTEGER - batch_start
+                        } else {
+                            BATCH_SIZE
+                        };
+                        let match_found = mine::mine_batch(
+                            &mut header_bytes,
+                            &target,
+                            batch_start,
+                            step_size,
+                            batch_size,
+                        );
 
                         // Submit amount of work done
                         let work_done = match match_found {
                             Some(randomness) => randomness - batch_start,
-                            None => BATCH_SIZE,
+                            None => batch_size,
                         };
                         hash_rate_channel.send(work_done as u32).unwrap();
 
@@ -103,6 +119,12 @@ fn process_commands(
                         }
 
                         batch_start += BATCH_SIZE;
+                        if batch_start >= MAX_SAFE_INTEGER {
+                            // miner has exhausted it's search space, stop mining
+                            // TODO: add a timestamp rollover
+                            println!("Search space exhausted, no longer mining this block.");
+                            break 'outer;
+                        }
                     }
                 }
                 Command::Stop => {

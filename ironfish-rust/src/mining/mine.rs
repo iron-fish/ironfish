@@ -1,10 +1,7 @@
 use byteorder::{BigEndian, WriteBytesExt};
 
-// TODO: allow this to be configured
-pub(crate) const BATCH_SIZE: usize = 10_000;
-
-// TODO: dedupe these fns
-fn bytes_lte(a: &[u8], b: &[u8]) -> bool {
+/// returns true if a <= b when treating both as 32 byte big endian numbers.
+pub(crate) fn bytes_lte(a: &[u8], b: &[u8]) -> bool {
     for i in 0..32 {
         if a[i] < b[i] {
             return true;
@@ -26,8 +23,9 @@ pub(crate) fn mine_batch(
     target: &[u8],
     start: usize,
     step_size: usize,
+    batch_size: usize,
 ) -> Option<usize> {
-    let end = start + BATCH_SIZE;
+    let end = start + batch_size;
     for i in (start..end).step_by(step_size) {
         randomize_header(i, header_bytes);
         let hash = blake3::hash(&header_bytes);
