@@ -46,7 +46,7 @@ pub fn mine_header_batch(
         let hash = blake3::hash(header_bytes);
         let new_target_bytes = hash.as_bytes();
 
-        if bytes_lte(new_target_bytes, target) {
+        if mine::bytes_lte(new_target_bytes, target) {
             result.randomness = randomness as f64;
             result.found_match = true;
             break;
@@ -56,23 +56,9 @@ pub fn mine_header_batch(
     result
 }
 
-/// returns true if a <= b when treating both as 32 byte big endian numbers.
-fn bytes_lte(a: &[u8; 32], b: &[u8; 32]) -> bool {
-    for i in 0..32 {
-        if a[i] < b[i] {
-            return true;
-        }
-        if a[i] > b[i] {
-            return false;
-        }
-    }
-
-    true
-}
-
 #[cfg(test)]
 mod test {
-    use super::{bytes_lte, mine_header_batch};
+    use super::{mine::bytes_lte, mine_header_batch};
 
     #[test]
     fn test_mine_header_batch_no_match() {
