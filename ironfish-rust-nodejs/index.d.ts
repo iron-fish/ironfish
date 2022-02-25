@@ -121,8 +121,7 @@ export class Transaction {
 export class FoundBlockResult {
   randomness: number
   miningRequestId: number
-  blockHash: string
-  constructor(randomness: number, miningRequestId: number, blockHash: string)
+  constructor(randomness: number, miningRequestId: number)
 }
 export class ThreadPoolHandler {
   constructor(threadCount: number)

@@ -84,7 +84,6 @@ pub fn mine_header_batch(
 pub struct FoundBlockResult {
     pub randomness: f64,
     pub mining_request_id: f64,
-    pub block_hash: String,
 }
 
 #[napi]
@@ -117,7 +116,6 @@ impl ThreadPoolHandler {
             return Some(FoundBlockResult {
                 randomness: result.0 as f64,
                 mining_request_id: result.1 as f64,
-                block_hash: result.2,
             });
         }
         return None;

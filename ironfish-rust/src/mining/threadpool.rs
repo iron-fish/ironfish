@@ -4,7 +4,7 @@ use super::thread::Thread;
 
 pub struct ThreadPool {
     threads: Vec<Thread>,
-    block_found_receiver: Receiver<(usize, u32, Vec<u8>)>,
+    block_found_receiver: Receiver<(usize, u32)>,
     hash_rate_receiver: Receiver<u32>,
     mining_request_id: u32,
 }
@@ -18,8 +18,8 @@ impl ThreadPool {
         };
 
         let (block_found_channel, block_found_receiver): (
-            Sender<(usize, u32, Vec<u8>)>,
-            Receiver<(usize, u32, Vec<u8>)>,
+            Sender<(usize, u32)>,
+            Receiver<(usize, u32)>,
         ) = mpsc::channel();
 
         let (hash_rate_channel, hash_rate_receiver): (Sender<u32>, Receiver<u32>) = mpsc::channel();
@@ -58,20 +58,13 @@ impl ThreadPool {
         }
     }
 
-    pub fn get_found_block(&self) -> Option<(usize, usize, String)> {
-        if let Ok((randomness, mining_request_id, block_hash)) =
-            self.block_found_receiver.try_recv()
-        {
+    pub fn get_found_block(&self) -> Option<(usize, usize)> {
+        if let Ok((randomness, mining_request_id)) = self.block_found_receiver.try_recv() {
             // Stale work
             if mining_request_id != self.mining_request_id {
                 return None;
             }
-            return Some((
-                randomness,
-                mining_request_id as usize,
-                hex::encode(block_hash),
-                // String::from_utf8(block_hash.to_vec()).unwrap(),
-            ));
+            return Some((randomness, mining_request_id as usize));
         }
         return None;
     }

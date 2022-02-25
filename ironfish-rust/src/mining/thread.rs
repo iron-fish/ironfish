@@ -19,7 +19,7 @@ pub(crate) struct Thread {
 impl Thread {
     pub(crate) fn new(
         id: usize,
-        block_found_channel: Sender<(usize, u32, Vec<u8>)>,
+        block_found_channel: Sender<(usize, u32)>,
         hash_rate_channel: Sender<u32>,
         pool_size: usize,
     ) -> Self {
@@ -61,7 +61,7 @@ impl Thread {
 
 fn process_commands(
     work_receiver: Receiver<Command>,
-    block_found_channel: Sender<(usize, u32, Vec<u8>)>,
+    block_found_channel: Sender<(usize, u32)>,
     hash_rate_channel: Sender<u32>,
     start: usize,
     step_size: usize,
@@ -92,11 +92,9 @@ fn process_commands(
                         }
 
                         if let Some(randomness) = match_found {
-                            if let Err(e) = block_found_channel.send((
-                                randomness,
-                                mining_request_id,
-                                header_bytes.clone(),
-                            )) {
+                            if let Err(e) =
+                                block_found_channel.send((randomness, mining_request_id))
+                            {
                                 panic!("Error sending found block: {:?}", e);
                             }
 
