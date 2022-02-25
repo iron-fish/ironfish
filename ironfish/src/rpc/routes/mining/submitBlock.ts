@@ -4,11 +4,20 @@
 import * as yup from 'yup'
 import { MINED_RESULT } from '../../../mining/director'
 import { SerializedBlockTemplate } from '../../../serde'
-import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type SubmitBlockRequest = SerializedBlockTemplate
-export type SubmitBlockResponse = Record<string, never> | undefined
+
+export type SubmitBlockResponse = {
+  added: boolean
+  reason:
+    | 'UNKNOWN_REQUEST'
+    | 'CHAIN_CHANGED'
+    | 'INVALID_BLOCK'
+    | 'ADD_FAILED'
+    | 'FORK'
+    | 'SUCCESS'
+}
 
 const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
   .object({
@@ -45,19 +54,33 @@ const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
 
 export const SubmitBlockRequestSchema: yup.ObjectSchema<SubmitBlockRequest> =
   serializedBlockTemplateSchema
-export const SubmitBlockResponseSchema: yup.MixedSchema<SubmitBlockResponse> = yup
-  .mixed()
-  .oneOf([undefined] as const)
+
+export const SubmitBlockResponseSchema: yup.ObjectSchema<SubmitBlockResponse> = yup
+  .object({
+    added: yup.boolean().defined(),
+    reason: yup
+      .string()
+      .oneOf([
+        'UNKNOWN_REQUEST',
+        'CHAIN_CHANGED',
+        'INVALID_BLOCK',
+        'ADD_FAILED',
+        'FORK',
+        'SUCCESS',
+      ])
+      .defined(),
+  })
+  .defined()
 
 router.register<typeof SubmitBlockRequestSchema, SubmitBlockResponse>(
   `${ApiNamespace.miner}/submitBlock`,
   SubmitBlockRequestSchema,
   async (request, node): Promise<void> => {
-    const miningResult = await node.miningManager.submitBlockTemplate(request.data)
-    if (miningResult !== MINED_RESULT.SUCCESS) {
-      throw new ValidationError(miningResult)
-    }
+    const result = await node.miningManager.submitBlockTemplate(request.data)
 
-    request.end()
+    request.end({
+      added: result === MINED_RESULT.SUCCESS,
+      reason: result,
+    })
   },
 )
