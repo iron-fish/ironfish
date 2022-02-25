@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- 
+
 import { Assert } from '..'
+import { Direction } from './messageRouters'
 import {
   DisconnectingMessage,
   DisconnectingReason,
@@ -15,6 +16,8 @@ import {
   isNoteResponse,
   isNoteResponsePayload,
   isNullifierRequestPayload,
+  isNullifierResponse,
+  isNullifierResponsePayload,
   isPeerList,
   isPeerListRequest,
   isSignal,
@@ -22,13 +25,13 @@ import {
   NoteRequest,
   NoteResponse,
   NullifierRequest,
+  NullifierResponse,
   parseMessage,
   PeerList,
   PeerListRequest,
   Signal,
 } from './messages'
 import { VERSION_PROTOCOL } from './version'
-import { Direction } from './messageRouters'
 
 describe('isIdentify', () => {
   it('Returns true on identity message', () => {
@@ -153,7 +156,7 @@ describe('parseMessage', () => {
         position: 3,
       },
     }
-    
+
     const output = JSON.stringify(msg)
 
     try {
@@ -204,7 +207,7 @@ describe('isMessage', () => {
     const msg = {
       type: NodeMessageType.Note,
       payload: 3,
-      }
+    }
 
     expect(isMessage(msg)).toBeFalsy()
   })
@@ -327,8 +330,11 @@ describe('isNoteResponsePayload', () => {
 describe('isNoteResponse', () => {
   it('returns false if the message type is not Note', () => {
     const msg = {
+      rpcId: 1,
+      direction: Direction.response,
       type: NodeMessageType.Nullifier,
       payload: {
+        note: 'someString',
         position: 3,
       },
     }
@@ -337,6 +343,8 @@ describe('isNoteResponse', () => {
 
   it('returns false if message does not have a payload field', () => {
     const msg = {
+      rpcId: 1,
+      direction: Direction.response,
       type: NodeMessageType.Note,
     }
     expect(isNoteResponse(msg)).toBeFalsy()
@@ -344,8 +352,11 @@ describe('isNoteResponse', () => {
 
   it('returns false if the payload is not for a valid note', () => {
     const msg = {
+      rpcId: 1,
+      direction: Direction.response,
       type: NodeMessageType.Note,
       payload: {
+        note: 'someString',
         position: '3',
       },
     }
@@ -366,33 +377,127 @@ describe('isNoteResponse', () => {
   })
 })
 
-//jktodo this needs work!
 describe('isNullifierRequestPayload', () => {
   it('returns false if the object is undefined', () => {
     expect(isNullifierRequestPayload(undefined)).toBeFalsy()
   })
 
-  it('returns false if message does not have a payload field', () => {
+  it('returns false if message does not have a position field', () => {
     const msg = {
       type: NodeMessageType.Nullifier,
+      payload: { location: 3 },
     }
-    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+    expect(isNullifierRequestPayload(msg.payload)).toBeFalsy()
   })
 
   it('returns false if payload.position is not a number', () => {
     const msg = {
       type: NodeMessageType.Nullifier,
-      payload: { position: 'three' },
+      payload: { position: '3' },
     }
-    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+    expect(isNullifierRequestPayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns true on nullifier message', () => {
+  it('returns true if NullifierRequest message received', () => {
     const msg: NullifierRequest = {
       type: NodeMessageType.Nullifier,
-      payload: { position: 3.0 },
+      payload: { position: 3 },
     }
-    expect(isNullifierRequestPayload(msg)).toBeFalsy()
+    expect(isNullifierRequestPayload(msg.payload)).toBeTruthy()
+  })
+})
+
+describe('isNullifierResponse', () => {
+  it('returns false if the message type is not Nullifier', () => {
+    const msg = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Note,
+      payload: {
+        nullifier: 'someString',
+        position: 3,
+      },
+    }
+    expect(isNullifierResponse(msg)).toBeFalsy()
+  })
+
+  it('returns false if message does not have a payload field', () => {
+    const msg = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+    }
+    expect(isNullifierResponse(msg)).toBeFalsy()
+  })
+
+  it('returns false if the payload is not for a valid nullifier', () => {
+    const msg = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+      payload: {
+        nullifier: 'someString',
+        position: '3',
+      },
+    }
+    expect(isNullifierResponse(msg)).toBeFalsy()
+  })
+
+  it('returns true if NullifierResponse message received', () => {
+    const msg: NullifierResponse = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+      payload: {
+        nullifier: 'someString',
+        position: 3,
+      },
+    }
+    expect(isNullifierResponse(msg)).toBeTruthy()
+  })
+})
+
+describe('isNullifierResponsePayload', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isNullifierResponsePayload(undefined)).toBeFalsy()
+  })
+
+  it('returns false if message does not have a nullifier field', () => {
+    const msg = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+      payload: {
+        position: 3,
+      },
+    }
+    expect(isNullifierResponsePayload(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if payload.nullifier is not a string', () => {
+    const msg = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+      payload: {
+        nullifier: 3,
+        position: 3,
+      },
+    }
+    expect(isNullifierResponsePayload(msg.payload)).toBeFalsy()
+  })
+
+  it('returns true if NullifierResponse message received', () => {
+    const msg: NullifierResponse = {
+      rpcId: 1,
+      direction: Direction.response,
+      type: NodeMessageType.Nullifier,
+      payload: {
+        nullifier: 'someString',
+        position: 3,
+      },
+    }
+    expect(isNullifierResponsePayload(msg.payload)).toBeTruthy()
   })
 })
 
@@ -403,8 +508,6 @@ describe('test', () => {
   })
 })
 
-//isNullifierResponse
-//isNullifierResponsePayload
 //isGetBlocksResponse
 //isGetBlocksRequest
 //isGetBlockHashesResponse
