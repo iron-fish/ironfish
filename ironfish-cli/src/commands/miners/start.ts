@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import {
   AsyncUtils,
   FileUtils,
+  GraffitiUtils,
   Miner as IronfishMiner,
   MineRequest,
   MiningPoolMiner,
@@ -39,9 +40,12 @@ export class Miner extends IronfishCommand {
       flags.threads = os.cpus().length
     }
 
+    const graffiti = this.sdk.config.get('blockGraffiti')
+    this.log(`Staring to mine with graffiti: ${graffiti}`)
+
     const miner = MiningPoolMiner.init({
       threadCount: flags.threads,
-      graffiti: Buffer.alloc(32),
+      graffiti: GraffitiUtils.fromString(graffiti),
     })
 
     await miner.mine()

@@ -98,14 +98,11 @@ export class MiningPool {
     return this.target.toString('hex')
   }
 
-  submitWork(miningRequestId: number, randomness: number, graffiti: string): void {
-    const graffitiBuff = Buffer.alloc(32)
-    graffitiBuff.write(graffiti)
-
+  submitWork(miningRequestId: number, randomness: number, graffiti: Buffer): void {
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
     Assert.isNotUndefined(blockTemplate)
 
-    blockTemplate.header.graffiti = graffitiBuff.toString('hex')
+    blockTemplate.header.graffiti = graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
     const headerBytes = mineableHeaderString(blockTemplate.header)

@@ -125,7 +125,7 @@ export class StratumServer {
             const message = payload as StratumMessageMiningSubmit
             const submittedRequestId = message.params[0]
             const submittedRandomness = message.params[1]
-            const submittedGraffiti = message.params[2]
+            const submittedGraffiti = Buffer.from(message.params[2], 'hex')
 
             this.pool.submitWork(submittedRequestId, submittedRandomness, submittedGraffiti)
             break
