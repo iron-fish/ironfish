@@ -63,9 +63,12 @@ export class MiningPool {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
     this.hashRate.start()
-    this.rpc.onClose.on(this.onDisconnectRpc)
+
+    this.logger.info('Starting stratum server...')
+    this.stratum.start()
 
     this.logger.info('Connecting to node...')
+    this.rpc.onClose.on(this.onDisconnectRpc)
     void this.startConnectingRpc()
   }
 
@@ -150,8 +153,6 @@ export class MiningPool {
     this.logger.info(
       `Starting from latest block at sequence ${response.content.block.sequence}`,
     )
-    this.logger.info('Starting stratum server...')
-    this.stratum.start()
 
     this.logger.info('Listening to node for new blocks')
 
