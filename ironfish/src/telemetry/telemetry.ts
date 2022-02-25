@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block } from '../primitives/block'
@@ -17,6 +18,7 @@ export class Telemetry {
   private readonly MAX_RETRIES = 5
   private readonly METRICS_INTERVAL = 5 * 60 * 1000
 
+  private readonly chain: Blockchain
   private readonly defaultTags: Tag[]
   private readonly defaultFields: Field[]
   private readonly logger: Logger
@@ -31,15 +33,17 @@ export class Telemetry {
   private _submitted: number
 
   constructor(options: {
+    chain: Blockchain
     workerPool: WorkerPool
-    metrics?: MetricsMonitor
     logger?: Logger
-    defaultTags?: Tag[]
+    metrics?: MetricsMonitor
     defaultFields?: Field[]
+    defaultTags?: Tag[]
   }) {
+    this.chain = options.chain
+    this.workerPool = options.workerPool
     this.logger = options.logger ?? createRootLogger()
     this.metrics = options.metrics ?? null
-    this.workerPool = options.workerPool
     this.defaultTags = options.defaultTags ?? []
     this.defaultFields = options.defaultFields ?? []
 
@@ -138,6 +142,11 @@ export class Telemetry {
           name: 'mempool_size',
           type: 'integer',
           value: this.metrics.memPoolSize.value,
+        },
+        {
+          name: 'head_sequence',
+          type: 'integer',
+          value: this.chain.head.sequence,
         },
       ],
     })
