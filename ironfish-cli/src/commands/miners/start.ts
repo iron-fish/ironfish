@@ -42,10 +42,12 @@ export class Miner extends IronfishCommand {
 
     const graffiti = this.sdk.config.get('blockGraffiti')
     this.log(`Staring to mine with graffiti: ${graffiti}`)
+    const batchSize = this.sdk.config.get('minerBatchSize')
 
     const miner = MiningPoolMiner.init({
       threadCount: flags.threads,
       graffiti: GraffitiUtils.fromString(graffiti),
+      batchSize,
     })
 
     await miner.mine()

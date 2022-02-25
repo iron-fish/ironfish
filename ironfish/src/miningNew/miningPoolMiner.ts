@@ -41,10 +41,14 @@ export class MiningPoolMiner {
     this.target.writeUInt32BE(65535)
   }
 
-  static init(options: { threadCount?: number; graffiti: Buffer }): MiningPoolMiner {
+  static init(options: {
+    threadCount?: number
+    graffiti: Buffer
+    batchSize: number
+  }): MiningPoolMiner {
     const threadCount = options.threadCount ?? 1
 
-    const threadPool = new ThreadPoolHandler(threadCount)
+    const threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
 
     return new MiningPoolMiner({ threadPool, graffiti: options.graffiti })
   }

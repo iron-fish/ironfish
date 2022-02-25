@@ -93,9 +93,9 @@ struct ThreadPoolHandler {
 #[napi]
 impl ThreadPoolHandler {
     #[napi(constructor)]
-    pub fn new(thread_count: i32) -> Self {
+    pub fn new(thread_count: i32, batch_size: u32) -> Self {
         ThreadPoolHandler {
-            threadpool: mining::threadpool::ThreadPool::new(thread_count),
+            threadpool: mining::threadpool::ThreadPool::new(thread_count, batch_size),
         }
     }
 

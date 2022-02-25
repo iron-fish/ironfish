@@ -124,7 +124,7 @@ export class FoundBlockResult {
   constructor(randomness: number, miningRequestId: number)
 }
 export class ThreadPoolHandler {
-  constructor(threadCount: number)
+  constructor(threadCount: number, batchSize: number)
   newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
   stop(): void
   getFoundBlock(): FoundBlockResult | undefined | null
