@@ -290,8 +290,11 @@ export abstract class IronfishRpcClient {
     return this.request<void, BlockTemplateStreamResponse>('miner/blockTemplateStream', params)
   }
 
-  submitBlock(params: SubmitBlockRequest): Response<SubmitBlockResponse> {
-    return this.request<SubmitBlockResponse>(`${ApiNamespace.miner}/submitBlock`, params)
+  submitBlock(params: SubmitBlockRequest): Promise<ResponseEnded<SubmitBlockResponse>> {
+    return this.request<SubmitBlockResponse>(
+      `${ApiNamespace.miner}/submitBlock`,
+      params,
+    ).waitForEnd()
   }
 
   successfullyMined(params: SuccessfullyMinedRequest): Response<SuccessfullyMinedResponse> {

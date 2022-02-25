@@ -63,7 +63,11 @@ export class StratumServer {
   ): void {
     this.currentMiningRequestId = miningRequestId
     this.currentWork = mineableHeaderString(block.header)
-    this.logger.info('setting current work', this.currentMiningRequestId, this.currentWork.toString('hex'))
+    this.logger.info(
+      'setting current work',
+      this.currentMiningRequestId,
+      this.currentWork.toString('hex'),
+    )
 
     this.broadcast(this.notifyMessage())
   }
@@ -127,7 +131,11 @@ export class StratumServer {
             const submittedRandomness = message.params[1]
             const submittedGraffiti = Buffer.from(message.params[2], 'hex')
 
-            this.pool.submitWork(submittedRequestId, submittedRandomness, submittedGraffiti)
+            void this.pool.submitWork(
+              submittedRequestId,
+              submittedRandomness,
+              submittedGraffiti,
+            )
             break
           }
 

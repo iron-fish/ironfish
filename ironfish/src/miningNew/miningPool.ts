@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
-import { ErrorUtils } from '..'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
-import { IronfishIpcClient } from '../rpc/clients'
+import { IronfishIpcClient, RequestError } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
+import { ErrorUtils } from '../utils/error'
 import { SetTimeoutToken } from '../utils/types'
 import { StratumServer } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
@@ -98,7 +98,11 @@ export class MiningPool {
     return this.target.toString('hex')
   }
 
-  submitWork(miningRequestId: number, randomness: number, graffiti: Buffer): void {
+  async submitWork(
+    miningRequestId: number,
+    randomness: number,
+    graffiti: Buffer,
+  ): Promise<void> {
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
     Assert.isNotUndefined(blockTemplate)
 
@@ -116,7 +120,14 @@ export class MiningPool {
       // TODO: this seems to (sometimes?) have significant delay, look into why.
       // is it a socket buffer flush issue or a slowdown on the node side?
       this.logger.info('Valid block, submitting to node')
-      this.rpc.submitBlock(blockTemplate)
+
+      const result = await this.rpc.submitBlock(blockTemplate)
+
+      if(result.content.added) {
+        this.logger.info('Block submitted successfully!')
+      } else {
+        this.logger.info(`Block was rejected: ${result.content.reason}`)
+      }
     }
   }
 
