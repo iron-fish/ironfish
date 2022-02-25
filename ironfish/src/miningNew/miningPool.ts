@@ -8,6 +8,7 @@ import { Meter } from '../metrics/meter'
 import { IronfishIpcClient, RequestError } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { ErrorUtils } from '../utils/error'
+import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
 import { StratumServer } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
@@ -113,18 +114,20 @@ export class MiningPool {
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader < this.target) {
-      this.logger.info('Valid pool share submitted')
+      this.logger.debug('Valid pool share submitted')
     }
 
     if (hashedHeader < Buffer.from(blockTemplate.header.target, 'hex')) {
       // TODO: this seems to (sometimes?) have significant delay, look into why.
       // is it a socket buffer flush issue or a slowdown on the node side?
-      this.logger.info('Valid block, submitting to node')
+      this.logger.debug('Valid block, submitting to node')
 
       const result = await this.rpc.submitBlock(blockTemplate)
 
-      if(result.content.added) {
-        this.logger.info('Block submitted successfully!')
+      if (result.content.added) {
+        this.logger.info(
+          `Block submitted successfully! ${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+        )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }

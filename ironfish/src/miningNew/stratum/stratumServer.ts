@@ -63,6 +63,7 @@ export class StratumServer {
   ): void {
     this.currentMiningRequestId = miningRequestId
     this.currentWork = mineableHeaderString(block.header)
+
     this.logger.info(
       'setting current work',
       this.currentMiningRequestId,
@@ -97,7 +98,7 @@ export class StratumServer {
       if (payload.method != null) {
         switch (payload.method) {
           case 'mining.subscribe': {
-            this.logger.info('mining.subscribe request received')
+            this.logger.debug('mining.subscribe request received')
 
             const message = payload as StratumMessageMiningSubscribe
             const graffiti = Buffer.from(message.params, 'hex')
@@ -125,7 +126,7 @@ export class StratumServer {
           }
 
           case 'mining.submit': {
-            this.logger.info('mining.submit request received')
+            this.logger.debug('mining.submit request received')
             const message = payload as StratumMessageMiningSubmit
             const submittedRequestId = message.params[0]
             const submittedRandomness = message.params[1]
