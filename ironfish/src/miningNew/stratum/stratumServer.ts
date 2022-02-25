@@ -58,7 +58,7 @@ export class StratumServer {
   newWork(
     miningRequestId: number,
     block: SerializedBlockTemplate,
-    currentHeadDifficulty: string,
+    currentHeadDifficulty: bigint,
     currentHeadTimestamp: number,
   ): void {
     this.currentMiningRequestId = miningRequestId

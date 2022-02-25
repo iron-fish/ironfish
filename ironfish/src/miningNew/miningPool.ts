@@ -5,7 +5,8 @@ import { blake3 } from '@napi-rs/blake-hash'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
-import { IronfishIpcClient, RequestError } from '../rpc/clients'
+import { Target } from '../primitives/target'
+import { IronfishIpcClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
@@ -36,7 +37,7 @@ export class MiningPool {
   target: Buffer
 
   currentHeadTimestamp: number | null
-  currentHeadDifficulty: string | null
+  currentHeadDifficulty: bigint | null
 
   constructor(options: { rpc: IronfishIpcClient; logger?: Logger }) {
     this.rpc = options.rpc
@@ -118,8 +119,6 @@ export class MiningPool {
     }
 
     if (hashedHeader < Buffer.from(blockTemplate.header.target, 'hex')) {
-      // TODO: this seems to (sometimes?) have significant delay, look into why.
-      // is it a socket buffer flush issue or a slowdown on the node side?
       this.logger.debug('Valid block, submitting to node')
 
       const result = await this.rpc.submitBlock(blockTemplate)
@@ -155,15 +154,6 @@ export class MiningPool {
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
-    this.logger.info('Fetching latest block from node...')
-
-    const response = await this.rpc.getBlockInfo({ sequence: -1 })
-    this.currentHeadTimestamp = response.content.block.timestamp
-    this.currentHeadDifficulty = response.content.block.difficulty
-
-    this.logger.info(
-      `Starting from latest block at sequence ${response.content.block.sequence}`,
-    )
 
     this.logger.info('Listening to node for new blocks')
 
@@ -181,13 +171,10 @@ export class MiningPool {
 
   private async processNewBlocks() {
     for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
-      // TODO: Should we just include this as part of the block template? Seems fairly reasonable
-      const currentBlock = (
-        await this.rpc.getBlockInfo({ hash: payload.header.previousBlockHash })
-      ).content.block
-
-      this.currentHeadDifficulty = currentBlock.difficulty
-      this.currentHeadTimestamp = currentBlock.timestamp
+      Assert.isNotUndefined(payload.previousBlockInfo)
+      const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
+      this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
+      this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
       const miningRequestId = this.nextMiningRequestId++
       this.miningRequestBlocks.set(miningRequestId, payload)

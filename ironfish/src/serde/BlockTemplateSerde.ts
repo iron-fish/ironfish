@@ -92,6 +92,7 @@ export class BlockTemplateSerde {
       BigInt(-1) * BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.minersFee, 'hex')),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )
+
     const transactions = blockTemplate.transactions.map((t) =>
       strategy.transactionSerde.deserialize(Buffer.from(t, 'hex')),
     )
