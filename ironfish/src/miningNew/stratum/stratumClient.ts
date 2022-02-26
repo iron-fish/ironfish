@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { isThisQuarter } from 'date-fns'
 import net from 'net'
 import { SetTimeoutToken } from '../..'
 import { createRootLogger, Logger } from '../../logger'
@@ -24,6 +23,7 @@ export class StratumClient {
   readonly graffiti: Buffer
 
   private started: boolean
+  private connected: boolean
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
 
@@ -46,11 +46,13 @@ export class StratumClient {
     this.started = false
     this.requestsSent = {}
     this.nextMessageId = 0
+    this.connected = false
     this.connectWarned = false
     this.connectTimeout = null
 
     this.socket = new net.Socket()
     this.socket.on('connect', () => this.onConnect())
+    this.socket.on('error', (error) => this.onError(error))
     this.socket.on('close', () => this.onDisconnect())
     this.socket.on('data', (data) => this.onData(data))
   }
@@ -75,7 +77,7 @@ export class StratumClient {
     }
 
     if (!connected) {
-      if (this.connectWarned) {
+      if (!this.connectWarned) {
         this.logger.warn(`Failed to connect to pool at ${this.host}:${this.port}, retrying...`)
         this.connectWarned = true
       }
@@ -124,9 +126,16 @@ export class StratumClient {
   }
 
   private onDisconnect = (): void => {
+    if (!this.connected) {
+      return
+    }
+
+    this.connected = false
     this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     void this.startConnecting()
   }
+
+  private onError(error: unknown): void {}
 
   private onData(data: Buffer): void {
     const splitData = data.toString().trim().split('\n')
