@@ -64,14 +64,15 @@ function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
+  const blockSyncerStatusDetails: string[] = []
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
 
   const avgTimeToAddBlock = content.blockSyncer.syncing.blockSpeed
   const speed = content.blockSyncer.syncing.speed
 
-  if (content.blockSyncer.status !== 'idle') {
-    blockSyncerStatus += ` @ ${speed} blocks per seconds`
+  if (content.blockSyncer.status === 'syncing') {
+    blockSyncerStatusDetails.push(`${speed} blocks per seconds`)
   }
 
   if (content.telemetry.status === 'started') {
@@ -79,12 +80,14 @@ function renderStatus(content: GetStatusResponse): string {
   }
 
   if (avgTimeToAddBlock) {
-    blockSyncerStatus += ` | avg time to add block ${avgTimeToAddBlock} ms`
+    blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
   }
 
   if (content.blockSyncer.status === 'syncing') {
-    blockSyncerStatus += `, progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`
+    blockSyncerStatusDetails.push(`progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`)
   }
+
+  blockSyncerStatus += blockSyncerStatusDetails.length > 0 ? ` - ${blockSyncerStatusDetails.join(', ')}` : ''
 
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
