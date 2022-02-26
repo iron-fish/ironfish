@@ -154,7 +154,6 @@ export class MiningPool {
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
-
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch((e: unknown) => {

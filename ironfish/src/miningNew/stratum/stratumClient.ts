@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { isThisQuarter } from 'date-fns'
 import net from 'net'
+import { SetTimeoutToken } from '../..'
 import { createRootLogger, Logger } from '../../logger'
 import { MiningPoolMiner } from '../miningPoolMiner'
 import {
@@ -15,25 +17,75 @@ import {
 
 export class StratumClient {
   readonly socket: net.Socket
+  readonly host: string
+  readonly port: number
   readonly miner: MiningPoolMiner
   readonly logger: Logger
+  readonly graffiti: Buffer
+
+  private started: boolean
+  private connectWarned: boolean
+  private connectTimeout: SetTimeoutToken | null
 
   requestsSent: { [index: number]: unknown }
   nextMessageId: number
 
-  constructor(miner: MiningPoolMiner) {
-    this.miner = miner
-    this.logger = createRootLogger()
+  constructor(options: {
+    miner: MiningPoolMiner
+    graffiti: Buffer
+    host: string
+    port: number
+    logger?: Logger
+  }) {
+    this.host = options.host
+    this.port = options.port
+    this.miner = options.miner
+    this.graffiti = options.graffiti
+    this.logger = options.logger ?? createRootLogger()
+
+    this.started = false
     this.requestsSent = {}
     this.nextMessageId = 0
+    this.connectWarned = false
+    this.connectTimeout = null
 
     this.socket = new net.Socket()
     this.socket.on('connect', () => this.onConnect())
+    this.socket.on('close', () => this.onDisconnect())
     this.socket.on('data', (data) => this.onData(data))
   }
 
   start(): void {
-    this.socket.connect(1234, 'localhost')
+    if (this.started) {
+      return
+    }
+
+    this.started = true
+    this.logger.info('Connecting to pool...')
+    void this.startConnecting()
+  }
+
+  private async startConnecting(): Promise<void> {
+    const connected = await connectSocket(this.socket, this.host, this.port)
+      .then(() => true)
+      .catch(() => false)
+
+    if (!this.started) {
+      return
+    }
+
+    if (!connected) {
+      if (this.connectWarned) {
+        this.logger.warn(`Failed to connect to pool at ${this.host}:${this.port}, retrying...`)
+        this.connectWarned = true
+      }
+
+      this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
+      return
+    }
+
+    this.connectWarned = false
+    this.onConnect()
   }
 
   stop(): void {
@@ -66,7 +118,14 @@ export class StratumClient {
   }
 
   private onConnect(): void {
-    this.logger.info('connection established with pool')
+    this.logger.info('Successfully connected to pool')
+    this.logger.info('Listening to pool for new work')
+    this.subscribe(this.graffiti)
+  }
+
+  private onDisconnect = (): void => {
+    this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
+    void this.startConnecting()
   }
 
   private onData(data: Buffer): void {
@@ -103,4 +162,25 @@ export class StratumClient {
       }
     }
   }
+}
+
+// Transform net.Socket.connect() callback into a nicer promise style interface
+function connectSocket(socket: net.Socket, host: string, port: number): Promise<void> {
+  return new Promise((resolve, reject): void => {
+    const onConnect = () => {
+      socket.off('connect', onConnect)
+      socket.off('error', onError)
+      resolve()
+    }
+
+    const onError = (error: unknown) => {
+      socket.off('connect', onConnect)
+      socket.off('error', onError)
+      reject(error)
+    }
+
+    socket.on('error', onError)
+    socket.on('connect', onConnect)
+    socket.connect(port, host)
+  })
 }
