@@ -79,10 +79,14 @@ function renderStatus(content: GetStatusResponse): string {
   }
 
   if (content.blockSyncer.status === 'syncing') {
-    blockSyncerStatusDetails.push(`progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`)
+    blockSyncerStatusDetails.push(
+      `progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`,
+    )
   }
 
-  blockSyncerStatus += blockSyncerStatusDetails.length > 0 ? ` - ${blockSyncerStatusDetails.join(', ')}` : ''
+  blockSyncerStatus += blockSyncerStatusDetails.length
+    ? ` - ${blockSyncerStatusDetails.join(', ')}`
+    : ''
 
   if (content.telemetry.status === 'started') {
     telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
