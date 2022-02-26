@@ -62,9 +62,9 @@ export default class Status extends IronfishCommand {
 
 function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
-  let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
   const blockSyncerStatusDetails: string[] = []
+  let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
 
@@ -73,10 +73,6 @@ function renderStatus(content: GetStatusResponse): string {
 
   if (content.blockSyncer.status === 'syncing') {
     blockSyncerStatusDetails.push(`${speed} blocks per seconds`)
-  }
-
-  if (content.telemetry.status === 'started') {
-    telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
 
   if (avgTimeToAddBlock) {
@@ -88,6 +84,10 @@ function renderStatus(content: GetStatusResponse): string {
   }
 
   blockSyncerStatus += blockSyncerStatusDetails.length > 0 ? ` - ${blockSyncerStatusDetails.join(', ')}` : ''
+
+  if (content.telemetry.status === 'started') {
+    telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
+  }
 
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
