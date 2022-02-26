@@ -60,8 +60,18 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
   `${ApiNamespace.miner}/blockTemplateStream`,
   BlockTemplateStreamRequestSchema,
   async (request, node): Promise<void> => {
+    if (!node.chain.synced && !node.config.get('miningForce')) {
+      node.logger.info(
+        'Miner connected while the node is syncing. Will not start mining until the node is synced',
+      )
+    }
+
     // Construct a new block template and send it to the stream listener
     const streamNewBlockTemplate = async (block: Block) => {
+      if (!node.chain.synced && !node.config.get('miningForce')) {
+        return
+      }
+
       const serializedBlock = await node.miningManager.createNewBlockTemplate(block)
       request.stream(serializedBlock)
     }
@@ -71,10 +81,6 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
       setTimeout(() => {
         void streamNewBlockTemplate(block)
       })
-    }
-
-    if (!node.chain.synced && !node.config.get('miningForce')) {
-      throw new ValidationError('Node is not synced, try again once the node is fully synced')
     }
 
     // Begin listening for chain head changes to generate new block templates to send to listeners
