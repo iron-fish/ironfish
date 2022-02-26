@@ -17,6 +17,10 @@ export class MiningPoolMiner {
   readonly stratum: StratumClient
   readonly logger: Logger
 
+  private started: boolean
+  private stopPromise: Promise<void> | null
+  private stopResolve: (() => void) | null
+
   // TODO: Think about best way to store data at each level, miner, pool, server, client
   graffiti: Buffer
   miningRequestId: number
@@ -24,41 +28,82 @@ export class MiningPoolMiner {
   miningRequestPayloads: { [index: number]: Buffer } = {}
   target: Buffer
 
-  private constructor(options: {
-    threadPool: ThreadPoolHandler
+  constructor(options: {
+    threadCount: number
+    batchSize: number
     logger?: Logger
     graffiti: Buffer
   }) {
-    this.threadPool = options.threadPool
     this.logger = options.logger ?? createRootLogger()
     this.graffiti = options.graffiti
 
-    this.stratum = new StratumClient(this)
-    this.stratum.start()
+    const threadCount = options.threadCount ?? 1
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
+
+    this.stratum = new StratumClient({
+      miner: this,
+      graffiti: this.graffiti,
+      host: 'localhost',
+      port: 1234,
+    })
+
     this.hashRate = new Meter()
     this.miningRequestId = 0
     this.target = Buffer.alloc(32)
     this.target.writeUInt32BE(65535)
+    this.stopPromise = null
+    this.stopResolve = null
+    this.started = false
   }
 
-  static init(options: {
-    threadCount?: number
-    graffiti: Buffer
-    batchSize: number
-  }): MiningPoolMiner {
-    const threadCount = options.threadCount ?? 1
+  start(): void {
+    if (this.started) {
+      return
+    }
 
-    const threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
+    this.stopPromise = new Promise((r) => (this.stopResolve = r))
+    this.started = true
+    this.stratum.start()
+    this.hashRate.start()
 
-    return new MiningPoolMiner({ threadPool, graffiti: options.graffiti })
+    void this.mine()
+  }
+
+  stop(): void {
+    if (!this.started) {
+      return
+    }
+
+    this.logger.debug('Stopping miner, goodbye')
+    this.started = false
+    this.stratum.stop()
+    this.hashRate.stop()
+
+    if (this.stopResolve) {
+      this.stopResolve()
+    }
+  }
+
+  async waitForStop(): Promise<void> {
+    await this.stopPromise
+  }
+
+  setTarget(target: string): void {
+    this.target = Buffer.from(target, 'hex')
+  }
+
+  newWork(miningRequestId: number, headerHex: string): void {
+    this.logger.info('new work', this.target.toString('hex'), miningRequestId)
+    this.miningRequestPayloads[miningRequestId] = Buffer.from(headerHex, 'hex')
+
+    const headerBytes = Buffer.from(headerHex, 'hex')
+    headerBytes.set(this.graffiti, 176)
+    this.threadPool.newWork(headerBytes, this.target, miningRequestId)
   }
 
   async mine(): Promise<void> {
-    this.hashRate.start()
-    this.stratum.subscribe(this.graffiti)
-
     // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (this.started) {
       // TODO: Turn this into an AsyncGenerator type thing on the JS side?
       const blockResult = this.threadPool.getFoundBlock()
 
@@ -82,17 +127,5 @@ export class MiningPoolMiner {
     }
 
     this.hashRate.stop()
-  }
-
-  setTarget(target: string): void {
-    this.target = Buffer.from(target, 'hex')
-  }
-
-  newWork(miningRequestId: number, headerHex: string): void {
-    const headerBytes = Buffer.from(headerHex, 'hex')
-    headerBytes.set(this.graffiti, 176)
-    this.miningRequestPayloads[miningRequestId] = Buffer.from(headerHex, 'hex')
-    this.logger.info('new work', this.target.toString('hex'), miningRequestId)
-    this.threadPool.newWork(headerBytes, this.target, miningRequestId)
   }
 }
