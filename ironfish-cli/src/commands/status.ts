@@ -69,10 +69,9 @@ function renderStatus(content: GetStatusResponse): string {
   Assert.isNotUndefined(content.blockSyncer.syncing)
 
   const avgTimeToAddBlock = content.blockSyncer.syncing.blockSpeed
-  const speed = content.blockSyncer.syncing.speed
 
   if (content.blockSyncer.status === 'syncing') {
-    blockSyncerStatusDetails.push(`${speed} blocks per seconds`)
+    blockSyncerStatusDetails.push(`${content.blockSyncer.syncing.speed} blocks per seconds`)
   }
 
   if (avgTimeToAddBlock) {
