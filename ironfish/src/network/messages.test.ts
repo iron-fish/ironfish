@@ -775,19 +775,3 @@ describe('isGetBlockHashesRequest', () => {
     expect(isGetBlockHashesRequest(msg.payload)).toBeTruthy()
   })
 })
-
-describe('test', () => {
-  it('returns false', () => {
-    // toBeTruthy()
-    expect(isNoteResponsePayload(undefined)).toBeFalsy()
-  })
-})
-
-//isNewBlockPayload - 2 executions only
-
-//Other functions to improve, they mostly have multiple conditional returns
-//isPayloadMessage
-//isIdentify
-//isSignalRequest
-//isSignal
-//isPeerList
