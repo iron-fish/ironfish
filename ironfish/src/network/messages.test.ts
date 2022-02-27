@@ -3,19 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '..'
-//jktodo: do I need these?
-import { SerializedBlock } from '../primitives/block'
-import { SerializedTransaction } from '../primitives/transaction'
 import { createNodeTest, useBlockWithTx } from '../testUtilities'
 import { Direction } from './messageRouters'
 import {
   DisconnectingMessage,
   DisconnectingReason,
-  GetBlocksResponse,
+  GetBlockHashesRequest,
+  GetBlockHashesResponse,
   GetBlocksRequest,
+  GetBlocksResponse,
   Identify,
   InternalMessageType,
   isDisconnectingMessage,
+  isGetBlockHashesRequest,
+  isGetBlockHashesResponse,
   isGetBlocksRequest,
   isGetBlocksResponse,
   isIdentify,
@@ -526,22 +527,14 @@ describe('isGetBlocksResponse', () => {
     expect(isGetBlocksResponse(msg)).toBeFalsy()
   }, 10000)
 
-
-  it('returns false if message does not have a payload field', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
-    const blockArray = [serialized, serialized]
-
+  it('returns false if message does not have a payload field', () => {
     const msg = {
       type: NodeMessageType.GetBlocks,
     }
     expect(isGetBlocksResponse(msg)).toBeFalsy()
   }, 10000)
 
-  it('returns false if the payload does not have a blocks field', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
-
+  it('returns false if the payload does not have a blocks field', () => {
     const msg = {
       type: NodeMessageType.GetBlocks,
       payload: {
@@ -550,7 +543,6 @@ describe('isGetBlocksResponse', () => {
     }
     expect(isGetBlocksResponse(msg)).toBeFalsy()
   }, 10000)
-
 
   it('returns false if the blocks field is not an array', async () => {
     const { block } = await useBlockWithTx(nodeTest.node)
@@ -613,7 +605,7 @@ describe('isGetBlocksRequest', () => {
     expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
   })
 
-  it('returns false if payload.start is not a string', () => {
+  it('returns false if payload.start is not a string or number', () => {
     const msg = {
       type: NodeMessageType.GetBlocks,
       payload: {
@@ -645,7 +637,7 @@ describe('isGetBlocksRequest', () => {
     expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
   })
 
-  it('returns true if GetBlocks payload received', () => {
+  it('returns true if GetBlocksRequest payload received', () => {
     const msg: GetBlocksRequest = {
       type: NodeMessageType.GetBlocks,
       payload: {
@@ -657,6 +649,133 @@ describe('isGetBlocksRequest', () => {
   })
 })
 
+describe('isGetBlockHashesResponse', () => {
+  it('returns false if the message type is not GetBlockHashes', () => {
+    const stringArray = ['blockHash1', 'blockHash2']
+
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        blocks: stringArray,
+      },
+    }
+    expect(isGetBlockHashesResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns false if message does not have a payload field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+    }
+    expect(isGetBlockHashesResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns false if the payload does not have a blocks field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        position: 3,
+      },
+    }
+    expect(isGetBlockHashesResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns false if the blocks field is not an array', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        blocks: 'blockHash1',
+      },
+    }
+
+    expect(isGetBlockHashesResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns false if GetBlockHashesResponse message with invalid hash types received', () => {
+    const stringArray = ['blockHash1', undefined]
+
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        blocks: stringArray,
+      },
+    }
+
+    expect(isGetBlockHashesResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns true if GetBlockHashesResponse message with hashes received', () => {
+    const stringArray = ['blockHash1', 'blockHash2']
+
+    const msg: GetBlockHashesResponse = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        blocks: stringArray,
+      },
+    }
+
+    expect(isGetBlockHashesResponse(msg)).toBeTruthy()
+  }, 10000)
+})
+
+describe('isGetBlockHashesRequest', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isGetBlockHashesRequest(undefined)).toBeFalsy()
+  })
+
+  it('returns false if message does not have the start field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        limit: 3,
+      },
+    }
+    expect(isGetBlockHashesRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if payload.start is not a string or number', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        start: null,
+        limit: 3,
+      },
+    }
+    expect(isGetBlockHashesRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if message does not have the limit field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        start: 3,
+      },
+    }
+    expect(isGetBlockHashesRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if payload.limit is not a number', () => {
+    const msg = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        start: 3,
+        limit: 'three',
+      },
+    }
+    expect(isGetBlockHashesRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns true if GetBlockHashesRequest payload received', () => {
+    const msg: GetBlockHashesRequest = {
+      type: NodeMessageType.GetBlockHashes,
+      payload: {
+        start: 3,
+        limit: 3,
+      },
+    }
+    expect(isGetBlockHashesRequest(msg.payload)).toBeTruthy()
+  })
+})
+
 describe('test', () => {
   it('returns false', () => {
     // toBeTruthy()
@@ -664,10 +783,6 @@ describe('test', () => {
   })
 })
 
-//isGetBlockHashesResponse
-//isGetBlockHashesRequest
-//isBlockHash
-//isBlock
 //isNewBlockPayload - 2 executions only
 
 //Other functions to improve, they mostly have multiple conditional returns
