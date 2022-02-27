@@ -3,13 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '..'
+//jktodo: do I need these?
+import { SerializedBlock } from '../primitives/block'
+import { SerializedTransaction } from '../primitives/transaction'
+import { createNodeTest, useBlockWithTx } from '../testUtilities'
 import { Direction } from './messageRouters'
 import {
   DisconnectingMessage,
   DisconnectingReason,
+  GetBlocksResponse,
   Identify,
   InternalMessageType,
   isDisconnectingMessage,
+  isGetBlocksResponse,
   isIdentify,
   isMessage,
   isNoteRequestPayload,
@@ -501,6 +507,55 @@ describe('isNullifierResponsePayload', () => {
   })
 })
 
+//jktodo bit of research required to set up blocks
+describe('isGetBlocksResponse', () => {
+  const nodeTest = createNodeTest()
+
+  it('returns false if the message type is not GetBlocks', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+    const blockArray = [serialized, serialized]
+
+    const msg = {
+      type: NodeMessageType.NewBlock,
+      payload: {
+        blocks: blockArray,
+      },
+    }
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  /*
+  it('returns false if message does not have a payload field', () => {
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  })
+
+  it('returns false if the payload does not have a blocks field', () => {
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  })
+
+  it('returns false if NullifierResponse message with invalid blocks received', () => {
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  })
+
+*/
+
+  it('returns true if GetBlocksResponse message with valid blocks received', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+    const blockArray = [serialized, serialized]
+
+    const msg: GetBlocksResponse = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        blocks: blockArray,
+      },
+    }
+
+    expect(isGetBlocksResponse(msg)).toBeTruthy()
+  }, 10000)
+})
+
 describe('test', () => {
   it('returns false', () => {
     // toBeTruthy()
@@ -508,7 +563,6 @@ describe('test', () => {
   })
 })
 
-//isGetBlocksResponse
 //isGetBlocksRequest
 //isGetBlockHashesResponse
 //isGetBlockHashesRequest
