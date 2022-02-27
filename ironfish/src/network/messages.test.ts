@@ -12,9 +12,11 @@ import {
   DisconnectingMessage,
   DisconnectingReason,
   GetBlocksResponse,
+  GetBlocksRequest,
   Identify,
   InternalMessageType,
   isDisconnectingMessage,
+  isGetBlocksRequest,
   isGetBlocksResponse,
   isIdentify,
   isMessage,
@@ -266,7 +268,7 @@ describe('isNoteRequestPayload', () => {
     expect(isNoteRequestPayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns true if NoteRequest message received', () => {
+  it('returns true if NoteRequest payload received', () => {
     const msg: NoteRequest = {
       type: NodeMessageType.Note,
       payload: {
@@ -319,7 +321,7 @@ describe('isNoteResponsePayload', () => {
     expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns true if NoteResponse message received', () => {
+  it('returns true if NoteResponse payload received', () => {
     const msg: NoteResponse<string> = {
       rpcId: 1,
       direction: Direction.response,
@@ -404,7 +406,7 @@ describe('isNullifierRequestPayload', () => {
     expect(isNullifierRequestPayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns true if NullifierRequest message received', () => {
+  it('returns true if NullifierRequest payload received', () => {
     const msg: NullifierRequest = {
       type: NodeMessageType.Nullifier,
       payload: { position: 3 },
@@ -493,7 +495,7 @@ describe('isNullifierResponsePayload', () => {
     expect(isNullifierResponsePayload(msg.payload)).toBeFalsy()
   })
 
-  it('returns true if NullifierResponse message received', () => {
+  it('returns true if NullifierResponse payload received', () => {
     const msg: NullifierResponse = {
       rpcId: 1,
       direction: Direction.response,
@@ -507,7 +509,6 @@ describe('isNullifierResponsePayload', () => {
   })
 })
 
-//jktodo bit of research required to set up blocks
 describe('isGetBlocksResponse', () => {
   const nodeTest = createNodeTest()
 
@@ -525,20 +526,61 @@ describe('isGetBlocksResponse', () => {
     expect(isGetBlocksResponse(msg)).toBeFalsy()
   }, 10000)
 
-  /*
-  it('returns false if message does not have a payload field', () => {
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  })
 
-  it('returns false if the payload does not have a blocks field', () => {
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  })
+  it('returns false if message does not have a payload field', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+    const blockArray = [serialized, serialized]
 
-  it('returns false if NullifierResponse message with invalid blocks received', () => {
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+    }
     expect(isGetBlocksResponse(msg)).toBeFalsy()
-  })
+  }, 10000)
 
-*/
+  it('returns false if the payload does not have a blocks field', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        position: 3,
+      },
+    }
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  }, 10000)
+
+
+  it('returns false if the blocks field is not an array', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        blocks: serialized,
+      },
+    }
+
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  }, 10000)
+
+  it('returns false if GetBlocksResponse message with invalid blocks received', async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+    const serialized0 = nodeTest.strategy.blockSerde.serialize(block)
+
+    const blockArray = [serialized0, undefined]
+
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        blocks: blockArray,
+      },
+    }
+
+    expect(isGetBlocksResponse(msg)).toBeFalsy()
+  }, 10000)
 
   it('returns true if GetBlocksResponse message with valid blocks received', async () => {
     const { block } = await useBlockWithTx(nodeTest.node)
@@ -556,6 +598,65 @@ describe('isGetBlocksResponse', () => {
   }, 10000)
 })
 
+describe('isGetBlocksRequest', () => {
+  it('returns false if the object is undefined', () => {
+    expect(isGetBlocksRequest(undefined)).toBeFalsy()
+  })
+
+  it('returns false if message does not have the start field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        limit: 3,
+      },
+    }
+    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if payload.start is not a string', () => {
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        start: null,
+        limit: 3,
+      },
+    }
+    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if message does not have the limit field', () => {
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        start: 3,
+      },
+    }
+    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns false if payload.limit is not a number', () => {
+    const msg = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        start: 3,
+        limit: 'three',
+      },
+    }
+    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
+  })
+
+  it('returns true if GetBlocks payload received', () => {
+    const msg: GetBlocksRequest = {
+      type: NodeMessageType.GetBlocks,
+      payload: {
+        start: 3,
+        limit: 3,
+      },
+    }
+    expect(isGetBlocksRequest(msg.payload)).toBeTruthy()
+  })
+})
+
 describe('test', () => {
   it('returns false', () => {
     // toBeTruthy()
@@ -563,7 +664,6 @@ describe('test', () => {
   })
 })
 
-//isGetBlocksRequest
 //isGetBlockHashesResponse
 //isGetBlockHashesRequest
 //isBlockHash
