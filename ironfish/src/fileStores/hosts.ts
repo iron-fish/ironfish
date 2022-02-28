@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createRootLogger, Logger, ParseJsonError } from '..'
 import { FileSystem } from '../fileSystems'
+import { createRootLogger, Logger } from '../logger'
 import { PeerAddress } from '../network/peers/peerAddress'
+import { ParseJsonError } from '../utils/json'
 import { KeyStore } from './keyStore'
 
 export type HostsOptions = {

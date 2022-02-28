@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { identityLength, PrivateIdentity } from '..'
+import { identityLength, PrivateIdentity } from '../identity'
 
 // The identities here are in order of:
 // Lowest:   webRtcCanInitiateIdentityPrivate

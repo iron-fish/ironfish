@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
-import { Peer } from '..'
+import { Peer } from '../peers/peer'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 
