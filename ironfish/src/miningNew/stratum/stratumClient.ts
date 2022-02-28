@@ -4,7 +4,7 @@
 import net from 'net'
 import { SetTimeoutToken } from '../..'
 import { createRootLogger, Logger } from '../../logger'
-import { MiningPoolMiner } from '../miningPoolMiner'
+import { MiningPoolMiner } from '../poolMiner'
 import {
   StratumMessageMiningNotify,
   StratumMessageMiningSetTarget,
