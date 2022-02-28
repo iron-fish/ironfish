@@ -9,7 +9,6 @@ import {
   Miner as IronfishMiner,
   MineRequest,
   MiningPoolMiner,
-  NewBlocksStreamResponse,
   PromiseUtils,
 } from 'ironfish'
 import os from 'os'
@@ -53,6 +52,5 @@ export class Miner extends IronfishCommand {
 
     await miner.start()
     await miner.waitForStop()
-
   }
 }
