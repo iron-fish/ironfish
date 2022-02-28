@@ -18,13 +18,11 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import {
-  ApiNamespace,
-  IpcAdapter,
-  IronfishIpcClient,
-  IronfishMemoryClient,
-  IronfishRpcClient,
-} from './rpc'
+import { IpcAdapter } from './rpc/adapters/ipcAdapter'
+import { IronfishIpcClient } from './rpc/clients/ipcClient'
+import { IronfishMemoryClient } from './rpc/clients/memoryClient'
+import { IronfishRpcClient } from './rpc/clients/rpcClient'
+import { ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 

@@ -72,7 +72,7 @@ describe('IronfishSdk', () => {
         const client = await sdk.connectRpc(true)
 
         expect(connect).toHaveBeenCalledTimes(1)
-        expect(connect).toBeCalledWith(node)
+        expect(connect).toBeCalledWith({ node })
         expect(openDb).toHaveBeenCalledTimes(1)
         expect(client).toMatchObject(sdk.clientMemory)
       })
