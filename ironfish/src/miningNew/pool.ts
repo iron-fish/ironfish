@@ -196,15 +196,17 @@ export class MiningPool {
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotUndefined(latestBlock)
 
+    const newTime = new Date()
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
-        new Date(),
+        newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
       ),
     )
 
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
+    latestBlock.header.timestamp = newTime.getTime()
     this.distributeNewBlock(latestBlock)
   }
 
