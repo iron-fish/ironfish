@@ -10,7 +10,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
-import { MINED_RESULT } from './manager'
+import { MINED_RESULT } from './miningManager'
 
 // TODO: Tests from director that need to be either ported or decided that we can remove them:
 // creates a new block to be mined when chain head changes: this should be an endpoint test
