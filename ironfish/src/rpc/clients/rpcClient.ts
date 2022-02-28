@@ -30,6 +30,8 @@ import {
   GetPublicKeyResponse,
   GetStatusRequest,
   GetStatusResponse,
+  GetTransactionsRequest,
+  GetTransactionsResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   NewBlocksStreamRequest,
@@ -257,6 +259,15 @@ export abstract class IronfishRpcClient {
 
   onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
+  }
+
+  async getTransactionNotes(
+    params: GetTransactionsRequest = {},
+  ): Promise<ResponseEnded<GetTransactionsResponse>> {
+    return this.request<GetTransactionsResponse>(
+      `${ApiNamespace.transaction}/getTransactionNotes`,
+      params,
+    ).waitForEnd()
   }
 
   async sendTransaction(

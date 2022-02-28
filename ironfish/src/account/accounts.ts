@@ -596,6 +596,51 @@ export class Accounts {
     this.scan = null
   }
 
+  async getTransactionNotes(account: Account): Promise<{
+    accountName: string
+    notes: {
+      isSpender: boolean
+      txHash: string
+      txFee: string
+      isMinerFee: boolean
+      amount: string
+      memo: string
+    }[]
+  }> {
+    const notes = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      for (const note of transaction.notes()) {
+        // Try decrypting the note as the owner
+        let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+        let isSpender = false
+
+        if (!decryptedNote) {
+          // Try decrypting the note as the spender
+          decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+          isSpender = true
+        }
+
+        if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+          notes.push({
+            isSpender,
+            txHash: transaction.hash().toString('hex'),
+            txFee: String(await transaction.fee()),
+            isMinerFee: await transaction.isMinersFee(),
+            amount: String(decryptedNote.value()),
+            memo: decryptedNote.memo().replace(/\x00/g, ''),
+          })
+
+          continue
+        }
+      }
+    }
+
+    return { accountName: account.displayName, notes }
+  }
+
   private async getUnspentNotes(
     account: Account,
   ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
