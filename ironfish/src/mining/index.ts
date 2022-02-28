@@ -4,4 +4,3 @@
 
 export { Miner, MineRequest } from './miner'
 export { MiningDirector } from './director'
-export { MiningManager } from './manager'
