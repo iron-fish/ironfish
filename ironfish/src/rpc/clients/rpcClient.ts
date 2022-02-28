@@ -34,8 +34,6 @@ import {
   GetStatusResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
-  NewBlocksStreamRequest,
-  NewBlocksStreamResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetConfigRequest,
@@ -45,8 +43,6 @@ import {
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
-  SuccessfullyMinedRequest,
-  SuccessfullyMinedResponse,
   UploadConfigRequest,
   UploadConfigResponse,
   UseAccountRequest,
@@ -275,15 +271,6 @@ export abstract class IronfishRpcClient {
     ).waitForEnd()
   }
 
-  newBlocksStream(
-    params: NewBlocksStreamRequest = undefined,
-  ): Response<void, NewBlocksStreamResponse> {
-    return this.request<void, NewBlocksStreamResponse>(
-      `${ApiNamespace.miner}/newBlocksStream`,
-      params,
-    )
-  }
-
   blockTemplateStream(
     params: BlockTemplateStreamRequest = undefined,
   ): Response<void, BlockTemplateStreamResponse> {
@@ -295,13 +282,6 @@ export abstract class IronfishRpcClient {
       `${ApiNamespace.miner}/submitBlock`,
       params,
     ).waitForEnd()
-  }
-
-  successfullyMined(params: SuccessfullyMinedRequest): Response<SuccessfullyMinedResponse> {
-    return this.request<SuccessfullyMinedResponse>(
-      `${ApiNamespace.miner}/successfullyMined`,
-      params,
-    )
   }
 
   exportMinedStream(

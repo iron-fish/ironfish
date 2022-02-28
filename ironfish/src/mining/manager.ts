@@ -12,9 +12,17 @@ import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
 import { GraffitiUtils } from '../utils/graffiti'
-import { MINED_RESULT } from './director'
 
 const MAX_TRANSACTIONS_PER_BLOCK = 10
+
+export enum MINED_RESULT {
+  UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
+  CHAIN_CHANGED = 'CHAIN_CHANGED',
+  INVALID_BLOCK = 'INVALID_BLOCK',
+  ADD_FAILED = 'ADD_FAILED',
+  FORK = 'FORK',
+  SUCCESS = 'SUCCESS',
+}
 
 export class MiningManager {
   private readonly chain: Blockchain

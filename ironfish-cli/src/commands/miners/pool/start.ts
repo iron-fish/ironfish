@@ -8,7 +8,6 @@ import {
   Miner as IronfishMiner,
   MineRequest,
   MiningPool,
-  NewBlocksStreamResponse,
   PromiseUtils,
 } from 'ironfish'
 import { IronfishCommand } from '../../../command'
