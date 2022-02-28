@@ -4,7 +4,7 @@
 import net from 'net'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
-import { MiningPool } from '../miningPool'
+import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
 import {
   StratumMessage,
