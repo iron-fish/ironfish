@@ -51,9 +51,6 @@ export class StratumClient {
     this.connectTimeout = null
 
     this.socket = new net.Socket()
-    this.socket.on('connect', () => this.onConnect())
-    this.socket.on('error', (error) => this.onError(error))
-    this.socket.on('close', () => this.onDisconnect())
     this.socket.on('data', (data) => this.onData(data))
   }
 
@@ -87,6 +84,7 @@ export class StratumClient {
     }
 
     this.connectWarned = false
+    this.connected = true
     this.onConnect()
   }
 
@@ -120,22 +118,26 @@ export class StratumClient {
   }
 
   private onConnect(): void {
+    this.socket.on('error', this.onError)
+    this.socket.on('close', this.onDisconnect)
+
     this.logger.info('Successfully connected to pool')
     this.logger.info('Listening to pool for new work')
     this.subscribe(this.graffiti)
   }
 
   private onDisconnect = (): void => {
-    if (!this.connected) {
-      return
-    }
-
     this.connected = false
+    this.socket.off('error', this.onError)
+    this.socket.off('close', this.onDisconnect)
+
     this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     void this.startConnecting()
   }
 
-  private onError(error: unknown): void {}
+  private onError = (error: unknown): void => {
+    this.logger.error(error)
+  }
 
   private onData(data: Buffer): void {
     const splitData = data.toString().trim().split('\n')
