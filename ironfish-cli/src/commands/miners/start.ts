@@ -48,6 +48,8 @@ export class Miner extends IronfishCommand {
       threadCount: flags.threads,
       graffiti: GraffitiUtils.fromString(graffiti),
       batchSize,
+      host: 'localhost',
+      port: 1234,
     })
 
     await miner.start()

@@ -33,6 +33,8 @@ export class MiningPoolMiner {
     batchSize: number
     logger?: Logger
     graffiti: Buffer
+    host: string,
+    port: number,
   }) {
     this.logger = options.logger ?? createRootLogger()
     this.graffiti = options.graffiti
@@ -43,8 +45,8 @@ export class MiningPoolMiner {
     this.stratum = new StratumClient({
       miner: this,
       graffiti: this.graffiti,
-      host: 'localhost',
-      port: 1234,
+      host: options.host,
+      port: options.port,
     })
 
     this.hashRate = new Meter()
