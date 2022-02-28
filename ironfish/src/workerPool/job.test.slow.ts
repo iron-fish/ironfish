@@ -4,7 +4,8 @@
 
 import { generateKey } from 'ironfish-rust-nodejs'
 import tweetnacl from 'tweetnacl'
-import { Assert, privateIdentityToIdentity } from '..'
+import { Assert } from '../assert'
+import { privateIdentityToIdentity } from '../network/identity'
 import { createNodeTest } from '../testUtilities/nodeTest'
 
 describe('Worker Pool', () => {

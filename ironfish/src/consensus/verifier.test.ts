@@ -6,7 +6,7 @@ jest.mock('ws')
 jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
-import { Assert } from '..'
+import { Assert } from '../assert'
 import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {

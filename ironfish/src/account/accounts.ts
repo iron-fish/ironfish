@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
 import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
-import { ChainProcessor } from '..'
 import { Blockchain } from '../blockchain'
+import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
