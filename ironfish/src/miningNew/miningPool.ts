@@ -8,11 +8,14 @@ import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
 import { IronfishIpcClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
+import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
 import { StratumServer } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
+
+const RECALCULATE_TARGET_TIMEOUT = 10_000
 
 export class MiningPool {
   readonly hashRate: Meter
@@ -39,6 +42,8 @@ export class MiningPool {
   currentHeadTimestamp: number | null
   currentHeadDifficulty: bigint | null
 
+  recalculateTargetInterval: SetTimeoutToken | null
+
   constructor(options: { rpc: IronfishIpcClient; logger?: Logger }) {
     this.rpc = options.rpc
     this.hashRate = new Meter()
@@ -55,6 +60,8 @@ export class MiningPool {
     this.connectTimeout = null
     this.connectWarned = false
     this.started = false
+
+    this.recalculateTargetInterval = null
   }
 
   start(): void {
@@ -86,6 +93,7 @@ export class MiningPool {
     this.rpc.close()
     this.stratum.stop()
     this.hashRate.stop()
+    this.stopCalculateTargetInterval()
 
     if (this.stopResolve) {
       this.stopResolve()
@@ -171,19 +179,59 @@ export class MiningPool {
   private async processNewBlocks() {
     for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
       Assert.isNotUndefined(payload.previousBlockInfo)
+      this.restartCalculateTargetInterval()
+
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
-      const miningRequestId = this.nextMiningRequestId++
-      this.miningRequestBlocks.set(miningRequestId, payload)
+      this.distributeNewBlock(payload)
+    }
+  }
 
-      this.stratum.newWork(
-        miningRequestId,
-        payload,
+  private recalculateTarget() {
+    Assert.isNotNull(this.currentHeadTimestamp)
+    Assert.isNotNull(this.currentHeadDifficulty)
+
+    const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
+    Assert.isNotUndefined(latestBlock)
+
+    const newTarget = Target.fromDifficulty(
+      Target.calculateDifficulty(
+        new Date(),
+        new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
-        this.currentHeadTimestamp,
-      )
+      ),
+    )
+
+    latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
+    this.distributeNewBlock(latestBlock)
+  }
+
+  private distributeNewBlock(newBlock: SerializedBlockTemplate) {
+    Assert.isNotNull(this.currentHeadTimestamp)
+    Assert.isNotNull(this.currentHeadDifficulty)
+    const miningRequestId = this.nextMiningRequestId++
+    this.miningRequestBlocks.set(miningRequestId, newBlock)
+
+    this.stratum.newWork(
+      miningRequestId,
+      newBlock,
+      this.currentHeadDifficulty,
+      this.currentHeadTimestamp,
+    )
+  }
+
+  private restartCalculateTargetInterval() {
+    this.stopCalculateTargetInterval()
+    this.recalculateTargetInterval = setInterval(() => {
+      this.recalculateTarget()
+    }, RECALCULATE_TARGET_TIMEOUT)
+  }
+
+  private stopCalculateTargetInterval() {
+    if (this.recalculateTargetInterval) {
+      clearInterval(this.recalculateTargetInterval)
     }
   }
 }
