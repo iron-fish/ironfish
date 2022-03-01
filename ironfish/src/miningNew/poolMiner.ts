@@ -8,8 +8,6 @@ import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
 import { StratumClient } from './stratum/stratumClient'
 
-// TODO: Once this is started via CLI, we can probably use that to listen for graffiti changes, etc.
-// TODO: Handle disconnects, etc.
 export class MiningPoolMiner {
   // TODO: Send hash rate up to pool
   readonly hashRate: Meter

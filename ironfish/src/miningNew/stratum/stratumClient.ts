@@ -136,7 +136,7 @@ export class StratumClient {
   }
 
   private onError = (error: unknown): void => {
-    this.logger.error(error)
+    this.logger.error('Startum Error', error)
   }
 
   private onData(data: Buffer): void {
