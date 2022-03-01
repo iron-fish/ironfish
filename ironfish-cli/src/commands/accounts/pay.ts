@@ -32,7 +32,7 @@ export class Pay extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'amount of coins to send',
+      description: 'amount of coins to send in IRON',
     }),
     to: Flags.string({
       char: 't',
@@ -63,8 +63,8 @@ export class Pay extends IronfishCommand {
     let fee = flags.fee as unknown as number
     let to = flags.to
     let from = flags.account
+    let memo = flags.memo
     const expirationSequence = flags.expirationSequence
-    const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc()
 
@@ -90,18 +90,18 @@ export class Pay extends IronfishCommand {
         },
       )) as number
 
-      if (Number.isNaN(amount)) {
+      if (Number.isNaN(amount) || !isValidAmount(amount)) {
         this.error(`A valid amount is required`)
       }
     }
 
-    if (!fee || Number.isNaN(Number(fee))) {
+    if (!fee || Number.isNaN(fee)) {
       fee = (await CliUx.ux.prompt('Enter the fee amount in $IRON', {
         required: true,
         default: '0.00000001',
       })) as number
 
-      if (Number.isNaN(fee)) {
+      if (Number.isNaN(fee) || !isValidAmount(fee)) {
         this.error(`A valid fee amount is required`)
       }
     }
@@ -130,6 +130,13 @@ export class Pay extends IronfishCommand {
       from = defaultAccount.name
     }
 
+    if (!memo) {
+      memo =
+        ((await CliUx.ux.prompt('Memo of transaction', {
+          required: false,
+        })) as string) || ''
+    }
+
     if (!isValidAmount(amount)) {
       this.log(
         `The minimum transaction amount is ${displayIronAmountWithCurrency(
@@ -150,6 +157,10 @@ export class Pay extends IronfishCommand {
       this.exit(0)
     }
 
+    if (!isValidPublicAddress(to)) {
+      this.error(`A valid public address is required`)
+    }
+
     if (expirationSequence !== undefined && expirationSequence < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
@@ -159,10 +170,10 @@ export class Pay extends IronfishCommand {
       this.log(`
 You are about to send:
 ${displayIronAmountWithCurrency(
-  amount,
+  Number(amount),
   true,
 )} plus a transaction fee of ${displayIronAmountWithCurrency(
-        fee,
+        Number(fee),
         true,
       )} to ${to} from the account ${from}
 

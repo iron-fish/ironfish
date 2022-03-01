@@ -34,6 +34,7 @@ describe('Currency utils', () => {
 
   test('isValidAmount returns the right value', () => {
     expect(isValidAmount(0.0000000000001)).toBe(false)
+    expect(isValidAmount(100000000000000000000000000)).toBe(false)
     expect(isValidAmount(0.00000001)).toBe(true)
     expect(isValidAmount(10.000001)).toBe(true)
   })
