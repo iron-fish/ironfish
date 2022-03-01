@@ -33,8 +33,8 @@ export class MiningPoolMiner {
     batchSize: number
     logger?: Logger
     graffiti: Buffer
-    host: string,
-    port: number,
+    host: string
+    port: number
   }) {
     this.logger = options.logger ?? createRootLogger()
     this.graffiti = options.graffiti
