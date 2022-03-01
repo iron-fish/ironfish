@@ -42,7 +42,7 @@ export class MemPool {
       }
       return firstTransaction.fee > secondTransaction.fee
     })
-
+    this.queue.add({fee: BigInt(5), hash: Buffer.alloc(0)})
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
@@ -108,6 +108,16 @@ export class MemPool {
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
+  }
+
+  async getEstimatedFee(): Promise<{ fee: bigint;}> {
+    let memPoolEntry = this.queue.peek();
+    if (memPoolEntry == undefined){
+      return {fee: BigInt(0)}
+    }
+    else{
+      return { fee: memPoolEntry.fee }
+    }
   }
 
   onConnectBlock(block: Block): void {

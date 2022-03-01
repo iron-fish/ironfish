@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { CliUx, Flags } from '@oclif/core'
+import { Console } from 'console'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
@@ -70,15 +71,19 @@ export class Pay extends IronfishCommand {
 
     const status = await client.status()
 
-    if (!status.content.blockchain.synced) {
-      this.log(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-      this.exit(1)
-    }
+    // if (!status.content.blockchain.synced) {
+    //   this.log(
+    //     `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+    //   )
+    //   this.exit(1)
+    // }
 
     if (!amount || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
+
+      const estimatedFee = await client.getEstimatedFee()
+
+      console.log("Estimated fee is: " + estimatedFee.content.fee);
 
       amount = (await CliUx.ux.prompt(
         `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(

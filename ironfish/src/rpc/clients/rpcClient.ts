@@ -21,6 +21,7 @@ import {
   GetConfigResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
+  GetEstimatedFeeResponse,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
@@ -49,6 +50,7 @@ import {
   UseAccountResponse,
 } from '../routes'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
+import { GetEstimatedFeeRequest } from '../routes/memPool/getEstimatedFee'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
@@ -155,6 +157,15 @@ export abstract class IronfishRpcClient {
   ): Promise<ResponseEnded<GetBalanceResponse>> {
     return this.request<GetBalanceResponse>(
       `${ApiNamespace.account}/getBalance`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getEstimatedFee(
+    params: GetEstimatedFeeRequest = {},
+  ): Promise<ResponseEnded<GetEstimatedFeeResponse>> {
+    return this.request<GetEstimatedFeeResponse>(
+      `${ApiNamespace.memPool}/getEstimatedFee`,
       params,
     ).waitForEnd()
   }
