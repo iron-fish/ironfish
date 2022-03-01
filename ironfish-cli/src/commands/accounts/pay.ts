@@ -63,8 +63,8 @@ export class Pay extends IronfishCommand {
     let fee = flags.fee as unknown as number
     let to = flags.to
     let from = flags.account
-    let memo = flags.memo
     const expirationSequence = flags.expirationSequence
+    const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc()
 
@@ -128,13 +128,6 @@ export class Pay extends IronfishCommand {
       }
 
       from = defaultAccount.name
-    }
-
-    if (!memo) {
-      memo =
-        ((await CliUx.ux.prompt('Memo of transaction', {
-          required: false,
-        })) as string) || ''
     }
 
     if (!isValidAmount(amount)) {
