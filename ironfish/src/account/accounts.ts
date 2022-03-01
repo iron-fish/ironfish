@@ -607,6 +607,8 @@ export class Accounts {
       memo: string
     }[]
   }> {
+    this.assertHasAccount(account)
+
     const notes = []
 
     for (const transactionMapValue of this.transactionMap.values()) {
