@@ -12,10 +12,10 @@ import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
-import { StratumServer } from './stratum/stratumServer'
+import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
 
-const RECALCULATE_TARGET_TIMEOUT = 10_000
+const RECALCULATE_TARGET_TIMEOUT = 10000
 
 export class MiningPool {
   readonly hashRate: Meter
@@ -98,6 +98,10 @@ export class MiningPool {
     if (this.stopResolve) {
       this.stopResolve()
     }
+
+    if (this.connectTimeout) {
+      clearTimeout(this.connectTimeout)
+    }
   }
 
   async waitForStop(): Promise<void> {
@@ -109,12 +113,19 @@ export class MiningPool {
   }
 
   async submitWork(
+    client: StratumServerClient,
     miningRequestId: number,
     randomness: number,
     graffiti: Buffer,
   ): Promise<void> {
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
-    Assert.isNotUndefined(blockTemplate)
+
+    if (!blockTemplate) {
+      this.logger.warn(
+        `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
+      )
+      return
+    }
 
     blockTemplate.header.graffiti = graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
@@ -213,6 +224,7 @@ export class MiningPool {
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, newBlock)
 

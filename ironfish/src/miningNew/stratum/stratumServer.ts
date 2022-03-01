@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { Assert } from '../..'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
 import {
   StratumMessage,
+  StratumMessageMiningNotify,
+  StratumMessageMiningSetTarget,
   StratumMessageMiningSubmit,
   StratumMessageMiningSubscribe,
   StratumMessageMiningSubscribed,
@@ -15,9 +18,23 @@ import {
   StratumResponse,
 } from './messages'
 
-type StratumClient = {
+export class StratumServerClient {
+  id: number
   socket: net.Socket
-  graffiti: Buffer
+  graffiti: Buffer | null = null
+  connected: boolean
+  subscribed: boolean
+
+  private constructor(options: { socket: net.Socket; id: number }) {
+    this.id = options.id
+    this.socket = options.socket
+    this.connected = true
+    this.subscribed = false
+  }
+
+  static accept(socket: net.Socket, id: number): StratumServerClient {
+    return new StratumServerClient({ socket, id })
+  }
 }
 
 export class StratumServer {
@@ -26,7 +43,7 @@ export class StratumServer {
   readonly logger: Logger
 
   // TODO: replace any
-  connectedClients: Map<number, StratumClient>
+  clients: Map<number, StratumServerClient>
   // TODO: LRU?
   requestsSent: { [index: number]: unknown }
   nextMinerId: number
@@ -39,7 +56,7 @@ export class StratumServer {
     this.pool = options.pool
     this.logger = options.logger ?? createRootLogger()
 
-    this.connectedClients = new Map()
+    this.clients = new Map()
     this.requestsSent = {}
     this.nextMinerId = 0
     this.nextMessageId = 0
@@ -65,9 +82,9 @@ export class StratumServer {
     this.currentWork = mineableHeaderString(block.header)
 
     this.logger.info(
-      'setting current work',
+      'Setting work for request:',
       this.currentMiningRequestId,
-      this.currentWork.toString('hex'),
+      `${this.currentWork.toString('hex').slice(0, 50)}...`,
     )
 
     this.broadcast(this.notifyMessage())
@@ -78,17 +95,20 @@ export class StratumServer {
   }
 
   private onConnection(socket: net.Socket): void {
-    this.logger.info('Client connection received')
-    socket.on('data', (data: Buffer) => this.onData(socket, data))
-    socket.on('close', () => this.onDisconnect(socket))
+    const client = StratumServerClient.accept(socket, this.nextMinerId++)
+    socket.on('data', (data: Buffer) => this.onData(client, data))
+    socket.on('close', () => this.onDisconnect(client))
+
+    this.logger.info(`Client ${client.id} connected:`, socket.remoteAddress)
+    this.clients.set(client.id, client)
   }
 
-  private onDisconnect(socket: net.Socket): void {
-    this.logger.info('Client disconnect received')
-    socket.removeAllListeners()
+  private onDisconnect(client: StratumServerClient): void {
+    this.logger.info(`Client ${client.id} disconnected`)
+    client.socket.removeAllListeners()
   }
 
-  private onData(socket: net.Socket, data: Buffer): void {
+  private onData(client: StratumServerClient, data: Buffer): void {
     const splitData = data.toString().trim().split('\n')
 
     for (const dataString of splitData) {
@@ -103,23 +123,18 @@ export class StratumServer {
             const message = payload as StratumMessageMiningSubscribe
             const graffiti = Buffer.from(message.params, 'hex')
 
-            const newMinerId = this.nextMinerId++
+            client.graffiti = graffiti
+            client.subscribed = true
 
-            this.connectedClients.set(newMinerId, {
-              socket,
-              graffiti,
-            })
-
-            const response: StratumMessageMiningSubscribed = {
-              id: this.nextMessageId++,
-              result: newMinerId,
+            const response: Omit<StratumMessageMiningSubscribed, 'id'> = {
+              result: client.id,
             }
 
-            this.send(socket, response)
-            this.send(socket, this.setTargetMessage())
+            this.send(client, response)
+            this.send(client, this.setTargetMessage())
 
             if (this.hasWork()) {
-              this.send(socket, this.notifyMessage())
+              this.send(client, this.notifyMessage())
             }
 
             break
@@ -133,10 +148,12 @@ export class StratumServer {
             const submittedGraffiti = Buffer.from(message.params[2], 'hex')
 
             void this.pool.submitWork(
+              client,
               submittedRequestId,
               submittedRandomness,
               submittedGraffiti,
             )
+
             break
           }
 
@@ -152,33 +169,44 @@ export class StratumServer {
 
   // TODO: This and other messages can probably be notifications and not full json rpc requests
   // to minimize resource usage and noise
-  private notifyMessage(): StratumResponse {
+  private notifyMessage(): Omit<StratumMessageMiningNotify, 'id'> {
+    Assert.isNotNull(this.currentMiningRequestId)
+    Assert.isNotNull(this.currentWork)
+
     return {
-      id: this.nextMessageId++,
       method: 'mining.notify',
       params: [this.currentMiningRequestId, this.currentWork?.toString('hex')],
     }
   }
 
   // TODO: This may change to targetDifficulty once time adjustment comes into play
-  private setTargetMessage(): StratumMessage {
+  private setTargetMessage(): Omit<StratumMessageMiningSetTarget, 'id'> {
     return {
-      id: this.nextMessageId++,
       method: 'mining.set_target',
       params: [this.pool.getTarget()],
     }
   }
 
-  private broadcast(message: StratumMessage) {
-    const msg = JSON.stringify(message) + '\n'
+  private broadcast(message: Omit<StratumMessage, 'id'>) {
+    const withId: StratumMessage = {
+      id: this.nextMessageId++,
+      ...message,
+    }
 
-    for (const client of this.connectedClients.values()) {
-      client.socket.write(msg)
+    const serialized = JSON.stringify(withId) + '\n'
+
+    for (const client of this.clients.values()) {
+      client.socket.write(serialized)
     }
   }
 
-  private send(socket: net.Socket, message: StratumMessage) {
-    const msg = JSON.stringify(message) + '\n'
-    socket.write(msg)
+  private send(client: StratumServerClient, message: Omit<StratumMessage, 'id'>) {
+    const withId: StratumMessage = {
+      id: this.nextMessageId++,
+      ...message,
+    }
+
+    const serialized = JSON.stringify(withId) + '\n'
+    client.socket.write(serialized)
   }
 }
