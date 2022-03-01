@@ -21,7 +21,7 @@ router.register<typeof GetEstimatedFeeRequestSchema, GetEstimatedFeeResponse>(
   `${ApiNamespace.memPool}/getEstimatedFee`,
   GetEstimatedFeeRequestSchema,
   async (request, node): Promise<void> => {
-    const {fee} = await node.memPool.getEstimatedFee()
+    const fee = node.memPool.getEstimatedFee()
 
     request.end({
       fee: fee.toString(),

@@ -22,6 +22,7 @@ import {
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
   GetEstimatedFeeResponse,
+  GetEstimatedFeeRequest,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
@@ -50,7 +51,6 @@ import {
   UseAccountResponse,
 } from '../routes'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
-import { GetEstimatedFeeRequest } from '../routes/memPool/getEstimatedFee'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
