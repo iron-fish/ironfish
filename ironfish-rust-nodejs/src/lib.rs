@@ -111,6 +111,11 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
+    pub fn pause(&self) {
+        self.threadpool.pause()
+    }
+
+    #[napi]
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
             return Some(FoundBlockResult {

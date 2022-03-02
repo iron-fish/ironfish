@@ -25,6 +25,7 @@ export class MiningPoolMiner {
   // TODO: LRU
   miningRequestPayloads: { [index: number]: Buffer } = {}
   target: Buffer
+  waiting: boolean
 
   constructor(options: {
     threadCount: number
@@ -54,6 +55,7 @@ export class MiningPoolMiner {
     this.stopPromise = null
     this.stopResolve = null
     this.started = false
+    this.waiting = false
   }
 
   start(): void {
@@ -98,7 +100,14 @@ export class MiningPoolMiner {
 
     const headerBytes = Buffer.from(headerHex, 'hex')
     headerBytes.set(this.graffiti, 176)
+
+    this.waiting = true
     this.threadPool.newWork(headerBytes, this.target, miningRequestId)
+  }
+
+  waitForWork(): void {
+    this.waiting = true
+    this.threadPool.pause()
   }
 
   async mine(): Promise<void> {

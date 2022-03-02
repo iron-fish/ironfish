@@ -183,6 +183,8 @@ export class MiningPool {
   }
 
   private onDisconnectRpc = (): void => {
+    this.stratum.waitForWork()
+
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
     void this.startConnectingRpc()
   }

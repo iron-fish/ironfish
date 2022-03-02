@@ -131,12 +131,14 @@ export class StratumClient {
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
 
+    this.miner.waitForWork()
+
     this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     void this.startConnecting()
   }
 
   private onError = (error: unknown): void => {
-    this.logger.error('Startum Error', error)
+    this.logger.error('Stratum Error', error)
   }
 
   private onData(data: Buffer): void {
@@ -161,6 +163,12 @@ export class StratumClient {
 
             const message = payload as StratumMessageMiningNotify
             this.miner.newWork(message.params[0], message.params[1])
+            break
+          }
+
+          case 'mining.wait_for_work': {
+            this.logger.info('wait_for_work received')
+            this.miner.waitForWork()
             break
           }
 
