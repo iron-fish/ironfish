@@ -133,10 +133,7 @@ fn process_commands(
                     }
                 }
                 Command::Pause => {
-                    if let Ok(cmd) = work_receiver.try_recv() {
-                        command = cmd;
-                        continue
-                    }
+                    break 'outer;
                 }
                 Command::Stop => {
                     return;
