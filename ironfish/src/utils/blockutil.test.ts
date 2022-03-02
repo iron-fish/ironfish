@@ -7,14 +7,30 @@ import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Strategy } from '../strategy'
 import { makeDbPath } from '../testUtilities/helpers/storage'
 import { WorkerPool } from '../workerPool'
+import { getBlockRange } from './blockchain'
+
 
 describe('getBlockRange', () => {const workerPool = new WorkerPool()
   const strategy = new Strategy(workerPool)
   const chain = new Blockchain({ location: makeDbPath(), strategy })
 
   it('converts empty array to 0', async () => {
-    //await chain.open()
+    await chain.open()
     chain.latest.sequence = 10000
-      console.log("hit the jackpot")
+
+    const {start, stop } = getBlockRange(chain)
+
+      //console.log( {start}, {stop})
+      console.log( start, stop)
+  })
+
+  it('converts empty array to 0', async () => {
+    //await chain.open()
+    //chain.latest.sequence = 10000
+
+    const {start, stop } = getBlockRange(chain)
+
+      //console.log( {start}, {stop})
+      console.log( chain.latest.sequence)
   })
 })
