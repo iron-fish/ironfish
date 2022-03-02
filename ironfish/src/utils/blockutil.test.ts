@@ -14,23 +14,27 @@ describe('getBlockRange', () => {const workerPool = new WorkerPool()
   const strategy = new Strategy(workerPool)
   const chain = new Blockchain({ location: makeDbPath(), strategy })
 
-  it('converts empty array to 0', async () => {
+  it('Initialization', async () => {
     await chain.open()
     chain.latest.sequence = 10000
-
-    const {start, stop } = getBlockRange(chain)
-
-      //console.log( {start}, {stop})
-      console.log( start, stop)
   })
 
-  it('converts empty array to 0', async () => {
-    //await chain.open()
-    //chain.latest.sequence = 10000
+  it('prototype', async () => {
+    const param = {start: 2000, stop: 200}
 
-    const {start, stop } = getBlockRange(chain)
+    //const {start, stop } = getBlockRange(chain, {start: 2000, stop: 200 })
+    const {start, stop } = getBlockRange(chain, param)
+      
+    expect(start).toEqual(2000)    
+    expect(stop).toEqual(2000)
+  })
 
-      //console.log( {start}, {stop})
-      console.log( chain.latest.sequence)
+  it('G < b < e < M', async () => {
+    const param = {start: 200, stop: 2000}
+
+    const {start, stop } = getBlockRange(chain, param)
+      
+    expect(start).toEqual(200)    
+    expect(stop).toEqual(2000)
   })
 })
