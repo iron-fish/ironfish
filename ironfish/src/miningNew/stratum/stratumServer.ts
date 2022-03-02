@@ -14,6 +14,7 @@ import {
   StratumMessageMiningSubmit,
   StratumMessageMiningSubscribe,
   StratumMessageMiningSubscribed,
+  StratumNotification,
   StratumRequest,
   StratumResponse,
 } from './messages'
@@ -88,6 +89,12 @@ export class StratumServer {
     )
 
     this.broadcast(this.notifyMessage())
+  }
+
+  waitForWork(): void {
+    this.broadcast({
+      method: 'mining.wait_for_work',
+    })
   }
 
   hasWork(): boolean {

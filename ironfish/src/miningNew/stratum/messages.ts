@@ -44,6 +44,11 @@ export type StratumMessageMiningNotify = {
   params: [requestId: number, headerHex: string]
 }
 
+export type StratumMessageMiningWaitForWork = {
+  id: number
+  method: 'mining.wait_for_work'
+}
+
 export type StratumMessageMiningSubscribed = {
   id: number
   method?: string

@@ -14,6 +14,7 @@ pub(crate) enum Command {
     // TODO Provide a proper struct instead of a tuple?
     NewWork(Vec<u8>, Vec<u8>, u32),
     Stop,
+    Pause,
 }
 
 pub(crate) struct Thread {
@@ -57,6 +58,10 @@ impl Thread {
     ) -> Result<(), SendError<Command>> {
         self.command_channel
             .send(Command::NewWork(header_bytes, target, mining_request_id))
+    }
+
+    pub(crate) fn pause(&self) -> Result<(), SendError<Command>> {
+        self.command_channel.send(Command::Pause)
     }
 
     pub(crate) fn stop(&self) -> Result<(), SendError<Command>> {
@@ -125,6 +130,12 @@ fn process_commands(
                             println!("Search space exhausted, no longer mining this block.");
                             break 'outer;
                         }
+                    }
+                }
+                Command::Pause => {
+                    if let Ok(cmd) = work_receiver.try_recv() {
+                        command = cmd;
+                        continue
                     }
                 }
                 Command::Stop => {

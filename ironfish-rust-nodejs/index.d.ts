@@ -127,6 +127,7 @@ export class ThreadPoolHandler {
   constructor(threadCount: number, batchSize: number)
   newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
   stop(): void
+  pause(): void
   getFoundBlock(): FoundBlockResult | undefined | null
   getHashRateSubmission(): number
 }

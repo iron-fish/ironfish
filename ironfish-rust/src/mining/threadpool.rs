@@ -59,6 +59,12 @@ impl ThreadPool {
         }
     }
 
+    pub fn pause(&self) {
+        for thread in self.threads.iter() {
+            thread.pause().unwrap();
+        }
+    }
+
     pub fn get_found_block(&self) -> Option<(usize, usize)> {
         if let Ok((randomness, mining_request_id)) = self.block_found_receiver.try_recv() {
             // Stale work
