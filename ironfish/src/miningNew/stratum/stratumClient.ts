@@ -84,7 +84,6 @@ export class StratumClient {
     }
 
     this.connectWarned = false
-    this.connected = true
     this.onConnect()
   }
 
@@ -113,11 +112,16 @@ export class StratumClient {
   }
 
   private send(message: StratumRequest) {
+    if (!this.connected) {
+      return
+    }
+
     this.socket.write(JSON.stringify(message) + '\n')
     // TODO log requests sent to match responses
   }
 
   private onConnect(): void {
+    this.connected = true
     this.socket.on('error', this.onError)
     this.socket.on('close', this.onDisconnect)
 
