@@ -230,12 +230,7 @@ export class MiningPool {
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, newBlock)
 
-    this.stratum.newWork(
-      miningRequestId,
-      newBlock,
-      this.currentHeadDifficulty,
-      this.currentHeadTimestamp,
-    )
+    this.stratum.newWork(miningRequestId, newBlock)
   }
 
   private restartCalculateTargetInterval() {

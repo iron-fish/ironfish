@@ -19,7 +19,6 @@ export class MiningPoolMiner {
   private stopPromise: Promise<void> | null
   private stopResolve: (() => void) | null
 
-  // TODO: Think about best way to store data at each level, miner, pool, server, client
   graffiti: Buffer
   miningRequestId: number
   // TODO: LRU
@@ -94,11 +93,11 @@ export class MiningPoolMiner {
     this.target = Buffer.from(target, 'hex')
   }
 
-  newWork(miningRequestId: number, headerHex: string): void {
+  newWork(miningRequestId: number, header: Buffer): void {
     this.logger.info('new work', this.target.toString('hex'), miningRequestId)
-    this.miningRequestPayloads[miningRequestId] = Buffer.from(headerHex, 'hex')
+    this.miningRequestPayloads[miningRequestId] = header
 
-    const headerBytes = Buffer.from(headerHex, 'hex')
+    const headerBytes = Buffer.concat([header])
     headerBytes.set(this.graffiti, 176)
 
     this.waiting = true

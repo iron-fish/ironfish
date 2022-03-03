@@ -2,21 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import { Assert } from '../..'
+import * as yup from 'yup'
+import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
+import { ErrorUtils } from '../../utils/error'
+import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
+import { StratumClientMessageMalformedError } from './errors'
 import {
+  MiningNotifyMessage,
+  MiningSetTargetMessage,
+  MiningSubmitSchema,
+  MiningSubscribedMessage,
+  MiningSubscribeSchema,
   StratumMessage,
-  StratumMessageMiningNotify,
-  StratumMessageMiningSetTarget,
-  StratumMessageMiningSubmit,
-  StratumMessageMiningSubscribe,
-  StratumMessageMiningSubscribed,
-  StratumNotification,
-  StratumRequest,
-  StratumResponse,
+  StratumMessageSchema,
 } from './messages'
 
 export class StratumServerClient {
@@ -36,6 +38,15 @@ export class StratumServerClient {
   static accept(socket: net.Socket, id: number): StratumServerClient {
     return new StratumServerClient({ socket, id })
   }
+
+  close(error?: Error): void {
+    if (!this.connected) {
+      return
+    }
+
+    this.connected = false
+    this.socket.destroy(error)
+  }
 }
 
 export class StratumServer {
@@ -43,10 +54,7 @@ export class StratumServer {
   readonly pool: MiningPool
   readonly logger: Logger
 
-  // TODO: replace any
   clients: Map<number, StratumServerClient>
-  // TODO: LRU?
-  requestsSent: { [index: number]: unknown }
   nextMinerId: number
   nextMessageId: number
 
@@ -58,7 +66,6 @@ export class StratumServer {
     this.logger = options.logger ?? createRootLogger()
 
     this.clients = new Map()
-    this.requestsSent = {}
     this.nextMinerId = 0
     this.nextMessageId = 0
 
@@ -73,12 +80,7 @@ export class StratumServer {
     this.server.close()
   }
 
-  newWork(
-    miningRequestId: number,
-    block: SerializedBlockTemplate,
-    currentHeadDifficulty: bigint,
-    currentHeadTimestamp: number,
-  ): void {
+  newWork(miningRequestId: number, block: SerializedBlockTemplate): void {
     this.currentMiningRequestId = miningRequestId
     this.currentWork = mineableHeaderString(block.header)
 
@@ -88,13 +90,11 @@ export class StratumServer {
       `${this.currentWork.toString('hex').slice(0, 50)}...`,
     )
 
-    this.broadcast(this.notifyMessage())
+    this.broadcast('mining.notify', this.getNotifyMessage())
   }
 
   waitForWork(): void {
-    this.broadcast({
-      method: 'mining.wait_for_work',
-    })
+    this.broadcast('mining.wait_for_work')
   }
 
   hasWork(): boolean {
@@ -103,7 +103,11 @@ export class StratumServer {
 
   private onConnection(socket: net.Socket): void {
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
-    socket.on('data', (data: Buffer) => this.onData(client, data))
+
+    socket.on('data', (data: Buffer) => {
+      this.onData(client, data).catch((e) => this.onError(client, e))
+    })
+
     socket.on('close', () => this.onDisconnect(client))
 
     this.logger.info(`Client ${client.id} connected:`, socket.remoteAddress)
@@ -113,107 +117,143 @@ export class StratumServer {
   private onDisconnect(client: StratumServerClient): void {
     this.logger.info(`Client ${client.id} disconnected`)
     client.socket.removeAllListeners()
+    this.clients.delete(client.id)
   }
 
-  private onData(client: StratumServerClient, data: Buffer): void {
-    const splitData = data.toString().trim().split('\n')
+  private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
+    const splits = data.toString('utf-8').trim().split('\n')
 
-    for (const dataString of splitData) {
-      const payload = JSON.parse(dataString) as StratumRequest
+    for (const split of splits) {
+      const payload: unknown = JSON.parse(split)
 
-      // Request
-      if (payload.method != null) {
-        switch (payload.method) {
-          case 'mining.subscribe': {
-            this.logger.debug('mining.subscribe request received')
+      const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
-            const message = payload as StratumMessageMiningSubscribe
-            const graffiti = Buffer.from(message.params, 'hex')
+      if (header.error) {
+        throw new StratumClientMessageMalformedError(client, header.error)
+      }
 
-            client.graffiti = graffiti
-            client.subscribed = true
+      this.logger.debug(`Client ${client.id} sent ${header.result.method} message`)
 
-            const response: Omit<StratumMessageMiningSubscribed, 'id'> = {
-              result: client.id,
-            }
+      switch (header.result.method) {
+        case 'mining.subscribe': {
+          const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
-            this.send(client, response)
-            this.send(client, this.setTargetMessage())
-
-            if (this.hasWork()) {
-              this.send(client, this.notifyMessage())
-            }
-
-            break
-          }
-
-          case 'mining.submit': {
-            this.logger.debug('mining.submit request received')
-            const message = payload as StratumMessageMiningSubmit
-            const submittedRequestId = message.params[0]
-            const submittedRandomness = message.params[1]
-            const submittedGraffiti = Buffer.from(message.params[2], 'hex')
-
-            void this.pool.submitWork(
+          if (body.error) {
+            throw new StratumClientMessageMalformedError(
               client,
-              submittedRequestId,
-              submittedRandomness,
-              submittedGraffiti,
+              body.error,
+              header.result.method,
             )
-
-            break
           }
 
-          default:
-            this.logger.error('unexpected method', payload.method)
+          client.graffiti = Buffer.from(body.result.graffiti, 'hex')
+          client.subscribed = true
+
+          this.send(client, 'mining.subscribed', { clientId: client.id })
+          this.send(client, 'mining.set_target', this.getSetTargetMessage())
+
+          if (this.hasWork()) {
+            this.send(client, 'mining.notify', this.getNotifyMessage())
+          }
+
+          break
         }
-      } else {
-        // Response
-        this.logger.info('response received')
+
+        case 'mining.submit': {
+          const body = await YupUtils.tryValidate(MiningSubmitSchema, header.result.body)
+
+          if (body.error) {
+            throw new StratumClientMessageMalformedError(client, body.error)
+          }
+
+          const submittedRequestId = body.result.miningRequestId
+          const submittedRandomness = body.result.randomness
+          const submittedGraffiti = Buffer.from(body.result.graffiti, 'hex')
+
+          void this.pool.submitWork(
+            client,
+            submittedRequestId,
+            submittedRandomness,
+            submittedGraffiti,
+          )
+
+          break
+        }
+
+        default:
+          throw new StratumClientMessageMalformedError(
+            client,
+            `Invalid message ${header.result.method}`,
+          )
       }
     }
   }
 
-  // TODO: This and other messages can probably be notifications and not full json rpc requests
-  // to minimize resource usage and noise
-  private notifyMessage(): Omit<StratumMessageMiningNotify, 'id'> {
+  private onError(client: StratumServerClient, error: unknown): void {
+    this.logger.warn(
+      `Error during handling of data from client ${client.id}: ${ErrorUtils.renderError(
+        error,
+        true,
+      )}`,
+    )
+
+    client.close()
+  }
+
+  private getNotifyMessage(): MiningNotifyMessage {
     Assert.isNotNull(this.currentMiningRequestId)
     Assert.isNotNull(this.currentWork)
 
     return {
-      method: 'mining.notify',
-      params: [this.currentMiningRequestId, this.currentWork?.toString('hex')],
+      miningRequestId: this.currentMiningRequestId,
+      header: this.currentWork?.toString('hex'),
     }
   }
 
-  // TODO: This may change to targetDifficulty once time adjustment comes into play
-  private setTargetMessage(): Omit<StratumMessageMiningSetTarget, 'id'> {
+  private getSetTargetMessage(): MiningSetTargetMessage {
     return {
-      method: 'mining.set_target',
-      params: [this.pool.getTarget()],
+      target: this.pool.getTarget(),
     }
   }
 
-  private broadcast(message: Omit<StratumMessage, 'id'>) {
-    const withId: StratumMessage = {
+  private broadcast(method: 'mining.wait_for_work'): void
+  private broadcast(method: 'mining.notify', body: MiningNotifyMessage): void
+  private broadcast(method: string, body?: unknown): void {
+    const message: StratumMessage = {
       id: this.nextMessageId++,
-      ...message,
+      method: method,
+      body: body,
     }
 
-    const serialized = JSON.stringify(withId) + '\n'
+    const serialized = JSON.stringify(message) + '\n'
 
     for (const client of this.clients.values()) {
       client.socket.write(serialized)
     }
   }
-
-  private send(client: StratumServerClient, message: Omit<StratumMessage, 'id'>) {
-    const withId: StratumMessage = {
+  private send(
+    client: StratumServerClient,
+    method: 'mining.notify',
+    body: MiningNotifyMessage,
+  ): void
+  private send(
+    client: StratumServerClient,
+    method: 'mining.set_target',
+    body: MiningSetTargetMessage,
+  ): void
+  private send(
+    client: StratumServerClient,
+    method: 'mining.subscribed',
+    body: MiningSubscribedMessage,
+  ): void
+  private send(client: StratumServerClient, method: string, body?: unknown): void {
+    const message: StratumMessage = {
       id: this.nextMessageId++,
-      ...message,
+      method: method,
+      body: body,
     }
 
-    const serialized = JSON.stringify(withId) + '\n'
+    const serialized = JSON.stringify(message) + '\n'
     client.socket.write(serialized)
   }
 }
