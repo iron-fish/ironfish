@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@iron-fish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'

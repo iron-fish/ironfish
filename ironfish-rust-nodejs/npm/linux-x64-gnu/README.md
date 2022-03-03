@@ -1,3 +1,3 @@
-# `@iron-fish/rust-nodejs-linux-x64-gnu`
+# `@ironfish/rust-nodejs-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `@iron-fish/rust-nodejs`
+This is the **x86_64-unknown-linux-gnu** binary for `@ironfish/rust-nodejs`

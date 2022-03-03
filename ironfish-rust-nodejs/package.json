@@ -1,5 +1,5 @@
 {
-  "name": "@iron-fish/rust-nodejs",
+  "name": "@ironfish/rust-nodejs",
   "version": "0.1.1",
   "description": "Node.JS bindings for Rust code required by the Iron Fish SDK",
   "main": "index.js",

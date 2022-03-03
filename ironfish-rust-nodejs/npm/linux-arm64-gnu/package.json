@@ -1,5 +1,5 @@
 {
-    "name": "@iron-fish/rust-nodejs-linux-arm64-gnu",
+    "name": "@ironfish/rust-nodejs-linux-arm64-gnu",
     "version": "0.1.1",
     "os": [
       "linux"

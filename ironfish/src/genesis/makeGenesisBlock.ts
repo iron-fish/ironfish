@@ -8,7 +8,7 @@ import {
   Note as NativeNote,
   NoteBuilder as NativeNoteBuilder,
   Transaction as NativeTransaction,
-} from '@iron-fish/rust-nodejs'
+} from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'

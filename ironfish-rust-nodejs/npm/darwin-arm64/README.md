@@ -1,3 +1,3 @@
-# `@iron-fish/rust-nodejs-darwin-arm64`
+# `@ironfish/rust-nodejs-darwin-arm64`
 
-This is the **aarch64-apple-darwin** binary for `@iron-fish/rust-nodejs`
+This is the **aarch64-apple-darwin** binary for `@ironfish/rust-nodejs`
