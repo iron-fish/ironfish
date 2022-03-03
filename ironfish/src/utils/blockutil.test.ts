@@ -11,12 +11,14 @@ import { getBlockRange } from './blockchain'
 // Strategy for testing:
 // Consider a line of numbers to choose for the input parameters
 // <-----N1---N2----0G---P1---P2---H---X1---X2----->
-// Where N1, N2 are negative
+// Where N1, N2 are negative (count backward from height)
 // G is the genesis block (1)
 // P1 and P2 are positive numbers in the range of blocks
 // H is the height of the chain
 // X1 and X2 exceed the height of the chain
 
+// Blockchain is needed by getBlockRange()
+// Set it up before running tests
 const workerPool = new WorkerPool()
 const strategy = new Strategy(workerPool)
 const chain = new Blockchain({ location: makeDbPath(), strategy })
@@ -56,25 +58,23 @@ describe('getBlockRange', () => {
 */
 
 describe.each([
-  {Xstart: 9000, Xstop: 900, expectedStart: 9000, expectedStop: 9000},
-  {Xstart: 700, Xstop: 7000, expectedStart: 700, expectedStop: 7000},
-])('Test ${Xstart}, ${Xstop}', ({Xstart, Xstop, expectedStart, expectedStop}) => {
+  // P1, P2 cases
+  { param: { start: 9000, stop: 900 }, expectedStart: 9000, expectedStop: 9000 },
+  { param: { start: 900, stop: 9000 }, expectedStart: 900, expectedStop: 9000 },
 
+  // N1, N2 cases
+  { param: { start: -9000, stop: -8000 }, expectedStart: 1000, expectedStop: 2000 },
+  { param: { start: -8000, stop: -9000 }, expectedStart: 2000, expectedStop: 2000 },
   /*
-  const workerPool = new WorkerPool()
-  const strategy = new Strategy(workerPool)
-  const chain = new Blockchain({ location: makeDbPath(), strategy })
-*/
-
-  test(`returns ${expectedStart} ${expectedStop}`, () => {
-/*
-    const { start, stop } = getBlockRange(chain, {start: Xstart, stop: Xstop}})
+  { param: { start: , stop:  }, expectedStart: , expectedStop:  },
+  { param: { start: , stop:  }, expectedStart: , expectedStop:  },
+  { param: { start: , stop:  }, expectedStart: , expectedStop:  },
+  { param: { start: , stop:  }, expectedStart: , expectedStop:  },
+  */
+])('Test input parameters', ({ param, expectedStart, expectedStop }) => {
+  test(`${param.start}, ${param.stop} returns ${expectedStart} ${expectedStop}`, () => {
+    const { start, stop } = getBlockRange(chain, { start: param.start, stop: param.stop })
     expect(start).toEqual(expectedStart)
     expect(stop).toEqual(expectedStop)
-    */
-   
-    expect(Xstart).toEqual(expectedStart)
-    expect(Xstop).toEqual(expectedStop)
-  });
-});
-
+  })
+})
