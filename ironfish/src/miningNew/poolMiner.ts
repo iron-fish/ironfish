@@ -93,6 +93,10 @@ export class MiningPoolMiner {
     this.target = Buffer.from(target, 'hex')
   }
 
+  setGraffiti(graffiti: Buffer): void {
+    this.graffiti = graffiti
+  }
+
   newWork(miningRequestId: number, header: Buffer): void {
     this.logger.info('new work', this.target.toString('hex'), miningRequestId)
     this.miningRequestPayloads[miningRequestId] = header

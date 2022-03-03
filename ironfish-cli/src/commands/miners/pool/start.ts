@@ -19,8 +19,8 @@ export class StartPool extends IronfishCommand {
 
     const rpc = this.sdk.client
 
-    this.pool = new MiningPool({ rpc })
-    this.pool.start()
+    this.pool = await MiningPool.init({ rpc })
+    await this.pool.start()
     await this.pool.waitForStop()
   }
 

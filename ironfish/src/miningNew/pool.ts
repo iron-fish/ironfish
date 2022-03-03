@@ -12,6 +12,7 @@ import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
+import { MiningPoolShares } from './poolShares'
 import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
 
@@ -22,6 +23,7 @@ export class MiningPool {
   readonly stratum: StratumServer
   readonly rpc: IronfishIpcClient
   readonly logger: Logger
+  readonly shares: MiningPoolShares
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -35,8 +37,7 @@ export class MiningPool {
   // TODO: LRU
   miningRequestBlocks: Map<number, SerializedBlockTemplate>
 
-  // TODO: Difficulty adjustment!
-  // baseTargetValue: number = 1
+  difficulty: bigint
   target: Buffer
 
   currentHeadTimestamp: number | null
@@ -44,18 +45,23 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: { rpc: IronfishIpcClient; logger?: Logger }) {
+  constructor(options: { rpc: IronfishIpcClient; shares: MiningPoolShares; logger?: Logger }) {
     this.rpc = options.rpc
     this.hashRate = new Meter()
     this.logger = options.logger ?? createRootLogger()
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
+    this.shares = options.shares
     this.nextMiningRequestId = 0
     this.miningRequestBlocks = new Map()
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
 
-    this.target = Buffer.alloc(32)
-    this.target.writeUInt32BE(65535)
+    // Difficulty is set to the expected hashrate that would achieve 1 valid share per second
+    // Ex: 100,000,000 would mean a miner with 100 mh/s would submit a valid share on average once per second
+    // TODO: I think we should set it so that an 'average desktop' might only check-in once ever 5-10 minutes
+    this.difficulty = BigInt(1_850_000) * 2n
+    const basePoolTarget = BigInt(2n ** 256n / this.difficulty)
+    this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
 
     this.connectTimeout = null
     this.connectWarned = false
@@ -64,7 +70,16 @@ export class MiningPool {
     this.recalculateTargetInterval = null
   }
 
-  start(): void {
+  static async init(options: { rpc: IronfishIpcClient; logger?: Logger }): Promise<MiningPool> {
+    const shares = await MiningPoolShares.init()
+    return new MiningPool({
+      rpc: options.rpc,
+      logger: options.logger,
+      shares,
+    })
+  }
+
+  async start(): Promise<void> {
     if (this.started) {
       return
     }
@@ -72,6 +87,7 @@ export class MiningPool {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
     this.hashRate.start()
+    await this.shares.start()
 
     this.logger.info('Starting stratum server...')
     this.stratum.start()
@@ -81,7 +97,7 @@ export class MiningPool {
     void this.startConnectingRpc()
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     if (!this.started) {
       return
     }
@@ -93,6 +109,7 @@ export class MiningPool {
     this.rpc.close()
     this.stratum.stop()
     this.hashRate.stop()
+    await this.shares.stop()
     this.stopCalculateTargetInterval()
 
     if (this.stopResolve) {
@@ -118,6 +135,13 @@ export class MiningPool {
     randomness: number,
     graffiti: Buffer,
   ): Promise<void> {
+    if (miningRequestId !== this.nextMiningRequestId - 1) {
+      this.logger.debug(
+        `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
+      )
+      return
+    }
+
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
 
     if (!blockTemplate) {
@@ -127,15 +151,13 @@ export class MiningPool {
       return
     }
 
-    blockTemplate.header.graffiti = graffiti.toString('hex')
+    const graffitiHex = graffiti.toString('hex')
+
+    blockTemplate.header.graffiti = graffitiHex
     blockTemplate.header.randomness = randomness
 
     const headerBytes = mineableHeaderString(blockTemplate.header)
     const hashedHeader = blake3(headerBytes)
-
-    if (hashedHeader < this.target) {
-      this.logger.debug('Valid pool share submitted')
-    }
 
     if (hashedHeader < Buffer.from(blockTemplate.header.target, 'hex')) {
       this.logger.debug('Valid block, submitting to node')
@@ -144,11 +166,18 @@ export class MiningPool {
 
       if (result.content.added) {
         this.logger.info(
-          `Block submitted successfully! ${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+          `Block submitted successfully! ${FileUtils.formatHashRate(
+            this.estimateHashRate(),
+          )}/s`,
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
+    }
+
+    if (hashedHeader < this.target) {
+      this.logger.debug('Valid pool share submitted')
+      await this.shares.submitShare(graffitiHex, miningRequestId, randomness)
     }
   }
 
@@ -175,10 +204,10 @@ export class MiningPool {
     this.logger.info('Successfully connected to node')
     this.logger.info('Listening to node for new blocks')
 
-    void this.processNewBlocks().catch((e: unknown) => {
+    void this.processNewBlocks().catch(async (e: unknown) => {
       this.logger.error('Fatal error occured while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
-      this.stop()
+      await this.stop()
     })
   }
 
@@ -244,5 +273,10 @@ export class MiningPool {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
+  }
+
+  estimateHashRate(): number {
+    // BigInt can't contain decimals, so multiply then divide by 100 to give 2 decimal precision
+    return Number(BigInt(Math.floor(this.shares.shareRate() * 100)) * this.difficulty) / 100
   }
 }
