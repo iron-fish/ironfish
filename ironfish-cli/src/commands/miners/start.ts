@@ -1,16 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx, Flags } from '@oclif/core'
-import {
-  AsyncUtils,
-  FileUtils,
-  GraffitiUtils,
-  Miner as IronfishMiner,
-  MineRequest,
-  MiningPoolMiner,
-  PromiseUtils,
-} from 'ironfish'
+import { Flags } from '@oclif/core'
+import { GraffitiUtils, MiningPoolMiner } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -52,7 +44,7 @@ export class Miner extends IronfishCommand {
       port: 1234,
     })
 
-    await miner.start()
+    miner.start()
     await miner.waitForStop()
   }
 }

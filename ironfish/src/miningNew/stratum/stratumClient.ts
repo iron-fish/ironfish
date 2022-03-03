@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
@@ -221,9 +220,7 @@ export class StratumClient {
         }
 
         default:
-          throw new ServerMessageMalformedError(
-            `Invalid message ${header.result.method}`,
-          )
+          throw new ServerMessageMalformedError(`Invalid message ${header.result.method}`)
       }
     }
   }

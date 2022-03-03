@@ -4,7 +4,6 @@
 import * as yup from 'yup'
 import { Block } from '../../../primitives/block'
 import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
-import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type BlockTemplateStreamRequest = Record<string, never> | undefined

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
@@ -139,11 +138,7 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
           if (body.error) {
-            throw new ClientMessageMalformedError(
-              client,
-              body.error,
-              header.result.method,
-            )
+            throw new ClientMessageMalformedError(client, body.error, header.result.method)
           }
 
           client.graffiti = Buffer.from(body.result.graffiti, 'hex')
