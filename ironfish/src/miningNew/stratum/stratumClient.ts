@@ -7,7 +7,7 @@ import { createRootLogger, Logger } from '../../logger'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
 import { MiningPoolMiner } from '../poolMiner'
-import { StratumServerMessageMalformedError } from './errors'
+import { ServerMessageMalformedError } from './errors'
 import {
   MiningNotifySchema,
   MiningSetTargetSchema,
@@ -163,7 +163,7 @@ export class StratumClient {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        throw new StratumServerMessageMalformedError(header.error)
+        throw new ServerMessageMalformedError(header.error)
       }
 
       this.logger.debug(`Server sent ${header.result.method} message`)
@@ -176,7 +176,7 @@ export class StratumClient {
           )
 
           if (body.error) {
-            throw new StratumServerMessageMalformedError(body.error, header.result.method)
+            throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
           this.id = body.result.clientId
@@ -188,7 +188,7 @@ export class StratumClient {
           const body = await YupUtils.tryValidate(MiningSetTargetSchema, header.result.body)
 
           if (body.error) {
-            throw new StratumServerMessageMalformedError(body.error, header.result.method)
+            throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
           const target = body.result.target
@@ -200,7 +200,7 @@ export class StratumClient {
           const body = await YupUtils.tryValidate(MiningNotifySchema, header.result.body)
 
           if (body.error) {
-            throw new StratumServerMessageMalformedError(body.error, header.result.method)
+            throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
           const miningRequestId = body.result.miningRequestId
@@ -213,7 +213,7 @@ export class StratumClient {
           const body = await YupUtils.tryValidate(MiningWaitForWorkSchema, header.result.body)
 
           if (body.error) {
-            throw new StratumServerMessageMalformedError(body.error, header.result.method)
+            throw new ServerMessageMalformedError(body.error, header.result.method)
           }
 
           this.miner.waitForWork()
@@ -221,7 +221,7 @@ export class StratumClient {
         }
 
         default:
-          throw new StratumServerMessageMalformedError(
+          throw new ServerMessageMalformedError(
             `Invalid message ${header.result.method}`,
           )
       }

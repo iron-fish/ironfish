@@ -4,7 +4,23 @@
 import * as yup from 'yup'
 import { StratumServerClient } from './stratumServer'
 
-export class StratumClientMessageMalformedError extends Error {
+export class MessageMalformedError extends Error {
+  constructor(sender: string, error: yup.ValidationError | string, method?: string) {
+    super()
+
+    if (typeof error === 'string') {
+      this.message = error
+    } else {
+      this.message = `${sender} sent malformed request`
+      if (method) {
+        this.message += ` (${method})`
+      }
+      this.message + `: ${error.message}`
+    }
+  }
+}
+
+export class ClientMessageMalformedError extends MessageMalformedError {
   client: StratumServerClient
 
   constructor(
@@ -12,24 +28,13 @@ export class StratumClientMessageMalformedError extends Error {
     error: yup.ValidationError | string,
     method?: string,
   ) {
-    super(
-      typeof error === 'string'
-        ? error
-        : `Client ${client.id} sent malformed request${method ? ` (${method})` : ''}: ${
-            error.message
-          }`,
-    )
-
+    super(`Client ${client.id}`, error, method)
     this.client = client
   }
 }
 
-export class StratumServerMessageMalformedError extends Error {
+export class ServerMessageMalformedError extends MessageMalformedError {
   constructor(error: yup.ValidationError | string, method?: string) {
-    super(
-      typeof error === 'string'
-        ? error
-        : `Server sent malformed request ${method ? `(${method})` : ''}: ${error.message}`,
-    )
+    super('Server', error, method)
   }
 }
