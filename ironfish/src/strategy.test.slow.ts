@@ -10,7 +10,7 @@ import {
   NoteBuilder as NativeNoteBuilder,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
-} from 'ironfish-rust-nodejs'
+} from '@iron-fish/rust-nodejs'
 import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteHasher } from './merkletree/hasher'

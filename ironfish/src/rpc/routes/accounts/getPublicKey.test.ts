@@ -5,13 +5,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as native from 'ironfish-rust-nodejs'
+import * as native from '@iron-fish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Account } from '../../../account'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-jest.mock('ironfish-rust-nodejs', () => {
-  const moduleMock = jest.requireActual<typeof native>('ironfish-rust-nodejs')
+jest.mock('@iron-fish/rust-nodejs', () => {
+  const moduleMock = jest.requireActual<typeof native>('@iron-fish/rust-nodejs')
   return {
     ...moduleMock,
     generateNewPublicAddress: jest.fn().mockReturnValue({ publicAddress: 'newkey' }),

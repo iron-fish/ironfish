@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NoteEncrypted as NativeNoteEncrypted } from 'ironfish-rust-nodejs'
+import { NoteEncrypted as NativeNoteEncrypted } from '@iron-fish/rust-nodejs'
 import { Serde } from '../serde'
 import { Note } from './note'
 
