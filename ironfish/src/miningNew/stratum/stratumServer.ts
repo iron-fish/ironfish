@@ -10,7 +10,7 @@ import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
-import { StratumClientMessageMalformedError } from './errors'
+import { ClientMessageMalformedError } from './errors'
 import {
   MiningNotifyMessage,
   MiningSetTargetMessage,
@@ -129,7 +129,7 @@ export class StratumServer {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        throw new StratumClientMessageMalformedError(client, header.error)
+        throw new ClientMessageMalformedError(client, header.error)
       }
 
       this.logger.debug(`Client ${client.id} sent ${header.result.method} message`)
@@ -139,7 +139,7 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
           if (body.error) {
-            throw new StratumClientMessageMalformedError(
+            throw new ClientMessageMalformedError(
               client,
               body.error,
               header.result.method,
@@ -163,7 +163,7 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubmitSchema, header.result.body)
 
           if (body.error) {
-            throw new StratumClientMessageMalformedError(client, body.error)
+            throw new ClientMessageMalformedError(client, body.error)
           }
 
           const submittedRequestId = body.result.miningRequestId
@@ -181,7 +181,7 @@ export class StratumServer {
         }
 
         default:
-          throw new StratumClientMessageMalformedError(
+          throw new ClientMessageMalformedError(
             client,
             `Invalid message ${header.result.method}`,
           )
