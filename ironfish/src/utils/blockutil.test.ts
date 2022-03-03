@@ -17,6 +17,16 @@ import { getBlockRange } from './blockchain'
 // H is the height of the chain
 // X1 and X2 exceed the height of the chain
 
+const workerPool = new WorkerPool()
+const strategy = new Strategy(workerPool)
+const chain = new Blockchain({ location: makeDbPath(), strategy })
+
+beforeAll(async () => {
+  await chain.open()
+  chain.latest.sequence = 10000
+})
+
+/*
 describe('getBlockRange', () => {
   const workerPool = new WorkerPool()
   const strategy = new Strategy(workerPool)
@@ -43,3 +53,28 @@ describe('getBlockRange', () => {
     expect(stop).toEqual(param.stop)
   })
 })
+*/
+
+describe.each([
+  {Xstart: 9000, Xstop: 900, expectedStart: 9000, expectedStop: 9000},
+  {Xstart: 700, Xstop: 7000, expectedStart: 700, expectedStop: 7000},
+])('Test ${Xstart}, ${Xstop}', ({Xstart, Xstop, expectedStart, expectedStop}) => {
+
+  /*
+  const workerPool = new WorkerPool()
+  const strategy = new Strategy(workerPool)
+  const chain = new Blockchain({ location: makeDbPath(), strategy })
+*/
+
+  test(`returns ${expectedStart} ${expectedStop}`, () => {
+/*
+    const { start, stop } = getBlockRange(chain, {start: Xstart, stop: Xstop}})
+    expect(start).toEqual(expectedStart)
+    expect(stop).toEqual(expectedStop)
+    */
+   
+    expect(Xstart).toEqual(expectedStart)
+    expect(Xstop).toEqual(expectedStop)
+  });
+});
+
