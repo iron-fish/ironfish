@@ -5,7 +5,7 @@ CREATE TABLE payout (
 
 CREATE TABLE share (
     id INTEGER PRIMARY KEY,
-    payout_address TEXT NOT NULL,
+    public_address TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     payout_id INTEGER,
     CONSTRAINT share_fk_payout_id FOREIGN KEY (payout_id) REFERENCES payout (id)

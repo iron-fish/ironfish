@@ -23,9 +23,9 @@ import {
 export class StratumServerClient {
   id: number
   socket: net.Socket
-  graffiti: Buffer | null = null
   connected: boolean
   subscribed: boolean
+  publicAddress: string | null = null
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
@@ -141,10 +141,12 @@ export class StratumServer {
             throw new ClientMessageMalformedError(client, body.error, header.result.method)
           }
 
-          client.graffiti = Buffer.from(body.result.graffiti, 'hex')
+          client.publicAddress = body.result.publicAddress
           client.subscribed = true
 
-          this.send(client, 'mining.subscribed', { clientId: client.id })
+          const graffiti = `PoolName.${client.id.toString(16)}`
+
+          this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
 
           if (this.hasWork()) {

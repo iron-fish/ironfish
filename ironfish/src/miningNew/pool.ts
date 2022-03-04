@@ -139,6 +139,7 @@ export class MiningPool {
     randomness: number,
     graffiti: Buffer,
   ): Promise<void> {
+    Assert.isNotNull(client.publicAddress)
     if (miningRequestId !== this.nextMiningRequestId - 1) {
       this.logger.debug(
         `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
@@ -155,9 +156,7 @@ export class MiningPool {
       return
     }
 
-    const graffitiHex = graffiti.toString('hex')
-
-    blockTemplate.header.graffiti = graffitiHex
+    blockTemplate.header.graffiti = graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
     const headerBytes = mineableHeaderString(blockTemplate.header)
@@ -181,7 +180,7 @@ export class MiningPool {
 
     if (hashedHeader < this.target) {
       this.logger.debug('Valid pool share submitted')
-      await this.shares.submitShare(graffitiHex, miningRequestId, randomness)
+      await this.shares.submitShare(client.publicAddress, miningRequestId, randomness)
     }
   }
 

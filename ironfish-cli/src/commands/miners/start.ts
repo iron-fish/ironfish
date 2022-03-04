@@ -25,6 +25,13 @@ export class Miner extends IronfishCommand {
       char: 'p',
       description: 'the host of the mining pool to connect to such as 92.191.17.232',
     }),
+    publicAddress: Flags.string({
+      char: 'a',
+      // TODO: remove this after split
+      default: 'asdfasdf',
+      required: true,
+      description: 'the public address to receive pool payouts',
+    }),
   }
 
   async start(): Promise<void> {
@@ -42,13 +49,15 @@ export class Miner extends IronfishCommand {
     const batchSize = this.sdk.config.get('minerBatchSize')
 
     if (flags.pool) {
-      this.log(`Starting to mine with graffiti: ${graffiti} at pool ${flags.pool}`)
+      this.log(
+        `Staring to mine with public address: ${flags.publicAddress} at pool ${flags.pool}`,
+      )
 
       const { host, port } = new URL(flags.pool)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
-        graffiti: GraffitiUtils.fromString(graffiti),
+        publicAddress: flags.publicAddress,
         batchSize,
         host: host,
         port: Number(port),
