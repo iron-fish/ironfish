@@ -19,7 +19,6 @@ import { mineableHeaderString } from './utils'
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
 export class MiningPool {
-  readonly hashRate: Meter
   readonly stratum: StratumServer
   readonly rpc: IronfishIpcClient
   readonly logger: Logger
@@ -47,7 +46,6 @@ export class MiningPool {
 
   constructor(options: { rpc: IronfishIpcClient; shares: MiningPoolShares; logger?: Logger }) {
     this.rpc = options.rpc
-    this.hashRate = new Meter()
     this.logger = options.logger ?? createRootLogger()
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
     this.shares = options.shares
@@ -86,7 +84,6 @@ export class MiningPool {
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
-    this.hashRate.start()
     await this.shares.start()
 
     this.logger.info('Starting stratum server...')
@@ -108,7 +105,6 @@ export class MiningPool {
     this.rpc.onClose.off(this.onDisconnectRpc)
     this.rpc.close()
     this.stratum.stop()
-    this.hashRate.stop()
 
     await this.shares.stop()
 
