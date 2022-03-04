@@ -5,3 +5,4 @@
 export { MiningManager } from './manager'
 export { MiningPool } from './pool'
 export { MiningPoolMiner } from './poolMiner'
+export { MiningSoloMiner } from './soloMiner'

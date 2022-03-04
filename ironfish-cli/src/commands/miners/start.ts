@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
-import { GraffitiUtils, MiningPoolMiner } from 'ironfish'
+import { GraffitiUtils, MiningPoolMiner, MiningSoloMiner } from 'ironfish'
+import { SocketAddress } from 'net'
 import os from 'os'
+import { off } from 'process'
+import url from 'url'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -17,6 +20,10 @@ export class Miner extends IronfishCommand {
       default: 1,
       description:
         'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+    }),
+    pool: Flags.string({
+      char: 'p',
+      description: 'the host of the mining pool to connect to such as 92.191.17.232',
     }),
   }
 
@@ -34,17 +41,37 @@ export class Miner extends IronfishCommand {
     const graffiti = this.sdk.config.get('blockGraffiti')
     const batchSize = this.sdk.config.get('minerBatchSize')
 
-    this.log(`Staring to mine with graffiti: ${graffiti}`)
+    if (flags.pool) {
+      this.log(`Starting to mine with graffiti: ${graffiti} at pool ${flags.pool}`)
 
-    const miner = new MiningPoolMiner({
-      threadCount: flags.threads,
-      graffiti: GraffitiUtils.fromString(graffiti),
-      batchSize,
-      host: 'localhost',
-      port: 1234,
-    })
+      const { host, port } = new URL(flags.pool)
 
-    miner.start()
-    await miner.waitForStop()
+      const miner = new MiningPoolMiner({
+        threadCount: flags.threads,
+        graffiti: GraffitiUtils.fromString(graffiti),
+        batchSize,
+        host: host,
+        port: Number(port),
+      })
+
+      miner.start()
+      await miner.waitForStop()
+    }
+
+    if (!flags.pool) {
+      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
+
+      const rpc = this.sdk.client
+
+      const miner = new MiningSoloMiner({
+        threadCount: flags.threads,
+        graffiti: GraffitiUtils.fromString(graffiti),
+        batchSize,
+        rpc,
+      })
+
+      miner.start()
+      await miner.waitForStop()
+    }
   }
 }
