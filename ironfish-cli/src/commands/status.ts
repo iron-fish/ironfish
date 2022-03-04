@@ -62,24 +62,34 @@ export default class Status extends IronfishCommand {
 
 function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
-  let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
+  const blockSyncerStatusDetails: string[] = []
+  let telemetryStatus = `${content.telemetry.status.toUpperCase()}`
 
   Assert.isNotUndefined(content.blockSyncer.syncing)
 
   const avgTimeToAddBlock = content.blockSyncer.syncing.blockSpeed
-  const speed = content.blockSyncer.syncing.speed
 
-  if (content.blockSyncer.status !== 'idle') {
-    blockSyncerStatus += ` @ ${speed} blocks per seconds`
-  }
-
-  if (content.telemetry.status === 'started') {
-    telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
+  if (content.blockSyncer.status === 'syncing') {
+    blockSyncerStatusDetails.push(`${content.blockSyncer.syncing.speed} blocks per seconds`)
   }
 
   if (avgTimeToAddBlock) {
-    blockSyncerStatus += ` | avg time to add block ${avgTimeToAddBlock} ms`
+    blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
+  }
+
+  if (content.blockSyncer.status === 'syncing') {
+    blockSyncerStatusDetails.push(
+      `progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`,
+    )
+  }
+
+  blockSyncerStatus += blockSyncerStatusDetails.length
+    ? ` - ${blockSyncerStatusDetails.join(', ')}`
+    : ''
+
+  if (content.telemetry.status === 'started') {
+    telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
 
   const peerNetworkStatus = `${

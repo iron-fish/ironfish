@@ -42,6 +42,7 @@ export type GetStatusResponse = {
     syncing?: {
       blockSpeed: number
       speed: number
+      progress: number
     }
   }
   peerNetwork: {
@@ -125,6 +126,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
           .object({
             blockSpeed: yup.number().defined(),
             speed: yup.number().defined(),
+            progress: yup.number().defined(),
           })
           .optional(),
       })
@@ -215,6 +217,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       syncing: {
         blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
         speed: MathUtils.round(node.syncer.speed.rate1m, 2),
+        progress: node.chain.getProgress(),
       },
     },
     telemetry: {
