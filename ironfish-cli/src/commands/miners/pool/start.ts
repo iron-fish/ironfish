@@ -25,7 +25,6 @@ export class StartPool extends IronfishCommand {
   }
 
   async closeFromSignal(): Promise<void> {
-    this.pool?.stop()
-    await Promise.resolve()
+    await this.pool?.stop()
   }
 }
