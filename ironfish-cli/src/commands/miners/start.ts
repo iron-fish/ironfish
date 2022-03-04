@@ -27,9 +27,6 @@ export class Miner extends IronfishCommand {
     }),
     publicAddress: Flags.string({
       char: 'a',
-      // TODO: remove this after split
-      default: 'asdfasdf',
-      required: true,
       description: 'the public address to receive pool payouts',
     }),
   }
@@ -49,6 +46,12 @@ export class Miner extends IronfishCommand {
     const batchSize = this.sdk.config.get('minerBatchSize')
 
     if (flags.pool) {
+      if (flags.publicAddress == null) {
+        this.error(
+          "Can't mine from a pool without a public address. Use `-a address-goes-here` to provide one.",
+        )
+      }
+
       this.log(
         `Staring to mine with public address: ${flags.publicAddress} at pool ${flags.pool}`,
       )
