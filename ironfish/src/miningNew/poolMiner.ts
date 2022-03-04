@@ -104,7 +104,7 @@ export class MiningPoolMiner {
     const headerBytes = Buffer.concat([header])
     headerBytes.set(this.graffiti, 176)
 
-    this.waiting = true
+    this.waiting = false
     this.threadPool.newWork(headerBytes, this.target, miningRequestId)
   }
 

@@ -2,84 +2,82 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
+import { ThreadPoolHandler } from 'ironfish-rust-nodejs'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
-import { IronfishIpcClient } from '../rpc/clients'
+import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
+import { PromiseUtils } from '../utils/promise'
 import { SetTimeoutToken } from '../utils/types'
-import { MiningPoolShares } from './poolShares'
-import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
-export class MiningPool {
+export class MiningSoloMiner {
   readonly hashRate: Meter
-  readonly stratum: StratumServer
-  readonly rpc: IronfishIpcClient
+  readonly threadPool: ThreadPoolHandler
   readonly logger: Logger
-  readonly shares: MiningPoolShares
+  readonly rpc: IronfishIpcClient
 
   private started: boolean
-  private stopPromise: Promise<void> | null = null
-  private stopResolve: (() => void) | null = null
+  private stopPromise: Promise<void> | null
+  private stopResolve: (() => void) | null
 
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
 
-  // TODO: Rename to job id or something
-  nextMiningRequestId: number
-  // TODO: LRU
-  miningRequestBlocks: Map<number, SerializedBlockTemplate>
+  private nextMiningRequestId: number
+  private miningRequestBlocks: Map<number, SerializedBlockTemplate>
+  private miningRequestId: number
+  private miningRequestPayloads: { [index: number]: Buffer } = {}
 
-  difficulty: bigint
+  private currentHeadTimestamp: number | null
+  private currentHeadDifficulty: bigint | null
+
+  graffiti: Buffer
   target: Buffer
-
-  currentHeadTimestamp: number | null
-  currentHeadDifficulty: bigint | null
-
+  waiting: boolean
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: { rpc: IronfishIpcClient; shares: MiningPoolShares; logger?: Logger }) {
+  constructor(options: {
+    threadCount: number
+    batchSize: number
+    logger?: Logger
+    graffiti: Buffer
+    rpc: IronfishIpcClient
+  }) {
     this.rpc = options.rpc
-    this.hashRate = new Meter()
     this.logger = options.logger ?? createRootLogger()
-    this.stratum = new StratumServer({ pool: this, logger: this.logger })
-    this.shares = options.shares
+    this.graffiti = options.graffiti
+
+    const threadCount = options.threadCount ?? 1
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
+
+    this.miningRequestId = 0
     this.nextMiningRequestId = 0
     this.miningRequestBlocks = new Map()
+
+    this.target = Buffer.alloc(32, 0)
+
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
 
-    // Difficulty is set to the expected hashrate that would achieve 1 valid share per second
-    // Ex: 100,000,000 would mean a miner with 100 mh/s would submit a valid share on average once per second
-    // TODO: I think we should set it so that an 'average desktop' might only check-in once ever 5-10 minutes
-    this.difficulty = BigInt(1_850_000) * 2n
-    const basePoolTarget = BigInt(2n ** 256n / this.difficulty)
-    this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
-
-    this.connectTimeout = null
+    this.hashRate = new Meter()
+    this.stopPromise = null
+    this.stopResolve = null
+    this.waiting = false
     this.connectWarned = false
-    this.started = false
-
+    this.connectTimeout = null
     this.recalculateTargetInterval = null
+    this.started = false
   }
 
-  static async init(options: { rpc: IronfishIpcClient; logger?: Logger }): Promise<MiningPool> {
-    const shares = await MiningPoolShares.init()
-    return new MiningPool({
-      rpc: options.rpc,
-      logger: options.logger,
-      shares,
-    })
-  }
-
-  async start(): Promise<void> {
+  start(): void {
     if (this.started) {
       return
     }
@@ -87,30 +85,25 @@ export class MiningPool {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
     this.hashRate.start()
-    await this.shares.start()
 
-    this.logger.info('Starting stratum server...')
-    this.stratum.start()
+    void this.mine()
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
     void this.startConnectingRpc()
   }
 
-  async stop(): Promise<void> {
+  stop(): void {
     if (!this.started) {
       return
     }
 
-    this.logger.debug('Stopping pool, goodbye')
+    this.logger.debug('Stopping miner, goodbye')
 
     this.started = false
     this.rpc.onClose.off(this.onDisconnectRpc)
     this.rpc.close()
-    this.stratum.stop()
     this.hashRate.stop()
-
-    await this.shares.stop()
 
     if (this.stopResolve) {
       this.stopResolve()
@@ -129,35 +122,98 @@ export class MiningPool {
     await this.stopPromise
   }
 
-  getTarget(): string {
-    return this.target.toString('hex')
+  newWork(miningRequestId: number, header: Buffer): void {
+    this.logger.info(
+      'new work',
+      this.target.toString('hex'),
+      miningRequestId,
+      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+    )
+
+    this.miningRequestPayloads[miningRequestId] = header
+
+    const headerBytes = Buffer.concat([header])
+    headerBytes.set(this.graffiti, 176)
+
+    this.waiting = false
+    this.threadPool.newWork(headerBytes, this.target, miningRequestId)
+  }
+
+  waitForWork(): void {
+    this.waiting = true
+    this.threadPool.pause()
+  }
+
+  private onDisconnectRpc = (): void => {
+    this.waitForWork()
+
+    this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
+    void this.startConnectingRpc()
+  }
+
+  private async processNewBlocks() {
+    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
+      Assert.isNotUndefined(payload.previousBlockInfo)
+
+      const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
+      this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
+      this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
+
+      this.restartCalculateTargetInterval()
+      this.startNewWork(payload)
+    }
+  }
+
+  private startNewWork(block: SerializedBlockTemplate) {
+    Assert.isNotNull(this.currentHeadTimestamp)
+    Assert.isNotNull(this.currentHeadDifficulty)
+
+    const miningRequestId = this.nextMiningRequestId++
+    this.miningRequestBlocks.set(miningRequestId, block)
+    this.miningRequestId = miningRequestId
+
+    this.target = Buffer.from(block.header.target, 'hex')
+
+    const work = mineableHeaderString(block.header)
+    this.newWork(miningRequestId, work)
+  }
+
+  private async mine(): Promise<void> {
+    // eslint-disable-next-line no-constant-condition
+    while (this.started) {
+      const blockResult = this.threadPool.getFoundBlock()
+
+      if (blockResult != null) {
+        const { miningRequestId, randomness } = blockResult
+
+        this.logger.info(
+          'Found block:',
+          randomness,
+          miningRequestId,
+          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+        )
+
+        void this.submitWork(miningRequestId, randomness, this.graffiti)
+      }
+
+      const hashRate = this.threadPool.getHashRateSubmission()
+      this.hashRate.add(hashRate)
+
+      await PromiseUtils.sleep(10)
+    }
+
+    this.hashRate.stop()
   }
 
   async submitWork(
-    client: StratumServerClient,
     miningRequestId: number,
     randomness: number,
     graffiti: Buffer,
   ): Promise<void> {
-    if (miningRequestId !== this.nextMiningRequestId - 1) {
-      this.logger.debug(
-        `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
-      )
-      return
-    }
-
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
+    Assert.isNotUndefined(blockTemplate)
 
-    if (!blockTemplate) {
-      this.logger.warn(
-        `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
-      )
-      return
-    }
-
-    const graffitiHex = graffiti.toString('hex')
-
-    blockTemplate.header.graffiti = graffitiHex
+    blockTemplate.header.graffiti = graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
     const headerBytes = mineableHeaderString(blockTemplate.header)
@@ -170,18 +226,11 @@ export class MiningPool {
 
       if (result.content.added) {
         this.logger.info(
-          `Block submitted successfully! ${FileUtils.formatHashRate(
-            this.estimateHashRate(),
-          )}/s`,
+          `Block submitted successfully! ${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
-    }
-
-    if (hashedHeader < this.target) {
-      this.logger.debug('Valid pool share submitted')
-      await this.shares.submitShare(graffitiHex, miningRequestId, randomness)
     }
   }
 
@@ -208,31 +257,11 @@ export class MiningPool {
     this.logger.info('Successfully connected to node')
     this.logger.info('Listening to node for new blocks')
 
-    void this.processNewBlocks().catch(async (e: unknown) => {
+    void this.processNewBlocks().catch((e: unknown) => {
       this.logger.error('Fatal error occured while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
-      await this.stop()
+      this.stop()
     })
-  }
-
-  private onDisconnectRpc = (): void => {
-    this.stratum.waitForWork()
-
-    this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
-    void this.startConnectingRpc()
-  }
-
-  private async processNewBlocks() {
-    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
-      Assert.isNotUndefined(payload.previousBlockInfo)
-      this.restartCalculateTargetInterval()
-
-      const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
-      this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
-      this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
-
-      this.distributeNewBlock(payload)
-    }
   }
 
   private recalculateTarget() {
@@ -253,17 +282,8 @@ export class MiningPool {
 
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
-    this.distributeNewBlock(latestBlock)
-  }
 
-  private distributeNewBlock(newBlock: SerializedBlockTemplate) {
-    Assert.isNotNull(this.currentHeadTimestamp)
-    Assert.isNotNull(this.currentHeadDifficulty)
-
-    const miningRequestId = this.nextMiningRequestId++
-    this.miningRequestBlocks.set(miningRequestId, newBlock)
-
-    this.stratum.newWork(miningRequestId, newBlock)
+    this.startNewWork(latestBlock)
   }
 
   private restartCalculateTargetInterval() {
@@ -274,10 +294,5 @@ export class MiningPool {
     this.recalculateTargetInterval = setInterval(() => {
       this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
-  }
-
-  estimateHashRate(): number {
-    // BigInt can't contain decimals, so multiply then divide by 100 to give 2 decimal precision
-    return Number(BigInt(Math.floor(this.shares.shareRate() * 100)) * this.difficulty) / 100
   }
 }
