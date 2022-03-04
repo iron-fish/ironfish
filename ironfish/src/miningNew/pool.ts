@@ -158,7 +158,7 @@ export class MiningPool {
     const headerBytes = mineableHeaderString(blockTemplate.header)
     const hashedHeader = blake3(headerBytes)
 
-    if (hashedHeader < Buffer.from(blockTemplate.header.target, 'hex')) {
+    if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
       this.logger.debug('Valid block, submitting to node')
 
       const result = await this.rpc.submitBlock(blockTemplate)
@@ -174,7 +174,7 @@ export class MiningPool {
       }
     }
 
-    if (hashedHeader < this.target) {
+    if (hashedHeader.compare(this.target) !== 1) {
       this.logger.debug('Valid pool share submitted')
       await this.shares.submitShare(client.publicAddress, miningRequestId, randomness)
     }
