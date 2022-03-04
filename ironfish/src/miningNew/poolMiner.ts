@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ThreadPoolHandler } from 'ironfish-rust-nodejs'
+import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
@@ -9,7 +10,6 @@ import { PromiseUtils } from '../utils/promise'
 import { StratumClient } from './stratum/stratumClient'
 
 export class MiningPoolMiner {
-  // TODO: Send hash rate up to pool
   readonly hashRate: Meter
   readonly threadPool: ThreadPoolHandler
   readonly stratum: StratumClient
@@ -19,7 +19,9 @@ export class MiningPoolMiner {
   private stopPromise: Promise<void> | null
   private stopResolve: (() => void) | null
 
-  graffiti: Buffer
+  private readonly publicAddress: string
+
+  graffiti: Buffer | null
   miningRequestId: number
   // TODO: LRU
   miningRequestPayloads: { [index: number]: Buffer } = {}
@@ -30,19 +32,20 @@ export class MiningPoolMiner {
     threadCount: number
     batchSize: number
     logger?: Logger
-    graffiti: Buffer
+    publicAddress: string
     host: string
     port: number
   }) {
     this.logger = options.logger ?? createRootLogger()
-    this.graffiti = options.graffiti
+    this.graffiti = null
+    this.publicAddress = options.publicAddress
 
     const threadCount = options.threadCount ?? 1
     this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
 
     this.stratum = new StratumClient({
       miner: this,
-      graffiti: this.graffiti,
+      publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
     })
@@ -98,6 +101,7 @@ export class MiningPoolMiner {
   }
 
   newWork(miningRequestId: number, header: Buffer): void {
+    Assert.isNotNull(this.graffiti)
     this.logger.info('new work', this.target.toString('hex'), miningRequestId)
     this.miningRequestPayloads[miningRequestId] = header
 
@@ -114,9 +118,13 @@ export class MiningPoolMiner {
   }
 
   async mine(): Promise<void> {
-    // eslint-disable-next-line no-constant-condition
     while (this.started) {
-      // TODO: Turn this into an AsyncGenerator type thing on the JS side?
+      if (this.graffiti == null) {
+        this.logger.info('Waiting for graffiti from pool...')
+        await PromiseUtils.sleep(500)
+        continue
+      }
+
       const blockResult = this.threadPool.getFoundBlock()
 
       if (blockResult != null) {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { createRootLogger, Logger } from '../../logger'
+import { GraffitiUtils } from '../../utils/graffiti'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
 import { MiningPoolMiner } from '../poolMiner'
@@ -24,7 +25,6 @@ export class StratumClient {
   readonly port: number
   readonly miner: MiningPoolMiner
   readonly logger: Logger
-  readonly graffiti: Buffer
 
   private started: boolean
   private id: number | null
@@ -33,9 +33,11 @@ export class StratumClient {
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
 
+  private readonly publicAddress: string
+
   constructor(options: {
     miner: MiningPoolMiner
-    graffiti: Buffer
+    publicAddress: string
     host: string
     port: number
     logger?: Logger
@@ -43,7 +45,7 @@ export class StratumClient {
     this.host = options.host
     this.port = options.port
     this.miner = options.miner
-    this.graffiti = options.graffiti
+    this.publicAddress = options.publicAddress
     this.logger = options.logger ?? createRootLogger()
 
     this.started = false
@@ -98,9 +100,9 @@ export class StratumClient {
     }
   }
 
-  subscribe(graffiti: Buffer): void {
+  subscribe(): void {
     this.send('mining.subscribe', {
-      graffiti: graffiti.toString('hex'),
+      publicAddress: this.publicAddress,
     })
   }
 
@@ -135,7 +137,7 @@ export class StratumClient {
 
     this.logger.info('Successfully connected to pool')
     this.logger.info('Listening to pool for new work')
-    this.subscribe(this.graffiti)
+    this.subscribe()
   }
 
   private onDisconnect = (): void => {
@@ -179,6 +181,7 @@ export class StratumClient {
           }
 
           this.id = body.result.clientId
+          this.miner.setGraffiti(GraffitiUtils.fromString(body.result.graffiti))
           this.logger.debug(`Server has identified us as client ${this.id}`)
           break
         }

@@ -65,29 +65,29 @@ export class MiningPoolShares {
   }
 
   async submitShare(
-    graffiti: string,
+    publicAddress: string,
     miningRequestId: number,
     randomness: number,
   ): Promise<void> {
-    if (this.hasShare(graffiti, miningRequestId, randomness)) {
+    if (this.hasShare(publicAddress, miningRequestId, randomness)) {
       return
     }
     this.truncateOldShares()
     this.recentShares.push({
       timestamp: new Date(),
-      graffiti,
+      publicAddress,
       miningRequestId,
       randomness,
     })
-    await this.db.newShare(graffiti)
+    await this.db.newShare(publicAddress)
   }
 
-  hasShare(graffiti: string, miningRequestId: number, randomness: number): boolean {
+  hasShare(publicAddress: string, miningRequestId: number, randomness: number): boolean {
     const found = this.recentShares.find(
       (el) =>
         el.miningRequestId === miningRequestId &&
         el.randomness === randomness &&
-        el.graffiti === graffiti,
+        el.publicAddress === publicAddress,
     )
     if (found != null) {
       return true
@@ -99,8 +99,8 @@ export class MiningPoolShares {
     return this.recentShareCount() / OLD_SHARE_CUTOFF_SECONDS
   }
 
-  graffitiShareRate(graffiti: string): number {
-    return this.graffitiRecentShareCount(graffiti) / OLD_SHARE_CUTOFF_SECONDS
+  minerShareRate(publicAddress: string): number {
+    return this.publicAddressRecentShareCount(publicAddress) / OLD_SHARE_CUTOFF_SECONDS
   }
 
   private truncateOldShares(): void {
@@ -112,8 +112,8 @@ export class MiningPoolShares {
     return this.recentShares.length
   }
 
-  private graffitiRecentShareCount(graffiti: string): number {
-    return this.recentShares.filter((share) => share.graffiti === graffiti).length
+  private publicAddressRecentShareCount(publicAddress: string): number {
+    return this.recentShares.filter((share) => share.publicAddress === publicAddress).length
   }
 }
 
@@ -142,14 +142,14 @@ class SharesDatabase {
     await this.db.close()
   }
 
-  async newShare(payoutAddress: string) {
-    await this.db.run('INSERT INTO share (payout_address) VALUES (?)', payoutAddress)
+  async newShare(publicAddress: string) {
+    await this.db.run('INSERT INTO share (public_address) VALUES (?)', publicAddress)
   }
 }
 
 type Share = {
   timestamp: Date
-  graffiti: string
+  publicAddress: string
   miningRequestId: number
   randomness: number
 }

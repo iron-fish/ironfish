@@ -10,7 +10,7 @@ export type StratumMessage = {
 }
 
 export type MiningSubscribeMessage = {
-  graffiti: string
+  publicAddress: string
 }
 
 export type MiningSubmitMessage = {
@@ -21,6 +21,7 @@ export type MiningSubmitMessage = {
 
 export type MiningSubscribedMessage = {
   clientId: number
+  graffiti: string
 }
 
 export type MiningSetTargetMessage = {
@@ -45,6 +46,7 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
 export const MiningSubscribedMessageSchema: yup.ObjectSchema<MiningSubscribedMessage> = yup
   .object({
     clientId: yup.number().required(),
+    graffiti: yup.string().required(),
   })
   .required()
 
@@ -67,7 +69,7 @@ export const MiningWaitForWorkSchema: yup.MixedSchema<MiningWaitForWorkMessage> 
 
 export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = yup
   .object({
-    graffiti: yup.string().required(),
+    publicAddress: yup.string().required(),
   })
   .required()
 
