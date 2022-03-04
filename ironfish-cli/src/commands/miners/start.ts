@@ -53,13 +53,13 @@ export class Miner extends IronfishCommand {
         `Staring to mine with public address: ${flags.publicAddress} at pool ${flags.pool}`,
       )
 
-      const { host, port } = new URL(flags.pool)
+      const { hostname, port } = new URL(flags.pool)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.publicAddress,
         batchSize,
-        host: host,
+        host: hostname,
         port: Number(port),
       })
 
