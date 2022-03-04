@@ -61,8 +61,8 @@ export class Pay extends IronfishCommand {
     const { flags } = await this.parse(Pay)
     let amount = flags.amount as unknown as number
     let fee = flags.fee as unknown as number
-    let to = flags.to
-    let from = flags.account
+    let to = flags.to?.trim()
+    let from = flags.account?.trim()
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
 
@@ -90,7 +90,7 @@ export class Pay extends IronfishCommand {
         },
       )) as number
 
-      if (Number.isNaN(amount) || !isValidAmount(amount)) {
+      if (Number.isNaN(amount)) {
         this.error(`A valid amount is required`)
       }
     }
@@ -101,7 +101,7 @@ export class Pay extends IronfishCommand {
         default: '0.00000001',
       })) as number
 
-      if (Number.isNaN(fee) || !isValidAmount(fee)) {
+      if (Number.isNaN(fee)) {
         this.error(`A valid fee amount is required`)
       }
     }
@@ -151,7 +151,8 @@ export class Pay extends IronfishCommand {
     }
 
     if (!isValidPublicAddress(to)) {
-      this.error(`A valid public address is required`)
+      this.log(`A valid public address is required`)
+      this.exit(0)
     }
 
     if (expirationSequence !== undefined && expirationSequence < 0) {
