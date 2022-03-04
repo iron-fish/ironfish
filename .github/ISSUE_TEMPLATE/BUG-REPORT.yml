@@ -36,3 +36,8 @@ body:
       label: Relevant log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       render: shell
+  - type: input
+    id: graffiti
+    attributes:
+      label: Graffiti
+      description: Please copy and paste your graffiti.
