@@ -140,7 +140,7 @@ describe('accounts:pay command', () => {
     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
-    .exit(0)
+    .exit(2)
     .it('without amount flag: show the right error message', () => {
       expect(sendTransaction).toBeCalledTimes(0)
     })

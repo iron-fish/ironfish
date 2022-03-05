@@ -92,7 +92,7 @@ export class Pay extends IronfishCommand {
         ),
       )
 
-      if (Number.isNaN(amount)) {
+      if (Number.isNaN(input)) {
         this.error(`A valid amount is required`)
       }
 
@@ -160,7 +160,7 @@ export class Pay extends IronfishCommand {
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
-      this.exit(0)
+      this.exit(1)
     }
 
     if (expirationSequence !== undefined && expirationSequence < 0) {
