@@ -6,7 +6,7 @@ import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
 export type GetBalanceRequest = { account?: string }
-export type GetBalanceResponse = { accountName: string; confirmed: string; unconfirmed: string }
+export type GetBalanceResponse = { account: string; confirmed: string; unconfirmed: string }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
@@ -16,7 +16,7 @@ export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
 
 export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yup
   .object({
-    accountName: yup.string().defined(),
+    account: yup.string().defined(),
     unconfirmed: yup.string().defined(),
     confirmed: yup.string().defined(),
   })
@@ -30,7 +30,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     const { confirmed, unconfirmed } = await node.accounts.getBalance(account)
 
     request.end({
-      accountName: account.displayName,
+      account: account.displayName,
       confirmed: confirmed.toString(),
       unconfirmed: unconfirmed.toString(),
     })

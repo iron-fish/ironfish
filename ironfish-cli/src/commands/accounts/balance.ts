@@ -31,9 +31,9 @@ export class BalanceCommand extends IronfishCommand {
       account: account,
     })
 
-    const { accountName, confirmed, unconfirmed } = response.content
+    const { account: accountResponse, confirmed, unconfirmed } = response.content
 
-    this.log(`Account - ${accountName}\n`)
+    this.log(`Account - ${String(accountResponse)}\n`)
     this.log(
       `The balance is: ${displayIronAmountWithCurrency(oreToIron(Number(unconfirmed)), true)}`,
     )
