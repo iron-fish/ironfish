@@ -6,7 +6,7 @@ import { GetTransactionsResponse } from 'ironfish'
 
 describe('accounts:transactions', () => {
   const responseContent: GetTransactionsResponse = {
-    accountName: 'default',
+    account: 'default',
     notes: [
       {
         isSpender: true,
@@ -51,7 +51,7 @@ describe('accounts:transactions', () => {
       .command(['accounts:transactions', 'default'])
       .exit(0)
       .it('logs the notes for the given account', (ctx) => {
-        expectCli(ctx.stdout).include(responseContent.accountName)
+        expectCli(ctx.stdout).include(responseContent.account)
         expectCli(ctx.stdout).include(responseContent.notes[0].isSpender ? `✔` : `x`)
         expectCli(ctx.stdout).include(responseContent.notes[0].txHash)
         expectCli(ctx.stdout).include(responseContent.notes[0].txFee)

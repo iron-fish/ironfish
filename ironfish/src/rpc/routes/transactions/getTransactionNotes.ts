@@ -8,7 +8,7 @@ import { ApiNamespace, router } from '../router'
 export type GetTransactionsRequest = { account?: string }
 
 export type GetTransactionsResponse = {
-  accountName: string
+  account: string
   notes: {
     isSpender: boolean
     txHash: string
@@ -27,7 +27,7 @@ export const GetTransactionsRequestSchema: yup.ObjectSchema<GetTransactionsReque
 
 export const GetTransactionsResponseSchema: yup.ObjectSchema<GetTransactionsResponse> = yup
   .object({
-    accountName: yup.string().defined(),
+    account: yup.string().defined(),
     notes: yup
       .array(
         yup
@@ -50,7 +50,7 @@ router.register<typeof GetTransactionsRequestSchema, GetTransactionsResponse>(
   GetTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { accountName, notes } = await node.accounts.getTransactionNotes(account)
-    request.end({ accountName, notes })
+    const { notes } = await node.accounts.getTransactionNotes(account)
+    request.end({ account: account.displayName, notes })
   },
 )

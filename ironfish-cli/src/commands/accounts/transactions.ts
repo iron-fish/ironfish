@@ -31,9 +31,9 @@ export class TransactionsCommand extends IronfishCommand {
       account,
     })
 
-    const { accountName, notes } = response.content
+    const { account: accountResponse, notes } = response.content
 
-    this.log(`\n ${accountName} - Transaction notes\n`)
+    this.log(`\n ${String(accountResponse)} - Transaction notes\n`)
 
     CliUx.ux.table(notes, {
       isSpender: {

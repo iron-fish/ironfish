@@ -597,7 +597,6 @@ export class Accounts {
   }
 
   async getTransactionNotes(account: Account): Promise<{
-    accountName: string
     notes: {
       isSpender: boolean
       txHash: string
@@ -640,7 +639,7 @@ export class Accounts {
       }
     }
 
-    return { accountName: account.displayName, notes }
+    return { notes }
   }
 
   private async getUnspentNotes(
