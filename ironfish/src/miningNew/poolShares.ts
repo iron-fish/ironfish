@@ -5,6 +5,7 @@ import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
+import { SetTimeoutToken } from '../utils/types'
 
 /*
   - Payout can be really simple
@@ -55,12 +56,14 @@ export class MiningPoolShares {
 
   private readonly db: SharesDatabase
   private recentShares: Share[]
+  private payoutInterval: SetTimeoutToken | null
 
   constructor(options: { db: SharesDatabase; rpc: IronfishIpcClient; logger?: Logger }) {
     this.db = options.db
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
     this.recentShares = []
+    this.payoutInterval = null
   }
 
   static async init(options: {
@@ -72,10 +75,12 @@ export class MiningPoolShares {
   }
 
   async start(): Promise<void> {
+    this.startPayoutInterval()
     await this.db.start()
   }
 
   async stop(): Promise<void> {
+    this.stopPayoutInterval()
     await this.db.stop()
   }
 
@@ -95,7 +100,6 @@ export class MiningPoolShares {
       randomness,
     })
     await this.db.newShare(publicAddress)
-    await this.createPayout()
   }
 
   hasShare(publicAddress: string, miningRequestId: number, randomness: number): boolean {
@@ -111,7 +115,7 @@ export class MiningPoolShares {
     return false
   }
 
-  async createPayout() {
+  async createPayout(): Promise<void> {
     // TODO: Make a max payout amount per transaction
     //   - its currently possible to have a payout include so many inputs that it expires before it
     //     gets added to the mempool. suspect this would cause issues elsewhere
@@ -208,6 +212,18 @@ export class MiningPoolShares {
 
   private publicAddressRecentShareCount(publicAddress: string): number {
     return this.recentShares.filter((share) => share.publicAddress === publicAddress).length
+  }
+
+  private startPayoutInterval() {
+    this.payoutInterval = setInterval(() => {
+      void this.createPayout()
+    }, ATTEMPT_PAYOUT_INTERVAL * 1000)
+  }
+
+  private stopPayoutInterval() {
+    if (this.payoutInterval) {
+      clearInterval(this.payoutInterval)
+    }
   }
 }
 
