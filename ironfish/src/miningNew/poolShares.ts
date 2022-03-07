@@ -6,6 +6,7 @@ import sqlite3 from 'sqlite3'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { SetTimeoutToken } from '../utils/types'
+import { DatabaseShare, SharesDatabase } from './sharesDatabase'
 
 /*
   - Payout can be really simple
@@ -70,7 +71,11 @@ export class MiningPoolShares {
     rpc: IronfishIpcClient
     logger?: Logger
   }): Promise<MiningPoolShares> {
-    const db = await SharesDatabase.init()
+    const db = await SharesDatabase.init({
+      successfulPayoutInterval: SUCCESSFUL_PAYOUT_INTERVAL,
+      attemptPayoutInterval: ATTEMPT_PAYOUT_INTERVAL,
+    })
+
     return new MiningPoolShares({ db, rpc: options.rpc, logger: options.logger })
   }
 
@@ -228,80 +233,9 @@ export class MiningPoolShares {
   }
 }
 
-class SharesDatabase {
-  private readonly db: Database
-
-  constructor(db: Database) {
-    this.db = db
-  }
-
-  static async init(): Promise<SharesDatabase> {
-    // TODO: $DATADIR/pool/database.sqlite
-    const db = await open({
-      filename: './foo.db',
-      driver: sqlite3.Database,
-    })
-    return new SharesDatabase(db)
-  }
-
-  async start(): Promise<void> {
-    await this.db.migrate({ migrationsPath: `${__dirname}/migrations` })
-  }
-
-  async stop(): Promise<void> {
-    await this.db.close()
-  }
-
-  async newShare(publicAddress: string) {
-    await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
-  }
-
-  async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
-    return await this.db.all(
-      "SELECT * FROM share WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
-      timestamp,
-    )
-  }
-
-  async newPayout(timestamp: number): Promise<number | null> {
-    // Create a payout row if the most recent succesful payout was greater than the payout interval
-    // and the most recent payout was greater than the attempt interval, in case of failed or long
-    // running payouts.
-    const successfulPayoutCutoff = timestamp - SUCCESSFUL_PAYOUT_INTERVAL
-    const attemptPayoutCutoff = timestamp - ATTEMPT_PAYOUT_INTERVAL
-    const query = `
-      INSERT INTO payout (succeeded)
-        SELECT FALSE WHERE
-          NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch') AND succeeded = TRUE)
-          AND NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch'))
-    `
-    const result = await this.db.run(query, successfulPayoutCutoff, attemptPayoutCutoff)
-    if (result.changes !== 0 && result.lastID != null) {
-      return result.lastID
-    }
-    return null
-  }
-
-  async markPayoutSuccess(id: number, timestamp: number): Promise<void> {
-    await this.db.run('UPDATE payout SET succeeded = TRUE WHERE id = ?', id)
-    await this.db.run(
-      "UPDATE share SET payoutId = ? WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
-      id,
-      timestamp,
-    )
-  }
-}
-
 type Share = {
   timestamp: Date
   publicAddress: string
   miningRequestId: number
   randomness: number
-}
-
-type DatabaseShare = {
-  id: number
-  publicAddress: string
-  createdAt: Date
-  payoutId: number | null
 }
