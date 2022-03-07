@@ -40,9 +40,10 @@ export class FaucetCommand extends IronfishCommand {
     let email = flags.email
 
     if (!email) {
-      email = (await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
-        required: false,
-      })) as string
+      email =
+        ((await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
+          required: false,
+        })) as string) || undefined
     }
 
     // Create an account if one is not set
