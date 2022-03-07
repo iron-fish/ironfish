@@ -426,7 +426,7 @@ export class Accounts {
           const existingT = this.transactionMap.get(transactionHash)
           // If we passed in a submittedSequence, set submittedSequence to that value.
           // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          //   submittedSequence was passed in.
+          // submittedSequence was passed in.
           // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
           newSequence = submittedSequence || existingT?.submittedSequence || null
 

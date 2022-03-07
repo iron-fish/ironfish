@@ -6,6 +6,7 @@ import { displayIronAmountWithCurrency, GetBalanceResponse, oreToIron } from 'ir
 
 describe('accounts:balance', () => {
   const responseContent: GetBalanceResponse = {
+    account: 'default',
     confirmed: '5',
     unconfirmed: '10',
   }
@@ -42,6 +43,8 @@ describe('accounts:balance', () => {
       .command(['accounts:balance', 'default'])
       .exit(0)
       .it('logs the account balance and available spending balance', (ctx) => {
+        expectCli(ctx.stdout).include(responseContent.account)
+
         expectCli(ctx.stdout).include(
           displayIronAmountWithCurrency(oreToIron(Number(responseContent.unconfirmed)), true),
         )

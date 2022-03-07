@@ -32,7 +32,7 @@ export class Pay extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'amount of coins to send',
+      description: 'amount of coins to send in IRON',
     }),
     to: Flags.string({
       char: 't',
@@ -59,10 +59,10 @@ export class Pay extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Pay)
-    let amount = flags.amount as unknown as number
-    let fee = flags.fee as unknown as number
-    let to = flags.to
-    let from = flags.account
+    let amount = flags.amount ? Number(flags.amount) : undefined
+    let fee = flags.fee ? Number(flags.fee) : undefined
+    let to = flags.to?.trim()
+    let from = flags.account?.trim()
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
 
@@ -77,33 +77,41 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
-    if (!amount || Number.isNaN(amount)) {
+    if (amount == null || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 
-      amount = (await CliUx.ux.prompt(
-        `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
-          oreToIron(Number(response.content.confirmed)),
-          false,
-        )})`,
-        {
-          required: true,
-        },
-      )) as number
+      const input = Number(
+        await CliUx.ux.prompt(
+          `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
+            oreToIron(Number(response.content.confirmed)),
+            false,
+          )})`,
+          {
+            required: true,
+          },
+        ),
+      )
 
-      if (Number.isNaN(amount)) {
+      if (Number.isNaN(input)) {
         this.error(`A valid amount is required`)
       }
+
+      amount = input
     }
 
-    if (!fee || Number.isNaN(Number(fee))) {
-      fee = (await CliUx.ux.prompt('Enter the fee amount in $IRON', {
-        required: true,
-        default: '0.00000001',
-      })) as number
+    if (fee == null || Number.isNaN(fee)) {
+      const input = Number(
+        await CliUx.ux.prompt('Enter the fee amount in $IRON', {
+          required: true,
+          default: '0.00000001',
+        }),
+      )
 
-      if (Number.isNaN(fee)) {
+      if (Number.isNaN(input)) {
         this.error(`A valid fee amount is required`)
       }
+
+      fee = input
     }
 
     if (!to) {
@@ -148,6 +156,11 @@ export class Pay extends IronfishCommand {
         )}.`,
       )
       this.exit(0)
+    }
+
+    if (!isValidPublicAddress(to)) {
+      this.log(`A valid public address is required`)
+      this.exit(1)
     }
 
     if (expirationSequence !== undefined && expirationSequence < 0) {
