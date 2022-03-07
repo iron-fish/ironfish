@@ -161,6 +161,8 @@ export class MiningPool {
       return
     }
 
+    this.addWorkSubmission(client.id, randomness)
+
     blockTemplate.header.graffiti = graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
@@ -287,6 +289,16 @@ export class MiningPool {
       return false
     }
     return submissions.includes(randomness)
+  }
+
+  private addWorkSubmission(clientId: number, randomness: number): void {
+    const submissions = this.recentSubmissions.get(clientId)
+    if (submissions == null) {
+      this.recentSubmissions.set(clientId, [randomness])
+    } else {
+      submissions.push(randomness)
+      this.recentSubmissions.set(clientId, submissions)
+    }
   }
 
   estimateHashRate(): number {
