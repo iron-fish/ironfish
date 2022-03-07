@@ -6,6 +6,7 @@ import sqlite3 from 'sqlite3'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'
+import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, SharesDatabase } from './sharesDatabase'
 
@@ -161,16 +162,19 @@ export class MiningPoolShares {
       return
     }
 
-    const transactionReceives: { publicAddress: string; amount: string; memo: string }[] = []
-    shareCounts.shares.forEach((shareCount, publicAddress) => {
-      const payoutPercentage = shareCount / shareCounts.totalShares
-      const amt = Math.floor(payoutPercentage * payoutAmount)
-      transactionReceives.push({
-        publicAddress,
-        amount: amt.toString(),
-        memo: `PoolName payout ${shareCutoff.toUTCString()}`,
-      })
-    })
+    const transactionReceives = MapUtils.map(
+      shareCounts.shares,
+      (shareCount, publicAddress) => {
+        const payoutPercentage = shareCount / shareCounts.totalShares
+        const amt = Math.floor(payoutPercentage * payoutAmount)
+
+        return {
+          publicAddress,
+          amount: amt.toString(),
+          memo: `PoolName payout ${shareCutoff.toUTCString()}`,
+        }
+      },
+    )
 
     // TODO: Non 200 here will throw
     const response = await this.rpc.sendTransaction({
