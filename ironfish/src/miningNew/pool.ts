@@ -33,6 +33,7 @@ export class MiningPool {
 
   nextMiningRequestId: number
   miningRequestBlocks: LeastRecentlyUsed<number, SerializedBlockTemplate>
+  recentSubmissions: Map<number, number[]>
 
   difficulty: bigint
   target: Buffer
@@ -49,6 +50,7 @@ export class MiningPool {
     this.shares = options.shares
     this.nextMiningRequestId = 0
     this.miningRequestBlocks = new LeastRecentlyUsed(12)
+    this.recentSubmissions = new Map()
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
 
@@ -146,6 +148,15 @@ export class MiningPool {
     if (!blockTemplate) {
       this.logger.warn(
         `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
+      )
+      return
+    }
+
+    const isDuplicate = this.isDuplicateSubmission(client.id, randomness)
+
+    if (isDuplicate) {
+      this.logger.warn(
+        `Client ${client.id} submitted a duplicate mining request: ${miningRequestId}, ${randomness}`,
       )
       return
     }
@@ -255,6 +266,7 @@ export class MiningPool {
 
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, newBlock)
+    this.recentSubmissions.clear()
 
     this.stratum.newWork(miningRequestId, newBlock)
   }
@@ -267,6 +279,14 @@ export class MiningPool {
     this.recalculateTargetInterval = setInterval(() => {
       this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
+  }
+
+  private isDuplicateSubmission(clientId: number, randomness: number): boolean {
+    const submissions = this.recentSubmissions.get(clientId)
+    if (submissions == null) {
+      return false
+    }
+    return submissions.includes(randomness)
   }
 
   estimateHashRate(): number {
