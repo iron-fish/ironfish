@@ -172,6 +172,7 @@ export class MiningPoolShares {
       })
     })
 
+    // TODO: Non 200 here will throw
     const response = await this.rpc.sendTransaction({
       fromAccountName: 'default',
       receives: transactionReceives,
