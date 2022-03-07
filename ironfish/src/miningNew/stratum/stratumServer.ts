@@ -6,7 +6,7 @@ import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
-import { StringUtils } from '../../utils'
+import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
@@ -28,6 +28,7 @@ export class StratumServerClient {
   connected: boolean
   subscribed: boolean
   publicAddress: string | null = null
+  graffiti: Buffer | null = null
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
@@ -148,6 +149,7 @@ export class StratumServer {
 
           const graffiti = `PoolName.${client.id.toString(16)}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
+          client.graffiti = GraffitiUtils.fromString(graffiti)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
@@ -168,14 +170,8 @@ export class StratumServer {
 
           const submittedRequestId = body.result.miningRequestId
           const submittedRandomness = body.result.randomness
-          const submittedGraffiti = Buffer.from(body.result.graffiti, 'hex')
 
-          void this.pool.submitWork(
-            client,
-            submittedRequestId,
-            submittedRandomness,
-            submittedGraffiti,
-          )
+          void this.pool.submitWork(client, submittedRequestId, submittedRandomness)
 
           break
         }

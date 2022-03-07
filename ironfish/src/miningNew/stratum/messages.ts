@@ -16,7 +16,6 @@ export type MiningSubscribeMessage = {
 export type MiningSubmitMessage = {
   miningRequestId: number
   randomness: number
-  graffiti: string
 }
 
 export type MiningSubscribedMessage = {
@@ -77,6 +76,5 @@ export const MiningSubmitSchema: yup.ObjectSchema<MiningSubmitMessage> = yup
   .object({
     miningRequestId: yup.number().required(),
     randomness: yup.number().required(),
-    graffiti: yup.string().required(),
   })
   .required()

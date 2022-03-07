@@ -137,7 +137,7 @@ export class MiningPoolMiner {
           `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
         )
 
-        this.stratum.submit(miningRequestId, randomness, this.graffiti)
+        this.stratum.submit(miningRequestId, randomness)
       }
 
       const hashRate = this.threadPool.getHashRateSubmission()
