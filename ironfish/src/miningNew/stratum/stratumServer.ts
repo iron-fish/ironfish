@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { Assert } from '../../assert'
+import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
+import { StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
@@ -145,6 +147,7 @@ export class StratumServer {
           client.subscribed = true
 
           const graffiti = `PoolName.${client.id.toString(16)}`
+          Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
