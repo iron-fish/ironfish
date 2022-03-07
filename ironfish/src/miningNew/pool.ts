@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
+import LeastRecentlyUsed from 'blru'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
-import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
 import { IronfishIpcClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
@@ -31,10 +31,8 @@ export class MiningPool {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
 
-  // TODO: Rename to job id or something
   nextMiningRequestId: number
-  // TODO: LRU
-  miningRequestBlocks: Map<number, SerializedBlockTemplate>
+  miningRequestBlocks: LeastRecentlyUsed<number, SerializedBlockTemplate>
 
   difficulty: bigint
   target: Buffer
@@ -50,7 +48,7 @@ export class MiningPool {
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
     this.shares = options.shares
     this.nextMiningRequestId = 0
-    this.miningRequestBlocks = new Map()
+    this.miningRequestBlocks = new LeastRecentlyUsed(12)
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
 
@@ -235,7 +233,7 @@ export class MiningPool {
     Assert.isNotNull(this.currentHeadDifficulty)
 
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
-    Assert.isNotUndefined(latestBlock)
+    Assert.isNotNull(latestBlock)
 
     const newTime = new Date()
     const newTarget = Target.fromDifficulty(
