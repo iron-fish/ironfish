@@ -106,11 +106,10 @@ export class StratumClient {
     })
   }
 
-  submit(miningRequestId: number, randomness: number, graffiti: Buffer): void {
+  submit(miningRequestId: number, randomness: number): void {
     this.send('mining.submit', {
       miningRequestId: miningRequestId,
       randomness: randomness,
-      graffiti: graffiti.toString('hex'),
     })
   }
 

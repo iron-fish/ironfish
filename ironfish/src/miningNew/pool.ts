@@ -133,9 +133,9 @@ export class MiningPool {
     client: StratumServerClient,
     miningRequestId: number,
     randomness: number,
-    graffiti: Buffer,
   ): Promise<void> {
     Assert.isNotNull(client.publicAddress)
+    Assert.isNotNull(client.graffiti)
     if (miningRequestId !== this.nextMiningRequestId - 1) {
       this.logger.debug(
         `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
@@ -163,7 +163,7 @@ export class MiningPool {
 
     this.addWorkSubmission(client.id, randomness)
 
-    blockTemplate.header.graffiti = graffiti.toString('hex')
+    blockTemplate.header.graffiti = client.graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
     const headerBytes = mineableHeaderString(blockTemplate.header)
