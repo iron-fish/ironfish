@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { createRootLogger, Logger } from '../logger'
+import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 
 /*
   - Payout can be really simple
@@ -42,18 +44,31 @@ import sqlite3 from 'sqlite3'
 const OLD_SHARE_CUTOFF_SECONDS = 60 // 1 minute
 const OLD_SHARE_CUTOFF_MILLISECONDS = OLD_SHARE_CUTOFF_SECONDS * 1000
 
+const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
+const ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
+
+const PAYOUT_BALANCE_PERCENTAGE = 0.1 // 10%
+
 export class MiningPoolShares {
+  readonly rpc: IronfishIpcClient
+  readonly logger: Logger
+
   private readonly db: SharesDatabase
   private recentShares: Share[]
 
-  constructor(db: SharesDatabase) {
-    this.db = db
+  constructor(options: { db: SharesDatabase; rpc: IronfishIpcClient; logger?: Logger }) {
+    this.db = options.db
+    this.rpc = options.rpc
+    this.logger = options.logger ?? createRootLogger()
     this.recentShares = []
   }
 
-  static async init(): Promise<MiningPoolShares> {
+  static async init(options: {
+    rpc: IronfishIpcClient
+    logger?: Logger
+  }): Promise<MiningPoolShares> {
     const db = await SharesDatabase.init()
-    return new MiningPoolShares(db)
+    return new MiningPoolShares({ db, rpc: options.rpc, logger: options.logger })
   }
 
   async start(): Promise<void> {
@@ -80,6 +95,7 @@ export class MiningPoolShares {
       randomness,
     })
     await this.db.newShare(publicAddress)
+    await this.createPayout()
   }
 
   hasShare(publicAddress: string, miningRequestId: number, randomness: number): boolean {
@@ -93,6 +109,84 @@ export class MiningPoolShares {
       return true
     }
     return false
+  }
+
+  async createPayout() {
+    // TODO: Make a max payout amount per transaction
+    //   - its currently possible to have a payout include so many inputs that it expires before it
+    //     gets added to the mempool. suspect this would cause issues elsewhere
+    //  As a simple stop-gap, we could probably make payout interval = every x hours OR if confirmed balance > 200 or something
+    //  OR we could combine them, every x minutes, pay 10 inputs into 1 output?
+
+    // Since timestamps have a 1 second granularity, make the cutoff 1 second ago, just to avoid potential issues
+    const shareCutoff = new Date()
+    shareCutoff.setSeconds(shareCutoff.getSeconds() - 1)
+    const timestamp = Math.floor(shareCutoff.getTime() / 1000)
+
+    // Create a payout in the DB as a form of a lock
+    const payoutId = await this.db.newPayout(timestamp)
+    if (payoutId == null) {
+      this.logger.info(
+        'Another payout may be in progress or a payout was made too recently, skipping.',
+      )
+      return
+    }
+
+    const shares = await this.db.getSharesForPayout(timestamp)
+    const shareCounts = this.sumShares(shares)
+    if (shareCounts.totalShares === 0) {
+      this.logger.info('No shares submitted since last payout, skipping.')
+      return
+    }
+
+    const confirmedBalance = parseInt((await this.rpc.getAccountBalance()).content.confirmed)
+    const payoutAmount = confirmedBalance * PAYOUT_BALANCE_PERCENTAGE
+    if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
+      // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
+      this.logger.info('Insufficient funds for payout, skipping.')
+      return
+    }
+
+    const transactionReceives: { publicAddress: string; amount: string; memo: string }[] = []
+    shareCounts.shares.forEach((shareCount, publicAddress) => {
+      const payoutPercentage = shareCount / shareCounts.totalShares
+      const amt = Math.floor(payoutPercentage * payoutAmount)
+      transactionReceives.push({
+        publicAddress,
+        amount: amt.toString(),
+        memo: `PoolName payout ${shareCutoff.toUTCString()}`,
+      })
+    })
+
+    const response = await this.rpc.sendTransaction({
+      fromAccountName: 'default',
+      receives: transactionReceives,
+      fee: transactionReceives.length.toString(),
+    })
+    if (response.status === 200) {
+      await this.db.markPayoutSuccess(payoutId, timestamp)
+    } else {
+      this.logger.error('There was an error with the transaction', response)
+    }
+  }
+
+  sumShares(shares: DatabaseShare[]): { totalShares: number; shares: Map<string, number> } {
+    let totalShares = 0
+    const shareMap = new Map<string, number>()
+    shares.forEach((share) => {
+      const address = share.publicAddress
+      const shareCount = shareMap.get(address)
+      if (shareCount != null) {
+        shareMap.set(address, shareCount + 1)
+      } else {
+        shareMap.set(address, 1)
+      }
+      totalShares += 1
+    })
+    return {
+      totalShares,
+      shares: shareMap,
+    }
   }
 
   shareRate(): number {
@@ -134,8 +228,7 @@ class SharesDatabase {
   }
 
   async start(): Promise<void> {
-    // TODO: Copy these into build folder or find a better solution
-    await this.db.migrate({ migrationsPath: '../ironfish/src/miningNew/migrations' })
+    await this.db.migrate({ migrationsPath: `${__dirname}/migrations` })
   }
 
   async stop(): Promise<void> {
@@ -143,7 +236,42 @@ class SharesDatabase {
   }
 
   async newShare(publicAddress: string) {
-    await this.db.run('INSERT INTO share (public_address) VALUES (?)', publicAddress)
+    await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
+  }
+
+  async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
+    return await this.db.all(
+      "SELECT * FROM share WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
+      timestamp,
+    )
+  }
+
+  async newPayout(timestamp: number): Promise<number | null> {
+    // Create a payout row if the most recent succesful payout was greater than the payout interval
+    // and the most recent payout was greater than the attempt interval, in case of failed or long
+    // running payouts.
+    const successfulPayoutCutoff = timestamp - SUCCESSFUL_PAYOUT_INTERVAL
+    const attemptPayoutCutoff = timestamp - ATTEMPT_PAYOUT_INTERVAL
+    const query = `
+      INSERT INTO payout (succeeded)
+        SELECT FALSE WHERE
+          NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch') AND succeeded = TRUE)
+          AND NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch'))
+    `
+    const result = await this.db.run(query, successfulPayoutCutoff, attemptPayoutCutoff)
+    if (result.changes !== 0 && result.lastID != null) {
+      return result.lastID
+    }
+    return null
+  }
+
+  async markPayoutSuccess(id: number, timestamp: number): Promise<void> {
+    await this.db.run('UPDATE payout SET succeeded = TRUE WHERE id = ?', id)
+    await this.db.run(
+      "UPDATE share SET payoutId = ? WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
+      id,
+      timestamp,
+    )
   }
 }
 
@@ -152,4 +280,11 @@ type Share = {
   publicAddress: string
   miningRequestId: number
   randomness: number
+}
+
+type DatabaseShare = {
+  id: number
+  publicAddress: string
+  createdAt: Date
+  payoutId: number | null
 }

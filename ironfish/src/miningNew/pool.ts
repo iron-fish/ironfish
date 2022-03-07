@@ -69,7 +69,7 @@ export class MiningPool {
   }
 
   static async init(options: { rpc: IronfishIpcClient; logger?: Logger }): Promise<MiningPool> {
-    const shares = await MiningPoolShares.init()
+    const shares = await MiningPoolShares.init({ rpc: options.rpc, logger: options.logger })
     return new MiningPool({
       rpc: options.rpc,
       logger: options.logger,
