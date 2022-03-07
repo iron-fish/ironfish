@@ -51,7 +51,7 @@ const OLD_SHARE_CUTOFF_MILLISECONDS = OLD_SHARE_CUTOFF_SECONDS * 1000
 const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
 const ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 
-const PAYOUT_BALANCE_PERCENTAGE = 0.1 // 10%
+const PAYOUT_BALANCE_PERCENTAGE_DIVISOR = BigInt(10)
 const ACCOUNT_NAME = 'default'
 
 export class MiningPoolShares {
@@ -153,10 +153,14 @@ export class MiningPoolShares {
       return
     }
 
-    const balance = await this.rpc.getAccountBalance({ account: ACCOUNT_NAME})
+    const balance = await this.rpc.getAccountBalance({ account: ACCOUNT_NAME })
     const confirmedBalance = BigInt(balance.content.confirmed)
 
-    const payoutAmount = BigIntUtils.divide(confirmedBalance, BigInt(10))
+    const payoutAmount = BigIntUtils.divide(
+      confirmedBalance,
+      PAYOUT_BALANCE_PERCENTAGE_DIVISOR,
+    )
+
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
       this.logger.info('Insufficient funds for payout, skipping.')
