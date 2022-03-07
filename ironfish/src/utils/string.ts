@@ -23,4 +23,14 @@ function hash(value: string): Buffer {
   return Buffer.from(crypto.createHash('md5').update(value).digest('hex'))
 }
 
-export const StringUtils = { hash, hashToNumber }
+/**
+ * Get the length in bytes of a given string
+ * @param value The string to get the byte length for
+ * @param encoding An optional encoding
+ * @returns The number of bytes it takes to store the string
+ */
+const getByteLength = (value: string, encoding?: BufferEncoding): number => {
+  return Buffer.from(value, encoding).byteLength
+}
+
+export const StringUtils = { hash, hashToNumber, getByteLength }
