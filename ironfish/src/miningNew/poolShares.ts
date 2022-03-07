@@ -92,13 +92,16 @@ export class MiningPoolShares {
     if (this.hasShare(publicAddress, miningRequestId, randomness)) {
       return
     }
+
     this.truncateOldShares()
+
     this.recentShares.push({
       timestamp: new Date(),
       publicAddress,
       miningRequestId,
       randomness,
     })
+
     await this.db.newShare(publicAddress)
   }
 
@@ -109,10 +112,8 @@ export class MiningPoolShares {
         el.randomness === randomness &&
         el.publicAddress === publicAddress,
     )
-    if (found != null) {
-      return true
-    }
-    return false
+
+    return found !== undefined
   }
 
   async createPayout(): Promise<void> {
