@@ -52,6 +52,7 @@ const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
 const ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 
 const PAYOUT_BALANCE_PERCENTAGE = 0.1 // 10%
+const ACCOUNT_NAME = 'default'
 
 export class MiningPoolShares {
   readonly rpc: IronfishIpcClient
@@ -152,7 +153,7 @@ export class MiningPoolShares {
       return
     }
 
-    const balance = await this.rpc.getAccountBalance()
+    const balance = await this.rpc.getAccountBalance({ account: ACCOUNT_NAME})
     const confirmedBalance = BigInt(balance.content.confirmed)
 
     const payoutAmount = BigIntUtils.divide(confirmedBalance, BigInt(10))
@@ -178,7 +179,7 @@ export class MiningPoolShares {
 
     // TODO: Non 200 here will throw
     const response = await this.rpc.sendTransaction({
-      fromAccountName: 'default',
+      fromAccountName: ACCOUNT_NAME,
       receives: transactionReceives,
       fee: transactionReceives.length.toString(),
     })
