@@ -34,7 +34,6 @@ export class MiningSoloMiner {
   private nextMiningRequestId: number
   private miningRequestBlocks: Map<number, SerializedBlockTemplate>
   private miningRequestId: number
-  private miningRequestPayloads: { [index: number]: Buffer } = {}
 
   private currentHeadTimestamp: number | null
   private currentHeadDifficulty: bigint | null
@@ -129,8 +128,6 @@ export class MiningSoloMiner {
       miningRequestId,
       `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
     )
-
-    this.miningRequestPayloads[miningRequestId] = header
 
     const headerBytes = Buffer.concat([header])
     headerBytes.set(this.graffiti, 176)

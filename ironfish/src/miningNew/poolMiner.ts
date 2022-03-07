@@ -23,8 +23,6 @@ export class MiningPoolMiner {
 
   graffiti: Buffer | null
   miningRequestId: number
-  // TODO: LRU
-  miningRequestPayloads: { [index: number]: Buffer } = {}
   target: Buffer
   waiting: boolean
 
@@ -103,7 +101,6 @@ export class MiningPoolMiner {
   newWork(miningRequestId: number, header: Buffer): void {
     Assert.isNotNull(this.graffiti)
     this.logger.info('new work', this.target.toString('hex'), miningRequestId)
-    this.miningRequestPayloads[miningRequestId] = header
 
     const headerBytes = Buffer.concat([header])
     headerBytes.set(this.graffiti, 176)
