@@ -5,6 +5,7 @@ import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
+import { BigIntUtils } from '../utils/bigint'
 import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, SharesDatabase } from './sharesDatabase'
 
@@ -144,13 +145,16 @@ export class MiningPoolShares {
 
     const shares = await this.db.getSharesForPayout(timestamp)
     const shareCounts = this.sumShares(shares)
+
     if (shareCounts.totalShares === 0) {
       this.logger.info('No shares submitted since last payout, skipping.')
       return
     }
 
-    const confirmedBalance = parseInt((await this.rpc.getAccountBalance()).content.confirmed)
-    const payoutAmount = confirmedBalance * PAYOUT_BALANCE_PERCENTAGE
+    const balance = await this.rpc.getAccountBalance()
+    const confirmedBalance = BigInt(balance.content.confirmed)
+
+    const payoutAmount = BigIntUtils.divide(confirmedBalance, BigInt(10))
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
       this.logger.info('Insufficient funds for payout, skipping.')
