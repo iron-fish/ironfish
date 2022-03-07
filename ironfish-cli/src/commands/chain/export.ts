@@ -18,7 +18,6 @@ export default class Export extends IronfishCommand {
       char: 'p',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      default: '../ironfish-graph-explorer/src/data.json',
       description: 'a path to export the chain to',
     }),
   }
@@ -41,7 +40,17 @@ export default class Export extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Export)
-    const path = this.sdk.fileSystem.resolve(flags.path)
+    const path = this.sdk.fileSystem.resolve(
+      this.sdk.fileSystem.join(flags.path || this.sdk.config.dataDir, 'data.json'),
+    )
+    const pathAccessible = await this.sdk.fileSystem
+      .access(path)
+      .then(() => true)
+      .catch(() => false)
+
+    if (!pathAccessible) {
+      this.error(`Path "${path}" is not accessible. Check -p argument and try again.`)
+    }
 
     const client = await this.sdk.connectRpc()
 
