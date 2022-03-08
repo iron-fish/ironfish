@@ -335,10 +335,6 @@ export class IronfishNode {
     if (this.config.get('enableSyncing')) {
       void this.syncer.start()
     }
-
-    if (this.config.get('enableMiningDirector')) {
-      void this.miningDirector.start()
-    }
   }
 
   onPeerNetworkNotReady(): void {
@@ -376,14 +372,6 @@ export class IronfishNode {
           await this.rpc.start()
         } else {
           await this.rpc.stop()
-        }
-        break
-      }
-      case 'enableMiningDirector': {
-        if (newValue && this.peerNetwork.isReady) {
-          void this.miningDirector.start()
-        } else {
-          this.miningDirector.shutdown()
         }
         break
       }
