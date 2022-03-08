@@ -4,7 +4,6 @@
 import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
-import { MiningDirector } from '../mining/director'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -33,7 +32,6 @@ export class RouteTest extends NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
     workerPool: WorkerPool
     adapter: MemoryAdapter
     client: IronfishMemoryClient
@@ -56,7 +54,6 @@ export class RouteTest extends NodeTest {
       accounts,
       peerNetwork,
       syncer,
-      miningDirector,
       workerPool,
       client,
       adapter,
@@ -71,7 +68,6 @@ export class RouteTest extends NodeTest {
     this.peerNetwork = peerNetwork
     this.client = client
     this.adapter = adapter
-    this.miningDirector = miningDirector
     this.workerPool = workerPool
   }
 }

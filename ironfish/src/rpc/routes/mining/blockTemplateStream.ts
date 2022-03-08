@@ -72,7 +72,7 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
       }
 
       // If we mine when were not connected to anyone, then no one will get our blocks
-      if (!node.peerNetwork.isReady && node.config.get('miningForce')) {
+      if (!node.peerNetwork.isReady && !node.config.get('miningForce')) {
         return
       }
 

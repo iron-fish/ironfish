@@ -8,7 +8,6 @@ import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
-import { MiningDirector } from '../mining'
 import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
@@ -39,7 +38,6 @@ export class NodeTest {
   accounts!: Accounts
   peerNetwork!: PeerNetwork
   syncer!: Syncer
-  miningDirector!: MiningDirector
   workerPool!: WorkerPool
 
   setups = new Array<{
@@ -50,7 +48,6 @@ export class NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
     workerPool: WorkerPool
   }>()
 
@@ -67,7 +64,6 @@ export class NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
     workerPool: WorkerPool
   }> {
     if (!options) {
@@ -99,7 +95,6 @@ export class NodeTest {
     const accounts = node.accounts
     const peerNetwork = node.peerNetwork
     const syncer = node.syncer
-    const miningDirector = node.miningDirector
     const verifier = node.chain.verifier
     const workerPool = node.workerPool
 
@@ -116,7 +111,6 @@ export class NodeTest {
       accounts,
       peerNetwork,
       syncer,
-      miningDirector,
       workerPool,
     }
 
@@ -125,18 +119,8 @@ export class NodeTest {
   }
 
   async setup(): Promise<void> {
-    const {
-      sdk,
-      node,
-      strategy,
-      verifier,
-      chain,
-      accounts,
-      peerNetwork,
-      syncer,
-      miningDirector,
-      workerPool,
-    } = await this.createSetup()
+    const { sdk, node, strategy, verifier, chain, accounts, peerNetwork, syncer, workerPool } =
+      await this.createSetup()
 
     this.sdk = sdk
     this.node = node
@@ -146,7 +130,6 @@ export class NodeTest {
     this.accounts = accounts
     this.peerNetwork = peerNetwork
     this.syncer = syncer
-    this.miningDirector = miningDirector
     this.workerPool = workerPool
   }
 

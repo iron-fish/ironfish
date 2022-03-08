@@ -8,7 +8,6 @@ import type {
   CreateMinersFeeRequest,
   CreateTransactionRequest,
   GetUnspentNotesRequest,
-  MineHeaderRequest,
   SleepRequest,
   TransactionFeeRequest,
   UnboxMessageRequest,
@@ -56,7 +55,6 @@ export class WorkerPool {
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['mineHeader', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['submitTelemetry', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -253,35 +251,6 @@ export class WorkerPool {
     }
 
     return { message: response.message }
-  }
-
-  async mineHeader(
-    miningRequestId: number,
-    headerBytesWithoutRandomness: Buffer,
-    initialRandomness: number,
-    targetValue: string,
-    batchSize: number,
-  ): Promise<{ initialRandomness: number; miningRequestId?: number; randomness?: number }> {
-    const request: MineHeaderRequest = {
-      type: 'mineHeader',
-      headerBytesWithoutRandomness,
-      miningRequestId,
-      initialRandomness,
-      targetValue,
-      batchSize,
-    }
-
-    const response = await this.execute(request).result()
-
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
-    }
-
-    return {
-      initialRandomness: response.initialRandomness,
-      miningRequestId: response.miningRequestId,
-      randomness: response.randomness,
-    }
   }
 
   async getUnspentNotes(
