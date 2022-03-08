@@ -44,7 +44,7 @@
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest  --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
-    "copyFiles": "mkdir -p build/src/miningNew/migrations/ && cp src/miningNew/migrations/** build/src/miningNew/migrations/"
+    "copyFiles": "mkdir -p build/src/mining/migrations/ && cp src/mining/migrations/** build/src/mining/migrations/"
   },
   "devDependencies": {
     "@types/buffer-json": "2.0.0",

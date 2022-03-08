@@ -29,7 +29,7 @@ export class SharesDatabase {
     await fs.init()
 
     const poolFolder = fs.join(options.dataDir, '/pool')
-    await fs.mkdir(poolFolder, {})
+    await fs.mkdir(poolFolder, { recursive: true })
 
     const db = await open({
       filename: fs.join(poolFolder, '/database.sqlite'),
