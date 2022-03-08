@@ -54,8 +54,7 @@ export class MiningPoolMiner {
 
     this.hashRate = new Meter()
     this.miningRequestId = 0
-    this.target = Buffer.alloc(32)
-    this.target.writeUInt32BE(65535)
+    this.target = Buffer.alloc(32, 0)
     this.stopPromise = null
     this.stopResolve = null
     this.started = false
