@@ -66,7 +66,13 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
 
     // Construct a new block template and send it to the stream listener
     const streamNewBlockTemplate = async (block: Block) => {
+      // If we mine when were not synced when we will mine a fork no one cares about
       if (!node.chain.synced && !node.config.get('miningForce')) {
+        return
+      }
+
+      // If we mine when were not connected to anyone, then no one will get our blocks
+      if (!node.peerNetwork.isReady && node.config.get('miningForce')) {
         return
       }
 
