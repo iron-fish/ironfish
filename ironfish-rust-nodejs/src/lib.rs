@@ -123,7 +123,7 @@ impl ThreadPoolHandler {
                 mining_request_id: result.1 as f64,
             });
         }
-        return None;
+        None
     }
 
     #[napi]
