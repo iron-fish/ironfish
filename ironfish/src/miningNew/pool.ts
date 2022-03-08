@@ -194,7 +194,7 @@ export class MiningPool {
       if (result.content.added) {
         this.logger.info(
           `Block submitted successfully! ${FileUtils.formatHashRate(
-            this.estimateHashRate(),
+            await this.estimateHashRate(),
           )}/s`,
         )
       } else {
@@ -204,7 +204,7 @@ export class MiningPool {
 
     if (hashedHeader.compare(this.target) !== 1) {
       this.logger.debug('Valid pool share submitted')
-      await this.shares.submitShare(client.publicAddress, miningRequestId, randomness)
+      await this.shares.submitShare(client.publicAddress)
     }
   }
 
@@ -318,8 +318,9 @@ export class MiningPool {
     }
   }
 
-  estimateHashRate(): number {
+  async estimateHashRate(): Promise<number> {
     // BigInt can't contain decimals, so multiply then divide by 100 to give 2 decimal precision
-    return Number(BigInt(Math.floor(this.shares.shareRate() * 100)) * this.difficulty) / 100
+    const shareRate = await this.shares.shareRate()
+    return Number(BigInt(Math.floor(shareRate * 100)) * this.difficulty) / 100
   }
 }
