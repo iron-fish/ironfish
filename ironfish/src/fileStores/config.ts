@@ -23,7 +23,6 @@ export type ConfigOptions = {
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
-  enableMiningDirector: boolean
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
@@ -157,7 +156,6 @@ export class Config extends KeyStore<ConfigOptions> {
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
-      enableMiningDirector: false,
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
