@@ -206,7 +206,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     miningDirector: {
       status: node.miningDirector.isStarted() ? 'started' : 'stopped',
-      miners: node.miningDirector.miners,
+      miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
     },
     memPool: {

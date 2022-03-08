@@ -96,8 +96,11 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
       await streamNewBlockTemplate(currentHeadBlock)
     }
 
+    node.miningManager.minersConnected++
+
     // If the listener stops listening, we no longer need to generate new block templates
     request.onClose.once(() => {
+      node.miningManager.minersConnected--
       node.chain.onConnectBlock.off(timeoutWrappedListener)
     })
   },
