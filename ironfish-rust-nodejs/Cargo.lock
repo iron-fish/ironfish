@@ -645,7 +645,6 @@ dependencies = [
  "ff",
  "hex 0.4.3",
  "lazy_static",
- "num_cpus",
  "pairing",
  "rand 0.7.3",
  "rust-crypto-wasm",
