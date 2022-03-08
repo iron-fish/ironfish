@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import { GraffitiUtils, MiningPoolMiner, MiningSoloMiner } from 'ironfish'
-import { SocketAddress } from 'net'
 import os from 'os'
-import { off } from 'process'
-import url from 'url'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
