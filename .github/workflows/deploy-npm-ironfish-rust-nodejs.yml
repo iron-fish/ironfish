@@ -1,11 +1,10 @@
-name: Build NPM Packages
+name: Deploy @ironfish/rust-nodejs NPM Packages
 
 env:
   DEBUG: 'napi:*'
   MACOSX_DEPLOYMENT_TARGET: '10.13'
 
 on:
-  pull_request:
   workflow_dispatch:
 
 jobs:
