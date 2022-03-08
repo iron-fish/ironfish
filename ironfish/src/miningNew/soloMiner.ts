@@ -176,7 +176,6 @@ export class MiningSoloMiner {
   }
 
   private async mine(): Promise<void> {
-    // eslint-disable-next-line no-constant-condition
     while (this.started) {
       const blockResult = this.threadPool.getFoundBlock()
 
