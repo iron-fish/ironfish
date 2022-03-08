@@ -41,10 +41,12 @@ export class MiningPoolShares {
 
   static async init(options: {
     rpc: IronfishIpcClient
+    dataDir: string
     logger?: Logger
     poolName: string
   }): Promise<MiningPoolShares> {
     const db = await SharesDatabase.init({
+      dataDir: options.dataDir,
       successfulPayoutInterval: SUCCESSFUL_PAYOUT_INTERVAL,
       attemptPayoutInterval: ATTEMPT_PAYOUT_INTERVAL,
     })
