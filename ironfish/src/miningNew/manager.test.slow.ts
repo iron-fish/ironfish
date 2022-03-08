@@ -203,7 +203,7 @@ describe('Mining manager', () => {
 
       await nodeTest.node.accounts.createAccount('account', true)
 
-      const onNewBlockSpy = jest.spyOn(node.miningDirector.onNewBlock, 'emit')
+      const onNewBlockSpy = jest.spyOn(miningManager.onNewBlock, 'emit')
 
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
