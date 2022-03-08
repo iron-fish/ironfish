@@ -18,15 +18,14 @@ export enum WorkerMessageType {
   VerifyTransaction = 'verifyTransaction',
 }
 
-export abstract class SerializableWorkerMessage implements Serializable {
+export abstract class WorkerMessage implements Serializable {
+  id: number
+  type: WorkerMessageType
+
   constructor(id: number, type: WorkerMessageType) {
     this.id = id
     this.type = type
   }
-
-  id: number
-
-  type: WorkerMessageType
 
   abstract serialize(bw: bufio.BufferWriter): Buffer
 
