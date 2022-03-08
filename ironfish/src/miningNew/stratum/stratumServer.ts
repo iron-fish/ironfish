@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { isValidPublicAddress } from '../../account/validator'
 import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { createRootLogger, Logger } from '../../logger'
@@ -146,6 +147,14 @@ export class StratumServer {
 
           client.publicAddress = body.result.publicAddress
           client.subscribed = true
+
+          if (!isValidPublicAddress(client.publicAddress)) {
+            throw new ClientMessageMalformedError(
+              client,
+              `Invalid public address: ${client.publicAddress}`,
+              header.result.method,
+            )
+          }
 
           const graffiti = `${this.pool.name}.${client.id.toString(16)}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
