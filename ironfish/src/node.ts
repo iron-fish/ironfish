@@ -355,10 +355,6 @@ export class IronfishNode {
     newValue: ConfigOptions[Key],
   ): Promise<void> {
     switch (key) {
-      case 'blockGraffiti': {
-        this.miningDirector.setBlockGraffiti(this.config.get('blockGraffiti'))
-        break
-      }
       case 'enableTelemetry': {
         if (newValue) {
           this.telemetry.start()
