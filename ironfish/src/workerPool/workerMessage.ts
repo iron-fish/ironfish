@@ -5,18 +5,7 @@
 import bufio from 'bufio'
 import { Serializable } from '../common/serializable'
 
-export enum WorkerMessageType {
-  BoxMessage = 'boxMessage',
-  CreateMinersFee = 'createMinersFee',
-  CreateTransaction = 'createTransaction',
-  GetUnspentNotes = 'getUnspentNotes',
-  MineHeader = 'mineHeader',
-  Sleep = 'sleep',
-  SubmitTelemetry = 'submitTelemetry',
-  TransactionFee = 'transactionFee',
-  UnboxMessage = 'unboxMessage',
-  VerifyTransaction = 'verifyTransaction',
-}
+export enum WorkerMessageType {}
 
 export abstract class WorkerMessage implements Serializable {
   id: number
@@ -36,7 +25,6 @@ export abstract class WorkerMessage implements Serializable {
   serializeWithMetadata(): Buffer {
     const bw = bufio.write()
     bw.writeU64(this.id)
-    bw.writeVarString(this.type)
     bw.writeBytes(this.serialize())
     return bw.render()
   }
