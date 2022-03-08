@@ -9,112 +9,182 @@ on:
   workflow_dispatch:
 
 jobs:
-  # build:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       settings:
-  #         - host: macos-latest
-  #           target: x86_64-apple-darwin
-  #           architecture: x64
-  #           build: |
-  #             cd ironfish-rust-nodejs
-  #             yarn build
-  #             strip -x *.node
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            architecture: x64
+            build: |
+              cd ironfish-rust-nodejs
+              yarn build
+              strip -x *.node
 
-  #         - host: windows-latest
-  #           target: x86_64-pc-windows-msvc
-  #           architecture: x64
-  #           build: cd ironfish-rust-nodejs && yarn build
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            architecture: x64
+            build: cd ironfish-rust-nodejs && yarn build
 
-  #         - host: ubuntu-latest
-  #           target: x86_64-unknown-linux-gnu
-  #           architecture: x64
-  #           docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-  #           build: cd ironfish-rust-nodejs && yarn build && strip *.node
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            architecture: x64
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            build: cd ironfish-rust-nodejs && yarn build && strip *.node
 
-  #         - host: ubuntu-latest
-  #           target: x86_64-unknown-linux-musl
-  #           architecture: x64
-  #           docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-  #           build: cd ironfish-rust-nodejs && yarn build && strip *.node
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            architecture: x64
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            build: cd ironfish-rust-nodejs && yarn build && strip *.node
 
-  #         - host: macos-latest
-  #           target: aarch64-apple-darwin
-  #           build: |
-  #             cd ironfish-rust-nodejs
-  #             yarn build --target=aarch64-apple-darwin
-  #             strip -x *.node
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            build: |
+              cd ironfish-rust-nodejs
+              yarn build --target=aarch64-apple-darwin
+              strip -x *.node
 
-  #         - host: ubuntu-latest
-  #           target: aarch64-unknown-linux-gnu
-  #           architecture: x64
-  #           setup: |
-  #             sudo apt-get update
-  #             sudo apt-get install g++-aarch64-linux-gnu gcc-aarch64-linux-gnu -y
-  #           build: |
-  #             cd ironfish-rust-nodejs
-  #             yarn build --target=aarch64-unknown-linux-gnu
-  #             aarch64-linux-gnu-strip *.node
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            architecture: x64
+            setup: |
+              sudo apt-get update
+              sudo apt-get install g++-aarch64-linux-gnu gcc-aarch64-linux-gnu -y
+            build: |
+              cd ironfish-rust-nodejs
+              yarn build --target=aarch64-unknown-linux-gnu
+              aarch64-linux-gnu-strip *.node
 
-  #         - host: ubuntu-latest
-  #           target: aarch64-unknown-linux-musl
-  #           architecture: x64
-  #           docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-  #           build: |
-  #             rustup target add aarch64-unknown-linux-musl
-  #             cd ironfish-rust-nodejs
-  #             yarn build --target=aarch64-unknown-linux-musl
-  #             aarch64-linux-musl-strip *.node
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            architecture: x64
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            build: |
+              rustup target add aarch64-unknown-linux-musl
+              cd ironfish-rust-nodejs
+              yarn build --target=aarch64-unknown-linux-musl
+              aarch64-linux-musl-strip *.node
 
-  #   name: ${{ matrix.settings.target }}
-  #   runs-on: ${{ matrix.settings.host }}
-  #   steps:
-  #     - name: Check out Git repository
-  #       uses: actions/checkout@v2
+    name: Build ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
 
-  #     - name: Use Node.js
-  #       uses: actions/setup-node@v2
-  #       if: ${{ !matrix.settings.docker }}
-  #       with:
-  #         node-version: '16.13.0'
-  #         cache: yarn
-  #         architecture: ${{ matrix.settings.architecture }}
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        if: ${{ !matrix.settings.docker }}
+        with:
+          node-version: '16.13.0'
+          cache: yarn
+          architecture: ${{ matrix.settings.architecture }}
 
-  #     - name: Install
-  #       uses: actions-rs/toolchain@v1
-  #       if: ${{ !matrix.settings.docker }}
-  #       with:
-  #         profile: minimal
-  #         target: ${{ matrix.settings.target }}
+      - name: Install
+        uses: actions-rs/toolchain@v1
+        if: ${{ !matrix.settings.docker }}
+        with:
+          profile: minimal
+          target: ${{ matrix.settings.target }}
 
-  #     - name: Setup toolchain
-  #       run: ${{ matrix.settings.setup }}
-  #       if: ${{ matrix.settings.setup }}
-  #       shell: bash
+      - name: Setup toolchain
+        run: ${{ matrix.settings.setup }}
+        if: ${{ matrix.settings.setup }}
+        shell: bash
 
-  #     - name: Install dependencies
-  #       run: (cd ironfish-rust-nodejs && npm install)
+      - name: Install dependencies
+        run: (cd ironfish-rust-nodejs && npm install)
 
-  #     - name: Build in Docker
-  #       uses: addnab/docker-run-action@v3
-  #       if: ${{ matrix.settings.docker }}
-  #       with:
-  #         image: ${{ matrix.settings.docker }}
-  #         options: -v ${{ env.HOME }}/.cargo/git:/root/.cargo/git -v ${{ env.HOME }}/.cargo/registry:/root/.cargo/registry -v ${{ github.workspace }}:/build -w /build
-  #         run: ${{ matrix.settings.build }}
+      - name: Build in Docker
+        uses: addnab/docker-run-action@v3
+        if: ${{ matrix.settings.docker }}
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: -v ${{ env.HOME }}/.cargo/git:/root/.cargo/git -v ${{ env.HOME }}/.cargo/registry:/root/.cargo/registry -v ${{ github.workspace }}:/build -w /build
+          run: ${{ matrix.settings.build }}
 
-  #     - name: Build
-  #       run: ${{ matrix.settings.build }}
-  #       if: ${{ !matrix.settings.docker }}
-  #       shell: bash
+      - name: Build
+        run: ${{ matrix.settings.build }}
+        if: ${{ !matrix.settings.docker }}
+        shell: bash
 
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: bindings-${{ matrix.settings.target }}
-  #         path: ironfish-rust-nodejs/*.node
-  #         if-no-files-found: error
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: ironfish-rust-nodejs/*.node
+          if-no-files-found: error
+
+  test:
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: x86_64-apple-darwin
+
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            docker: node:16-slim
+
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            docker: node:16-alpine
+
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            docker: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
+
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            docker: arm64v8/node:16-alpine
+            platform: linux/arm64/v8
+
+    name: Test bindings for ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU for Docker
+        if: ${{ matrix.settings.docker }}
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.13.0'
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: ./ironfish-rust-nodejs
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./ironfish-rust-nodejs
+
+      - name: Run tests in Docker
+        uses: addnab/docker-run-action@v3
+        if: ${{ matrix.settings.docker }}
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: ${{ matrix.settings.platform && format('--platform {0}', matrix.settings.platform) || ''}} -v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs
+          run: |
+            set -e
+            npm run test:slow
+
+      - name: Run tests natively
+        if: ${{ !matrix.settings.docker }}
+        run: npm run test:slow
+        working-directory: ./ironfish-rust-nodejs
 
   # test-linux-x64-gnu-binding:
   #   name: Test bindings on linux-x64-gnu
@@ -131,14 +201,6 @@ jobs:
   #       uses: actions/setup-node@v2
   #       with:
   #         node-version: '16.13.0'
-  #         cache: yarn
-      
-  #     - name: Remove postinstall
-  #       run: cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
-  #       shell: bash
-
-  #     - name: Install dependencies
-  #       run: yarn install --frozen-lockfile
 
   #     - name: Download artifacts
   #       uses: actions/download-artifact@v2
@@ -150,8 +212,15 @@ jobs:
   #       run: ls -R .
   #       shell: bash
 
-  #     - name: Test bindings
-  #       run: docker run --rm -v $(pwd):/build -w /build node:16-slim yarn test:slow:coverage
+  #     - name: Setup and run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: node:16-slim
+  #         options: '-v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs'
+  #         run: |
+  #           set -e
+  #           npm install
+  #           npm run test:slow
 
   # test-linux-x64-musl-binding:
   #   name: Test bindings on x86_64-unknown-linux-musl
@@ -168,11 +237,6 @@ jobs:
   #       uses: actions/setup-node@v2
   #       with:
   #         node-version: '16.13.0'
-  #         cache: yarn
-
-  #     - name: Remove postinstall
-  #       run: cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
-  #       shell: bash
 
   #     - name: Download artifacts
   #       uses: actions/download-artifact@v2
@@ -184,11 +248,20 @@ jobs:
   #       run: ls -R .
   #       shell: bash
 
-  #     - name: Test bindings
-  #       run: docker run --rm -v $(pwd):/build -w /build node:16-alpine yarn install --frozen-lockfile && yarn test:slow:coverage
+  #     - name: Setup and run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: node:16-alpine
+  #         options: '-v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs'
+  #         run: |
+  #           set -e
+  #           npm install
+  #           npm run test:slow
 
   # test-macOS-windows-binding:
   #   name: Test bindings on ${{ matrix.settings.target }}
+  #   needs:
+  #     - build
   #   strategy:
   #     fail-fast: false
   #     matrix:
@@ -206,7 +279,6 @@ jobs:
   #       uses: actions/setup-node@v2
   #       with:
   #         node-version: '16.13.0'
-  #         cache: yarn
 
   #     # Fixes an issue with Windows node-gyp builds
   #     - name: Preinstall headers (Windows)
@@ -215,12 +287,9 @@ jobs:
   #         npx node-gyp remove 16.13.0
   #         npx node-gyp install 16.13.0
 
-  #     - name: Remove postinstall
-  #       run: cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
-  #       shell: bash
-
   #     - name: Install dependencies
-  #       run: yarn install --frozen-lockfile
+  #       run: npm install
+  #       working-directory: ./ironfish-rust-nodejs
 
   #     - name: Download artifacts
   #       uses: actions/download-artifact@v2
@@ -233,7 +302,8 @@ jobs:
   #       shell: bash
 
   #     - name: Test bindings
-  #       run: yarn test:slow:coverage
+  #       run: npm run test:slow
+  #       working-directory: ./ironfish-rust-nodejs
 
   # test-linux-aarch64-gnu-binding:
   #   name: Test bindings on aarch64-unknown-linux-gnu
@@ -262,41 +332,43 @@ jobs:
   #       uses: addnab/docker-run-action@v3
   #       with:
   #         image: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
-  #         options: '-v ${{ github.workspace }}:/build -w /build'
+  #         options: '-v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs'
   #         run: |
   #           set -e
-  #           yarn install --frozen-lockfile
-  #           yarn test:slow:coverage
+  #           npm install
+  #           npm run test:slow
 
-  test-linux-aarch64-musl-binding:
-    name: Test bindings on aarch64-unknown-linux-musl
-    runs-on: ubuntu-latest
-    steps:
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  # test-linux-aarch64-musl-binding:
+  #   name: Test bindings on aarch64-unknown-linux-musl
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Check out Git repository
-        uses: actions/checkout@v2
+  #     - name: Check out Git repository
+  #       uses: actions/checkout@v2
 
-      # - name: Download artifacts
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     name: bindings-aarch64-unknown-linux-musl
-      #     path: .
-      - name: List packages
-        run: ls -R .
-        shell: bash
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: bindings-aarch64-unknown-linux-musl
+  #         path: ./ironfish-rust-nodejs
 
-      - name: Setup and run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: arm64v8/node:16-alpine
-          options: '--platform linux/arm64/v8 -v ${{ github.workspace }}:/build -w /build'
-          run: |
-            set -e
-            uname -m
-            apk add build-base cmake git libexecinfo-dev libexecinfo openssl python3
-            yarn install --frozen-lockfile
-            yarn test:slow:coverage
+  #     - name: List packages
+  #       run: ls -R .
+  #       shell: bash
+
+  #     - name: Setup and run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: arm64v8/node:16-alpine
+  #         options: '--platform linux/arm64/v8 -v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs'
+  #         run: |
+  #           set -e
+  #           uname -m
+  #           npm install
+  #           npm run test:slow
 
   # publish:
   #   name: Publish
