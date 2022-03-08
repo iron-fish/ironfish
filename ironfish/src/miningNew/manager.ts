@@ -5,6 +5,7 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
@@ -28,6 +29,8 @@ export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
   private readonly node: IronfishNode
+
+  readonly onNewBlock = new Event<[Block]>()
 
   constructor(options: { chain: Blockchain; node: IronfishNode; memPool: MemPool }) {
     this.node = options.node
@@ -176,7 +179,8 @@ export class MiningManager {
     this.node.logger.info(
       `Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
     )
-    this.node.miningDirector.onNewBlock.emit(block)
+
+    this.onNewBlock.emit(block)
     return MINED_RESULT.SUCCESS
   }
 }
