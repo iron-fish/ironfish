@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::{
+    collections::VecDeque,
     sync::mpsc::{self, Receiver, SendError, Sender},
     thread,
 };
@@ -80,67 +81,65 @@ fn process_commands(
     step_size: usize,
     default_batch_size: usize,
 ) {
-    // TODO: This loop only exists as a temporary hack for 'stop on match' for debugging. Fix and remove this
+    let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
-        // Wait for first command
-        let mut command: Command = work_receiver.recv().unwrap();
-        'outer: loop {
-            match command {
-                Command::NewWork(mut header_bytes, target, mining_request_id) => {
-                    let mut batch_start = start;
-                    loop {
-                        let batch_size = if batch_start + default_batch_size > MAX_SAFE_INTEGER {
-                            MAX_SAFE_INTEGER - batch_start
-                        } else {
-                            default_batch_size
-                        };
-                        let match_found = mine::mine_batch(
-                            &mut header_bytes,
-                            &target,
-                            batch_start,
-                            step_size,
-                            batch_size,
-                        );
+        // If there is no pending work, wait for work with a blocking call
+        if commands.len() == 0 {
+            let new_command: Command = work_receiver.recv().unwrap();
+            commands.push_back(new_command);
+        }
 
-                        // Submit amount of work done
-                        let work_done = match match_found {
-                            Some(randomness) => randomness - batch_start,
-                            None => batch_size,
-                        };
-                        hash_rate_channel.send(work_done as u32).unwrap();
+        let command = commands.pop_front().unwrap();
+        match command {
+            Command::NewWork(mut header_bytes, target, mining_request_id) => {
+                let mut batch_start = start;
+                loop {
+                    let batch_size = if batch_start + default_batch_size > MAX_SAFE_INTEGER {
+                        MAX_SAFE_INTEGER - batch_start
+                    } else {
+                        default_batch_size
+                    };
+                    let match_found = mine::mine_batch(
+                        &mut header_bytes,
+                        &target,
+                        batch_start,
+                        step_size,
+                        batch_size,
+                    );
 
-                        // New command received, this work is now stale, stop working so we can start on new work
-                        if let Ok(cmd) = work_receiver.try_recv() {
-                            command = cmd;
-                            break;
-                        }
+                    // Submit amount of work done
+                    let work_done = match match_found {
+                        Some(randomness) => randomness - batch_start,
+                        None => batch_size,
+                    };
+                    hash_rate_channel.send(work_done as u32).unwrap();
 
-                        if let Some(randomness) = match_found {
-                            if let Err(e) =
-                                block_found_channel.send((randomness, mining_request_id))
-                            {
-                                panic!("Error sending found block: {:?}", e);
-                            }
+                    // New command received, this work is now stale, stop working so we can start on new work
+                    if let Ok(cmd) = work_receiver.try_recv() {
+                        commands.push_back(cmd);
+                        break;
+                    }
 
-                            // If "stop on match", break here
-                            // break 'outer;
-                        }
-
-                        batch_start += default_batch_size;
-                        if batch_start >= MAX_SAFE_INTEGER {
-                            // miner has exhausted it's search space, stop mining
-                            // TODO: add a timestamp rollover
-                            println!("Search space exhausted, no longer mining this block.");
-                            break 'outer;
+                    if let Some(randomness) = match_found {
+                        if let Err(e) = block_found_channel.send((randomness, mining_request_id)) {
+                            panic!("Error sending found block: {:?}", e);
                         }
                     }
+
+                    batch_start += default_batch_size;
+                    if batch_start >= MAX_SAFE_INTEGER {
+                        // miner has exhausted it's search space, stop mining
+                        // TODO: add a timestamp rollover
+                        println!("Search space exhausted, no longer mining this block.");
+                        continue;
+                    }
                 }
-                Command::Pause => {
-                    break 'outer;
-                }
-                Command::Stop => {
-                    return;
-                }
+            }
+            Command::Pause => {
+                continue;
+            }
+            Command::Stop => {
+                return;
             }
         }
     }
