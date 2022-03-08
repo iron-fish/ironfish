@@ -27,7 +27,7 @@ export abstract class WorkerMessage implements Serializable {
     this.type = type
   }
 
-  abstract serialize(bw: bufio.BufferWriter): Buffer
+  abstract serialize(): Buffer
 
   abstract deserialize(buffer: Buffer): Serializable
 
@@ -37,7 +37,7 @@ export abstract class WorkerMessage implements Serializable {
     const bw = bufio.write()
     bw.writeU64(this.id)
     bw.writeVarString(this.type)
-    bw.writeBytes(this.serialize(bw))
+    bw.writeBytes(this.serialize())
     return bw.render()
   }
 }
