@@ -16,7 +16,6 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
   bw.writeU64(header.nullifierCommitment.size)
   bw.writeHash(header.target)
   bw.writeU64(header.timestamp)
-  // TODO: I think this can just use a writeString fn
   bw.writeBytes(Buffer.from(header.minersFee, 'hex'))
   bw.writeBytes(Buffer.from(header.graffiti, 'hex'))
   return bw.render()

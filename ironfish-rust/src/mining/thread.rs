@@ -15,8 +15,11 @@ const MAX_SAFE_INTEGER: usize = 9007199254740991;
 
 #[derive(Debug)]
 pub(crate) enum Command {
-    // TODO Provide a proper struct instead of a tuple?
-    NewWork(Vec<u8>, Vec<u8>, u32),
+    NewWork(
+        Vec<u8>, // header bytes
+        Vec<u8>, // target
+        u32,     // mining request id
+    ),
     Stop,
     Pause,
 }
@@ -53,7 +56,6 @@ impl Thread {
         }
     }
 
-    // TODO: Wrap the errors so we can keep command private
     pub(crate) fn new_work(
         &self,
         header_bytes: Vec<u8>,
