@@ -31,6 +31,8 @@ export class MiningPool {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
 
+  name: string
+
   nextMiningRequestId: number
   miningRequestBlocks: LeastRecentlyUsed<number, SerializedBlockTemplate>
   recentSubmissions: Map<number, number[]>
@@ -43,7 +45,12 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: { rpc: IronfishIpcClient; shares: MiningPoolShares; logger?: Logger }) {
+  constructor(options: {
+    name: string
+    rpc: IronfishIpcClient
+    shares: MiningPoolShares
+    logger?: Logger
+  }) {
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
@@ -53,6 +60,7 @@ export class MiningPool {
     this.recentSubmissions = new Map()
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
+    this.name = options.name
 
     // Difficulty is set to the expected hashrate that would achieve 1 valid share per second
     // Ex: 100,000,000 would mean a miner with 100 mh/s would submit a valid share on average once per second
@@ -68,9 +76,18 @@ export class MiningPool {
     this.recalculateTargetInterval = null
   }
 
-  static async init(options: { rpc: IronfishIpcClient; logger?: Logger }): Promise<MiningPool> {
-    const shares = await MiningPoolShares.init({ rpc: options.rpc, logger: options.logger })
+  static async init(options: {
+    name: string
+    rpc: IronfishIpcClient
+    logger?: Logger
+  }): Promise<MiningPool> {
+    const shares = await MiningPoolShares.init({
+      poolName: options.name,
+      rpc: options.rpc,
+      logger: options.logger,
+    })
     return new MiningPool({
+      name: options.name,
       rpc: options.rpc,
       logger: options.logger,
       shares,
