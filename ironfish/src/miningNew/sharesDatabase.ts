@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { NodeFileProvider } from '../fileSystems/nodeFileSystem'
 
 export class SharesDatabase {
   private readonly db: Database
@@ -20,12 +21,18 @@ export class SharesDatabase {
   }
 
   static async init(options: {
+    dataDir: string
     attemptPayoutInterval: number
     successfulPayoutInterval: number
   }): Promise<SharesDatabase> {
-    // TODO: $DATADIR/pool/database.sqlite
+    const fs = new NodeFileProvider()
+    await fs.init()
+
+    const poolFolder = fs.join(options.dataDir, '/pool')
+    await fs.mkdir(poolFolder, {})
+
     const db = await open({
-      filename: './foo.db',
+      filename: fs.join(poolFolder, '/database.sqlite'),
       driver: sqlite3.Database,
     })
 
