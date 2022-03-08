@@ -12,8 +12,7 @@ export type BlockTemplateStreamResponse = SerializedBlockTemplate
 export const BlockTemplateStreamRequestSchema: yup.MixedSchema<BlockTemplateStreamRequest> = yup
   .mixed()
   .oneOf([undefined] as const)
-// TODO: is there a way to make a yup schema re-usable?
-// this is a lot of boilerplate we end up having to duplicate for the work submit endpoint
+
 export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateStreamResponse> =
   yup
     .object({
@@ -92,7 +91,6 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
     }
 
     // If the listener stops listening, we no longer need to generate new block templates
-    // TODO: Verify that this would work for 2 listeners
     request.onClose.once(() => {
       node.chain.onConnectBlock.off(timeoutWrappedListener)
     })

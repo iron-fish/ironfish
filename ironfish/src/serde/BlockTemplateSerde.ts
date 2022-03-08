@@ -54,7 +54,6 @@ export class BlockTemplateSerde {
       minersFee: BigIntUtils.toBytesBE(block.header.minersFee, 8).toString('hex'),
       graffiti: block.header.graffiti.toString('hex'),
     }
-    // TODO: Does this work for a genesis block? needs some form of optional data, or pre-filled in genesis case.
     const previousBlockInfo = {
       target: BigIntUtils.toBytesBE(previousBlock.header.target.asBigInt(), 32).toString('hex'),
       timestamp: previousBlock.header.timestamp.getTime(),
