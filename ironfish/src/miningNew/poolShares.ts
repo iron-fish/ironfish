@@ -8,8 +8,7 @@ import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, SharesDatabase } from './sharesDatabase'
 
-const OLD_SHARE_CUTOFF_SECONDS = 60 * 60 // 1 hour
-const OLD_SHARE_CUTOFF_MILLISECONDS = OLD_SHARE_CUTOFF_SECONDS * 1000
+const RECENT_SHARE_CUTOFF = 10 * 60 // 10 minutes
 
 const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
 const ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
@@ -22,7 +21,6 @@ export class MiningPoolShares {
   readonly logger: Logger
 
   private readonly db: SharesDatabase
-  private recentShares: Share[]
   private payoutInterval: SetTimeoutToken | null
 
   private poolName: string
@@ -38,7 +36,6 @@ export class MiningPoolShares {
     this.logger = options.logger ?? createRootLogger()
     this.poolName = options.poolName
 
-    this.recentShares = []
     this.payoutInterval = null
   }
 
@@ -70,36 +67,8 @@ export class MiningPoolShares {
     await this.db.stop()
   }
 
-  async submitShare(
-    publicAddress: string,
-    miningRequestId: number,
-    randomness: number,
-  ): Promise<void> {
-    if (this.hasShare(publicAddress, miningRequestId, randomness)) {
-      return
-    }
-
-    this.truncateOldShares()
-
-    this.recentShares.push({
-      timestamp: new Date(),
-      publicAddress,
-      miningRequestId,
-      randomness,
-    })
-
+  async submitShare(publicAddress: string): Promise<void> {
     await this.db.newShare(publicAddress)
-  }
-
-  hasShare(publicAddress: string, miningRequestId: number, randomness: number): boolean {
-    const found = this.recentShares.find(
-      (el) =>
-        el.miningRequestId === miningRequestId &&
-        el.randomness === randomness &&
-        el.publicAddress === publicAddress,
-    )
-
-    return found !== undefined
   }
 
   async createPayout(): Promise<void> {
@@ -188,25 +157,13 @@ export class MiningPoolShares {
     }
   }
 
-  shareRate(): number {
-    return this.recentShareCount() / OLD_SHARE_CUTOFF_SECONDS
+  async shareRate(): Promise<number> {
+    return (await this.recentShareCount()) / RECENT_SHARE_CUTOFF
   }
 
-  minerShareRate(publicAddress: string): number {
-    return this.publicAddressRecentShareCount(publicAddress) / OLD_SHARE_CUTOFF_SECONDS
-  }
-
-  private truncateOldShares(): void {
-    const timeCutoff = new Date(new Date().getTime() - OLD_SHARE_CUTOFF_MILLISECONDS)
-    this.recentShares = this.recentShares.filter((share) => share.timestamp > timeCutoff)
-  }
-
-  private recentShareCount(): number {
-    return this.recentShares.length
-  }
-
-  private publicAddressRecentShareCount(publicAddress: string): number {
-    return this.recentShares.filter((share) => share.publicAddress === publicAddress).length
+  private async recentShareCount(): Promise<number> {
+    const timestamp = Math.floor(new Date().getTime() / 1000) - RECENT_SHARE_CUTOFF
+    return await this.db.shareCountSince(timestamp)
   }
 
   private startPayoutInterval() {
@@ -220,11 +177,4 @@ export class MiningPoolShares {
       clearInterval(this.payoutInterval)
     }
   }
-}
-
-type Share = {
-  timestamp: Date
-  publicAddress: string
-  miningRequestId: number
-  randomness: number
 }

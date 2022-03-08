@@ -84,6 +84,17 @@ export class SharesDatabase {
       timestamp,
     )
   }
+
+  async shareCountSince(timestamp: number): Promise<number> {
+    const result = await this.db.get<{ count: number }>(
+      "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')",
+      timestamp,
+    )
+    if (result == null) {
+      return 0
+    }
+    return result.count
+  }
 }
 
 export type DatabaseShare = {
