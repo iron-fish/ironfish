@@ -8,42 +8,7 @@ import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, SharesDatabase } from './sharesDatabase'
 
-/*
-  - Payout can be really simple
-    - Simplest: just payout full block amount (reward + fees) when confirmed
-    - Slightly less simple: 20% of the wallet's _confirmed_ value whenever a block is confirmed
-      - This disincentivizes burst-mining a little bit, while keeping some simplicity
-      - Feels like a future improvement as needed
-    - Payout proportionally to the amount of shares submitted since:
-      - last found/confirmed block
-      - last payout? This might be simpler actually or are these basically the same thing
-  - Track found block confirmations (so we aren't paying out on forked blocks)
-    - Minimal info needed to track this: hash, sequence, confirmations, is-paid-out
-  - Shares associated with buckets
-    - Simplest: start a new shares bucket whenever we find OR confirm a block (pick one)
-      - Not ideal for miners since still relies on luck, but eh, simple.
-    - Minimal info needed to track this: 
-      - block-hash (or sequence, or whatever "bucket" identifier), payout-address, share-count, is-paid-out
-  - The current shares array is not ideal
-    - Useful for:
-      - Verifying miners aren't submitted duplicate shares
-        - For this, we only need to store shares submitted against the latest miningRequestId
-      - Easy way to look at hashrate / share count
-        - For this, we only need x hours, but having persisted data would also be pretty easy to work with
-    - Not ideal for:
-      - Payout
-      - Persistence
-*/
-
-/*
-  TL;DR:
-  Persist using simple sqlite
-  Simple payout on x hour interval, if we just use 10-20% of the wallet, we can even avoid waiting for confirms
-  Bucket by payout timestamp? Should be pretty simple
-*/
-
-// const OLD_SHARE_CUTOFF_SECONDS = 60 * 60 // 1 hour
-const OLD_SHARE_CUTOFF_SECONDS = 60 // 1 minute
+const OLD_SHARE_CUTOFF_SECONDS = 60 * 60 // 1 hour
 const OLD_SHARE_CUTOFF_MILLISECONDS = OLD_SHARE_CUTOFF_SECONDS * 1000
 
 const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
