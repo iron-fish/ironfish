@@ -30,6 +30,9 @@ export class MiningManager {
   private readonly memPool: MemPool
   private readonly node: IronfishNode
 
+  blocksMined = 0
+  minersConnected = 0
+
   readonly onNewBlock = new Event<[Block]>()
 
   constructor(options: { chain: Blockchain; node: IronfishNode; memPool: MemPool }) {
@@ -179,6 +182,7 @@ export class MiningManager {
       `Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
     )
 
+    this.blocksMined++
     this.onNewBlock.emit(block)
     return MINED_RESULT.SUCCESS
   }
