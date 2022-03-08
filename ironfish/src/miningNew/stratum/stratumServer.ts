@@ -147,7 +147,7 @@ export class StratumServer {
           client.publicAddress = body.result.publicAddress
           client.subscribed = true
 
-          const graffiti = `PoolName.${client.id.toString(16)}`
+          const graffiti = `${this.pool.name}.${client.id.toString(16)}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
 

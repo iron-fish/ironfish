@@ -62,10 +62,19 @@ export class MiningPoolShares {
   private recentShares: Share[]
   private payoutInterval: SetTimeoutToken | null
 
-  constructor(options: { db: SharesDatabase; rpc: IronfishIpcClient; logger?: Logger }) {
+  private poolName: string
+
+  constructor(options: {
+    db: SharesDatabase
+    rpc: IronfishIpcClient
+    logger?: Logger
+    poolName: string
+  }) {
     this.db = options.db
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
+    this.poolName = options.poolName
+
     this.recentShares = []
     this.payoutInterval = null
   }
@@ -73,13 +82,19 @@ export class MiningPoolShares {
   static async init(options: {
     rpc: IronfishIpcClient
     logger?: Logger
+    poolName: string
   }): Promise<MiningPoolShares> {
     const db = await SharesDatabase.init({
       successfulPayoutInterval: SUCCESSFUL_PAYOUT_INTERVAL,
       attemptPayoutInterval: ATTEMPT_PAYOUT_INTERVAL,
     })
 
-    return new MiningPoolShares({ db, rpc: options.rpc, logger: options.logger })
+    return new MiningPoolShares({
+      db,
+      rpc: options.rpc,
+      logger: options.logger,
+      poolName: options.poolName,
+    })
   }
 
   async start(): Promise<void> {
@@ -156,10 +171,7 @@ export class MiningPoolShares {
     const balance = await this.rpc.getAccountBalance({ account: ACCOUNT_NAME })
     const confirmedBalance = BigInt(balance.content.confirmed)
 
-    const payoutAmount = BigIntUtils.divide(
-      confirmedBalance,
-      PAYOUT_BALANCE_PERCENTAGE_DIVISOR,
-    )
+    const payoutAmount = BigIntUtils.divide(confirmedBalance, PAYOUT_BALANCE_PERCENTAGE_DIVISOR)
 
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
@@ -176,7 +188,7 @@ export class MiningPoolShares {
         return {
           publicAddress,
           amount: amt.toString(),
-          memo: `PoolName payout ${shareCutoff.toUTCString()}`,
+          memo: `${this.poolName} payout ${shareCutoff.toUTCString()}`,
         }
       },
     )
