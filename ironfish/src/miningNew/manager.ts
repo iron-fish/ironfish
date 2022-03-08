@@ -127,7 +127,6 @@ export class MiningManager {
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
-      // TODO: cache the config checks if needed for performance
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
 
