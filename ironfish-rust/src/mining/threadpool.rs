@@ -22,7 +22,7 @@ impl ThreadPool {
 
         let (block_found_channel, block_found_receiver) = mpsc::channel::<(usize, u32)>();
 
-        let (hash_rate_channel, hash_rate_receiver): (Sender<u32>, Receiver<u32>) = mpsc::channel();
+        let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
 
         let mut threads = Vec::with_capacity(count);
         for id in 0..count {
