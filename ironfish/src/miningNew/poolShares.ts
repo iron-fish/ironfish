@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Database, open } from 'sqlite'
-import sqlite3 from 'sqlite3'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'

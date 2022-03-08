@@ -31,11 +31,11 @@ pub(crate) fn mine_batch(
     let end = start + batch_size;
     for i in (start..end).step_by(step_size) {
         randomize_header(i, header_bytes);
-        let hash = blake3::hash(&header_bytes);
+        let hash = blake3::hash(header_bytes);
 
         if bytes_lte(hash.as_bytes(), target) {
             return Some(i);
         }
     }
-    return None;
+    None
 }

@@ -31,7 +31,7 @@ impl Thread {
         pool_size: usize,
         batch_size: u32,
     ) -> Self {
-        let (work_sender, work_receiver): (Sender<Command>, Receiver<Command>) = mpsc::channel();
+        let (work_sender, work_receiver) = mpsc::channel::<Command>();
 
         thread::Builder::new()
             .name(id.to_string())

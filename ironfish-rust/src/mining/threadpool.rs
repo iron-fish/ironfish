@@ -20,10 +20,7 @@ impl ThreadPool {
             _ => thread_count as usize,
         };
 
-        let (block_found_channel, block_found_receiver): (
-            Sender<(usize, u32)>,
-            Receiver<(usize, u32)>,
-        ) = mpsc::channel();
+        let (block_found_channel, block_found_receiver) = mpsc::channel::<(usize, u32)>();
 
         let (hash_rate_channel, hash_rate_receiver): (Sender<u32>, Receiver<u32>) = mpsc::channel();
 
@@ -76,7 +73,7 @@ impl ThreadPool {
             }
             return Some((randomness, mining_request_id as usize));
         }
-        return None;
+        None
     }
 
     pub fn get_hash_rate_submission(&self) -> u32 {
@@ -84,6 +81,6 @@ impl ThreadPool {
         for hash_rate in self.hash_rate_receiver.try_iter() {
             total_hash_rate += hash_rate
         }
-        return total_hash_rate;
+        total_hash_rate
     }
 }
