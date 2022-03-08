@@ -12,25 +12,18 @@ pub struct ThreadPool {
     mining_request_id: u32,
 }
 impl ThreadPool {
-    pub fn new(thread_count: i32, batch_size: u32) -> Self {
-        assert!(thread_count == -1 || thread_count > 0);
-
-        let count = match thread_count {
-            -1 => num_cpus::get(),
-            _ => thread_count as usize,
-        };
-
+    pub fn new(thread_count: usize, batch_size: u32) -> Self {
         let (block_found_channel, block_found_receiver) = mpsc::channel::<(usize, u32)>();
 
         let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
 
-        let mut threads = Vec::with_capacity(count);
-        for id in 0..count {
+        let mut threads = Vec::with_capacity(thread_count);
+        for id in 0..thread_count {
             threads.push(Thread::new(
                 id,
                 block_found_channel.clone(),
                 hash_rate_channel.clone(),
-                count,
+                thread_count,
                 batch_size,
             ));
         }
