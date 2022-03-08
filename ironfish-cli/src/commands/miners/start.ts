@@ -20,7 +20,7 @@ export class Miner extends IronfishCommand {
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host of the mining pool to connect to such as 92.191.17.232',
+      description: 'the host of the mining pool to connect to such as tcp://92.191.17.232:1234',
     }),
     publicAddress: Flags.string({
       char: 'a',
