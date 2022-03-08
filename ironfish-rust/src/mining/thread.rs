@@ -84,7 +84,7 @@ fn process_commands(
     let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
         // If there is no pending work, wait for work with a blocking call
-        if commands.len() == 0 {
+        if commands.is_empty() {
             let new_command: Command = work_receiver.recv().unwrap();
             commands.push_back(new_command);
         }
@@ -129,9 +129,8 @@ fn process_commands(
                     batch_start += default_batch_size;
                     if batch_start >= MAX_SAFE_INTEGER {
                         // miner has exhausted it's search space, stop mining
-                        // TODO: add a timestamp rollover
                         println!("Search space exhausted, no longer mining this block.");
-                        continue;
+                        break;
                     }
                 }
             }
