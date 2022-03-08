@@ -5,7 +5,7 @@
 import bufio from 'bufio'
 
 export interface Serializable {
-  serialize(bw: bufio.BufferWriter): Buffer
+  serialize(): Buffer
   deserialize(buffer: Buffer): Serializable
   getSize(): number
 }
