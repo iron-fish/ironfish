@@ -66,7 +66,7 @@ export class MiningPool {
     // Ex: 100,000,000 would mean a miner with 100 mh/s would submit a valid share on average once per second
     // TODO: I think we should set it so that an 'average desktop' might only check-in once ever 5-10 minutes
     this.difficulty = BigInt(1_850_000) * 2n
-    const basePoolTarget = BigInt(2n ** 256n / this.difficulty)
+    const basePoolTarget = Target.fromDifficulty(this.difficulty).asBigInt()
     this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
 
     this.connectTimeout = null
