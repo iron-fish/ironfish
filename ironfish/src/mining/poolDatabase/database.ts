@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
-import { NodeFileProvider } from '../fileSystems/nodeFileSystem'
+import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 
-export class SharesDatabase {
+export class PoolDatabase {
   private readonly db: Database
   private readonly attemptPayoutInterval: number
   private readonly successfulPayoutInterval: number
@@ -24,7 +24,7 @@ export class SharesDatabase {
     dataDir: string
     attemptPayoutInterval: number
     successfulPayoutInterval: number
-  }): Promise<SharesDatabase> {
+  }): Promise<PoolDatabase> {
     const fs = new NodeFileProvider()
     await fs.init()
 
@@ -36,7 +36,7 @@ export class SharesDatabase {
       driver: sqlite3.Database,
     })
 
-    return new SharesDatabase({
+    return new PoolDatabase({
       db,
       successfulPayoutInterval: options.successfulPayoutInterval,
       attemptPayoutInterval: options.attemptPayoutInterval,
