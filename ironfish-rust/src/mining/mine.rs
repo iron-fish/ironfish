@@ -39,3 +39,57 @@ pub(crate) fn mine_batch(
     }
     None
 }
+
+#[cfg(test)]
+mod test {
+    use super::{bytes_lte, mine_batch};
+
+    #[test]
+    fn test_mine_batch_no_match() {
+        let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
+        let target = &[0u8; 32];
+        let batch_size = 1;
+        let start = 42;
+        let step_size = 1;
+
+        let result = mine_batch(header_bytes, target, start, step_size, batch_size);
+
+        assert!(result.is_none())
+    }
+
+    #[test]
+    fn test_mine_batch_match() {
+        let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
+        let batch_size = 2;
+        let start = 42;
+        let step_size = 1;
+
+        // Hardcoded target value derived from a randomness of 1, which is lower than 42
+        // This allows us to test the looping and target comparison a little better
+        let target: &[u8; 32] = &[
+            189, 32, 143, 150, 173, 48, 164, 172, 76, 199, 72, 88, 197, 68, 105, 250, 191, 202,
+            126, 52, 252, 66, 35, 112, 87, 238, 229, 149, 47, 55, 233, 45,
+        ];
+
+        let result = mine_batch(header_bytes, target, start, step_size, batch_size);
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), 43);
+    }
+
+    #[test]
+    fn test_mine_bytes_lte() {
+        let big: &[u8; 32] = &[
+            255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let small: &[u8; 32] = &[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1,
+        ];
+
+        assert_eq!(true, bytes_lte(small, big));
+        assert_eq!(true, bytes_lte(small, small));
+        assert_eq!(false, bytes_lte(big, small));
+    }
+}
