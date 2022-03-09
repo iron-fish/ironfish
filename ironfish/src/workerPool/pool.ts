@@ -25,6 +25,7 @@ import { Job } from './job'
 import { WorkerRequest } from './messages'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { VerifyTransactionOptions } from './tasks/verifyTransaction'
+import { WorkerMessage } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
 
 /**
@@ -59,7 +60,6 @@ export class WorkerPool {
     ['mineHeader', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['submitTelemetry', { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -328,17 +328,14 @@ export class WorkerPool {
   }
 
   async submitTelemetry(points: Metric[]): Promise<void> {
-    const request: SubmitTelemetryRequest = {
-      type: 'submitTelemetry',
-      points,
-    }
+    const request = new SubmitTelemetryRequest(points)
 
     await this.execute(request).result()
   }
 
-  private execute(request: Readonly<WorkerRequest>): Job {
+  private execute(request: Readonly<WorkerRequest | WorkerMessage>): Job {
     const jobId = this.lastJobId++
-    const job = new Job({ jobId: jobId, body: request })
+    const job = 'serialize' in request ? new Job(request) : new Job({ jobId, body: request })
     job.onEnded.once(this.jobEnded)
     job.onChange.on(this.jobChange)
     job.onChange.emit(job, 'init')
@@ -394,6 +391,9 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
+    if (!('body' in job.request)) {
+      return
+    }
     const stats = this.stats.get(job.request.body.type)
 
     if (!stats) {

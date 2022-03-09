@@ -9,7 +9,6 @@ import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/cre
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { MineHeaderRequest, MineHeaderResponse } from './tasks/mineHeader'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
-import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
@@ -46,7 +45,6 @@ export type WorkerRequest =
   | JobAbortRequest
   | MineHeaderRequest
   | SleepRequest
-  | SubmitTelemetryRequest
   | TransactionFeeRequest
   | UnboxMessageRequest
   | VerifyTransactionRequest
@@ -59,7 +57,6 @@ export type WorkerResponse =
   | JobErrorResponse
   | MineHeaderResponse
   | SleepResponse
-  | SubmitTelemetryResponse
   | TransactionFeeResponse
   | UnboxMessageResponse
   | VerifyTransactionResponse

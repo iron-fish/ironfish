@@ -7,15 +7,16 @@ import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
 import { JobAbortedError } from './errors'
 import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
 import { handleRequest } from './tasks'
+import { WorkerMessage } from './tasks/workerMessage'
 import { Worker } from './worker'
 
 export class Job {
   id: number
-  request: WorkerRequestMessage
+  request: WorkerRequestMessage | WorkerMessage
   worker: Worker | null
   status: 'init' | 'queued' | 'executing' | 'success' | 'error' | 'aborted'
-  promise: Promise<WorkerResponseMessage>
-  resolve: PromiseResolve<WorkerResponseMessage>
+  promise: Promise<WorkerResponseMessage | WorkerMessage>
+  resolve: PromiseResolve<WorkerResponseMessage | WorkerMessage>
   reject: PromiseReject
 
   onEnded = new Event<[Job]>()
@@ -27,13 +28,15 @@ export class Job {
   // Then this should be removed.
   enableJobAbortError = false
 
-  constructor(request: WorkerRequestMessage) {
+  constructor(request: WorkerRequestMessage | WorkerMessage) {
     this.id = request.jobId
     this.request = request
     this.worker = null
     this.status = 'queued'
 
-    const [promise, resolve, reject] = PromiseUtils.split<WorkerResponseMessage>()
+    const [promise, resolve, reject] = PromiseUtils.split<
+      WorkerResponseMessage | WorkerMessage
+    >()
     this.promise = promise
     this.resolve = resolve
     this.reject = reject
@@ -98,10 +101,14 @@ export class Job {
     return this
   }
 
-  async response(): Promise<WorkerResponseMessage> {
+  async response(): Promise<WorkerResponseMessage | WorkerMessage> {
     const response = await this.promise
 
-    if (response === null || response?.body?.type !== this.request.body.type) {
+    if (
+      'body' in this.request &&
+      'body' in response &&
+      (response === null || response?.body?.type !== this.request.body.type)
+    ) {
       throw new Error(
         `Response type must match request type ${this.request.body.type} but was ${String(
           response,
@@ -112,8 +119,11 @@ export class Job {
     return response
   }
 
-  async result(): Promise<WorkerResponse> {
+  async result(): Promise<WorkerResponse | WorkerMessage> {
     const response = await this.response()
+    if (!('body' in response)) {
+      return response
+    }
     return response.body
   }
 }

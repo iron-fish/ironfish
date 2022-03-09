@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
+import bufio from 'bufio'
 import { generateKey } from 'ironfish-rust-nodejs'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
@@ -10,6 +11,8 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { JobError } from './errors'
 import { Job } from './job'
+import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -53,11 +56,19 @@ export class Worker {
     job.execute(this)
   }
 
-  send(message: WorkerRequestMessage | WorkerResponseMessage): void {
+  send(message: WorkerRequestMessage | WorkerResponseMessage | WorkerMessage): void {
     if (this.thread) {
-      this.thread.postMessage(message)
+      if ('body' in message) {
+        this.thread.postMessage(message)
+      } else {
+        this.thread.postMessage(message.serializeWithMetadata())
+      }
     } else if (this.parent) {
-      this.parent.postMessage(message)
+      if ('body' in message) {
+        this.parent.postMessage(message)
+      } else {
+        this.parent.postMessage(message.serializeWithMetadata())
+      }
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -109,8 +120,8 @@ export class Worker {
     generateKey()
   }
 
-  private onMessageFromParent = (request: WorkerRequestMessage): void => {
-    if (request.body.type === 'jobAbort') {
+  private onMessageFromParent = (request: WorkerRequestMessage | Uint8Array): void => {
+    if ('body' in request && request.body.type === 'jobAbort') {
       const job = this.jobs.get(request.jobId)
 
       if (job) {
@@ -120,13 +131,22 @@ export class Worker {
       return
     }
 
-    const job = new Job(request)
+    let job: Job
+    if (!('body' in request)) {
+      const message = Buffer.from(request)
+      const { jobId, type, body } = this.parseHeader(message)
+      const requestBody = this.parseRequest(jobId, type, body)
+      job = new Job(requestBody)
+    } else {
+      job = new Job(request)
+    }
+
     this.jobs.set(job.id, job)
 
     job
       .execute()
       .response()
-      .then((response: WorkerResponseMessage) => {
+      .then((response: WorkerResponseMessage | WorkerMessage) => {
         this.send(response)
       })
       .catch((e: unknown) => {
@@ -143,9 +163,22 @@ export class Worker {
       })
   }
 
-  private onMessageFromWorker = (response: WorkerResponseMessage): void => {
-    const job = this.jobs.get(response.jobId)
-    this.jobs.delete(response.jobId)
+  private onMessageFromWorker = (response: WorkerResponseMessage | Uint8Array): void => {
+    let jobId
+    let type: WorkerMessageType | undefined
+    let body: Buffer | undefined
+    if ('jobId' in response) {
+      jobId = response.jobId
+    } else {
+      const buffer = Buffer.from(response)
+      const header = this.parseHeader(buffer)
+      jobId = header.jobId
+      type = header.type
+      body = header.body
+    }
+
+    const job = this.jobs.get(jobId)
+    this.jobs.delete(jobId)
 
     if (!job) {
       return
@@ -153,6 +186,17 @@ export class Worker {
 
     Assert.isNotNull(job.resolve)
     Assert.isNotNull(job.reject)
+
+    if (response instanceof Uint8Array) {
+      Assert.isNotUndefined(type)
+      Assert.isNotUndefined(body)
+      const prevStatus = job.status
+      job.status = 'success'
+      job.onChange.emit(job, prevStatus)
+      job.onEnded.emit(job)
+      job.resolve(this.parseResponse(jobId, type, body))
+      return
+    }
 
     if (response.body.type === 'jobError') {
       const prevStatus = job.status
@@ -166,6 +210,40 @@ export class Worker {
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
       job.resolve(response)
+    }
+  }
+
+  private parseHeader(data: Buffer): {
+    jobId: number
+    type: WorkerMessageType
+    body: Buffer
+  } {
+    const br = bufio.read(data)
+    const jobId = Number(br.readU64())
+    const type = br.readU8()
+    const size = br.readU64()
+    return {
+      jobId,
+      type,
+      body: br.readBytes(size),
+    }
+  }
+
+  private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
+    switch (type) {
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryRequest.deserialize(jobId, request)
+    }
+  }
+
+  private parseResponse(
+    jobId: number,
+    type: WorkerMessageType,
+    _response: Buffer,
+  ): WorkerMessage {
+    switch (type) {
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryResponse.deserialize(jobId)
     }
   }
 }
