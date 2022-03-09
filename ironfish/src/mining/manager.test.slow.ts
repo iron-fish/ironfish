@@ -13,7 +13,6 @@ import { isTransactionMine } from '../testUtilities/helpers/transaction'
 import { MINED_RESULT } from './manager'
 
 // TODO: Tests from director that need to be either ported or decided that we can remove them:
-// creates a new block to be mined when chain head changes: this should be an endpoint test
 // should emit block to be mined: this is more of a BlockTemplateSerde test
 // should recalculate block after interval: this logic is going to live on the pool/miner
 // retries calculating target if target is not at max: this logic is going to live on the pool/miner
