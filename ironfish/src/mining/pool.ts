@@ -276,6 +276,17 @@ export class MiningPool {
       ),
     )
 
+    // Target might be the same if there is a slight timing issue or if the block is at max target.
+    // In this case, it is detrimental to send out new work as it will needlessly reset miner's search
+    // space, resulting in duplicated work.
+    const existingTarget = BigIntUtils.fromBytes(Buffer.from(latestBlock.header.target, 'hex'))
+    if (newTarget.asBigInt() === existingTarget) {
+      this.logger.debug(
+        `New target ${newTarget.asBigInt()} is the same as the existing target, no need to send out new work.`,
+      )
+      return
+    }
+
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
     this.distributeNewBlock(latestBlock)
