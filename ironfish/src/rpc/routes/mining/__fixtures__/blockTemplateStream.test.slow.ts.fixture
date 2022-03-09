@@ -1,0 +1,34 @@
+{
+  "Block template stream creates a new block to be mined when chain head changes": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "8FB5B576EB519E03911C8768D7C8AC97252F7BE49FEC77279C43AF2DA9F82068",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:MkoUaf7fpqKdlsFl4uCzOHTkTc0sboJWq8JewO5QsiE="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
+          "size": 1
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": 0,
+        "timestamp": 1646788664480,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "E60FE3D749C959187D965D3DFAAF00409E003FAFDBF20D0A06C6B0F22489D742",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJQQsqno9bL4VtqxLtzt8MqRaEHN/jBlwh/KENZx8HG5ioswg6aYs47/UgAQRj26D6tiaN1QeRE9BFzINcs09jQir2T+T3aplxvDEWgf6fFC8QssAhTR0lIqgi4gxQmPuwpt1SYHMZNHQ330xALgKsKnIADHPSh2wUwbv71Fh9JE9AtWV2KbsvaEren/MzekO4P4C6T71xkiKH/QzvA5saUFQ+hxH/hlis5jXDVD7xKDBiZ6Z9zni1ZvX5pBFnYn6H43PJSgiv51NOPkR9fCKerD2BuTaFsqtpbHgmYjlGRzPcDKrWP91EODuI8aY6E63sTxqzjgyFEg6Xiw6NFrMELVcpWT3By812FZ44NOeE6WZwXApAqGyzEAZIZ+ZXFVsLWHylkBa39kmxMahJDIpOb7nCFoZjoLkZDO8Pnl/xWKdx2SwC/gkFsJGQYeLLtl1aGw/LB+YXKHmu6Y+b+BSuvKSRifvkhwMk1P6bWClbib14InE61ZpnjzVxZWODegM4aGoEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwUBGufGqy7cI3tEj938yeuf0OSBEso7GQTCV2f7130QqKEoAhWPKSsr6BMrqn3E2U/6vCvjdT9HZILD2rORKKAw=="
+        }
+      ]
+    }
+  ]
+}
