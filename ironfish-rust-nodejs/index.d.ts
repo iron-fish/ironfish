@@ -22,11 +22,6 @@ export interface Key {
 }
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
-export interface MineHeaderNapiResult {
-  randomness: number
-  foundMatch: boolean
-}
-export function mineHeaderBatch(headerBytes: Buffer, initialRandomness: number, targetBuffer: Buffer, batchSize: number): MineHeaderNapiResult
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)
