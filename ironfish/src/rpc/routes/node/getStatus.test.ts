@@ -20,7 +20,7 @@ describe('Route node/getStatus', () => {
         rss: expect.any(Number),
       },
       miningDirector: {
-        status: 'stopped',
+        status: 'started',
       },
       blockSyncer: {
         status: 'stopped',
