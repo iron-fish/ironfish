@@ -18,7 +18,6 @@ describe('Block template stream', () => {
 
     const createNewBlockTemplateSpy = jest.spyOn(miningManager, 'createNewBlockTemplate')
 
-    // const response = await routeTest.adapter.request<BlockTemplateStreamResponse>('miner/blockTemplateStream').waitForRoute()
     const response = await routeTest.adapter
       .requestStream('miner/blockTemplateStream')
       .waitForRoute()
