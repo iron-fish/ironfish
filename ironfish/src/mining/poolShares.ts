@@ -6,7 +6,7 @@ import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
-import { DatabaseShare, SharesDatabase } from './sharesDatabase'
+import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 const RECENT_SHARE_CUTOFF = 10 * 60 // 10 minutes
 
@@ -20,13 +20,13 @@ export class MiningPoolShares {
   readonly rpc: IronfishIpcClient
   readonly logger: Logger
 
-  private readonly db: SharesDatabase
+  private readonly db: PoolDatabase
   private payoutInterval: SetTimeoutToken | null
 
   private poolName: string
 
   constructor(options: {
-    db: SharesDatabase
+    db: PoolDatabase
     rpc: IronfishIpcClient
     logger?: Logger
     poolName: string
@@ -45,7 +45,7 @@ export class MiningPoolShares {
     logger?: Logger
     poolName: string
   }): Promise<MiningPoolShares> {
-    const db = await SharesDatabase.init({
+    const db = await PoolDatabase.init({
       dataDir: options.dataDir,
       successfulPayoutInterval: SUCCESSFUL_PAYOUT_INTERVAL,
       attemptPayoutInterval: ATTEMPT_PAYOUT_INTERVAL,
