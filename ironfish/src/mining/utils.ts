@@ -22,7 +22,7 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
 }
 
 // deserialize into a partial header
-export function minedPartialHeader(data: Buffer): unknown {
+export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['header'] {
   const br = bufio.read(data)
   const randomness = br.readDoubleBE()
   const sequence = br.readU64()
