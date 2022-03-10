@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { displayIronAmountWithCurrency, GetBalanceResponse, oreToIron } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
-import { displayIronAmountWithCurrency, GetBalanceResponse, oreToIron } from 'ironfish'
 
 describe('accounts:balance', () => {
   const responseContent: GetBalanceResponse = {
@@ -12,8 +12,8 @@ describe('accounts:balance', () => {
   }
 
   beforeAll(() => {
-    jest.doMock('ironfish', () => {
-      const originalModule = jest.requireActual('ironfish')
+    jest.doMock('@ironfish/sdk', () => {
+      const originalModule = jest.requireActual('@ironfish/sdk')
       const client = {
         connect: jest.fn(),
         getAccountBalance: jest.fn().mockImplementation(() => ({
@@ -34,7 +34,7 @@ describe('accounts:balance', () => {
   })
 
   afterAll(() => {
-    jest.dontMock('ironfish')
+    jest.dontMock('@ironfish/sdk')
   })
 
   describe('fetching the balance for an account', () => {

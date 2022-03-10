@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { DEFAULT_CONFIG_NAME, JSONUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { mkdtemp, readFile, writeFile } from 'fs'
-import { DEFAULT_CONFIG_NAME, JSONUtils } from 'ironfish'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
@@ -44,7 +44,7 @@ export class EditCommand extends IronfishCommand {
     const output = JSON.stringify(response.content, undefined, '   ')
 
     const tmpDir = os.tmpdir()
-    const folderPath = await mkdtempAsync(path.join(tmpDir, 'ironfish'))
+    const folderPath = await mkdtempAsync(path.join(tmpDir, '@ironfish/sdk'))
     const filePath = path.join(folderPath, DEFAULT_CONFIG_NAME)
 
     await writeFileAsync(filePath, output)

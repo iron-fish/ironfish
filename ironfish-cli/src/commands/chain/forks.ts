@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
+import { RpcBlock } from '@ironfish/sdk'
 import blessed from 'blessed'
-import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from 'ironfish'
-import { RpcBlock } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 

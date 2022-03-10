@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as ironfishmodule from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { expect as expectCli, test } from '@oclif/test'
-import * as ironfishmodule from 'ironfish'
 
 describe('faucet command', () => {
   let accountName: string | null = null

@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { GetWorkersStatusResponse, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
-import { GetWorkersStatusResponse, PromiseUtils } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 

@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { GetAccountsResponse } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
-import { GetAccountsResponse } from 'ironfish'
 
 describe('accounts:list', () => {
   const responseContent: GetAccountsResponse = {
@@ -10,8 +10,8 @@ describe('accounts:list', () => {
   }
 
   beforeAll(() => {
-    jest.doMock('ironfish', () => {
-      const originalModule = jest.requireActual('ironfish')
+    jest.doMock('@ironfish/sdk', () => {
+      const originalModule = jest.requireActual('@ironfish/sdk')
 
       const client = {
         connect: jest.fn(),
@@ -34,7 +34,7 @@ describe('accounts:list', () => {
   })
 
   afterAll(() => {
-    jest.dontMock('ironfish')
+    jest.dontMock('@ironfish/sdk')
   })
 
   describe('fetching all accounts', () => {

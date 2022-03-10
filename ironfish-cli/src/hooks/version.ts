@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { Platform } from '@ironfish/sdk'
 import { Hook } from '@oclif/core'
-import { Platform } from 'ironfish'
 import { IronfishCliPKG } from '../package'
 
 // eslint-disable-next-line @typescript-eslint/require-await

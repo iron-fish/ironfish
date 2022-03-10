@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CliUx, Flags } from '@oclif/core'
 import {
   displayIronAmountWithCurrency,
   ironToOre,
@@ -10,7 +9,8 @@ import {
   isValidPublicAddress,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
-} from 'ironfish'
+} from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
