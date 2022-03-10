@@ -55,7 +55,7 @@ export class Migrator {
         process.stdout.write(`  Applying ${migration.name}...`)
 
         try {
-          await migration.foreward(this.db)
+          await migration.forward(this.db)
           await this.db.run(`PRAGMA user_version = ${migration.id};`)
         } catch (e) {
           process.stdout.write(` ERROR\n`)
