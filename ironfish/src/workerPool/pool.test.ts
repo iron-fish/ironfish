@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../testUtilities/matchers'
-import { JobAbortedError, JobError } from './errors'
+import { JobAbortedError } from './errors'
 import { WorkerPool } from './pool'
+import { SerializableJobError } from './tasks/jobError'
 
 describe('Worker Pool', () => {
   let pool: WorkerPool
@@ -119,7 +120,7 @@ describe('Worker Pool', () => {
     expect(pool.executing).toBe(1)
 
     await expect(job.response()).rejects.toThrowError('test')
-    await expect(job.response()).toRejectErrorInstance(JobError)
+    await expect(job.response()).toRejectErrorInstance(SerializableJobError)
     expect(job.status).toBe('error')
 
     expect(pool.workers.length).toBe(1)
