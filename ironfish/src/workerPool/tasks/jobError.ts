@@ -8,8 +8,8 @@ export class SerializableJobError extends WorkerMessage {
   stack: string | undefined
   message: string = ''
 
-  constructor(error?: unknown) {
-    super(WorkerMessageType.JobError)
+  constructor(id?: number, error?: unknown) {
+    super(WorkerMessageType.JobError, id)
 
     if (error) {
       this.errorType =
@@ -44,7 +44,7 @@ export class SerializableJobError extends WorkerMessage {
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): SerializableJobError {
+  static deserialize(jobId: number, buffer: Buffer): SerializableJobError {
     const br = bufio.read(buffer, true)
 
     const errorType = br.readVarString('utf8')
@@ -65,7 +65,7 @@ export class SerializableJobError extends WorkerMessage {
       stack = undefined
     }
 
-    const err = new SerializableJobError()
+    const err = new SerializableJobError(jobId)
     err.errorType = errorType
     err.message = message
     err.code = code
