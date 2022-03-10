@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 declare module 'bufio' {
-  type Encoding = 'utf8' | 'ascii'
-  type BufferEncoding = 'hex'
-
   class StaticWriter {
     render(): Buffer
     slice(): Buffer
+    writeU8(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
-    writeVarString(value: string, enc?: Encoding | null): StaticWriter
+    writeVarString(value: string, enc?: BufferEncoding | null): StaticWriter
     writeVarBytes(value: Buffer): StaticWriter
     writeBytes(value: Buffer): StaticWriter
     writeHash(value: Buffer | string): StaticWriter
@@ -20,9 +18,10 @@ declare module 'bufio' {
   class BufferWriter {
     render(): Buffer
     slice(): Buffer
+    writeU8(value: number): BufferWriter
     writeU64(value: number): BufferWriter
     writeI64(value: number): BufferWriter
-    writeVarString(value: string, enc?: Encoding | null): BufferWriter
+    writeVarString(value: string, enc?: BufferEncoding | null): BufferWriter
     writeVarBytes(value: Buffer): BufferWriter
     writeBytes(value: Buffer): BufferWriter
     writeHash(value: Buffer | string): BufferWriter
@@ -30,8 +29,9 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    readU8(): number
     readU64(): number
-    readVarString(enc?: Encoding | null, limit?: number): string
+    readVarString(enc?: BufferEncoding | null, limit?: number): string
     readVarBytes(): Buffer
     readBytes(size: number, zeroCopy?: boolean): Buffer
 
@@ -41,4 +41,6 @@ declare module 'bufio' {
 
   export function write(size?: number): StaticWriter | BufferWriter
   export function read(data: Buffer, zeroCopy?: boolean): BufferReader
+
+  export function sizeVarString(value: string, enc?: BufferEncoding): number
 }

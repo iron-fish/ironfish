@@ -9,12 +9,13 @@ import { handleBoxMessage } from './boxMessage'
 import { handleCreateMinersFee } from './createMinersFee'
 import { handleCreateTransaction } from './createTransaction'
 import { handleGetUnspentNotes } from './getUnspentNotes'
+import { handlers } from './handlers'
 import { handleMineHeader } from './mineHeader'
 import { handleSleep } from './sleep'
-import { submitTelemetry } from './submitTelemetry'
 import { handleTransactionFee } from './transactionFee'
 import { handleUnboxMessage } from './unboxMessage'
 import { handleVerifyTransaction } from './verifyTransaction'
+import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
 export { GetUnspentNotesRequest, GetUnspentNotesResponse } from './getUnspentNotes'
@@ -27,10 +28,15 @@ export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
 export { VerifyTransactionRequest, VerifyTransactionResponse } from './verifyTransaction'
 
 export async function handleRequest(
-  request: WorkerRequestMessage,
+  request: WorkerRequestMessage | WorkerMessage,
   job: Job,
-): Promise<WorkerResponseMessage> {
-  let response: WorkerResponse | null = null
+): Promise<WorkerResponseMessage | WorkerMessage> {
+  let response: WorkerResponse | WorkerMessage | null = null
+
+  if (!('body' in request)) {
+    const handler = handlers[request.type]
+    return handler.execute(request)
+  }
 
   const body = request.body
 
@@ -64,9 +70,6 @@ export async function handleRequest(
       break
     case 'jobAbort':
       throw new Error('ControlMessage not handled')
-    case 'submitTelemetry':
-      response = await submitTelemetry(body)
-      break
     default: {
       Assert.isNever(body)
     }
