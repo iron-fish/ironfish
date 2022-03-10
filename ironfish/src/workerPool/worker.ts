@@ -9,11 +9,10 @@ import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
-import { JobError } from './errors'
 import { Job } from './job'
+import { SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
-import { SerializableJobError } from './tasks/jobError'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -189,23 +188,22 @@ export class Worker {
       job.status = 'success'
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
+      const result = this.parseResponse(jobId, type, body)
+      if (result.type === WorkerMessageType.JobError) {
+        const error = SerializableJobError.deserialize(jobId, body)
+        job.reject(error)
+        return
+      }
+
       job.resolve(this.parseResponse(jobId, type, body))
       return
     }
 
-    if (response.body.type === 'jobError') {
-      const prevStatus = job.status
-      job.status = 'error'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.reject(JobError.deserialize(response.body.error))
-    } else {
-      const prevStatus = job.status
-      job.status = 'success'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.resolve(response)
-    }
+    const prevStatus = job.status
+    job.status = 'success'
+    job.onChange.emit(job, prevStatus)
+    job.onEnded.emit(job)
+    job.resolve(response)
   }
 
   private parseHeader(data: Buffer): {
