@@ -84,23 +84,19 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
-      Promise.resolve({
-        unconfirmed: BigInt(11),
-        confirmed: BigInt(0),
-      }),
-    )
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(11),
+      confirmed: BigInt(0),
+    })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
       'Please wait a few seconds for your balance to update and try again',
     )
 
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
-      Promise.resolve({
-        unconfirmed: BigInt(21),
-        confirmed: BigInt(0),
-      }),
-    )
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(21),
+      confirmed: BigInt(0),
+    })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
       'Please wait a few seconds for your balance to update and try again',
@@ -115,12 +111,10 @@ describe('Transactions sendTransaction', () => {
     const tx = await useMinersTxFixture(routeTest.node.accounts, account)
 
     jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
-      Promise.resolve({
-        unconfirmed: BigInt(11),
-        confirmed: BigInt(11),
-      }),
-    )
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(11),
+      confirmed: BigInt(11),
+    })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
@@ -134,14 +128,53 @@ describe('Transactions sendTransaction', () => {
     const tx = await useMinersTxFixture(routeTest.node.accounts, account)
 
     jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockReturnValueOnce(
-      Promise.resolve({
-        unconfirmed: BigInt(21),
-        confirmed: BigInt(21),
-      }),
-    )
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(21),
+      confirmed: BigInt(21),
+    })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
+  }, 30000)
+
+  it('lets you configure the expiration', async () => {
+    const account = await useAccountFixture(routeTest.node.accounts, 'expiration')
+    const tx = await useMinersTxFixture(routeTest.node.accounts, account)
+
+    routeTest.node.peerNetwork['_isReady'] = true
+    routeTest.chain.synced = true
+
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValue({
+      unconfirmed: BigInt(100000),
+      confirmed: BigInt(100000),
+    })
+
+    const paySpy = jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
+
+    await routeTest.client.sendTransaction(TEST_PARAMS)
+
+    expect(paySpy).toBeCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      routeTest.node.config.get('defaultTransactionExpirationSequenceDelta'),
+      undefined,
+    )
+
+    await routeTest.client.sendTransaction({
+      ...TEST_PARAMS,
+      expirationSequence: 1234,
+      expirationSequenceDelta: 12345,
+    })
+
+    expect(paySpy).toBeCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      12345,
+      1234,
+    )
   }, 30000)
 })
