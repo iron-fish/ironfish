@@ -18,6 +18,10 @@ import { mineableHeaderString } from './utils'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
+// Difficulty is set to the expected hashrate that would achieve 1 valid share per 5 minutes
+// Ex: 200,000,000 would mean a miner with 200 mh/s would submit a valid share on average once per 5 minutes
+const DIFFICULTY = BigInt(200_000_000 * 60 * 5)
+
 export class MiningPool {
   readonly stratum: StratumServer
   readonly rpc: IronfishIpcClient
@@ -62,10 +66,7 @@ export class MiningPool {
     this.currentHeadDifficulty = null
     this.name = options.name
 
-    // Difficulty is set to the expected hashrate that would achieve 1 valid share per second
-    // Ex: 100,000,000 would mean a miner with 100 mh/s would submit a valid share on average once per second
-    // TODO: I think we should set it so that an 'average desktop' might only check-in once ever 5-10 minutes
-    this.difficulty = BigInt(1_850_000) * 2n
+    this.difficulty = DIFFICULTY
     const basePoolTarget = Target.fromDifficulty(this.difficulty).asBigInt()
     this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
 
