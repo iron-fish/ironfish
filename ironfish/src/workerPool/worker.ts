@@ -228,17 +228,21 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.JobError:
+        throw new Error('JobError should not be sent as a request')
     }
   }
 
   private parseResponse(
     jobId: number,
     type: WorkerMessageType,
-    _response: Buffer,
+    response: Buffer,
   ): WorkerMessage {
     switch (type) {
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.JobError:
+        return SerializableJobError.deserialize(jobId, response)
     }
   }
 }
