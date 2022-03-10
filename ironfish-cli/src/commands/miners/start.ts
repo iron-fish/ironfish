@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
-import {
-  GraffitiUtils,
-  isValidPublicAddress,
-  MiningPoolMiner,
-  MiningSoloMiner,
-  parseUrl,
-} from 'ironfish'
+import dns from 'dns'
+import { GraffitiUtils, isValidPublicAddress, MiningPoolMiner, MiningSoloMiner } from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -26,7 +21,12 @@ export class Miner extends IronfishCommand {
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host of the mining pool to connect to such as tcp://92.191.17.232:9034',
+      description: 'the host of the mining pool to connect to such as 92.191.17.232',
+    }),
+    poolPort: Flags.integer({
+      char: 'o',
+      default: 9034,
+      description: 'the port of the mining pool to connect to such as 9034',
     }),
     address: Flags.string({
       char: 'a',
@@ -61,17 +61,15 @@ export class Miner extends IronfishCommand {
 
       this.log(`Staring to mine with public address: ${flags.address} at pool ${flags.pool}`)
 
-      let { hostname, port } = parseUrl(flags.pool)
-
-      hostname = hostname ?? 'localhost'
-      port = port ?? 9034
+      const poolHost = (await dns.promises.lookup(flags.pool)).address
+      const port = flags.poolPort ?? 9034
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.address,
         batchSize,
-        host: hostname,
-        port: Number(port),
+        host: poolHost,
+        port: port,
       })
 
       miner.start()
