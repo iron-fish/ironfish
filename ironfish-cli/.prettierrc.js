@@ -1,1 +1,1 @@
-module.exports = 'eslint-config-ironfish/prettierrc'
+module.exports = 'eslint-config-ironfish/.prettierrc'

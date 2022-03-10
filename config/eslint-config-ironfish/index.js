@@ -3,7 +3,7 @@
 module.exports = {
   root: true,
 
-  ignorePatterns: ["openapi.d.ts"],
+  ignorePatterns: ['openapi.d.ts'],
 
   env: {
     es6: true,
@@ -15,20 +15,12 @@ module.exports = {
     sourceType: 'module',
   },
 
-  plugins: [
-    'header',
-    'jest', 
-    'prettier', 
-    'simple-import-sort',
-  ],
+  plugins: ['header', 'jest', 'prettier', 'simple-import-sort'],
 
-  extends: [
-    'eslint:recommended',
-    'plugin:prettier/recommended',
-    'prettier',
-  ],
+  extends: ['eslint:recommended', 'plugin:prettier/recommended', 'prettier'],
 
-  overrides: [{
+  overrides: [
+    {
       files: ['**/*.ts', '**/*.tsx'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
@@ -54,36 +46,46 @@ module.exports = {
         // like too much friction for test-writing.
         '@typescript-eslint/no-unsafe-assignment': 'off',
         // It's common to want to mock unbound methods.
-        "@typescript-eslint/unbound-method": "off",
+        '@typescript-eslint/unbound-method': 'off',
         // Using try catch with expect.assertsions(n) is the recommended way to
         // test async code where you need a reference to the error to validate the
         // type and properties
-        "jest/no-conditional-expect": "off",
-        "jest/no-try-expect": "off",
-      }
-    }
+        'jest/no-conditional-expect': 'off',
+        'jest/no-try-expect': 'off',
+      },
+    },
   ],
 
   rules: {
     // Seems to be needed to allow for custom jest matchers
-    '@typescript-eslint/no-namespace': ['error', {
-      allowDeclarations: true
-    }],
+    '@typescript-eslint/no-namespace': [
+      'error',
+      {
+        allowDeclarations: true,
+      },
+    ],
 
     // Allows for using _ to strip off variables via destructuring, e.g.
     // const { ignore: _ignored, ...rest } = node
-    '@typescript-eslint/no-unused-vars': ['error', {
-      varsIgnorePattern: '^_',
-      argsIgnorePattern: '^_'
-    }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+      },
+    ],
 
-    'curly': 'error',
-    'eqeqeq': ['error', 'smart'],
-    'header/header': [2, 'block', [
-      ' This Source Code Form is subject to the terms of the Mozilla Public',
-      ' * License, v. 2.0. If a copy of the MPL was not distributed with this',
-      ' * file, You can obtain one at https://mozilla.org/MPL/2.0/. ',
-    ]],
+    curly: 'error',
+    eqeqeq: ['error', 'smart'],
+    'header/header': [
+      2,
+      'block',
+      [
+        ' This Source Code Form is subject to the terms of the Mozilla Public',
+        ' * License, v. 2.0. If a copy of the MPL was not distributed with this',
+        ' * file, You can obtain one at https://mozilla.org/MPL/2.0/. ',
+      ],
+    ],
 
     // Prefer using the Logger library rather than directly using the console for output.
     'no-console': 'error',
@@ -91,10 +93,8 @@ module.exports = {
     'simple-import-sort/imports': [
       'error',
       {
-        groups: [
-          ['\\u0000', '^@?\\w', '^', '\\.']
-        ],
+        groups: [['\\u0000', '^@?\\w', '^', '\\.']],
       },
-    ]
+    ],
   },
 }
