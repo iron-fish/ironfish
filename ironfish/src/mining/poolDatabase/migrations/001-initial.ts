@@ -30,6 +30,6 @@ export default class Migration001 extends Migration {
 
   async backward(db: Database): Promise<void> {
     await db.run('DROP TABLE payout;')
-    await db.run('CREATE TABLE share;')
+    await db.run('DROP TABLE share;')
   }
 }
