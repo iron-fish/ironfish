@@ -33,7 +33,7 @@
     "yup": "0.29.3"
   },
   "scripts": {
-    "build": "tsc -b && yarn copyFiles",
+    "build": "tsc -b",
     "build:watch": "tsc -b -w",
     "build:tests": "tsc -b tsconfig.test.json",
     "lint": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/",
@@ -43,8 +43,7 @@
     "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest  --coverage --coverage-reporters html --testPathIgnorePatterns",
-    "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
-    "copyFiles": "mkdir -p build/src/mining/migrations/ && cp src/mining/migrations/** build/src/mining/migrations/"
+    "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false"
   },
   "devDependencies": {
     "@types/buffer-json": "2.0.0",
