@@ -35,6 +35,9 @@ export async function handleRequest(
 
   if (!('body' in request)) {
     const handler = handlers[request.type]
+    if (!handler) {
+      throw new Error()
+    }
     return handler.execute(request)
   }
 
