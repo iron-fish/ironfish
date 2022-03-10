@@ -13,6 +13,7 @@ import { JobError } from './errors'
 import { Job } from './job'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
+import { SerializableJobError } from './tasks/jobError'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -150,13 +151,7 @@ export class Worker {
         this.send(response)
       })
       .catch((e: unknown) => {
-        this.send({
-          jobId: job.id,
-          body: {
-            type: 'jobError',
-            error: new JobError(e).serialize(),
-          },
-        })
+        this.send(new SerializableJobError(job.id, e))
       })
       .finally(() => {
         this.jobs.delete(job.id)
