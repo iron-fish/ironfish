@@ -7,6 +7,7 @@ import { Serializable } from '../../common/serializable'
 
 export enum WorkerMessageType {
   SubmitTelemetry = 0,
+  VerifyTransaction = 1,
 }
 
 export abstract class WorkerMessage implements Serializable {

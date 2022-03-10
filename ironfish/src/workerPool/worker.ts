@@ -13,6 +13,7 @@ import { JobError } from './errors'
 import { Job } from './job'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
+import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -233,17 +234,21 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionRequest.deserialize(jobId, request)
     }
   }
 
   private parseResponse(
     jobId: number,
     type: WorkerMessageType,
-    _response: Buffer,
+    response: Buffer,
   ): WorkerMessage {
     switch (type) {
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionResponse.deserialize(jobId, response)
     }
   }
 }
