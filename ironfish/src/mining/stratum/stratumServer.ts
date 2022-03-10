@@ -76,7 +76,7 @@ export class StratumServer {
   }
 
   start(): void {
-    this.server.listen(1234, 'localhost')
+    this.server.listen(9034, 'localhost')
   }
 
   stop(): void {

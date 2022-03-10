@@ -26,7 +26,7 @@ export class Miner extends IronfishCommand {
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host of the mining pool to connect to such as tcp://92.191.17.232:1234',
+      description: 'the host of the mining pool to connect to such as tcp://92.191.17.232:9034',
     }),
     address: Flags.string({
       char: 'a',
@@ -64,7 +64,7 @@ export class Miner extends IronfishCommand {
       let { hostname, port } = parseUrl(flags.pool)
 
       hostname = hostname ?? 'localhost'
-      port = port ?? 1234
+      port = port ?? 9034
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
