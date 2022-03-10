@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import * as nativeModule from 'ironfish-rust-nodejs'
+import * as nativeModule from '@ironfish/rust-nodejs'
 import { mocked } from 'ts-jest/utils'
 import { mineHeader } from './mineHeader'
 import { Miner, MineRequest } from './miner'
 
-jest.mock('ironfish-rust-nodejs', () => ({
+jest.mock('@ironfish/rust-nodejs', () => ({
   mineHeaderBatch: jest.fn(),
 }))
 const testBatchSize = 100
