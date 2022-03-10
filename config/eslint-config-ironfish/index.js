@@ -15,7 +15,7 @@ module.exports = {
     sourceType: 'module',
   },
 
-  plugins: ['header', 'jest', 'prettier', 'simple-import-sort'],
+  plugins: ['header', 'ironfish', 'jest', 'prettier', 'simple-import-sort'],
 
   extends: ['eslint:recommended', 'plugin:prettier/recommended', 'prettier'],
 
@@ -57,6 +57,8 @@ module.exports = {
   ],
 
   rules: {
+    'ironfish/no-vague-imports': 'error',
+
     // Seems to be needed to allow for custom jest matchers
     '@typescript-eslint/no-namespace': [
       'error',

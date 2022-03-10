@@ -4,8 +4,8 @@
 
 import type { SignalData } from './connections/webRtcConnection'
 import WSWebSocket from 'ws'
-import { HostsStore } from '../..'
 import { Event } from '../../event'
+import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ArrayUtils, SetIntervalToken } from '../../utils'
