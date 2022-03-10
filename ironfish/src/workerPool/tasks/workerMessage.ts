@@ -6,7 +6,8 @@ import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 
 export enum WorkerMessageType {
-  SubmitTelemetry = 0,
+  JobError = 0,
+  SubmitTelemetry = 1,
 }
 
 export abstract class WorkerMessage implements Serializable {
