@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-//jest.mock('axios')
-
 describe('Route config/getConfig', () => {
   const routeTest = createRouteTest()
 
@@ -14,30 +12,22 @@ describe('Route config/getConfig', () => {
     ).rejects.toThrow()
   })
 
-  it('test2', async () => {
-    await expect(
-      routeTest.adapter.request('config/getConfig', { name: 'minerBatchSize', user: true }),
-    ).resolves //.not.toThrow()
-  })
-
-  it('test3', async () => {
-    await expect(
-      routeTest.adapter.request('config/getConfig', { name: 'blocksPerMessage' }),
-    ).resolves //.not.toThrow()
-  })
-
-/*
-  describe('Convert string to array', () => {
-    it('does not special-case brackets', async () => {
-      const response = await routeTest.adapter.request('config/setConfig', {
-        name: 'bootstrapNodes',
-        value: '[]',
-      })
-      const content = await response.content
-      expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
-      expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual(['[]'])
+  it('returns value of the requested ConfigOptions', async () => {
+    const target = { minerBatchSize: 10000 }
+    const response = await routeTest.adapter.request('config/getConfig', {
+      name: 'minerBatchSize',
     })
+    expect(response.status).toBe(200)
+    expect(response.content).toEqual(target)
   })
-  */
+
+  it('returns nothing when no datadir exists', async () => {
+    const target = {}
+    const response = await routeTest.adapter.request('config/getConfig', {
+      name: 'minerBatchSize',
+      user: true,
+    })
+    expect(response.status).toBe(200)
+    expect(response.content).toEqual(target)
+  })
 })
