@@ -13,6 +13,6 @@ export abstract class Migration {
     return this
   }
 
-  abstract foreward(db: Database): Promise<void>
+  abstract forward(db: Database): Promise<void>
   abstract backward(db: Database): Promise<void>
 }

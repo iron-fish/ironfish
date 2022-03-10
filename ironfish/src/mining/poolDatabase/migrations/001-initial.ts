@@ -8,7 +8,7 @@ import { Migration } from '../migration'
 export default class Migration001 extends Migration {
   name = '001-inital'
 
-  async foreward(db: Database): Promise<void> {
+  async forward(db: Database): Promise<void> {
     await db.run(`
       CREATE TABLE payout (
         id INTEGER PRIMARY KEY,
