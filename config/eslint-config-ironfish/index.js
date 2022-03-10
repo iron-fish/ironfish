@@ -58,6 +58,7 @@ module.exports = {
 
   rules: {
     'ironfish/no-vague-imports': 'error',
+
     // Seems to be needed to allow for custom jest matchers
     '@typescript-eslint/no-namespace': [
       'error',
