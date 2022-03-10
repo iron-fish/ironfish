@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
-import { PrivateIdentity } from '.'
 import { Config, ConfigOptions, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
@@ -14,6 +13,7 @@ import {
 } from './logger'
 import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
+import { PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'

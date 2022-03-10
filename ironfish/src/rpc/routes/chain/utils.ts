@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferSet } from 'buffer-map'
-import { VerificationResult } from '../../..'
 import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
+import { VerificationResult } from '../../../consensus/verifier'
 import { createRootLogger, Logger } from '../../../logger'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { BlockchainUtils, HashUtils } from '../../../utils'
