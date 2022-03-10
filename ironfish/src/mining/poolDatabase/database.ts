@@ -4,9 +4,11 @@
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
+import { Migrator } from './migrator'
 
 export class PoolDatabase {
   private readonly db: Database
+  private readonly migrations: Migrator
   private readonly attemptPayoutInterval: number
   private readonly successfulPayoutInterval: number
 
@@ -16,6 +18,7 @@ export class PoolDatabase {
     successfulPayoutInterval: number
   }) {
     this.db = options.db
+    this.migrations = new Migrator({ db: options.db })
     this.attemptPayoutInterval = options.attemptPayoutInterval
     this.successfulPayoutInterval = options.successfulPayoutInterval
   }
@@ -44,7 +47,7 @@ export class PoolDatabase {
   }
 
   async start(): Promise<void> {
-    await this.db.migrate({ migrationsPath: `${__dirname}/migrations` })
+    await this.migrations.migrate()
   }
 
   async stop(): Promise<void> {
