@@ -4,7 +4,6 @@
 
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RequestError } from '../../clients/errors'
 
 const TEST_PARAMS = {
   fromAccountName: 'existingAccount',
@@ -43,62 +42,36 @@ describe('Transactions sendTransaction', () => {
   })
 
   it('throws if account does not exist', async () => {
-    try {
-      await routeTest.client.sendTransaction({
+    await expect(
+      routeTest.client.sendTransaction({
         ...TEST_PARAMS,
         fromAccountName: 'AccountDoesNotExist',
-      })
-    } catch (e: unknown) {
-      if (!(e instanceof RequestError)) {
-        throw e
-      }
-
-      expect(e.message).toContain('No account found with name AccountDoesNotExist')
-    }
+      }),
+    ).rejects.toThrowError('No account found with name AccountDoesNotExist')
   })
 
   it('throws if not connected to network', async () => {
-    try {
-      await routeTest.client.sendTransaction(TEST_PARAMS)
-    } catch (e: unknown) {
-      if (!(e instanceof RequestError)) {
-        throw e
-      }
-
-      expect(e.message).toContain(
-        'Your node must be connected to the Iron Fish network to send a transaction',
-      )
-    }
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+      'Your node must be connected to the Iron Fish network to send a transaction',
+    )
   })
 
   describe('Connected to the network', () => {
     it('throws if the chain is outdated', async () => {
       routeTest.node.peerNetwork['_isReady'] = true
 
-      try {
-        await routeTest.client.sendTransaction(TEST_PARAMS)
-      } catch (e: unknown) {
-        if (!(e instanceof RequestError)) {
-          throw e
-        }
-        expect(e.message).toContain(
-          'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
-        )
-      }
+      await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+        'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
+      )
     })
 
     it('throws if not enough funds', async () => {
       routeTest.node.peerNetwork['_isReady'] = true
       routeTest.chain.synced = true
 
-      try {
-        await routeTest.client.sendTransaction(TEST_PARAMS)
-      } catch (e: unknown) {
-        if (!(e instanceof RequestError)) {
-          throw e
-        }
-        expect(e.message).toContain('Your balance is too low. Add funds to your account first')
-      }
+      await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+        'Your balance is too low. Add funds to your account first',
+      )
     })
 
     it('throws if the confirmed balance is too low', async () => {
@@ -112,17 +85,9 @@ describe('Transactions sendTransaction', () => {
         }),
       )
 
-      try {
-        await routeTest.client.sendTransaction(TEST_PARAMS)
-      } catch (e: unknown) {
-        if (!(e instanceof RequestError)) {
-          throw e
-        }
-
-        expect(e.message).toContain(
-          'Please wait a few seconds for your balance to update and try again',
-        )
-      }
+      await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+        'Please wait a few seconds for your balance to update and try again',
+      )
     })
 
     it('calls the pay method on the node', async () => {
@@ -151,16 +116,9 @@ describe('Transactions sendTransaction', () => {
         routeTest.node.peerNetwork['_isReady'] = true
         routeTest.chain.synced = true
 
-        try {
-          await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
-        } catch (e: unknown) {
-          if (!(e instanceof RequestError)) {
-            throw e
-          }
-          expect(e.message).toContain(
-            'Your balance is too low. Add funds to your account first',
-          )
-        }
+        await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
+          'Your balance is too low. Add funds to your account first',
+        )
       })
 
       it('throws if the confirmed balance is too low', async () => {
@@ -174,17 +132,9 @@ describe('Transactions sendTransaction', () => {
           }),
         )
 
-        try {
-          await routeTest.client.sendTransaction(TEST_PARAMS)
-        } catch (e: unknown) {
-          if (!(e instanceof RequestError)) {
-            throw e
-          }
-
-          expect(e.message).toContain(
-            'Please wait a few seconds for your balance to update and try again',
-          )
-        }
+        await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+          'Please wait a few seconds for your balance to update and try again',
+        )
       })
 
       it('calls the pay method on the node', async () => {
