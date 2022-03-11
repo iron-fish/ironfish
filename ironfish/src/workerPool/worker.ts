@@ -224,10 +224,10 @@ export class Worker {
 
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
     switch (type) {
-      case WorkerMessageType.SubmitTelemetry:
-        return SubmitTelemetryRequest.deserialize(jobId, request)
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryRequest.deserialize(jobId, request)
     }
   }
 

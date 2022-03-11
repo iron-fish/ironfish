@@ -11,8 +11,8 @@ export class SerializableJobError extends WorkerMessage {
   stack: string | undefined
   message = ''
 
-  constructor(id?: number, error?: unknown) {
-    super(WorkerMessageType.JobError, id)
+  constructor(jobId?: number, error?: unknown) {
+    super(WorkerMessageType.JobError, jobId)
 
     if (error) {
       this.errorType =
@@ -47,6 +47,7 @@ export class SerializableJobError extends WorkerMessage {
     return bw.render()
   }
 
+  // We return JobError so the error can be propagated to a calling Promise's reject method
   static deserialize(jobId: number, buffer: Buffer): JobError {
     const br = bufio.read(buffer, true)
 
