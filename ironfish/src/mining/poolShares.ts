@@ -132,6 +132,7 @@ export class MiningPoolShares {
       fromAccountName: ACCOUNT_NAME,
       receives: transactionReceives,
       fee: transactionReceives.length.toString(),
+      expirationSequenceDelta: 20,
     })
     if (response.status === 200) {
       await this.db.markPayoutSuccess(payoutId, timestamp)
