@@ -128,17 +128,17 @@ export class MiningPoolShares {
       },
     )
 
-    // TODO: Non 200 here will throw
-    const response = await this.rpc.sendTransaction({
-      fromAccountName: this.accountName,
-      receives: transactionReceives,
-      fee: transactionReceives.length.toString(),
-      expirationSequenceDelta: 20,
-    })
-    if (response.status === 200) {
+    try {
+      await this.rpc.sendTransaction({
+        fromAccountName: this.accountName,
+        receives: transactionReceives,
+        fee: transactionReceives.length.toString(),
+        expirationSequenceDelta: 20,
+      })
+
       await this.db.markPayoutSuccess(payoutId, timestamp)
-    } else {
-      this.logger.error('There was an error with the transaction', response)
+    } catch (e) {
+      this.logger.error('There was an error with the transaction', e)
     }
   }
 
