@@ -11,9 +11,9 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { JobError } from './errors'
 import { Job } from './job'
+import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
-import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks'
 
 export class Worker {
   thread: WorkerThread | null = null

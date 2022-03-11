@@ -11,7 +11,6 @@ import { MineHeaderRequest, MineHeaderResponse } from './tasks/mineHeader'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
-import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 
 /**
  * Request and response message types used for communication
@@ -47,7 +46,6 @@ export type WorkerRequest =
   | SleepRequest
   | TransactionFeeRequest
   | UnboxMessageRequest
-  | VerifyTransactionRequest
 
 export type WorkerResponse =
   | BoxMessageResponse
@@ -59,4 +57,3 @@ export type WorkerResponse =
   | SleepResponse
   | TransactionFeeResponse
   | UnboxMessageResponse
-  | VerifyTransactionResponse

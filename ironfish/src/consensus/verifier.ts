@@ -163,7 +163,7 @@ export class Verifier {
     }
 
     try {
-      return await transaction.verify(options)
+      return transaction.verify(options)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
