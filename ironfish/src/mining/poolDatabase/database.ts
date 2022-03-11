@@ -77,6 +77,7 @@ export class PoolDatabase {
     if (result.changes !== 0 && result.lastID != null) {
       return result.lastID
     }
+
     return null
   }
 

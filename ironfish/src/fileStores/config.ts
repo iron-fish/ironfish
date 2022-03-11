@@ -172,6 +172,11 @@ export type ConfigOptions = {
    * The length of time in seconds that will be used to calculate hashrate for the pool.
    */
   poolRecentShareCutoff: number
+
+  /**
+   * The discord webhook URL to post pool critical pool information too
+   */
+  poolDiscordWebhook: ''
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -244,6 +249,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
+      poolDiscordWebhook: '',
     }
   }
 }

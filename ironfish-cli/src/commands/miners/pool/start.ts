@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { MiningPool, StringUtils } from 'ironfish'
+import { Flags } from '@oclif/core'
+import { Discord, MiningPool, StringUtils } from 'ironfish'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -10,11 +11,17 @@ export class StartPool extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    discord: Flags.string({
+      char: 'd',
+      description: 'a discord webhook URL to send critical information to',
+    }),
   }
 
   pool: MiningPool | null = null
 
   async start(): Promise<void> {
+    const { flags } = await this.parse(StartPool)
+
     const poolName = this.sdk.config.get('poolName') as string
     const nameByteLen = StringUtils.getByteLength(poolName)
     if (nameByteLen > 18) {
@@ -28,10 +35,24 @@ export class StartPool extends IronfishCommand {
 
     this.log(`Starting pool with name ${poolName}`)
 
+    let discord: Discord | undefined = undefined
+
+    const discordWebhook = flags.discord ?? this.sdk.config.get('poolDiscordWebhook')
+    if (discordWebhook) {
+      discord = new Discord({
+        webhook: discordWebhook,
+        logger: this.logger,
+      })
+
+      this.log(`Discord enabled: ${discordWebhook}`)
+    }
+
     this.pool = await MiningPool.init({
       config: this.sdk.config,
       rpc,
+      discord,
     })
+
     await this.pool.start()
     await this.pool.waitForStop()
   }
