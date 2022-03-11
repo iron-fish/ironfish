@@ -4,9 +4,9 @@
 
 import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
-import { JobAbortedError } from './tasks/jobError'
 import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
 import { handleRequest } from './tasks'
+import { JobAbortedError } from './tasks/jobError'
 import { WorkerMessage } from './tasks/workerMessage'
 import { Worker } from './worker'
 

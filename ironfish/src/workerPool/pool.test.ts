@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../testUtilities/matchers'
-import { JobAbortedError } from './tasks/jobError'
 import { WorkerPool } from './pool'
+import { JobAbortedError } from './tasks/jobError'
 import { JobError } from './tasks/jobError'
 
 describe('Worker Pool', () => {
