@@ -6,7 +6,8 @@ import { VerifyTransactionTask } from './verifyTransaction'
 import { WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
-export const handlers: Record<WorkerMessageType, WorkerTask> = {
+export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
+  [WorkerMessageType.JobError]: undefined,
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
   [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),
 }

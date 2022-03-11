@@ -24,7 +24,6 @@ export { MineHeaderRequest, MineHeaderResponse } from './mineHeader'
 export { SleepRequest, SleepResponse } from './sleep'
 export { TransactionFeeRequest, TransactionFeeResponse } from './transactionFee'
 export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
-export { VerifyTransactionRequest, VerifyTransactionResponse } from './verifyTransaction'
 
 export async function handleRequest(
   request: WorkerRequestMessage | WorkerMessage,
@@ -34,6 +33,9 @@ export async function handleRequest(
 
   if (!('body' in request)) {
     const handler = handlers[request.type]
+    if (!handler) {
+      throw new Error()
+    }
     return handler.execute(request)
   }
 

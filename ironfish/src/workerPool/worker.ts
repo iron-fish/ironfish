@@ -9,10 +9,10 @@ import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
-import { JobError } from './errors'
 import { Job } from './job'
-import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks'
+import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
@@ -151,13 +151,7 @@ export class Worker {
         this.send(response)
       })
       .catch((e: unknown) => {
-        this.send({
-          jobId: job.id,
-          body: {
-            type: 'jobError',
-            error: new JobError(e).serialize(),
-          },
-        })
+        this.send(new SerializableJobError(job.id, e))
       })
       .finally(() => {
         this.jobs.delete(job.id)
@@ -195,23 +189,22 @@ export class Worker {
       job.status = 'success'
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
-      job.resolve(this.parseResponse(jobId, type, body))
+      const result = this.parseResponse(jobId, type, body)
+      if (result instanceof JobError) {
+        job.status = 'error'
+        job.reject(result)
+        return
+      }
+
+      job.resolve(result)
       return
     }
 
-    if (response.body.type === 'jobError') {
-      const prevStatus = job.status
-      job.status = 'error'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.reject(JobError.deserialize(response.body.error))
-    } else {
-      const prevStatus = job.status
-      job.status = 'success'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.resolve(response)
-    }
+    const prevStatus = job.status
+    job.status = 'success'
+    job.onChange.emit(job, prevStatus)
+    job.onEnded.emit(job)
+    job.resolve(response)
   }
 
   private parseHeader(data: Buffer): {
@@ -232,6 +225,8 @@ export class Worker {
 
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
     switch (type) {
+      case WorkerMessageType.JobError:
+        throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
@@ -243,8 +238,10 @@ export class Worker {
     jobId: number,
     type: WorkerMessageType,
     response: Buffer,
-  ): WorkerMessage {
+  ): WorkerMessage | JobError {
     switch (type) {
+      case WorkerMessageType.JobError:
+        return SerializableJobError.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
       case WorkerMessageType.VerifyTransaction:
