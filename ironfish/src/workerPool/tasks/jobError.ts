@@ -47,7 +47,7 @@ export class SerializableJobError extends WorkerMessage {
     return bw.render()
   }
 
-  static deserialize(jobId: number, buffer: Buffer): SerializableJobError {
+  static deserialize(jobId: number, buffer: Buffer): JobError {
     const br = bufio.read(buffer, true)
 
     const errorType = br.readVarString('utf8')
@@ -74,7 +74,7 @@ export class SerializableJobError extends WorkerMessage {
     err.code = code
     err.stack = stack
 
-    return err
+    return new JobError(err)
   }
 
   getSize(): number {
@@ -85,3 +85,21 @@ export class SerializableJobError extends WorkerMessage {
     return errorTypeSize + messageSize + codeSize + stackSize
   }
 }
+
+export class JobError extends Error {
+  type = 'JobError'
+  code: string | undefined = undefined
+
+  constructor(serializableJobError?: SerializableJobError) {
+    super()
+
+    if (serializableJobError) {
+      this.code = serializableJobError.code
+      this.stack = serializableJobError.stack
+      this.message = serializableJobError.message
+      this.type = serializableJobError.errorType
+    }
+  }
+}
+
+export class JobAbortedError extends JobError {}

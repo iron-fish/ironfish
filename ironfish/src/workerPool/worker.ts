@@ -10,7 +10,7 @@ import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
-import { SerializableJobError } from './tasks/jobError'
+import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
@@ -189,13 +189,13 @@ export class Worker {
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
       const result = this.parseResponse(jobId, type, body)
-      if (result.type === WorkerMessageType.JobError) {
-        const error = SerializableJobError.deserialize(jobId, body)
-        job.reject(error)
+      if (result instanceof JobError) {
+        job.status = 'error'
+        job.reject(result)
         return
       }
 
-      job.resolve(this.parseResponse(jobId, type, body))
+      job.resolve(result)
       return
     }
 
@@ -235,7 +235,7 @@ export class Worker {
     jobId: number,
     type: WorkerMessageType,
     response: Buffer,
-  ): WorkerMessage {
+  ): WorkerMessage | JobError {
     switch (type) {
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)

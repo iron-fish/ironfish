@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { JobErrorSerialized } from './errors'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -20,11 +19,6 @@ import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/ver
 
 export type JobAbortRequest = {
   type: 'jobAbort'
-}
-
-export type JobErrorResponse = {
-  type: 'jobError'
-  error: JobErrorSerialized
 }
 
 export type WorkerRequestMessage = {
@@ -54,7 +48,6 @@ export type WorkerResponse =
   | CreateMinersFeeResponse
   | CreateTransactionResponse
   | GetUnspentNotesResponse
-  | JobErrorResponse
   | MineHeaderResponse
   | SleepResponse
   | TransactionFeeResponse
