@@ -36,8 +36,7 @@ export class StartPool extends IronfishCommand {
     this.log(`Starting pool with name ${flags.poolName}`)
 
     this.pool = await MiningPool.init({
-      name: flags.poolName,
-      dataDir: this.sdk.config.dataDir,
+      config: this.sdk.config,
       rpc,
     })
     await this.pool.start()
