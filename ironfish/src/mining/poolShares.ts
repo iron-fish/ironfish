@@ -7,12 +7,14 @@ import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
+import { Discord } from './discord'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 export class MiningPoolShares {
   readonly rpc: IronfishIpcClient
   readonly config: Config
   readonly logger: Logger
+  readonly discord: Discord | null
 
   private readonly db: PoolDatabase
   private payoutInterval: SetTimeoutToken | null
@@ -28,11 +30,13 @@ export class MiningPoolShares {
     rpc: IronfishIpcClient
     config: Config
     logger?: Logger
+    discord?: Discord
   }) {
     this.db = options.db
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
     this.config = options.config
+    this.discord = options.discord ?? null
 
     this.poolName = this.config.get('poolName')
     this.recentShareCutoff = this.config.get('poolRecentShareCutoff')
@@ -47,6 +51,7 @@ export class MiningPoolShares {
     rpc: IronfishIpcClient
     config: Config
     logger?: Logger
+    discord?: Discord
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
@@ -57,6 +62,7 @@ export class MiningPoolShares {
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
+      discord: options.discord,
     })
   }
 
@@ -129,7 +135,7 @@ export class MiningPoolShares {
     )
 
     try {
-      await this.rpc.sendTransaction({
+      const transaction = await this.rpc.sendTransaction({
         fromAccountName: this.accountName,
         receives: transactionReceives,
         fee: transactionReceives.length.toString(),
@@ -137,24 +143,31 @@ export class MiningPoolShares {
       })
 
       await this.db.markPayoutSuccess(payoutId, timestamp)
+
+      this.discord?.poolPayoutSuccess(payoutId, transaction.content.hash, transactionReceives)
     } catch (e) {
       this.logger.error('There was an error with the transaction', e)
+      this.discord?.poolPayoutError(e)
     }
   }
 
   sumShares(shares: DatabaseShare[]): { totalShares: number; shares: Map<string, number> } {
     let totalShares = 0
     const shareMap = new Map<string, number>()
+
     shares.forEach((share) => {
       const address = share.publicAddress
       const shareCount = shareMap.get(address)
+
       if (shareCount != null) {
         shareMap.set(address, shareCount + 1)
       } else {
         shareMap.set(address, 1)
       }
+
       totalShares += 1
     })
+
     return {
       totalShares,
       shares: shareMap,

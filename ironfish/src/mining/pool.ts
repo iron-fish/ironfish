@@ -13,6 +13,7 @@ import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
+import { Discord } from './discord'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
@@ -25,6 +26,7 @@ export class MiningPool {
   readonly logger: Logger
   readonly shares: MiningPoolShares
   readonly config: Config
+  readonly discord: Discord | null
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -52,9 +54,11 @@ export class MiningPool {
     shares: MiningPoolShares
     config: Config
     logger?: Logger
+    discord?: Discord
   }) {
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
+    this.discord = options.discord ?? null
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
     this.config = options.config
     this.shares = options.shares
@@ -81,16 +85,20 @@ export class MiningPool {
     rpc: IronfishIpcClient
     config: Config
     logger?: Logger
+    discord?: Discord
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
+      discord: options.discord,
     })
+
     return new MiningPool({
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
+      discord: options.discord,
       shares,
     })
   }
@@ -193,11 +201,14 @@ export class MiningPool {
       const result = await this.rpc.submitBlock(blockTemplate)
 
       if (result.content.added) {
+        const hashRate = await this.estimateHashRate()
+
         this.logger.info(
-          `Block submitted successfully! ${FileUtils.formatHashRate(
-            await this.estimateHashRate(),
-          )}/s`,
+          `Block ${hashedHeader.toString(
+            'hex',
+          )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
         )
+        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
@@ -228,6 +239,10 @@ export class MiningPool {
       return
     }
 
+    if (this.connectWarned) {
+      this.discord?.poolConnected()
+    }
+
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
     this.logger.info('Listening to node for new blocks')
@@ -243,6 +258,7 @@ export class MiningPool {
     this.stratum.waitForWork()
 
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
+    this.discord?.poolDisconnected()
     void this.startConnectingRpc()
   }
 
