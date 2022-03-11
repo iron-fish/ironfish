@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'
@@ -8,54 +9,54 @@ import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
-const RECENT_SHARE_CUTOFF = 10 * 60 // 10 minutes
-
-const SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
-const ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
-
-const PAYOUT_BALANCE_PERCENTAGE_DIVISOR = BigInt(10)
-const ACCOUNT_NAME = 'default'
-
 export class MiningPoolShares {
   readonly rpc: IronfishIpcClient
+  readonly config: Config
   readonly logger: Logger
 
   private readonly db: PoolDatabase
   private payoutInterval: SetTimeoutToken | null
 
   private poolName: string
+  private recentShareCutoff: number
+  private attemptPayoutInterval: number
+  private accountName: string
+  private balancePercentPayout: bigint
 
   constructor(options: {
     db: PoolDatabase
     rpc: IronfishIpcClient
+    config: Config
     logger?: Logger
-    poolName: string
   }) {
     this.db = options.db
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
-    this.poolName = options.poolName
+    this.config = options.config
+
+    this.poolName = this.config.get('poolName')
+    this.recentShareCutoff = this.config.get('poolRecentShareCutoff')
+    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
+    this.accountName = this.config.get('poolAccountName')
+    this.balancePercentPayout = BigInt(this.config.get('poolBalancePercentPayout'))
 
     this.payoutInterval = null
   }
 
   static async init(options: {
     rpc: IronfishIpcClient
-    dataDir: string
+    config: Config
     logger?: Logger
-    poolName: string
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
-      dataDir: options.dataDir,
-      successfulPayoutInterval: SUCCESSFUL_PAYOUT_INTERVAL,
-      attemptPayoutInterval: ATTEMPT_PAYOUT_INTERVAL,
+      config: options.config,
     })
 
     return new MiningPoolShares({
       db,
       rpc: options.rpc,
       logger: options.logger,
-      poolName: options.poolName,
+      config: options.config,
     })
   }
 
@@ -102,10 +103,10 @@ export class MiningPoolShares {
       return
     }
 
-    const balance = await this.rpc.getAccountBalance({ account: ACCOUNT_NAME })
+    const balance = await this.rpc.getAccountBalance({ account: this.accountName })
     const confirmedBalance = BigInt(balance.content.confirmed)
 
-    const payoutAmount = BigIntUtils.divide(confirmedBalance, PAYOUT_BALANCE_PERCENTAGE_DIVISOR)
+    const payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
 
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
@@ -129,7 +130,7 @@ export class MiningPoolShares {
 
     // TODO: Non 200 here will throw
     const response = await this.rpc.sendTransaction({
-      fromAccountName: ACCOUNT_NAME,
+      fromAccountName: this.accountName,
       receives: transactionReceives,
       fee: transactionReceives.length.toString(),
       expirationSequenceDelta: 20,
@@ -161,18 +162,18 @@ export class MiningPoolShares {
   }
 
   async shareRate(): Promise<number> {
-    return (await this.recentShareCount()) / RECENT_SHARE_CUTOFF
+    return (await this.recentShareCount()) / this.recentShareCutoff
   }
 
   private async recentShareCount(): Promise<number> {
-    const timestamp = Math.floor(new Date().getTime() / 1000) - RECENT_SHARE_CUTOFF
+    const timestamp = Math.floor(new Date().getTime() / 1000) - this.recentShareCutoff
     return await this.db.shareCountSince(timestamp)
   }
 
   private startPayoutInterval() {
     this.payoutInterval = setInterval(() => {
       void this.createPayout()
-    }, ATTEMPT_PAYOUT_INTERVAL * 1000)
+    }, this.attemptPayoutInterval * 1000)
   }
 
   private stopPayoutInterval() {

@@ -3,35 +3,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { Config } from '../../fileStores/config'
 import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Migrator } from './migrator'
 
 export class PoolDatabase {
   private readonly db: Database
+  private readonly config: Config
   private readonly migrations: Migrator
   private readonly attemptPayoutInterval: number
   private readonly successfulPayoutInterval: number
 
-  constructor(options: {
-    db: Database
-    attemptPayoutInterval: number
-    successfulPayoutInterval: number
-  }) {
+  constructor(options: { db: Database; config: Config }) {
     this.db = options.db
+    this.config = options.config
     this.migrations = new Migrator({ db: options.db })
-    this.attemptPayoutInterval = options.attemptPayoutInterval
-    this.successfulPayoutInterval = options.successfulPayoutInterval
+    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
+    this.successfulPayoutInterval = this.config.get('poolSuccessfulPayoutInterval')
   }
 
-  static async init(options: {
-    dataDir: string
-    attemptPayoutInterval: number
-    successfulPayoutInterval: number
-  }): Promise<PoolDatabase> {
+  static async init(options: { config: Config }): Promise<PoolDatabase> {
     const fs = new NodeFileProvider()
     await fs.init()
 
-    const poolFolder = fs.join(options.dataDir, '/pool')
+    const poolFolder = fs.join(options.config.dataDir, '/pool')
     await fs.mkdir(poolFolder, { recursive: true })
 
     const db = await open({
@@ -41,8 +36,7 @@ export class PoolDatabase {
 
     return new PoolDatabase({
       db,
-      successfulPayoutInterval: options.successfulPayoutInterval,
-      attemptPayoutInterval: options.attemptPayoutInterval,
+      config: options.config,
     })
   }
 

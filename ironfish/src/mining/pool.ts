@@ -4,6 +4,7 @@
 import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
 import { Assert } from '../assert'
+import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { Target } from '../primitives/target'
 import { IronfishIpcClient } from '../rpc/clients'
@@ -18,15 +19,12 @@ import { mineableHeaderString } from './utils'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
-// Difficulty is set to the expected hashrate that would achieve 1 valid share per 5 minutes
-// Ex: 200,000,000 would mean a miner with 200 mh/s would submit a valid share on average once per 5 minutes
-const DIFFICULTY = BigInt(200_000_000 * 60 * 5)
-
 export class MiningPool {
   readonly stratum: StratumServer
   readonly rpc: IronfishIpcClient
   readonly logger: Logger
   readonly shares: MiningPoolShares
+  readonly config: Config
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -50,23 +48,25 @@ export class MiningPool {
   recalculateTargetInterval: SetTimeoutToken | null
 
   constructor(options: {
-    name: string
     rpc: IronfishIpcClient
     shares: MiningPoolShares
+    config: Config
     logger?: Logger
   }) {
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
     this.stratum = new StratumServer({ pool: this, logger: this.logger })
+    this.config = options.config
     this.shares = options.shares
     this.nextMiningRequestId = 0
     this.miningRequestBlocks = new LeastRecentlyUsed(12)
     this.recentSubmissions = new Map()
     this.currentHeadTimestamp = null
     this.currentHeadDifficulty = null
-    this.name = options.name
 
-    this.difficulty = DIFFICULTY
+    this.name = this.config.get('poolName')
+
+    this.difficulty = BigInt(this.config.get('poolDifficulty'))
     const basePoolTarget = Target.fromDifficulty(this.difficulty).asBigInt()
     this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
 
@@ -78,21 +78,19 @@ export class MiningPool {
   }
 
   static async init(options: {
-    name: string
     rpc: IronfishIpcClient
-    dataDir: string
+    config: Config
     logger?: Logger
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
-      poolName: options.name,
       rpc: options.rpc,
-      dataDir: options.dataDir,
+      config: options.config,
       logger: options.logger,
     })
     return new MiningPool({
-      name: options.name,
       rpc: options.rpc,
       logger: options.logger,
+      config: options.config,
       shares,
     })
   }
