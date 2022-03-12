@@ -1,9 +1,5 @@
 name: Deploy @ironfish/sdk NPM Package
 
-env:
-  DEBUG: 'napi:*'
-  MACOSX_DEPLOYMENT_TARGET: '10.13'
-
 on:
   workflow_dispatch:
 
