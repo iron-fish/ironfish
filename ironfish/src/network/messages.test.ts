@@ -168,16 +168,7 @@ describe('parseMessage', () => {
 
     const output = JSON.stringify(msg)
 
-    try {
-      parseMessage(output)
-      //Ensure we are not reporting a false positive
-      Assert.isFalse(true, 'parseMessage found a type field')
-    } catch (e) {
-      if (!(e instanceof Error)) {
-        throw e
-      }
-      expect(e.message).toContain('Message must have a type field')
-    }
+    expect(() => parseMessage(output)).toThrow('Message must have a type field')
   })
 
   it('Parses json successfully', () => {
@@ -359,7 +350,7 @@ describe('isNoteResponse', () => {
     expect(isNoteResponse(msg)).toBeFalsy()
   })
 
-  it('returns false if the payload is not for a valid note', () => {
+  it('returns false if payload.position is not a number', () => {
     const msg = {
       rpcId: 1,
       direction: Direction.response,
@@ -439,7 +430,7 @@ describe('isNullifierResponse', () => {
     expect(isNullifierResponse(msg)).toBeFalsy()
   })
 
-  it('returns false if the payload is not for a valid nullifier', () => {
+  it('returns false if payload.position is not a number', () => {
     const msg = {
       rpcId: 1,
       direction: Direction.response,
