@@ -71,6 +71,31 @@ describe('MemPool', () => {
       const transactions = Array.from(memPool.get())
       expect(transactions).toEqual([transactionB, transactionC, transactionA])
     }, 60000)
+
+    it('does not return transactions that have been removed from the mempool', async () => {
+      const { node } = nodeTest
+      const { accounts, memPool } = node
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
+
+      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
+      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+
+      await memPool.acceptTransaction(transactionA)
+      await memPool.acceptTransaction(transactionB)
+
+      const generator = memPool.get()
+      const result = generator.next()
+      expect(result.done).toBe(false)
+
+      memPool['deleteTransaction'](transactionA)
+      memPool['deleteTransaction'](transactionB)
+
+      const transactions = Array.from(generator)
+      expect(transactions).toEqual([])
+    }, 60000)
   })
 
   describe('acceptTransaction', () => {

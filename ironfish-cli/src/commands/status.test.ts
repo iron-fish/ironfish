@@ -20,10 +20,13 @@ describe('status', () => {
       heapTotal: 2,
       heapUsed: 1,
       rss: 3,
+      memFree: 4,
+      memTotal: 10,
     },
     miningDirector: { status: 'stopped', miners: 0, blocks: 0 },
     memPool: { size: 0 },
     blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0 } },
+    telemetry: { status: 'stopped', pending: 0, submitted: 0 },
     workers: {
       started: true,
       workers: 1,
@@ -70,13 +73,13 @@ describe('status', () => {
       .it('logs out data for the chain, node, mempool, and syncer', (ctx) => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
-        expectCli(ctx.stdout).include('Heap Used')
         expectCli(ctx.stdout).include('Memory')
         expectCli(ctx.stdout).include('P2P Network')
         expectCli(ctx.stdout).include('Mining')
         expectCli(ctx.stdout).include('Mem Pool')
         expectCli(ctx.stdout).include('Syncer')
         expectCli(ctx.stdout).include('Blockchain')
+        expectCli(ctx.stdout).include('Telemetry')
         expectCli(ctx.stdout).include('Workers')
       })
   })

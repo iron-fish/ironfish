@@ -9,6 +9,11 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export interface NativeSpendProof {
+  treeSize: number
+  rootHash: Buffer
+  nullifier: Buffer
+}
 export interface Key {
   spending_key: string
   incoming_view_key: string
@@ -34,9 +39,9 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, left: Buffer, right: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): NativeNote | undefined | null
+  decryptNoteForOwner(incomingHexKey: string): Buffer | undefined | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): NativeNote | undefined | null
+  decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
 }
 export type NativeNoteBuilder = NoteBuilder
 export class NoteBuilder {
@@ -69,11 +74,6 @@ export class Note {
    */
   nullifier(ownerPrivateKey: string, position: bigint): Buffer
 }
-export class NativeSpendProof {
-  treeSize(): number
-  rootHash(): Buffer
-  nullifier(): Buffer
-}
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {
   constructor(bytes: Buffer)
@@ -102,7 +102,7 @@ export class Transaction {
    * a miner would not accept such a transaction unless it was explicitly set
    * as the miners fee.
    */
-  post_miners_fee(): TransactionPosted
+  post_miners_fee(): Buffer
   /**
    * Post the transaction. This performs a bit of validation, and signs
    * the spends with a signature that proves the spends are part of this
@@ -115,13 +115,6 @@ export class Transaction {
    * sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
    * aka: self.transaction_fee - intended_transaction_fee - change = 0
    */
-  post(spenderHexKey: string, changeGoesTo?: string | undefined | null, intendedTransactionFee: bigint): TransactionPosted
+  post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpirationSequence(expirationSequence: number): void
-}
-export type NativeSimpleTransaction = SimpleTransaction
-export class SimpleTransaction {
-  constructor(spenderHexKey: string, intendedTransactionFee: bigint)
-  spend(note: Note, witness: object): string
-  receive(note: Note): string
-  post(): TransactionPosted
 }

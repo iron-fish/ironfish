@@ -31,6 +31,7 @@ export class Syncer {
   readonly chain: Blockchain
   readonly strategy: Strategy
   readonly metrics: MetricsMonitor
+  readonly telemetry: Telemetry
   readonly logger: Logger
   readonly speed: Meter
 
@@ -57,9 +58,9 @@ export class Syncer {
     this.chain = options.chain
     this.strategy = options.strategy
     this.logger = logger.withTag('syncer')
-    this.metrics =
-      options.metrics ||
-      new MetricsMonitor({ telemetry: options.telemetry, logger: this.logger })
+    this.telemetry = options.telemetry
+
+    this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
@@ -484,6 +485,8 @@ export class Syncer {
       return false
     }
 
+    const seenAt = new Date()
+
     const { added, block } = await this.addBlock(peer, newBlock)
 
     if (!peer.sequence || block.header.sequence > peer.sequence) {
@@ -491,6 +494,10 @@ export class Syncer {
     }
 
     this.onGossip.emit(block)
+
+    if (added) {
+      this.telemetry.submitNewBlockSeen(block, seenAt)
+    }
 
     return added
   }

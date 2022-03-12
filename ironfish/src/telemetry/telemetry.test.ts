@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { mockWorkerPool } from '../testUtilities/mocks'
+import { mockChain, mockWorkerPool } from '../testUtilities/mocks'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -13,7 +13,6 @@ describe('Telemetry', () => {
 
   const mockMetric: Metric = {
     measurement: 'node',
-    name: 'memory',
     fields: [
       {
         name: 'heap_used',
@@ -25,6 +24,7 @@ describe('Telemetry', () => {
 
   beforeEach(() => {
     telemetry = new Telemetry({
+      chain: mockChain(),
       workerPool: mockWorkerPool(),
     })
 
@@ -48,7 +48,10 @@ describe('Telemetry', () => {
   describe('submit', () => {
     describe('when disabled', () => {
       it('does nothing', () => {
-        const disabledTelemetry = new Telemetry({ workerPool: mockWorkerPool() })
+        const disabledTelemetry = new Telemetry({
+          chain: mockChain(),
+          workerPool: mockWorkerPool(),
+        })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)
         expect(disabledTelemetry['points']).toEqual(currentPoints)
@@ -59,7 +62,6 @@ describe('Telemetry', () => {
       it('throws an error', () => {
         const metric: Metric = {
           measurement: 'node',
-          name: 'memory',
           fields: [],
         }
 
@@ -78,31 +80,58 @@ describe('Telemetry', () => {
   })
 
   describe('flush', () => {
-    describe('when the pool throws an error and the queue is not saturated', () => {
-      it('retries the points and logs an error', async () => {
-        jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
-          throw new Error()
+    describe('when the pool throws an error', () => {
+      describe('when max retries have not been hit', () => {
+        it('retries the points and logs an error', async () => {
+          jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
+            throw new Error()
+          })
+          const error = jest.spyOn(telemetry['logger'], 'error')
+
+          const points = [mockMetric]
+          const retries = telemetry['retries']
+          telemetry['points'] = points
+
+          await telemetry.flush()
+          expect(error).toHaveBeenCalled()
+          expect(telemetry['points']).toEqual(points)
+          expect(telemetry['retries']).toBe(retries + 1)
         })
-        const error = jest.spyOn(telemetry['logger'], 'error')
+      })
 
-        const points = []
-        for (let i = 0; i < telemetry['MAX_QUEUE_SIZE'] - 1; i++) {
-          points.push(mockMetric)
-        }
-        telemetry['points'] = points
+      describe('when max retries have been hit', () => {
+        it('clears the points and logs an error', async () => {
+          jest.spyOn(telemetry['workerPool'], 'submitTelemetry').mockImplementationOnce(() => {
+            throw new Error()
+          })
+          const error = jest.spyOn(telemetry['logger'], 'error')
 
-        await telemetry.flush()
-        expect(telemetry['points']).toEqual(points)
-        expect(error).toHaveBeenCalled()
+          telemetry['retries'] = telemetry['MAX_RETRIES']
+          telemetry['points'] = [mockMetric]
+
+          await telemetry.flush()
+          expect(error).toHaveBeenCalled()
+          expect(telemetry['points']).toEqual([])
+          expect(telemetry['retries']).toBe(0)
+        })
       })
     })
 
-    it('submits telemetry to the pool', async () => {
+    it('submits a slice of telemetry points to the pool', async () => {
       const submitTelemetry = jest.spyOn(telemetry['workerPool'], 'submitTelemetry')
-      telemetry.submit(mockMetric)
+      const points = Array(telemetry['MAX_POINTS_TO_SUBMIT'] + 1).fill(mockMetric)
+      telemetry['points'] = points
+
       await telemetry.flush()
 
-      expect(submitTelemetry).toHaveBeenCalled()
+      expect(submitTelemetry).toHaveBeenCalledWith(
+        points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
+      )
+      expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
+      expect(telemetry['points']).toHaveLength(
+        points.slice(telemetry['MAX_POINTS_TO_SUBMIT']).length,
+      )
+      expect(telemetry['retries']).toBe(0)
     })
   })
 })

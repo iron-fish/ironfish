@@ -188,17 +188,7 @@ export class IronfishNode {
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass(workerPool)
 
-    const telemetry = new Telemetry({
-      workerPool,
-      logger,
-      defaultTags: [
-        { name: 'node_id', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', value: uuid() },
-        { name: 'version', value: pkg.version },
-      ],
-    })
-
-    metrics = metrics || new MetricsMonitor({ telemetry, logger })
+    metrics = metrics || new MetricsMonitor({ logger })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -208,7 +198,19 @@ export class IronfishNode {
       autoSeed,
     })
 
-    const memPool = new MemPool({ chain: chain, strategy, logger: logger })
+    const telemetry = new Telemetry({
+      chain,
+      logger,
+      metrics,
+      workerPool,
+      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
+      ],
+    })
+
+    const memPool = new MemPool({ chain, metrics, strategy, logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,

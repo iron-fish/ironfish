@@ -18,38 +18,28 @@ declare module 'event-pubsub' {
 }
 
 declare module 'node-ipc' {
+  import net from 'net'
+  import dgram from 'dgram'
   import EventPubSub from 'event-pubsub'
 
-  export type UdpSocket = unknown
   export type IpcSocketId = string
 
   export type IpcSocket = {
     id: IpcSocketId | undefined
     ipcBuffer: string | undefined
-
-    emit(event: name, data: unknown)
-    write(data: unknown)
-    setEncoding(encoding: string)
-
-    on(name: 'connect', callback: () => void): void
-    on(name: 'close', callback: (socket: UdpSocket | false) => void): void
-    on(name: 'error', callback: (err: unknown) => void): void
-    on(name: 'data', callback: (data: unknown, socket: UdpSocket) => void): void
-    on(name: 'message', callback: (message: unknown, rinfo?: unknown) => void): void
-
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    off(name: string, callback: Function): void
-  }
+  } & (net.Socket | dgram.Socket)
 
   export class IpcServer extends EventPubSub {
     sockets: IpcSocket[]
     start(): void
     stop(): void
+    server: net.Server | dgram.Socket
 
     on(name: 'start', callback: (socket: IpcSocket) => void): void
     on(name: 'data', callback: (data: unknown, socket: IpcSocket) => void): void
     on(name: 'error', callback: (error: unknown) => void): void
     on(name: 'connect', callback: (socket: IpcSocket) => void): void
+    on(name: 'close', callback: (hasError?: boolean) => void): void
     on(
       name: 'socket.disconnected',
       callback: (socket: IpcSocket, destroyedSocketId: IpcSocketId | false) => void,

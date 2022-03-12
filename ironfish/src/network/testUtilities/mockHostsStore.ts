@@ -60,15 +60,8 @@ class MockHostsStore extends HostsStore {
         name: null,
       },
     ])
-    super.set('possiblePeers', [
-      {
-        address: '1.1.1.1',
-        port: 1111,
-        identity: null,
-        name: null,
-      },
-    ])
   }
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async load(): Promise<void> {}
 

@@ -80,14 +80,35 @@ describe('Verifier', () => {
       block.header.minersFee = BigInt(-1)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_MINERS_FEE,
+        reason: VerificationResultReason.MINERS_FEE_MISMATCH,
+        valid: false,
+      })
+    })
+
+    it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
+      const { block } = await useBlockWithTx(nodeTest.node)
+      block.transactions = [block.transactions[1], block.transactions[0]]
+      await expect(block.transactions[0].fee()).resolves.toBeGreaterThan(0)
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
     })
 
     it('rejects a block with miners fee as second transaction', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions = [block.transactions[1], block.transactions[0]]
+      block.transactions[1] = block.transactions[0]
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_TRANSACTION_FEE,
+        valid: false,
+      })
+    })
+
+    it('rejects block with incorrect fee sum', async () => {
+      const { block } = await useBlockWithTx(nodeTest.node)
+      block.transactions[2] = block.transactions[1]
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
@@ -396,6 +417,22 @@ describe('Verifier', () => {
         },
       )
     })
+
+    it('returns any error from verifyConnectedSpends()', async () => {
+      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
+      Assert.isNotNull(genesisBlock)
+
+      jest
+        .spyOn(nodeTest.verifier, 'verifySpend')
+        .mockResolvedValue(VerificationResultReason.ERROR)
+
+      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+        {
+          valid: false,
+          reason: VerificationResultReason.ERROR,
+        },
+      )
+    })
   })
 
   describe('verifyTransaction', () => {
@@ -426,9 +463,9 @@ describe('Verifier', () => {
           .spyOn(transaction['workerPool'], 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
 
-        expect(
-          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
-        ).toEqual({
+        await expect(
+          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).resolves.toEqual({
           valid: false,
           reason: VerificationResultReason.ERROR,
         })
@@ -448,6 +485,24 @@ describe('Verifier', () => {
           await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
         ).toEqual({
           valid: true,
+        })
+      }, 60000)
+    })
+
+    describe('when verify() throws an error', () => {
+      it('returns VERIFY_TRANSACTION', async () => {
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
+          throw new Error('Response type must match request type')
+        })
+
+        await expect(
+          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+        ).resolves.toEqual({
+          valid: false,
+          reason: VerificationResultReason.VERIFY_TRANSACTION,
         })
       }, 60000)
     })

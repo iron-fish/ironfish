@@ -73,7 +73,7 @@ export async function makeGenesisBlock(
   const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new Transaction(
-    Buffer.from(minersFeeTransaction.post_miners_fee().serialize()),
+    minersFeeTransaction.post_miners_fee(),
     workerPool,
   )
 
@@ -91,7 +91,7 @@ export async function makeGenesisBlock(
 
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new Transaction(
-    Buffer.from(initialTransaction.post_miners_fee().serialize()),
+    initialTransaction.post_miners_fee(),
     workerPool,
   )
   transactionList.push(postedInitialTransaction)
@@ -139,7 +139,7 @@ export async function makeGenesisBlock(
 
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
-    Buffer.from(transaction.post(genesisKey.spending_key, undefined, BigInt(0)).serialize()),
+    transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
     workerPool,
   )
   transactionList.push(postedTransaction)
