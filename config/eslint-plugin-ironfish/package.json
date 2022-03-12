@@ -12,5 +12,8 @@
   },
   "scripts": {
     "test": "node index.test.js"
+  },
+  "dependencies": {
+    "@typescript-eslint/utils": "5.14.0"
   }
 }
