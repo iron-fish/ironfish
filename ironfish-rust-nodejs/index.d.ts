@@ -38,18 +38,10 @@ export class NoteEncrypted {
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
 }
-export type NativeNoteBuilder = NoteBuilder
-export class NoteBuilder {
-  /**
-   * TODO: This works around a concurrency bug when using #[napi(factory)]
-   * in worker threads. It can be merged into NativeNote once the bug is fixed.
-   */
-  constructor(owner: string, value: bigint, memo: string)
-  serialize(): Buffer
-}
 export type NativeNote = Note
 export class Note {
-  constructor(bytes: Buffer)
+  constructor(owner: string, value: bigint, memo: string)
+  static deserialize(bytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */
   value(): bigint
