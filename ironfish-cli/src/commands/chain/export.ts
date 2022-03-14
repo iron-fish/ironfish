@@ -40,17 +40,12 @@ export default class Export extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Export)
-    const path = this.sdk.fileSystem.resolve(
-      this.sdk.fileSystem.join(flags.path || this.sdk.config.dataDir, 'data.json'),
-    )
-    const pathAccessible = await this.sdk.fileSystem
-      .access(path)
-      .then(() => true)
-      .catch(() => false)
 
-    if (!pathAccessible) {
-      this.error(`Path "${path}" is not accessible. Check -p argument and try again.`)
-    }
+    const exportDir = flags.path
+      ? this.sdk.fileSystem.resolve(flags.path)
+      : this.sdk.config.dataDir
+
+    const exportPath = this.sdk.fileSystem.join(exportDir, 'data.json')
 
     const client = await this.sdk.connectRpc()
 
@@ -60,7 +55,7 @@ export default class Export extends IronfishCommand {
     })
 
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
-    this.log(`Exporting chain from ${start} -> ${stop} to ${path}`)
+    this.log(`Exporting chain from ${start} -> ${stop} to ${exportPath}`)
 
     const progress = CliUx.ux.progress({
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
@@ -77,7 +72,9 @@ export default class Export extends IronfishCommand {
 
     progress.stop()
 
-    await fs.promises.writeFile(path, JSON.stringify(results, undefined, '  '))
+    await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
+
+    await fs.promises.writeFile(exportPath, JSON.stringify(results, undefined, '  '))
     this.log('Export complete')
   }
 }
