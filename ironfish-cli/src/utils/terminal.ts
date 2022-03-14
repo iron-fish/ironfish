@@ -11,5 +11,7 @@ export function linkText(url: string, text: string): string {
 }
 
 export function isTTY(): boolean {
-  return process.stdin.isTTY && !['dumb', 'emacs-color'].includes(process.env.TERM!)
+  return (
+    Boolean(process.stdin.isTTY) && !['dumb', 'emacs-color'].includes(process.env.TERM ?? '')
+  )
 }
