@@ -15,7 +15,7 @@ export class Miner extends IronfishCommand {
     ...RemoteFlags,
     threads: Flags.integer({
       char: 't',
-      default: 1,
+      default: -1,
       description:
         'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
     }),
