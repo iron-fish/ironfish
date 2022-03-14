@@ -347,8 +347,12 @@ export class MiningPool {
   }
 
   async estimateHashRate(): Promise<number> {
-    // BigInt can't contain decimals, so multiply then divide by 100 to give 2 decimal precision
+    // BigInt can't contain decimals, so multiply then divide to give decimal precision
     const shareRate = await this.shares.shareRate()
-    return Number(BigInt(Math.floor(shareRate * 100)) * this.difficulty) / 100
+    const decimalPrecision = 1000000
+    return (
+      Number(BigInt(Math.floor(shareRate * decimalPrecision)) * this.difficulty) /
+      decimalPrecision
+    )
   }
 }
