@@ -20,7 +20,7 @@ export class Note {
   takeReference(): NativeNote {
     this.referenceCount++
     if (this.note === null) {
-      this.note = new NativeNote(this.noteSerialized)
+      this.note = NativeNote.deserialize(this.noteSerialized)
     }
     return this.note
   }
