@@ -103,7 +103,13 @@ export class MiningPoolMiner {
 
   newWork(miningRequestId: number, header: Buffer): void {
     Assert.isNotNull(this.graffiti)
-    this.logger.info('new work', this.target.toString('hex'), miningRequestId)
+
+    this.logger.info(
+      'new work',
+      this.target.toString('hex'),
+      miningRequestId,
+      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+    )
 
     const headerBytes = Buffer.concat([header])
     headerBytes.set(this.graffiti, 176)
