@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
 import { v4 as uuid } from 'uuid'
-import { Account, Accounts, AccountsDB } from './account'
+import { Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
-import { MiningDirector } from './mining'
+import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
@@ -28,7 +28,7 @@ export class IronfishNode {
   internal: InternalStore
   accounts: Accounts
   logger: Logger
-  miningDirector: MiningDirector
+  miningManager: MiningManager
   metrics: MetricsMonitor
   memPool: MemPool
   workerPool: WorkerPool
@@ -52,7 +52,6 @@ export class IronfishNode {
     accounts,
     strategy,
     metrics,
-    miningDirector,
     memPool,
     workerPool,
     logger,
@@ -69,7 +68,6 @@ export class IronfishNode {
     chain: Blockchain
     strategy: Strategy
     metrics: MetricsMonitor
-    miningDirector: MiningDirector
     memPool: MemPool
     workerPool: WorkerPool
     logger: Logger
@@ -85,7 +83,7 @@ export class IronfishNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
-    this.miningDirector = miningDirector
+    this.miningManager = new MiningManager({ chain, memPool, node: this, telemetry })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)
@@ -125,7 +123,6 @@ export class IronfishNode {
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
-    this.accounts.onDefaultAccountChange.on(this.onDefaultAccountChange)
   }
 
   static async init({
@@ -220,16 +217,6 @@ export class IronfishNode {
 
     const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
 
-    const mining = new MiningDirector({
-      chain,
-      memPool,
-      telemetry,
-      strategy: strategy,
-      logger: logger,
-      graffiti: config.get('blockGraffiti'),
-      force: config.get('miningForce'),
-    })
-
     return new IronfishNode({
       pkg,
       chain,
@@ -239,7 +226,6 @@ export class IronfishNode {
       internal,
       accounts,
       metrics,
-      miningDirector: mining,
       memPool,
       workerPool,
       logger,
@@ -266,11 +252,6 @@ export class IronfishNode {
       await this.chain.close()
       await this.accounts.close()
       throw e
-    }
-
-    if (options.load) {
-      const defaultAccount = this.accounts.getDefaultAccount()
-      this.miningDirector.setMinerAccount(defaultAccount)
     }
   }
 
@@ -318,7 +299,6 @@ export class IronfishNode {
       this.telemetry.stop(),
       this.metrics.stop(),
       this.workerPool.stop(),
-      this.miningDirector.shutdown(),
     ])
 
     if (this.shutdownResolve) {
@@ -332,19 +312,10 @@ export class IronfishNode {
     if (this.config.get('enableSyncing')) {
       void this.syncer.start()
     }
-
-    if (this.config.get('enableMiningDirector')) {
-      void this.miningDirector.start()
-    }
   }
 
   onPeerNetworkNotReady(): void {
     void this.syncer.stop()
-    this.miningDirector.shutdown()
-  }
-
-  onDefaultAccountChange = (account: Account | null): void => {
-    this.miningDirector.setMinerAccount(account)
   }
 
   async onConfigChange<Key extends keyof ConfigOptions>(
@@ -352,10 +323,6 @@ export class IronfishNode {
     newValue: ConfigOptions[Key],
   ): Promise<void> {
     switch (key) {
-      case 'blockGraffiti': {
-        this.miningDirector.setBlockGraffiti(this.config.get('blockGraffiti'))
-        break
-      }
       case 'enableTelemetry': {
         if (newValue) {
           this.telemetry.start()
@@ -377,14 +344,6 @@ export class IronfishNode {
           await this.rpc.start()
         } else {
           await this.rpc.stop()
-        }
-        break
-      }
-      case 'enableMiningDirector': {
-        if (newValue && this.peerNetwork.isReady) {
-          void this.miningDirector.start()
-        } else {
-          this.miningDirector.shutdown()
         }
         break
       }

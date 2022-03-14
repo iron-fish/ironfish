@@ -51,7 +51,7 @@ const sdk = await IronfishSdk.init()
 console.log(await sdk.accounts.list())
 
 // Get a config option from the SDK
-console.log(await sdk.config.get('enableMiningDirector'))
+console.log(await sdk.config.get('blockGraffiti'))
 
 // Start a node from the SDK
 const node = sdk.node()

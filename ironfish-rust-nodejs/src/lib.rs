@@ -50,32 +50,54 @@ pub fn generate_new_public_address(private_key: String) -> Result<Key> {
     })
 }
 
-#[napi(object)]
-pub struct MineHeaderNapiResult {
+#[napi(constructor)]
+pub struct FoundBlockResult {
     pub randomness: f64,
-    pub found_match: bool,
+    pub mining_request_id: f64,
 }
 
 #[napi]
-pub fn mine_header_batch(
-    mut header_bytes: Buffer,
-    initial_randomness: i64,
-    target_buffer: Buffer,
-    batch_size: i64,
-) -> MineHeaderNapiResult {
-    let mut target_array = [0u8; 32];
-    target_array.copy_from_slice(&target_buffer[..32]);
+struct ThreadPoolHandler {
+    threadpool: mining::threadpool::ThreadPool,
+}
+#[napi]
+impl ThreadPoolHandler {
+    #[napi(constructor)]
+    pub fn new(thread_count: u32, batch_size: u32) -> Self {
+        ThreadPoolHandler {
+            threadpool: mining::threadpool::ThreadPool::new(thread_count as usize, batch_size),
+        }
+    }
 
-    // Execute batch mine operation
-    let mine_header_result = mining::mine_header_batch(
-        header_bytes.as_mut(),
-        initial_randomness,
-        &target_array,
-        batch_size,
-    );
+    #[napi]
+    pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32) {
+        self.threadpool
+            .new_work(&header_bytes, &target, mining_request_id)
+    }
 
-    MineHeaderNapiResult {
-        randomness: mine_header_result.randomness,
-        found_match: mine_header_result.found_match,
+    #[napi]
+    pub fn stop(&self) {
+        self.threadpool.stop()
+    }
+
+    #[napi]
+    pub fn pause(&self) {
+        self.threadpool.pause()
+    }
+
+    #[napi]
+    pub fn get_found_block(&self) -> Option<FoundBlockResult> {
+        if let Some(result) = self.threadpool.get_found_block() {
+            return Some(FoundBlockResult {
+                randomness: result.0 as f64,
+                mining_request_id: result.1 as f64,
+            });
+        }
+        None
+    }
+
+    #[napi]
+    pub fn get_hash_rate_submission(&self) -> u32 {
+        self.threadpool.get_hash_rate_submission()
     }
 }

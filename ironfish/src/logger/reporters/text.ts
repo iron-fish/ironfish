@@ -8,7 +8,7 @@
 import colors from 'colors/safe'
 import { ConsolaReporter, ConsolaReporterLogObject, LogLevel } from 'consola'
 import { format as formatDate } from 'date-fns'
-import { StringUtils } from '../../utils/strings'
+import { StringUtils } from '../../utils/string'
 
 const COLORS = [
   colors.red,

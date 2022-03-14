@@ -22,11 +22,6 @@ export interface Key {
 }
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
-export interface MineHeaderNapiResult {
-  randomness: number
-  foundMatch: boolean
-}
-export function mineHeaderBatch(headerBytes: Buffer, initialRandomness: number, targetBuffer: Buffer, batchSize: number): MineHeaderNapiResult
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)
@@ -117,4 +112,17 @@ export class Transaction {
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpirationSequence(expirationSequence: number): void
+}
+export class FoundBlockResult {
+  randomness: number
+  miningRequestId: number
+  constructor(randomness: number, miningRequestId: number)
+}
+export class ThreadPoolHandler {
+  constructor(threadCount: number, batchSize: number)
+  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
+  stop(): void
+  pause(): void
+  getFoundBlock(): FoundBlockResult | undefined | null
+  getHashRateSubmission(): number
 }

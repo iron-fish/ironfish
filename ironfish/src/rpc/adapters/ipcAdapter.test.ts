@@ -35,7 +35,7 @@ describe('IpcAdapter', () => {
   })
 
   afterEach(async () => {
-    client.disconnect()
+    client.close()
     await ipc.stop()
   })
 

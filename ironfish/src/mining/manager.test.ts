@@ -8,14 +8,13 @@ import {
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
-import { AsyncUtils } from '../utils'
 
-describe('Mining director', () => {
+describe('Mining manager', () => {
   const nodeTest = createNodeTest()
 
   it('should not add conflicting transactions', async () => {
     const node = nodeTest.node
-    const { chain, accounts, memPool, miningDirector } = node
+    const { chain, accounts, memPool, miningManager } = node
 
     const account = await useAccountFixture(accounts)
 
@@ -48,7 +47,8 @@ describe('Mining director', () => {
     expect(transactions).toEqual([transactionB, transactionA])
 
     // Should only have transactionB
-    transactions = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    transactions = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+      .blockTransactions
     expect(transactions).toHaveLength(1)
     expect(transactions).toEqual([transactionB])
 
@@ -70,12 +70,14 @@ describe('Mining director', () => {
     expect(memPool.size()).toEqual(2)
 
     // Should no longer try to add transactionB since transactionA is already in the chain
-    transactions = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    transactions = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+      .blockTransactions
     expect(transactions).toHaveLength(0)
-  })
+  }, 10000)
 
   it('should not add expired transaction to block', async () => {
-    const { node, miningDirector, chain, accounts } = nodeTest
+    const { node, chain, accounts } = nodeTest
+    const { miningManager } = nodeTest.node
 
     // Create an account with some money
     const account = await useAccountFixture(accounts)
@@ -96,7 +98,8 @@ describe('Mining director', () => {
       yield transaction
     })
 
-    let results = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+      .blockTransactions
     expect(results).toHaveLength(1)
     expect(results[0].hash().equals(transaction.hash())).toBe(true)
 
@@ -104,7 +107,8 @@ describe('Mining director', () => {
     const block2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(block2)
 
-    results = await AsyncUtils.materialize(miningDirector['getTransactions'](chain.head))
+    results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+      .blockTransactions
     expect(results).toHaveLength(0)
-  })
+  }, 10000)
 })
