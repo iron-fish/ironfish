@@ -13,6 +13,7 @@ import {
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { isTTY } from '../../utils'
 
 export class Miner extends IronfishCommand {
   static description = `Start a miner and subscribe to new blocks for the node`
@@ -90,6 +91,7 @@ export class Miner extends IronfishCommand {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const connected = await client.tryConnect()
+      let hashPowerInterval
 
       if (!connected) {
         this.logger.log('Not connected to a node - waiting 5s before retrying')
@@ -109,12 +111,20 @@ export class Miner extends IronfishCommand {
         (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
       )
 
+      if (isTTY()) {
+        hashPowerInterval = setInterval(updateHashPower, 1000)
+      }
+
       CliUx.ux.action.start('Waiting for director to send work.')
 
       miner.onStartMine.on(onStartMine)
       miner.onStopMine.on(onStopMine)
 
       await miner.mine(nextBlock(transformed), successfullyMined)
+
+      if (hashPowerInterval) {
+        clearInterval(hashPowerInterval)
+      }
     }
   }
 }
