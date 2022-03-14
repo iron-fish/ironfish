@@ -9,3 +9,7 @@ export function linkText(url: string, text: string): string {
 
   return [OSC, '8', SEP, SEP, url, BEL, text, OSC, '8', SEP, SEP, BEL].join('')
 }
+
+export function isTTY(): boolean {
+  return process.stdin.isTTY && !['dumb', 'emacs-color'].includes(process.env.TERM!)
+}
