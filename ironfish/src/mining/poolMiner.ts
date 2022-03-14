@@ -131,7 +131,7 @@ export class MiningPoolMiner {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(
-          'Found block:',
+          'Found share:',
           randomness,
           miningRequestId,
           `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
