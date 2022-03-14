@@ -14,7 +14,6 @@ import { handleMineHeader } from './mineHeader'
 import { handleSleep } from './sleep'
 import { handleTransactionFee } from './transactionFee'
 import { handleUnboxMessage } from './unboxMessage'
-import { handleVerifyTransaction } from './verifyTransaction'
 import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
@@ -25,7 +24,6 @@ export { MineHeaderRequest, MineHeaderResponse } from './mineHeader'
 export { SleepRequest, SleepResponse } from './sleep'
 export { TransactionFeeRequest, TransactionFeeResponse } from './transactionFee'
 export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
-export { VerifyTransactionRequest, VerifyTransactionResponse } from './verifyTransaction'
 
 export async function handleRequest(
   request: WorkerRequestMessage | WorkerMessage,
@@ -55,9 +53,6 @@ export async function handleRequest(
       break
     case 'transactionFee':
       response = handleTransactionFee(body)
-      break
-    case 'verify':
-      response = handleVerifyTransaction(body)
       break
     case 'boxMessage':
       response = handleBoxMessage(body)

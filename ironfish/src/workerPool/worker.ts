@@ -12,6 +12,7 @@ import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
@@ -228,6 +229,8 @@ export class Worker {
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionRequest.deserialize(jobId, request)
     }
   }
 
@@ -237,10 +240,12 @@ export class Worker {
     response: Buffer,
   ): WorkerMessage | JobError {
     switch (type) {
-      case WorkerMessageType.SubmitTelemetry:
-        return SubmitTelemetryResponse.deserialize(jobId)
       case WorkerMessageType.JobError:
         return SerializableJobError.deserialize(jobId, response)
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionResponse.deserialize(jobId, response)
     }
   }
 }

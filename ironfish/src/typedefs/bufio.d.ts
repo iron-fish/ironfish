@@ -42,5 +42,6 @@ declare module 'bufio' {
   export function write(size?: number): StaticWriter | BufferWriter
   export function read(data: Buffer, zeroCopy?: boolean): BufferReader
 
+  export function sizeVarBytes(value: Buffer): number
   export function sizeVarString(value: string, enc?: BufferEncoding): number
 }

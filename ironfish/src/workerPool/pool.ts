@@ -12,7 +12,6 @@ import type {
   SleepRequest,
   TransactionFeeRequest,
   UnboxMessageRequest,
-  VerifyTransactionRequest,
 } from './tasks'
 import _ from 'lodash'
 import { createRootLogger, Logger } from '../logger'
@@ -24,7 +23,11 @@ import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
-import { VerifyTransactionOptions } from './tasks/verifyTransaction'
+import {
+  VerifyTransactionOptions,
+  VerifyTransactionRequest,
+  VerifyTransactionResponse,
+} from './tasks/verifyTransaction'
 import { WorkerMessage } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
 
@@ -51,7 +54,6 @@ export class WorkerPool {
     { complete: number; error: number; queue: number; execute: number }
   >([
     ['createMinersFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['verify', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -196,16 +198,15 @@ export class WorkerPool {
   }
 
   async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
-    const request: VerifyTransactionRequest = {
-      type: 'verify',
-      serializedTransactionPosted: transaction.serialize(),
+    const request: VerifyTransactionRequest = new VerifyTransactionRequest(
+      transaction.serialize(),
       options,
-    }
+    )
 
     const response = await this.execute(request).result()
-
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    // TODO: Remove this check once the old request type is fully empty
+    if (response === null || !(response instanceof VerifyTransactionResponse)) {
+      throw new Error('Invalid response')
     }
 
     return response.verified
