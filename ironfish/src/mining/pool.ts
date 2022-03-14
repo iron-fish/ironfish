@@ -59,7 +59,11 @@ export class MiningPool {
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
     this.discord = options.discord ?? null
-    this.stratum = new StratumServer({ pool: this, logger: this.logger })
+    this.stratum = new StratumServer({
+      pool: this,
+      config: options.config,
+      logger: this.logger,
+    })
     this.config = options.config
     this.shares = options.shares
     this.nextMiningRequestId = 0

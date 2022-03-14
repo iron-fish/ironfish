@@ -5,6 +5,7 @@ import net from 'net'
 import { isValidPublicAddress } from '../../account/validator'
 import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
+import { Config } from '../../fileStores/config'
 import { createRootLogger, Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
@@ -55,7 +56,10 @@ export class StratumServerClient {
 export class StratumServer {
   readonly server: net.Server
   readonly pool: MiningPool
+  readonly config: Config
   readonly logger: Logger
+
+  private port: number
 
   clients: Map<number, StratumServerClient>
   nextMinerId: number
@@ -64,9 +68,12 @@ export class StratumServer {
   currentWork: Buffer | null = null
   currentMiningRequestId: number | null = null
 
-  constructor(options: { pool: MiningPool; logger?: Logger }) {
+  constructor(options: { pool: MiningPool; config: Config; logger?: Logger }) {
     this.pool = options.pool
+    this.config = options.config
     this.logger = options.logger ?? createRootLogger()
+
+    this.port = this.config.get('poolPort')
 
     this.clients = new Map()
     this.nextMinerId = 0
@@ -76,7 +83,7 @@ export class StratumServer {
   }
 
   start(): void {
-    this.server.listen(9034, 'localhost')
+    this.server.listen(this.port, 'localhost')
   }
 
   stop(): void {

@@ -3,7 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import dns from 'dns'
-import { GraffitiUtils, isValidPublicAddress, MiningPoolMiner, MiningSoloMiner } from 'ironfish'
+import {
+  DEFAULT_POOL_PORT,
+  GraffitiUtils,
+  isValidPublicAddress,
+  MiningPoolMiner,
+  MiningSoloMiner,
+} from 'ironfish'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -25,7 +31,7 @@ export class Miner extends IronfishCommand {
     }),
     poolPort: Flags.integer({
       char: 'o',
-      default: 9034,
+      default: DEFAULT_POOL_PORT,
       description: 'the port of the mining pool to connect to such as 9034',
     }),
     address: Flags.string({
@@ -62,7 +68,7 @@ export class Miner extends IronfishCommand {
       this.log(`Staring to mine with public address: ${flags.address} at pool ${flags.pool}`)
 
       const poolHost = (await dns.promises.lookup(flags.pool)).address
-      const port = flags.poolPort ?? 9034
+      const port = flags.poolPort ?? DEFAULT_POOL_PORT
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
