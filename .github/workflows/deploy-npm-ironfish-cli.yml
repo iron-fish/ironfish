@@ -1,0 +1,41 @@
+name: Deploy ironfish NPM Package
+
+env:
+  DEBUG: 'napi:*'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.13.0'
+          registry-url: 'https://registry.npmjs.org'
+          cache: yarn
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: nodejs
+          working-directory: ironfish-rust-nodejs
+
+      - name: Insert Git hash into ironfish-cli/package.json as gitHash
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish-cli/package.json)" > ironfish-cli/package.json
+
+      - name: Install dependencies
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Publish
+        run: npm publish --access public
+        working-directory: ./ironfish-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
