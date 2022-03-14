@@ -22,7 +22,7 @@ export class StartPool extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(StartPool)
 
-    const poolName = this.sdk.config.get('poolName') as string
+    const poolName = this.sdk.config.get('poolName')
     const nameByteLen = StringUtils.getByteLength(poolName)
     if (nameByteLen > 18) {
       this.warn(`The provided name ${poolName} has a byte length of ${nameByteLen}`)
