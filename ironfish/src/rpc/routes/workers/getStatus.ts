@@ -90,7 +90,7 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
 
   for (const name of node.workerPool.stats.keys()) {
     // Move control messages to top level message and not request body type
-    if (name === 'jobAbort' || name === 'sleep') {
+    if (name === 'jobAbort') {
       continue
     }
 
