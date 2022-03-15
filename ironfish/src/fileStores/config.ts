@@ -25,7 +25,7 @@ export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_POOL_DIFFICULTY = '15000000000'
 export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
-export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 10 * 60 // 10 minutes
+export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -154,7 +154,7 @@ export type ConfigOptions = {
   poolPort: number
 
   /**
-   * The pool difficulty, which is the hashrate that the pool expects to check in once per minute.
+   * The pool difficulty, which determines how often miners submit shares.
    */
   poolDifficulty: string
 
