@@ -12,17 +12,14 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
-import {
-  BoxMessageRequest,
-  CreateTransactionRequest,
-  GetUnspentNotesRequest,
-  GetUnspentNotesResponse,
-  SleepRequest,
-  TransactionFeeRequest,
-  UnboxMessageRequest,
-} from './tasks'
+import { BoxMessageRequest } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
+import { CreateTransactionRequest } from './tasks/createTransaction'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
+import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
+import { TransactionFeeRequest } from './tasks/transactionFee'
+import { UnboxMessageRequest } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -53,7 +50,6 @@ export class WorkerPool {
     WorkerRequest['type'],
     { complete: number; error: number; queue: number; execute: number }
   >([
-    ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -276,14 +272,10 @@ export class WorkerPool {
   }
 
   /**
-   * A test worker task that sleeps for specicifed milliseconds
+   * A test worker task that sleeps for specified milliseconds
    */
   sleep(sleep = 0, error = ''): Job {
-    const request: SleepRequest = {
-      type: 'sleep',
-      sleep,
-      error,
-    }
+    const request = new SleepRequest(sleep, error)
 
     const job = this.execute(request)
     job.enableJobAbortError = true
