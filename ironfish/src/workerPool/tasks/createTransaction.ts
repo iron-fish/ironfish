@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import { Note, NoteBuilder, Transaction } from 'ironfish-rust-nodejs'
+import { Note, Transaction } from '@ironfish/rust-nodejs'
 import { Assert, BigIntUtils } from '../..'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
@@ -216,7 +216,7 @@ export class CreateTransactionTask extends WorkerTask {
     transaction.setExpirationSequence(expirationSequence)
 
     for (const spend of spends) {
-      const note = new Note(spend.note)
+      const note = Note.deserialize(spend.note)
       transaction.spend(
         spendKey,
         note,
@@ -225,7 +225,7 @@ export class CreateTransactionTask extends WorkerTask {
     }
 
     for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(new NoteBuilder(publicAddress, amount, memo).serialize())
+      const note = new Note(publicAddress, amount, memo)
       transaction.receive(spendKey, note)
     }
 
