@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
-import { generateKey, generateNewPublicAddress } from 'ironfish-rust-nodejs'
-import { ChainProcessor } from '..'
 import { Blockchain } from '../blockchain'
+import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
@@ -156,6 +156,10 @@ export class Accounts {
   async open(
     options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
   ): Promise<void> {
+    if (this.isOpen) {
+      return
+    }
+
     this.isOpen = true
     await this.db.open(options)
 
@@ -426,7 +430,7 @@ export class Accounts {
           const existingT = this.transactionMap.get(transactionHash)
           // If we passed in a submittedSequence, set submittedSequence to that value.
           // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          //   submittedSequence was passed in.
+          // submittedSequence was passed in.
           // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
           newSequence = submittedSequence || existingT?.submittedSequence || null
 

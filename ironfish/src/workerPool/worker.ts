@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
-import { generateKey } from 'ironfish-rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'

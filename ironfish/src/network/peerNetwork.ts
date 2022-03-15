@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import tweetnacl from 'tweetnacl'
-import { HostsStore } from '..'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
+import { HostsStore } from '../fileStores/hosts'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
@@ -269,7 +269,7 @@ export class PeerNetwork {
       (message) => this.onGetBlocksRequest(message),
     )
 
-    this.node.miningDirector.onNewBlock.on((block) => {
+    this.node.miningManager.onNewBlock.on((block) => {
       this.gossipBlock(block)
     })
 

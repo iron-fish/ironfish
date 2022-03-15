@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Flags, Interfaces } from '@oclif/core'
 import {
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
   DEFAULT_DATABASE_NAME,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
-} from 'ironfish'
+} from '@ironfish/sdk'
+import { Flags, Interfaces } from '@oclif/core'
 
 type CompletableOptionFlag = Interfaces.CompletableOptionFlag<unknown>
 

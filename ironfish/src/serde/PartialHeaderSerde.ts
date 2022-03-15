@@ -7,7 +7,7 @@ import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { BigIntUtils } from '../utils'
-import { Serde } from '.'
+import { Serde } from './Serde'
 
 export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader, Buffer> {
   serialize(header: PartialBlockHeader): Buffer {
@@ -61,7 +61,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
   }
 }
 
-type PartialBlockHeader = {
+export type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {

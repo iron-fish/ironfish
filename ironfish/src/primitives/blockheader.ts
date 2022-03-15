@@ -22,7 +22,7 @@ export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
     return a.sequence > b.sequence
   }
 
-  return a.hash < b.hash
+  return a.hash.compare(b.hash) < 0
 }
 
 export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
@@ -38,7 +38,7 @@ export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
     return a.target.toDifficulty() > b.target.toDifficulty()
   }
 
-  return a.hash < b.hash
+  return a.hash.compare(b.hash) < 0
 }
 
 export class BlockHeader {

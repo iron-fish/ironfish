@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { spawn } from 'child_process'
 import fsAsync from 'fs/promises'
-import { FileUtils, NodeUtils } from 'ironfish'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'

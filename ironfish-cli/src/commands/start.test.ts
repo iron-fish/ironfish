@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as ironfishmodule from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
-import * as ironfishmodule from 'ironfish'
 import { v4 as uuid } from 'uuid'
 import { IronfishCliPKG } from '../package'
 
-jest.mock('ironfish', () => {
-  const originalModule = jest.requireActual('ironfish')
+jest.mock('@ironfish/sdk', () => {
+  const originalModule = jest.requireActual('@ironfish/sdk')
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {

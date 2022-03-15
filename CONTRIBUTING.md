@@ -86,5 +86,5 @@ Please contact us if this a concern for you.
 # Contact Us
 
 In case of problems with trying to contribute to Iron Fish, you can contact us:
-* On [Discord](https://discord.gg/H7Mk3qacyM)
+* On [Discord](https://discord.gg/ironfish)
 * Via [email](contact@ironfish.network)
