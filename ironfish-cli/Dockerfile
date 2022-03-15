@@ -5,7 +5,7 @@ COPY ./ ./
 
 RUN \
     apt-get update && \
-    apt-get install jq rsync gcc cmake -y && \
+    apt-get install jq rsync gcc cmake python -y && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     ./ironfish-cli/scripts/build.sh
 
