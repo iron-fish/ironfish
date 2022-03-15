@@ -13,6 +13,7 @@ import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
@@ -232,6 +233,8 @@ export class Worker {
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.TransactionFee:
+        return TransactionFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
     }
@@ -249,6 +252,8 @@ export class Worker {
         return SerializableJobError.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.TransactionFee:
+        return TransactionFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
     }

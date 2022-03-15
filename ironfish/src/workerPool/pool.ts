@@ -3,14 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
-import type {
-  BoxMessageRequest,
-  CreateTransactionRequest,
-  GetUnspentNotesRequest,
-  SleepRequest,
-  TransactionFeeRequest,
-  UnboxMessageRequest,
-} from './tasks'
 import _ from 'lodash'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -20,8 +12,16 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
+import {
+  BoxMessageRequest,
+  CreateTransactionRequest,
+  GetUnspentNotesRequest,
+  SleepRequest,
+  UnboxMessageRequest,
+} from './tasks'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
+import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -57,7 +57,6 @@ export class WorkerPool {
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
@@ -176,18 +175,15 @@ export class WorkerPool {
   }
 
   async transactionFee(transaction: Transaction): Promise<bigint> {
-    const request: TransactionFeeRequest = {
-      type: 'transactionFee',
-      serializedTransactionPosted: transaction.serialize(),
-    }
+    const request = new TransactionFeeRequest(transaction.serialize())
 
     const response = await this.execute(request).result()
-
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    // TODO: Remove this check once the old request type is fully empty
+    if (response === null || !(response instanceof TransactionFeeResponse)) {
+      throw new Error('Invalid response')
     }
 
-    return response.transactionFee
+    return response.fee
   }
 
   async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {

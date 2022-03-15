@@ -9,7 +9,8 @@ export enum WorkerMessageType {
   CreateMinersFee = 0,
   JobError = 1,
   SubmitTelemetry = 2,
-  VerifyTransaction = 3,
+  TransactionFee = 3,
+  VerifyTransaction = 4,
 }
 
 export abstract class WorkerMessage implements Serializable {

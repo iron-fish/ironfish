@@ -10,7 +10,6 @@ import { handleCreateTransaction } from './createTransaction'
 import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
 import { handleSleep } from './sleep'
-import { handleTransactionFee } from './transactionFee'
 import { handleUnboxMessage } from './unboxMessage'
 import { WorkerMessage } from './workerMessage'
 
@@ -19,7 +18,6 @@ export { GetUnspentNotesRequest, GetUnspentNotesResponse } from './getUnspentNot
 export { BoxMessageRequest, BoxMessageResponse } from './boxMessage'
 export { CreateMinersFeeRequest, CreateMinersFeeResponse } from './createMinersFee'
 export { SleepRequest, SleepResponse } from './sleep'
-export { TransactionFeeRequest, TransactionFeeResponse } from './transactionFee'
 export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
 
 export async function handleRequest(
@@ -44,9 +42,6 @@ export async function handleRequest(
       break
     case 'getUnspentNotes':
       response = handleGetUnspentNotes(body)
-      break
-    case 'transactionFee':
-      response = handleTransactionFee(body)
       break
     case 'boxMessage':
       response = handleBoxMessage(body)

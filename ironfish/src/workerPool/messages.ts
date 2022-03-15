@@ -6,7 +6,6 @@ import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 
 /**
@@ -34,7 +33,6 @@ export type WorkerRequest =
   | GetUnspentNotesRequest
   | JobAbortRequest
   | SleepRequest
-  | TransactionFeeRequest
   | UnboxMessageRequest
 
 export type WorkerResponse =
@@ -42,5 +40,4 @@ export type WorkerResponse =
   | CreateTransactionResponse
   | GetUnspentNotesResponse
   | SleepResponse
-  | TransactionFeeResponse
   | UnboxMessageResponse
