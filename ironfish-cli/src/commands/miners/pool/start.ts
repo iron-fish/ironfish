@@ -15,6 +15,11 @@ export class StartPool extends IronfishCommand {
       char: 'd',
       description: 'a discord webhook URL to send critical information to',
     }),
+    payouts: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'whether the pool should payout or not. useful for solo miners',
+    }),
   }
 
   pool: MiningPool | null = null
@@ -50,6 +55,7 @@ export class StartPool extends IronfishCommand {
     this.pool = await MiningPool.init({
       config: this.sdk.config,
       rpc,
+      enablePayouts: flags.payouts,
       discord,
     })
 

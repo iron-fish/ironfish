@@ -17,6 +17,7 @@ export class MiningPoolShares {
   readonly discord: Discord | null
 
   private readonly db: PoolDatabase
+  private enablePayouts: boolean
   private payoutInterval: SetTimeoutToken | null
 
   private poolName: string
@@ -31,12 +32,14 @@ export class MiningPoolShares {
     config: Config
     logger?: Logger
     discord?: Discord
+    enablePayouts?: boolean
   }) {
     this.db = options.db
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
     this.config = options.config
+    this.logger = options.logger ?? createRootLogger()
     this.discord = options.discord ?? null
+    this.enablePayouts = options.enablePayouts ?? true
 
     this.poolName = this.config.get('poolName')
     this.recentShareCutoff = this.config.get('poolRecentShareCutoff')
@@ -52,6 +55,7 @@ export class MiningPoolShares {
     config: Config
     logger?: Logger
     discord?: Discord
+    enablePayouts?: boolean
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
@@ -60,14 +64,17 @@ export class MiningPoolShares {
     return new MiningPoolShares({
       db,
       rpc: options.rpc,
-      logger: options.logger,
       config: options.config,
+      logger: options.logger,
       discord: options.discord,
+      enablePayouts: options.enablePayouts,
     })
   }
 
   async start(): Promise<void> {
-    this.startPayoutInterval()
+    if (this.enablePayouts) {
+      this.startPayoutInterval()
+    }
     await this.db.start()
   }
 

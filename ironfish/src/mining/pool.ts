@@ -90,12 +90,14 @@ export class MiningPool {
     config: Config
     logger?: Logger
     discord?: Discord
+    enablePayouts?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
       discord: options.discord,
+      enablePayouts: options.enablePayouts,
     })
 
     return new MiningPool({
