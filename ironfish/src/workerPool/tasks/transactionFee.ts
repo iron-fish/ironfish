@@ -48,7 +48,7 @@ export class TransactionFeeResponse extends WorkerMessage {
 
   static deserialize(jobId: number, buffer: Buffer): TransactionFeeResponse {
     const reader = bufio.read(buffer, true)
-    const fee = BigIntUtils.fromBytes(reader.readVarBytes())
+    const fee = BigInt(-1) * BigIntUtils.fromBytes(reader.readVarBytes())
     return new TransactionFeeResponse(fee, jobId)
   }
 
