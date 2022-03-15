@@ -104,7 +104,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       const authPathLength = reader.readU64()
       const authPath = []
       for (let j = 0; j < authPathLength; j++) {
-        const side = reader.readU8() ? Side.Right : Side.Left
+        const side = Boolean(reader.readU8()) ? Side.Right : Side.Left
         const hashOfSibling = reader.readVarBytes()
         authPath.push({ side, hashOfSibling })
       }
@@ -133,7 +133,6 @@ export class CreateTransactionRequest extends WorkerMessage {
 
   getSize(): number {
     let spendsSize = 0
-    let receivesSize = 0
 
     for (const spend of this.spends) {
       let authPathSize = 0
@@ -142,20 +141,28 @@ export class CreateTransactionRequest extends WorkerMessage {
         authPathSize += bufio.sizeVarBytes(step.hashOfSibling)
       }
       spendsSize +=
-        bufio.sizeVarBytes(spend.note) + 8 + bufio.sizeVarBytes(spend.rootHash) + authPathSize
+        bufio.sizeVarBytes(spend.note) +
+        8 + // treeSize
+        bufio.sizeVarBytes(spend.rootHash) +
+        8 + // authPath length
+        authPathSize
     }
 
+    let receivesSize = 0
     for (const receive of this.receives) {
       receivesSize +=
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
         bufio.sizeVarString(receive.memo)
     }
+
     return (
       bufio.sizeVarString(this.spendKey) +
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.transactionFee)) +
       8 + // expirationSequence
+      8 + // spends length
       spendsSize +
+      8 + // receives length
       receivesSize
     )
   }
@@ -166,7 +173,7 @@ export class CreateTransactionResponse extends WorkerMessage {
 
   constructor(serializedTransactionPosted: Buffer, jobId: number) {
     super(WorkerMessageType.CreateTransaction, jobId)
-    this.serializedTransactionPosted = serializedTransactionPosted
+    this.serializedTransactionPosted = Uint8Array.from(serializedTransactionPosted)
   }
 
   serialize(): Buffer {
