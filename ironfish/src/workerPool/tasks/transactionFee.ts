@@ -43,17 +43,20 @@ export class TransactionFeeResponse extends WorkerMessage {
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeVarBytes(BigIntUtils.toBytes(this.fee))
+    bw.writeU8(Number(this.fee < BigInt(-1)))
     return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): TransactionFeeResponse {
     const reader = bufio.read(buffer, true)
-    const fee = BigInt(-1) * BigIntUtils.fromBytes(reader.readVarBytes())
+    const feeAmount = BigIntUtils.fromBytes(reader.readVarBytes())
+    const negative = reader.readU8()
+    const fee = negative ? BigInt(-1) * feeAmount : feeAmount
     return new TransactionFeeResponse(fee, jobId)
   }
 
   getSize(): number {
-    return bufio.sizeVarBytes(BigIntUtils.toBytes(this.fee))
+    return bufio.sizeVarBytes(BigIntUtils.toBytes(this.fee)) + 1
   }
 }
 
