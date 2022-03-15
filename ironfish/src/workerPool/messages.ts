@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { MineHeaderRequest, MineHeaderResponse } from './tasks/mineHeader'
@@ -32,7 +31,6 @@ export type WorkerResponseMessage = {
 
 export type WorkerRequest =
   | BoxMessageRequest
-  | CreateMinersFeeRequest
   | CreateTransactionRequest
   | GetUnspentNotesRequest
   | JobAbortRequest
@@ -43,7 +41,6 @@ export type WorkerRequest =
 
 export type WorkerResponse =
   | BoxMessageResponse
-  | CreateMinersFeeResponse
   | CreateTransactionResponse
   | GetUnspentNotesResponse
   | MineHeaderResponse

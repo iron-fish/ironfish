@@ -10,6 +10,7 @@ import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
+import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
@@ -225,6 +226,8 @@ export class Worker {
 
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
     switch (type) {
+      case WorkerMessageType.CreateMinersFee:
+        return CreateMinersFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.SubmitTelemetry:
@@ -240,6 +243,8 @@ export class Worker {
     response: Buffer,
   ): WorkerMessage | JobError {
     switch (type) {
+      case WorkerMessageType.CreateMinersFee:
+        return CreateMinersFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.JobError:
         return SerializableJobError.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
