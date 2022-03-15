@@ -11,9 +11,9 @@ import {
 const mockSerializedTransaction = Buffer.from('foobar')
 const postMinersFee = jest.fn().mockImplementationOnce(() => mockSerializedTransaction)
 
-jest.mock('ironfish-rust-nodejs', () => {
+jest.mock('@ironfish/rust-nodejs', () => {
   const module =
-    jest.requireActual<typeof import('ironfish-rust-nodejs')>('ironfish-rust-nodejs')
+    jest.requireActual<typeof import('@ironfish/rust-nodejs')>('@ironfish/rust-nodejs')
   return {
     ...module,
     Transaction: jest.fn().mockImplementation(() => ({

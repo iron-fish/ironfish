@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx, Flags } from '@oclif/core'
 import {
-  AsyncUtils,
-  FileUtils,
-  Miner as IronfishMiner,
-  MineRequest,
-  NewBlocksStreamResponse,
-  PromiseUtils,
-} from 'ironfish'
+  DEFAULT_POOL_PORT,
+  GraffitiUtils,
+  isValidPublicAddress,
+  MiningPoolMiner,
+  MiningSoloMiner,
+} from '@ironfish/sdk'
+import { Flags } from '@oclif/core'
+import dns from 'dns'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -21,9 +21,22 @@ export class Miner extends IronfishCommand {
     ...RemoteFlags,
     threads: Flags.integer({
       char: 't',
-      default: 1,
+      default: -1,
       description:
         'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+    }),
+    pool: Flags.string({
+      char: 'p',
+      description: 'the host of the mining pool to connect to such as 92.191.17.232',
+    }),
+    poolPort: Flags.integer({
+      char: 'o',
+      default: DEFAULT_POOL_PORT,
+      description: 'the port of the mining pool to connect to such as 9034',
+    }),
+    address: Flags.string({
+      char: 'a',
+      description: 'the public address to receive pool payouts',
     }),
   }
 
@@ -38,87 +51,51 @@ export class Miner extends IronfishCommand {
       flags.threads = os.cpus().length
     }
 
-    const client = this.sdk.client
+    const graffiti = this.sdk.config.get('blockGraffiti')
     const batchSize = this.sdk.config.get('minerBatchSize')
-    const miner = new IronfishMiner(flags.threads, batchSize)
 
-    const successfullyMined = (request: MineRequest, randomness: number) => {
-      this.log(
-        `Submitting hash for block ${request.sequence} on request ${request.miningRequestId} (${randomness})`,
-      )
-
-      const response = client.successfullyMined({
-        randomness,
-        miningRequestId: request.miningRequestId,
-      })
-
-      response.waitForEnd().catch(() => {
-        this.log('Unable to submit mined block')
-      })
-    }
-
-    const updateHashPower = () => {
-      const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
-      const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
-      CliUx.ux.action.status = formatted
-    }
-
-    const onStartMine = (request: MineRequest) => {
-      CliUx.ux.action.start(
-        `Mining block ${request.sequence} on request ${request.miningRequestId}`,
-      )
-      updateHashPower()
-    }
-
-    const onStopMine = () => {
-      CliUx.ux.action.start('Waiting for next block')
-      updateHashPower()
-    }
-
-    async function* nextBlock(blocksStream: AsyncGenerator<MineRequest, void, void>) {
-      for (;;) {
-        const blocksResult = await blocksStream.next()
-
-        if (blocksResult.done) {
-          return
-        }
-
-        yield blocksResult.value
-      }
-    }
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const connected = await client.tryConnect()
-
-      if (!connected) {
-        this.logger.log('Not connected to a node - waiting 5s before retrying')
-        await PromiseUtils.sleep(5000)
-        continue
+    if (flags.pool) {
+      if (flags.address == null) {
+        this.error(
+          "Can't mine from a pool without a public address. Use `-a address-goes-here` to provide one.",
+        )
       }
 
-      this.logger.log(
-        `Starting to mine with ${flags.threads} thread${flags.threads === 1 ? '' : 's'}`,
-      )
+      if (!isValidPublicAddress(flags.address)) {
+        this.error('The given public address is not valid, please provide a valid one.')
+      }
 
-      const blocksStream = client.newBlocksStream().contentStream()
+      this.log(`Staring to mine with public address: ${flags.address} at pool ${flags.pool}`)
 
-      // We do this to tranform the JSON bytes back to a buffer
-      const transformed = AsyncUtils.transform<NewBlocksStreamResponse, MineRequest>(
-        blocksStream,
-        (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
-      )
+      const poolHost = (await dns.promises.lookup(flags.pool)).address
+      const port = flags.poolPort ?? DEFAULT_POOL_PORT
 
-      CliUx.ux.action.start('Waiting for director to send work.')
+      const miner = new MiningPoolMiner({
+        threadCount: flags.threads,
+        publicAddress: flags.address,
+        batchSize,
+        host: poolHost,
+        port: port,
+      })
 
-      const hashPowerInterval = setInterval(updateHashPower, 1000)
+      miner.start()
+      await miner.waitForStop()
+    }
 
-      miner.onStartMine.on(onStartMine)
-      miner.onStopMine.on(onStopMine)
+    if (!flags.pool) {
+      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
 
-      await miner.mine(nextBlock(transformed), successfullyMined)
+      const rpc = this.sdk.client
 
-      clearInterval(hashPowerInterval)
+      const miner = new MiningSoloMiner({
+        threadCount: flags.threads,
+        graffiti: GraffitiUtils.fromString(graffiti),
+        batchSize,
+        rpc,
+      })
+
+      miner.start()
+      await miner.waitForStop()
     }
   }
 }

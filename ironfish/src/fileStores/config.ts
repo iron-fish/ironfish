@@ -13,9 +13,19 @@ export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
-export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
+export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+
+// Pool defaults
+export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
+export const DEFAULT_POOL_ACCOUNT_NAME = 'default'
+export const DEFAULT_POOL_BALANCE_PERCENT_PAYOUT = 10
+export const DEFAULT_POOL_PORT = 9034
+export const DEFAULT_POOL_DIFFICULTY = '15000000000'
+export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
+export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
+export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -23,7 +33,6 @@ export type ConfigOptions = {
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
-  enableMiningDirector: boolean
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
@@ -123,6 +132,51 @@ export type ConfigOptions = {
    * The number of hashes processed by miner per worker request.
    */
   minerBatchSize: number
+
+  /**
+   * The name that the pool will use in block graffiti and transaction memo.
+   */
+  poolName: string
+
+  /**
+   * The name of the account that the pool will use to payout from.
+   */
+  poolAccountName: string
+
+  /**
+   * The percent of the confirmed balance of the pool's account that it will payout
+   */
+  poolBalancePercentPayout: number
+
+  /**
+   * The port that the pool is listening for miner connections on.
+   */
+  poolPort: number
+
+  /**
+   * The pool difficulty, which determines how often miners submit shares.
+   */
+  poolDifficulty: string
+
+  /**
+   * The length of time in seconds that the pool will wait between checking if it is time to make a payout.
+   */
+  poolAttemptPayoutInterval: number
+
+  /**
+   * The length of time in seconds that the pool will wait between successful payouts.
+   */
+  poolSuccessfulPayoutInterval: number
+
+  /**
+   * The length of time in seconds that will be used to calculate hashrate for the pool.
+   */
+  poolRecentShareCutoff: number
+
+  /**
+   * The discord webhook URL to post pool critical pool information too
+   */
+  poolDiscordWebhook: ''
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -157,7 +211,6 @@ export class Config extends KeyStore<ConfigOptions> {
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
-      enableMiningDirector: false,
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
@@ -188,6 +241,15 @@ export class Config extends KeyStore<ConfigOptions> {
       generateNewIdentity: false,
       blocksPerMessage: 20,
       minerBatchSize: 10000,
+      poolName: DEFAULT_POOL_NAME,
+      poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
+      poolPort: DEFAULT_POOL_PORT,
+      poolDifficulty: DEFAULT_POOL_DIFFICULTY,
+      poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
+      poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
+      poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
+      poolDiscordWebhook: '',
     }
   }
 }

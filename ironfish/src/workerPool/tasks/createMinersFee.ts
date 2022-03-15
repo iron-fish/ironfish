@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateNewPublicAddress, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { generateNewPublicAddress, Note, NoteBuilder, Transaction } from 'ironfish-rust-nodejs'
 import { BigIntUtils } from '../../utils'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -78,7 +78,7 @@ export class CreateMinersFeeTask extends WorkerTask {
   execute({ amount, memo, spendKey, jobId }: CreateMinersFeeRequest): CreateMinersFeeResponse {
     // Generate a public address from the miner's spending key
     const minerPublicAddress = generateNewPublicAddress(spendKey).public_address
-    const minerNote = new Note(new NoteBuilder(minerPublicAddress, amount, memo).serialize())
+    const minerNote = new Note(minerPublicAddress, amount, memo)
 
     const transaction = new Transaction()
     transaction.receive(spendKey, minerNote)

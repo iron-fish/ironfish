@@ -5,6 +5,8 @@ import { Logger } from '../../logger'
 import { Response, ResponseEnded } from '../response'
 import {
   ApiNamespace,
+  BlockTemplateStreamRequest,
+  BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
   GetAccountsRequest,
@@ -32,8 +34,6 @@ import {
   GetStatusResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
-  NewBlocksStreamRequest,
-  NewBlocksStreamResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetConfigRequest,
@@ -41,8 +41,8 @@ import {
   ShowChainRequest,
   ShowChainResponse,
   StopNodeResponse,
-  SuccessfullyMinedRequest,
-  SuccessfullyMinedResponse,
+  SubmitBlockRequest,
+  SubmitBlockResponse,
   UploadConfigRequest,
   UploadConfigResponse,
   UseAccountRequest,
@@ -77,6 +77,9 @@ export abstract class IronfishRpcClient {
   constructor(logger: Logger) {
     this.logger = logger
   }
+
+  abstract connect(options?: Record<string, unknown>): Promise<void> | void
+  abstract close(): void
 
   abstract request<TEnd = unknown, TStream = unknown>(
     route: string,
@@ -268,20 +271,20 @@ export abstract class IronfishRpcClient {
     ).waitForEnd()
   }
 
-  newBlocksStream(
-    params: NewBlocksStreamRequest = undefined,
-  ): Response<void, NewBlocksStreamResponse> {
-    return this.request<void, NewBlocksStreamResponse>(
-      `${ApiNamespace.miner}/newBlocksStream`,
+  blockTemplateStream(
+    params: BlockTemplateStreamRequest = undefined,
+  ): Response<void, BlockTemplateStreamResponse> {
+    return this.request<void, BlockTemplateStreamResponse>(
+      `${ApiNamespace.miner}/blockTemplateStream`,
       params,
     )
   }
 
-  successfullyMined(params: SuccessfullyMinedRequest): Response<SuccessfullyMinedResponse> {
-    return this.request<SuccessfullyMinedResponse>(
-      `${ApiNamespace.miner}/successfullyMined`,
+  submitBlock(params: SubmitBlockRequest): Promise<ResponseEnded<SubmitBlockResponse>> {
+    return this.request<SubmitBlockResponse>(
+      `${ApiNamespace.miner}/submitBlock`,
       params,
-    )
+    ).waitForEnd()
   }
 
   exportMinedStream(

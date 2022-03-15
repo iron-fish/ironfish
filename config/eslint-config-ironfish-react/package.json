@@ -6,7 +6,7 @@
   "license": "MPL-2.0",
   "files": [
     "index.js",
-    "prettierrc.js"
+    ".prettierrc.js"
   ],
   "peerDependencies": {
     "eslint-config-ironfish": "*",

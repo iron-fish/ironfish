@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx } from '@oclif/core'
 import {
   AsyncUtils,
   GENESIS_BLOCK_SEQUENCE,
@@ -9,7 +8,8 @@ import {
   Meter,
   oreToIron,
   TimeUtils,
-} from 'ironfish'
+} from '@ironfish/sdk'
+import { CliUx } from '@oclif/core'
 import readline from 'readline'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'

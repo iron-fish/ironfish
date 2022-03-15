@@ -1,9 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  Assert,
+  BlockHeader,
+  IDatabaseTransaction,
+  IronfishNode,
+  TimeUtils,
+} from '@ironfish/sdk'
+import { Meter } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { Assert, BlockHeader, IDatabaseTransaction, IronfishNode, TimeUtils } from 'ironfish'
-import { Meter } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'

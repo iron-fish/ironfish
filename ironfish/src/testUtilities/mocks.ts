@@ -39,6 +39,7 @@ export function mockNode(): any {
     accounts: mockAccounts(),
     memPool: mockMempool(),
     miningDirector: mockDirector(),
+    miningManager: mockMiningManager(),
     syncer: mockSyncer(),
     workerPool: mockWorkerPool(),
     chain: mockChain(),
@@ -50,6 +51,12 @@ export function mockPeerNetwork(): any {
 }
 
 export function mockDirector(): any {
+  return {
+    onNewBlock: mockEvent(),
+  }
+}
+
+export function mockMiningManager(): any {
   return {
     onNewBlock: mockEvent(),
   }

@@ -269,7 +269,7 @@ export class PeerNetwork {
       (message) => this.onGetBlocksRequest(message),
     )
 
-    this.node.miningDirector.onNewBlock.on((block) => {
+    this.node.miningManager.onNewBlock.on((block) => {
       this.gossipBlock(block)
     })
 

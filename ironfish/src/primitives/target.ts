@@ -95,7 +95,7 @@ export class Target {
 
   /**
    * Calculate the difficulty for the current block given the timestamp in that
-   * block's header, the pervious block's timestamp and previous block's target.
+   * block's header, the previous block's timestamp and previous block's target.
    *
    * Note that difficulty == 2**256 / target and target == 2**256 / difficulty
    *
