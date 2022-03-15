@@ -5,7 +5,6 @@
 import type { Side } from '../merkletree/merkletree'
 import type {
   BoxMessageRequest,
-  CreateMinersFeeRequest,
   CreateTransactionRequest,
   GetUnspentNotesRequest,
   MineHeaderRequest,
@@ -22,6 +21,7 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
+import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import {
   VerifyTransactionOptions,
@@ -53,7 +53,6 @@ export class WorkerPool {
     WorkerRequest['type'],
     { complete: number; error: number; queue: number; execute: number }
   >([
-    ['createMinersFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -130,17 +129,13 @@ export class WorkerPool {
   }
 
   async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
-    const request: CreateMinersFeeRequest = {
-      type: 'createMinersFee',
-      spendKey,
-      amount,
-      memo,
-    }
+    const request = new CreateMinersFeeRequest(amount, memo, spendKey)
 
     const response = await this.execute(request).result()
 
-    if (request.type !== response.type) {
-      throw new Error('Response type must match request type')
+    // TODO: Remove this check once the old request type is fully empty
+    if (!(response instanceof CreateMinersFeeResponse)) {
+      throw new Error('Invalid response')
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
