@@ -7,7 +7,6 @@ import { Assert } from '../../assert'
 import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
 import { handleCreateTransaction } from './createTransaction'
-import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
 import { handleSleep } from './sleep'
 import { handleTransactionFee } from './transactionFee'
@@ -41,9 +40,6 @@ export async function handleRequest(
   switch (body.type) {
     case 'createTransaction':
       response = handleCreateTransaction(body)
-      break
-    case 'getUnspentNotes':
-      response = handleGetUnspentNotes(body)
       break
     case 'transactionFee':
       response = handleTransactionFee(body)

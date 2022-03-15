@@ -3,14 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
-import type {
-  BoxMessageRequest,
-  CreateTransactionRequest,
-  GetUnspentNotesRequest,
-  SleepRequest,
-  TransactionFeeRequest,
-  UnboxMessageRequest,
-} from './tasks'
 import _ from 'lodash'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -20,6 +12,15 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
+import {
+  BoxMessageRequest,
+  CreateTransactionRequest,
+  GetUnspentNotesRequest,
+  GetUnspentNotesResponse,
+  SleepRequest,
+  TransactionFeeRequest,
+  UnboxMessageRequest,
+} from './tasks'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import {
@@ -54,7 +55,6 @@ export class WorkerPool {
   >([
     ['sleep', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -259,16 +259,15 @@ export class WorkerPool {
       note: Buffer
     }>
   }> {
-    const request: GetUnspentNotesRequest = {
-      type: 'getUnspentNotes',
+    const request = new GetUnspentNotesRequest(
       serializedTransactionPosted,
-      accounts: accountIncomingViewKeys,
-    }
+      accountIncomingViewKeys,
+    )
 
     const response = await this.execute(request).result()
-
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    // TODO: Remove this check once the old request type is fully empty
+    if (response === null || !(response instanceof GetUnspentNotesResponse)) {
+      throw new Error('Invalid response')
     }
 
     return {
