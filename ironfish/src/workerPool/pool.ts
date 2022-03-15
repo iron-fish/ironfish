@@ -3,15 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
-import {
-  BoxMessageRequest,
-  CreateTransactionRequest,
-  CreateTransactionResponse,
-  GetUnspentNotesRequest,
-  SleepRequest,
-  TransactionFeeRequest,
-  UnboxMessageRequest,
-} from './tasks'
 import _ from 'lodash'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -21,7 +12,17 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
-import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
+import {
+  BoxMessageRequest,
+  CreateMinersFeeRequest,
+  CreateMinersFeeResponse,
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  GetUnspentNotesRequest,
+  SleepRequest,
+  TransactionFeeRequest,
+  UnboxMessageRequest,
+} from './tasks'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import {
   VerifyTransactionOptions,

@@ -11,11 +11,11 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
+import { CreateTransactionRequest, CreateTransactionResponse } from './tasks'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks'
 
 export class Worker {
   thread: WorkerThread | null = null
