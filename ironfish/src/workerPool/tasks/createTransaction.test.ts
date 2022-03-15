@@ -8,8 +8,11 @@ import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted
 import { IDatabase } from '../../storage'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { makeDb, makeDbName } from '../../testUtilities/helpers/storage'
-import { CreateTransactionRequest, CreateTransactionResponse } from '.'
-import { CreateTransactionTask } from './createTransaction'
+import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  CreateTransactionTask,
+} from './createTransaction'
 
 async function makeStrategyTree({
   depth,

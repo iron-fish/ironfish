@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import bufio from 'bufio'
 import { Note, Transaction } from '@ironfish/rust-nodejs'
-import { Assert, BigIntUtils } from '../..'
+import bufio from 'bufio'
+import { Assert } from '../../assert'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
+import { BigIntUtils } from '../../utils/bigint'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
