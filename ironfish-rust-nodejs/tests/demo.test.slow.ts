@@ -6,13 +6,12 @@ import {
   generateKey,
   generateNewPublicAddress,
   Note,
-  NoteBuilder,
   NoteEncrypted,
   Transaction,
   TransactionPosted,
 } from '../'
 
-describe('Demonstrate the Sapling API', () => {  
+describe('Demonstrate the Sapling API', () => {
   beforeAll(async () => {
     // Pay the cost of setting up Sapling outside of any test
     generateKey()
@@ -40,8 +39,7 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction()
-    const serializedNote = new NoteBuilder(key.public_address, BigInt(20), 'test').serialize()
-    const note = new Note(serializedNote)
+    const note = new Note(key.public_address, BigInt(20), 'test')
     transaction.receive(key.spending_key, note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -65,7 +63,7 @@ describe('Demonstrate the Sapling API', () => {
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)
 
-    const decryptedNote = new Note(decryptedNoteBuffer)
+    const decryptedNote = Note.deserialize(decryptedNoteBuffer)
 
     // Null characters are included in the memo string
     expect(decryptedNote.memo().replace(/\0/g, '')).toEqual('test')
@@ -78,8 +76,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction()
-    const serializedMinersFeeNote = new NoteBuilder(key.public_address, BigInt(20), 'miner').serialize()
-    const minersFeeNote = new Note(serializedMinersFeeNote)
+    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner')
     minersFeeTransaction.receive(key.spending_key, minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
@@ -87,9 +84,9 @@ describe('Demonstrate the Sapling API', () => {
     const transaction = new Transaction()
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
-    const decryptedNote = new Note(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
-    const newNote = new Note(new NoteBuilder(recipientKey.public_address, BigInt(15), 'receive').serialize())
-    
+    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
+    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
+
     let currentHash = encryptedNote.merkleHash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {
       const tempHash = currentHash
@@ -122,4 +119,3 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.verify()).toBe(true)
   })
 })
-  
