@@ -105,7 +105,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       const authPathLength = reader.readU64()
       const authPath = []
       for (let j = 0; j < authPathLength; j++) {
-        const side = Boolean(reader.readU8()) ? Side.Right : Side.Left
+        const side = reader.readU8() ? Side.Right : Side.Left
         const hashOfSibling = reader.readVarBytes()
         authPath.push({ side, hashOfSibling })
       }
