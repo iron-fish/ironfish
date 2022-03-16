@@ -120,12 +120,12 @@ export class StratumServer {
 
     socket.on('close', () => this.onDisconnect(client))
 
-    this.logger.info(`Client ${client.id} connected:`, socket.remoteAddress)
+    this.logger.debug(`Client ${client.id} connected:`, socket.remoteAddress)
     this.clients.set(client.id, client)
   }
 
   private onDisconnect(client: StratumServerClient): void {
-    this.logger.info(`Client ${client.id} disconnected`)
+    this.logger.debug(`Client ${client.id} disconnected`)
     client.socket.removeAllListeners()
     this.clients.delete(client.id)
   }
@@ -163,9 +163,12 @@ export class StratumServer {
             )
           }
 
-          const graffiti = `${this.pool.name}.${client.id.toString(16)}`
+          const idHex = client.id.toString(16)
+          const graffiti = `${this.pool.name}.${idHex}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
+
+          this.logger.info(`Miner ${idHex} connected`)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
@@ -202,7 +205,7 @@ export class StratumServer {
   }
 
   private onError(client: StratumServerClient, error: unknown): void {
-    this.logger.warn(
+    this.logger.debug(
       `Error during handling of data from client ${client.id}: ${ErrorUtils.renderError(
         error,
         true,
