@@ -83,7 +83,7 @@ export class StratumServer {
   }
 
   start(): void {
-    this.server.listen(this.port, 'localhost')
+    this.server.listen(this.port, '0.0.0.0')
   }
 
   stop(): void {
