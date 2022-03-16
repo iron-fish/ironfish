@@ -59,7 +59,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     bw.writeU64(this.spends.length)
 
     for (const spend of this.spends) {
-      bw.writeVarBytes(spend.note)
+      bw.writeVarBytes(Buffer.from(spend.note))
       bw.writeU64(spend.treeSize)
       bw.writeVarBytes(spend.rootHash)
       bw.writeU64(spend.authPath.length)
@@ -142,7 +142,7 @@ export class CreateTransactionRequest extends WorkerMessage {
         authPathSize += bufio.sizeVarBytes(step.hashOfSibling)
       }
       spendsSize +=
-        bufio.sizeVarBytes(spend.note) +
+        bufio.sizeVarBytes(Buffer.from(spend.note)) +
         8 + // treeSize
         bufio.sizeVarBytes(spend.rootHash) +
         8 + // authPath length
