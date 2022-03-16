@@ -4,7 +4,6 @@
 
 import { Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { Assert } from '../../assert'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
@@ -72,8 +71,6 @@ export class CreateTransactionRequest extends WorkerMessage {
           case Side.Right:
             bw.writeU8(1)
             break
-          default:
-            Assert.isNever(step.side)
         }
         bw.writeVarBytes(step.hashOfSibling)
       }

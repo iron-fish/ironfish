@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../../assert'
 import { NoteHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
 import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted'
@@ -48,6 +49,25 @@ async function makeStrategyTree({
 }
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
+
+const mockSerializedTransactionPosted = Buffer.from('foobar')
+const postTransaction = jest.fn(() => mockSerializedTransactionPosted)
+const receiveTransaction = jest.fn()
+const spendTransaction = jest.fn()
+
+jest.mock('@ironfish/rust-nodejs', () => {
+  const module =
+    jest.requireActual<typeof import('@ironfish/rust-nodejs')>('@ironfish/rust-nodejs')
+  return {
+    ...module,
+    Transaction: jest.fn().mockImplementation(() => ({
+      setExpirationSequence: jest.fn(),
+      post: postTransaction,
+      receive: receiveTransaction,
+      spend: spendTransaction,
+    })),
+  }
+})
 
 describe('CreateTransactionRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
@@ -106,18 +126,14 @@ describe('CreateTransactionTask', () => {
       const minerTransaction = await useMinersTxFixture(nodeTest.accounts, account)
 
       const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
-      if (spendNote === undefined) {
-        throw new Error('spendNote should not be undefined')
-      }
+      Assert.isNotUndefined(spendNote)
       for (let i = 0; i < minerTransaction.notesLength(); i++) {
         const note = minerTransaction.getNote(i)
         await tree.add(note)
       }
 
       const authPath = (await tree.witness(0))?.authenticationPath
-      if (authPath === undefined) {
-        throw new Error('authPath should not be undefined')
-      }
+      Assert.isNotUndefined(authPath)
 
       const task = new CreateTransactionTask()
       const request = new CreateTransactionRequest(
@@ -136,11 +152,11 @@ describe('CreateTransactionTask', () => {
       )
 
       const response = task.execute(request)
+      expect(postTransaction).toHaveBeenCalled()
+      expect(receiveTransaction).toHaveBeenCalled()
+      expect(spendTransaction).toHaveBeenCalled()
       expect(response).toEqual(
-        new CreateTransactionResponse(
-          Buffer.from(response.serializedTransactionPosted),
-          response.jobId,
-        ),
+        new CreateTransactionResponse(mockSerializedTransactionPosted, response.jobId),
       )
     })
   })
