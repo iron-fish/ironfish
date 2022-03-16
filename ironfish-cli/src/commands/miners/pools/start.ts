@@ -1,8 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Discord, MiningPool, StringUtils } from '@ironfish/sdk'
+import {
+  DEFAULT_POOL_HOST,
+  DEFAULT_POOL_PORT,
+  Discord,
+  MiningPool,
+  parseUrl,
+  StringUtils,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -14,6 +22,12 @@ export class StartPool extends IronfishCommand {
     discord: Flags.string({
       char: 'd',
       description: 'a discord webhook URL to send critical information to',
+    }),
+    host: Flags.string({
+      char: 'h',
+      description: `a host:port listen for stratum connections: ${DEFAULT_POOL_HOST}:${String(
+        DEFAULT_POOL_PORT,
+      )}`,
     }),
     payouts: Flags.boolean({
       default: true,
@@ -52,11 +66,29 @@ export class StartPool extends IronfishCommand {
       this.log(`Discord enabled: ${discordWebhook}`)
     }
 
+    let host = undefined
+    let port = undefined
+
+    if (flags.host) {
+      const parsed = parseUrl(flags.host)
+
+      if (parsed.hostname) {
+        const resolved = await dns.promises.lookup(parsed.hostname)
+        host = resolved.address
+      }
+
+      if (parsed.port) {
+        port = parsed.port
+      }
+    }
+
     this.pool = await MiningPool.init({
       config: this.sdk.config,
       rpc,
       enablePayouts: flags.payouts,
       discord,
+      host: host,
+      port: port,
     })
 
     await this.pool.start()

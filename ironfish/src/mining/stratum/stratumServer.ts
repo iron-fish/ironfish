@@ -59,7 +59,8 @@ export class StratumServer {
   readonly config: Config
   readonly logger: Logger
 
-  private port: number
+  readonly port: number
+  readonly host: string
 
   clients: Map<number, StratumServerClient>
   nextMinerId: number
@@ -68,12 +69,19 @@ export class StratumServer {
   currentWork: Buffer | null = null
   currentMiningRequestId: number | null = null
 
-  constructor(options: { pool: MiningPool; config: Config; logger?: Logger }) {
+  constructor(options: {
+    pool: MiningPool
+    config: Config
+    logger?: Logger
+    port?: number
+    host?: string
+  }) {
     this.pool = options.pool
     this.config = options.config
     this.logger = options.logger ?? createRootLogger()
 
-    this.port = this.config.get('poolPort')
+    this.host = options.host ?? this.config.get('poolHost')
+    this.port = options.port ?? this.config.get('poolPort')
 
     this.clients = new Map()
     this.nextMinerId = 0
@@ -83,7 +91,7 @@ export class StratumServer {
   }
 
   start(): void {
-    this.server.listen(this.port, '0.0.0.0')
+    this.server.listen(this.port, this.host)
   }
 
   stop(): void {
