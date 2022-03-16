@@ -113,6 +113,10 @@ export class StratumClient {
     })
   }
 
+  isConnected(): boolean {
+    return this.connected
+  }
+
   private send(method: 'mining.submit', body: MiningSubmitMessage): void
   private send(method: 'mining.subscribe', body: MiningSubscribeMessage): void
   private send(method: string, body?: unknown): void {
