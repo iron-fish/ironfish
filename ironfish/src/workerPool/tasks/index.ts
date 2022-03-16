@@ -8,7 +8,6 @@ import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
 import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
-import { handleSleep } from './sleep'
 import { handleTransactionFee } from './transactionFee'
 import { handleUnboxMessage } from './unboxMessage'
 import { WorkerMessage } from './workerMessage'
@@ -32,7 +31,7 @@ export async function handleRequest(
     if (!handler) {
       throw new Error()
     }
-    return handler.execute(request)
+    return handler.execute(request, job)
   }
 
   const body = request.body
@@ -49,9 +48,6 @@ export async function handleRequest(
       break
     case 'unboxMessage':
       response = handleUnboxMessage(body)
-      break
-    case 'sleep':
-      response = await handleSleep(body, job)
       break
     case 'jobAbort':
       throw new Error('ControlMessage not handled')

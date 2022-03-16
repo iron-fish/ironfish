@@ -4,7 +4,6 @@
 
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
-import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 
@@ -31,13 +30,11 @@ export type WorkerRequest =
   | BoxMessageRequest
   | GetUnspentNotesRequest
   | JobAbortRequest
-  | SleepRequest
   | TransactionFeeRequest
   | UnboxMessageRequest
 
 export type WorkerResponse =
   | BoxMessageResponse
   | GetUnspentNotesResponse
-  | SleepResponse
   | TransactionFeeResponse
   | UnboxMessageResponse

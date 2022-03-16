@@ -9,6 +9,7 @@ declare module 'bufio' {
     writeDoubleBE(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
+    writeDouble(value: number): StaticWriter
     writeVarString(value: string, enc?: BufferEncoding | null): StaticWriter
     writeVarBytes(value: Buffer): StaticWriter
     writeBytes(value: Buffer): StaticWriter
@@ -23,6 +24,7 @@ declare module 'bufio' {
     writeDoubleBE(value: number): BufferWriter
     writeU64(value: number): BufferWriter
     writeI64(value: number): BufferWriter
+    writeDouble(value: number): BufferWriter
     writeVarString(value: string, enc?: BufferEncoding | null): BufferWriter
     writeVarBytes(value: Buffer): BufferWriter
     writeBytes(value: Buffer): BufferWriter
@@ -37,6 +39,8 @@ declare module 'bufio' {
     readFloat(): number
     readFloatBE(): number
     readDoubleBE(): number
+    readI64(): number
+    readDouble(): number
     readVarString(enc?: BufferEncoding | null, limit?: number): string
     readVarBytes(): Buffer
     readBytes(size: number, zeroCopy?: boolean): Buffer
