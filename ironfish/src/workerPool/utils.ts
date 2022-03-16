@@ -5,6 +5,8 @@ import { WorkerMessageType } from './tasks/workerMessage'
 
 export function workerMessageTypeToString(type: WorkerMessageType): string {
   switch (type) {
+    case WorkerMessageType.BoxMessage:
+      return 'BoxMessage'
     case WorkerMessageType.CreateMinersFee:
       return 'CreateMinersFee'
     case WorkerMessageType.CreateTransaction:
