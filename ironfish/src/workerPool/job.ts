@@ -6,7 +6,7 @@ import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
 import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
 import { handleRequest } from './tasks'
-import { JobAbortedError } from './tasks/jobError'
+import { JobAbortedError, SerializableJobError } from './tasks/jobError'
 import { WorkerMessage } from './tasks/workerMessage'
 import { Worker } from './worker'
 
@@ -58,7 +58,7 @@ export class Job {
     this.onEnded.emit(this)
 
     if (this.worker) {
-      this.worker.send({ jobId: this.id, body: { type: 'jobAbort' } })
+      this.worker.send(new SerializableJobError(this.id, new Error('Job aborted')))
       this.worker.jobs.delete(this.id)
     }
 

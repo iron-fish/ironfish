@@ -53,8 +53,6 @@ export async function handleRequest(
     case 'unboxMessage':
       response = handleUnboxMessage(body)
       break
-    case 'jobAbort':
-      throw new Error('ControlMessage not handled')
     default: {
       Assert.isNever(body)
     }

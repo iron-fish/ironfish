@@ -124,7 +124,7 @@ export class Worker {
   }
 
   private onMessageFromParent = (request: WorkerRequestMessage | Uint8Array): void => {
-    if ('body' in request && request.body.type === 'jobAbort') {
+    if ('body' in request) {
       const job = this.jobs.get(request.jobId)
 
       if (job) {
