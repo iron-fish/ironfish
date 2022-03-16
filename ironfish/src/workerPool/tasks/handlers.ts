@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CreateMinersFeeTask } from './createMinersFee'
+import { SleepTask } from './sleep'
 import { SubmitTelemetryTask } from './submitTelemetry'
 import { TransactionFeeTask } from './transactionFee'
 import { VerifyTransactionTask } from './verifyTransaction'
@@ -11,6 +12,7 @@ import { WorkerTask } from './workerTask'
 export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.CreateMinersFee]: CreateMinersFeeTask.getInstance(),
   [WorkerMessageType.JobError]: undefined,
+  [WorkerMessageType.Sleep]: SleepTask.getInstance(),
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
   [WorkerMessageType.TransactionFee]: TransactionFeeTask.getInstance(),
   [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),

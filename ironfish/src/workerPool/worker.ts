@@ -12,6 +12,7 @@ import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
 import { JobError, SerializableJobError } from './tasks/jobError'
+import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
@@ -231,6 +232,8 @@ export class Worker {
         return CreateMinersFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
+      case WorkerMessageType.Sleep:
+        return SleepRequest.deserialize(jobId, request)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
       case WorkerMessageType.TransactionFee:
@@ -250,6 +253,8 @@ export class Worker {
         return CreateMinersFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.JobError:
         return SerializableJobError.deserialize(jobId, response)
+      case WorkerMessageType.Sleep:
+        return SleepResponse.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
       case WorkerMessageType.TransactionFee:
