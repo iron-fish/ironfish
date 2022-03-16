@@ -43,7 +43,7 @@ export class GetUnspentNotesRequest extends WorkerMessage {
 
     const accountIncomingViewKeys = []
     const accountsLength = reader.readU64()
-    for (let i = 0; i++; i < accountsLength) {
+    for (let i = 0; i < accountsLength; i++) {
       accountIncomingViewKeys.push(reader.readVarString())
     }
 
@@ -138,9 +138,9 @@ export class GetUnspentNotesTask extends WorkerTask {
 
         if (decryptedNote) {
           notes.push({
+            account,
             hash: note.merkleHash().toString('hex'),
             note: decryptedNote,
-            account: account,
           })
 
           break

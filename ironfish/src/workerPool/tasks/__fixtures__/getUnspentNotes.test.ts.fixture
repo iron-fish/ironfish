@@ -1,0 +1,17 @@
+{
+  "GetUnspentNotesTask execute gets unspent notes for an account": [
+    {
+      "name": "test",
+      "spendingKey": "2e6bb0daad78729d6c4d5e96e5170b1e504eac67b23766cf021ad98fed4498b2",
+      "incomingViewKey": "8e7036aecb68b85e54f97ea9da0e07e1da26fa146d5e958f7115085bcb956703",
+      "outgoingViewKey": "885978a3c19be353a08f0f9872d76bb45709585e1ccca661ce7930c55349df10",
+      "publicAddress": "2bd491b08cea5581973c8a914f6f716c7cbc792f37f1c5aad1759b9218bbd06f031ab83d6ac7552e4835ec",
+      "rescan": null,
+      "displayName": "test (bba9871)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJRwDOngozA8wk/B0iImFFZfpC8sC+ad/QCIv+CChBd06octLrOXMJeRlDWJaM/e8I0ZZpi90EvNWRZlThNdTqViDYWkk6y1z7bbU/sXoY/3XU+F0VX014EfLkt6PXkaawsCZhUnITZ5dRGpU9q1SZW9tJLU6rMrRkZdwGT1w6oDs66RYlD91LNNojaCtaFDNrVBQ28NpmuSrkl+KDBtLERrrDRhrenGwJK3LjWJusAsRM07C/FlNnrGGrclUo9PPOd7RUCtSSB7llMy6LT7iV3J4OETM/cMtrk+KvVHWHdL2LBuQLTrny+ICTrRqFbPQYAnhgWAFsNSfoIKCV1c6zqMfMKXzgHbsyeALa4CKT3hMV+FgYLxPQ4L6jy9XoHesBZmtDDzE9p5A8PJfOGeGq02+EBpOT7+73zXz4qFAcGRgVfclx4hWxkRdwrdC3HA4iK8yl3ycUHi+eo9nD8nGRxcf3JY72GMYJw19kPxO9SS6Ugm5eYhof1yYulCW1lKG6VUskJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwYOjX0PRG3VS5ACJ+RT+K/YRlcfZ4Ej0clJ8iF0pY9GvDaXtUhFmc320wAJCbI4st5Dto8buNonkht0YAu+4qBw=="
+    }
+  ]
+}
