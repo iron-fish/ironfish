@@ -21,6 +21,7 @@ export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
 export const DEFAULT_POOL_ACCOUNT_NAME = 'default'
 export const DEFAULT_POOL_BALANCE_PERCENT_PAYOUT = 10
+export const DEFAULT_POOL_HOST = '0.0.0.0'
 export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_POOL_DIFFICULTY = '15000000000'
 export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
@@ -149,6 +150,11 @@ export type ConfigOptions = {
   poolBalancePercentPayout: number
 
   /**
+   * The host that the pool is listening for miner connections on.
+   */
+  poolHost: string
+
+  /**
    * The port that the pool is listening for miner connections on.
    */
   poolPort: number
@@ -244,6 +250,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
+      poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
       poolDifficulty: DEFAULT_POOL_DIFFICULTY,
       poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
