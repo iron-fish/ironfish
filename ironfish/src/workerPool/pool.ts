@@ -261,6 +261,7 @@ export class WorkerPool {
     )
 
     const response = await this.execute(request).result()
+
     // TODO: Remove this check once the old request type is fully empty
     if (response === null || !(response instanceof GetUnspentNotesResponse)) {
       throw new Error('Invalid response')
