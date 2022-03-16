@@ -4,7 +4,7 @@
 
 import '../testUtilities/matchers'
 import { WorkerPool } from './pool'
-import { JobAbortedError } from './tasks/jobError'
+import { JobAbortedError } from './tasks/jobAbort'
 import { JobError } from './tasks/jobError'
 
 describe('Worker Pool', () => {

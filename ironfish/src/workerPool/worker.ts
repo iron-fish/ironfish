@@ -11,6 +11,7 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
+import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
@@ -124,21 +125,20 @@ export class Worker {
   }
 
   private onMessageFromParent = (request: WorkerRequestMessage | Uint8Array): void => {
-    if ('body' in request) {
-      const job = this.jobs.get(request.jobId)
-
-      if (job) {
-        this.jobs.delete(job.id)
-        job?.abort()
-      }
-      return
-    }
-
     let job: Job
     if (!('body' in request)) {
       const message = Buffer.from(request)
       const { jobId, type, body } = this.parseHeader(message)
       const requestBody = this.parseRequest(jobId, type, body)
+
+      if (type === WorkerMessageType.JobAbort) {
+        const job = this.jobs.get(jobId)
+        if (job) {
+          this.jobs.delete(job.id)
+          job.abort()
+        }
+      }
+
       job = new Job(requestBody)
     } else {
       job = new Job(request)
@@ -192,8 +192,13 @@ export class Worker {
       job.onChange.emit(job, prevStatus)
       job.onEnded.emit(job)
       const result = this.parseResponse(jobId, type, body)
+
       if (result instanceof JobError) {
         job.status = 'error'
+        job.reject(result)
+        return
+      } else if (result instanceof JobAbortedError) {
+        job.status = 'aborted'
         job.reject(result)
         return
       }
@@ -229,6 +234,8 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeRequest.deserialize(jobId, request)
+      case WorkerMessageType.JobAbort:
+        throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.Sleep:
@@ -244,10 +251,12 @@ export class Worker {
     jobId: number,
     type: WorkerMessageType,
     response: Buffer,
-  ): WorkerMessage | JobError {
+  ): WorkerMessage | JobError | JobAbortedError {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeResponse.deserialize(jobId, response)
+      case WorkerMessageType.JobAbort:
+        return SerializableJobAbortedError.deserialize()
       case WorkerMessageType.JobError:
         return SerializableJobError.deserialize(jobId, response)
       case WorkerMessageType.Sleep:
