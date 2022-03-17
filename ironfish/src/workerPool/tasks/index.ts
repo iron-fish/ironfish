@@ -6,7 +6,6 @@ import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from
 import { Assert } from '../../assert'
 import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
-import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
 import { handleTransactionFee } from './transactionFee'
 import { WorkerMessage } from './workerMessage'
@@ -36,9 +35,6 @@ export async function handleRequest(
   const body = request.body
 
   switch (body.type) {
-    case 'getUnspentNotes':
-      response = handleGetUnspentNotes(body)
-      break
     case 'transactionFee':
       response = handleTransactionFee(body)
       break

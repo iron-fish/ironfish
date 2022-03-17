@@ -10,6 +10,7 @@ import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
@@ -239,6 +240,8 @@ export class Worker {
         return CreateMinersFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.CreateTransaction:
         return CreateTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.GetUnspentNotes:
+        return GetUnspentNotesRequest.deserialize(jobId, request)
       case WorkerMessageType.JobAbort:
         throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
@@ -264,6 +267,8 @@ export class Worker {
         return CreateMinersFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.CreateTransaction:
         return CreateTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.GetUnspentNotes:
+        return GetUnspentNotesResponse.deserialize(jobId, response)
       case WorkerMessageType.JobAbort:
         return SerializableJobAbortedError.deserialize()
       case WorkerMessageType.JobError:

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 
 /**
@@ -21,9 +20,6 @@ export type WorkerResponseMessage = {
   body: WorkerResponse
 }
 
-export type WorkerRequest = BoxMessageRequest | GetUnspentNotesRequest | TransactionFeeRequest
+export type WorkerRequest = BoxMessageRequest | TransactionFeeRequest
 
-export type WorkerResponse =
-  | BoxMessageResponse
-  | GetUnspentNotesResponse
-  | TransactionFeeResponse
+export type WorkerResponse = BoxMessageResponse | TransactionFeeResponse

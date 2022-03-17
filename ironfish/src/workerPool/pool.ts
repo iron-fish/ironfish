@@ -16,7 +16,7 @@ import { WorkerRequest } from './messages'
 import { BoxMessageRequest } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
-import { GetUnspentNotesRequest } from './tasks/getUnspentNotes'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { TransactionFeeRequest } from './tasks/transactionFee'
@@ -50,6 +50,7 @@ export class WorkerPool {
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.GetUnspentNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.JobAbort, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -249,16 +250,16 @@ export class WorkerPool {
       note: Buffer
     }>
   }> {
-    const request: GetUnspentNotesRequest = {
-      type: 'getUnspentNotes',
+    const request = new GetUnspentNotesRequest(
       serializedTransactionPosted,
-      accounts: accountIncomingViewKeys,
-    }
+      accountIncomingViewKeys,
+    )
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    // TODO: Remove this check once the old request type is fully empty
+    if (response === null || !(response instanceof GetUnspentNotesResponse)) {
+      throw new Error('Invalid response')
     }
 
     return {

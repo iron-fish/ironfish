@@ -9,6 +9,8 @@ export function workerMessageTypeToString(type: WorkerMessageType): string {
       return 'CreateMinersFee'
     case WorkerMessageType.CreateTransaction:
       return 'CreateTransaction'
+    case WorkerMessageType.GetUnspentNotes:
+      return 'GetUnspentNotes'
     case WorkerMessageType.JobAbort:
       return 'JobAbort'
     case WorkerMessageType.JobError:
@@ -17,6 +19,8 @@ export function workerMessageTypeToString(type: WorkerMessageType): string {
       return 'Sleep'
     case WorkerMessageType.SubmitTelemetry:
       return 'SubmitTelemetry'
+    case WorkerMessageType.UnboxMessage:
+      return 'UnboxMessage'
     case WorkerMessageType.VerifyTransaction:
       return 'VerifyTransaction'
   }
