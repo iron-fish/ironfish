@@ -334,9 +334,6 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
-    if ('body' in job.request) {
-      return
-    }
     const stats = this.stats.get(job.request.type)
 
     if (!stats) {
