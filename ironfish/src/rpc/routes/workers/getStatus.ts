@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils } from '../../../utils'
+import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
 import { workerMessageTypeToString } from '../../../workerPool/utils'
 import { ApiNamespace, router } from '../router'
 
@@ -90,6 +91,10 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
   const result: GetWorkersStatusResponse['jobs'] = []
 
   for (const type of node.workerPool.stats.keys()) {
+    if (type === WorkerMessageType.JobAbort || type === WorkerMessageType.Sleep) {
+      continue
+    }
+
     const job = node.workerPool.stats.get(type)
 
     if (job) {

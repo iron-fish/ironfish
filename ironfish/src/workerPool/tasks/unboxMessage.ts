@@ -78,7 +78,7 @@ export class UnboxMessageResponse extends WorkerMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    if (this.message != null) {
+    if (this.message !== null) {
       bw.writeVarString(this.message)
     }
     return bw.render()
@@ -91,7 +91,7 @@ export class UnboxMessageResponse extends WorkerMessage {
   }
 
   getSize(): number {
-    if (this.message != null) {
+    if (this.message !== null) {
       return bufio.sizeVarString(this.message)
     }
     return 0
