@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import tweetnacl from 'tweetnacl'
+import { unboxMessage } from '../../network/peers/encryption'
 import { BoxMessageRequest, BoxMessageResponse, BoxMessageTask } from './boxMessage'
 
 describe('BoxMessageRequest', () => {
@@ -27,28 +28,29 @@ describe('BoxMessageResponse', () => {
 
 describe('BoxMessageTask', () => {
   describe('execute', () => {
-    it('boxes the message', () => {
+    it('boxes the message successfully', () => {
       const task = new BoxMessageTask()
-      const publicKey = Uint8Array.from(Buffer.from('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'))
-      const secretKey = Uint8Array.from(Buffer.from('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'))
+      const message = 'foo'
 
-      const mockNonceValue = Uint8Array.from(Buffer.from('foo'))
-      const mockBoxedMessageValue = Uint8Array.from(Buffer.from('foo'))
-
-      jest.spyOn(tweetnacl, 'randomBytes').mockImplementationOnce(() => mockNonceValue)
-      jest.spyOn(tweetnacl, 'box').mockImplementationOnce(() => mockBoxedMessageValue)
+      const recipient = tweetnacl.box.keyPair()
+      const sender = tweetnacl.box.keyPair()
 
       const request = new BoxMessageRequest(
-        'foo',
-        { publicKey, secretKey },
-        'Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2M=',
+        message,
+        sender,
+        Buffer.from(recipient.publicKey).toString('base64'),
       )
-      const nonce = Buffer.from(mockNonceValue).toString('base64')
-      const boxedMessage = Buffer.from(mockBoxedMessageValue).toString('base64')
 
       const response = task.execute(request)
-      expect(response.nonce).toEqual(nonce)
-      expect(response.boxedMessage).toEqual(boxedMessage)
+
+      const unboxedMessage = unboxMessage(
+        response.boxedMessage,
+        response.nonce,
+        Buffer.from(sender.publicKey).toString('base64'),
+        recipient,
+      )
+
+      expect(unboxedMessage).toEqual(message)
     })
   })
 })
