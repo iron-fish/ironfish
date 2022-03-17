@@ -22,6 +22,8 @@ export class SerializableJobAbortedError extends WorkerMessage {
 }
 
 export class JobAbortedError extends Error {
+  type = 'JobAbortedError'
+
   constructor() {
     super()
     this.name = 'JobAbortedError'
