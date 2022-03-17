@@ -12,7 +12,6 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
-import { WorkerRequest } from './messages'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -283,9 +282,8 @@ export class WorkerPool {
     await this.execute(request).result()
   }
 
-  private execute(request: Readonly<WorkerRequest | WorkerMessage>): Job {
-    const jobId = this.lastJobId++
-    const job = 'serialize' in request ? new Job(request) : new Job({ jobId, body: request })
+  private execute(request: Readonly<WorkerMessage>): Job {
+    const job = new Job(request)
     job.onEnded.once(this.jobEnded)
     job.onChange.on(this.jobChange)
     job.onChange.emit(job, 'init')
