@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  DEFAULT_POOL_PORT,
   GraffitiUtils,
   isValidPublicAddress,
   MiningPoolMiner,
   MiningSoloMiner,
+  parseUrl,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import dns from 'dns'
@@ -27,12 +27,7 @@ export class Miner extends IronfishCommand {
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host of the mining pool to connect to such as 92.191.17.232',
-    }),
-    poolPort: Flags.integer({
-      char: 'o',
-      default: DEFAULT_POOL_PORT,
-      description: 'the port of the mining pool to connect to such as 9034',
+      description: 'the host and port of the mining pool to connect to such as 92.191.17.232',
     }),
     address: Flags.string({
       char: 'a',
@@ -65,16 +60,29 @@ export class Miner extends IronfishCommand {
         this.error('The given public address is not valid, please provide a valid one.')
       }
 
-      this.log(`Staring to mine with public address: ${flags.address} at pool ${flags.pool}`)
+      let host = this.sdk.config.get('poolHost')
+      let port = this.sdk.config.get('poolPort')
 
-      const poolHost = (await dns.promises.lookup(flags.pool)).address
-      const port = flags.poolPort ?? DEFAULT_POOL_PORT
+      if (flags.pool) {
+        const parsed = parseUrl(flags.pool)
+
+        if (parsed.hostname) {
+          const resolved = await dns.promises.lookup(parsed.hostname)
+          host = resolved.address
+        }
+
+        if (parsed.port) {
+          port = parsed.port
+        }
+      }
+
+      this.log(`Staring to mine with public address: ${flags.address} at pool ${host}:${port}`)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.address,
         batchSize,
-        host: poolHost,
+        host: host,
         port: port,
       })
 

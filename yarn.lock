@@ -2614,19 +2614,26 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
+"bcrypto@git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0":
+  version "5.5.0"
+  resolved "git+https://github.com/bcoin-org/bcrypto.git#34738cf15033e3bce91a4f6f41ec1ebee3c2fdc8"
+  dependencies:
+    bufio "~1.0.7"
+    loady "~0.0.5"
+
 before-after-hook@^2.2.0:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.2.tgz#a6e8ca41028d90ee2c24222f201c90956091613e"
   integrity sha512-3pZEU3NT5BFUo/AD5ERPWOgQOCZITni6iavr5AUw5AUwQjMlI0kzu5btnyD39AF0gUEsDPwJT+oY1ORBJijPjQ==
 
-bfilter@1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/bfilter/-/bfilter-1.0.5.tgz#c1592e427f9c1f8be11b13bddd5f74fc2da56049"
-  integrity sha512-GupIidtCvLbKhXnA1sxvrwa+gh95qbjafy7P1U1x/2DHxNabXq4nGW0x3rmgzlJMYlVl+c8fMxoMRIwpKYlgcQ==
+bfilter@bcoin-org/bfilter#70e42125f877191d340e8838a1a90fabb750e680:
+  version "2.3.0"
+  resolved "https://codeload.github.com/bcoin-org/bfilter/tar.gz/70e42125f877191d340e8838a1a90fabb750e680"
   dependencies:
-    bsert "~0.0.10"
-    bufio "~1.0.6"
-    mrmr "~0.1.6"
+    bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
+    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
+    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
+    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
 
 binaryextensions@^2.1.2:
   version "2.3.0"
@@ -2722,6 +2729,10 @@ bser@2.1.1:
   dependencies:
     node-int64 "^0.4.0"
 
+"bsert@git+https://github.com/chjj/bsert.git#semver:~0.0.10":
+  version "0.0.10"
+  resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
+
 bsert@~0.0.10:
   version "0.0.10"
   resolved "https://registry.yarnpkg.com/bsert/-/bsert-0.0.10.tgz#231ac82873a1418c6ade301ab5cd9ae385895597"
@@ -2776,10 +2787,14 @@ buffer@^5.5.0:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
 
-bufio@1.0.7, bufio@~1.0.6:
+bufio@1.0.7, bufio@~1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/bufio/-/bufio-1.0.7.tgz#b7f63a1369a0829ed64cc14edf0573b3e382a33e"
   integrity sha512-bd1dDQhiC+bEbEfg56IdBv7faWa6OipMs/AFFFvtFnB3wAYjlwQpQRZ0pm6ZkgtfL0pILRXhKxOiQj6UzoMR7A==
+
+"bufio@git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6":
+  version "1.0.7"
+  resolved "git+https://github.com/bcoin-org/bufio.git#91ae6c93899ff9fad7d7cee9afd2a1c4933ca984"
 
 builtins@^1.0.3:
   version "1.0.3"
@@ -6792,10 +6807,9 @@ load-json-file@^6.2.0:
     strip-bom "^4.0.0"
     type-fest "^0.6.0"
 
-loady@~0.0.5:
+"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1", loady@~0.0.5:
   version "0.0.5"
-  resolved "https://registry.yarnpkg.com/loady/-/loady-0.0.5.tgz#b17adb52d2fb7e743f107b0928ba0b591da5d881"
-  integrity sha512-uxKD2HIj042/HBx77NBcmEPsD+hxCgAtjEWlYNScuUjIsh/62Uyu39GOR68TBR68v+jqDL9zfftCWoUo4y03sQ==
+  resolved "git+https://github.com/chjj/loady.git#b94958b7ee061518f4b85ea6da380e7ee93222d5"
 
 locate-path@^2.0.0:
   version "2.0.0"
@@ -7329,14 +7343,6 @@ moment@^2.15.1, moment@^2.24.0:
   version "2.29.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
   integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
-
-mrmr@~0.1.6:
-  version "0.1.10"
-  resolved "https://registry.yarnpkg.com/mrmr/-/mrmr-0.1.10.tgz#95845c3031b99f34937c5f672800c2d0fec1cf31"
-  integrity sha512-NJRJs+yJyRWwcTqLRf7O32n56UP1+UQoTrGVEoB3LMj0h2jlon790drDbxKvi5mK5k4HfC0cpNkxqHcrJK/evg==
-  dependencies:
-    bsert "~0.0.10"
-    loady "~0.0.5"
 
 ms@2.0.0:
   version "2.0.0"

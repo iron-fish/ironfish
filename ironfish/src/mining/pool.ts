@@ -55,6 +55,8 @@ export class MiningPool {
     config: Config
     logger?: Logger
     discord?: Discord
+    host?: string
+    port?: number
   }) {
     this.rpc = options.rpc
     this.logger = options.logger ?? createRootLogger()
@@ -63,6 +65,8 @@ export class MiningPool {
       pool: this,
       config: options.config,
       logger: this.logger,
+      host: options.host,
+      port: options.port,
     })
     this.config = options.config
     this.shares = options.shares
@@ -91,6 +95,8 @@ export class MiningPool {
     logger?: Logger
     discord?: Discord
     enablePayouts?: boolean
+    host?: string
+    port?: number
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -105,6 +111,8 @@ export class MiningPool {
       logger: options.logger,
       config: options.config,
       discord: options.discord,
+      host: options.host,
+      port: options.port,
       shares,
     })
   }
@@ -118,7 +126,7 @@ export class MiningPool {
     this.started = true
     await this.shares.start()
 
-    this.logger.info('Starting stratum server...')
+    this.logger.info(`Starting stratum server on ${this.stratum.host}:${this.stratum.port}`)
     this.stratum.start()
 
     this.logger.info('Connecting to node...')
