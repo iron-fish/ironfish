@@ -5,6 +5,7 @@ import { CreateMinersFeeTask } from './createMinersFee'
 import { CreateTransactionTask } from './createTransaction'
 import { SleepTask } from './sleep'
 import { SubmitTelemetryTask } from './submitTelemetry'
+import { UnboxMessageTask } from './unboxMessage'
 import { VerifyTransactionTask } from './verifyTransaction'
 import { WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -16,5 +17,6 @@ export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.JobError]: undefined,
   [WorkerMessageType.Sleep]: SleepTask.getInstance(),
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
+  [WorkerMessageType.UnboxMessage]: UnboxMessageTask.getInstance(),
   [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),
 }

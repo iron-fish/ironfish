@@ -19,7 +19,7 @@ import { GetUnspentNotesRequest } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { TransactionFeeRequest } from './tasks/transactionFee'
-import { UnboxMessageRequest } from './tasks/unboxMessage'
+import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -52,7 +52,6 @@ export class WorkerPool {
   >([
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
@@ -226,22 +225,16 @@ export class WorkerPool {
     nonce: string,
     sender: Identity,
     recipient: PrivateIdentity,
-  ): Promise<{ message: string | null }> {
-    const request: UnboxMessageRequest = {
-      type: 'unboxMessage',
-      boxedMessage: boxedMessage,
-      nonce: nonce,
-      recipient: recipient,
-      sender: sender,
-    }
+  ): Promise<UnboxMessageResponse> {
+    const request = new UnboxMessageRequest(boxedMessage, nonce, sender, recipient)
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
+    if (!(response instanceof UnboxMessageResponse)) {
       throw new Error('Response type must match request type')
     }
 
-    return { message: response.message }
+    return response
   }
 
   async getUnspentNotes(
