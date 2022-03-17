@@ -102,5 +102,3 @@ export class JobError extends Error {
     }
   }
 }
-
-export class JobAbortedError extends JobError {}

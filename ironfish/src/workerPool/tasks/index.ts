@@ -6,10 +6,8 @@ import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from
 import { Assert } from '../../assert'
 import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
-import { handleCreateTransaction } from './createTransaction'
 import { handlers } from './handlers'
 import { handleTransactionFee } from './transactionFee'
-import { handleUnboxMessage } from './unboxMessage'
 import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
@@ -37,20 +35,12 @@ export async function handleRequest(
   const body = request.body
 
   switch (body.type) {
-    case 'createTransaction':
-      response = handleCreateTransaction(body)
-      break
     case 'transactionFee':
       response = handleTransactionFee(body)
       break
     case 'boxMessage':
       response = handleBoxMessage(body)
       break
-    case 'unboxMessage':
-      response = handleUnboxMessage(body)
-      break
-    case 'jobAbort':
-      throw new Error('ControlMessage not handled')
     default: {
       Assert.isNever(body)
     }

@@ -7,11 +7,14 @@ import { Serializable } from '../../common/serializable'
 
 export enum WorkerMessageType {
   CreateMinersFee = 0,
-  GetUnspentNotes = 1,
-  JobError = 2,
-  Sleep = 3,
-  SubmitTelemetry = 4,
-  VerifyTransaction = 5,
+  CreateTransaction = 1,
+  GetUnspentNotes = 2,
+  JobAbort = 3,
+  JobError = 4,
+  Sleep = 5,
+  SubmitTelemetry = 6,
+  UnboxMessage = 7,
+  VerifyTransaction = 8,
 }
 
 export abstract class WorkerMessage implements Serializable {

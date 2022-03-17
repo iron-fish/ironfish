@@ -3,18 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
-import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 
 /**
  * Request and response message types used for communication
  * between the worker pool and workers.
  */
-
-export type JobAbortRequest = {
-  type: 'jobAbort'
-}
 
 export type WorkerRequestMessage = {
   jobId: number
@@ -26,15 +20,6 @@ export type WorkerResponseMessage = {
   body: WorkerResponse
 }
 
-export type WorkerRequest =
-  | BoxMessageRequest
-  | CreateTransactionRequest
-  | JobAbortRequest
-  | TransactionFeeRequest
-  | UnboxMessageRequest
+export type WorkerRequest = BoxMessageRequest | TransactionFeeRequest
 
-export type WorkerResponse =
-  | BoxMessageResponse
-  | CreateTransactionResponse
-  | TransactionFeeResponse
-  | UnboxMessageResponse
+export type WorkerResponse = BoxMessageResponse | TransactionFeeResponse

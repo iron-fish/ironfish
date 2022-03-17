@@ -10,22 +10,23 @@ import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
+import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
 import { BoxMessageRequest } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
-import { CreateTransactionRequest } from './tasks/createTransaction'
+import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { TransactionFeeRequest } from './tasks/transactionFee'
-import { UnboxMessageRequest } from './tasks/unboxMessage'
+import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
   VerifyTransactionResponse,
 } from './tasks/verifyTransaction'
-import { WorkerMessage } from './tasks/workerMessage'
+import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
 
 /**
@@ -46,15 +47,15 @@ export class WorkerPool {
 
   private lastJobId = 0
 
-  readonly stats = new Map<
-    WorkerRequest['type'],
-    { complete: number; error: number; queue: number; execute: number }
-  >([
-    ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
+  readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
+    [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.GetUnspentNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.JobAbort, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -150,22 +151,22 @@ export class WorkerPool {
     receives: { publicAddress: string; amount: bigint; memo: string }[],
     expirationSequence: number,
   ): Promise<Transaction> {
-    const request: CreateTransactionRequest = {
-      type: 'createTransaction',
+    const spendsWithSerializedNotes = spends.map((s) => ({
+      ...s,
+      note: s.note.serialize(),
+    }))
+    const request: CreateTransactionRequest = new CreateTransactionRequest(
       spendKey,
       transactionFee,
       expirationSequence,
-      spends: spends.map((s) => ({
-        ...s,
-        note: s.note.serialize(),
-      })),
+      spendsWithSerializedNotes,
       receives,
-    }
+    )
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    if (response === null || !(response instanceof CreateTransactionResponse)) {
+      throw new Error('Invalid response')
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
@@ -227,22 +228,16 @@ export class WorkerPool {
     nonce: string,
     sender: Identity,
     recipient: PrivateIdentity,
-  ): Promise<{ message: string | null }> {
-    const request: UnboxMessageRequest = {
-      type: 'unboxMessage',
-      boxedMessage: boxedMessage,
-      nonce: nonce,
-      recipient: recipient,
-      sender: sender,
-    }
+  ): Promise<UnboxMessageResponse> {
+    const request = new UnboxMessageRequest(boxedMessage, nonce, sender, recipient)
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
+    if (!(response instanceof UnboxMessageResponse)) {
       throw new Error('Response type must match request type')
     }
 
-    return { message: response.message }
+    return response
   }
 
   async getUnspentNotes(
@@ -348,10 +343,10 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
-    if (!('body' in job.request)) {
+    if ('body' in job.request) {
       return
     }
-    const stats = this.stats.get(job.request.body.type)
+    const stats = this.stats.get(job.request.type)
 
     if (!stats) {
       return
