@@ -231,7 +231,7 @@ export class WorkerPool {
     const response = await this.execute(request).result()
 
     if (!(response instanceof UnboxMessageResponse)) {
-      throw new Error('Response type must match request type')
+      throw new Error('Invalid response')
     }
 
     return response

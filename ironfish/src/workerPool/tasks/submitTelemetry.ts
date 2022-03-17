@@ -8,8 +8,8 @@ import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
 export class SubmitTelemetryRequest extends WorkerMessage {
-  json: string
-  points: Metric[]
+  readonly json: string
+  readonly points: Metric[]
 
   constructor(points: Metric[], jobId?: number) {
     super(WorkerMessageType.SubmitTelemetry, jobId)
