@@ -59,7 +59,6 @@
   },
   "resolutions": {
     "axios": "0.21.4",
-    "color-string": "1.5.5",
     "handlebars": "4.7.7",
     "node-notifier": "8.0.1",
     "set-getter": "0.1.1"
