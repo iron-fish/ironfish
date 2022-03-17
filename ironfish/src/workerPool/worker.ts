@@ -7,6 +7,7 @@ import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
+import { WorkerHeader } from './interfaces/workerHeader'
 import { Job } from './job'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
@@ -20,6 +21,7 @@ import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transacti
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
+import { workerMessageTypeToString } from './utils'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -121,8 +123,27 @@ export class Worker {
 
   private onMessageFromParent = (request: Uint8Array): void => {
     const message = Buffer.from(request)
-    const { jobId, type, body } = this.parseHeader(message)
-    const requestBody = this.parseRequest(jobId, type, body)
+
+    let header: WorkerHeader
+    try {
+      header = this.parseHeader(message)
+    } catch {
+      this.logger.error(`Could not parse header from request: '${message.toString('hex')}'`)
+      return
+    }
+
+    const { body, jobId, type } = header
+
+    let requestBody: WorkerMessage
+    try {
+      requestBody = this.parseRequest(jobId, type, body)
+    } catch {
+      const args = `(jobId: ${jobId}, type: ${workerMessageTypeToString(
+        type,
+      )}, body: '${body.toString('hex')}')`
+      this.logger.error(`Could not parse payload from request: ${args}`)
+      return
+    }
 
     if (type === WorkerMessageType.JobAbort) {
       const job = this.jobs.get(jobId)
@@ -151,12 +172,17 @@ export class Worker {
   }
 
   private onMessageFromWorker = (response: Uint8Array): void => {
-    const buffer = Buffer.from(response)
-    const header = this.parseHeader(buffer)
-    const jobId = header.jobId
-    const type = header.type
-    const body = header.body
+    const message = Buffer.from(response)
 
+    let header: WorkerHeader
+    try {
+      header = this.parseHeader(message)
+    } catch {
+      this.logger.error(`Could not parse header from response: '${message.toString('hex')}'`)
+      return
+    }
+
+    const { body, jobId, type } = header
     const job = this.jobs.get(jobId)
     this.jobs.delete(jobId)
 
@@ -168,7 +194,17 @@ export class Worker {
     job.status = 'success'
     job.onChange.emit(job, prevStatus)
     job.onEnded.emit(job)
-    const result = this.parseResponse(jobId, type, body)
+
+    let result: WorkerMessage | JobError | JobAbortedError
+    try {
+      result = this.parseResponse(jobId, type, body)
+    } catch {
+      const args = `(jobId: ${jobId}, type: ${workerMessageTypeToString(
+        type,
+      )}, body: '${body.toString('hex')}')`
+      this.logger.error(`Could not parse payload from response: ${args}`)
+      return
+    }
 
     if (result instanceof JobError) {
       job.status = 'error'
@@ -184,11 +220,7 @@ export class Worker {
     return
   }
 
-  private parseHeader(data: Buffer): {
-    jobId: number
-    type: WorkerMessageType
-    body: Buffer
-  } {
+  private parseHeader(data: Buffer): WorkerHeader {
     const br = bufio.read(data)
     const jobId = Number(br.readU64())
     const type = br.readU8()

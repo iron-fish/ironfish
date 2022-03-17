@@ -82,7 +82,7 @@ export class Job {
           this.status = 'success'
           this.onChange.emit(this, prevStatus)
           this.onEnded.emit(this)
-          this.resolve?.(r)
+          this.resolve(r)
         }
       })
       .catch((e: unknown) => {
@@ -91,7 +91,7 @@ export class Job {
           this.status = 'error'
           this.onChange.emit(this, prevStatus)
           this.onEnded.emit(this)
-          this.reject?.(e)
+          this.reject(e)
         }
       })
 
