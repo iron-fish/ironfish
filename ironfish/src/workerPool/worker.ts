@@ -138,6 +138,7 @@ export class Worker {
           this.jobs.delete(job.id)
           job.abort()
         }
+        return
       }
 
       job = new Job(requestBody)
