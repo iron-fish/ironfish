@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Job } from '../job'
-import { WorkerMessage } from './workerMessage'
-import { handlers } from './handlers'
 import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
+import { handlers } from './handlers'
+import { WorkerMessage } from './workerMessage'
 
 export async function handleRequest(
   request: WorkerRequestMessage | WorkerMessage,
@@ -20,8 +20,6 @@ export async function handleRequest(
     }
     return handler.execute(request, job)
   }
-
-  const body = request.body
 
   response = { type: 'type' }
 
