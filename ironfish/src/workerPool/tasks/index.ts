@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
-import { Assert } from '../../assert'
 import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
 import { handlers } from './handlers'
-import { handleTransactionFee } from './transactionFee'
 import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
@@ -15,7 +13,6 @@ export { GetUnspentNotesRequest, GetUnspentNotesResponse } from './getUnspentNot
 export { BoxMessageRequest, BoxMessageResponse } from './boxMessage'
 export { CreateMinersFeeRequest, CreateMinersFeeResponse } from './createMinersFee'
 export { SleepRequest, SleepResponse } from './sleep'
-export { TransactionFeeRequest, TransactionFeeResponse } from './transactionFee'
 export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
 
 export async function handleRequest(
@@ -34,17 +31,6 @@ export async function handleRequest(
 
   const body = request.body
 
-  switch (body.type) {
-    case 'transactionFee':
-      response = handleTransactionFee(body)
-      break
-    case 'boxMessage':
-      response = handleBoxMessage(body)
-      break
-    default: {
-      Assert.isNever(body)
-    }
-  }
-
+  response = handleBoxMessage(body)
   return { jobId: request.jobId, body: response }
 }

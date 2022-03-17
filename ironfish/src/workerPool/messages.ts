@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 
 /**
  * Request and response message types used for communication
@@ -20,6 +18,6 @@ export type WorkerResponseMessage = {
   body: WorkerResponse
 }
 
-export type WorkerRequest = BoxMessageRequest | TransactionFeeRequest
+export type WorkerRequest = BoxMessageRequest
 
-export type WorkerResponse = BoxMessageResponse | TransactionFeeResponse
+export type WorkerResponse = BoxMessageResponse

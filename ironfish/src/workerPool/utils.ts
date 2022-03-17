@@ -19,6 +19,8 @@ export function workerMessageTypeToString(type: WorkerMessageType): string {
       return 'Sleep'
     case WorkerMessageType.SubmitTelemetry:
       return 'SubmitTelemetry'
+    case WorkerMessageType.TransactionFee:
+      return 'TransactionFee'
     case WorkerMessageType.UnboxMessage:
       return 'UnboxMessage'
     case WorkerMessageType.VerifyTransaction:
