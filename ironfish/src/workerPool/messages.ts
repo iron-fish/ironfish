@@ -1,20 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
-import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
-import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 
 /**
  * Request and response message types used for communication
  * between the worker pool and workers.
  */
-
-export type JobAbortRequest = {
-  type: 'jobAbort'
-}
 
 export type WorkerRequestMessage = {
   jobId: number
@@ -26,15 +18,6 @@ export type WorkerResponseMessage = {
   body: WorkerResponse
 }
 
-export type WorkerRequest =
-  | BoxMessageRequest
-  | CreateTransactionRequest
-  | GetUnspentNotesRequest
-  | JobAbortRequest
-  | UnboxMessageRequest
+export type WorkerRequest = BoxMessageRequest
 
-export type WorkerResponse =
-  | BoxMessageResponse
-  | CreateTransactionResponse
-  | GetUnspentNotesResponse
-  | UnboxMessageResponse
+export type WorkerResponse = BoxMessageResponse

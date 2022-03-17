@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils } from '../../../utils'
+import { workerMessageTypeToString } from '../../../workerPool/utils'
 import { ApiNamespace, router } from '../router'
 
 export type GetWorkersStatusRequest =
@@ -88,16 +89,11 @@ router.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
 function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
   const result: GetWorkersStatusResponse['jobs'] = []
 
-  for (const name of node.workerPool.stats.keys()) {
-    // Move control messages to top level message and not request body type
-    if (name === 'jobAbort') {
-      continue
-    }
-
-    const job = node.workerPool.stats.get(name)
+  for (const type of node.workerPool.stats.keys()) {
+    const job = node.workerPool.stats.get(type)
 
     if (job) {
-      result.push({ name: name, ...job })
+      result.push({ name: workerMessageTypeToString(type), ...job })
     }
   }
   return {

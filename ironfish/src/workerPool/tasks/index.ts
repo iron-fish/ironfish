@@ -3,13 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
-import { Assert } from '../../assert'
 import { Job } from '../job'
 import { handleBoxMessage } from './boxMessage'
-import { handleCreateTransaction } from './createTransaction'
-import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
-import { handleUnboxMessage } from './unboxMessage'
 import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
@@ -35,25 +31,6 @@ export async function handleRequest(
 
   const body = request.body
 
-  switch (body.type) {
-    case 'createTransaction':
-      response = handleCreateTransaction(body)
-      break
-    case 'getUnspentNotes':
-      response = handleGetUnspentNotes(body)
-      break
-    case 'boxMessage':
-      response = handleBoxMessage(body)
-      break
-    case 'unboxMessage':
-      response = handleUnboxMessage(body)
-      break
-    case 'jobAbort':
-      throw new Error('ControlMessage not handled')
-    default: {
-      Assert.isNever(body)
-    }
-  }
-
+  response = handleBoxMessage(body)
   return { jobId: request.jobId, body: response }
 }
