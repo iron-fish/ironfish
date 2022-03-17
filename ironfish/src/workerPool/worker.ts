@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
 import { generateKey } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import path from 'path'
@@ -65,19 +63,11 @@ export class Worker {
     job.execute(this)
   }
 
-  send(message: WorkerRequestMessage | WorkerResponseMessage | WorkerMessage): void {
+  send(message: WorkerMessage): void {
     if (this.thread) {
-      if ('body' in message) {
-        this.thread.postMessage(message)
-      } else {
-        this.thread.postMessage(message.serializeWithMetadata())
-      }
+      this.thread.postMessage(message.serializeWithMetadata())
     } else if (this.parent) {
-      if ('body' in message) {
-        this.parent.postMessage(message)
-      } else {
-        this.parent.postMessage(message.serializeWithMetadata())
-      }
+      this.parent.postMessage(message.serializeWithMetadata())
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -129,33 +119,27 @@ export class Worker {
     generateKey()
   }
 
-  private onMessageFromParent = (request: WorkerRequestMessage | Uint8Array): void => {
-    let job: Job
-    if (!('body' in request)) {
-      const message = Buffer.from(request)
-      const { jobId, type, body } = this.parseHeader(message)
-      const requestBody = this.parseRequest(jobId, type, body)
+  private onMessageFromParent = (request: Uint8Array): void => {
+    const message = Buffer.from(request)
+    const { jobId, type, body } = this.parseHeader(message)
+    const requestBody = this.parseRequest(jobId, type, body)
 
-      if (type === WorkerMessageType.JobAbort) {
-        const job = this.jobs.get(jobId)
-        if (job) {
-          this.jobs.delete(job.id)
-          job.abort()
-        }
-        return
+    if (type === WorkerMessageType.JobAbort) {
+      const job = this.jobs.get(jobId)
+      if (job) {
+        this.jobs.delete(job.id)
+        job.abort()
       }
-
-      job = new Job(requestBody)
-    } else {
-      job = new Job(request)
+      return
     }
 
+    const job = new Job(requestBody)
     this.jobs.set(job.id, job)
 
     job
       .execute()
-      .response()
-      .then((response: WorkerResponseMessage | WorkerMessage) => {
+      .result()
+      .then((response: WorkerMessage) => {
         this.send(response)
       })
       .catch((e: unknown) => {
@@ -166,19 +150,12 @@ export class Worker {
       })
   }
 
-  private onMessageFromWorker = (response: WorkerResponseMessage | Uint8Array): void => {
-    let jobId
-    let type: WorkerMessageType | undefined
-    let body: Buffer | undefined
-    if ('jobId' in response) {
-      jobId = response.jobId
-    } else {
-      const buffer = Buffer.from(response)
-      const header = this.parseHeader(buffer)
-      jobId = header.jobId
-      type = header.type
-      body = header.body
-    }
+  private onMessageFromWorker = (response: Uint8Array): void => {
+    const buffer = Buffer.from(response)
+    const header = this.parseHeader(buffer)
+    const jobId = header.jobId
+    const type = header.type
+    const body = header.body
 
     const job = this.jobs.get(jobId)
     this.jobs.delete(jobId)
@@ -187,37 +164,24 @@ export class Worker {
       return
     }
 
-    Assert.isNotNull(job.resolve)
-    Assert.isNotNull(job.reject)
-
-    if (response instanceof Uint8Array) {
-      Assert.isNotUndefined(type)
-      Assert.isNotUndefined(body)
-      const prevStatus = job.status
-      job.status = 'success'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      const result = this.parseResponse(jobId, type, body)
-
-      if (result instanceof JobError) {
-        job.status = 'error'
-        job.reject(result)
-        return
-      } else if (result instanceof JobAbortedError) {
-        job.status = 'aborted'
-        job.reject(result)
-        return
-      }
-
-      job.resolve(result)
-      return
-    }
-
     const prevStatus = job.status
     job.status = 'success'
     job.onChange.emit(job, prevStatus)
     job.onEnded.emit(job)
-    job.resolve(response)
+    const result = this.parseResponse(jobId, type, body)
+
+    if (result instanceof JobError) {
+      job.status = 'error'
+      job.reject(result)
+      return
+    } else if (result instanceof JobAbortedError) {
+      job.status = 'aborted'
+      job.reject(result)
+      return
+    }
+
+    job.resolve(result)
+    return
   }
 
   private parseHeader(data: Buffer): {
