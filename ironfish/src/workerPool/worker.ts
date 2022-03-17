@@ -11,6 +11,7 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
+import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
@@ -234,6 +235,8 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeRequest.deserialize(jobId, request)
+      case WorkerMessageType.CreateTransaction:
+        return CreateTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.JobAbort:
         throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
@@ -255,6 +258,8 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeResponse.deserialize(jobId, response)
+      case WorkerMessageType.CreateTransaction:
+        return CreateTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.JobAbort:
         return SerializableJobAbortedError.deserialize()
       case WorkerMessageType.JobError:
