@@ -13,7 +13,7 @@ import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
-import { BoxMessageRequest } from './tasks/boxMessage'
+import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
@@ -48,6 +48,7 @@ export class WorkerPool {
   private lastJobId = 0
 
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
+    [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.GetUnspentNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -205,17 +206,16 @@ export class WorkerPool {
     sender: PrivateIdentity,
     recipient: Identity,
   ): Promise<{ nonce: string; boxedMessage: string }> {
-    const request: BoxMessageRequest = {
-      type: 'boxMessage',
-      message: plainTextMessage,
-      sender: sender,
-      recipient: recipient,
-    }
+    const request: BoxMessageRequest = new BoxMessageRequest(
+      plainTextMessage,
+      sender,
+      recipient,
+    )
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    if (response === null || !(response instanceof BoxMessageResponse)) {
+      throw new Error('Invalid response')
     }
 
     return { nonce: response.nonce, boxedMessage: response.boxedMessage }

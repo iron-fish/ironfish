@@ -2,18 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
 import { Job } from '../job'
-import { handleBoxMessage } from './boxMessage'
+import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from '../messages'
 import { handlers } from './handlers'
 import { WorkerMessage } from './workerMessage'
-
-export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
-export { GetUnspentNotesRequest, GetUnspentNotesResponse } from './getUnspentNotes'
-export { BoxMessageRequest, BoxMessageResponse } from './boxMessage'
-export { CreateMinersFeeRequest, CreateMinersFeeResponse } from './createMinersFee'
-export { SleepRequest, SleepResponse } from './sleep'
-export { UnboxMessageRequest, UnboxMessageResponse } from './unboxMessage'
 
 export async function handleRequest(
   request: WorkerRequestMessage | WorkerMessage,
@@ -29,8 +21,7 @@ export async function handleRequest(
     return handler.execute(request, job)
   }
 
-  const body = request.body
+  response = { type: 'type' }
 
-  response = handleBoxMessage(body)
   return { jobId: request.jobId, body: response }
 }

@@ -10,9 +10,10 @@ import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
-import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks'
+import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
@@ -237,6 +238,8 @@ export class Worker {
 
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
     switch (type) {
+      case WorkerMessageType.BoxMessage:
+        return BoxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.CreateTransaction:
@@ -266,6 +269,8 @@ export class Worker {
     response: Buffer,
   ): WorkerMessage | JobError | JobAbortedError {
     switch (type) {
+      case WorkerMessageType.BoxMessage:
+        return BoxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.CreateTransaction:
