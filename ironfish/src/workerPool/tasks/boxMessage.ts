@@ -69,7 +69,7 @@ export class BoxMessageResponse extends WorkerMessage {
     return bw.render()
   }
 
-  static deserialize(jobId: number, buffer: Buffer) {
+  static deserialize(jobId: number, buffer: Buffer): BoxMessageResponse {
     const reader = bufio.read(buffer)
     const nonce = reader.readVarString()
     const boxedMessage = reader.readVarString()
@@ -94,9 +94,6 @@ export class BoxMessageTask extends WorkerTask {
 
   execute({ jobId, message, sender, recipient }: BoxMessageRequest): BoxMessageResponse {
     const { nonce, boxedMessage } = boxMessage(message, sender, recipient)
-
-    console.log(nonce)
-    console.log(boxedMessage)
 
     return new BoxMessageResponse(nonce, boxedMessage, jobId)
   }
