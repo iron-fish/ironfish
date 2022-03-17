@@ -9,7 +9,6 @@ import { handleBoxMessage } from './boxMessage'
 import { handleGetUnspentNotes } from './getUnspentNotes'
 import { handlers } from './handlers'
 import { handleTransactionFee } from './transactionFee'
-import { handleUnboxMessage } from './unboxMessage'
 import { WorkerMessage } from './workerMessage'
 
 export { CreateTransactionRequest, CreateTransactionResponse } from './createTransaction'
@@ -45,9 +44,6 @@ export async function handleRequest(
       break
     case 'boxMessage':
       response = handleBoxMessage(body)
-      break
-    case 'unboxMessage':
-      response = handleUnboxMessage(body)
       break
     default: {
       Assert.isNever(body)

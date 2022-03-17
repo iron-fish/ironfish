@@ -43,3 +43,5 @@ export function unboxMessage(
   }
   return Buffer.from(opened).toString('utf8')
 }
+
+export const nonceLength = tweetnacl.box.nonceLength
