@@ -28,7 +28,6 @@ describe('BoxMessageTask', () => {
       const publicKey = Uint8Array.from(Buffer.from('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'))
       const secretKey = Uint8Array.from(Buffer.from('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'))
 
-      console.log(publicKey.byteLength)
       const request = new BoxMessageRequest(
         'foo',
         { publicKey, secretKey },
