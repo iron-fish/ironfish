@@ -166,7 +166,7 @@ export class WorkerPool {
 
     const response = await this.execute(request).result()
 
-    if (response === null || !(response instanceof CreateTransactionResponse)) {
+    if (!(response instanceof CreateTransactionResponse)) {
       throw new Error('Invalid response')
     }
 
@@ -177,8 +177,7 @@ export class WorkerPool {
     const request = new TransactionFeeRequest(transaction.serialize())
 
     const response = await this.execute(request).result()
-    // TODO: Remove this check once the old request type is fully empty
-    if (response === null || !(response instanceof TransactionFeeResponse)) {
+    if (!(response instanceof TransactionFeeResponse)) {
       throw new Error('Invalid response')
     }
 
@@ -192,8 +191,7 @@ export class WorkerPool {
     )
 
     const response = await this.execute(request).result()
-    // TODO: Remove this check once the old request type is fully empty
-    if (response === null || !(response instanceof VerifyTransactionResponse)) {
+    if (!(response instanceof VerifyTransactionResponse)) {
       throw new Error('Invalid response')
     }
 
@@ -212,8 +210,7 @@ export class WorkerPool {
     )
 
     const response = await this.execute(request).result()
-
-    if (response === null || !(response instanceof BoxMessageResponse)) {
+    if (!(response instanceof BoxMessageResponse)) {
       throw new Error('Invalid response')
     }
 
@@ -254,8 +251,7 @@ export class WorkerPool {
 
     const response = await this.execute(request).result()
 
-    // TODO: Remove this check once the old request type is fully empty
-    if (response === null || !(response instanceof GetUnspentNotesResponse)) {
+    if (!(response instanceof GetUnspentNotesResponse)) {
       throw new Error('Invalid response')
     }
 
