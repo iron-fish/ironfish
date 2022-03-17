@@ -14,7 +14,7 @@ import { Job } from './job'
 import { WorkerRequest } from './messages'
 import { BoxMessageRequest } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
-import { CreateTransactionRequest } from './tasks/createTransaction'
+import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
@@ -50,7 +50,6 @@ export class WorkerPool {
     WorkerRequest['type'],
     { complete: number; error: number; queue: number; execute: number }
   >([
-    ['createTransaction', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -151,22 +150,22 @@ export class WorkerPool {
     receives: { publicAddress: string; amount: bigint; memo: string }[],
     expirationSequence: number,
   ): Promise<Transaction> {
-    const request: CreateTransactionRequest = {
-      type: 'createTransaction',
+    const spendsWithSerializedNotes = spends.map((s) => ({
+      ...s,
+      note: s.note.serialize(),
+    }))
+    const request: CreateTransactionRequest = new CreateTransactionRequest(
       spendKey,
       transactionFee,
       expirationSequence,
-      spends: spends.map((s) => ({
-        ...s,
-        note: s.note.serialize(),
-      })),
+      spendsWithSerializedNotes,
       receives,
-    }
+    )
 
     const response = await this.execute(request).result()
 
-    if (response === null || response.type !== request.type) {
-      throw new Error('Response type must match request type')
+    if (response === null || !(response instanceof CreateTransactionResponse)) {
+      throw new Error('Invalid response')
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
