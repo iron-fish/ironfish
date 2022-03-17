@@ -12,10 +12,6 @@ import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
  * between the worker pool and workers.
  */
 
-export type JobAbortRequest = {
-  type: 'jobAbort'
-}
-
 export type WorkerRequestMessage = {
   jobId: number
   body: WorkerRequest
@@ -29,7 +25,6 @@ export type WorkerResponseMessage = {
 export type WorkerRequest =
   | BoxMessageRequest
   | GetUnspentNotesRequest
-  | JobAbortRequest
   | TransactionFeeRequest
   | UnboxMessageRequest
 

@@ -54,7 +54,6 @@ export class WorkerPool {
     ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
     ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['jobAbort', { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {

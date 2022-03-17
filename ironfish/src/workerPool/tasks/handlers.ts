@@ -12,6 +12,7 @@ import { WorkerTask } from './workerTask'
 export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.CreateMinersFee]: CreateMinersFeeTask.getInstance(),
   [WorkerMessageType.CreateTransaction]: CreateTransactionTask.getInstance(),
+  [WorkerMessageType.JobAbort]: undefined,
   [WorkerMessageType.JobError]: undefined,
   [WorkerMessageType.Sleep]: SleepTask.getInstance(),
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
