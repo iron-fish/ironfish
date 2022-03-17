@@ -10,6 +10,7 @@ import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
+import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { WorkerRequest } from './messages'
 import { BoxMessageRequest } from './tasks/boxMessage'
@@ -25,7 +26,7 @@ import {
   VerifyTransactionRequest,
   VerifyTransactionResponse,
 } from './tasks/verifyTransaction'
-import { WorkerMessage } from './tasks/workerMessage'
+import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
 
 /**
@@ -46,14 +47,13 @@ export class WorkerPool {
 
   private lastJobId = 0
 
-  readonly stats = new Map<
-    WorkerRequest['type'],
-    { complete: number; error: number; queue: number; execute: number }
-  >([
-    ['getUnspentNotes', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['boxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['unboxMessage', { complete: 0, error: 0, queue: 0, execute: 0 }],
-    ['transactionFee', { complete: 0, error: 0, queue: 0, execute: 0 }],
+  readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
+    [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.JobAbort, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -347,10 +347,10 @@ export class WorkerPool {
   }
 
   private jobChange = (job: Job, prevStatus: Job['status']): void => {
-    if (!('body' in job.request)) {
+    if ('body' in job.request) {
       return
     }
-    const stats = this.stats.get(job.request.body.type)
+    const stats = this.stats.get(job.request.type)
 
     if (!stats) {
       return
