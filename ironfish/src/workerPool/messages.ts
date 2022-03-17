@@ -5,7 +5,6 @@
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
-import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 
 /**
  * Request and response message types used for communication
@@ -22,14 +21,9 @@ export type WorkerResponseMessage = {
   body: WorkerResponse
 }
 
-export type WorkerRequest =
-  | BoxMessageRequest
-  | GetUnspentNotesRequest
-  | TransactionFeeRequest
-  | UnboxMessageRequest
+export type WorkerRequest = BoxMessageRequest | GetUnspentNotesRequest | TransactionFeeRequest
 
 export type WorkerResponse =
   | BoxMessageResponse
   | GetUnspentNotesResponse
   | TransactionFeeResponse
-  | UnboxMessageResponse

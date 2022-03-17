@@ -10,12 +10,13 @@ import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { Job } from './job'
-import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks'
+import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
 import { JobError, SerializableJobError } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
@@ -246,6 +247,8 @@ export class Worker {
         return SleepRequest.deserialize(jobId, request)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.UnboxMessage:
+        return UnboxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
     }
@@ -269,6 +272,8 @@ export class Worker {
         return SleepResponse.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.UnboxMessage:
+        return UnboxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
     }
