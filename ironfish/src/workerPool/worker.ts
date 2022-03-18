@@ -13,8 +13,8 @@ import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
-import { JobAbortedError, SerializableJobAbortedError } from './tasks/jobAbort'
-import { JobError, SerializableJobError } from './tasks/jobError'
+import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
+import { JobError, JobErrorMessage } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
@@ -163,7 +163,7 @@ export class Worker {
         this.send(response)
       })
       .catch((e: unknown) => {
-        this.send(new SerializableJobError(job.id, e))
+        this.send(new JobErrorMessage(job.id, e))
       })
       .finally(() => {
         this.jobs.delete(job.id)
@@ -273,9 +273,9 @@ export class Worker {
       case WorkerMessageType.GetUnspentNotes:
         return GetUnspentNotesResponse.deserialize(jobId, response)
       case WorkerMessageType.JobAbort:
-        return SerializableJobAbortedError.deserialize()
+        return JobAbortedMessage.deserialize()
       case WorkerMessageType.JobError:
-        return SerializableJobError.deserialize(jobId, response)
+        return JobErrorMessage.deserialize(jobId, response)
       case WorkerMessageType.Sleep:
         return SleepResponse.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 
-export class SerializableJobAbortedError extends WorkerMessage {
+export class JobAbortedMessage extends WorkerMessage {
   constructor(jobId?: number) {
     super(WorkerMessageType.JobAbort, jobId)
   }

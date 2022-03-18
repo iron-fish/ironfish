@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import { ErrorUtils } from '../../utils'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 
-export class SerializableJobError extends WorkerMessage {
+export class JobErrorMessage extends WorkerMessage {
   errorType = 'JobError'
   code: string | undefined
   stack: string | undefined
@@ -69,7 +69,7 @@ export class SerializableJobError extends WorkerMessage {
       stack = undefined
     }
 
-    const err = new SerializableJobError(jobId)
+    const err = new JobErrorMessage(jobId)
     err.errorType = errorType
     err.message = message
     err.code = code
@@ -91,14 +91,14 @@ export class JobError extends Error {
   type = 'JobError'
   code: string | undefined = undefined
 
-  constructor(serializableJobError?: SerializableJobError) {
+  constructor(jobErrorMessage?: JobErrorMessage) {
     super()
 
-    if (serializableJobError) {
-      this.code = serializableJobError.code
-      this.stack = serializableJobError.stack
-      this.message = serializableJobError.message
-      this.type = serializableJobError.errorType
+    if (jobErrorMessage) {
+      this.code = jobErrorMessage.code
+      this.stack = jobErrorMessage.stack
+      this.message = jobErrorMessage.message
+      this.type = jobErrorMessage.errorType
     }
   }
 }
