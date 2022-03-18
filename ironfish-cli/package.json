@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@oclif/dev-cli": "^1",
-    "@oclif/test": "^1",
+    "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
     "@types/node": "16.11.1",
     "@types/ws": "7.4.5",
