@@ -35,12 +35,13 @@ declare module 'bufio' {
   class BufferReader {
     left(): number
     readU8(): number
+    readU32(): number
     readU64(): number
     readU64BE(): number
+    readI64(): number
     readFloat(): number
     readFloatBE(): number
     readDoubleBE(): number
-    readI64(): number
     readDouble(): number
     readVarString(enc?: BufferEncoding | null, limit?: number): string
     readVarBytes(): Buffer

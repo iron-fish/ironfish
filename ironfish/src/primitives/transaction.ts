@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
+import bufio from 'bufio'
 import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
@@ -18,11 +19,33 @@ export class Transaction {
   private readonly transactionPostedSerialized: Buffer
   private readonly workerPool: WorkerPool
 
+  private readonly _spendsLength: number
+  private readonly _notesLength: number
+  private readonly _fee: bigint
+  private readonly _expirationSequence: number
+  private readonly _spends: Buffer[]
+  private readonly _notes: Buffer[]
+  private readonly _signature: Buffer
+
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
   constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
     this.transactionPostedSerialized = transactionPostedSerialized
+
+    const reader = bufio.read(this.transactionPostedSerialized, true)
+    this._spendsLength = reader.readU64()
+    this._notesLength = reader.readU64()
+    this._fee = BigInt(reader.readI64())
+    this._expirationSequence = reader.readU32()
+    this._spends = Array.from({ length: this._spendsLength }, () => {
+      return reader.readBytes(388, true)
+    })
+    this._notes = Array.from({ length: this._notesLength }, () => {
+      return reader.readBytes(275, true)
+    })
+    this._signature = reader.readBytes(64, true)
+
     this.workerPool = workerPool
   }
 
@@ -82,14 +105,11 @@ export class Transaction {
    * The number of notes in the transaction.
    */
   notesLength(): number {
-    return this.withReference((t) => t.notesLength())
+    return this._notesLength
   }
 
   getNote(index: number): NoteEncrypted {
-    return this.withReference((t) => {
-      const serializedNote = Buffer.from(t.getNote(index))
-      return new NoteEncrypted(serializedNote)
-    })
+    return new NoteEncrypted(this._notes[index])
   }
 
   async isMinersFee(): Promise<boolean> {
@@ -111,7 +131,7 @@ export class Transaction {
    * The number of spends in the transaction.
    */
   spendsLength(): number {
-    return this.withReference((t) => t.spendsLength())
+    return this._spendsLength
   }
 
   /**
@@ -156,14 +176,14 @@ export class Transaction {
    * transaction.
    */
   fee(): Promise<bigint> {
-    return this.workerPool.transactionFee(this)
+    return Promise.resolve(this._fee)
   }
 
   /**
    * Get transaction signature for this transaction.
    */
   transactionSignature(): Buffer {
-    return this.withReference((t) => t.transactionSignature())
+    return this._signature
   }
 
   /**
@@ -178,7 +198,7 @@ export class Transaction {
   }
 
   expirationSequence(): number {
-    return this.withReference<number>((t) => t.expirationSequence())
+    return this._expirationSequence
   }
 }
 
