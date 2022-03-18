@@ -5,7 +5,6 @@ import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils } from '../../../utils'
 import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
-import { workerMessageTypeToString } from '../../../workerPool/utils'
 import { ApiNamespace, router } from '../router'
 
 export type GetWorkersStatusRequest =
@@ -98,7 +97,7 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
     const job = node.workerPool.stats.get(type)
 
     if (job) {
-      result.push({ name: workerMessageTypeToString(type), ...job })
+      result.push({ name: WorkerMessageType[type], ...job })
     }
   }
   return {

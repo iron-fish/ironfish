@@ -21,7 +21,6 @@ import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transacti
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
-import { workerMessageTypeToString } from './utils'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -138,9 +137,9 @@ export class Worker {
     try {
       requestBody = this.parseRequest(jobId, type, body)
     } catch {
-      const args = `(jobId: ${jobId}, type: ${workerMessageTypeToString(
-        type,
-      )}, body: '${body.toString('hex')}')`
+      const args = `(jobId: ${jobId}, type: ${WorkerMessageType[type]}, body: '${body.toString(
+        'hex',
+      )}')`
       this.logger.error(`Could not parse payload from request: ${args}`)
       return
     }
@@ -199,9 +198,9 @@ export class Worker {
     try {
       result = this.parseResponse(jobId, type, body)
     } catch {
-      const args = `(jobId: ${jobId}, type: ${workerMessageTypeToString(
-        type,
-      )}, body: '${body.toString('hex')}')`
+      const args = `(jobId: ${jobId}, type: ${WorkerMessageType[type]}, body: '${body.toString(
+        'hex',
+      )}')`
       this.logger.error(`Could not parse payload from response: ${args}`)
       return
     }
