@@ -52,8 +52,6 @@
     "clean": "rimraf build",
     "pack": "oclif-dev pack",
     "prepack": "rimraf build && yarn build && oclif-dev manifest && oclif-dev readme",
-    "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
-    "oclif:test": "echo NO TESTS",
     "oclif:version": "oclif-dev readme && git add README.md"
   },
   "dependencies": {
