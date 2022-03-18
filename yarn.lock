@@ -2626,9 +2626,9 @@ before-after-hook@^2.2.0:
   resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.2.tgz#a6e8ca41028d90ee2c24222f201c90956091613e"
   integrity sha512-3pZEU3NT5BFUo/AD5ERPWOgQOCZITni6iavr5AUw5AUwQjMlI0kzu5btnyD39AF0gUEsDPwJT+oY1ORBJijPjQ==
 
-bfilter@bcoin-org/bfilter#70e42125f877191d340e8838a1a90fabb750e680:
+"bfilter@https://github.com/bcoin-org/bfilter/archive/70e42125f877191d340e8838a1a90fabb750e680.tar.gz":
   version "2.3.0"
-  resolved "https://codeload.github.com/bcoin-org/bfilter/tar.gz/70e42125f877191d340e8838a1a90fabb750e680"
+  resolved "https://github.com/bcoin-org/bfilter/archive/70e42125f877191d340e8838a1a90fabb750e680.tar.gz#02ae17bedf0daf5b826f36e94cf05f684857aa80"
   dependencies:
     bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
     bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
@@ -9426,9 +9426,9 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
 
-sqlite3@mapbox/node-sqlite3#918052b538b0effe6c4a44c74a16b2749c08a0d2:
+"sqlite3@https://github.com/mapbox/node-sqlite3/archive/918052b538b0effe6c4a44c74a16b2749c08a0d2.tar.gz":
   version "5.0.2"
-  resolved "https://codeload.github.com/mapbox/node-sqlite3/tar.gz/918052b538b0effe6c4a44c74a16b2749c08a0d2"
+  resolved "https://github.com/mapbox/node-sqlite3/archive/918052b538b0effe6c4a44c74a16b2749c08a0d2.tar.gz#a06ce45e69b6529cd929ba39ce16ac44cff06826"
   dependencies:
     "@mapbox/node-pre-gyp" "^1.0.0"
     node-addon-api "^4.2.0"
