@@ -144,7 +144,7 @@ export class Worker {
       return
     }
 
-    if (type === WorkerMessageType.JobAbort) {
+    if (type === WorkerMessageType.JobAborted) {
       const job = this.jobs.get(jobId)
       if (job) {
         this.jobs.delete(job.id)
@@ -241,7 +241,7 @@ export class Worker {
         return CreateTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.GetUnspentNotes:
         return GetUnspentNotesRequest.deserialize(jobId, request)
-      case WorkerMessageType.JobAbort:
+      case WorkerMessageType.JobAborted:
         throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
@@ -272,7 +272,7 @@ export class Worker {
         return CreateTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.GetUnspentNotes:
         return GetUnspentNotesResponse.deserialize(jobId, response)
-      case WorkerMessageType.JobAbort:
+      case WorkerMessageType.JobAborted:
         return JobAbortedMessage.deserialize()
       case WorkerMessageType.JobError:
         return JobErrorMessage.deserialize(jobId, response)

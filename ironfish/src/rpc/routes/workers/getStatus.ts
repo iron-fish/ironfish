@@ -90,7 +90,7 @@ function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
   const result: GetWorkersStatusResponse['jobs'] = []
 
   for (const type of node.workerPool.stats.keys()) {
-    if (type === WorkerMessageType.JobAbort || type === WorkerMessageType.Sleep) {
+    if (type === WorkerMessageType.JobAborted || type === WorkerMessageType.Sleep) {
       continue
     }
 

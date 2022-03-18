@@ -51,7 +51,7 @@ export class WorkerPool {
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.GetUnspentNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.JobAbort, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.TransactionFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -266,7 +266,7 @@ export class WorkerPool {
     const request = new SleepRequest(sleep, error)
 
     const job = this.execute(request)
-    job.enableJobAbortError = true
+    job.enableJobAbortedError = true
 
     return job
   }

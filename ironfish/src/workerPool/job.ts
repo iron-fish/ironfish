@@ -25,7 +25,7 @@ export class Job {
   // aborted. The code base hasn't been upgraded to handle these so it should be
   // enabled for each job that now properly handles it until all jobs handle it.
   // Then this should be removed.
-  enableJobAbortError = false
+  enableJobAbortedError = false
 
   constructor(request: WorkerMessage) {
     this.id = request.jobId
@@ -59,7 +59,7 @@ export class Job {
       this.worker.jobs.delete(this.id)
     }
 
-    if (this.reject && this.enableJobAbortError) {
+    if (this.reject && this.enableJobAbortedError) {
       this.reject(new JobAbortedError())
     }
   }

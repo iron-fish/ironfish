@@ -5,7 +5,7 @@ import { WorkerMessage, WorkerMessageType } from './workerMessage'
 
 export class JobAbortedMessage extends WorkerMessage {
   constructor(jobId?: number) {
-    super(WorkerMessageType.JobAbort, jobId)
+    super(WorkerMessageType.JobAborted, jobId)
   }
 
   serialize(): Buffer {

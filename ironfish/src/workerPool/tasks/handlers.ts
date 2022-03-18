@@ -19,7 +19,7 @@ export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.CreateMinersFee]: CreateMinersFeeTask.getInstance(),
   [WorkerMessageType.CreateTransaction]: CreateTransactionTask.getInstance(),
   [WorkerMessageType.GetUnspentNotes]: GetUnspentNotesTask.getInstance(),
-  [WorkerMessageType.JobAbort]: undefined,
+  [WorkerMessageType.JobAborted]: undefined,
   [WorkerMessageType.JobError]: undefined,
   [WorkerMessageType.Sleep]: SleepTask.getInstance(),
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
