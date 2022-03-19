@@ -34,6 +34,9 @@ wasm = ["rand/wasm-bindgen"]
 # good: c921cfcf9738a9a0335631ad683d550a9d3cecf7
 # good: a224d826fa41a2af9dd7ca6b2a2e84a297a574be aug 3, 2020
 # good: 139fc09f1028f0f2d073748dfca8529dbe98807b aug 5, 2020, minor change
+# good: 18b1ce7401184e86031e6d7ddefa7c8d36929296 aug 7, 2020
+# good: 0e9b6e6d739d19cbf5063de8c4530665e7967e4b
+# good: 81c3b54b24cb4a402e70a13c79711edada583a1e aug 12, 2020, changes
 zcash_primitives = { path="../../librustzcash/zcash_primitives" }
 zcash_proofs = { path="../../librustzcash/zcash_proofs" }
 bellman = { path="../../librustzcash/bellman",  version = "0.6", default-features = false, features = ["groth16"]}

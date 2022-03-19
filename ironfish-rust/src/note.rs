@@ -12,7 +12,7 @@ use super::{
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::Note as SaplingNote;
+use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
 use std::{fmt, io, io::Read, sync::Arc};
 use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, ToUniform};
@@ -299,7 +299,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> Note<J> {
             value: self.value,
             g_d: self.owner.diversifier.g_d(&self.sapling.jubjub).unwrap(),
             pk_d: self.owner.transmission_key.clone(),
-            r: self.randomness,
+            rseed: Rseed::BeforeZip212(self.randomness),
         }
     }
 }
