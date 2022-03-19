@@ -161,7 +161,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ReceiptProof<J> {
             &self.proof,
             &public_input[..],
         ) {
-            Ok(true) => Ok(()),
+            Ok(()) => Ok(()),
             _ => Err(errors::SaplingProofError::VerificationFailed),
         }
     }

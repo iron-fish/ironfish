@@ -375,7 +375,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> SpendProof<J> {
         public_input[6] = nullifier[1];
 
         match groth16::verify_proof(&sapling.spend_verifying_key, &self.proof, &public_input[..]) {
-            Ok(true) => Ok(()),
+            Ok(()) => Ok(()),
             _ => Err(errors::SaplingProofError::VerificationFailed),
         }
     }
