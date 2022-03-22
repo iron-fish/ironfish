@@ -9,7 +9,6 @@ extern crate lazy_static;
 extern crate shrinkwraprs;
 
 use bellman::groth16;
-use zcash_primitives::jubjub::edwards;
 
 mod serializing;
 
@@ -87,9 +86,4 @@ impl<J: pairing::MultiMillerLoop> Sapling<J> {
     fn load_params(bytes: &[u8]) -> groth16::Parameters<J> {
         groth16::Parameters::read(bytes, false).unwrap()
     }
-}
-
-// TODO: This belongs in a utility library if we ever need one
-fn is_small_order<J: pairing::MultiMillerLoop, Order>(point: &edwards::Point<J, Order>) -> bool {
-    point.double().double().double() == edwards::Point::zero()
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{
-    errors, is_small_order,
+    errors,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
     merkle_note_hash::MerkleNoteHash,
@@ -317,7 +317,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
         &self,
         signature_hash_value: &[u8; 32],
     ) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(&self.randomized_public_key.0) {
+        if self.randomized_public_key.0.is_small_order() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
         let mut data_to_be_signed = [0; 64];
@@ -344,7 +344,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// This entails converting all the values to appropriate inputs to the
     /// bellman circuit and executing it.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(&self.value_commitment) {
+        if self.value_commitment.is_small_order() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 

@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{
-    errors, is_small_order, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling,
-};
+use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
 use ff::Field;
+use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 use zcash_primitives::jubjub::ToUniform;
 use zcash_primitives::primitives::ValueCommitment;
@@ -139,8 +138,8 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(&self.merkle_note.value_commitment)
-            || is_small_order(&self.merkle_note.ephemeral_public_key)
+        if self.merkle_note.value_commitment.is_small_order()
+            || ExtendedPoint::from(self.merkle_note.ephemeral_public_key).is_small_order()
         {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
