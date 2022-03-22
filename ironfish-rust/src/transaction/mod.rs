@@ -278,7 +278,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
 
         value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key.clone();
-        calculated_public_key = calculated_public_key.add(&value_balance_point);
+        calculated_public_key = calculated_public_key + value_balance_point;
 
         if calculated_public_key != public_key.0 {
             Err(TransactionError::InvalidBalanceError)
@@ -330,7 +330,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         if negate {
             tmp = -tmp;
         }
-        tmp = tmp.add(&self.binding_verification_key);
+        tmp = tmp + self.binding_verification_key;
         self.binding_verification_key = tmp;
     }
 }
@@ -428,7 +428,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         for spend in self.spends.iter() {
             spend.verify_proof(&self.sapling)?;
             let mut tmp = spend.value_commitment.clone();
-            tmp = tmp.add(&binding_verification_key);
+            tmp = tmp + binding_verification_key;
             binding_verification_key = tmp;
         }
 
@@ -436,7 +436,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
             receipt.verify_proof(&self.sapling)?;
             let mut tmp = receipt.merkle_note.value_commitment.clone();
             tmp = -tmp;
-            tmp = tmp.add(&binding_verification_key);
+            tmp = tmp + binding_verification_key;
             binding_verification_key = tmp;
         }
 
@@ -533,7 +533,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         value_balance_point = -value_balance_point;
 
         let mut public_key_point = binding_verification_key.clone();
-        public_key_point = public_key_point.add(&value_balance_point);
+        public_key_point = public_key_point + value_balance_point;
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
