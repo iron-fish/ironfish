@@ -180,7 +180,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::<J>::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&sapling.jubjub, &diversifier_bytes[..])?;
+            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
         let owner = PublicAddress {
             diversifier,
             diversifier_point,
@@ -231,11 +231,9 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey<J>, position: u64) -> Nullifier {
         let mut result = [0; 32];
-        let result_as_vec = self.sapling_note().nf(
-            &private_key.sapling_viewing_key(),
-            position,
-            &self.sapling.jubjub,
-        );
+        let result_as_vec = self
+            .sapling_note()
+            .nf(&private_key.sapling_viewing_key(), position);
         assert_eq!(result_as_vec.len(), 32);
         result[0..32].copy_from_slice(&result_as_vec[0..32]);
         result
@@ -254,7 +252,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
     pub(crate) fn commitment_point(&self) -> J::Fr {
-        self.sapling_note().cm(&self.sapling.jubjub)
+        self.sapling_note().cm()
     }
 
     /// Verify that the note's commitment matches the one passed in
@@ -297,7 +295,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     fn sapling_note(&self) -> SaplingNote {
         SaplingNote {
             value: self.value,
-            g_d: self.owner.diversifier.g_d(&self.sapling.jubjub).unwrap(),
+            g_d: self.owner.diversifier.g_d().unwrap(),
             pk_d: self.owner.transmission_key.clone(),
             rseed: Rseed::BeforeZip212(self.randomness),
         }
@@ -342,13 +340,9 @@ mod test {
         let sapling = &*sapling_bls12::SAPLING;
         let owner_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
         let public_address = owner_key.generate_public_address();
-        let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys(&sapling.jubjub);
-        let public_shared_secret = shared_secret(
-            &sapling.jubjub,
-            &dh_secret,
-            &public_address.transmission_key,
-            &dh_public,
-        );
+        let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
+        let public_shared_secret =
+            shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
         let note = Note::new(sapling.clone(), public_address, 42, Memo([0; 32]));
         let encryption_result = note.encrypt(&public_shared_secret);
 

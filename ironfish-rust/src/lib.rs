@@ -54,17 +54,12 @@ pub struct Sapling<J: pairing::MultiMillerLoop> {
     receipt_params: groth16::Parameters<J>,
     spend_verifying_key: groth16::PreparedVerifyingKey<J>,
     receipt_verifying_key: groth16::PreparedVerifyingKey<J>,
-    pub jubjub: J::Params, // Initial point on the jubjub curve
 }
 
 impl<J: pairing::MultiMillerLoop> Sapling<J> {
     /// Initialize a Sapling instance and prepare for proving. Load the parameters from a config file
     /// at a known location (`./sapling_params`, for now).
-    ///
-    /// The argument `jubjub` is the parameters for a given JubjubEngine. They have to be passed
-    /// in instead of being constructed locally because this code is generic across curves, but
-    /// zcash_primitives's `J::Params` trait doesn't have a method to construct a default.
-    pub fn load(jubjub: J::Params) -> Self {
+    pub fn load() -> Self {
         // TODO: We'll need to build our own parameters using a trusted set up at some point.
         // These params were borrowed from zcash
         let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
@@ -81,7 +76,6 @@ impl<J: pairing::MultiMillerLoop> Sapling<J> {
             receipt_verifying_key: receipt_vk,
             spend_params,
             receipt_params,
-            jubjub,
         }
     }
 
@@ -96,9 +90,6 @@ impl<J: pairing::MultiMillerLoop> Sapling<J> {
 }
 
 // TODO: This belongs in a utility library if we ever need one
-fn is_small_order<J: pairing::MultiMillerLoop, Order>(
-    jubjub: &J::Params,
-    point: &edwards::Point<J, Order>,
-) -> bool {
-    point.double(jubjub).double(jubjub).double(jubjub) == edwards::Point::zero()
+fn is_small_order<J: pairing::MultiMillerLoop, Order>(point: &edwards::Point<J, Order>) -> bool {
+    point.double().double().double() == edwards::Point::zero()
 }

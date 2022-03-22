@@ -20,7 +20,7 @@ use rand::rngs::OsRng;
 use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubParams, Unknown};
+use zcash_primitives::jubjub::{edwards, FixedGenerators, Unknown};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -268,18 +268,14 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// binding_signature below. I find the separation of concerns easier
     /// to read, but it's an easy win if we see a performance bottleneck here.
     fn check_value_consistency(&self) -> Result<(), TransactionError> {
-        let jubjub = &self.sapling.jubjub;
         let private_key = PrivateKey::<J>(self.binding_signature_key);
-        let public_key = PublicKey::from_private(
-            &private_key,
-            FixedGenerators::ValueCommitmentRandomness,
-            jubjub,
-        );
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64, jubjub)?;
+        let public_key =
+            PublicKey::from_private(&private_key, FixedGenerators::ValueCommitmentRandomness);
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
         value_balance_point = value_balance_point.negate();
         let mut calculated_public_key = self.binding_verification_key.clone();
-        calculated_public_key = calculated_public_key.add(&value_balance_point, jubjub);
+        calculated_public_key = calculated_public_key.add(&value_balance_point);
 
         if calculated_public_key != public_key.0 {
             Err(TransactionError::InvalidBalanceError)
@@ -295,11 +291,8 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     fn binding_signature(&self) -> Result<Signature, TransactionError> {
         let mut data_to_be_signed = [0u8; 64];
         let private_key = PrivateKey::<J>(self.binding_signature_key);
-        let public_key = PublicKey::from_private(
-            &private_key,
-            FixedGenerators::ValueCommitmentRandomness,
-            &self.sapling.jubjub,
-        );
+        let public_key =
+            PublicKey::from_private(&private_key, FixedGenerators::ValueCommitmentRandomness);
 
         public_key
             .0
@@ -311,7 +304,6 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
             &data_to_be_signed,
             &mut OsRng,
             FixedGenerators::ValueCommitmentRandomness,
-            &self.sapling.jubjub,
         ))
     }
 
@@ -339,7 +331,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         if negate {
             tmp = tmp.negate();
         }
-        tmp = tmp.add(&self.binding_verification_key, &self.sapling.jubjub);
+        tmp = tmp.add(&self.binding_verification_key);
         self.binding_verification_key = tmp;
     }
 }
@@ -387,7 +379,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         let mut spends = vec![];
         let mut receipts = vec![];
         for _ in 0..num_spends {
-            spends.push(SpendProof::read(&sapling.jubjub, &mut reader)?);
+            spends.push(SpendProof::read(&mut reader)?);
         }
         for _ in 0..num_receipts {
             receipts.push(ReceiptProof::read(sapling.clone(), &mut reader)?);
@@ -437,7 +429,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         for spend in self.spends.iter() {
             spend.verify_proof(&self.sapling)?;
             let mut tmp = spend.value_commitment.clone();
-            tmp = tmp.add(&binding_verification_key, &self.sapling.jubjub);
+            tmp = tmp.add(&binding_verification_key);
             binding_verification_key = tmp;
         }
 
@@ -445,14 +437,14 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
             receipt.verify_proof(&self.sapling)?;
             let mut tmp = receipt.merkle_note.value_commitment.clone();
             tmp = tmp.negate();
-            tmp = tmp.add(&binding_verification_key, &self.sapling.jubjub);
+            tmp = tmp.add(&binding_verification_key);
             binding_verification_key = tmp;
         }
 
         let hash_to_verify_signature = self.transaction_signature_hash();
 
         for spend in self.spends.iter() {
-            spend.verify_signature(&self.sapling.jubjub, &hash_to_verify_signature)?;
+            spend.verify_signature(&hash_to_verify_signature)?;
         }
 
         self.verify_binding_signature(&self.sapling, &binding_verification_key)?;
@@ -538,12 +530,11 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         sapling: &Sapling<J>,
         binding_verification_key: &edwards::Point<J, Unknown>,
     ) -> Result<(), TransactionError> {
-        let mut value_balance_point =
-            value_balance_to_point(self.transaction_fee, &sapling.jubjub)?;
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
         value_balance_point = value_balance_point.negate();
 
         let mut public_key_point = binding_verification_key.clone();
-        public_key_point = public_key_point.add(&value_balance_point, &sapling.jubjub);
+        public_key_point = public_key_point.add(&value_balance_point);
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
@@ -557,7 +548,6 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
             &data_to_verify_signature,
             &self.binding_signature,
             FixedGenerators::ValueCommitmentRandomness,
-            &sapling.jubjub,
         ) {
             Err(TransactionError::VerificationFailed)
         } else {
@@ -570,7 +560,6 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
 // negative values
 fn value_balance_to_point<J: pairing::MultiMillerLoop>(
     value: i64,
-    params: &J::Params,
 ) -> Result<edwards::Point<J, Unknown>, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later

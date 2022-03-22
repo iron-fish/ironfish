@@ -75,7 +75,6 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let encrypted_note = note.encrypt(&shared_secret(
-            &spender_key.sapling.jubjub,
             secret_key,
             &note.owner.transmission_key,
             public_key,
@@ -91,7 +90,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key.outgoing_view_key(),
-            &value_commitment.cm(&spender_key.sapling.jubjub).into(),
+            &value_commitment.cm().into(),
             &note.commitment_point(),
             public_key,
         );
@@ -99,7 +98,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
 
         MerkleNote {
-            value_commitment: value_commitment.cm(&spender_key.sapling.jubjub).into(),
+            value_commitment: value_commitment.cm().into(),
             note_commitment: note.commitment_point(),
             ephemeral_public_key: (*public_key).clone(),
             encrypted_note,
@@ -109,7 +108,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
     /// Load a MerkleNote from the given stream
     pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
+        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader)?;
         let note_commitment = read_scalar(&mut reader).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -117,16 +116,13 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
             )
         })?;
 
-        let public_key_non_prime =
-            edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
-        let ephemeral_public_key = public_key_non_prime
-            .as_prime_order(&sapling.jubjub)
-            .ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Unable to convert note commitment",
-                )
-            })?;
+        let public_key_non_prime = edwards::Point::<J, Unknown>::read(&mut reader)?;
+        let ephemeral_public_key = public_key_non_prime.as_prime_order().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unable to convert note commitment",
+            )
+        })?;
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
@@ -182,17 +178,9 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
             &mut note_encryption_keys,
         )?;
 
-        let transmission_key = PublicAddress::load_transmission_key(
-            &spender_key.sapling.jubjub,
-            &note_encryption_keys[..32],
-        )?;
+        let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
-        let shared_key = shared_secret(
-            &spender_key.sapling.jubjub,
-            &secret_key,
-            &transmission_key,
-            &self.ephemeral_public_key,
-        );
+        let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
         let note = Note::from_spender_encrypted(
             spender_key.sapling.clone(),
             transmission_key,
@@ -294,7 +282,7 @@ mod test {
             42,
             Memo([0; 32]),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys(&sapling.jubjub);
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
@@ -326,7 +314,7 @@ mod test {
             42,
             Memo([0; 32]),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys(&sapling.jubjub);
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);

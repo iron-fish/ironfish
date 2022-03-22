@@ -41,9 +41,8 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         address_bytes: &[u8; 43],
     ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&sapling.jubjub, &address_bytes[..11])?;
-        let transmission_key =
-            PublicAddress::load_transmission_key(&sapling.jubjub, &address_bytes[11..])?;
+            PublicAddress::load_diversifier(&address_bytes[..11])?;
+        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
 
         Ok(PublicAddress {
             diversifier,
@@ -77,11 +76,11 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
         let diversifier = Diversifier(*diversifier);
-        if let Some(key_part) = diversifier.g_d(&view_key.sapling.jubjub) {
+        if let Some(key_part) = diversifier.g_d() {
             Ok(PublicAddress {
                 diversifier,
                 diversifier_point: key_part.clone(),
-                transmission_key: key_part.mul(view_key.view_key, &view_key.sapling.jubjub),
+                transmission_key: key_part.mul(view_key.view_key),
             })
         } else {
             Err(errors::SaplingKeyError::DiversificationError)
@@ -133,27 +132,25 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     }
 
     pub(crate) fn load_diversifier(
-        jubjub: &J::Params,
         diversifier_slice: &[u8],
     ) -> Result<(Diversifier, edwards::Point<J, PrimeOrder>), errors::SaplingKeyError> {
         let mut diversifier_bytes = [0; 11];
         diversifier_bytes.clone_from_slice(diversifier_slice);
         let diversifier = Diversifier(diversifier_bytes);
         let diversifier_point = diversifier
-            .g_d(jubjub)
+            .g_d()
             .ok_or(errors::SaplingKeyError::DiversificationError)?;
         Ok((diversifier, diversifier_point))
     }
 
     pub(crate) fn load_transmission_key(
-        jubjub: &J::Params,
         transmission_key_bytes: &[u8],
     ) -> Result<edwards::Point<J, PrimeOrder>, errors::SaplingKeyError> {
         assert!(transmission_key_bytes.len() == 32);
         let transmission_key_non_prime =
-            edwards::Point::<J, Unknown>::read(transmission_key_bytes, jubjub)?;
+            edwards::Point::<J, Unknown>::read(transmission_key_bytes)?;
         transmission_key_non_prime
-            .as_prime_order(jubjub)
+            .as_prime_order()
             .ok_or(errors::SaplingKeyError::InvalidPaymentAddress)
     }
 
@@ -166,15 +163,12 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Returns a tuple of:
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(
-        &self,
-        jubjub: &J::Params,
-    ) -> (J::Fs, edwards::Point<J, PrimeOrder>) {
+    pub fn generate_diffie_hellman_keys(&self) -> (J::Fs, edwards::Point<J, PrimeOrder>) {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
         let secret_key: J::Fs = J::Fs::to_uniform(&buffer[..]);
-        let public_key = self.diversifier_point.mul(secret_key, jubjub);
+        let public_key = self.diversifier_point.mul(secret_key);
         (secret_key, public_key)
     }
 

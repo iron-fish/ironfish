@@ -131,12 +131,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
         &self,
         ephemeral_public_key: &edwards::Point<J, PrimeOrder>,
     ) -> [u8; 32] {
-        shared_secret(
-            &self.sapling.jubjub,
-            &self.view_key,
-            ephemeral_public_key,
-            ephemeral_public_key,
-        )
+        shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
 }
 
@@ -237,12 +232,11 @@ pub struct ViewKeys<J: pairing::MultiMillerLoop> {
 ///
 /// The resulting key can be used in any symmetric cipher
 pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
-    jubjub: &J::Params,
     secret_key: &J::Fs,
     other_public_key: &edwards::Point<J, PrimeOrder>,
     reference_public_key: &edwards::Point<J, PrimeOrder>,
 ) -> [u8; 32] {
-    let shared_secret = point_to_bytes(&other_public_key.mul(*secret_key, jubjub))
+    let shared_secret = point_to_bytes(&other_public_key.mul(*secret_key))
         .expect("should be able to convert point to bytes");
     let reference_bytes =
         point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");

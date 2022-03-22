@@ -51,7 +51,6 @@ impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
             lhs.into_iter()
                 .take(num_bits)
                 .chain(rhs.into_iter().take(num_bits)),
-            &sapling.jubjub,
         )
         .to_xy()
         .0

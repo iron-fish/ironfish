@@ -108,7 +108,6 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 
         let spend_circuit = Spend {
-            params: &sapling.jubjub,
             value_commitment: Some(value_commitment.clone()),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
@@ -120,11 +119,8 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         let proof = groth16::create_random_proof(spend_circuit, &sapling.spend_params, &mut OsRng)?;
 
         let randomized_public_key =
-            redjubjub::PublicKey(spender_key.authorizing_key.clone().into()).randomize(
-                public_key_randomness,
-                FixedGenerators::SpendingKeyGenerator,
-                &sapling.jubjub,
-            );
+            redjubjub::PublicKey(spender_key.authorizing_key.clone().into())
+                .randomize(public_key_randomness, FixedGenerators::SpendingKeyGenerator);
         let nullifier = note.nullifier(&spender_key, witness_position::<J>(witness));
 
         Ok(SpendParams {
@@ -154,7 +150,6 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         let randomized_public_key = redjubjub::PublicKey::from_private(
             &randomized_private_key,
             FixedGenerators::SpendingKeyGenerator,
-            &self.sapling.jubjub,
         );
         if randomized_public_key.0 != self.randomized_public_key.0 {
             return Err(errors::SaplingProofError::SigningError);
@@ -169,7 +164,6 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
             &data_to_be_signed,
             &mut OsRng,
             FixedGenerators::SpendingKeyGenerator,
-            &self.sapling.jubjub,
         );
 
         let spend_proof = SpendProof {
@@ -212,7 +206,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     /// This integrates the value and randomness into a single point, using
     /// an appropriate generator.
     pub(crate) fn value_commitment(&self) -> edwards::Point<J, Unknown> {
-        self.value_commitment.cm(&self.sapling.jubjub).into()
+        self.value_commitment.cm().into()
     }
 }
 /// The publicly visible value of a spent note. These get serialized to prove
@@ -275,13 +269,10 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// Load a SpendProof from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(
-        jubjub: &J::Params,
-        mut reader: R,
-    ) -> Result<Self, errors::SaplingProofError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, jubjub)?;
-        let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader, jubjub)?;
+        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader)?;
+        let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = [0; 32];
@@ -323,10 +314,9 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// with the randomized_public_key on this proof.
     pub fn verify_signature(
         &self,
-        jubjub: &J::Params,
         signature_hash_value: &[u8; 32],
     ) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(jubjub, &self.randomized_public_key.0) {
+        if is_small_order(&self.randomized_public_key.0) {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
         let mut data_to_be_signed = [0; 64];
@@ -340,7 +330,6 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
             &data_to_be_signed,
             &self.authorizing_signature,
             FixedGenerators::SpendingKeyGenerator,
-            jubjub,
         ) {
             Err(errors::SaplingProofError::VerificationFailed)
         } else {
@@ -354,7 +343,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// This entails converting all the values to appropriate inputs to the
     /// bellman circuit and executing it.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(&sapling.jubjub, &self.value_commitment) {
+        if is_small_order(&self.value_commitment) {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 
@@ -463,15 +452,13 @@ mod test {
             .verify_proof(&sapling)
             .expect("proof should check out");
         proof
-            .verify_signature(&sapling.jubjub, &sig_hash)
+            .verify_signature(&sig_hash)
             .expect("should be able to verify signature");
 
         let mut other_hash = [0u8; 32];
         thread_rng().fill(&mut other_hash[..]);
         assert!(
-            proof
-                .verify_signature(&sapling.jubjub, &other_hash)
-                .is_err(),
+            proof.verify_signature(&other_hash).is_err(),
             "should error if not signing correct value"
         );
 
@@ -481,7 +468,7 @@ mod test {
             .write(&mut serialized_proof)
             .expect("should be able to serialize proof");
         let read_back_proof: SpendProof<Bls12> =
-            SpendProof::read(&sapling.jubjub, &mut serialized_proof[..].as_ref())
+            SpendProof::read(&mut serialized_proof[..].as_ref())
                 .expect("should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);

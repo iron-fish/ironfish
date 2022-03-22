@@ -40,7 +40,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
         spender_key: &SaplingKey<J>,
         note: &Note<J>,
     ) -> Result<ReceiptParams<J>, errors::SaplingProofError> {
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys(&sapling.jubjub);
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
@@ -56,7 +56,6 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
             MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
 
         let output_circuit = Output {
-            params: &sapling.jubjub,
             value_commitment: Some(value_commitment),
             payment_address: Some(note.owner.sapling_payment_address()),
             commitment_randomness: Some(note.randomness),
@@ -140,8 +139,8 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if is_small_order(&sapling.jubjub, &self.merkle_note.value_commitment)
-            || is_small_order(&sapling.jubjub, &self.merkle_note.ephemeral_public_key)
+        if is_small_order(&self.merkle_note.value_commitment)
+            || is_small_order(&self.merkle_note.ephemeral_public_key)
         {
             return Err(errors::SaplingProofError::VerificationFailed);
         }

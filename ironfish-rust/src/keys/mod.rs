@@ -15,7 +15,7 @@ use rand::prelude::*;
 use zcash_primitives::constants::CRH_IVK_PERSONALIZATION;
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubParams, PrimeOrder, ToUniform};
+use zcash_primitives::jubjub::{edwards, FixedGenerators, PrimeOrder, ToUniform};
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
@@ -92,13 +92,11 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
             view_key: outgoing_viewing_key,
         };
         let authorizing_key = sapling
-            .jubjub
             .generator(FixedGenerators::SpendingKeyGenerator)
-            .mul(spend_authorizing_key, &sapling.jubjub);
+            .mul(spend_authorizing_key);
         let nullifier_deriving_key = sapling
-            .jubjub
             .generator(FixedGenerators::ProofGenerationKey)
-            .mul(proof_authorizing_key, &sapling.jubjub);
+            .mul(proof_authorizing_key);
         let incoming_viewing_key = IncomingViewKey {
             sapling: sapling.clone(),
             view_key: Self::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,

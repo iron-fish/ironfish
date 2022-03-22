@@ -35,5 +35,5 @@ lazy_static! {
 /// Provided as a convenience method so clients don't have to depend
 /// explicitly on zcash_primitives just to define a JubjubBls12 point.
 fn load() -> Sapling {
-    Sapling::load(zcash_primitives::jubjub::JubjubBls12::new())
+    Sapling::load()
 }

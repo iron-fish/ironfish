@@ -133,8 +133,7 @@ mod tests {
             42,
             Memo([0; 32]),
         );
-        let diffie_hellman_keys =
-            owner.generate_diffie_hellman_keys(&sapling_bls12::SAPLING.jubjub);
+        let diffie_hellman_keys = owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);

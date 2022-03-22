@@ -26,15 +26,9 @@ fn test_diffie_hellman_shared_key() {
 
     // second address has to use the same diversifier for the keys to be valid
     let address1 = key1.generate_public_address();
-    let (secret_key, public_key) = address1.generate_diffie_hellman_keys(&sapling.jubjub);
-    let shared_secret1 = shared_secret(
-        &sapling.jubjub,
-        &secret_key,
-        &address1.transmission_key,
-        &public_key,
-    );
+    let (secret_key, public_key) = address1.generate_diffie_hellman_keys();
+    let shared_secret1 = shared_secret(&secret_key, &address1.transmission_key, &public_key);
     let shared_secret2 = shared_secret(
-        &sapling.jubjub,
         &key1.incoming_viewing_key.view_key,
         &public_key,
         &public_key,
