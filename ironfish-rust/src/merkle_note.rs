@@ -75,7 +75,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     ) -> MerkleNote<J> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
-        let encrypted_note = note.encrypt(&shared_secret(
+        let encrypted_note = note.encrypt(&shared_secret::<J>(
             secret_key,
             &note.owner.transmission_key,
             public_key,

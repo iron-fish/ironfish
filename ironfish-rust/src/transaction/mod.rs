@@ -527,7 +527,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         sapling: &Sapling<J>,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
+        let mut value_balance_point = value_balance_to_point::<J>(self.transaction_fee)?;
         value_balance_point = -value_balance_point;
 
         let mut public_key_point = binding_verification_key.clone();
