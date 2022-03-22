@@ -19,7 +19,7 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
 use zcash_primitives::{
-    constants::VALUE_COMMITMENT_VALUE_GENERATOR,
+    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
     redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
@@ -273,7 +273,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     fn check_value_consistency(&self) -> Result<(), TransactionError> {
         let private_key = PrivateKey::<J>(self.binding_signature_key);
         let public_key =
-            PublicKey::from_private(&private_key, FixedGenerators::ValueCommitmentRandomness);
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
         let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
         value_balance_point = value_balance_point.negate();
@@ -295,7 +295,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         let mut data_to_be_signed = [0u8; 64];
         let private_key = PrivateKey::<J>(self.binding_signature_key);
         let public_key =
-            PublicKey::from_private(&private_key, FixedGenerators::ValueCommitmentRandomness);
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         public_key
             .0
@@ -306,7 +306,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         Ok(private_key.sign(
             &data_to_be_signed,
             &mut OsRng,
-            FixedGenerators::ValueCommitmentRandomness,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
     }
 
@@ -546,7 +546,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         if !public_key.verify(
             &data_to_verify_signature,
             &self.binding_signature,
-            FixedGenerators::ValueCommitmentRandomness,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
             Err(TransactionError::VerificationFailed)
         } else {
