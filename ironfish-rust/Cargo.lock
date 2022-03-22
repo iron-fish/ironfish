@@ -569,6 +569,7 @@ dependencies = [
  "blake3",
  "byteorder",
  "ff",
+ "jubjub",
  "lazy_static",
  "pairing",
  "rand 0.7.3",
