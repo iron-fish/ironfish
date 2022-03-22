@@ -15,7 +15,7 @@ use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
-use std::{fmt, io, io::Read, sync::Arc};
+use std::{fmt, io, io::Read, marker::PhantomData, sync::Arc};
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -180,11 +180,12 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::<J>::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
+            PublicAddress::<J>::load_diversifier(&diversifier_bytes[..])?;
         let owner = PublicAddress {
             diversifier,
             diversifier_point,
             transmission_key,
+            phantom: PhantomData,
         };
 
         Ok(Note {
