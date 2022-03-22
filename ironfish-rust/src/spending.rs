@@ -24,9 +24,9 @@ use zcash_proofs::circuit::sapling::Spend;
 
 use ff::PrimeField;
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{FixedGenerators, ToUniform};
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_primitives::redjubjub;
+use zcash_primitives::{constants::SPENDING_KEY_GENERATOR, jubjub::ToUniform};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
@@ -121,7 +121,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
 
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.authorizing_key.clone().into())
-                .randomize(public_key_randomness, FixedGenerators::SpendingKeyGenerator);
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
         let nullifier = note.nullifier(&spender_key, witness_position::<J>(witness));
 
         Ok(SpendParams {
@@ -148,10 +148,8 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     ) -> Result<SpendProof<J>, errors::SaplingProofError> {
         let private_key = redjubjub::PrivateKey::<J>(self.spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
-        let randomized_public_key = redjubjub::PublicKey::from_private(
-            &randomized_private_key,
-            FixedGenerators::SpendingKeyGenerator,
-        );
+        let randomized_public_key =
+            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
         if randomized_public_key.0 != self.randomized_public_key.0 {
             return Err(errors::SaplingProofError::SigningError);
         }
@@ -161,11 +159,8 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
             .write(&mut data_to_be_signed[..32])?;
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
-        let authorizing_signature = randomized_private_key.sign(
-            &data_to_be_signed,
-            &mut OsRng,
-            FixedGenerators::SpendingKeyGenerator,
-        );
+        let authorizing_signature =
+            randomized_private_key.sign(&data_to_be_signed, &mut OsRng, SPENDING_KEY_GENERATOR);
 
         let spend_proof = SpendProof {
             proof: self.proof.clone(),
@@ -330,7 +325,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
         if !self.randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
-            FixedGenerators::SpendingKeyGenerator,
+            SPENDING_KEY_GENERATOR,
         ) {
             Err(errors::SaplingProofError::VerificationFailed)
         } else {
