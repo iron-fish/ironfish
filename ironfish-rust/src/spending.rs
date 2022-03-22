@@ -312,7 +312,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
         &self,
         signature_hash_value: &[u8; 32],
     ) -> Result<(), errors::SaplingProofError> {
-        if self.randomized_public_key.0.is_small_order() {
+        if self.randomized_public_key.0.is_small_order().into() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
         let mut data_to_be_signed = [0; 64];
@@ -339,7 +339,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// This entails converting all the values to appropriate inputs to the
     /// bellman circuit and executing it.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if self.value_commitment.is_small_order() {
+        if self.value_commitment.is_small_order().into() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 

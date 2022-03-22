@@ -137,8 +137,10 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
     pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
-        if self.merkle_note.value_commitment.is_small_order()
-            || ExtendedPoint::from(self.merkle_note.ephemeral_public_key).is_small_order()
+        if self.merkle_note.value_commitment.is_small_order().into()
+            || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
+                .is_small_order()
+                .into()
         {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
