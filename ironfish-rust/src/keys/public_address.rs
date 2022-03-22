@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
-use jubjub::ExtendedPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform};
+use zcash_primitives::jubjub::ToUniform;
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -27,12 +27,12 @@ pub struct PublicAddress<J: pairing::MultiMillerLoop> {
     /// The same diversifier, but represented as a point on the jubjub curve.
     /// Often referred to as
     /// `g_d` in the literature.
-    pub(crate) diversifier_point: edwards::Point<J, PrimeOrder>,
+    pub(crate) diversifier_point: SubgroupPoint,
 
     /// The transmission key is the result of combining the diversifier with the
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
-    pub(crate) transmission_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) transmission_key: SubgroupPoint,
 }
 
 impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
@@ -134,7 +134,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
 
     pub(crate) fn load_diversifier(
         diversifier_slice: &[u8],
-    ) -> Result<(Diversifier, edwards::Point<J, PrimeOrder>), errors::SaplingKeyError> {
+    ) -> Result<(Diversifier, SubgroupPoint), errors::SaplingKeyError> {
         let mut diversifier_bytes = [0; 11];
         diversifier_bytes.clone_from_slice(diversifier_slice);
         let diversifier = Diversifier(diversifier_bytes);
@@ -146,7 +146,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
 
     pub(crate) fn load_transmission_key(
         transmission_key_bytes: &[u8],
-    ) -> Result<edwards::Point<J, PrimeOrder>, errors::SaplingKeyError> {
+    ) -> Result<SubgroupPoint, errors::SaplingKeyError> {
         assert!(transmission_key_bytes.len() == 32);
         let transmission_key_non_prime = ExtendedPoint::read(transmission_key_bytes)?;
         transmission_key_non_prime
@@ -163,7 +163,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Returns a tuple of:
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, edwards::Point<J, PrimeOrder>) {
+    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 

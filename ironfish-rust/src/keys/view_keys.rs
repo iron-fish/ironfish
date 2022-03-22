@@ -18,10 +18,10 @@ use crate::serializing::{
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
+use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder};
 
 const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 
@@ -127,10 +127,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
 
     /// Calculate the shared secret key given the ephemeral public key that was
     /// created for a transaction.
-    pub(crate) fn shared_secret(
-        &self,
-        ephemeral_public_key: &edwards::Point<J, PrimeOrder>,
-    ) -> [u8; 32] {
+    pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {
         shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
 }
@@ -233,8 +230,8 @@ pub struct ViewKeys<J: pairing::MultiMillerLoop> {
 /// The resulting key can be used in any symmetric cipher
 pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
     secret_key: &jubjub::Fr,
-    other_public_key: &edwards::Point<J, PrimeOrder>,
-    reference_public_key: &edwards::Point<J, PrimeOrder>,
+    other_public_key: &SubgroupPoint,
+    reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
     let shared_secret = point_to_bytes(&other_public_key.mul(*secret_key))
         .expect("should be able to convert point to bytes");

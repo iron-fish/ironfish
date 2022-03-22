@@ -11,11 +11,12 @@ use super::{
 };
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
+use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
 use std::{fmt, io, io::Read, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform};
+use zcash_primitives::jubjub::ToUniform;
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -173,7 +174,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// shared secret and their own view key.
     pub(crate) fn from_spender_encrypted(
         sapling: Arc<Sapling<J>>,
-        transmission_key: edwards::Point<J, PrimeOrder>,
+        transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {

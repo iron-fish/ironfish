@@ -15,11 +15,10 @@ use super::{
 
 use blake2b_simd::Params as Blake2b;
 use ff::PrimeField;
-use jubjub::ExtendedPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use zcash_primitives::primitives::ValueCommitment;
 
 use std::{convert::TryInto, io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 /// The note encryption keys are used to allow the spender to
@@ -47,7 +46,7 @@ pub struct MerkleNote<J: pairing::MultiMillerLoop> {
 
     /// Public part of ephemeral diffie-hellman key-pair. See the discussion on
     /// keys::shared_secret to understand how this is used
-    pub(crate) ephemeral_public_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) ephemeral_public_key: SubgroupPoint,
 
     /// note as encrypted by the diffie hellman public key
     pub(crate) encrypted_note: [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
@@ -71,7 +70,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
         spender_key: &SaplingKey<J>,
         note: &Note<J>,
         value_commitment: &ValueCommitment,
-        diffie_hellman_keys: &(jubjub::Fr, edwards::Point<J, PrimeOrder>),
+        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
     ) -> MerkleNote<J> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
@@ -238,7 +237,7 @@ fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
     outgoing_view_key: &OutgoingViewKey<J>,
     value_commitment: &ExtendedPoint,
     note_commitment: &J::Fr,
-    public_key: &edwards::Point<J, PrimeOrder>,
+    public_key: &SubgroupPoint,
 ) -> [u8; 32] {
     let mut key_input = [0u8; 128];
     key_input[0..32].copy_from_slice(&outgoing_view_key.view_key);

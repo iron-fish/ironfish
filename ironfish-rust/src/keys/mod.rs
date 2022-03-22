@@ -10,12 +10,13 @@ use super::Sapling;
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
+use jubjub::SubgroupPoint;
 use rand::prelude::*;
 // use rand_core::{OsRng, RngCore};
 use zcash_primitives::constants::CRH_IVK_PERSONALIZATION;
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, PrimeOrder, ToUniform};
+use zcash_primitives::jubjub::{FixedGenerators, ToUniform};
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
@@ -62,12 +63,12 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
     /// multiplication in Sapling. Used to construct incoming viewing key.
-    pub(crate) authorizing_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) authorizing_key: SubgroupPoint,
 
     /// Part of the full viewing key. Generally referred to as
     /// `nk` in the literature. Derived from proof_authorizing_key using scalar
     /// multiplication. Used to construct incoming viewing key.
-    pub(crate) nullifier_deriving_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) nullifier_deriving_key: SubgroupPoint,
 
     /// Part of the payment_address. Generally referred to as
     /// `ivk` in the literature. Derived from authorizing key and
@@ -329,8 +330,8 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     /// This method is only called once, but it's kind of messy, so I pulled it
     /// out of the constructor for easier maintenance.
     fn hash_viewing_key(
-        authorizing_key: &edwards::Point<J, PrimeOrder>,
-        nullifier_deriving_key: &edwards::Point<J, PrimeOrder>,
+        authorizing_key: &SubgroupPoint,
+        nullifier_deriving_key: &SubgroupPoint,
     ) -> Result<jubjub::Fr, errors::SaplingKeyError> {
         let mut view_key_contents = [0; 64];
         authorizing_key
