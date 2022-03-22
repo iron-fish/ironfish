@@ -294,7 +294,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> Note<J> {
     /// This is somewhat suboptimal with extra calculations and bytes being
     /// passed around. I'm not worried about it yet, since only notes actively
     /// being spent have to create these.
-    fn sapling_note(&self) -> SaplingNote<J> {
+    fn sapling_note(&self) -> SaplingNote {
         SaplingNote {
             value: self.value,
             g_d: self.owner.diversifier.g_d(&self.sapling.jubjub).unwrap(),

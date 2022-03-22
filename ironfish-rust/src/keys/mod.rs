@@ -288,7 +288,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Adapter to convert this key to a viewing key for use in sapling
     /// functions.
-    pub(crate) fn sapling_viewing_key(&self) -> ViewingKey<J> {
+    pub(crate) fn sapling_viewing_key(&self) -> ViewingKey {
         ViewingKey {
             ak: self.authorizing_key.clone(),
             nk: self.nullifier_deriving_key.clone(),
@@ -297,7 +297,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
-    pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey<J> {
+    pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
         ProofGenerationKey {
             ak: self.authorizing_key.clone(),
             nsk: self.proof_authorizing_key,

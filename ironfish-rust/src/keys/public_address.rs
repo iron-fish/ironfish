@@ -182,7 +182,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     /// crate. This is essentially just an adapter from one struct name to
     /// another because `pk_d` is not a name I want to expose in a public
     /// interface.
-    pub(crate) fn sapling_payment_address(&self) -> PaymentAddress<J> {
+    pub(crate) fn sapling_payment_address(&self) -> PaymentAddress {
         PaymentAddress::from_parts(self.diversifier, self.transmission_key.clone())
             .expect("Converting PaymentAddress types shouldn't fail")
     }

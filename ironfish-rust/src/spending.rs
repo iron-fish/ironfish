@@ -52,13 +52,13 @@ pub struct SpendParams<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Randomized to help maintain zero knowledge.
-    pub(crate) value_commitment: ValueCommitment<J>,
+    pub(crate) value_commitment: ValueCommitment,
 
     /// The public key after randomization has been applied. This is used
     /// during signature verification. Referred to as
     /// `rk` in the literature Calculated from the authorizing key and
     /// the public_key_randomness.
-    pub(crate) randomized_public_key: redjubjub::PublicKey<J>,
+    pub(crate) randomized_public_key: redjubjub::PublicKey,
 
     /// The root hash of the tree at the time the proof was calculated. Referred to as
     /// `anchor` in the literature.
@@ -233,7 +233,7 @@ pub struct SpendProof<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// authorized the spend. Referred to as
     /// `rk` in the literature Calculated from the authorizing key and
     /// the public_key_randomness.
-    pub(crate) randomized_public_key: redjubjub::PublicKey<J>,
+    pub(crate) randomized_public_key: redjubjub::PublicKey,
 
     /// The root hash of the merkle tree at the time the proof was calculated.
     /// Referred to as `anchor` in the literature.
@@ -404,7 +404,7 @@ fn serialize_signature_fields<W: io::Write, J: JubjubEngine + pairing::MultiMill
     mut writer: W,
     proof: &groth16::Proof<J>,
     value_commitment: &edwards::Point<J, Unknown>,
-    randomized_public_key: &redjubjub::PublicKey<J>,
+    randomized_public_key: &redjubjub::PublicKey,
     root_hash: &J::Fr,
     tree_size: u32,
     nullifier: &[u8; 32],
