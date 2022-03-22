@@ -15,6 +15,7 @@ use super::{
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
+use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
@@ -297,10 +298,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
-        public_key
-            .0
-            .write(&mut data_to_be_signed[..32])
-            .expect("Should be able to copy key");
+        data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
         (&mut data_to_be_signed[32..]).copy_from_slice(&self.transaction_signature_hash());
 
         Ok(private_key.sign(
@@ -537,10 +535,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
-        public_key
-            .0
-            .write(&mut data_to_verify_signature[..32])
-            .expect("Should be able to copy key");
+        data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
         (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
 
         if !public_key.verify(

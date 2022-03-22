@@ -15,6 +15,7 @@ use super::{
 
 use blake2b_simd::Params as Blake2b;
 use ff::PrimeField;
+use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use zcash_primitives::primitives::ValueCommitment;
 
@@ -81,11 +82,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
         ));
 
         let mut key_bytes = [0; 64];
-        note.owner
-            .transmission_key
-            .write(&mut key_bytes[..32])
-            .expect("transmission key should be convertible to bytes");
-
+        key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(
@@ -137,9 +134,9 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     }
 
     pub fn write<W: io::Write>(&self, mut writer: &mut W) -> io::Result<()> {
-        self.value_commitment.write(&mut writer)?;
+        writer.write_all(&self.value_commitment.to_bytes());
         writer.write_all(self.note_commitment.to_repr().as_ref())?;
-        self.ephemeral_public_key.write(&mut writer)?;
+        writer.write_all(&self.ephemeral_public_key.to_bytes());
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.note_encryption_keys[..])?;
         Ok(())
@@ -243,9 +240,9 @@ fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
 ) -> [u8; 32] {
     let mut key_input = [0u8; 128];
     key_input[0..32].copy_from_slice(&outgoing_view_key.view_key);
-    value_commitment.write(&mut key_input[32..64]).unwrap();
+    key_input[32..64].copy_from_slice(&value_commitment.to_bytes());
     key_input[64..96].copy_from_slice(note_commitment.to_repr().as_ref());
-    public_key.write(&mut key_input[96..128]).unwrap();
+    key_input[96..128].copy_from_slice(&public_key.to_bytes());
 
     Blake2b::new()
         .hash_length(32)

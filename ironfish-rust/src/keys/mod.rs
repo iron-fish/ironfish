@@ -10,6 +10,7 @@ use super::Sapling;
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
+use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 // use rand_core::{OsRng, RngCore};
@@ -333,12 +334,8 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
         nullifier_deriving_key: &SubgroupPoint,
     ) -> Result<jubjub::Fr, errors::SaplingKeyError> {
         let mut view_key_contents = [0; 64];
-        authorizing_key
-            .write(&mut view_key_contents[0..32])
-            .unwrap();
-        nullifier_deriving_key
-            .write(&mut view_key_contents[32..64])
-            .unwrap();
+        view_key_contents[0..32].copy_from_slice(&authorizing_key.to_bytes());
+        view_key_contents[32..64].copy_from_slice(&nullifier_deriving_key.to_bytes());
         // let mut hasher = Blake2s::with_params(32, &[], &[], CRH_IVK_PERSONALIZATION);
 
         let mut hash_result = [0; 32];

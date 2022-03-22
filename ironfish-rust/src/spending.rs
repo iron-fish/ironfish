@@ -17,7 +17,7 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
-use group::Curve;
+use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
@@ -155,9 +155,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
             return Err(errors::SaplingProofError::SigningError);
         }
         let mut data_to_be_signed = [0; 64];
-        randomized_public_key
-            .0
-            .write(&mut data_to_be_signed[..32])?;
+        data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
         let authorizing_signature =
@@ -317,10 +315,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
         let mut data_to_be_signed = [0; 64];
-        self.randomized_public_key
-            .0
-            .write(&mut data_to_be_signed[..32])
-            .expect("should be able to write public key point");
+        data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
 
         if !self.randomized_public_key.verify(
@@ -396,8 +391,8 @@ fn serialize_signature_fields<W: io::Write, J: pairing::MultiMillerLoop>(
     nullifier: &[u8; 32],
 ) -> io::Result<()> {
     proof.write(&mut writer)?;
-    value_commitment.write(&mut writer)?;
-    randomized_public_key.write(&mut writer)?;
+    writer.write_all(&value_commitment.to_bytes());
+    writer.write_all(&randomized_public_key.0.to_bytes());
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(nullifier)?;
