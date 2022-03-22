@@ -187,8 +187,8 @@ mod test {
         note::{Memo, Note},
         sapling_bls12,
     };
+    use bls12_381::Bls12;
     use ff::PrimeField;
-    use pairing::bls12_381::Bls12;
 
     #[test]
     fn test_receipt_round_trip() {

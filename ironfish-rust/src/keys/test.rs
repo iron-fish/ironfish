@@ -4,7 +4,7 @@
 
 use super::{shared_secret, PublicAddress, SaplingKey};
 use crate::sapling_bls12;
-use pairing::bls12_381::Bls12;
+use bls12_381::Bls12;
 
 #[test]
 fn test_key_generation_and_construction() {

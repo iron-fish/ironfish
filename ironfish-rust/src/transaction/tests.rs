@@ -11,7 +11,7 @@ use crate::{
     sapling_bls12,
     test_util::make_fake_witness,
 };
-use pairing::bls12_381::Bls12;
+use bls12_381::Bls12;
 
 use zcash_primitives::redjubjub::Signature;
 

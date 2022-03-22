@@ -111,11 +111,11 @@ mod tests {
     use zcash_primitives::primitives::ValueCommitment;
 
     use super::*;
+    use bls12_381::Bls12;
     use ironfish_rust::merkle_note::MerkleNote;
     use ironfish_rust::note::Memo;
     use ironfish_rust::sapling_bls12::Note;
     use ironfish_rust::SaplingKey;
-    use pairing::bls12_381::Bls12;
 
     #[test]
     fn test_merkle_notes_are_equal() {

@@ -309,7 +309,7 @@ mod test {
         keys::{shared_secret, SaplingKey},
         sapling_bls12,
     };
-    use pairing::bls12_381::Bls12;
+    use bls12_381::Bls12;
 
     #[test]
     fn test_plaintext_serialization() {

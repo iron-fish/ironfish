@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-pub use pairing::bls12_381::{Bls12, Fr};
+pub use bls12_381::Bls12;
 use std::sync::Arc;
 
 pub type Key = super::SaplingKey<Bls12>;

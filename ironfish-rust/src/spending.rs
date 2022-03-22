@@ -415,7 +415,7 @@ mod test {
         sapling_bls12,
         test_util::make_fake_witness,
     };
-    use pairing::bls12_381::Bls12;
+    use bls12_381::Bls12;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
 
