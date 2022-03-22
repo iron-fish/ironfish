@@ -37,6 +37,10 @@ wasm = ["rand/wasm-bindgen"]
 # good: 18b1ce7401184e86031e6d7ddefa7c8d36929296 aug 7, 2020
 # good: 0e9b6e6d739d19cbf5063de8c4530665e7967e4b
 # good: 81c3b54b24cb4a402e70a13c79711edada583a1e aug 12, 2020, changes
+# breaking up PR #272 into individual commits
+# 10c571f2cd46bf52c0f31196b95b695c0341650b - no changes
+# 315f00d6d4fcaf308626aa2cd520651635aa0fb6 - no changes
+# fdf06032e3d549cd31aae67eecbb8e4a6692d8d9 - in progress
 zcash_primitives = { path="../../librustzcash/zcash_primitives" }
 zcash_proofs = { path="../../librustzcash/zcash_proofs" }
 bellman = { path="../../librustzcash/bellman",  version = "0.6", default-features = false, features = ["groth16"]}
@@ -88,6 +92,6 @@ blake3 = "1.3.0"
 
 
 [patch.crates-io]
-aes = { path = "../../block-ciphers/aes/aes" }
+aes = { path = "../../block-ciphers/aes" }
 aes-soft = { path = "../../block-ciphers/aes/aes-soft"}
 aesni = { path = "../../block-ciphers/aes/aesni"}
