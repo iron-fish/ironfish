@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
+use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
-use std::{io, marker::PhantomData, sync::Arc};
+use std::{convert::TryInto, io, marker::PhantomData, sync::Arc};
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -152,10 +153,14 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         transmission_key_bytes: &[u8],
     ) -> Result<SubgroupPoint, errors::SaplingKeyError> {
         assert!(transmission_key_bytes.len() == 32);
-        let transmission_key_non_prime = ExtendedPoint::read(transmission_key_bytes)?;
-        transmission_key_non_prime
-            .as_prime_order()
-            .ok_or(errors::SaplingKeyError::InvalidPaymentAddress)
+        let transmission_key_non_prime =
+            SubgroupPoint::from_bytes(transmission_key_bytes.try_into().unwrap());
+
+        if transmission_key_non_prime.is_some().into() {
+            Ok(transmission_key_non_prime.unwrap())
+        } else {
+            Err(errors::SaplingKeyError::InvalidPaymentAddress)
+        }
     }
 
     /// Calculate secret key and ephemeral public key for Diffie Hellman

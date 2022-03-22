@@ -105,7 +105,19 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
     /// Load a MerkleNote from the given stream
     pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
-        let value_commitment = ExtendedPoint::read(&mut reader)?;
+        let value_commitment = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = ExtendedPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Unable to convert note commitment",
+                ));
+            }
+            point.unwrap()
+        };
+
         let note_commitment = read_scalar(&mut reader).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -113,13 +125,19 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
             )
         })?;
 
-        let public_key_non_prime = ExtendedPoint::read(&mut reader)?;
-        let ephemeral_public_key = public_key_non_prime.as_prime_order().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Unable to convert note commitment",
-            )
-        })?;
+        let ephemeral_public_key = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = SubgroupPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Unable to convert note commitment",
+                ));
+            }
+            point.unwrap()
+        };
+
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];

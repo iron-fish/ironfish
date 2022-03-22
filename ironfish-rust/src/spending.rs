@@ -266,7 +266,15 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let value_commitment = ExtendedPoint::read(&mut reader)?;
+        let value_commitment = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = ExtendedPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(errors::SaplingProofError::IOError);
+            }
+            point.unwrap()
+        };
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
