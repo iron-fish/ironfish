@@ -342,7 +342,7 @@ mod test {
         let public_address = owner_key.generate_public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
-            shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
+            shared_secret::<Bls12>(&dh_secret, &public_address.transmission_key, &dh_public);
         let note = Note::new(sapling.clone(), public_address, 42, Memo([0; 32]));
         let encryption_result = note.encrypt(&public_shared_secret);
 

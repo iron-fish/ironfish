@@ -44,8 +44,8 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         address_bytes: &[u8; 43],
     ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&address_bytes[..11])?;
-        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
+            PublicAddress::<J>::load_diversifier(&address_bytes[..11])?;
+        let transmission_key = PublicAddress::<J>::load_transmission_key(&address_bytes[11..])?;
 
         Ok(PublicAddress {
             diversifier,
@@ -119,7 +119,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         let mut result = [0; 43];
         result[..11].copy_from_slice(&self.diversifier.0);
         result[11..].copy_from_slice(
-            &point_to_bytes(&self.transmission_key)
+            &point_to_bytes::<J>(&self.transmission_key)
                 .expect("transmission key should be convertible to bytes"),
         );
         result

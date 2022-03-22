@@ -178,9 +178,11 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
             &mut note_encryption_keys,
         )?;
 
-        let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
+        let transmission_key =
+            PublicAddress::<J>::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
-        let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
+        let shared_key =
+            shared_secret::<J>(&secret_key, &transmission_key, &self.ephemeral_public_key);
         let note = Note::from_spender_encrypted(
             spender_key.sapling.clone(),
             transmission_key,

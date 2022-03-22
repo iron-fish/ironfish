@@ -128,7 +128,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     /// Calculate the shared secret key given the ephemeral public key that was
     /// created for a transaction.
     pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {
-        shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
+        shared_secret::<J>(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
 }
 
@@ -233,10 +233,10 @@ pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
-    let shared_secret = point_to_bytes(&(other_public_key * secret_key))
+    let shared_secret = point_to_bytes::<J>(&(other_public_key * secret_key))
         .expect("should be able to convert point to bytes");
-    let reference_bytes =
-        point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");
+    let reference_bytes = point_to_bytes::<J>(reference_public_key)
+        .expect("should be able to convert point to bytes");
 
     let mut hasher = Blake2b::new()
         .hash_length(32)

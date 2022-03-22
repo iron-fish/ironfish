@@ -271,14 +271,14 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
     /// Retrieve the byte representation of the authorizing key
     pub fn authorizing_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.authorizing_key)
+        point_to_bytes::<J>(&self.authorizing_key)
             .expect("authorizing key should be convertible to bytes")
     }
 
     #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
     /// Retrieve the byte representation of the nullifier_deriving_key
     pub fn nullifier_deriving_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.nullifier_deriving_key)
+        point_to_bytes::<J>(&self.nullifier_deriving_key)
             .expect("nullifier deriving key should be convertible to bytes")
     }
 

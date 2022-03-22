@@ -274,7 +274,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
+        let mut value_balance_point = value_balance_to_point::<J>(self.transaction_fee as i64)?;
 
         value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key.clone();
