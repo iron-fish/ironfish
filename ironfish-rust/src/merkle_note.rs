@@ -318,7 +318,7 @@ mod test {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::to_bytes_wide(&buffer);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
         let value_commitment = ValueCommitment {
             value: note.value,
