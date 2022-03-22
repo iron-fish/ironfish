@@ -43,7 +43,7 @@ pub struct SpendParams<J: pairing::MultiMillerLoop> {
     /// Used to add randomness to signature generation without leaking the key.
     /// Referred to as
     /// `ar` in the literature.
-    pub(crate) public_key_randomness: J::Fs,
+    pub(crate) public_key_randomness: jubjub::Fr,
 
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
@@ -98,12 +98,12 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
 
         let value_commitment = ValueCommitment::<J> {
             value: note.value,
-            randomness: J::Fs::to_uniform(&buffer[..]),
+            randomness: jubjub::Fr::to_uniform(&buffer[..]),
         };
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
-        let public_key_randomness = J::Fs::to_uniform(&buffer[..]);
+        let public_key_randomness = jubjub::Fr::to_uniform(&buffer[..]);
 
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 

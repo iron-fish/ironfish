@@ -69,7 +69,7 @@ pub struct Note<J: pairing::MultiMillerLoop> {
     /// This helps create zero knowledge around the note,
     /// allowing the owner to prove they have the note without revealing
     /// anything else about it.
-    pub(crate) randomness: J::Fs,
+    pub(crate) randomness: jubjub::Fr,
 
     /// Arbitrary note the spender can supply when constructing a spend so the
     /// receiver has some record from whence it came.
@@ -84,7 +84,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let randomness: J::Fs = J::Fs::to_uniform(&buffer[..]);
+        let randomness: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
 
         Self {
             sapling,
@@ -105,7 +105,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     ) -> Result<Self, errors::SaplingKeyError> {
         let owner = PublicAddress::read(sapling.clone(), &mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let randomness: J::Fs = read_scalar(&mut reader)?;
+        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
         let mut memo_vec = vec![];
         let mut memo = Memo([0; 32]);
@@ -267,7 +267,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], J::Fs, u64, Memo), errors::NoteError> {
+    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), errors::NoteError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
@@ -275,7 +275,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let mut diversifier_bytes = [0; 11];
         reader.read_exact(&mut diversifier_bytes[..])?;
 
-        let randomness: J::Fs = read_scalar(&mut reader)?;
+        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let mut memo_vec = vec![];
         let mut memo = Memo([0; 32]);

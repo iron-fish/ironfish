@@ -46,7 +46,7 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
 
     /// A "private key" manufactured from a bunch of randomness added for each
     /// spend and output.
-    binding_signature_key: J::Fs,
+    binding_signature_key: jubjub::Fr,
 
     /// A "public key" manufactured from a combination of the values of each
     /// transaction and the same randomness as above
@@ -78,7 +78,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     pub fn new(sapling: Arc<Sapling<J>>) -> ProposedTransaction<J> {
         ProposedTransaction {
             sapling,
-            binding_signature_key: <J::Fs as Field>::zero(),
+            binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: edwards::Point::zero(),
             spends: vec![],
             receipts: vec![],
@@ -309,7 +309,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
 
     /// Helper method to encapsulate the verbose way incrementing the signature
     /// key works
-    fn increment_binding_signature_key(&mut self, value: &J::Fs, negate: bool) {
+    fn increment_binding_signature_key(&mut self, value: &jubjub::Fr, negate: bool) {
         let tmp = *value;
         if negate {
             //binding_signature_key - value
@@ -571,7 +571,7 @@ fn value_balance_to_point<J: pairing::MultiMillerLoop>(
 
     let mut value_balance = params
         .generator(FixedGenerators::ValueCommitmentValue)
-        .mul(J::Fs::from(abs), params);
+        .mul(jubjub::Fr::from(abs), params);
 
     if is_negative {
         value_balance = value_balance.negate();

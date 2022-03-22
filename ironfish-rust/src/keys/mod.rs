@@ -45,12 +45,12 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     /// Part of the expanded form of the spending key, generally referred to as
     /// `ask` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct authorizing_key.
-    pub(crate) spend_authorizing_key: J::Fs,
+    pub(crate) spend_authorizing_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, generally referred to as
     /// `nsk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct nullifier_deriving_key
-    pub(crate) proof_authorizing_key: J::Fs,
+    pub(crate) proof_authorizing_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
     /// directly in the full viewing key. Generally referred to as
@@ -83,8 +83,8 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
         sapling: Arc<Sapling<J>>,
         spending_key: [u8; 32],
     ) -> Result<Self, errors::SaplingKeyError> {
-        let spend_authorizing_key = J::Fs::to_uniform(&Self::convert_key(spending_key, 0));
-        let proof_authorizing_key = J::Fs::to_uniform(&Self::convert_key(spending_key, 1));
+        let spend_authorizing_key = jubjub::Fr::to_uniform(&Self::convert_key(spending_key, 0));
+        let proof_authorizing_key = jubjub::Fr::to_uniform(&Self::convert_key(spending_key, 1));
         let mut outgoing_viewing_key = [0; 32];
         outgoing_viewing_key[0..32].clone_from_slice(&Self::convert_key(spending_key, 2)[0..32]);
         let outgoing_viewing_key = OutgoingViewKey {
@@ -331,7 +331,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     fn hash_viewing_key(
         authorizing_key: &edwards::Point<J, PrimeOrder>,
         nullifier_deriving_key: &edwards::Point<J, PrimeOrder>,
-    ) -> Result<J::Fs, errors::SaplingKeyError> {
+    ) -> Result<jubjub::Fr, errors::SaplingKeyError> {
         let mut view_key_contents = [0; 64];
         authorizing_key
             .write(&mut view_key_contents[0..32])

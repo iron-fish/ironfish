@@ -163,11 +163,11 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Returns a tuple of:
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(&self) -> (J::Fs, edwards::Point<J, PrimeOrder>) {
+    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, edwards::Point<J, PrimeOrder>) {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let secret_key: J::Fs = J::Fs::to_uniform(&buffer[..]);
+        let secret_key: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
         let public_key = self.diversifier_point.mul(secret_key);
         (secret_key, public_key)
     }

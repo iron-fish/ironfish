@@ -70,7 +70,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
         spender_key: &SaplingKey<J>,
         note: &Note<J>,
         value_commitment: &ValueCommitment,
-        diffie_hellman_keys: &(J::Fs, edwards::Point<J, PrimeOrder>),
+        diffie_hellman_keys: &(jubjub::Fr, edwards::Point<J, PrimeOrder>),
     ) -> MerkleNote<J> {
         let (secret_key, public_key) = diffie_hellman_keys;
 

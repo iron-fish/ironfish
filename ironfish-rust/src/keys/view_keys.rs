@@ -31,7 +31,7 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 #[derive(Clone)]
 pub struct IncomingViewKey<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
-    pub(crate) view_key: J::Fs,
+    pub(crate) view_key: jubjub::Fr,
 }
 
 impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
@@ -232,7 +232,7 @@ pub struct ViewKeys<J: pairing::MultiMillerLoop> {
 ///
 /// The resulting key can be used in any symmetric cipher
 pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
-    secret_key: &J::Fs,
+    secret_key: &jubjub::Fr,
     other_public_key: &edwards::Point<J, PrimeOrder>,
     reference_public_key: &edwards::Point<J, PrimeOrder>,
 ) -> [u8; 32] {

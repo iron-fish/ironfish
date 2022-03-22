@@ -26,7 +26,7 @@ pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
     pub(crate) proof: groth16::Proof<J>,
 
     /// Randomness used to create the ValueCommitment point on the Merkle Note
-    pub(crate) value_commitment_randomness: J::Fs,
+    pub(crate) value_commitment_randomness: jubjub::Fr,
 
     /// Merkle note containing all the values verified by the proof. These values
     /// are shared on the blockchain and can be snapshotted into a Merkle Tree
@@ -45,7 +45,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: J::Fs = J::Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
 
         let value_commitment = ValueCommitment::<J> {
             value: note.value,
