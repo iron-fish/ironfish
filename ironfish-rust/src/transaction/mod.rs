@@ -21,7 +21,7 @@ use rand::rngs::OsRng;
 use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators};
+use zcash_primitives::jubjub::FixedGenerators;
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -80,7 +80,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         ProposedTransaction {
             sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
-            binding_verification_key: edwards::Point::zero(),
+            binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
             receipts: vec![],
             transaction_fee: 0,
@@ -421,7 +421,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
     pub fn verify(&self) -> Result<(), TransactionError> {
         // Context to accumulate a signature of all the spends and outputs and
         // guarantee they are part of this transaction, unmodified.
-        let mut binding_verification_key = edwards::Point::zero();
+        let mut binding_verification_key = ExtendedPoint::identity();
 
         for spend in self.spends.iter() {
             spend.verify_proof(&self.sapling)?;
