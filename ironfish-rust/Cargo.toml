@@ -46,6 +46,7 @@ zcash_proofs = { path="../../librustzcash/zcash_proofs" }
 bellman = { path="../../librustzcash/bellman",  version = "0.6", default-features = false, features = ["groth16"]}
 pairing = { path="../../librustzcash/pairing", version = "0.16", features = ["expose-arith"]}
 ff = { path="../../librustzcash/ff", version = "0.6" }
+jubjub = { path="../../librustzcash/jubjub", version = "0.6" }
 
 # updates
 # aug 25
