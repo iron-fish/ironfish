@@ -570,6 +570,7 @@ dependencies = [
  "bls12_381",
  "byteorder",
  "ff",
+ "group",
  "jubjub",
  "lazy_static",
  "pairing",

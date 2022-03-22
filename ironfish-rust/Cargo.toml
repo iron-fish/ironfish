@@ -44,6 +44,7 @@ wasm = ["rand/wasm-bindgen"]
 bellman = {path = "../../librustzcash/bellman", version = "0.6", default-features = false, features = ["groth16"]}
 bls12_381 = {path = "../../librustzcash/bls12_381"}
 ff = {path = "../../librustzcash/ff", version = "0.6"}
+group = {path = "../../librustzcash/group"}
 jubjub = {path = "../../librustzcash/jubjub"}
 pairing = {path = "../../librustzcash/pairing", version = "0.16", features = ["expose-arith"]}
 zcash_primitives = {path = "../../librustzcash/zcash_primitives"}

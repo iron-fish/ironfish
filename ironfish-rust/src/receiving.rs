@@ -5,6 +5,7 @@
 use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
 use ff::Field;
+use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 use zcash_primitives::primitives::ValueCommitment;
@@ -145,13 +146,13 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
         let mut public_input = [J::Fr::zero(); 5];
-        let (x, y) = self.merkle_note.value_commitment.to_xy();
-        public_input[0] = x;
-        public_input[1] = y;
+        let p = self.merkle_note.value_commitment.to_affine();
+        public_input[0] = p.get_u();
+        public_input[1] = p.get_v();
 
-        let (x, y) = self.merkle_note.ephemeral_public_key.to_xy();
-        public_input[2] = x;
-        public_input[3] = y;
+        let p = ExtendedPoint::from(self.merkle_note.ephemeral_public_key).to_affine();
+        public_input[2] = p.get_u();
+        public_input[3] = p.get_v();
 
         public_input[4] = self.merkle_note.note_commitment;
 
@@ -191,6 +192,8 @@ mod test {
     };
     use bls12_381::Bls12;
     use ff::PrimeField;
+    use group::Curve;
+    use jubjub::ExtendedPoint;
 
     #[test]
     fn test_receipt_round_trip() {
@@ -225,16 +228,16 @@ mod test {
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
         assert_eq!(proof.proof.c, read_back_proof.proof.c);
         assert_eq!(
-            proof.merkle_note.value_commitment.to_xy(),
-            read_back_proof.merkle_note.value_commitment.to_xy()
+            proof.merkle_note.value_commitment.to_affine(),
+            read_back_proof.merkle_note.value_commitment.to_affine()
         );
         assert_eq!(
             proof.merkle_note.note_commitment.to_repr(),
             read_back_proof.merkle_note.note_commitment.to_repr()
         );
         assert_eq!(
-            proof.merkle_note.ephemeral_public_key.to_xy(),
-            read_back_proof.merkle_note.ephemeral_public_key.to_xy()
+            ExtendedPoint::from(proof.merkle_note.ephemeral_public_key).to_affine(),
+            ExtendedPoint::from(read_back_proof.merkle_note.ephemeral_public_key).to_affine()
         );
         assert_eq!(
             proof.merkle_note.encrypted_note[..],

@@ -7,6 +7,8 @@
 use super::{serializing::read_scalar, Sapling};
 
 use ff::{BitIterator, PrimeField};
+use group::Curve;
+use jubjub::ExtendedPoint;
 
 use std::io;
 use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
@@ -46,13 +48,13 @@ impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
         lhs.reverse();
         rhs.reverse();
         let num_bits = <J::Fr as PrimeField>::NUM_BITS as usize;
-        pedersen_hash(
+        ExtendedPoint::from(pedersen_hash(
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
                 .chain(rhs.into_iter().take(num_bits)),
-        )
-        .to_xy()
-        .0
+        ))
+        .to_affine()
+        .get_u()
     }
 }

@@ -5,6 +5,8 @@
 use super::{shared_secret, PublicAddress, SaplingKey};
 use crate::sapling_bls12;
 use bls12_381::Bls12;
+use group::Curve;
+use jubjub::ExtendedPoint;
 
 #[test]
 fn test_key_generation_and_construction() {
@@ -70,12 +72,12 @@ fn test_serialization() {
         public_address.diversifier.0
     );
     assert_eq!(
-        read_back_address.diversifier_point.to_xy(),
-        public_address.diversifier_point.to_xy()
+        ExtendedPoint::from(read_back_address.diversifier_point).to_affine(),
+        ExtendedPoint::from(public_address.diversifier_point).to_affine()
     );
     assert_eq!(
-        read_back_address.transmission_key.to_xy(),
-        public_address.transmission_key.to_xy()
+        ExtendedPoint::from(read_back_address.transmission_key).to_affine(),
+        ExtendedPoint::from(public_address.transmission_key).to_affine()
     )
 }
 

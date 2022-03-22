@@ -17,6 +17,7 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
+use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
@@ -344,13 +345,13 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
         }
 
         let mut public_input = [J::Fr::zero(); 7];
-        let (x, y) = self.randomized_public_key.0.to_xy();
-        public_input[0] = x;
-        public_input[1] = y;
+        let p = self.randomized_public_key.0.to_affine();
+        public_input[0] = p.get_u();
+        public_input[1] = p.get_v();
 
-        let (x, y) = self.value_commitment.to_xy();
-        public_input[2] = x;
-        public_input[3] = y;
+        let p = self.value_commitment.to_affine();
+        public_input[2] = p.get_u();
+        public_input[3] = p.get_v();
 
         public_input[4] = self.root_hash;
 
@@ -416,6 +417,7 @@ mod test {
         test_util::make_fake_witness,
     };
     use bls12_381::Bls12;
+    use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
 
@@ -471,12 +473,12 @@ mod test {
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
         assert_eq!(proof.proof.c, read_back_proof.proof.c);
         assert_eq!(
-            proof.value_commitment.to_xy(),
-            read_back_proof.value_commitment.to_xy()
+            proof.value_commitment.to_affine(),
+            read_back_proof.value_commitment.to_affine()
         );
         assert_eq!(
-            proof.randomized_public_key.0.to_xy(),
-            read_back_proof.randomized_public_key.0.to_xy()
+            proof.randomized_public_key.0.to_affine(),
+            read_back_proof.randomized_public_key.0.to_affine()
         );
         assert_eq!(proof.root_hash, read_back_proof.root_hash);
         assert_eq!(proof.nullifier, read_back_proof.nullifier);
