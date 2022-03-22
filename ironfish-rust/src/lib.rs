@@ -9,7 +9,7 @@ extern crate lazy_static;
 extern crate shrinkwraprs;
 
 use bellman::groth16;
-use zcash_primitives::jubjub::{edwards, JubjubEngine};
+use zcash_primitives::jubjub::edwards;
 
 mod serializing;
 
@@ -49,7 +49,7 @@ compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the
 // so we store the prepared keys separately at the time of loading the params.
 //
 // The values are all loaded from a file in serialized form.
-pub struct Sapling<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct Sapling<J: pairing::MultiMillerLoop> {
     spend_params: groth16::Parameters<J>,
     receipt_params: groth16::Parameters<J>,
     spend_verifying_key: groth16::PreparedVerifyingKey<J>,
@@ -57,7 +57,7 @@ pub struct Sapling<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub jubjub: J::Params, // Initial point on the jubjub curve
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> Sapling<J> {
+impl<J: pairing::MultiMillerLoop> Sapling<J> {
     /// Initialize a Sapling instance and prepare for proving. Load the parameters from a config file
     /// at a known location (`./sapling_params`, for now).
     ///
@@ -96,7 +96,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Sapling<J> {
 }
 
 // TODO: This belongs in a utility library if we ever need one
-fn is_small_order<J: JubjubEngine + pairing::MultiMillerLoop, Order>(
+fn is_small_order<J: pairing::MultiMillerLoop, Order>(
     jubjub: &J::Params,
     point: &edwards::Point<J, Order>,
 ) -> bool {

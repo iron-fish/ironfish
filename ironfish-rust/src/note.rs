@@ -15,7 +15,7 @@ use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
 use std::{fmt, io, io::Read, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, ToUniform};
+use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform};
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -56,7 +56,7 @@ impl fmt::Display for Memo {
 /// When receiving funds, a new note needs to be created for the new owner
 /// to hold those funds.
 #[derive(Clone)]
-pub struct Note<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct Note<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
@@ -78,7 +78,7 @@ pub struct Note<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) memo: Memo,
 }
 
-impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> Note<J> {
+impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// Construct a new Note.
     pub fn new(sapling: Arc<Sapling<J>>, owner: PublicAddress<J>, value: u64, memo: Memo) -> Self {
         let mut buffer = [0u8; 64];

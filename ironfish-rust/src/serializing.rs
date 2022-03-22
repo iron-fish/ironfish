@@ -11,10 +11,10 @@ use super::errors;
 use ff::PrimeField;
 
 use std::io;
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder};
+use zcash_primitives::jubjub::{edwards, PrimeOrder};
 
 /// convert an edwards point of prime order to a bytes representation
-pub(crate) fn point_to_bytes<J: JubjubEngine + pairing::MultiMillerLoop>(
+pub(crate) fn point_to_bytes<J: pairing::MultiMillerLoop>(
     point: &edwards::Point<J, PrimeOrder>,
 ) -> Result<[u8; 32], errors::SaplingKeyError> {
     let mut result: [u8; 32] = [0; 32];

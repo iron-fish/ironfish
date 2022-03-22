@@ -9,13 +9,12 @@ use super::{
 };
 use rand::{thread_rng, Rng};
 use std::sync::Arc;
-use zcash_primitives::jubjub::JubjubEngine;
 use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Given a note, construct a Witness with a valid root_hash and authentication
 /// path placing that note at a random location in a Merkle tree.
 #[cfg(test)]
-pub(crate) fn make_fake_witness<J: JubjubEngine + pairing::MultiMillerLoop>(
+pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
     sapling: Arc<Sapling<J>>,
     note: &Note<J>,
 ) -> Witness<J> {
@@ -47,7 +46,7 @@ pub(crate) fn make_fake_witness<J: JubjubEngine + pairing::MultiMillerLoop>(
 /// but it may be useful to publish
 /// something like this in the future.
 #[cfg(test)]
-pub(crate) fn auth_path_to_root_hash<J: JubjubEngine + pairing::MultiMillerLoop>(
+pub(crate) fn auth_path_to_root_hash<J: pairing::MultiMillerLoop>(
     sapling: &Sapling<J>,
     auth_path: &Vec<WitnessNode<J::Fr>>,
     child_hash: J::Fr,

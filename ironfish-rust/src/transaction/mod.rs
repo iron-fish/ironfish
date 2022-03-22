@@ -20,7 +20,7 @@ use rand::rngs::OsRng;
 use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubEngine, JubjubParams, Unknown};
+use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubParams, Unknown};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -39,7 +39,7 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 ///
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
-pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
     /// Essentially a global reference to the sapling parameters, including
     /// proving and verification keys.
     sapling: Arc<Sapling<J>>,
@@ -74,7 +74,7 @@ pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     // signature hash method, and also to Transaction.
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
+impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     pub fn new(sapling: Arc<Sapling<J>>) -> ProposedTransaction<J> {
         ProposedTransaction {
             sapling,
@@ -349,7 +349,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
 ///
 /// This is the serializable form of a transaction.
 #[derive(Clone)]
-pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct Transaction<J: pairing::MultiMillerLoop> {
     /// reference to the sapling object associated with this transaction
     sapling: Arc<Sapling<J>>,
 
@@ -372,7 +372,7 @@ pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     expiration_sequence: u32,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
+impl<J: pairing::MultiMillerLoop> Transaction<J> {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
@@ -568,7 +568,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
 
 // Convert the integer value to a point on the Jubjub curve, accounting for
 // negative values
-fn value_balance_to_point<J: JubjubEngine + pairing::MultiMillerLoop>(
+fn value_balance_to_point<J: pairing::MultiMillerLoop>(
     value: i64,
     params: &J::Params,
 ) -> Result<edwards::Point<J, Unknown>, TransactionError> {

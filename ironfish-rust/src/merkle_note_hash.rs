@@ -9,19 +9,18 @@ use super::{serializing::read_scalar, Sapling};
 use ff::{BitIterator, PrimeField};
 
 use std::io;
-use zcash_primitives::jubjub::JubjubEngine;
 use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
-pub struct MerkleNoteHash<J: JubjubEngine + pairing::MultiMillerLoop>(pub J::Fr);
+pub struct MerkleNoteHash<J: pairing::MultiMillerLoop>(pub J::Fr);
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for MerkleNoteHash<J> {
+impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNoteHash<J> {
     fn eq(&self, other: &MerkleNoteHash<J>) -> bool {
         self.0.eq(&other.0)
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNoteHash<J> {
+impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
     // Tuple struct constructors can't be used with type aliases,
     // so explicitly define one here
     pub fn new(fr: J::Fr) -> MerkleNoteHash<J> {

@@ -7,7 +7,7 @@ use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, ToUniform, Unknown};
+use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform, Unknown};
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -17,7 +17,7 @@ use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 /// This allows the user to have multiple "accounts", or to even have different
 /// payment addresses per transaction.
 #[derive(Clone)]
-pub struct PublicAddress<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct PublicAddress<J: pairing::MultiMillerLoop> {
     /// Diversifier is a struct of 11 bytes. The array is hashed and interpreted
     /// as an edwards point, but we have to store the diversifier independently
     /// because the pre-hashed bytes cannot be extracted from the point.
@@ -34,7 +34,7 @@ pub struct PublicAddress<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) transmission_key: edwards::Point<J, PrimeOrder>,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
+impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Initialize a public address from its 43 byte representation.
     pub fn new(
         sapling: Arc<Sapling<J>>,
@@ -188,13 +188,13 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> std::fmt::Debug for PublicAddress<J> {
+impl<J: pairing::MultiMillerLoop> std::fmt::Debug for PublicAddress<J> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "PublicAddress {}", self.hex_public_address())
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> std::cmp::PartialEq for PublicAddress<J> {
+impl<J: pairing::MultiMillerLoop> std::cmp::PartialEq for PublicAddress<J> {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
     }

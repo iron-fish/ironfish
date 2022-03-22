@@ -6,8 +6,6 @@ use super::{MerkleNoteHash, Sapling};
 use std::fmt::{self, Debug};
 use std::sync::Arc;
 
-use zcash_primitives::jubjub::JubjubEngine;
-
 /// Witness to a specific node in an authentication path.
 ///
 /// The Left/Right is the Hash of THIS node, but the MerkleHash at node.0 is
@@ -21,7 +19,7 @@ pub enum WitnessNode<H: Clone + PartialEq + Debug> {
 /// Commitment that a leaf node exists in the tree, with an authentication path
 /// and the root_hash of the tree at the time the authentication_path was
 /// calculated.
-pub trait WitnessTrait<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub trait WitnessTrait<J: pairing::MultiMillerLoop> {
     /// verify that the root hash and authentication path on this witness is a
     /// valid confirmation that the given element exists at this point in the
     /// tree.
@@ -36,7 +34,7 @@ pub trait WitnessTrait<J: JubjubEngine + pairing::MultiMillerLoop> {
 
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
-pub struct Witness<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct Witness<J: pairing::MultiMillerLoop> {
     pub hasher: Arc<Sapling<J>>,
     pub tree_size: usize,
     pub root_hash: J::Fr,
@@ -44,7 +42,7 @@ pub struct Witness<J: JubjubEngine + pairing::MultiMillerLoop> {
 }
 
 /// Implement partial equality, ignoring the Sapling Arc
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for Witness<J> {
+impl<J: pairing::MultiMillerLoop> PartialEq for Witness<J> {
     fn eq(&self, other: &Witness<J>) -> bool {
         self.tree_size == other.tree_size
             && self.root_hash == other.root_hash
@@ -52,7 +50,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for Witness<J> {
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
+impl<J: pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
     fn verify(&self, my_hash: &MerkleNoteHash<J>) -> bool {
         let mut cur_hash = my_hash.0;
         for (i, node) in self.auth_path.iter().enumerate() {
@@ -82,7 +80,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> 
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> fmt::Debug for Witness<J> {
+impl<J: pairing::MultiMillerLoop> fmt::Debug for Witness<J> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Witness {{")?;
         writeln!(f, "    tree_size: {}", self.tree_size)?;

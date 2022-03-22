@@ -8,7 +8,7 @@ use super::{
 use bellman::groth16;
 use ff::Field;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::jubjub::{JubjubEngine, ToUniform};
+use zcash_primitives::jubjub::ToUniform;
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_proofs::circuit::sapling::Output;
 
@@ -17,7 +17,7 @@ use std::{io, sync::Arc};
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
-pub struct ReceiptParams<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
     pub(crate) sapling: Arc<Sapling<J>>,
@@ -33,7 +33,7 @@ pub struct ReceiptParams<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) merkle_note: MerkleNote<J>,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> ReceiptParams<J> {
+impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
         sapling: Arc<Sapling<J>>,
@@ -111,14 +111,14 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ReceiptParams<J> {
 /// This is the variation of a Receipt that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
-pub struct ReceiptProof<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct ReceiptProof<J: pairing::MultiMillerLoop> {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<J>,
 
     pub(crate) merkle_note: MerkleNote<J>,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> ReceiptProof<J> {
+impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
     /// Load a ReceiptProof<J> from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.

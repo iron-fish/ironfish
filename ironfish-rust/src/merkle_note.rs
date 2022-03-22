@@ -18,7 +18,7 @@ use ff::PrimeField;
 use zcash_primitives::primitives::ValueCommitment;
 
 use std::{convert::TryInto, io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, Unknown};
+use zcash_primitives::jubjub::{edwards, PrimeOrder, Unknown};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 /// The note encryption keys are used to allow the spender to
@@ -34,7 +34,7 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
 
 #[derive(Clone)]
-pub struct MerkleNote<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct MerkleNote<J: pairing::MultiMillerLoop> {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Commits this note to the value it contains
@@ -58,14 +58,14 @@ pub struct MerkleNote<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE],
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
+impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
     fn eq(&self, other: &MerkleNote<J>) -> bool {
         self.note_commitment == other.note_commitment
             && self.value_commitment == other.value_commitment
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
+impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     pub fn new(
         spender_key: &SaplingKey<J>,
         note: &Note<J>,
@@ -204,7 +204,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
     }
 }
 
-pub(crate) fn sapling_auth_path<J: JubjubEngine + pairing::MultiMillerLoop>(
+pub(crate) fn sapling_auth_path<J: pairing::MultiMillerLoop>(
     witness: &dyn WitnessTrait<J>,
 ) -> Vec<Option<(J::Fr, bool)>> {
     let mut auth_path = vec![];
@@ -225,9 +225,7 @@ pub(crate) fn sapling_auth_path<J: JubjubEngine + pairing::MultiMillerLoop>(
 /// on an assumption that the tree is complete and binary. And I didn't feel
 /// like making Witness a trait since it's otherwise very simple.
 /// So this hacky function gets to live here.
-pub(crate) fn position<J: JubjubEngine + pairing::MultiMillerLoop>(
-    witness: &dyn WitnessTrait<J>,
-) -> u64 {
+pub(crate) fn position<J: pairing::MultiMillerLoop>(witness: &dyn WitnessTrait<J>) -> u64 {
     let mut pos = 0;
     for (i, element) in witness.get_auth_path().iter().enumerate() {
         if let WitnessNode::Right(_) = element {
@@ -247,7 +245,7 @@ pub(crate) fn position<J: JubjubEngine + pairing::MultiMillerLoop>(
 ///
 /// Naming is getting a bit far-fetched here because it's the keys used to
 /// encrypt other keys. Keys, all the way down!
-fn calculate_key_for_encryption_keys<J: JubjubEngine + pairing::MultiMillerLoop>(
+fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
     outgoing_view_key: &OutgoingViewKey<J>,
     value_commitment: &edwards::Point<J, Unknown>,
     note_commitment: &J::Fr,

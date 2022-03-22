@@ -23,7 +23,7 @@ use zcash_proofs::circuit::sapling::Spend;
 
 use ff::PrimeField;
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubEngine, ToUniform, Unknown};
+use zcash_primitives::jubjub::{edwards, FixedGenerators, ToUniform, Unknown};
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_primitives::redjubjub;
 
@@ -32,7 +32,7 @@ use zcash_primitives::redjubjub;
 ///
 /// Contains all the working values needed to construct the proof, including
 /// private key of the spender.
-pub struct SpendParams<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct SpendParams<J: pairing::MultiMillerLoop> {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
     pub(crate) sapling: Arc<Sapling<J>>,
@@ -74,7 +74,7 @@ pub struct SpendParams<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) nullifier: Nullifier,
 }
 
-impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SpendParams<J> {
+impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     /// Construct a new SpendParams attempting to spend a note at a given location
     /// in the merkle tree.
     ///
@@ -218,7 +218,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SpendParams<J> {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-pub struct SpendProof<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct SpendProof<J: pairing::MultiMillerLoop> {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
     pub(crate) proof: groth16::Proof<J>,
@@ -256,7 +256,7 @@ pub struct SpendProof<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) authorizing_signature: redjubjub::Signature,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> Clone for SpendProof<J> {
+impl<J: pairing::MultiMillerLoop> Clone for SpendProof<J> {
     fn clone(&self) -> SpendProof<J> {
         let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0.clone());
         SpendProof {
@@ -271,7 +271,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Clone for SpendProof<J> {
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> SpendProof<J> {
+impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// Load a SpendProof from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
@@ -400,7 +400,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> SpendProof<J> {
 /// This function is called from both SpendProof and SpendParams because
 /// signing and verifying both need to calculate the signature after all spends
 /// have been recorded.
-fn serialize_signature_fields<W: io::Write, J: JubjubEngine + pairing::MultiMillerLoop>(
+fn serialize_signature_fields<W: io::Write, J: pairing::MultiMillerLoop>(
     mut writer: W,
     proof: &groth16::Proof<J>,
     value_commitment: &edwards::Point<J, Unknown>,

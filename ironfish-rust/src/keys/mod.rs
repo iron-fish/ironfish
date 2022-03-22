@@ -15,9 +15,7 @@ use rand::prelude::*;
 use zcash_primitives::constants::CRH_IVK_PERSONALIZATION;
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{
-    edwards, FixedGenerators, JubjubEngine, JubjubParams, PrimeOrder, ToUniform,
-};
+use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubParams, PrimeOrder, ToUniform};
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
@@ -37,7 +35,7 @@ const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
 /// world, inside the API they map to Edwards points or scalar values
 /// on the JubJub curve.
 #[derive(Clone)]
-pub struct SaplingKey<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
 
     /// The private (secret) key from which all the other key parts are derived.
@@ -79,7 +77,7 @@ pub struct SaplingKey<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) incoming_viewing_key: IncomingViewKey<J>,
 }
 
-impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
+impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     /// Construct a new key from an array of bytes
     pub fn new(
         sapling: Arc<Sapling<J>>,

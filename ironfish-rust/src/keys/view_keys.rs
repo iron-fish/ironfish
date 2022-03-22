@@ -21,7 +21,7 @@ use blake2b_simd::Params as Blake2b;
 use rand::{thread_rng, Rng};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder};
+use zcash_primitives::jubjub::{edwards, PrimeOrder};
 
 const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 
@@ -29,12 +29,12 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 ///
 /// Referred to as `ivk` in the literature.
 #[derive(Clone)]
-pub struct IncomingViewKey<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct IncomingViewKey<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
     pub(crate) view_key: J::Fs,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
+impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     /// load view key from a Read implementation
     pub fn read<R: io::Read>(
         sapling: Arc<Sapling<J>>,
@@ -144,12 +144,12 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
 ///
 /// Referred to as `ovk` in the literature.
 #[derive(Clone)]
-pub struct OutgoingViewKey<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct OutgoingViewKey<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
     pub(crate) view_key: [u8; 32],
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
+impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(
         sapling: Arc<Sapling<J>>,
@@ -204,7 +204,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
 /// Pair of outgoing and incoming view keys for a complete audit
 /// of spends and receipts
 #[derive(Clone)]
-pub struct ViewKeys<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct ViewKeys<J: pairing::MultiMillerLoop> {
     pub incoming: IncomingViewKey<J>,
     pub outgoing: OutgoingViewKey<J>,
 }
@@ -236,7 +236,7 @@ pub struct ViewKeys<J: JubjubEngine + pairing::MultiMillerLoop> {
 ///     key (bob's public key) to get the final shared secret
 ///
 /// The resulting key can be used in any symmetric cipher
-pub(crate) fn shared_secret<J: JubjubEngine + pairing::MultiMillerLoop>(
+pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
     jubjub: &J::Params,
     secret_key: &J::Fs,
     other_public_key: &edwards::Point<J, PrimeOrder>,
