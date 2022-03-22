@@ -18,10 +18,12 @@ use ff::Field;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
-use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
+use zcash_primitives::{
+    constants::VALUE_COMMITMENT_VALUE_GENERATOR,
+    redjubjub::{PrivateKey, PublicKey, Signature},
+};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::FixedGenerators;
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -566,9 +568,7 @@ fn value_balance_to_point<J: pairing::MultiMillerLoop>(
         None => return Err(TransactionError::IllegalValueError),
     };
 
-    let mut value_balance = params
-        .generator(FixedGenerators::ValueCommitmentValue)
-        .mul(jubjub::Fr::from(abs), params);
+    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = value_balance.negate();
