@@ -185,7 +185,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     pub fn public_address(
         &self,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         PublicAddress::from_key(self, diversifier)
     }
 
@@ -194,7 +194,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     ///
     /// This method always succeeds, retrying with a different diversifier if
     /// one doesn't work
-    pub fn generate_public_address(&self) -> PublicAddress<J> {
+    pub fn generate_public_address(&self) -> PublicAddress {
         self.incoming_viewing_key.generate_public_address()
     }
 

@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
+use bls12_381::Bls12;
 use group::GroupEncoding;
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
-use std::{convert::TryInto, io, marker::PhantomData, sync::Arc};
+use std::{convert::TryInto, io, sync::Arc};
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -18,7 +19,7 @@ use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 /// This allows the user to have multiple "accounts", or to even have different
 /// payment addresses per transaction.
 #[derive(Clone)]
-pub struct PublicAddress<J: pairing::MultiMillerLoop> {
+pub struct PublicAddress {
     /// Diversifier is a struct of 11 bytes. The array is hashed and interpreted
     /// as an edwards point, but we have to store the diversifier independently
     /// because the pre-hashed bytes cannot be extracted from the point.
@@ -33,31 +34,27 @@ pub struct PublicAddress<J: pairing::MultiMillerLoop> {
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
     pub(crate) transmission_key: SubgroupPoint,
-
-    // TODO: Remove this when/if we're sure it's not needed anymore
-    phantom: PhantomData<J>,
 }
 
-impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
+impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
-    pub fn new(
+    pub fn new<J: pairing::MultiMillerLoop>(
         sapling: Arc<Sapling<J>>,
         address_bytes: &[u8; 43],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
-            PublicAddress::<J>::load_diversifier(&address_bytes[..11])?;
-        let transmission_key = PublicAddress::<J>::load_transmission_key(&address_bytes[11..])?;
+            PublicAddress::load_diversifier(&address_bytes[..11])?;
+        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
 
         Ok(PublicAddress {
             diversifier,
             diversifier_point,
             transmission_key,
-            phantom: PhantomData,
         })
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(
+    pub fn read<J: pairing::MultiMillerLoop, R: io::Read>(
         sapling: Arc<Sapling<J>>,
         reader: &mut R,
     ) -> Result<Self, errors::SaplingKeyError> {
@@ -69,24 +66,23 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Initialize a public address from a sapling key and the bytes
     /// representing a diversifier. Typically constructed from
     /// SaplingKey::public_address()
-    pub fn from_key(
+    pub fn from_key<J: pairing::MultiMillerLoop>(
         sapling_key: &SaplingKey<J>,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
     }
 
-    pub fn from_view_key(
+    pub fn from_view_key<J: pairing::MultiMillerLoop>(
         view_key: &IncomingViewKey<J>,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         let diversifier = Diversifier(*diversifier);
         if let Some(key_part) = diversifier.g_d() {
             Ok(PublicAddress {
                 diversifier,
                 diversifier_point: key_part.clone(),
                 transmission_key: key_part * view_key.view_key,
-                phantom: PhantomData,
             })
         } else {
             Err(errors::SaplingKeyError::DiversificationError)
@@ -96,7 +92,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
-    pub fn from_hex(
+    pub fn from_hex<J: pairing::MultiMillerLoop>(
         sapling: Arc<Sapling<J>>,
         value: &str,
     ) -> Result<Self, errors::SaplingKeyError> {
@@ -120,7 +116,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         let mut result = [0; 43];
         result[..11].copy_from_slice(&self.diversifier.0);
         result[11..].copy_from_slice(
-            &point_to_bytes::<J>(&self.transmission_key)
+            &point_to_bytes::<Bls12>(&self.transmission_key)
                 .expect("transmission key should be convertible to bytes"),
         );
         result
@@ -191,13 +187,13 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
     }
 }
 
-impl<J: pairing::MultiMillerLoop> std::fmt::Debug for PublicAddress<J> {
+impl std::fmt::Debug for PublicAddress {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "PublicAddress {}", self.hex_public_address())
     }
 }
 
-impl<J: pairing::MultiMillerLoop> std::cmp::PartialEq for PublicAddress<J> {
+impl std::cmp::PartialEq for PublicAddress {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
     }

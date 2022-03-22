@@ -60,7 +60,7 @@ pub struct Note<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling<J>>,
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
-    pub(crate) owner: PublicAddress<J>,
+    pub(crate) owner: PublicAddress,
 
     /// Value this note represents.
     pub(crate) value: u64,
@@ -80,7 +80,7 @@ pub struct Note<J: pairing::MultiMillerLoop> {
 
 impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// Construct a new Note.
-    pub fn new(sapling: Arc<Sapling<J>>, owner: PublicAddress<J>, value: u64, memo: Memo) -> Self {
+    pub fn new(sapling: Arc<Sapling<J>>, owner: PublicAddress, value: u64, memo: Memo) -> Self {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
@@ -180,12 +180,11 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::<J>::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
-            PublicAddress::<J>::load_diversifier(&diversifier_bytes[..])?;
+            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
         let owner = PublicAddress {
             diversifier,
             diversifier_point,
             transmission_key,
-            phantom: PhantomData,
         };
 
         Ok(Note {
@@ -205,7 +204,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         self.memo
     }
 
-    pub fn owner(&self) -> PublicAddress<J> {
+    pub fn owner(&self) -> PublicAddress {
         self.owner.clone()
     }
 

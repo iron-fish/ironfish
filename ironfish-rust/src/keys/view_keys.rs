@@ -102,7 +102,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     pub fn public_address(
         &self,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         PublicAddress::from_view_key(self, diversifier)
     }
 
@@ -111,7 +111,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     ///
     /// This method always succeeds, retrying with a different diversifier if
     /// one doesn't work.
-    pub fn generate_public_address(&self) -> PublicAddress<J> {
+    pub fn generate_public_address(&self) -> PublicAddress {
         let public_address;
         loop {
             let mut diversifier_candidate = [0u8; 11];

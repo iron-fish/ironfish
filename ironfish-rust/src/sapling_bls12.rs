@@ -9,9 +9,9 @@ pub type Key = super::SaplingKey<Bls12>;
 pub type IncomingViewKey = super::IncomingViewKey<Bls12>;
 pub type OutgoingViewKey = super::OutgoingViewKey<Bls12>;
 
-pub type PublicAddress = super::PublicAddress<Bls12>;
+pub type PublicAddress = super::PublicAddress;
 pub type ViewKeys = super::ViewKeys<Bls12>;
-pub type Address = super::PublicAddress<Bls12>;
+pub type Address = super::PublicAddress;
 pub type Sapling = super::Sapling<Bls12>;
 pub type ProposedTransaction = super::ProposedTransaction<Bls12>;
 pub type ProposedSpend = super::SpendParams<Bls12>;

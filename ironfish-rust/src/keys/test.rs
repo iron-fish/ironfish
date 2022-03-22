@@ -64,9 +64,8 @@ fn test_serialization() {
         .write(&mut serialized_address[..])
         .expect("should be able to serialize address");
 
-    let read_back_address: PublicAddress<Bls12> =
-        PublicAddress::new(sapling.clone(), &serialized_address)
-            .expect("Should be able to construct address from valid bytes");
+    let read_back_address: PublicAddress = PublicAddress::new(sapling.clone(), &serialized_address)
+        .expect("Should be able to construct address from valid bytes");
     assert_eq!(
         read_back_address.diversifier.0,
         public_address.diversifier.0

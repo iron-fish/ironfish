@@ -146,7 +146,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     pub fn post(
         &mut self,
         spender_key: &SaplingKey<J>,
-        change_goes_to: Option<PublicAddress<J>>,
+        change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction<J>, TransactionError> {
         let change_amount = self.transaction_fee - intended_transaction_fee as i64;
