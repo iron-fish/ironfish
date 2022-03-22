@@ -1,9 +1,9 @@
 [package]
-name = "ironfish_rust"
-version = "0.1.0"
 authors = ["Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
 edition = "2018"
 license = "MPL-2.0"
+name = "ironfish_rust"
+version = "0.1.0"
 
 [lib]
 name = "ironfish_rust"
@@ -41,12 +41,13 @@ wasm = ["rand/wasm-bindgen"]
 # 10c571f2cd46bf52c0f31196b95b695c0341650b - no changes
 # 315f00d6d4fcaf308626aa2cd520651635aa0fb6 - no changes
 # fdf06032e3d549cd31aae67eecbb8e4a6692d8d9 - in progress
-zcash_primitives = { path="../../librustzcash/zcash_primitives" }
-zcash_proofs = { path="../../librustzcash/zcash_proofs" }
-bellman = { path="../../librustzcash/bellman",  version = "0.6", default-features = false, features = ["groth16"]}
-pairing = { path="../../librustzcash/pairing", version = "0.16", features = ["expose-arith"]}
-ff = { path="../../librustzcash/ff", version = "0.6" }
-jubjub = { path="../../librustzcash/jubjub" }
+bellman = {path = "../../librustzcash/bellman", version = "0.6", default-features = false, features = ["groth16"]}
+bls12_381 = {path = "../../librustzcash/bls12_381"}
+ff = {path = "../../librustzcash/ff", version = "0.6"}
+jubjub = {path = "../../librustzcash/jubjub"}
+pairing = {path = "../../librustzcash/pairing", version = "0.16", features = ["expose-arith"]}
+zcash_primitives = {path = "../../librustzcash/zcash_primitives"}
+zcash_proofs = {path = "../../librustzcash/zcash_proofs"}
 
 # updates
 # aug 25
@@ -83,16 +84,15 @@ jubjub = { path="../../librustzcash/jubjub" }
 byteorder = "1.3.1"
 lazy_static = "1.4.0"
 # in favor of rust-crypto as this one is wasm friendly
-rust-crypto-wasm="0.3.1"
-rand = {version = "0.7"}
-shrinkwraprs = "0.2.1"
-tiny-bip39 = "0.8.0"
 blake2b_simd = "0.5"
 blake2s_simd = "0.5"
 blake3 = "1.3.0"
-
+rand = {version = "0.7"}
+rust-crypto-wasm = "0.3.1"
+shrinkwraprs = "0.2.1"
+tiny-bip39 = "0.8.0"
 
 [patch.crates-io]
-aes = { path = "../../block-ciphers/aes" }
-aes-soft = { path = "../../block-ciphers/aes/aes-soft"}
-aesni = { path = "../../block-ciphers/aes/aesni"}
+aes = {path = "../../block-ciphers/aes"}
+aes-soft = {path = "../../block-ciphers/aes/aes-soft"}
+aesni = {path = "../../block-ciphers/aes/aesni"}

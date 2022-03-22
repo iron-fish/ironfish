@@ -567,6 +567,7 @@ dependencies = [
  "blake2b_simd",
  "blake2s_simd",
  "blake3",
+ "bls12_381",
  "byteorder",
  "ff",
  "jubjub",
