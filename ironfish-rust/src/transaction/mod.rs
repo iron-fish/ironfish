@@ -276,7 +276,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
         let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
-        value_balance_point = value_balance_point.negate();
+        value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key.clone();
         calculated_public_key = calculated_public_key.add(&value_balance_point);
 
@@ -328,7 +328,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
         let mut tmp = value.clone();
         if negate {
-            tmp = tmp.negate();
+            tmp = -tmp;
         }
         tmp = tmp.add(&self.binding_verification_key);
         self.binding_verification_key = tmp;
@@ -435,7 +435,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         for receipt in self.receipts.iter() {
             receipt.verify_proof(&self.sapling)?;
             let mut tmp = receipt.merkle_note.value_commitment.clone();
-            tmp = tmp.negate();
+            tmp = -tmp;
             tmp = tmp.add(&binding_verification_key);
             binding_verification_key = tmp;
         }
@@ -530,7 +530,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
-        value_balance_point = value_balance_point.negate();
+        value_balance_point = -value_balance_point;
 
         let mut public_key_point = binding_verification_key.clone();
         public_key_point = public_key_point.add(&value_balance_point);
@@ -571,7 +571,7 @@ fn value_balance_to_point<J: pairing::MultiMillerLoop>(
     let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
-        value_balance = value_balance.negate();
+        value_balance = -value_balance;
     }
 
     Ok(value_balance.into())
