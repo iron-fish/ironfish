@@ -17,13 +17,14 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
+use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
 use zcash_proofs::circuit::sapling::Spend;
 
 use ff::PrimeField;
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, ToUniform, Unknown};
+use zcash_primitives::jubjub::{FixedGenerators, ToUniform};
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_primitives::redjubjub;
 
@@ -205,7 +206,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     ///
     /// This integrates the value and randomness into a single point, using
     /// an appropriate generator.
-    pub(crate) fn value_commitment(&self) -> edwards::Point<J, Unknown> {
+    pub(crate) fn value_commitment(&self) -> ExtendedPoint {
         self.value_commitment.cm().into()
     }
 }
@@ -220,7 +221,7 @@ pub struct SpendProof<J: pairing::MultiMillerLoop> {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Randomized to help maintain zero knowledge.
-    pub(crate) value_commitment: edwards::Point<J, Unknown>,
+    pub(crate) value_commitment: ExtendedPoint,
 
     /// The public key after randomization has been applied. This is used
     /// during signature verification to confirm that the owner of the note
@@ -271,7 +272,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader)?;
+        let value_commitment = ExtendedPoint::read(&mut reader)?;
         let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
@@ -392,7 +393,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
 fn serialize_signature_fields<W: io::Write, J: pairing::MultiMillerLoop>(
     mut writer: W,
     proof: &groth16::Proof<J>,
-    value_commitment: &edwards::Point<J, Unknown>,
+    value_commitment: &ExtendedPoint,
     randomized_public_key: &redjubjub::PublicKey,
     root_hash: &J::Fr,
     tree_size: u32,

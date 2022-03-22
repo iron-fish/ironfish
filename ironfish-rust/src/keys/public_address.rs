@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
+use jubjub::ExtendedPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform, Unknown};
+use zcash_primitives::jubjub::{edwards, PrimeOrder, ToUniform};
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -147,8 +148,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         transmission_key_bytes: &[u8],
     ) -> Result<edwards::Point<J, PrimeOrder>, errors::SaplingKeyError> {
         assert!(transmission_key_bytes.len() == 32);
-        let transmission_key_non_prime =
-            edwards::Point::<J, Unknown>::read(transmission_key_bytes)?;
+        let transmission_key_non_prime = ExtendedPoint::read(transmission_key_bytes)?;
         transmission_key_non_prime
             .as_prime_order()
             .ok_or(errors::SaplingKeyError::InvalidPaymentAddress)

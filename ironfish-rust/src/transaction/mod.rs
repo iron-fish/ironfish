@@ -15,12 +15,13 @@ use super::{
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
+use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
 use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, Unknown};
+use zcash_primitives::jubjub::{edwards, FixedGenerators};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -50,7 +51,7 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
 
     /// A "public key" manufactured from a combination of the values of each
     /// transaction and the same randomness as above
-    binding_verification_key: edwards::Point<J, Unknown>,
+    binding_verification_key: ExtendedPoint,
 
     /// Proofs of the individual spends with all values required to calculate
     /// the signatures.
@@ -322,11 +323,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
 
     /// Helper method to encapsulate the verboseness around incrementing the
     /// binding verificaiton key
-    fn increment_binding_verification_key(
-        &mut self,
-        value: &edwards::Point<J, Unknown>,
-        negate: bool,
-    ) {
+    fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
         let mut tmp = value.clone();
         if negate {
             tmp = tmp.negate();
@@ -528,7 +525,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
     fn verify_binding_signature(
         &self,
         sapling: &Sapling<J>,
-        binding_verification_key: &edwards::Point<J, Unknown>,
+        binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
         value_balance_point = value_balance_point.negate();
@@ -560,7 +557,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
 // negative values
 fn value_balance_to_point<J: pairing::MultiMillerLoop>(
     value: i64,
-) -> Result<edwards::Point<J, Unknown>, TransactionError> {
+) -> Result<ExtendedPoint, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();

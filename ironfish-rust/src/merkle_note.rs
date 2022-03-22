@@ -15,10 +15,11 @@ use super::{
 
 use blake2b_simd::Params as Blake2b;
 use ff::PrimeField;
+use jubjub::ExtendedPoint;
 use zcash_primitives::primitives::ValueCommitment;
 
 use std::{convert::TryInto, io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, PrimeOrder, Unknown};
+use zcash_primitives::jubjub::{edwards, PrimeOrder};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 /// The note encryption keys are used to allow the spender to
@@ -39,7 +40,7 @@ pub struct MerkleNote<J: pairing::MultiMillerLoop> {
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Commits this note to the value it contains
     /// without revealing what that value is.
-    pub(crate) value_commitment: edwards::Point<J, Unknown>,
+    pub(crate) value_commitment: ExtendedPoint,
 
     /// The hash of the note, committing to it's internal state
     pub(crate) note_commitment: J::Fr,
@@ -108,7 +109,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
     /// Load a MerkleNote from the given stream
     pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader)?;
+        let value_commitment = ExtendedPoint::read(&mut reader)?;
         let note_commitment = read_scalar(&mut reader).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -116,7 +117,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
             )
         })?;
 
-        let public_key_non_prime = edwards::Point::<J, Unknown>::read(&mut reader)?;
+        let public_key_non_prime = ExtendedPoint::read(&mut reader)?;
         let ephemeral_public_key = public_key_non_prime.as_prime_order().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -235,7 +236,7 @@ pub(crate) fn position<J: pairing::MultiMillerLoop>(witness: &dyn WitnessTrait<J
 /// encrypt other keys. Keys, all the way down!
 fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
     outgoing_view_key: &OutgoingViewKey<J>,
-    value_commitment: &edwards::Point<J, Unknown>,
+    value_commitment: &ExtendedPoint,
     note_commitment: &J::Fr,
     public_key: &edwards::Point<J, PrimeOrder>,
 ) -> [u8; 32] {
