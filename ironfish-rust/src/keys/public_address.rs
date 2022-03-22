@@ -7,7 +7,7 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
-use std::{io, sync::Arc};
+use std::{io, marker::PhantomData, sync::Arc};
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -32,6 +32,9 @@ pub struct PublicAddress<J: pairing::MultiMillerLoop> {
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
     pub(crate) transmission_key: SubgroupPoint,
+
+    // TODO: Remove this when/if we're sure it's not needed anymore
+    phantom: PhantomData<J>,
 }
 
 impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
@@ -48,6 +51,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
             diversifier,
             diversifier_point,
             transmission_key,
+            phantom: PhantomData,
         })
     }
 
@@ -81,6 +85,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
                 diversifier,
                 diversifier_point: key_part.clone(),
                 transmission_key: key_part.mul(view_key.view_key),
+                phantom: PhantomData,
             })
         } else {
             Err(errors::SaplingKeyError::DiversificationError)
