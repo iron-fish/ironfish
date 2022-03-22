@@ -18,7 +18,6 @@ use zcash_primitives::constants::{
 };
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::ToUniform;
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
@@ -86,8 +85,10 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
         sapling: Arc<Sapling<J>>,
         spending_key: [u8; 32],
     ) -> Result<Self, errors::SaplingKeyError> {
-        let spend_authorizing_key = jubjub::Fr::to_uniform(&Self::convert_key(spending_key, 0));
-        let proof_authorizing_key = jubjub::Fr::to_uniform(&Self::convert_key(spending_key, 1));
+        let spend_authorizing_key =
+            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
+        let proof_authorizing_key =
+            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
         let mut outgoing_viewing_key = [0; 32];
         outgoing_viewing_key[0..32].clone_from_slice(&Self::convert_key(spending_key, 2)[0..32]);
         let outgoing_viewing_key = OutgoingViewKey {

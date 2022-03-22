@@ -8,7 +8,6 @@ use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::ToUniform;
 
 use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 
@@ -167,7 +166,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let secret_key: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
+        let secret_key: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
         let public_key = self.diversifier_point.mul(secret_key);
         (secret_key, public_key)
     }

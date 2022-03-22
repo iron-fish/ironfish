@@ -24,9 +24,9 @@ use zcash_proofs::circuit::sapling::Spend;
 
 use ff::PrimeField;
 use std::{io, sync::Arc};
+use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_primitives::redjubjub;
-use zcash_primitives::{constants::SPENDING_KEY_GENERATOR, jubjub::ToUniform};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
@@ -99,12 +99,12 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
 
         let value_commitment = ValueCommitment::<J> {
             value: note.value,
-            randomness: jubjub::Fr::to_uniform(&buffer[..]),
+            randomness: jubjub::Fr::from_bytes_wide(&buffer),
         };
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
-        let public_key_randomness = jubjub::Fr::to_uniform(&buffer[..]);
+        let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
 
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 

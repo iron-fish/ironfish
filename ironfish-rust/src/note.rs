@@ -16,7 +16,6 @@ use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
 use std::{fmt, io, io::Read, sync::Arc};
-use zcash_primitives::jubjub::ToUniform;
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -85,7 +84,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let randomness: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
+        let randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
         Self {
             sapling,

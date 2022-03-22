@@ -266,10 +266,7 @@ mod test {
     use pairing::bls12_381::Bls12;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::{
-        jubjub::{fs::Fs, ToUniform},
-        primitives::ValueCommitment,
-    };
+    use zcash_primitives::primitives::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {
@@ -287,7 +284,7 @@ mod test {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: Fs = Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
         let value_commitment = ValueCommitment::<Bls12> {
             value: note.value,
@@ -319,7 +316,7 @@ mod test {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: Fs = Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::to_bytes_wide(&buffer);
 
         let value_commitment = ValueCommitment::<Bls12> {
             value: note.value,

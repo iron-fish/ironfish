@@ -7,7 +7,6 @@ use bellman::groth16;
 use ff::Field;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::jubjub::ToUniform;
 use zcash_primitives::primitives::ValueCommitment;
 use zcash_proofs::circuit::sapling::Output;
 
@@ -44,7 +43,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
         let value_commitment = ValueCommitment::<J> {
             value: note.value,
