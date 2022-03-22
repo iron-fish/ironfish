@@ -95,12 +95,8 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
             sapling: sapling.clone(),
             view_key: outgoing_viewing_key,
         };
-        let authorizing_key = sapling
-            .generator(SPENDING_KEY_GENERATOR)
-            .mul(spend_authorizing_key);
-        let nullifier_deriving_key = sapling
-            .generator(PROOF_GENERATION_KEY_GENERATOR)
-            .mul(proof_authorizing_key);
+        let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
+        let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
         let incoming_viewing_key = IncomingViewKey {
             sapling: sapling.clone(),
             view_key: Self::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,

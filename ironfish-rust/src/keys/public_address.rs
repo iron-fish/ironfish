@@ -84,7 +84,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
             Ok(PublicAddress {
                 diversifier,
                 diversifier_point: key_part.clone(),
-                transmission_key: key_part.mul(view_key.view_key),
+                transmission_key: key_part * view_key.view_key,
                 phantom: PhantomData,
             })
         } else {
@@ -172,7 +172,7 @@ impl<J: pairing::MultiMillerLoop> PublicAddress<J> {
         thread_rng().fill(&mut buffer[..]);
 
         let secret_key: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
-        let public_key = self.diversifier_point.mul(secret_key);
+        let public_key = self.diversifier_point * secret_key;
         (secret_key, public_key)
     }
 
