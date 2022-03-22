@@ -13,10 +13,12 @@ use blake2s_simd::Params as Blake2s;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 // use rand_core::{OsRng, RngCore};
-use zcash_primitives::constants::{CRH_IVK_PERSONALIZATION, SPENDING_KEY_GENERATOR};
+use zcash_primitives::constants::{
+    CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
+};
 
 use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{FixedGenerators, ToUniform};
+use zcash_primitives::jubjub::ToUniform;
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
@@ -96,7 +98,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
             .generator(SPENDING_KEY_GENERATOR)
             .mul(spend_authorizing_key);
         let nullifier_deriving_key = sapling
-            .generator(FixedGenerators::ProofGenerationKey)
+            .generator(PROOF_GENERATION_KEY_GENERATOR)
             .mul(proof_authorizing_key);
         let incoming_viewing_key = IncomingViewKey {
             sapling: sapling.clone(),
