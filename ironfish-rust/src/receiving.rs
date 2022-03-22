@@ -45,7 +45,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment::<J> {
+        let value_commitment = ValueCommitment {
             value: note.value,
             randomness: value_commitment_randomness,
         };

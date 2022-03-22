@@ -271,7 +271,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// binding_signature below. I find the separation of concerns easier
     /// to read, but it's an easy win if we see a performance bottleneck here.
     fn check_value_consistency(&self) -> Result<(), TransactionError> {
-        let private_key = PrivateKey::<J>(self.binding_signature_key);
+        let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
         let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
@@ -293,7 +293,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// performs the calculation and sets the value on this struct.
     fn binding_signature(&self) -> Result<Signature, TransactionError> {
         let mut data_to_be_signed = [0u8; 64];
-        let private_key = PrivateKey::<J>(self.binding_signature_key);
+        let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 

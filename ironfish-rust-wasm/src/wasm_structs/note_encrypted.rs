@@ -137,7 +137,7 @@ mod tests {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment::<Bls12> {
+        let value_commitment = ValueCommitment {
             value: note.value(),
             randomness: value_commitment_randomness,
         };

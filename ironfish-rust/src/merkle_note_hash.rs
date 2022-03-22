@@ -46,7 +46,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
         lhs.reverse();
         rhs.reverse();
         let num_bits = <J::Fr as PrimeField>::NUM_BITS as usize;
-        pedersen_hash::<J, _>(
+        pedersen_hash(
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)

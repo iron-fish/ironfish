@@ -97,7 +97,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment = ValueCommitment::<J> {
+        let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::from_bytes_wide(&buffer),
         };
@@ -146,7 +146,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         &self,
         signature_hash: &[u8; 32],
     ) -> Result<SpendProof<J>, errors::SaplingProofError> {
-        let private_key = redjubjub::PrivateKey::<J>(self.spender_key.spend_authorizing_key);
+        let private_key = redjubjub::PrivateKey(self.spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
@@ -268,7 +268,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = ExtendedPoint::read(&mut reader)?;
-        let randomized_public_key = redjubjub::PublicKey::<J>::read(&mut reader)?;
+        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = [0; 32];
