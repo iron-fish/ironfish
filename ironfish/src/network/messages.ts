@@ -74,7 +74,12 @@ export function isPayloadMessage(
  *
  * Throws an error if it's not a valid message
  */
-export function parseMessage(data: string): Message<MessageType, PayloadType> {
+export function parseMessage(
+  data: string | Buffer,
+): Message<MessageType, PayloadType> | Buffer {
+  if (data instanceof Buffer) {
+    return data
+  }
   const message = IJSON.parse(data)
   if (!isMessage(message)) {
     throw new Error('Message must have a type field')
@@ -251,7 +256,7 @@ export function isDisconnectingMessage(obj: unknown): obj is DisconnectingMessag
  * A message that we have received from a peer, identified by that peer's
  * identity.
  */
-export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>> {
+export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType> | Buffer> {
   peerIdentity: Identity
   message: M
 }

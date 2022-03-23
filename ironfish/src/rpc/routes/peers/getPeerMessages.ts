@@ -94,6 +94,9 @@ function getPeerMessages(network: PeerNetwork, identity: string): Array<PeerMess
   for (const peer of network.peerManager.peers) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
       return peer.loggedMessages.map((msg) => {
+        if (msg instanceof Buffer) {
+          throw new Error('Not implemented')
+        }
         return {
           ...msg,
         }

@@ -186,14 +186,14 @@ export class Peer {
 
   shouldLogMessages = false
 
-  loggedMessages: Array<LoggedMessage> = []
+  loggedMessages: Array<LoggedMessage | Buffer> = []
 
   /**
    * Event fired for every new incoming message that needs to be processed
    * by the application layer. Includes the connection from which the message
    * was received.
    */
-  readonly onMessage: Event<[LooseMessage, Connection]> = new Event()
+  readonly onMessage: Event<[LooseMessage | Buffer, Connection]> = new Event()
 
   /**
    * Event fired when the knownPeers map changes.
@@ -493,8 +493,10 @@ export class Peer {
     return this.supportedConnections[type]
   }
 
-  private readonly connectionMessageHandlers: Map<Connection, (message: LooseMessage) => void> =
-    new Map<Connection, (message: LooseMessage) => void>()
+  private readonly connectionMessageHandlers: Map<
+    Connection,
+    (message: LooseMessage | Buffer) => void
+  > = new Map<Connection, (message: LooseMessage | Buffer) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,
@@ -535,13 +537,17 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage) => {
-        this.pushLoggedMessage({
-          direction: 'receive',
-          message: message,
-          timestamp: Date.now(),
-          type: connection.type,
-        })
+      const messageHandler = (message: LooseMessage | Buffer) => {
+        if (message instanceof Buffer) {
+          this.pushLoggedBufferMessage(message)
+        } else {
+          this.pushLoggedMessage({
+            direction: 'receive',
+            message: message,
+            timestamp: Date.now(),
+            type: connection.type,
+          })
+        }
         this.onMessage.emit(message, connection)
       }
       this.connectionMessageHandlers.set(connection, messageHandler)
@@ -682,6 +688,16 @@ export class Peer {
 
     if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(loggedMessage.message.type)) {
       this.loggedMessages.push(loggedMessage)
+    }
+  }
+
+  pushLoggedBufferMessage(message: Buffer, forceLogMessage = false): void {
+    if (!this.shouldLogMessages) {
+      return
+    }
+
+    if (forceLogMessage) {
+      this.loggedMessages.push(message)
     }
   }
 }

@@ -87,7 +87,7 @@ export abstract class Connection {
    * json obj and verifies that it has a type attribute before being passed
    * in.
    */
-  readonly onMessage: Event<[LooseMessage]> = new Event()
+  readonly onMessage: Event<[LooseMessage] | [Buffer]> = new Event()
 
   /**
    * Send a message into this connection.
