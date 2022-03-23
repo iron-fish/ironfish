@@ -41,6 +41,7 @@ wasm = ["rand/wasm-bindgen"]
 # 436717cf652e7172c715c16c48c8db557bc99838 - aug 21
 # 8b6c8143a293d02236070e762c5e951b51f42c8f - aug 22, minor changes
 # 37b5d67d33216f3717f8ad7ea1a2fbc8a3a0b548 - sep 10, 2020, dep updates
+# 47348afd5022c383907332550f02cd846a532d26 - jan 19, 2021, nullifier change
 bls12_381 = "0.3.1"
 ff = "0.8"
 group = "0.8"
