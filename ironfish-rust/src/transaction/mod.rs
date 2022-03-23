@@ -148,7 +148,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
-    ) -> Result<Transaction<J>, TransactionError> {
+    ) -> Result<Transaction, TransactionError> {
         let change_amount = self.transaction_fee - intended_transaction_fee as i64;
 
         if change_amount < 0 {
@@ -178,7 +178,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(&mut self) -> Result<Transaction<J>, TransactionError> {
+    pub fn post_miners_fee(&mut self) -> Result<Transaction, TransactionError> {
         if !self.spends.is_empty() || self.receipts.len() != 1 {
             return Err(TransactionError::InvalidBalanceError);
         }
@@ -193,7 +193,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
-    pub fn post_genesis_transaction(&self) -> Result<Transaction<J>, TransactionError> {
+    pub fn post_genesis_transaction(&self) -> Result<Transaction, TransactionError> {
         self._partial_post()
     }
 
@@ -208,7 +208,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     }
 
     // post transaction without much validation.
-    fn _partial_post(&self) -> Result<Transaction<J>, TransactionError> {
+    fn _partial_post(&self) -> Result<Transaction, TransactionError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
@@ -275,7 +275,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = value_balance_to_point::<J>(self.transaction_fee as i64)?;
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
         value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key.clone();
@@ -338,7 +338,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
 ///
 /// This is the serializable form of a transaction.
 #[derive(Clone)]
-pub struct Transaction<J: pairing::MultiMillerLoop> {
+pub struct Transaction {
     /// reference to the sapling object associated with this transaction
     sapling: Arc<Sapling>,
 
@@ -361,7 +361,7 @@ pub struct Transaction<J: pairing::MultiMillerLoop> {
     expiration_sequence: u32,
 }
 
-impl<J: pairing::MultiMillerLoop> Transaction<J> {
+impl Transaction {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
@@ -527,7 +527,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
         sapling: &Sapling,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
-        let mut value_balance_point = value_balance_to_point::<J>(self.transaction_fee)?;
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
         value_balance_point = -value_balance_point;
 
         let mut public_key_point = binding_verification_key.clone();
@@ -552,9 +552,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
 
 // Convert the integer value to a point on the Jubjub curve, accounting for
 // negative values
-fn value_balance_to_point<J: pairing::MultiMillerLoop>(
-    value: i64,
-) -> Result<ExtendedPoint, TransactionError> {
+fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();

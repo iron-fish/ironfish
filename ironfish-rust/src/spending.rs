@@ -466,9 +466,8 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("should be able to serialize proof");
-        let read_back_proof: SpendProof<Bls12> =
-            SpendProof::read(&mut serialized_proof[..].as_ref())
-                .expect("should be able to deserialize valid proof");
+        let read_back_proof: SpendProof = SpendProof::read(&mut serialized_proof[..].as_ref())
+            .expect("should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
