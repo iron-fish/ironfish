@@ -51,8 +51,7 @@ impl MerkleNoteHash {
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
-                .chain(rhs.into_iter().take(num_bits))
-                .cloned(),
+                .chain(rhs.into_iter().take(num_bits)),
         ))
         .to_affine()
         .get_u()

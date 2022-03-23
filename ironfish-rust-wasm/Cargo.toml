@@ -8,7 +8,8 @@ license = "MPL-2.0"
 [dev-dependencies]
 zcash_primitives = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
 pairing = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.16", features = ["expose-arith"]}
-rand = {version = "0.7", features = ["wasm-bindgen"]}
+rand = {version = "0.8"}
+getrandom = { version = "0.2", features = ["js"] }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
