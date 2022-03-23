@@ -6,7 +6,7 @@ use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
 use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::sapling::{Diversifier, PaymentAddress};
+use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
 use std::{convert::TryInto, io};
 

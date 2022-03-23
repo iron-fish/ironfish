@@ -12,39 +12,24 @@ path = "src/lib.rs"
 [features]
 default = []
 native = ["bellman/multicore", "zcash_proofs/multicore"]
-wasm = []
+wasm = ["rand/wasm-bindgen"]
 
 [dependencies]
-# original
-# zcash_primitives = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
-# zcash_proofs = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
-# bellman = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.6", default-features = false, features = ["groth16"]}
-# pairing = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.16", features = ["expose-arith"]}
-# ff = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.6"}
-
-bls12_381 = "0.6"
-ff = "0.11"
-group = "0.11"
-jubjub = "0.8"
+bls12_381 = "0.3.1"
+ff = "0.8"
+group = "0.8"
+jubjub = "0.5.1"
 pairing = { version = "0.17", features = ["expose-arith"]}
-zcash_primitives = {path = "../../librustzcash/zcash_primitives"}
-zcash_proofs = {path = "../../librustzcash/zcash_proofs"}
-bellman = { version = "0.11", default-features = false, features = ["groth16"]}
+zcash_primitives = "0.5"
+zcash_proofs = "0.5"
+bellman = { version = "0.8", default-features = false, features = ["groth16"]}
 
 byteorder = "1.3.1"
 lazy_static = "1.4.0"
-# in favor of rust-crypto as this one is wasm friendly
 blake2b_simd = "1"
 blake2s_simd = "1"
 blake3 = "1.3.0"
-rand = {version = "0.8"}
-rust-crypto-wasm = "0.3.1"
+rand = "0.7"
+rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 shrinkwraprs = "0.2.1"
 tiny-bip39 = "0.8.0"
-
-# Copied from librustzcash/cargo.toml
-# Make sure these are the same as librustzcash's
-[patch.crates-io]
-hdwallet = { git = "https://github.com/nuttycom/hdwallet", rev = "576683b9f2865f1118c309017ff36e01f84420c9" }
-zcash_encoding = { path = "../../librustzcash/components/zcash_encoding" }
-zcash_note_encryption = { path = "../../librustzcash/components/zcash_note_encryption" }

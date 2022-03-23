@@ -106,7 +106,7 @@ impl NativeTransactionPosted {
             .write(&mut root_hash)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let nullifier = Buffer::from(proof.nullifier().as_ref());
+        let nullifier = Buffer::from(proof.nullifier().to_vec());
 
         Ok(NativeSpendProof {
             tree_size: proof.tree_size(),

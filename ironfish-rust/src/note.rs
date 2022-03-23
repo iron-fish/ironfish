@@ -12,7 +12,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::sapling::{Note as SaplingNote, Nullifier, Rseed};
+use zcash_primitives::primitives::{Note as SaplingNote, Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 

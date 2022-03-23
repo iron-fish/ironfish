@@ -12,7 +12,7 @@ use crate::{
     test_util::make_fake_witness,
 };
 
-use zcash_primitives::sapling::redjubjub::Signature;
+use zcash_primitives::redjubjub::Signature;
 
 #[test]
 fn test_transaction() {

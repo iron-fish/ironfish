@@ -7,12 +7,12 @@
 use super::serializing::read_scalar;
 
 use bls12_381::Scalar;
-use ff::{PrimeField, PrimeFieldBits};
+use ff::PrimeField;
 use group::Curve;
 use jubjub::ExtendedPoint;
 
 use std::io;
-use zcash_primitives::sapling::pedersen_hash::{pedersen_hash, Personalization};
+use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
 pub struct MerkleNoteHash(pub Scalar);
@@ -51,7 +51,8 @@ impl MerkleNoteHash {
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
-                .chain(rhs.into_iter().take(num_bits)),
+                .chain(rhs.into_iter().take(num_bits))
+                .cloned(),
         ))
         .to_affine()
         .get_u()
