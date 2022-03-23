@@ -208,9 +208,7 @@ impl MerkleNote {
     }
 }
 
-pub(crate) fn sapling_auth_path<J: pairing::MultiMillerLoop>(
-    witness: &dyn WitnessTrait,
-) -> Vec<Option<(Scalar, bool)>> {
+pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scalar, bool)>> {
     let mut auth_path = vec![];
     for element in &witness.get_auth_path() {
         let sapling_element = match element {
@@ -229,7 +227,7 @@ pub(crate) fn sapling_auth_path<J: pairing::MultiMillerLoop>(
 /// on an assumption that the tree is complete and binary. And I didn't feel
 /// like making Witness a trait since it's otherwise very simple.
 /// So this hacky function gets to live here.
-pub(crate) fn position<J: pairing::MultiMillerLoop>(witness: &dyn WitnessTrait) -> u64 {
+pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     let mut pos = 0;
     for (i, element) in witness.get_auth_path().iter().enumerate() {
         if let WitnessNode::Right(_) = element {

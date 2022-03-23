@@ -58,7 +58,7 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
 
     /// Proofs of the individual spends with all values required to calculate
     /// the signatures.
-    spends: Vec<SpendParams<J>>,
+    spends: Vec<SpendParams>,
 
     /// proofs of the individual receipts with values required to calculate
     /// signatures. Note: This is commonly referred to as
@@ -107,7 +107,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     ///
     /// This allows for parallel immutable spends without having to take
     /// a mutable pointer out on self.
-    pub fn add_spend_proof(&mut self, spend: SpendParams<J>, note_value: u64) {
+    pub fn add_spend_proof(&mut self, spend: SpendParams, note_value: u64) {
         self.increment_binding_signature_key(&spend.value_commitment.randomness, false);
         self.increment_binding_verification_key(&spend.value_commitment(), false);
 

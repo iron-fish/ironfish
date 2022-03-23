@@ -35,7 +35,7 @@ use zcash_primitives::redjubjub;
 ///
 /// Contains all the working values needed to construct the proof, including
 /// private key of the spender.
-pub struct SpendParams<J: pairing::MultiMillerLoop> {
+pub struct SpendParams {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
     pub(crate) sapling: Arc<Sapling>,
@@ -65,7 +65,7 @@ pub struct SpendParams<J: pairing::MultiMillerLoop> {
 
     /// The root hash of the tree at the time the proof was calculated. Referred to as
     /// `anchor` in the literature.
-    pub(crate) root_hash: J::Fr,
+    pub(crate) root_hash: Scalar,
 
     /// The size of the tree at the time the proof was calculated. This is not
     /// incorporated into the proof, but is supplied to help miners verify the
@@ -77,7 +77,7 @@ pub struct SpendParams<J: pairing::MultiMillerLoop> {
     pub(crate) nullifier: Nullifier,
 }
 
-impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
+impl<'a> SpendParams {
     /// Construct a new SpendParams attempting to spend a note at a given location
     /// in the merkle tree.
     ///
@@ -89,7 +89,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         spender_key: SaplingKey,
         note: &Note,
         witness: &dyn WitnessTrait,
-    ) -> Result<SpendParams<J>, errors::SaplingProofError> {
+    ) -> Result<SpendParams, errors::SaplingProofError> {
         // This is a sanity check; it would be caught in proving the circuit anyway,
         // but this gives us more information in the event of a failure
         if !witness.verify(&MerkleNoteHash::new(note.commitment_point())) {
@@ -114,7 +114,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
             value_commitment: Some(value_commitment.clone()),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
-            auth_path: sapling_auth_path::<J>(witness),
+            auth_path: sapling_auth_path(witness),
             commitment_randomness: Some(note.randomness),
             anchor: Some(witness.root_hash()),
             ar: Some(public_key_randomness),
@@ -124,7 +124,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.authorizing_key.clone().into())
                 .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
-        let nullifier = note.nullifier(&spender_key, witness_position::<J>(witness));
+        let nullifier = note.nullifier(&spender_key, witness_position(witness));
 
         Ok(SpendParams {
             sapling,
