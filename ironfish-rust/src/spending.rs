@@ -15,7 +15,7 @@ use super::{
 };
 use bellman::gadgets::multipack;
 use bellman::groth16;
-use bls12_381::Bls12;
+use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::{Curve, GroupEncoding};
@@ -144,10 +144,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions
-    pub fn post(
-        &self,
-        signature_hash: &[u8; 32],
-    ) -> Result<SpendProof<J>, errors::SaplingProofError> {
+    pub fn post(&self, signature_hash: &[u8; 32]) -> Result<SpendProof, errors::SaplingProofError> {
         let private_key = redjubjub::PrivateKey(self.spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
@@ -208,7 +205,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-pub struct SpendProof<J: pairing::MultiMillerLoop> {
+pub struct SpendProof {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
     pub(crate) proof: groth16::Proof<Bls12>,
@@ -227,7 +224,7 @@ pub struct SpendProof<J: pairing::MultiMillerLoop> {
 
     /// The root hash of the merkle tree at the time the proof was calculated.
     /// Referred to as `anchor` in the literature.
-    pub(crate) root_hash: J::Fr,
+    pub(crate) root_hash: Scalar,
 
     /// The size of the tree at the time the proof was calculated. This is not
     /// incorporated into the proof, but helps miners verify that the root
@@ -246,8 +243,8 @@ pub struct SpendProof<J: pairing::MultiMillerLoop> {
     pub(crate) authorizing_signature: redjubjub::Signature,
 }
 
-impl<J: pairing::MultiMillerLoop> Clone for SpendProof<J> {
-    fn clone(&self) -> SpendProof<J> {
+impl Clone for SpendProof {
+    fn clone(&self) -> SpendProof {
         let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0.clone());
         SpendProof {
             proof: self.proof.clone(),
@@ -261,7 +258,7 @@ impl<J: pairing::MultiMillerLoop> Clone for SpendProof<J> {
     }
 }
 
-impl<J: pairing::MultiMillerLoop> SpendProof<J> {
+impl SpendProof {
     /// Load a SpendProof from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
@@ -306,7 +303,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
         self.nullifier
     }
 
-    pub fn root_hash(&self) -> J::Fr {
+    pub fn root_hash(&self) -> Scalar {
         self.root_hash
     }
 
@@ -348,7 +345,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 
-        let mut public_input = [J::Fr::zero(); 7];
+        let mut public_input = [Scalar::zero(); 7];
         let p = self.randomized_public_key.0.to_affine();
         public_input[0] = p.get_u();
         public_input[1] = p.get_v();

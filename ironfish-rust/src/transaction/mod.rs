@@ -346,7 +346,7 @@ pub struct Transaction<J: pairing::MultiMillerLoop> {
     transaction_fee: i64,
 
     /// List of spends, or input notes, that have been destroyed.
-    spends: Vec<SpendProof<J>>,
+    spends: Vec<SpendProof>,
 
     /// List of receipts, or output notes that have been created.
     receipts: Vec<ReceiptProof>,
@@ -451,11 +451,11 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
 
     /// Get an iterator over the spends in this transaction. Each spend
     /// is by reference
-    pub fn iter_spends(&self) -> Iter<SpendProof<J>> {
+    pub fn iter_spends(&self) -> Iter<SpendProof> {
         self.spends.iter()
     }
 
-    pub fn spends(&self) -> &Vec<SpendProof<J>> {
+    pub fn spends(&self) -> &Vec<SpendProof> {
         &self.spends
     }
 
