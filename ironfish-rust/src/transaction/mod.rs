@@ -63,7 +63,7 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
     /// proofs of the individual receipts with values required to calculate
     /// signatures. Note: This is commonly referred to as
     /// `outputs` in the literature.
-    receipts: Vec<ReceiptParams<J>>,
+    receipts: Vec<ReceiptParams>,
 
     /// The balance of all the spends minus all the receipts. The difference
     /// is the fee paid to the miner for mining the transaction.

@@ -17,7 +17,7 @@ use std::{io, sync::Arc};
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
-pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
+pub struct ReceiptParams {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
     pub(crate) sapling: Arc<Sapling>,
@@ -33,13 +33,13 @@ pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
+impl ReceiptParams {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
         sapling: Arc<Sapling>,
         spender_key: &SaplingKey,
         note: &Note,
-    ) -> Result<ReceiptParams<J>, errors::SaplingProofError> {
+    ) -> Result<ReceiptParams, errors::SaplingProofError> {
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
