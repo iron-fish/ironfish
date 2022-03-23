@@ -108,7 +108,7 @@ impl WasmNoteEncrypted {
 #[cfg(test)]
 mod tests {
     use rand::{thread_rng, Rng};
-    use zcash_primitives::primitives::ValueCommitment;
+    use zcash_primitives::sapling::ValueCommitment;
 
     use super::*;
     use bls12_381::Bls12;

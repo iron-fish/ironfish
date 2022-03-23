@@ -6,8 +6,10 @@ edition = "2018"
 license = "MPL-2.0"
 
 [dev-dependencies]
-zcash_primitives = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
-pairing = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.16", features = ["expose-arith"]}
+zcash_primitives = {path = "../../librustzcash/zcash_primitives"}
+pairing = { version = "0.17", features = ["expose-arith"]}
+bls12_381 = "0.6"
+jubjub = "0.8"
 rand = {version = "0.8"}
 getrandom = { version = "0.2", features = ["js"] }
 
