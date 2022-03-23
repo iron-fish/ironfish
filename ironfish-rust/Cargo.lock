@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "bellman"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "bit-vec",
  "blake2s_simd",
@@ -189,7 +189,9 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
 name = "bls12_381"
-version = "0.1.1"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4bb0547678ace536b8bd0cb9c033cffd6a8a660b70cbe0da3bb44a1dbda8ad0"
 dependencies = [
  "byteorder",
  "ff",
@@ -413,7 +415,9 @@ dependencies = [
 
 [[package]]
 name = "ff"
-version = "0.6.0"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01d11efdc125f2647dde5a0f5f88010a5b0f89b700f86052afa1d148c4696047"
 dependencies = [
  "byteorder",
  "ff_derive",
@@ -423,7 +427,9 @@ dependencies = [
 
 [[package]]
 name = "ff_derive"
-version = "0.6.0"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6876796d97d4a5e7f1c4a1645c5111f3acb2fc924172b78d949b8a89eb970d6a"
 dependencies = [
  "addchain",
  "num-bigint",
@@ -510,7 +516,9 @@ dependencies = [
 
 [[package]]
 name = "group"
-version = "0.6.0"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7010d72d6222af90b421f4dbc9c1f05a6d658cce9ed35d441c3dda0ede59fee"
 dependencies = [
  "byteorder",
  "ff",
@@ -593,7 +601,9 @@ dependencies = [
 
 [[package]]
 name = "jubjub"
-version = "0.3.0"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3b0d7e8d9439803f270fbeb2285f2818dfa989ecf47465fa4c87a59ea9c90e6"
 dependencies = [
  "bls12_381",
  "byteorder",
@@ -711,7 +721,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "pairing"
-version = "0.16.0"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b6f13c321bf1105ef510ced10d0bc84ff9be6e8f593dd635af7a797b0335b91"
 dependencies = [
  "byteorder",
  "ff",
@@ -1170,7 +1182,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "zcash_primitives"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aes",
  "blake2b_simd",
@@ -1186,7 +1198,6 @@ dependencies = [
  "jubjub",
  "lazy_static",
  "log",
- "pairing",
  "rand 0.7.3",
  "rand_core 0.5.1",
  "sha2",
@@ -1195,7 +1206,7 @@ dependencies = [
 
 [[package]]
 name = "zcash_proofs"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bellman",
  "blake2b_simd",
@@ -1206,7 +1217,6 @@ dependencies = [
  "group",
  "jubjub",
  "lazy_static",
- "pairing",
  "rand_core 0.5.1",
  "zcash_primitives",
 ]
