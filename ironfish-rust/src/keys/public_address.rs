@@ -38,7 +38,7 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
-    pub fn new<J: pairing::MultiMillerLoop>(
+    pub fn new(
         sapling: Arc<Sapling>,
         address_bytes: &[u8; 43],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
@@ -54,7 +54,7 @@ impl PublicAddress {
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<J: pairing::MultiMillerLoop, R: io::Read>(
+    pub fn read<R: io::Read>(
         sapling: Arc<Sapling>,
         reader: &mut R,
     ) -> Result<Self, errors::SaplingKeyError> {
@@ -66,14 +66,14 @@ impl PublicAddress {
     /// Initialize a public address from a sapling key and the bytes
     /// representing a diversifier. Typically constructed from
     /// SaplingKey::public_address()
-    pub fn from_key<J: pairing::MultiMillerLoop>(
+    pub fn from_key(
         sapling_key: &SaplingKey,
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
         Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
     }
 
-    pub fn from_view_key<J: pairing::MultiMillerLoop>(
+    pub fn from_view_key(
         view_key: &IncomingViewKey,
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
@@ -92,10 +92,7 @@ impl PublicAddress {
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
-    pub fn from_hex<J: pairing::MultiMillerLoop>(
-        sapling: Arc<Sapling>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
             Ok(bytes) => {
