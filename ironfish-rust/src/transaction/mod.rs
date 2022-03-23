@@ -43,7 +43,7 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 ///
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
-pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
+pub struct ProposedTransaction {
     /// Essentially a global reference to the sapling parameters, including
     /// proving and verification keys.
     sapling: Arc<Sapling>,
@@ -78,8 +78,8 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
     // signature hash method, and also to Transaction.
 }
 
-impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
-    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction<J> {
+impl ProposedTransaction {
+    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction {
         ProposedTransaction {
             sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
