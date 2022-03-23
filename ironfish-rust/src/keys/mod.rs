@@ -17,9 +17,9 @@ use rand::prelude::*;
 use zcash_primitives::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
+use zcash_primitives::sapling::{ProofGenerationKey, ViewingKey};
 
 use std::{io, sync::Arc};
-use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
 
 mod public_address;
 pub use public_address::*;

@@ -12,7 +12,7 @@ use group::Curve;
 use jubjub::ExtendedPoint;
 
 use std::io;
-use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
+use zcash_primitives::sapling::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
 pub struct MerkleNoteHash(pub Scalar);

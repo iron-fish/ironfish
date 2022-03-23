@@ -1237,7 +1237,7 @@ checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
 
 [[package]]
 name = "zcash_primitives"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "aes",
  "bitvec",
@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "zcash_proofs"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bellman",
  "blake2b_simd",

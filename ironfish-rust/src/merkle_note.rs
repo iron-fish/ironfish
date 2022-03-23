@@ -18,7 +18,7 @@ use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use zcash_primitives::primitives::ValueCommitment;
+use zcash_primitives::sapling::ValueCommitment;
 
 use std::{convert::TryInto, io, sync::Arc};
 
@@ -280,7 +280,7 @@ mod test {
     use bls12_381::{Bls12, Scalar};
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::primitives::ValueCommitment;
+    use zcash_primitives::sapling::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {

@@ -13,7 +13,7 @@ use crate::{
 };
 use bls12_381::Bls12;
 
-use zcash_primitives::redjubjub::Signature;
+use zcash_primitives::sapling::redjubjub::Signature;
 
 #[test]
 fn test_transaction() {

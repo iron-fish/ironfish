@@ -7,7 +7,7 @@ use bls12_381::Bls12;
 use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::{Diversifier, PaymentAddress};
+use zcash_primitives::sapling::{Diversifier, PaymentAddress};
 
 use std::{convert::TryInto, io, sync::Arc};
 
