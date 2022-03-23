@@ -42,17 +42,17 @@ wasm = []
 # 8b6c8143a293d02236070e762c5e951b51f42c8f - aug 22, minor changes
 # 37b5d67d33216f3717f8ad7ea1a2fbc8a3a0b548 - sep 10, 2020, dep updates
 # 47348afd5022c383907332550f02cd846a532d26 - jan 19, 2021, nullifier change
-bls12_381 = "0.4"
-ff = "0.9"
-group = "0.9"
-jubjub = "0.6"
+bls12_381 = "0.5"
+ff = "0.10"
+group = "0.10"
+jubjub = "0.7"
 pairing = { version = "0.17", features = ["expose-arith"]}
 zcash_primitives = {path = "../../librustzcash/zcash_primitives"}
 zcash_proofs = {path = "../../librustzcash/zcash_proofs"}
 # 0.7.0 - 81f4aac8c7e96cd7957b8b7a27bb57e96fe2c2f8
 # 0.8.0 - 0f2244fdb445f054331e33b2ac7d779812cfd615
 # bellman = { path = "../../bellman", version = "0.9", default-features = false, features = ["groth16"]}
-bellman = { version = "0.9", default-features = false, features = ["groth16"]}
+bellman = { version = "0.10", default-features = false, features = ["groth16"]}
 
 byteorder = "1.3.1"
 lazy_static = "1.4.0"
@@ -64,3 +64,13 @@ rand = {version = "0.8"}
 rust-crypto-wasm = "0.3.1"
 shrinkwraprs = "0.2.1"
 tiny-bip39 = "0.8.0"
+
+# hoisted from librustzcash/cargo.toml
+[patch.crates-io]
+# To resolve the funty mess. Removing this probably blocks on a nom 7 release.
+# - https://github.com/Geal/nom/issues/1302
+# - https://github.com/Geal/nom/pull/1304
+nom = { git = "https://github.com/myrrlyn/nom.git", rev = "d6b81f5303b0a347726e1f3f428751f376e7b771" }
+
+# In development.
+orchard = { git = "https://github.com/zcash/orchard.git", rev = "87a3d52641df732e4d0661699e7b32ad1299cd75" }

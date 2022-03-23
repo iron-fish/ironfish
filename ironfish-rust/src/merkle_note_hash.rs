@@ -7,7 +7,7 @@
 use super::{serializing::read_scalar, Sapling};
 
 use bls12_381::Scalar;
-use ff::PrimeField;
+use ff::{PrimeField, PrimeFieldBits};
 use group::Curve;
 use jubjub::ExtendedPoint;
 
