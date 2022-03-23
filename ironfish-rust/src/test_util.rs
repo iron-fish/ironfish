@@ -14,10 +14,7 @@ use zcash_proofs::circuit::sapling::TREE_DEPTH;
 /// Given a note, construct a Witness with a valid root_hash and authentication
 /// path placing that note at a random location in a Merkle tree.
 #[cfg(test)]
-pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
-    sapling: Arc<Sapling>,
-    note: &Note,
-) -> Witness {
+pub(crate) fn make_fake_witness(sapling: Arc<Sapling>, note: &Note) -> Witness {
     let mut rng = thread_rng();
     let mut buffer = [0u8; 64];
     thread_rng().fill(&mut buffer[..]);
@@ -25,12 +22,11 @@ pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
     let mut witness_auth_path = vec![];
     for _ in 0..TREE_DEPTH {
         witness_auth_path.push(match rng.gen() {
-            false => WitnessNode::Left(J::Fr::from(rng.gen::<u64>())),
-            true => WitnessNode::Right(J::Fr::from(rng.gen::<u64>())),
+            false => WitnessNode::Left(Scalar::from(rng.gen::<u64>())),
+            true => WitnessNode::Right(Scalar::from(rng.gen::<u64>())),
         })
     }
-    let root_hash =
-        auth_path_to_root_hash::<J>(&sapling, &witness_auth_path, note.commitment_point());
+    let root_hash = auth_path_to_root_hash(&sapling, &witness_auth_path, note.commitment_point());
     Witness {
         hasher: sapling.clone(),
         auth_path: witness_auth_path,
@@ -46,11 +42,13 @@ pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
 /// but it may be useful to publish
 /// something like this in the future.
 #[cfg(test)]
-pub(crate) fn auth_path_to_root_hash<J: pairing::MultiMillerLoop>(
+use bls12_381::Scalar;
+
+pub(crate) fn auth_path_to_root_hash(
     sapling: &Sapling,
-    auth_path: &Vec<WitnessNode<J::Fr>>,
-    child_hash: J::Fr,
-) -> J::Fr {
+    auth_path: &Vec<WitnessNode<Scalar>>,
+    child_hash: Scalar,
+) -> Scalar {
     let mut cur = child_hash.clone();
 
     for (i, node) in auth_path.iter().enumerate() {
