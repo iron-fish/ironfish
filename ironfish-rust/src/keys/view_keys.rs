@@ -133,12 +133,12 @@ impl IncomingViewKey {
 ///
 /// Referred to as `ovk` in the literature.
 #[derive(Clone)]
-pub struct OutgoingViewKey<J: pairing::MultiMillerLoop> {
+pub struct OutgoingViewKey {
     pub(crate) sapling: Arc<Sapling>,
     pub(crate) view_key: [u8; 32],
 }
 
-impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
+impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
@@ -192,7 +192,7 @@ impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
 #[derive(Clone)]
 pub struct ViewKeys<J: pairing::MultiMillerLoop> {
     pub incoming: IncomingViewKey,
-    pub outgoing: OutgoingViewKey<J>,
+    pub outgoing: OutgoingViewKey,
 }
 
 /// Derive a shared secret key from a secret key and the other person's public

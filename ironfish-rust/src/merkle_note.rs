@@ -177,7 +177,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
     pub fn decrypt_note_for_spender(
         &self,
-        spender_key: &OutgoingViewKey<J>,
+        spender_key: &OutgoingViewKey,
     ) -> Result<Note<J>, errors::NoteError> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
@@ -250,7 +250,7 @@ pub(crate) fn position<J: pairing::MultiMillerLoop>(witness: &dyn WitnessTrait<J
 /// Naming is getting a bit far-fetched here because it's the keys used to
 /// encrypt other keys. Keys, all the way down!
 fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
-    outgoing_view_key: &OutgoingViewKey<J>,
+    outgoing_view_key: &OutgoingViewKey,
     value_commitment: &ExtendedPoint,
     note_commitment: &J::Fr,
     public_key: &SubgroupPoint,

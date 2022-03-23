@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 pub type Key = super::SaplingKey<Bls12>;
 pub type IncomingViewKey = super::IncomingViewKey;
-pub type OutgoingViewKey = super::OutgoingViewKey<Bls12>;
+pub type OutgoingViewKey = super::OutgoingViewKey;
 
 pub type PublicAddress = super::PublicAddress;
 pub type ViewKeys = super::ViewKeys<Bls12>;

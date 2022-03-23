@@ -60,7 +60,7 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     /// `ovk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. This allows the creator of a note to access
     /// keys needed to decrypt the note's contents.
-    pub(crate) outgoing_viewing_key: OutgoingViewKey<J>,
+    pub(crate) outgoing_viewing_key: OutgoingViewKey,
 
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
@@ -236,7 +236,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     }
 
     /// Retrieve the publicly visible outgoing viewing key
-    pub fn outgoing_view_key(&self) -> &OutgoingViewKey<J> {
+    pub fn outgoing_view_key(&self) -> &OutgoingViewKey {
         &self.outgoing_viewing_key
     }
 
