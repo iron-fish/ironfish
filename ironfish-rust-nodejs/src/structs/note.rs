@@ -72,7 +72,7 @@ impl NativeNote {
         let private_key = Key::from_hex(SAPLING.clone(), &owner_private_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64);
+        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }
