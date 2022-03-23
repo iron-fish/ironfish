@@ -220,9 +220,8 @@ impl<'a> Note {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
-        return self
-            .sapling_note()
-            .nf(&private_key.sapling_viewing_key(), position);
+        self.sapling_note()
+            .nf(&private_key.sapling_viewing_key(), position)
     }
 
     /// Get the commitment hash for this note. This encapsulates all the values
@@ -282,7 +281,7 @@ impl<'a> Note {
         SaplingNote {
             value: self.value,
             g_d: self.owner.diversifier.g_d().unwrap(),
-            pk_d: self.owner.transmission_key.clone(),
+            pk_d: self.owner.transmission_key,
             rseed: Rseed::BeforeZip212(self.randomness),
         }
     }
@@ -342,7 +341,7 @@ mod test {
         assert!(note.memo == restored_note.memo);
 
         let spender_decrypted = Note::from_spender_encrypted(
-            note.owner.transmission_key.clone(),
+            note.owner.transmission_key,
             &public_shared_secret,
             &encryption_result,
         )

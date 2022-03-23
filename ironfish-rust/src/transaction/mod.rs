@@ -277,8 +277,8 @@ impl ProposedTransaction {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
         value_balance_point = -value_balance_point;
-        let mut calculated_public_key = self.binding_verification_key.clone();
-        calculated_public_key = calculated_public_key + value_balance_point;
+        let mut calculated_public_key = self.binding_verification_key;
+        calculated_public_key += value_balance_point;
 
         if calculated_public_key != public_key.0 {
             Err(TransactionError::InvalidBalanceError)
@@ -323,11 +323,11 @@ impl ProposedTransaction {
     /// Helper method to encapsulate the verboseness around incrementing the
     /// binding verificaiton key
     fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
-        let mut tmp = value.clone();
+        let mut tmp = *value;
         if negate {
             tmp = -tmp;
         }
-        tmp = tmp + self.binding_verification_key;
+        tmp += self.binding_verification_key;
         self.binding_verification_key = tmp;
     }
 }
@@ -424,16 +424,16 @@ impl Transaction {
 
         for spend in self.spends.iter() {
             spend.verify_proof(&self.sapling)?;
-            let mut tmp = spend.value_commitment.clone();
-            tmp = tmp + binding_verification_key;
+            let mut tmp = spend.value_commitment;
+            tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
 
         for receipt in self.receipts.iter() {
             receipt.verify_proof(&self.sapling)?;
-            let mut tmp = receipt.merkle_note.value_commitment.clone();
+            let mut tmp = receipt.merkle_note.value_commitment;
             tmp = -tmp;
-            tmp = tmp + binding_verification_key;
+            tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
 
@@ -528,8 +528,8 @@ impl Transaction {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
         value_balance_point = -value_balance_point;
 
-        let mut public_key_point = binding_verification_key.clone();
-        public_key_point = public_key_point + value_balance_point;
+        let mut public_key_point = *binding_verification_key;
+        public_key_point += value_balance_point;
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];

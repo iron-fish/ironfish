@@ -98,7 +98,7 @@ impl MerkleNote {
         MerkleNote {
             value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
-            ephemeral_public_key: (*public_key).clone(),
+            ephemeral_public_key: (*public_key),
             encrypted_note,
             note_encryption_keys,
         }

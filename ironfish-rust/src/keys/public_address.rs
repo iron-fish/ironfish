@@ -74,7 +74,7 @@ impl PublicAddress {
         if let Some(key_part) = diversifier.g_d() {
             Ok(PublicAddress {
                 diversifier,
-                diversifier_point: key_part.clone(),
+                diversifier_point: key_part,
                 transmission_key: key_part * view_key.view_key,
             })
         } else {
@@ -172,7 +172,7 @@ impl PublicAddress {
     /// another because `pk_d` is not a name I want to expose in a public
     /// interface.
     pub(crate) fn sapling_payment_address(&self) -> PaymentAddress {
-        PaymentAddress::from_parts(self.diversifier, self.transmission_key.clone())
+        PaymentAddress::from_parts(self.diversifier, self.transmission_key)
             .expect("Converting PaymentAddress types shouldn't fail")
     }
 }

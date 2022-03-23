@@ -202,9 +202,7 @@ mod test {
         let proof = receipt
             .post()
             .expect("Should be able to post receipt proof");
-        proof
-            .verify_proof(&sapling)
-            .expect("proof should check out");
+        proof.verify_proof(sapling).expect("proof should check out");
 
         // test serialization
         let mut serialized_proof = vec![];

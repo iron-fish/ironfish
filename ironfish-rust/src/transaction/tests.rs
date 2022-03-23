@@ -67,7 +67,7 @@ fn test_transaction() {
         .write(&mut serialized_transaction)
         .expect("should be able to serialize transaction");
     let read_back_transaction: Transaction =
-        Transaction::read(sapling.clone(), &mut serialized_transaction[..].as_ref())
+        Transaction::read(sapling, &mut serialized_transaction[..].as_ref())
             .expect("should be able to deserialize valid transaction");
     assert_eq!(
         public_transaction.transaction_fee,
@@ -121,9 +121,9 @@ fn test_transaction_signature() {
     let receiver_address = receiver_key.generate_public_address();
 
     let mut transaction = ProposedTransaction::new(sapling.clone());
-    let in_note = Note::new(spender_address.clone(), 42, Memo([0; 32]));
-    let out_note = Note::new(receiver_address.clone(), 41, Memo([0; 32]));
-    let witness = make_fake_witness(sapling.clone(), &in_note);
+    let in_note = Note::new(spender_address, 42, Memo([0; 32]));
+    let out_note = Note::new(receiver_address, 41, Memo([0; 32]));
+    let witness = make_fake_witness(sapling, &in_note);
 
     transaction
         .spend(spender_key.clone(), &in_note, &witness)

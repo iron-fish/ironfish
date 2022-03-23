@@ -118,9 +118,8 @@ impl<'a> SpendParams {
         };
         let proof = groth16::create_random_proof(spend_circuit, &sapling.spend_params, &mut OsRng)?;
 
-        let randomized_public_key =
-            redjubjub::PublicKey(spender_key.authorizing_key.clone().into())
-                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
         let nullifier = note.nullifier(&spender_key, witness_position(witness));
 
         Ok(SpendParams {
@@ -242,10 +241,10 @@ pub struct SpendProof {
 
 impl Clone for SpendProof {
     fn clone(&self) -> SpendProof {
-        let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0.clone());
+        let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0);
         SpendProof {
             proof: self.proof.clone(),
-            value_commitment: self.value_commitment.clone(),
+            value_commitment: self.value_commitment,
             randomized_public_key,
             root_hash: self.root_hash,
             tree_size: self.tree_size,
@@ -427,7 +426,7 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address.clone(), note_randomness, Memo([0; 32]));
+        let note = Note::new(public_address, note_randomness, Memo([0; 32]));
         let witness = make_fake_witness(sapling.clone(), &note);
 
         let spend = SpendParams::new(sapling.clone(), key, &note, &witness)

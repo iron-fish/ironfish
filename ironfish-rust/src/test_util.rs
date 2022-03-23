@@ -28,9 +28,9 @@ pub(crate) fn make_fake_witness(sapling: Arc<Sapling>, note: &Note) -> Witness {
     }
     let root_hash = auth_path_to_root_hash(&witness_auth_path, note.commitment_point());
     Witness {
-        hasher: sapling.clone(),
+        hasher: sapling,
         auth_path: witness_auth_path,
-        root_hash: root_hash,
+        root_hash,
         tree_size: 1400,
     }
 }
@@ -45,10 +45,10 @@ pub(crate) fn make_fake_witness(sapling: Arc<Sapling>, note: &Note) -> Witness {
 use bls12_381::Scalar;
 
 pub(crate) fn auth_path_to_root_hash(
-    auth_path: &Vec<WitnessNode<Scalar>>,
+    auth_path: &[WitnessNode<Scalar>],
     child_hash: Scalar,
 ) -> Scalar {
-    let mut cur = child_hash.clone();
+    let mut cur = child_hash;
 
     for (i, node) in auth_path.iter().enumerate() {
         cur = match node {

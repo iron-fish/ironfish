@@ -268,8 +268,8 @@ impl<'a> SaplingKey {
     /// functions.
     pub(crate) fn sapling_viewing_key(&self) -> ViewingKey {
         ViewingKey {
-            ak: self.authorizing_key.clone(),
-            nk: self.nullifier_deriving_key.clone(),
+            ak: self.authorizing_key,
+            nk: self.nullifier_deriving_key,
         }
     }
 
@@ -277,7 +277,7 @@ impl<'a> SaplingKey {
     /// sapling functions
     pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
         ProofGenerationKey {
-            ak: self.authorizing_key.clone(),
+            ak: self.authorizing_key,
             nsk: self.proof_authorizing_key,
         }
     }

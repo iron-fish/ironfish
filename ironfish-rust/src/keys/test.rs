@@ -31,9 +31,7 @@ fn test_diffie_hellman_shared_key() {
         &public_key,
         &public_key,
     );
-    if shared_secret1 != shared_secret2 {
-        assert!(false, "secrets don't match");
-    }
+    assert_eq!(shared_secret1, shared_secret2);
 }
 
 #[test]
