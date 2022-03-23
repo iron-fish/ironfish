@@ -29,7 +29,7 @@ const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
 type LoggedMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: LooseMessage
+  message: LooseMessage | Buffer
   timestamp: number
   type: ConnectionType
 }
@@ -186,7 +186,7 @@ export class Peer {
 
   shouldLogMessages = false
 
-  loggedMessages: Array<LoggedMessage | Buffer> = []
+  loggedMessages: Array<LoggedMessage> = []
 
   /**
    * Event fired for every new incoming message that needs to be processed
@@ -538,16 +538,12 @@ export class Peer {
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
       const messageHandler = (message: LooseMessage | Buffer) => {
-        if (message instanceof Buffer) {
-          this.pushLoggedBufferMessage(message)
-        } else {
-          this.pushLoggedMessage({
-            direction: 'receive',
-            message: message,
-            timestamp: Date.now(),
-            type: connection.type,
-          })
-        }
+        this.pushLoggedMessage({
+          direction: 'receive',
+          message,
+          timestamp: Date.now(),
+          type: connection.type,
+        })
         this.onMessage.emit(message, connection)
       }
       this.connectionMessageHandlers.set(connection, messageHandler)
@@ -686,18 +682,11 @@ export class Peer {
       return
     }
 
-    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(loggedMessage.message.type)) {
+    const { message } = loggedMessage
+    const messageNotInUnloggedTypes =
+      !(message instanceof Buffer) && !UNLOGGED_MESSAGE_TYPES.includes(message.type)
+    if (forceLogMessage || messageNotInUnloggedTypes) {
       this.loggedMessages.push(loggedMessage)
-    }
-  }
-
-  pushLoggedBufferMessage(message: Buffer, forceLogMessage = false): void {
-    if (!this.shouldLogMessages) {
-      return
-    }
-
-    if (forceLogMessage) {
-      this.loggedMessages.push(message)
     }
   }
 }
