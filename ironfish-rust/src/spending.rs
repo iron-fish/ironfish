@@ -387,12 +387,12 @@ impl SpendProof {
 /// This function is called from both SpendProof and SpendParams because
 /// signing and verifying both need to calculate the signature after all spends
 /// have been recorded.
-fn serialize_signature_fields<W: io::Write, J: pairing::MultiMillerLoop>(
+fn serialize_signature_fields<W: io::Write>(
     mut writer: W,
-    proof: &groth16::Proof<J>,
+    proof: &groth16::Proof<Bls12>,
     value_commitment: &ExtendedPoint,
     randomized_public_key: &redjubjub::PublicKey,
-    root_hash: &J::Fr,
+    root_hash: &Scalar,
     tree_size: u32,
     nullifier: &[u8; 32],
 ) -> io::Result<()> {
