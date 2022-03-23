@@ -253,7 +253,7 @@ impl<'a> Note {
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
     pub(crate) fn commitment_point(&self) -> Scalar {
-        self.sapling_note().cm()
+        self.sapling_note().cmu()
     }
 
     /// Verify that the note's commitment matches the one passed in

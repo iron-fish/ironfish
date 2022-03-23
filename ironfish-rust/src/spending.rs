@@ -199,7 +199,7 @@ impl<'a> SpendParams {
     /// This integrates the value and randomness into a single point, using
     /// an appropriate generator.
     pub(crate) fn value_commitment(&self) -> ExtendedPoint {
-        self.value_commitment.cm().into()
+        self.value_commitment.commitment().into()
     }
 }
 /// The publicly visible value of a spent note. These get serialized to prove

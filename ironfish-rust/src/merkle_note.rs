@@ -88,7 +88,7 @@ impl MerkleNote {
 
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key.outgoing_view_key(),
-            &value_commitment.cm().into(),
+            &value_commitment.commitment().into(),
             &note.commitment_point(),
             public_key,
         );
@@ -96,7 +96,7 @@ impl MerkleNote {
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
 
         MerkleNote {
-            value_commitment: value_commitment.cm().into(),
+            value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
             ephemeral_public_key: (*public_key).clone(),
             encrypted_note,
