@@ -23,7 +23,7 @@ pub trait WitnessTrait<J: pairing::MultiMillerLoop> {
     /// verify that the root hash and authentication path on this witness is a
     /// valid confirmation that the given element exists at this point in the
     /// tree.
-    fn verify(&self, my_hash: &MerkleNoteHash<J>) -> bool;
+    fn verify(&self, my_hash: &MerkleNoteHash) -> bool;
 
     fn get_auth_path(&self) -> Vec<WitnessNode<J::Fr>>;
 
@@ -51,7 +51,7 @@ impl<J: pairing::MultiMillerLoop> PartialEq for Witness<J> {
 }
 
 impl<J: pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
-    fn verify(&self, my_hash: &MerkleNoteHash<J>) -> bool {
+    fn verify(&self, my_hash: &MerkleNoteHash) -> bool {
         let mut cur_hash = my_hash.0;
         for (i, node) in self.auth_path.iter().enumerate() {
             cur_hash = match node {

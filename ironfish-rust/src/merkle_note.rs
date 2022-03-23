@@ -161,7 +161,7 @@ impl MerkleNote {
         Ok(())
     }
 
-    pub fn merkle_hash(&self) -> MerkleNoteHash<J> {
+    pub fn merkle_hash(&self) -> MerkleNoteHash {
         MerkleNoteHash::new(self.note_commitment)
     }
 
@@ -279,7 +279,7 @@ mod test {
         sapling_bls12,
     };
 
-    use bls12_381::Bls12;
+    use bls12_381::{Bls12, Scalar};
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
     use zcash_primitives::primitives::ValueCommitment;
@@ -350,7 +350,7 @@ mod test {
 
         // should fail if note_commitment doesn't match
         let note_randomness: u64 = random();
-        merkle_note.note_commitment = jubjub::Fr::from(note_randomness);
+        merkle_note.note_commitment = Scalar::from(note_randomness);
         assert!(merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .is_err());

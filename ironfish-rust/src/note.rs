@@ -257,10 +257,7 @@ impl<'a> Note {
     }
 
     /// Verify that the note's commitment matches the one passed in
-    pub(crate) fn verify_commitment<J: pairing::MultiMillerLoop>(
-        &self,
-        commitment: J::Fr,
-    ) -> Result<(), errors::NoteError> {
+    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), errors::NoteError> {
         if commitment == self.commitment_point() {
             Ok(())
         } else {

@@ -15,22 +15,22 @@ use std::io;
 use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
-pub struct MerkleNoteHash<J: pairing::MultiMillerLoop>(pub J::Fr);
+pub struct MerkleNoteHash(pub Scalar);
 
-impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNoteHash<J> {
-    fn eq(&self, other: &MerkleNoteHash<J>) -> bool {
+impl PartialEq for MerkleNoteHash {
+    fn eq(&self, other: &MerkleNoteHash) -> bool {
         self.0.eq(&other.0)
     }
 }
 
-impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
+impl MerkleNoteHash {
     // Tuple struct constructors can't be used with type aliases,
     // so explicitly define one here
-    pub fn new(fr: J::Fr) -> MerkleNoteHash<J> {
+    pub fn new(fr: Scalar) -> MerkleNoteHash {
         MerkleNoteHash(fr)
     }
 
-    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash<J>> {
+    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash> {
         let res = read_scalar(reader).map_err(|_| {
             io::Error::new(io::ErrorKind::InvalidInput, "Unable to convert note hash")
         });
@@ -48,7 +48,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
         let mut rhs: Vec<bool> = BitIterator::<u8, _>::new(right.to_repr()).collect();
         lhs.reverse();
         rhs.reverse();
-        let num_bits = <J::Fr as PrimeField>::NUM_BITS as usize;
+        let num_bits = <Scalar as PrimeField>::NUM_BITS as usize;
         ExtendedPoint::from(pedersen_hash(
             Personalization::MerkleTree(depth),
             lhs.into_iter()
