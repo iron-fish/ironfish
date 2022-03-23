@@ -40,16 +40,16 @@ wasm = ["rand/wasm-bindgen"]
 # 984d31dc52423db77a10ea4311c305755322ec35 - aug 21, 2020major! changes
 # 436717cf652e7172c715c16c48c8db557bc99838 - aug 21
 # 8b6c8143a293d02236070e762c5e951b51f42c8f - aug 22, minor changes
-bls12_381 = "0.2"
-ff = "0.7"
-group = "0.7"
-jubjub = "0.4"
+bls12_381 = "0.3.1"
+ff = "0.8"
+group = "0.8"
+jubjub = "0.5.1"
 pairing = { version = "0.17", features = ["expose-arith"]}
 zcash_primitives = {path = "../../librustzcash/zcash_primitives"}
 zcash_proofs = {path = "../../librustzcash/zcash_proofs"}
-
 # 0.7.0 - 81f4aac8c7e96cd7957b8b7a27bb57e96fe2c2f8
-bellman = { path = "../../bellman", version = "0.7", default-features = false, features = ["groth16"]}
+# 0.8.0 - 0f2244fdb445f054331e33b2ac7d779812cfd615
+bellman = { path = "../../bellman", version = "0.8", default-features = false, features = ["groth16"]}
 
 byteorder = "1.3.1"
 lazy_static = "1.4.0"

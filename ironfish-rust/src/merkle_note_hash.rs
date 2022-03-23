@@ -7,7 +7,7 @@
 use super::{serializing::read_scalar, Sapling};
 
 use bls12_381::Scalar;
-use ff::{BitIterator, PrimeField};
+use ff::PrimeField;
 use group::Curve;
 use jubjub::ExtendedPoint;
 
@@ -44,16 +44,15 @@ impl MerkleNoteHash {
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
     pub fn combine_hash(sapling: &Sapling, depth: usize, left: &Scalar, right: &Scalar) -> Scalar {
-        let mut lhs: Vec<bool> = BitIterator::<u8, _>::new(left.to_repr()).collect();
-        let mut rhs: Vec<bool> = BitIterator::<u8, _>::new(right.to_repr()).collect();
-        lhs.reverse();
-        rhs.reverse();
+        let lhs = left.to_le_bits();
+        let rhs = right.to_le_bits();
         let num_bits = <Scalar as PrimeField>::NUM_BITS as usize;
         ExtendedPoint::from(pedersen_hash(
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
-                .chain(rhs.into_iter().take(num_bits)),
+                .chain(rhs.into_iter().take(num_bits))
+                .cloned(),
         ))
         .to_affine()
         .get_u()
