@@ -75,7 +75,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     ) -> MerkleNote<J> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
-        let encrypted_note = note.encrypt(&shared_secret::<J>(
+        let encrypted_note = note.encrypt(&shared_secret(
             secret_key,
             &note.owner.transmission_key,
             public_key,
@@ -195,8 +195,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
         let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
-        let shared_key =
-            shared_secret::<J>(&secret_key, &transmission_key, &self.ephemeral_public_key);
+        let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
         let note = Note::from_spender_encrypted(
             spender_key.sapling.clone(),
             transmission_key,
@@ -287,8 +286,8 @@ mod test {
     #[test]
     fn test_view_key_encryption() {
         let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
-        let receiver_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+        let receiver_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
         let note = Note::new(
             sapling.clone(),
             receiver_key.generate_public_address(),
@@ -320,7 +319,7 @@ mod test {
     #[test]
     fn test_receipt_invalid_commitment() {
         let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
         let note = Note::new(
             sapling.clone(),
             spender_key.generate_public_address(),

@@ -198,7 +198,7 @@ mod test {
     #[test]
     fn test_receipt_round_trip() {
         let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
         let note = Note::new(
             sapling.clone(),
             spender_key.generate_public_address(),

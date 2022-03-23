@@ -19,8 +19,8 @@ use zcash_primitives::redjubjub::Signature;
 fn test_transaction() {
     let sapling = sapling_bls12::SAPLING.clone();
     let mut transaction = ProposedTransaction::new(sapling.clone());
-    let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
-    let receiver_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+    let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+    let receiver_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
     let in_note = Note::new(
         sapling.clone(),
         spender_key.generate_public_address(),
@@ -108,7 +108,7 @@ fn test_transaction() {
 fn test_miners_fee() {
     let sapling = &*sapling_bls12::SAPLING;
     let mut transaction = ProposedTransaction::new(sapling.clone());
-    let receiver_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+    let receiver_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
     let out_note = Note::new(
         sapling.clone(),
         receiver_key.generate_public_address(),

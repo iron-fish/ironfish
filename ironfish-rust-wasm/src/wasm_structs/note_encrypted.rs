@@ -119,10 +119,8 @@ mod tests {
 
     #[test]
     fn test_merkle_notes_are_equal() {
-        let spender_key: SaplingKey<Bls12> =
-            SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
-        let receiver_key: SaplingKey<Bls12> =
-            SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
+        let spender_key: SaplingKey = SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
+        let receiver_key: SaplingKey = SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
         let owner = receiver_key.generate_public_address();
         let note = Note::new(
             sapling_bls12::SAPLING.clone(),

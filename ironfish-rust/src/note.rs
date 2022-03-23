@@ -150,7 +150,7 @@ impl<'a> Note {
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {
         let (diversifier_bytes, randomness, value, memo) =
-            Note::<J>::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address(&diversifier_bytes)?;
 
         Ok(Note {
@@ -178,7 +178,7 @@ impl<'a> Note {
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {
         let (diversifier_bytes, randomness, value, memo) =
-            Note::<J>::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
             PublicAddress::load_diversifier(&diversifier_bytes[..])?;
         let owner = PublicAddress {
@@ -251,12 +251,15 @@ impl<'a> Note {
     ///
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
-    pub(crate) fn commitment_point(&self) -> J::Fr {
+    pub(crate) fn commitment_point<J: pairing::MultiMillerLoop>(&self) -> J::Fr {
         self.sapling_note().cm()
     }
 
     /// Verify that the note's commitment matches the one passed in
-    pub(crate) fn verify_commitment(&self, commitment: J::Fr) -> Result<(), errors::NoteError> {
+    pub(crate) fn verify_commitment<J: pairing::MultiMillerLoop>(
+        &self,
+        commitment: J::Fr,
+    ) -> Result<(), errors::NoteError> {
         if commitment == self.commitment_point() {
             Ok(())
         } else {
@@ -314,7 +317,7 @@ mod test {
     #[test]
     fn test_plaintext_serialization() {
         let sapling = &*sapling_bls12::SAPLING;
-        let owner_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+        let owner_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
         let public_address = owner_key.generate_public_address();
         let note = Note::new(sapling.clone(), public_address, 42, "serialize me".into());
         let mut serialized = Vec::new();
@@ -338,11 +341,11 @@ mod test {
     #[test]
     fn test_note_encryption() {
         let sapling = &*sapling_bls12::SAPLING;
-        let owner_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
+        let owner_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
         let public_address = owner_key.generate_public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
-            shared_secret::<Bls12>(&dh_secret, &public_address.transmission_key, &dh_public);
+            shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
         let note = Note::new(sapling.clone(), public_address, 42, Memo([0; 32]));
         let encryption_result = note.encrypt(&public_shared_secret);
 
