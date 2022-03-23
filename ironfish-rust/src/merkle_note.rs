@@ -10,7 +10,7 @@ use super::{
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
     witness::{WitnessNode, WitnessTrait},
-    MerkleNoteHash, Sapling,
+    MerkleNoteHash,
 };
 
 use blake2b_simd::Params as Blake2b;
@@ -20,7 +20,7 @@ use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use zcash_primitives::sapling::ValueCommitment;
 
-use std::{convert::TryInto, io, sync::Arc};
+use std::{convert::TryInto, io};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 /// The note encryption keys are used to allow the spender to
@@ -105,7 +105,7 @@ impl MerkleNote {
     }
 
     /// Load a MerkleNote from the given stream
-    pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling>) -> io::Result<Self> {
+    pub fn read<R: io::Read>(mut reader: R) -> io::Result<Self> {
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
@@ -152,10 +152,10 @@ impl MerkleNote {
         })
     }
 
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> io::Result<()> {
-        writer.write_all(&self.value_commitment.to_bytes());
+    pub fn write<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
+        writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.note_commitment.to_repr().as_ref())?;
-        writer.write_all(&self.ephemeral_public_key.to_bytes());
+        writer.write_all(&self.ephemeral_public_key.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.note_encryption_keys[..])?;
         Ok(())
@@ -197,12 +197,8 @@ impl MerkleNote {
         let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
         let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
-        let note = Note::from_spender_encrypted(
-            spender_key.sapling.clone(),
-            transmission_key,
-            &shared_key,
-            &self.encrypted_note,
-        )?;
+        let note =
+            Note::from_spender_encrypted(transmission_key, &shared_key, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
         Ok(note)
     }
@@ -274,25 +270,18 @@ mod test {
     use crate::{
         keys::SaplingKey,
         note::{Memo, Note},
-        sapling_bls12,
     };
 
-    use bls12_381::{Bls12, Scalar};
+    use bls12_381::Scalar;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
     use zcash_primitives::sapling::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
-        let receiver_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
-        let note = Note::new(
-            sapling.clone(),
-            receiver_key.generate_public_address(),
-            42,
-            Memo([0; 32]),
-        );
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let receiver_key: SaplingKey = SaplingKey::generate_key();
+        let note = Note::new(receiver_key.generate_public_address(), 42, Memo([0; 32]));
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
@@ -317,14 +306,8 @@ mod test {
 
     #[test]
     fn test_receipt_invalid_commitment() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
-        let note = Note::new(
-            sapling.clone(),
-            spender_key.generate_public_address(),
-            42,
-            Memo([0; 32]),
-        );
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];

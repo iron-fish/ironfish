@@ -5,7 +5,6 @@
 use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
-use ff::Field;
 use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
@@ -121,12 +120,9 @@ impl ReceiptProof {
     /// Load a ReceiptProof from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling>,
-        mut reader: R,
-    ) -> Result<Self, errors::SaplingProofError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let merkle_note = MerkleNote::read(&mut reader, sapling)?;
+        let merkle_note = MerkleNote::read(&mut reader)?;
 
         Ok(ReceiptProof { proof, merkle_note })
     }
@@ -191,7 +187,6 @@ mod test {
         note::{Memo, Note},
         sapling_bls12,
     };
-    use bls12_381::Bls12;
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
@@ -199,13 +194,8 @@ mod test {
     #[test]
     fn test_receipt_round_trip() {
         let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
-        let note = Note::new(
-            sapling.clone(),
-            spender_key.generate_public_address(),
-            42,
-            Memo([0; 32]),
-        );
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
 
         let receipt = ReceiptParams::new(sapling.clone(), &spender_key, &note)
             .expect("should be able to create receipt proof");
@@ -221,9 +211,8 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("Should be able to serialize proof");
-        let read_back_proof: ReceiptProof =
-            ReceiptProof::read(sapling.clone(), &mut serialized_proof[..].as_ref())
-                .expect("Should be able to deserialize valid proof");
+        let read_back_proof: ReceiptProof = ReceiptProof::read(&mut serialized_proof[..].as_ref())
+            .expect("Should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);

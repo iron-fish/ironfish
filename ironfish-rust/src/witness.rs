@@ -58,10 +58,10 @@ impl WitnessTrait for Witness {
         for (i, node) in self.auth_path.iter().enumerate() {
             cur_hash = match node {
                 WitnessNode::Left(ref right_hash) => {
-                    MerkleNoteHash::combine_hash(&self.hasher, i, &cur_hash, right_hash)
+                    MerkleNoteHash::combine_hash(i, &cur_hash, right_hash)
                 }
                 WitnessNode::Right(ref left_hash) => {
-                    MerkleNoteHash::combine_hash(&self.hasher, i, left_hash, &cur_hash)
+                    MerkleNoteHash::combine_hash(i, left_hash, &cur_hash)
                 }
             }
         }

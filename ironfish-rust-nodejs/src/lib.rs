@@ -25,8 +25,7 @@ pub struct Key {
 
 #[napi]
 pub fn generate_key() -> Key {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::generate_key(hasher);
+    let sapling_key = sapling_bls12::Key::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -38,8 +37,7 @@ pub fn generate_key() -> Key {
 
 #[napi]
 pub fn generate_new_public_address(private_key: String) -> Result<Key> {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::from_hex(hasher, &private_key)
+    let sapling_key = sapling_bls12::Key::from_hex(&private_key)
         .map_err(|err| Error::from_reason(err.to_string()))?;
 
     Ok(Key {

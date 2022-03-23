@@ -5,7 +5,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use ironfish_rust::sapling_bls12::{Bls12, MerkleNoteHash, Scalar};
+use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 use super::panic_hook;

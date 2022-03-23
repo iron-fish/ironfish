@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
-use bls12_381::Bls12;
 use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::sapling::{Diversifier, PaymentAddress};
 
-use std::{convert::TryInto, io, sync::Arc};
+use std::{convert::TryInto, io};
 
-use super::{errors, IncomingViewKey, Sapling, SaplingKey};
+use super::{errors, IncomingViewKey, SaplingKey};
 
 /// The address to which funds can be sent, stored as a diversifier and public
 /// transmission key. Combining a diversifier with an incoming_viewing_key allows
@@ -38,10 +37,7 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
-    pub fn new(
-        sapling: Arc<Sapling>,
-        address_bytes: &[u8; 43],
-    ) -> Result<PublicAddress, errors::SaplingKeyError> {
+    pub fn new(address_bytes: &[u8; 43]) -> Result<PublicAddress, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
             PublicAddress::load_diversifier(&address_bytes[..11])?;
         let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
@@ -54,13 +50,10 @@ impl PublicAddress {
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling>,
-        reader: &mut R,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
         let mut address_bytes = [0; 43];
         reader.read_exact(&mut address_bytes)?;
-        Self::new(sapling, &address_bytes)
+        Self::new(&address_bytes)
     }
 
     /// Initialize a public address from a sapling key and the bytes
@@ -92,7 +85,7 @@ impl PublicAddress {
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
-    pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
             Ok(bytes) => {
@@ -101,7 +94,7 @@ impl PublicAddress {
                 } else {
                     let mut byte_arr = [0; 43];
                     byte_arr.clone_from_slice(&bytes[0..43]);
-                    Self::new(sapling, &byte_arr)
+                    Self::new(&byte_arr)
                 }
             }
         }

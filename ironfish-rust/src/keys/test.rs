@@ -3,16 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{shared_secret, PublicAddress, SaplingKey};
-use crate::sapling_bls12;
-use bls12_381::Bls12;
 use group::Curve;
 use jubjub::ExtendedPoint;
 
 #[test]
 fn test_key_generation_and_construction() {
-    let sapling = &*sapling_bls12::SAPLING;
-    let key: SaplingKey = SaplingKey::generate_key(sapling.clone());
-    let key2: SaplingKey = SaplingKey::new(sapling.clone(), key.spending_key).unwrap();
+    let key: SaplingKey = SaplingKey::generate_key();
+    let key2: SaplingKey = SaplingKey::new(key.spending_key).unwrap();
     assert!(key.spending_key != [0; 32]);
     assert!(key2.spending_key == key.spending_key);
     assert!(key2.incoming_viewing_key.view_key == key.incoming_viewing_key.view_key);
@@ -23,8 +20,7 @@ fn test_key_generation_and_construction() {
 
 #[test]
 fn test_diffie_hellman_shared_key() {
-    let sapling = &*sapling_bls12::SAPLING;
-    let key1: SaplingKey = SaplingKey::generate_key(sapling.clone());
+    let key1: SaplingKey = SaplingKey::generate_key();
 
     // second address has to use the same diversifier for the keys to be valid
     let address1 = key1.generate_public_address();
@@ -42,14 +38,13 @@ fn test_diffie_hellman_shared_key() {
 
 #[test]
 fn test_serialization() {
-    let sapling = &*sapling_bls12::SAPLING;
-    let key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+    let key: SaplingKey = SaplingKey::generate_key();
     let mut serialized_key = [0; 32];
     key.write(&mut serialized_key[..])
         .expect("Should be able to serialize key");
     assert_ne!(serialized_key, [0; 32]);
 
-    let read_back_key: SaplingKey = SaplingKey::read(sapling.clone(), &mut serialized_key.as_ref())
+    let read_back_key: SaplingKey = SaplingKey::read(&mut serialized_key.as_ref())
         .expect("Should be able to load key from valid bytes");
     assert_eq!(
         read_back_key.incoming_view_key().view_key,
@@ -62,7 +57,7 @@ fn test_serialization() {
         .write(&mut serialized_address[..])
         .expect("should be able to serialize address");
 
-    let read_back_address: PublicAddress = PublicAddress::new(sapling.clone(), &serialized_address)
+    let read_back_address: PublicAddress = PublicAddress::new(&serialized_address)
         .expect("Should be able to construct address from valid bytes");
     assert_eq!(
         read_back_address.diversifier.0,
@@ -80,19 +75,18 @@ fn test_serialization() {
 
 #[test]
 fn test_hex_conversion() {
-    let sapling = &*sapling_bls12::SAPLING;
-    let key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+    let key: SaplingKey = SaplingKey::generate_key();
 
     let hex = key.hex_spending_key();
     assert_eq!(hex.len(), 64);
-    let second_key: SaplingKey = SaplingKey::from_hex(sapling.clone(), &hex).unwrap();
+    let second_key: SaplingKey = SaplingKey::from_hex(&hex).unwrap();
     assert_eq!(second_key.spending_key, key.spending_key);
 
     let address = key.generate_public_address();
     let hex = address.hex_public_address();
     assert_eq!(hex.len(), 86);
-    let second_address = PublicAddress::from_hex(sapling.clone(), &hex).unwrap();
+    let second_address = PublicAddress::from_hex(&hex).unwrap();
     assert_eq!(second_address, address);
 
-    assert!(PublicAddress::from_hex(sapling.clone(), "invalid").is_err());
+    assert!(PublicAddress::from_hex("invalid").is_err());
 }

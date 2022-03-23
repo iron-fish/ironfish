@@ -163,7 +163,6 @@ impl ProposedTransaction {
             let change_address =
                 change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
             let change_note = Note::new(
-                self.sapling.clone(),
                 change_address,
                 change_amount as u64, // we checked it was positive
                 Memo([0; 32]),
@@ -379,7 +378,7 @@ impl Transaction {
             spends.push(SpendProof::read(&mut reader)?);
         }
         for _ in 0..num_receipts {
-            receipts.push(ReceiptProof::read(sapling.clone(), &mut reader)?);
+            receipts.push(ReceiptProof::read(&mut reader)?);
         }
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -444,7 +443,7 @@ impl Transaction {
             spend.verify_signature(&hash_to_verify_signature)?;
         }
 
-        self.verify_binding_signature(&self.sapling, &binding_verification_key)?;
+        self.verify_binding_signature(&binding_verification_key)?;
 
         Ok(())
     }
@@ -524,7 +523,6 @@ impl Transaction {
     /// Called from the public verify function.
     fn verify_binding_signature(
         &self,
-        sapling: &Sapling,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;

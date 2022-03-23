@@ -4,7 +4,7 @@
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
-use super::{serializing::read_scalar, Sapling};
+use super::serializing::read_scalar;
 
 use bls12_381::Scalar;
 use ff::{PrimeField, PrimeFieldBits};
@@ -43,7 +43,7 @@ impl MerkleNoteHash {
 
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
-    pub fn combine_hash(sapling: &Sapling, depth: usize, left: &Scalar, right: &Scalar) -> Scalar {
+    pub fn combine_hash(depth: usize, left: &Scalar, right: &Scalar) -> Scalar {
         let lhs = left.to_le_bits();
         let rhs = right.to_le_bits();
         let num_bits = <Scalar as PrimeField>::NUM_BITS as usize;

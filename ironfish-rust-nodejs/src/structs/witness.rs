@@ -9,7 +9,7 @@ use napi::bindgen_prelude::*;
 use napi::Env;
 use napi::JsObject;
 
-use ironfish_rust::sapling_bls12::{Bls12, MerkleNoteHash, Scalar};
+use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 pub struct JsWitness {

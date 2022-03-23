@@ -16,7 +16,6 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
 use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
@@ -395,8 +394,8 @@ fn serialize_signature_fields<W: io::Write>(
     nullifier: &Nullifier,
 ) -> io::Result<()> {
     proof.write(&mut writer)?;
-    writer.write_all(&value_commitment.to_bytes());
-    writer.write_all(&randomized_public_key.0.to_bytes());
+    writer.write_all(&value_commitment.to_bytes())?;
+    writer.write_all(&randomized_public_key.0.to_bytes())?;
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(&nullifier.0)?;
@@ -415,7 +414,6 @@ mod test {
         sapling_bls12,
         test_util::make_fake_witness,
     };
-    use bls12_381::Bls12;
     use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
@@ -424,17 +422,12 @@ mod test {
     fn test_spend_round_trip() {
         let sapling = sapling_bls12::SAPLING.clone();
 
-        let key = SaplingKey::generate_key(sapling.clone());
+        let key = SaplingKey::generate_key();
         let public_address = key.generate_public_address();
 
         let note_randomness = random();
 
-        let note = Note::new(
-            sapling.clone(),
-            public_address.clone(),
-            note_randomness,
-            Memo([0; 32]),
-        );
+        let note = Note::new(public_address.clone(), note_randomness, Memo([0; 32]));
         let witness = make_fake_witness(sapling.clone(), &note);
 
         let spend = SpendParams::new(sapling.clone(), key, &note, &witness)

@@ -6,7 +6,6 @@ use super::{
     errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
-    Sapling,
 };
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -15,7 +14,7 @@ use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::sapling::{Note as SaplingNote, Nullifier, Rseed};
 
-use std::{fmt, io, io::Read, sync::Arc};
+use std::{fmt, io, io::Read};
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -57,7 +56,6 @@ impl fmt::Display for Memo {
 /// to hold those funds.
 #[derive(Clone)]
 pub struct Note {
-    pub(crate) sapling: Arc<Sapling>,
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
     pub(crate) owner: PublicAddress,
@@ -80,14 +78,13 @@ pub struct Note {
 
 impl<'a> Note {
     /// Construct a new Note.
-    pub fn new(sapling: Arc<Sapling>, owner: PublicAddress, value: u64, memo: Memo) -> Self {
+    pub fn new(owner: PublicAddress, value: u64, memo: Memo) -> Self {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
         let randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
         Self {
-            sapling,
             owner,
             value,
             randomness,
@@ -99,11 +96,8 @@ impl<'a> Note {
     ///
     /// You probably don't want to use this unless you are transmitting
     /// across nodejs threads in memory.
-    pub fn read<R: io::Read>(
-        mut reader: R,
-        sapling: Arc<Sapling>,
-    ) -> Result<Self, errors::SaplingKeyError> {
-        let owner = PublicAddress::read(sapling.clone(), &mut reader)?;
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingKeyError> {
+        let owner = PublicAddress::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
@@ -114,7 +108,6 @@ impl<'a> Note {
         memo.0.copy_from_slice(&memo_vec[..]);
 
         Ok(Self {
-            sapling,
             owner,
             value,
             randomness,
@@ -154,7 +147,6 @@ impl<'a> Note {
         let owner = owner_view_key.public_address(&diversifier_bytes)?;
 
         Ok(Note {
-            sapling: owner_view_key.sapling.clone(),
             owner,
             value,
             randomness,
@@ -172,7 +164,6 @@ impl<'a> Note {
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
     pub(crate) fn from_spender_encrypted(
-        sapling: Arc<Sapling>,
         transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
@@ -188,7 +179,6 @@ impl<'a> Note {
         };
 
         Ok(Note {
-            sapling,
             owner,
             value,
             randomness,
@@ -301,24 +291,18 @@ impl<'a> Note {
 #[cfg(test)]
 mod test {
     use super::{Memo, Note};
-    use crate::{
-        keys::{shared_secret, SaplingKey},
-        sapling_bls12,
-    };
-    use bls12_381::Bls12;
+    use crate::keys::{shared_secret, SaplingKey};
 
     #[test]
     fn test_plaintext_serialization() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let owner_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+        let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.generate_public_address();
-        let note = Note::new(sapling.clone(), public_address, 42, "serialize me".into());
+        let note = Note::new(public_address, 42, "serialize me".into());
         let mut serialized = Vec::new();
         note.write(&mut serialized)
             .expect("Should serialize cleanly");
 
-        let note2 =
-            Note::read(&serialized[..], sapling.clone()).expect("It should deserialize cleanly");
+        let note2 = Note::read(&serialized[..]).expect("It should deserialize cleanly");
         assert_eq!(note2.owner.public_address(), note.owner.public_address());
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
@@ -333,13 +317,12 @@ mod test {
 
     #[test]
     fn test_note_encryption() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let owner_key: SaplingKey = SaplingKey::generate_key(sapling.clone());
+        let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.generate_public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(sapling.clone(), public_address, 42, Memo([0; 32]));
+        let note = Note::new(public_address, 42, Memo([0; 32]));
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);
@@ -359,7 +342,6 @@ mod test {
         assert!(note.memo == restored_note.memo);
 
         let spender_decrypted = Note::from_spender_encrypted(
-            sapling.clone(),
             note.owner.transmission_key.clone(),
             &public_shared_secret,
             &encryption_result,
