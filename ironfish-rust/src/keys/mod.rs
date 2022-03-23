@@ -247,7 +247,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Retrieve both the view keys. These would normally used for third-party audits
     /// or for light clients.
-    pub fn view_keys(&self) -> ViewKeys<J> {
+    pub fn view_keys(&self) -> ViewKeys {
         ViewKeys {
             incoming: self.incoming_view_key().clone(),
             outgoing: self.outgoing_view_key().clone(),

@@ -10,7 +10,7 @@ pub type IncomingViewKey = super::IncomingViewKey;
 pub type OutgoingViewKey = super::OutgoingViewKey;
 
 pub type PublicAddress = super::PublicAddress;
-pub type ViewKeys = super::ViewKeys<Bls12>;
+pub type ViewKeys = super::ViewKeys;
 pub type Address = super::PublicAddress;
 pub type Sapling = super::Sapling;
 pub type ProposedTransaction = super::ProposedTransaction<Bls12>;

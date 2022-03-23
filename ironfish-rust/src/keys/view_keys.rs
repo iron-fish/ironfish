@@ -190,7 +190,7 @@ impl OutgoingViewKey {
 /// Pair of outgoing and incoming view keys for a complete audit
 /// of spends and receipts
 #[derive(Clone)]
-pub struct ViewKeys<J: pairing::MultiMillerLoop> {
+pub struct ViewKeys {
     pub incoming: IncomingViewKey,
     pub outgoing: OutgoingViewKey,
 }
