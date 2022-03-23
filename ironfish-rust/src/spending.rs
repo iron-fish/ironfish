@@ -8,7 +8,6 @@ use super::{
     merkle_note::{position as witness_position, sapling_auth_path},
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    nullifiers::Nullifier,
     serializing::read_scalar,
     witness::WitnessTrait,
     Sapling,
@@ -27,7 +26,7 @@ use zcash_proofs::circuit::sapling::Spend;
 use ff::PrimeField;
 use std::{io, sync::Arc};
 use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::primitives::ValueCommitment;
+use zcash_primitives::primitives::{Nullifier, ValueCommitment};
 use zcash_primitives::redjubjub;
 
 /// Parameters used when constructing proof that the spender owns a note with
@@ -276,8 +275,8 @@ impl SpendProof {
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
-        let mut nullifier = [0; 32];
-        reader.read_exact(&mut nullifier)?;
+        let mut nullifier = Nullifier([0; 32]);
+        reader.read_exact(&mut nullifier.0)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(SpendProof {
@@ -356,7 +355,7 @@ impl SpendProof {
 
         public_input[4] = self.root_hash;
 
-        let nullifier = multipack::bytes_to_bits_le(&self.nullifier);
+        let nullifier = multipack::bytes_to_bits_le(&self.nullifier.0);
         let nullifier = multipack::compute_multipacking(&nullifier);
         public_input[5] = nullifier[0];
         public_input[6] = nullifier[1];
@@ -394,14 +393,14 @@ fn serialize_signature_fields<W: io::Write>(
     randomized_public_key: &redjubjub::PublicKey,
     root_hash: &Scalar,
     tree_size: u32,
-    nullifier: &[u8; 32],
+    nullifier: &Nullifier,
 ) -> io::Result<()> {
     proof.write(&mut writer)?;
     writer.write_all(&value_commitment.to_bytes());
     writer.write_all(&randomized_public_key.0.to_bytes());
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
-    writer.write_all(nullifier)?;
+    writer.write_all(&nullifier.0)?;
     Ok(())
 }
 

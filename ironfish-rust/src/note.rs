@@ -5,7 +5,6 @@
 use super::{
     errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
-    nullifiers::Nullifier,
     serializing::{aead, read_scalar, scalar_to_bytes},
     Sapling,
 };
@@ -14,7 +13,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
+use zcash_primitives::primitives::{Note as SaplingNote, Nullifier, Rseed};
 
 use std::{fmt, io, io::Read, sync::Arc};
 
@@ -231,13 +230,9 @@ impl<'a> Note {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
-        let mut result = [0; 32];
-        let result_as_vec = self
+        return self
             .sapling_note()
             .nf(&private_key.sapling_viewing_key(), position);
-        assert_eq!(result_as_vec.len(), 32);
-        result[0..32].copy_from_slice(&result_as_vec[0..32]);
-        result
     }
 
     /// Get the commitment hash for this note. This encapsulates all the values
