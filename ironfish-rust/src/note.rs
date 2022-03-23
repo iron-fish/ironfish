@@ -145,7 +145,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
     pub fn from_owner_encrypted(
-        owner_view_key: &'a IncomingViewKey<J>,
+        owner_view_key: &'a IncomingViewKey,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {

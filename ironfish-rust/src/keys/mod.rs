@@ -77,7 +77,7 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     /// nullifier deriving key. Used to construct payment address and
     /// transmission key. This key allows the receiver of a note to decrypt its
     /// contents.
-    pub(crate) incoming_viewing_key: IncomingViewKey<J>,
+    pub(crate) incoming_viewing_key: IncomingViewKey,
 }
 
 impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
@@ -126,10 +126,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPaymentAddress),
             Ok(bytes) => {
@@ -244,7 +241,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     }
 
     /// Retrieve the publicly visible incoming viewing key
-    pub fn incoming_view_key(&self) -> &IncomingViewKey<J> {
+    pub fn incoming_view_key(&self) -> &IncomingViewKey {
         &self.incoming_viewing_key
     }
 

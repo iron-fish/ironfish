@@ -29,12 +29,12 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 ///
 /// Referred to as `ivk` in the literature.
 #[derive(Clone)]
-pub struct IncomingViewKey<J: pairing::MultiMillerLoop> {
+pub struct IncomingViewKey {
     pub(crate) sapling: Arc<Sapling>,
     pub(crate) view_key: jubjub::Fr,
 }
 
-impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
+impl IncomingViewKey {
     /// load view key from a Read implementation
     pub fn read<R: io::Read>(
         sapling: Arc<Sapling>,
@@ -125,7 +125,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     /// Calculate the shared secret key given the ephemeral public key that was
     /// created for a transaction.
     pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {
-        shared_secret::<J>(&self.view_key, ephemeral_public_key, ephemeral_public_key)
+        shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
 }
 
@@ -191,7 +191,7 @@ impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
 /// of spends and receipts
 #[derive(Clone)]
 pub struct ViewKeys<J: pairing::MultiMillerLoop> {
-    pub incoming: IncomingViewKey<J>,
+    pub incoming: IncomingViewKey,
     pub outgoing: OutgoingViewKey<J>,
 }
 
@@ -222,7 +222,7 @@ pub struct ViewKeys<J: pairing::MultiMillerLoop> {
 ///     key (bob's public key) to get the final shared secret
 ///
 /// The resulting key can be used in any symmetric cipher
-pub(crate) fn shared_secret<J: pairing::MultiMillerLoop>(
+pub(crate) fn shared_secret(
     secret_key: &jubjub::Fr,
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,

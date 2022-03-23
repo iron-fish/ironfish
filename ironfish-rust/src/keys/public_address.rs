@@ -74,7 +74,7 @@ impl PublicAddress {
     }
 
     pub fn from_view_key<J: pairing::MultiMillerLoop>(
-        view_key: &IncomingViewKey<J>,
+        view_key: &IncomingViewKey,
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
         let diversifier = Diversifier(*diversifier);

@@ -166,7 +166,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
 
     pub fn decrypt_note_for_owner(
         &self,
-        owner_view_key: &IncomingViewKey<J>,
+        owner_view_key: &IncomingViewKey,
     ) -> Result<Note<J>, errors::NoteError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
