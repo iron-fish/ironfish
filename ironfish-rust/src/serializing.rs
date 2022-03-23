@@ -15,9 +15,7 @@ use jubjub::SubgroupPoint;
 use std::io;
 
 /// convert an edwards point of prime order to a bytes representation
-pub(crate) fn point_to_bytes<J: pairing::MultiMillerLoop>(
-    point: &SubgroupPoint,
-) -> Result<[u8; 32], errors::SaplingKeyError> {
+pub(crate) fn point_to_bytes(point: &SubgroupPoint) -> Result<[u8; 32], errors::SaplingKeyError> {
     let mut result: [u8; 32] = [0; 32];
     result[..32].copy_from_slice(&point.to_bytes());
     Ok(result)

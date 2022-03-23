@@ -15,7 +15,7 @@ use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Rseed};
 
-use std::{fmt, io, io::Read, marker::PhantomData, sync::Arc};
+use std::{fmt, io, io::Read, sync::Arc};
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 

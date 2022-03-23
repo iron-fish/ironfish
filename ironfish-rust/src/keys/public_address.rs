@@ -116,7 +116,7 @@ impl PublicAddress {
         let mut result = [0; 43];
         result[..11].copy_from_slice(&self.diversifier.0);
         result[11..].copy_from_slice(
-            &point_to_bytes::<Bls12>(&self.transmission_key)
+            &point_to_bytes(&self.transmission_key)
                 .expect("transmission key should be convertible to bytes"),
         );
         result
