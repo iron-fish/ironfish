@@ -14,6 +14,7 @@ use super::{
 };
 
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -43,7 +44,7 @@ pub struct MerkleNote<J: pairing::MultiMillerLoop> {
     pub(crate) value_commitment: ExtendedPoint,
 
     /// The hash of the note, committing to it's internal state
-    pub(crate) note_commitment: J::Fr,
+    pub(crate) note_commitment: Scalar,
 
     /// Public part of ephemeral diffie-hellman key-pair. See the discussion on
     /// keys::shared_secret to understand how this is used
@@ -248,10 +249,10 @@ pub(crate) fn position<J: pairing::MultiMillerLoop>(witness: &dyn WitnessTrait<J
 ///
 /// Naming is getting a bit far-fetched here because it's the keys used to
 /// encrypt other keys. Keys, all the way down!
-fn calculate_key_for_encryption_keys<J: pairing::MultiMillerLoop>(
+fn calculate_key_for_encryption_keys(
     outgoing_view_key: &OutgoingViewKey,
     value_commitment: &ExtendedPoint,
-    note_commitment: &J::Fr,
+    note_commitment: &Scalar,
     public_key: &SubgroupPoint,
 ) -> [u8; 32] {
     let mut key_input = [0u8; 128];

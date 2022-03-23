@@ -6,6 +6,7 @@
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::{serializing::read_scalar, Sapling};
 
+use bls12_381::Scalar;
 use ff::{BitIterator, PrimeField};
 use group::Curve;
 use jubjub::ExtendedPoint;
@@ -42,7 +43,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNoteHash<J> {
 
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
-    pub fn combine_hash(sapling: &Sapling, depth: usize, left: &J::Fr, right: &J::Fr) -> J::Fr {
+    pub fn combine_hash(sapling: &Sapling, depth: usize, left: &Scalar, right: &Scalar) -> Scalar {
         let mut lhs: Vec<bool> = BitIterator::<u8, _>::new(left.to_repr()).collect();
         let mut rhs: Vec<bool> = BitIterator::<u8, _>::new(right.to_repr()).collect();
         lhs.reverse();

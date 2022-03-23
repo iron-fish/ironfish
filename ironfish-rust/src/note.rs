@@ -9,6 +9,7 @@ use super::{
     serializing::{aead, read_scalar, scalar_to_bytes},
     Sapling,
 };
+use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
@@ -251,7 +252,7 @@ impl<'a> Note {
     ///
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
-    pub(crate) fn commitment_point<J: pairing::MultiMillerLoop>(&self) -> J::Fr {
+    pub(crate) fn commitment_point(&self) -> Scalar {
         self.sapling_note().cm()
     }
 
