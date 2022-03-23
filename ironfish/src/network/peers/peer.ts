@@ -683,9 +683,9 @@ export class Peer {
     }
 
     const { message } = loggedMessage
-    const messageNotInUnloggedTypes =
-      !(message instanceof Buffer) && !UNLOGGED_MESSAGE_TYPES.includes(message.type)
-    if (forceLogMessage || messageNotInUnloggedTypes) {
+    const shouldPushLoggedMessage =
+      message instanceof Buffer || !UNLOGGED_MESSAGE_TYPES.includes(message.type)
+    if (forceLogMessage || shouldPushLoggedMessage) {
       this.loggedMessages.push(loggedMessage)
     }
   }
