@@ -94,7 +94,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// Spend the note owned by spender_key at the given witness location.
     pub fn spend(
         &mut self,
-        spender_key: SaplingKey<J>,
+        spender_key: SaplingKey,
         note: &Note<J>,
         witness: &dyn WitnessTrait<J>,
     ) -> Result<(), SaplingProofError> {
@@ -119,7 +119,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// transaction.
     pub fn receive(
         &mut self,
-        spender_key: &SaplingKey<J>,
+        spender_key: &SaplingKey,
         note: &Note<J>,
     ) -> Result<(), SaplingProofError> {
         let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
@@ -145,7 +145,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// aka: self.transaction_fee - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
-        spender_key: &SaplingKey<J>,
+        spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction<J>, TransactionError> {

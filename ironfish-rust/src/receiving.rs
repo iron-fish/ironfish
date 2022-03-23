@@ -36,7 +36,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
         sapling: Arc<Sapling>,
-        spender_key: &SaplingKey<J>,
+        spender_key: &SaplingKey,
         note: &Note<J>,
     ) -> Result<ReceiptParams<J>, errors::SaplingProofError> {
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();

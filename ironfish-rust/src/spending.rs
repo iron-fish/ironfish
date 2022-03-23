@@ -40,7 +40,7 @@ pub struct SpendParams<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling>,
 
     /// Private key of the person spending the note.
-    spender_key: SaplingKey<J>,
+    spender_key: SaplingKey,
 
     /// Used to add randomness to signature generation without leaking the key.
     /// Referred to as
@@ -85,7 +85,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     /// to verify the location of that note in the tree.
     pub fn new(
         sapling: Arc<Sapling>,
-        spender_key: SaplingKey<J>,
+        spender_key: SaplingKey,
         note: &Note<J>,
         witness: &dyn WitnessTrait<J>,
     ) -> Result<SpendParams<J>, errors::SaplingProofError> {

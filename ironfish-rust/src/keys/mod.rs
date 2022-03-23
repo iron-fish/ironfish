@@ -38,7 +38,7 @@ const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
 /// world, inside the API they map to Edwards points or scalar values
 /// on the JubJub curve.
 #[derive(Clone)]
-pub struct SaplingKey<J: pairing::MultiMillerLoop> {
+pub struct SaplingKey {
     pub(crate) sapling: Arc<Sapling>,
 
     /// The private (secret) key from which all the other key parts are derived.
@@ -80,7 +80,7 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
     pub(crate) incoming_viewing_key: IncomingViewKey,
 }
 
-impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
+impl<'a> SaplingKey {
     /// Construct a new key from an array of bytes
     pub fn new(
         sapling: Arc<Sapling>,

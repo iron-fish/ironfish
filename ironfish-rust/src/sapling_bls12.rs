@@ -5,7 +5,7 @@
 pub use bls12_381::Bls12;
 use std::sync::Arc;
 
-pub type Key = super::SaplingKey<Bls12>;
+pub type Key = super::SaplingKey;
 pub type IncomingViewKey = super::IncomingViewKey;
 pub type OutgoingViewKey = super::OutgoingViewKey;
 

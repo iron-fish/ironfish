@@ -67,7 +67,7 @@ impl PublicAddress {
     /// representing a diversifier. Typically constructed from
     /// SaplingKey::public_address()
     pub fn from_key<J: pairing::MultiMillerLoop>(
-        sapling_key: &SaplingKey<J>,
+        sapling_key: &SaplingKey,
         diversifier: &[u8; 11],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
         Self::from_view_key(sapling_key.incoming_view_key(), diversifier)

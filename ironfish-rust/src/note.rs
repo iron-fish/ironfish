@@ -229,7 +229,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// The nullifier is a series of bytes that is published by the note owner
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
-    pub fn nullifier(&self, private_key: &SaplingKey<J>, position: u64) -> Nullifier {
+    pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
         let mut result = [0; 32];
         let result_as_vec = self
             .sapling_note()

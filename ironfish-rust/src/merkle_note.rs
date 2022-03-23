@@ -68,7 +68,7 @@ impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
 
 impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     pub fn new(
-        spender_key: &SaplingKey<J>,
+        spender_key: &SaplingKey,
         note: &Note<J>,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
