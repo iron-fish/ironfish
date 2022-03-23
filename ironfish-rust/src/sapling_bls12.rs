@@ -19,7 +19,7 @@ pub type Transaction = super::Transaction<Bls12>;
 pub type ReceiptProof = super::ReceiptProof<Bls12>;
 pub type SpendProof = super::SpendProof<Bls12>;
 pub type Note = super::Note;
-pub type MerkleNote = super::MerkleNote<Bls12>;
+pub type MerkleNote = super::MerkleNote;
 pub type MerkleNoteHash = super::MerkleNoteHash<Bls12>;
 
 // Loads the Sapling object once when dereferenced,

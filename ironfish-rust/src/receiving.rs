@@ -29,7 +29,7 @@ pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
 
     /// Merkle note containing all the values verified by the proof. These values
     /// are shared on the blockchain and can be snapshotted into a Merkle Tree
-    pub(crate) merkle_note: MerkleNote<J>,
+    pub(crate) merkle_note: MerkleNote,
 }
 
 impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
@@ -113,7 +113,7 @@ pub struct ReceiptProof<J: pairing::MultiMillerLoop> {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<J>,
 
-    pub(crate) merkle_note: MerkleNote<J>,
+    pub(crate) merkle_note: MerkleNote,
 }
 
 impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
@@ -166,7 +166,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
         }
     }
     /// Get a MerkleNote, which can be used as a node in a Merkle Tree.
-    pub fn merkle_note(&self) -> MerkleNote<J> {
+    pub fn merkle_note(&self) -> MerkleNote {
         self.merkle_note.clone()
     }
 

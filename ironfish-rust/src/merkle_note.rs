@@ -36,7 +36,7 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
 
 #[derive(Clone)]
-pub struct MerkleNote<J: pairing::MultiMillerLoop> {
+pub struct MerkleNote {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Commits this note to the value it contains
@@ -60,20 +60,20 @@ pub struct MerkleNote<J: pairing::MultiMillerLoop> {
     pub(crate) note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE],
 }
 
-impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
-    fn eq(&self, other: &MerkleNote<J>) -> bool {
+impl PartialEq for MerkleNote {
+    fn eq(&self, other: &MerkleNote) -> bool {
         self.note_commitment == other.note_commitment
             && self.value_commitment == other.value_commitment
     }
 }
 
-impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
+impl MerkleNote {
     pub fn new(
         spender_key: &SaplingKey,
         note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
-    ) -> MerkleNote<J> {
+    ) -> MerkleNote {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let encrypted_note = note.encrypt(&shared_secret(
