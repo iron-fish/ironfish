@@ -4,7 +4,7 @@
 
 use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
-use bls12_381::Bls12;
+use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
 use jubjub::ExtendedPoint;
@@ -81,7 +81,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub fn post(&self) -> Result<ReceiptProof<J>, errors::SaplingProofError> {
+    pub fn post(&self) -> Result<ReceiptProof, errors::SaplingProofError> {
         let receipt_proof = ReceiptProof {
             proof: self.proof.clone(),
             merkle_note: self.merkle_note.clone(),
@@ -110,15 +110,15 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
 /// This is the variation of a Receipt that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
-pub struct ReceiptProof<J: pairing::MultiMillerLoop> {
+pub struct ReceiptProof {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
-    /// Load a ReceiptProof<J> from a Read implementation( e.g: socket, file)
+impl ReceiptProof {
+    /// Load a ReceiptProof from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(
@@ -146,7 +146,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
         {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
-        let mut public_input = [J::Fr::zero(); 5];
+        let mut public_input = [Scalar::zero(); 5];
         let p = self.merkle_note.value_commitment.to_affine();
         public_input[0] = p.get_u();
         public_input[1] = p.get_v();

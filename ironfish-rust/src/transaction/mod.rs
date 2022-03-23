@@ -349,7 +349,7 @@ pub struct Transaction<J: pairing::MultiMillerLoop> {
     spends: Vec<SpendProof<J>>,
 
     /// List of receipts, or output notes that have been created.
-    receipts: Vec<ReceiptProof<J>>,
+    receipts: Vec<ReceiptProof>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and receipts when the transaction was created.
@@ -460,11 +460,11 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
     }
 
     /// Get an iterator over the receipts in this transaction, by reference
-    pub fn iter_receipts(&self) -> Iter<ReceiptProof<J>> {
+    pub fn iter_receipts(&self) -> Iter<ReceiptProof> {
         self.receipts.iter()
     }
 
-    pub fn receipts(&self) -> &Vec<ReceiptProof<J>> {
+    pub fn receipts(&self) -> &Vec<ReceiptProof> {
         &self.receipts
     }
 
