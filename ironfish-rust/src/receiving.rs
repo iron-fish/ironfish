@@ -4,6 +4,7 @@
 
 use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
+use bls12_381::Bls12;
 use ff::Field;
 use group::Curve;
 use jubjub::ExtendedPoint;
@@ -22,7 +23,7 @@ pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
     pub(crate) sapling: Arc<Sapling>,
 
     /// Proof that the output circuit was valid and successful
-    pub(crate) proof: groth16::Proof<J>,
+    pub(crate) proof: groth16::Proof<Bls12>,
 
     /// Randomness used to create the ValueCommitment point on the Merkle Note
     pub(crate) value_commitment_randomness: jubjub::Fr,
@@ -111,7 +112,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
 #[derive(Clone)]
 pub struct ReceiptProof<J: pairing::MultiMillerLoop> {
     /// Proof that the output circuit was valid and successful
-    pub(crate) proof: groth16::Proof<J>,
+    pub(crate) proof: groth16::Proof<Bls12>,
 
     pub(crate) merkle_note: MerkleNote,
 }

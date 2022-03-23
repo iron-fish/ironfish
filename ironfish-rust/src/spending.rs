@@ -15,6 +15,7 @@ use super::{
 };
 use bellman::gadgets::multipack;
 use bellman::groth16;
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::{Curve, GroupEncoding};
@@ -49,7 +50,7 @@ pub struct SpendParams<J: pairing::MultiMillerLoop> {
 
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
-    pub(crate) proof: groth16::Proof<J>,
+    pub(crate) proof: groth16::Proof<Bls12>,
 
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
@@ -210,7 +211,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
 pub struct SpendProof<J: pairing::MultiMillerLoop> {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
-    pub(crate) proof: groth16::Proof<J>,
+    pub(crate) proof: groth16::Proof<Bls12>,
 
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
