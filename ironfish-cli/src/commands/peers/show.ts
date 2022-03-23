@@ -62,6 +62,9 @@ export class ShowCommand extends IronfishCommand {
     const type = message.brokeringPeerDisplayName
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
       : message.type
+    if (message.message instanceof Buffer) {
+      throw new Error('Not implemented')
+    }
     const messageType = colors.cyan(message.message.type)
     const payload = JSON.stringify(
       'payload' in message.message ? message.message.payload : null,
