@@ -65,7 +65,4 @@ shrinkwraprs = "0.2.1"
 tiny-bip39 = "0.8.0"
 
 [patch.crates-io]
-aes = {path = "../../block-ciphers/aes"}
-aes-soft = {path = "../../block-ciphers/aes/aes-soft"}
-aesni = {path = "../../block-ciphers/aes/aesni"}
 bellman = {path="../../bellman"}
