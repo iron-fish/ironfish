@@ -95,7 +95,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     pub fn spend(
         &mut self,
         spender_key: SaplingKey,
-        note: &Note<J>,
+        note: &Note,
         witness: &dyn WitnessTrait<J>,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
@@ -120,7 +120,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
     pub fn receive(
         &mut self,
         spender_key: &SaplingKey,
-        note: &Note<J>,
+        note: &Note,
     ) -> Result<(), SaplingProofError> {
         let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
 

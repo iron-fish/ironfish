@@ -56,7 +56,7 @@ impl fmt::Display for Memo {
 /// When receiving funds, a new note needs to be created for the new owner
 /// to hold those funds.
 #[derive(Clone)]
-pub struct Note<J: pairing::MultiMillerLoop> {
+pub struct Note {
     pub(crate) sapling: Arc<Sapling>,
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
@@ -78,7 +78,7 @@ pub struct Note<J: pairing::MultiMillerLoop> {
     pub(crate) memo: Memo,
 }
 
-impl<'a, J: pairing::MultiMillerLoop> Note<J> {
+impl<'a> Note {
     /// Construct a new Note.
     pub fn new(sapling: Arc<Sapling>, owner: PublicAddress, value: u64, memo: Memo) -> Self {
         let mut buffer = [0u8; 64];

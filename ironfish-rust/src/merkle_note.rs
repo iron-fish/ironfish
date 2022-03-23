@@ -69,7 +69,7 @@ impl<J: pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
 impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     pub fn new(
         spender_key: &SaplingKey,
-        note: &Note<J>,
+        note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
     ) -> MerkleNote<J> {
@@ -167,7 +167,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     pub fn decrypt_note_for_owner(
         &self,
         owner_view_key: &IncomingViewKey,
-    ) -> Result<Note<J>, errors::NoteError> {
+    ) -> Result<Note, errors::NoteError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
@@ -178,7 +178,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     pub fn decrypt_note_for_spender(
         &self,
         spender_key: &OutgoingViewKey,
-    ) -> Result<Note<J>, errors::NoteError> {
+    ) -> Result<Note, errors::NoteError> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,
