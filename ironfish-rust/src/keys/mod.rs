@@ -39,7 +39,7 @@ const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
 /// on the JubJub curve.
 #[derive(Clone)]
 pub struct SaplingKey<J: pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
 
     /// The private (secret) key from which all the other key parts are derived.
     /// The expanded form of this key is required before a note can be spent.
@@ -83,7 +83,7 @@ pub struct SaplingKey<J: pairing::MultiMillerLoop> {
 impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     /// Construct a new key from an array of bytes
     pub fn new(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         spending_key: [u8; 32],
     ) -> Result<Self, errors::SaplingKeyError> {
         let spend_authorizing_key =
@@ -117,7 +117,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Load a new key from a Read implementation (e.g: socket, file)
     pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         reader: &mut R,
     ) -> Result<Self, errors::SaplingKeyError> {
         let mut spending_key = [0; 32];
@@ -127,7 +127,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         value: &str,
     ) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
@@ -146,7 +146,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Load a key from a string of words to be decoded into bytes.
     pub fn from_words(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         language_code: &str,
         value: String,
     ) -> Result<Self, errors::SaplingKeyError> {
@@ -165,7 +165,7 @@ impl<'a, J: pairing::MultiMillerLoop> SaplingKey<J> {
     /// This would normally be used for a new account coming online for the
     /// first time.
     /// Note that unlike `new`, this function always successfully returns a value.
-    pub fn generate_key(sapling: Arc<Sapling<J>>) -> Self {
+    pub fn generate_key(sapling: Arc<Sapling>) -> Self {
         let spending_key: [u8; 32] = random();
         // OsRng.fill_bytes(&mut spending_key);
         loop {

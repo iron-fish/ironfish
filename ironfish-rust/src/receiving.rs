@@ -19,7 +19,7 @@ use std::{io, sync::Arc};
 pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
 
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<J>,
@@ -35,7 +35,7 @@ pub struct ReceiptParams<J: pairing::MultiMillerLoop> {
 impl<J: pairing::MultiMillerLoop> ReceiptParams<J> {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         spender_key: &SaplingKey<J>,
         note: &Note<J>,
     ) -> Result<ReceiptParams<J>, errors::SaplingProofError> {
@@ -121,7 +121,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         mut reader: R,
     ) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
@@ -137,7 +137,7 @@ impl<J: pairing::MultiMillerLoop> ReceiptProof<J> {
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()

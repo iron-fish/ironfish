@@ -37,7 +37,7 @@ use zcash_primitives::redjubjub;
 pub struct SpendParams<J: pairing::MultiMillerLoop> {
     /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
     /// value.
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
 
     /// Private key of the person spending the note.
     spender_key: SaplingKey<J>,
@@ -84,7 +84,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
     pub fn new(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         spender_key: SaplingKey<J>,
         note: &Note<J>,
         witness: &dyn WitnessTrait<J>,
@@ -342,7 +342,7 @@ impl<J: pairing::MultiMillerLoop> SpendProof<J> {
     ///
     /// This entails converting all the values to appropriate inputs to the
     /// bellman circuit and executing it.
-    pub fn verify_proof(&self, sapling: &Sapling<J>) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
         if self.value_commitment.is_small_order().into() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }

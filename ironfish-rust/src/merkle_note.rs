@@ -104,7 +104,7 @@ impl<J: pairing::MultiMillerLoop> MerkleNote<J> {
     }
 
     /// Load a MerkleNote from the given stream
-    pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
+    pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling>) -> io::Result<Self> {
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;

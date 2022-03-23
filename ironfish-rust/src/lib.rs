@@ -9,6 +9,7 @@ extern crate lazy_static;
 extern crate shrinkwraprs;
 
 use bellman::groth16;
+use bls12_381::Bls12;
 
 mod serializing;
 
@@ -48,14 +49,14 @@ compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the
 // so we store the prepared keys separately at the time of loading the params.
 //
 // The values are all loaded from a file in serialized form.
-pub struct Sapling<J: pairing::MultiMillerLoop> {
-    spend_params: groth16::Parameters<J>,
-    receipt_params: groth16::Parameters<J>,
-    spend_verifying_key: groth16::PreparedVerifyingKey<J>,
-    receipt_verifying_key: groth16::PreparedVerifyingKey<J>,
+pub struct Sapling {
+    spend_params: groth16::Parameters<Bls12>,
+    receipt_params: groth16::Parameters<Bls12>,
+    spend_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    receipt_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
 }
 
-impl<J: pairing::MultiMillerLoop> Sapling<J> {
+impl Sapling {
     /// Initialize a Sapling instance and prepare for proving. Load the parameters from a config file
     /// at a known location (`./sapling_params`, for now).
     pub fn load() -> Self {
@@ -83,7 +84,7 @@ impl<J: pairing::MultiMillerLoop> Sapling<J> {
     /// curve.
     ///
     /// NOTE: If this is stupidly slow for you, try compiling in --release mode
-    fn load_params(bytes: &[u8]) -> groth16::Parameters<J> {
+    fn load_params(bytes: &[u8]) -> groth16::Parameters<Bls12> {
         groth16::Parameters::read(bytes, false).unwrap()
     }
 }

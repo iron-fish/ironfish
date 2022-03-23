@@ -46,7 +46,7 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
     /// Essentially a global reference to the sapling parameters, including
     /// proving and verification keys.
-    sapling: Arc<Sapling<J>>,
+    sapling: Arc<Sapling>,
 
     /// A "private key" manufactured from a bunch of randomness added for each
     /// spend and output.
@@ -79,7 +79,7 @@ pub struct ProposedTransaction<J: pairing::MultiMillerLoop> {
 }
 
 impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
-    pub fn new(sapling: Arc<Sapling<J>>) -> ProposedTransaction<J> {
+    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction<J> {
         ProposedTransaction {
             sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
@@ -340,7 +340,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
 #[derive(Clone)]
 pub struct Transaction<J: pairing::MultiMillerLoop> {
     /// reference to the sapling object associated with this transaction
-    sapling: Arc<Sapling<J>>,
+    sapling: Arc<Sapling>,
 
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
     transaction_fee: i64,
@@ -366,7 +366,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
     pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         mut reader: R,
     ) -> Result<Self, TransactionError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
@@ -524,7 +524,7 @@ impl<J: pairing::MultiMillerLoop> Transaction<J> {
     /// Called from the public verify function.
     fn verify_binding_signature(
         &self,
-        sapling: &Sapling<J>,
+        sapling: &Sapling,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
         let mut value_balance_point = value_balance_to_point::<J>(self.transaction_fee)?;

@@ -30,14 +30,14 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 /// Referred to as `ivk` in the literature.
 #[derive(Clone)]
 pub struct IncomingViewKey<J: pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
     pub(crate) view_key: jubjub::Fr,
 }
 
 impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     /// load view key from a Read implementation
     pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         reader: &mut R,
     ) -> Result<Self, errors::SaplingKeyError> {
         let view_key = read_scalar(reader)?;
@@ -45,10 +45,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
@@ -65,7 +62,7 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
     pub fn from_words(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         language_code: &str,
         value: String,
     ) -> Result<Self, errors::SaplingKeyError> {
@@ -137,16 +134,13 @@ impl<J: pairing::MultiMillerLoop> IncomingViewKey<J> {
 /// Referred to as `ovk` in the literature.
 #[derive(Clone)]
 pub struct OutgoingViewKey<J: pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
     pub(crate) view_key: [u8; 32],
 }
 
 impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(sapling: Arc<Sapling>, value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
@@ -165,7 +159,7 @@ impl<J: pairing::MultiMillerLoop> OutgoingViewKey<J> {
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
     pub fn from_words(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         language_code: &str,
         value: String,
     ) -> Result<Self, errors::SaplingKeyError> {

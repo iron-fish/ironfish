@@ -35,7 +35,7 @@ pub trait WitnessTrait<J: pairing::MultiMillerLoop> {
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
 pub struct Witness<J: pairing::MultiMillerLoop> {
-    pub hasher: Arc<Sapling<J>>,
+    pub hasher: Arc<Sapling>,
     pub tree_size: usize,
     pub root_hash: J::Fr,
     pub auth_path: Vec<WitnessNode<J::Fr>>,

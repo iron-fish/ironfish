@@ -39,7 +39,7 @@ pub struct PublicAddress {
 impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
     pub fn new<J: pairing::MultiMillerLoop>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         address_bytes: &[u8; 43],
     ) -> Result<PublicAddress, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
@@ -55,7 +55,7 @@ impl PublicAddress {
 
     /// Load a public address from a Read implementation (e.g: socket, file)
     pub fn read<J: pairing::MultiMillerLoop, R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         reader: &mut R,
     ) -> Result<Self, errors::SaplingKeyError> {
         let mut address_bytes = [0; 43];
@@ -93,7 +93,7 @@ impl PublicAddress {
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
     pub fn from_hex<J: pairing::MultiMillerLoop>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         value: &str,
     ) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {

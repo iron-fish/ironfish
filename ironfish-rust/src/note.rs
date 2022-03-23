@@ -57,7 +57,7 @@ impl fmt::Display for Memo {
 /// to hold those funds.
 #[derive(Clone)]
 pub struct Note<J: pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
+    pub(crate) sapling: Arc<Sapling>,
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
     pub(crate) owner: PublicAddress,
@@ -80,7 +80,7 @@ pub struct Note<J: pairing::MultiMillerLoop> {
 
 impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// Construct a new Note.
-    pub fn new(sapling: Arc<Sapling<J>>, owner: PublicAddress, value: u64, memo: Memo) -> Self {
+    pub fn new(sapling: Arc<Sapling>, owner: PublicAddress, value: u64, memo: Memo) -> Self {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
@@ -101,7 +101,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// across nodejs threads in memory.
     pub fn read<R: io::Read>(
         mut reader: R,
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
     ) -> Result<Self, errors::SaplingKeyError> {
         let owner = PublicAddress::read(sapling.clone(), &mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
@@ -172,7 +172,7 @@ impl<'a, J: pairing::MultiMillerLoop> Note<J> {
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
     pub(crate) fn from_spender_encrypted(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],

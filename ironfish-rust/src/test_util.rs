@@ -15,7 +15,7 @@ use zcash_proofs::circuit::sapling::TREE_DEPTH;
 /// path placing that note at a random location in a Merkle tree.
 #[cfg(test)]
 pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
-    sapling: Arc<Sapling<J>>,
+    sapling: Arc<Sapling>,
     note: &Note<J>,
 ) -> Witness<J> {
     let mut rng = thread_rng();
@@ -47,7 +47,7 @@ pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
 /// something like this in the future.
 #[cfg(test)]
 pub(crate) fn auth_path_to_root_hash<J: pairing::MultiMillerLoop>(
-    sapling: &Sapling<J>,
+    sapling: &Sapling,
     auth_path: &Vec<WitnessNode<J::Fr>>,
     child_hash: J::Fr,
 ) -> J::Fr {
