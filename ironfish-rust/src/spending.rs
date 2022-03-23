@@ -88,7 +88,7 @@ impl<'a, J: pairing::MultiMillerLoop> SpendParams<J> {
         sapling: Arc<Sapling>,
         spender_key: SaplingKey,
         note: &Note,
-        witness: &dyn WitnessTrait<J>,
+        witness: &dyn WitnessTrait,
     ) -> Result<SpendParams<J>, errors::SaplingProofError> {
         // This is a sanity check; it would be caught in proving the circuit anyway,
         // but this gives us more information in the event of a failure

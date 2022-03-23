@@ -221,7 +221,7 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("Should be able to serialize proof");
-        let read_back_proof: ReceiptProof<Bls12> =
+        let read_back_proof: ReceiptProof =
             ReceiptProof::read(sapling.clone(), &mut serialized_proof[..].as_ref())
                 .expect("Should be able to deserialize valid proof");
 

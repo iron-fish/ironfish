@@ -96,7 +96,7 @@ impl<J: pairing::MultiMillerLoop> ProposedTransaction<J> {
         &mut self,
         spender_key: SaplingKey,
         note: &Note,
-        witness: &dyn WitnessTrait<J>,
+        witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());

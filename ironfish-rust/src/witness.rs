@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bls12_381::Scalar;
+
 use super::{MerkleNoteHash, Sapling};
 use std::fmt::{self, Debug};
 use std::sync::Arc;
@@ -19,38 +21,38 @@ pub enum WitnessNode<H: Clone + PartialEq + Debug> {
 /// Commitment that a leaf node exists in the tree, with an authentication path
 /// and the root_hash of the tree at the time the authentication_path was
 /// calculated.
-pub trait WitnessTrait<J: pairing::MultiMillerLoop> {
+pub trait WitnessTrait {
     /// verify that the root hash and authentication path on this witness is a
     /// valid confirmation that the given element exists at this point in the
     /// tree.
     fn verify(&self, my_hash: &MerkleNoteHash) -> bool;
 
-    fn get_auth_path(&self) -> Vec<WitnessNode<J::Fr>>;
+    fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>>;
 
-    fn root_hash(&self) -> J::Fr;
+    fn root_hash(&self) -> Scalar;
 
     fn tree_size(&self) -> u32;
 }
 
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
-pub struct Witness<J: pairing::MultiMillerLoop> {
+pub struct Witness {
     pub hasher: Arc<Sapling>,
     pub tree_size: usize,
-    pub root_hash: J::Fr,
-    pub auth_path: Vec<WitnessNode<J::Fr>>,
+    pub root_hash: Scalar,
+    pub auth_path: Vec<WitnessNode<Scalar>>,
 }
 
 /// Implement partial equality, ignoring the Sapling Arc
-impl<J: pairing::MultiMillerLoop> PartialEq for Witness<J> {
-    fn eq(&self, other: &Witness<J>) -> bool {
+impl PartialEq for Witness {
+    fn eq(&self, other: &Witness) -> bool {
         self.tree_size == other.tree_size
             && self.root_hash == other.root_hash
             && self.auth_path == other.auth_path
     }
 }
 
-impl<J: pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
+impl WitnessTrait for Witness {
     fn verify(&self, my_hash: &MerkleNoteHash) -> bool {
         let mut cur_hash = my_hash.0;
         for (i, node) in self.auth_path.iter().enumerate() {
@@ -67,11 +69,11 @@ impl<J: pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
         cur_hash == self.root_hash
     }
 
-    fn get_auth_path(&self) -> Vec<WitnessNode<J::Fr>> {
+    fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>> {
         self.auth_path.clone()
     }
 
-    fn root_hash(&self) -> J::Fr {
+    fn root_hash(&self) -> Scalar {
         self.root_hash
     }
 
@@ -80,7 +82,7 @@ impl<J: pairing::MultiMillerLoop> WitnessTrait<J> for Witness<J> {
     }
 }
 
-impl<J: pairing::MultiMillerLoop> fmt::Debug for Witness<J> {
+impl fmt::Debug for Witness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Witness {{")?;
         writeln!(f, "    tree_size: {}", self.tree_size)?;

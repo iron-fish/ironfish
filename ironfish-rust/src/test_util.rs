@@ -17,7 +17,7 @@ use zcash_proofs::circuit::sapling::TREE_DEPTH;
 pub(crate) fn make_fake_witness<J: pairing::MultiMillerLoop>(
     sapling: Arc<Sapling>,
     note: &Note,
-) -> Witness<J> {
+) -> Witness {
     let mut rng = thread_rng();
     let mut buffer = [0u8; 64];
     thread_rng().fill(&mut buffer[..]);
