@@ -40,7 +40,7 @@ pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(
 ) -> Result<F, errors::SaplingKeyError> {
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
-    let scalar = Option::from(F::from_repr(fr_repr)).ok_or(errors::SaplingKeyError::IOError)?;
+    let scalar = F::from_repr(fr_repr).ok_or(errors::SaplingKeyError::IOError)?;
     Ok(scalar)
 }
 
