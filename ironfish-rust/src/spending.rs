@@ -404,9 +404,6 @@ fn serialize_signature_fields<W: io::Write>(
 
 #[cfg(test)]
 mod test {
-    extern crate bellman;
-    extern crate pairing;
-
     use super::{SpendParams, SpendProof};
     use crate::{
         keys::SaplingKey,
