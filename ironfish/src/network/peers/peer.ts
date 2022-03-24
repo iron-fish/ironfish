@@ -29,7 +29,7 @@ const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
 type LoggedMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: LooseMessage
+  message: LooseMessage | Buffer
   timestamp: number
   type: ConnectionType
 }
@@ -193,7 +193,7 @@ export class Peer {
    * by the application layer. Includes the connection from which the message
    * was received.
    */
-  readonly onMessage: Event<[LooseMessage, Connection]> = new Event()
+  readonly onMessage: Event<[LooseMessage | Buffer, Connection]> = new Event()
 
   /**
    * Event fired when the knownPeers map changes.
@@ -493,8 +493,10 @@ export class Peer {
     return this.supportedConnections[type]
   }
 
-  private readonly connectionMessageHandlers: Map<Connection, (message: LooseMessage) => void> =
-    new Map<Connection, (message: LooseMessage) => void>()
+  private readonly connectionMessageHandlers: Map<
+    Connection,
+    (message: LooseMessage | Buffer) => void
+  > = new Map<Connection, (message: LooseMessage | Buffer) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,
@@ -535,10 +537,10 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage) => {
+      const messageHandler = (message: LooseMessage | Buffer) => {
         this.pushLoggedMessage({
           direction: 'receive',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: connection.type,
         })
@@ -680,7 +682,10 @@ export class Peer {
       return
     }
 
-    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(loggedMessage.message.type)) {
+    const { message } = loggedMessage
+    const shouldPushLoggedMessage =
+      message instanceof Buffer || !UNLOGGED_MESSAGE_TYPES.includes(message.type)
+    if (forceLogMessage || shouldPushLoggedMessage) {
       this.loggedMessages.push(loggedMessage)
     }
   }

@@ -16,6 +16,7 @@ type PeerMessage = {
         type: string
         payload: Record<string, unknown>
       }
+    | Buffer
   timestamp: number
   type: Connection['type']
 }
