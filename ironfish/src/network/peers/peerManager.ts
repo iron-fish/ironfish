@@ -901,7 +901,15 @@ export class PeerManager {
    * Note that the identity on IncomingPeerMessage is the identity of the
    * peer that sent it to us, not the original source.
    */
-  private async handleMessage(peer: Peer, connection: Connection, message: LooseMessage) {
+  private async handleMessage(
+    peer: Peer,
+    connection: Connection,
+    message: LooseMessage | Buffer,
+  ) {
+    if (message instanceof Buffer) {
+      throw new Error('Not implemented')
+    }
+
     if (isDisconnectingMessage(message)) {
       this.handleDisconnectingMessage(peer, connection, message)
     } else if (connection.state.type === 'WAITING_FOR_IDENTITY') {

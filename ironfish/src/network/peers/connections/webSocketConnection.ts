@@ -92,10 +92,15 @@ export class WebSocketConnection extends Connection {
         return
       }
 
-      if (this.shouldLogMessageType(message.type)) {
+      if (message instanceof Buffer) {
+        this.logger.debug(
+          `${colors.yellow('RECV')} ${this.displayName}: ${message.toString('utf8')}`,
+        )
+        this.onMessage.emit(message)
+      } else if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
+        this.onMessage.emit(message)
       }
-      this.onMessage.emit(message)
     }
   }
 
