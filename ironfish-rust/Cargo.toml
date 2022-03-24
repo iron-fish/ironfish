@@ -32,3 +32,6 @@ rand = "0.7"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 shrinkwraprs = "0.2.1"
 tiny-bip39 = "0.8.0"
+
+[patch.crates-io]
+bellman = { git = "https://github.com/iron-fish/bellman", rev = "368a62fb1821eaae495c60ada82d85faaea8b616" }
