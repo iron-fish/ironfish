@@ -23,8 +23,7 @@
     "node": "16.x"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1",
-    "@oclif/test": "^1",
+    "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
     "@types/node": "16.11.1",
     "@types/ws": "7.4.5",
@@ -32,7 +31,7 @@
     "cross-env": "7.0.3",
     "eslint-config-ironfish": "*",
     "jest": "26.6.3",
-    "oclif": "1.16.1",
+    "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
     "typescript": "4.3.4",
@@ -50,18 +49,15 @@
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
-    "pack": "oclif-dev pack",
-    "prepack": "rimraf build && yarn build && oclif-dev manifest && oclif-dev readme",
-    "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
-    "oclif:test": "echo NO TESTS",
-    "oclif:version": "oclif-dev readme && git add README.md"
+    "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
+    "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
     "@ironfish/rust-nodejs": "0.1.2",
     "@ironfish/sdk": "0.0.5",
-    "@oclif/core": "1.3.1",
-    "@oclif/plugin-help": "3.2.2",
-    "@oclif/plugin-not-found": "1.2.4",
+    "@oclif/core": "1.6.1",
+    "@oclif/plugin-help": "5.1.12",
+    "@oclif/plugin-not-found": "2.3.1",
     "axios": "0.21.4",
     "blessed": "0.1.81",
     "json-colorizer": "2.2.2",
