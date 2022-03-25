@@ -504,9 +504,6 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.
-    ///
-    /// TODO: This is very likely not hashing the right values or enough
-    /// values.
     pub fn transaction_signature_hash(&self) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
