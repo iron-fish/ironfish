@@ -23,7 +23,7 @@
     "node": "16.x"
   },
   "devDependencies": {
-    "@oclif/test": "^1",
+    "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
     "@types/node": "16.11.1",
     "@types/ws": "7.4.5",
@@ -50,8 +50,6 @@
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
     "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
-    "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
-    "oclif:test": "echo NO TESTS",
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
