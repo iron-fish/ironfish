@@ -5,6 +5,7 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
+import { ChainProcessor } from './chainProcessor'
 import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
@@ -215,7 +216,14 @@ export class IronfishNode {
       files,
     })
 
-    const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
+    const chainProcessor = new ChainProcessor({ logger, chain, head: null })
+
+    const accounts = new Accounts({
+      database: accountDB,
+      workerPool: workerPool,
+      chain: chain,
+      chainProcessor,
+    })
 
     return new IronfishNode({
       pkg,

@@ -67,26 +67,23 @@ export class Accounts {
     chain,
     workerPool,
     database,
+    chainProcessor,
     logger = createRootLogger(),
     rebroadcastAfter,
   }: {
     chain: Blockchain
     workerPool: WorkerPool
     database: AccountsDB
+    chainProcessor: ChainProcessor
     logger?: Logger
     rebroadcastAfter?: number
   }) {
     this.chain = chain
     this.logger = logger.withTag('accounts')
     this.db = database
+    this.chainProcessor = chainProcessor
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
-
-    this.chainProcessor = new ChainProcessor({
-      logger: this.logger,
-      chain: chain,
-      head: null,
-    })
 
     this.chainProcessor.onAdd.on(async (header) => {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
