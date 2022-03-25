@@ -4,7 +4,7 @@
 
 import Axios, { AxiosInstance } from 'axios'
 import { createRootLogger, Logger } from '../logger'
-import { displayIronAmountWithCurrency, ErrorUtils } from '../utils'
+import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../utils'
 import { FileUtils } from '../utils/file'
 
 export class Discord {
@@ -55,12 +55,10 @@ export class Discord {
     const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
     this.sendText(
-      `Successfully paid out ${
-        receives.length
-      } users for ${total} ${displayIronAmountWithCurrency(
-        Number(total.toString()),
+      `Successfully paid out ${receives.length} users for ${displayIronAmountWithCurrency(
+        Number(oreToIron(Number(total.toString()))),
         false,
-      )} in transaction \`${transactionHashHex}\``,
+      )} in transaction \`${transactionHashHex}\` (${payoutId})`,
     )
   }
 
