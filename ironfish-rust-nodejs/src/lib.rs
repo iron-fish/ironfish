@@ -58,11 +58,13 @@ pub struct FoundBlockResult {
 
 #[napi]
 struct ThreadPoolHandler {
+    #[allow(dead_code)]
     threadpool: mining::threadpool::ThreadPool,
 }
 #[napi]
 impl ThreadPoolHandler {
     #[napi(constructor)]
+    #[allow(dead_code)]
     pub fn new(thread_count: u32, batch_size: u32) -> Self {
         ThreadPoolHandler {
             threadpool: mining::threadpool::ThreadPool::new(thread_count as usize, batch_size),
@@ -70,22 +72,26 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32) {
         self.threadpool
             .new_work(&header_bytes, &target, mining_request_id)
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn stop(&self) {
         self.threadpool.stop()
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn pause(&self) {
         self.threadpool.pause()
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
             return Some(FoundBlockResult {
@@ -97,6 +103,7 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
     }
