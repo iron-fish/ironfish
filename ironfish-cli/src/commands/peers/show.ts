@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GetPeerMessagesResponse, GetPeerResponse } from '@ironfish/sdk'
+import {
+  NetworkMessage,
+  NetworkMessageType,
+} from '@ironfish/sdk/src/network/messages/networkMessage'
 import colors from 'colors/safe'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -62,10 +66,13 @@ export class ShowCommand extends IronfishCommand {
     const type = message.brokeringPeerDisplayName
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
       : message.type
-    if (message.message instanceof Buffer) {
-      throw new Error('Not implemented')
+
+    let messageType
+    if (message.message instanceof NetworkMessage) {
+      messageType = colors.cyan(NetworkMessageType[message.message.type])
+    } else {
+      messageType = colors.cyan(message.message.type)
     }
-    const messageType = colors.cyan(message.message.type)
     const payload = JSON.stringify(
       'payload' in message.message ? message.message.payload : null,
     )

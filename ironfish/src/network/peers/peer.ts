@@ -7,6 +7,7 @@ import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason, InternalMessageType, LooseMessage } from '../messages'
+import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
@@ -21,7 +22,7 @@ export enum BAN_SCORE {
 /**
  * Message types that should be excluded from loggedMessages (unless overridden).
  */
-const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
+const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string | NetworkMessageType> = [
   InternalMessageType.peerList,
   InternalMessageType.signal,
 ]
@@ -29,7 +30,7 @@ const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
 type LoggedMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: LooseMessage | Buffer
+  message: LooseMessage | NetworkMessage
   timestamp: number
   type: ConnectionType
 }
@@ -193,7 +194,7 @@ export class Peer {
    * by the application layer. Includes the connection from which the message
    * was received.
    */
-  readonly onMessage: Event<[LooseMessage | Buffer, Connection]> = new Event()
+  readonly onMessage: Event<[LooseMessage | NetworkMessage, Connection]> = new Event()
 
   /**
    * Event fired when the knownPeers map changes.
@@ -495,8 +496,8 @@ export class Peer {
 
   private readonly connectionMessageHandlers: Map<
     Connection,
-    (message: LooseMessage | Buffer) => void
-  > = new Map<Connection, (message: LooseMessage | Buffer) => void>()
+    (message: LooseMessage | NetworkMessage) => void
+  > = new Map<Connection, (message: LooseMessage | NetworkMessage) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,
@@ -537,7 +538,7 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage | Buffer) => {
+      const messageHandler = (message: LooseMessage | NetworkMessage) => {
         this.pushLoggedMessage({
           direction: 'receive',
           message,
@@ -683,9 +684,7 @@ export class Peer {
     }
 
     const { message } = loggedMessage
-    const shouldPushLoggedMessage =
-      message instanceof Buffer || !UNLOGGED_MESSAGE_TYPES.includes(message.type)
-    if (forceLogMessage || shouldPushLoggedMessage) {
+    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(message.type)) {
       this.loggedMessages.push(loggedMessage)
     }
   }

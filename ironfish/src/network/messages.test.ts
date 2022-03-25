@@ -11,14 +11,12 @@ import {
   GetBlockHashesResponse,
   GetBlocksRequest,
   GetBlocksResponse,
-  Identify,
   InternalMessageType,
   isDisconnectingMessage,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
   isGetBlocksRequest,
   isGetBlocksResponse,
-  isIdentify,
   isMessage,
   isNoteRequestPayload,
   isNoteResponse,
@@ -39,25 +37,6 @@ import {
   PeerListRequest,
   Signal,
 } from './messages'
-import { VERSION_PROTOCOL } from './version'
-
-describe('isIdentify', () => {
-  it('Returns true on identity message', () => {
-    const msg: Identify = {
-      type: InternalMessageType.identity,
-      payload: {
-        identity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        version: VERSION_PROTOCOL,
-        agent: '',
-        head: '',
-        sequence: 1,
-        work: BigInt(0).toString(),
-        port: null,
-      },
-    }
-    expect(isIdentify(msg)).toBeTruthy()
-  })
-})
 
 describe('isSignal', () => {
   it('Returns true on signal message', () => {

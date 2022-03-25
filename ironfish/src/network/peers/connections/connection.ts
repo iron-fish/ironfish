@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Logger } from '../../../logger'
+import bufio from 'bufio'
 import colors from 'colors/safe'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
@@ -9,6 +10,9 @@ import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { InternalMessageType, LooseMessage } from '../../messages'
+import { IdentifyMessage } from '../../messages/identify'
+import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
+import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -50,7 +54,7 @@ export abstract class Connection {
    * If set will simulate a random amount of latency up to this number
    */
   protected readonly simulateLatency: number = 0
-  protected readonly simulateLatencyQueue: Array<LooseMessage>
+  protected readonly simulateLatencyQueue: Array<LooseMessage | NetworkMessage>
 
   /**
    * The last error received (if any), regardless of the current state of the connection.
@@ -87,12 +91,12 @@ export abstract class Connection {
    * json obj and verifies that it has a type attribute before being passed
    * in.
    */
-  readonly onMessage: Event<[LooseMessage] | [Buffer]> = new Event()
+  readonly onMessage: Event<[LooseMessage] | [NetworkMessage]> = new Event()
 
   /**
    * Send a message into this connection.
    */
-  abstract send: (object: LooseMessage) => boolean
+  abstract send: (object: LooseMessage | NetworkMessage) => boolean
 
   /**
    * Shutdown the connection, if possible
@@ -167,7 +171,7 @@ export abstract class Connection {
     const wrapper = (
       ...args: Parameters<typeof originalSend>
     ): ReturnType<typeof originalSend> => {
-      const message: LooseMessage = args[0]
+      const message = args[0]
       this.simulateLatencyQueue.push(message)
 
       let latency = Math.random() * (this.simulateLatency || 0)
@@ -189,11 +193,53 @@ export abstract class Connection {
     this.send = wrapper
   }
 
-  shouldLogMessageType(messageType: string): boolean {
-    const bannedMessageTypes = [
-      InternalMessageType.peerList,
-      InternalMessageType.signal,
-    ] as string[]
+  shouldLogMessageType(messageType: string | NetworkMessageType): boolean {
+    const bannedMessageTypes = [InternalMessageType.peerList, InternalMessageType.signal] as (
+      | string
+      | NetworkMessageType
+    )[]
     return !bannedMessageTypes.includes(messageType)
+  }
+
+  parseMessage(message: Buffer): NetworkMessage {
+    let header: NetworkMessageHeader
+    try {
+      header = this.parseHeader(message)
+    } catch {
+      throw new Error(`Could not parse header from request: '${message.toString('hex')}'`)
+    }
+
+    const { body, messageId, type } = header
+
+    let messageBody: NetworkMessage
+    try {
+      messageBody = this.parseBody(header)
+    } catch {
+      const args = `(messageId: ${messageId}, type: ${
+        NetworkMessageType[type]
+      }, body: '${body.toString('hex')}')`
+      throw new Error(`Could not parse payload from request: ${args}`)
+    }
+
+    return messageBody
+  }
+
+  private parseHeader(message: Buffer): NetworkMessageHeader {
+    const br = bufio.read(message)
+    const messageId = Number(br.readU64())
+    const type = br.readU8()
+    const size = br.readU64()
+    return {
+      messageId,
+      type,
+      body: br.readBytes(size),
+    }
+  }
+
+  private parseBody({ messageId, type, body }: NetworkMessageHeader): NetworkMessage {
+    switch (type) {
+      case NetworkMessageType.Identify:
+        return IdentifyMessage.deserialize(messageId, body)
+    }
   }
 }

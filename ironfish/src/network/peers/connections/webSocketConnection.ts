@@ -6,6 +6,7 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
+import { NetworkMessage } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -74,28 +75,31 @@ export class WebSocketConnection extends Connection {
     }
 
     this.socket.onmessage = (event: MessageEvent) => {
-      // TODO: Switch network traffic to binary only so this can measure bytes and then decode the binary into JSON
-      const byteCount = Buffer.from(JSON.stringify(event.data)).byteLength
-      this.metrics?.p2p_InboundTraffic.add(byteCount)
-      this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
-
       let message
       try {
-        message = parseMessage(event.data)
+        if (event.data instanceof Uint8Array) {
+          message = this.parseMessage(Buffer.from(event.data))
+        } else {
+          // TODO: Switch network traffic to binary only so this can measure bytes and then decode the binary into JSON
+          const byteCount = Buffer.from(JSON.stringify(event.data)).byteLength
+          this.metrics?.p2p_InboundTraffic.add(byteCount)
+          this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
+          message = parseMessage(event.data)
+        }
       } catch (error) {
         // TODO: any socket that sends invalid messages should probably
         // be punished with some kind of "downgrade" event. This should
         // probably happen at a higher layer of abstraction
         const message = 'error parsing message'
-        this.logger.warn(message, event.data)
+        if (event instanceof MessageEvent) {
+          this.logger.warn(message, event.data)
+        }
         this.close(new NetworkError(message))
         return
       }
 
-      if (message instanceof Buffer) {
-        this.logger.debug(
-          `${colors.yellow('RECV')} ${this.displayName}: ${message.toString('utf8')}`,
-        )
+      if (message instanceof NetworkMessage) {
+        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
         this.onMessage.emit(message)
       } else if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
@@ -107,7 +111,7 @@ export class WebSocketConnection extends Connection {
   /**
    * Encode the message to json and send it to the peer
    */
-  send = (message: LooseMessage): boolean => {
+  send = (message: LooseMessage | NetworkMessage): boolean => {
     if (message.type === NodeMessageType.NewBlock && this.socket.bufferedAmount > 0) {
       return false
     }
@@ -117,7 +121,11 @@ export class WebSocketConnection extends Connection {
     }
 
     const data = JSON.stringify(message)
-    this.socket.send(data)
+    if (message instanceof NetworkMessage) {
+      this.socket.send(message.serializeWithMetadata())
+    } else {
+      this.socket.send(data)
+    }
 
     // TODO: Switch network traffic to binary
     const byteCount = Buffer.from(data).byteLength
