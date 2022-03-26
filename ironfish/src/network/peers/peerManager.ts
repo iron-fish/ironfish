@@ -255,7 +255,7 @@ export class PeerManager {
         .failedConnection(peer.isWhitelisted)
 
       // If we don't have any brokering peers try disposing the peers
-      this.tryDisposePeer(peer)
+      this.tryDisposePeer(peer, ConnectionType.WebRtc)
       return false
     }
 
@@ -863,14 +863,17 @@ export class PeerManager {
    * else returns false and does nothing.
    * @param peer The peer to evaluate
    */
-  private tryDisposePeer(peer: Peer) {
+  private tryDisposePeer(
+    peer: Peer,
+    connectionType: ConnectionType = ConnectionType.WebSocket,
+  ) {
     const hasAConnectedPeer = [...peer.knownPeers.values()].some(
       (p) => p.state.type === 'CONNECTED',
     )
 
     if (
       peer.state.type === 'DISCONNECTED' &&
-      peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
+      peer.getConnectionRetry(connectionType, ConnectionDirection.Outbound)
         ?.willNeverRetryConnecting
     ) {
       this.addressManager.removePeerAddress(peer)
