@@ -10,6 +10,7 @@ import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
+import { NetworkMessage } from '../../messages/networkMessage'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -149,17 +150,19 @@ export class WebRtcConnection extends Connection {
 
       let message
       try {
-        message = parseMessage(stringdata)
+        if (data instanceof Uint8Array) {
+          message = this.parseMessage(Buffer.from(data))
+        } else {
+          message = parseMessage(stringdata)
+        }
       } catch (error) {
         this.logger.warn('Unable to parse webrtc message', stringdata)
         this.close(error)
         return
       }
 
-      if (message instanceof Buffer) {
-        this.logger.debug(
-          `${colors.yellow('RECV')} ${this.displayName}: ${message.toString('utf8')}`,
-        )
+      if (message instanceof NetworkMessage) {
+        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
         this.onMessage.emit(message)
       } else if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
@@ -204,7 +207,7 @@ export class WebRtcConnection extends Connection {
   /**
    * Encode the message to json and send it to the peer
    */
-  send = (message: LooseMessage): boolean => {
+  send = (message: LooseMessage | NetworkMessage): boolean => {
     if (!this.datachannel) {
       return false
     }
@@ -225,7 +228,11 @@ export class WebRtcConnection extends Connection {
 
     const data = JSON.stringify(message)
     try {
-      this.datachannel.sendMessage(data)
+      if (message instanceof NetworkMessage) {
+        this.datachannel.sendMessageBinary(message.serializeWithMetadata())
+      } else {
+        this.datachannel.sendMessage(data)
+      }
     } catch (e) {
       this.logger.debug(
         `Error occurred while sending ${message.type} message in state ${this.state.type}`,

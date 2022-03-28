@@ -21,7 +21,6 @@ import {
   IncomingPeerMessage,
   InternalMessageType,
   isDisconnectingMessage,
-  isIdentify,
   isMessage,
   isPeerList,
   isPeerListRequest,
@@ -33,6 +32,8 @@ import {
   Signal,
   SignalRequest,
 } from '../messages'
+import { IdentifyMessage } from '../messages/identify'
+import { NetworkMessage } from '../messages/networkMessage'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { AddressManager } from './addressManager'
@@ -119,7 +120,8 @@ export class PeerManager {
    * Note that the `Peer` is the peer that sent it to us,
    * not necessarily the original source.
    */
-  readonly onMessage: Event<[Peer, IncomingPeerMessage<LooseMessage>]> = new Event()
+  readonly onMessage: Event<[Peer, IncomingPeerMessage<LooseMessage | NetworkMessage>]> =
+    new Event()
 
   /**
    * Event fired when a peer's knownPeers list changes.
@@ -904,20 +906,21 @@ export class PeerManager {
   private async handleMessage(
     peer: Peer,
     connection: Connection,
-    message: LooseMessage | Buffer,
+    message: LooseMessage | NetworkMessage,
   ) {
-    if (message instanceof Buffer) {
-      throw new Error('Not implemented')
+    if (message instanceof NetworkMessage) {
+      if (connection.state.type === 'WAITING_FOR_IDENTITY') {
+        this.handleWaitingForIdentifyMessage(peer, connection, message)
+      } else if (message instanceof IdentifyMessage) {
+        this.handleIdentifyMessage(peer, connection, message)
+      } else {
+        throw new Error('Not implemented')
+      }
+      return
     }
 
     if (isDisconnectingMessage(message)) {
       this.handleDisconnectingMessage(peer, connection, message)
-    } else if (connection.state.type === 'WAITING_FOR_IDENTITY') {
-      this.handleWaitingForIdentityMessage(peer, connection, message)
-    } else if (isIdentify(message)) {
-      this.logger.debug(
-        `Closing connection to ${peer.displayName} that sent identity ${message.payload.identity} while connection is in state ${connection.state.type}`,
-      )
     } else if (isSignalRequest(message)) {
       this.handleSignalRequestMessage(peer, connection, message)
     } else if (isSignal(message)) {
@@ -937,6 +940,17 @@ export class PeerManager {
       }
       this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
     }
+  }
+
+  private handleIdentifyMessage(
+    peer: Peer,
+    connection: Connection,
+    message: IdentifyMessage,
+  ): void {
+    this.logger.debug(
+      `Closing connection to ${peer.displayName} that sent identity ${message.identity} while connection is in state ${connection.state.type}`,
+    )
+    peer.close()
   }
 
   private handleDisconnectingMessage(
@@ -1019,13 +1033,13 @@ export class PeerManager {
    * @param peer The Peer the message was received from.
    * @param connection The Connection the message was received from.
    */
-  private handleWaitingForIdentityMessage(
+  private handleWaitingForIdentifyMessage(
     peer: Peer,
     connection: Connection,
-    message: LooseMessage,
+    message: NetworkMessage,
   ): void {
     // If we receive any message other than an Identity message, close the connection
-    if (!isIdentify(message)) {
+    if (!(message instanceof IdentifyMessage)) {
       this.logger.debug(
         `Disconnecting from ${peer.displayName} - Sent unexpected message ${message.type} while waiting for identity`,
       )
@@ -1033,11 +1047,11 @@ export class PeerManager {
       return
     }
 
-    const identity = message.payload.identity
-    const version = message.payload.version
-    const agent = message.payload.agent
-    const port = message.payload.port
-    const name = message.payload.name || null
+    const identity = message.identity
+    const version = message.version
+    const agent = message.agent
+    const port = message.port
+    const name = message.name
 
     if (!isIdentity(identity)) {
       this.logger.debug(
@@ -1051,7 +1065,7 @@ export class PeerManager {
     }
 
     if (version < VERSION_PROTOCOL_MIN) {
-      const error = `Peer version ${message.payload.version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
+      const error = `Peer version ${version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
       this.logger.debug(`Disconnecting from ${identity} - ${error}`)
 
       peer
@@ -1184,9 +1198,9 @@ export class PeerManager {
     peer.name = name
     peer.version = version
     peer.agent = agent
-    peer.head = Buffer.from(message.payload.head, 'hex')
-    peer.sequence = message.payload.sequence
-    peer.work = BigInt(message.payload.work)
+    peer.head = Buffer.from(message.head, 'hex')
+    peer.sequence = message.sequence
+    peer.work = BigInt(message.work)
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection

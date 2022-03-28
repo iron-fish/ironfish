@@ -8,6 +8,7 @@ import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
 import { Identity, isIdentity } from './identity'
 import { Gossip } from './messageRouters'
+import { NetworkMessage } from './messages/networkMessage'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -74,54 +75,12 @@ export function isPayloadMessage(
  *
  * Throws an error if it's not a valid message
  */
-export function parseMessage(
-  data: string | Buffer,
-): Message<MessageType, PayloadType> | Buffer {
-  if (data instanceof Buffer) {
-    return data
-  }
+export function parseMessage(data: string): Message<MessageType, PayloadType> {
   const message = IJSON.parse(data)
   if (!isMessage(message)) {
     throw new Error('Message must have a type field')
   }
   return message
-}
-
-/**
- * A message by which a peer can identify itself to another.
- */
-export type Identify = Message<
-  InternalMessageType.identity,
-  {
-    identity: Identity
-    name?: string
-    version: number
-    agent: string
-    port: number | null
-    head: string
-    work: string
-    sequence: number
-  }
->
-
-export function isIdentify(obj: unknown): obj is Identify {
-  if (!isPayloadMessage(obj)) {
-    return false
-  }
-
-  const payload = obj.payload as Identify['payload']
-
-  return (
-    obj.type === InternalMessageType.identity &&
-    typeof payload === 'object' &&
-    payload !== null &&
-    typeof payload.identity === 'string' &&
-    typeof payload.agent === 'string' &&
-    typeof payload.version === 'number' &&
-    typeof payload.head === 'string' &&
-    typeof payload.work === 'string' &&
-    typeof payload.sequence === 'number'
-  )
 }
 
 /**
@@ -256,7 +215,9 @@ export function isDisconnectingMessage(obj: unknown): obj is DisconnectingMessag
  * A message that we have received from a peer, identified by that peer's
  * identity.
  */
-export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType> | Buffer> {
+export interface IncomingPeerMessage<
+  M extends Message<MessageType, PayloadType> | NetworkMessage,
+> {
   peerIdentity: Identity
   message: M
 }
