@@ -34,13 +34,13 @@ import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
 import {
   DisconnectingMessage,
   DisconnectingReason,
-  Identify,
   InternalMessageType,
   PeerList,
   PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
+import { IdentifyMessage } from '../messages/identify'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -139,19 +139,15 @@ describe('PeerManager', () => {
 
     // Create identity and message for all peers
     const identity = webRtcCannotInitiateIdentity()
-    const message: Identify = {
-      type: InternalMessageType.identity,
-      payload: {
-        identity: identity,
-        version: VERSION_PROTOCOL,
-        agent: '',
-
-        head: '',
-        sequence: 1,
-        work: BigInt(0).toString(),
-        port: null,
-      },
-    }
+    const message = new IdentifyMessage({
+      agent: '',
+      head: '',
+      identity: identity,
+      port: null,
+      sequence: 1,
+      version: VERSION_PROTOCOL,
+      work: BigInt(0).toString(),
+    })
 
     // Identify peerOut
     peerOut.onMessage.emit(message, connectionOut)
@@ -252,17 +248,13 @@ describe('PeerManager', () => {
 
     Assert.isNotNull(pm.localPeer.chain.head)
 
-    expect(sendSpy).toBeCalledWith({
-      type: InternalMessageType.identity,
-      payload: {
-        identity: privateIdentityToIdentity(localIdentity),
-        version: VERSION_PROTOCOL,
-        port: null,
-        agent: pm.localPeer.agent,
-        head: pm.localPeer.chain.head.hash,
-        sequence: Number(pm.localPeer.chain.head.sequence),
-        work: pm.localPeer.chain.head.work.toString(),
-      },
+    expect(sendSpy.mock.calls[0][0]).toMatchObject({
+      identity: privateIdentityToIdentity(localIdentity),
+      version: VERSION_PROTOCOL,
+      agent: pm.localPeer.agent,
+      head: pm.localPeer.chain.head.hash,
+      sequence: Number(pm.localPeer.chain.head.sequence),
+      work: pm.localPeer.chain.head.work.toString(),
     })
   })
 
@@ -732,19 +724,15 @@ describe('PeerManager', () => {
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: other,
-          port: peer.port,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: other,
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       peer.onMessage.emit(identify, connection)
 
       expect(pm.identifiedPeers.size).toBe(1)
@@ -777,18 +765,15 @@ describe('PeerManager', () => {
       }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(other),
-          version: VERSION_PROTOCOL_MIN - 1,
-          agent: '',
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: peer.port,
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN - 1,
+        work: BigInt(0).toString(),
+      })
       peer.onMessage.emit(identify, connection)
 
       expect(closeSpy).toBeCalled()
@@ -813,19 +798,15 @@ describe('PeerManager', () => {
       }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: 'test',
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: peer.port,
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: 'test',
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toBeCalled()
       expect(failSpy).toBeCalledTimes(1)
@@ -842,19 +823,15 @@ describe('PeerManager', () => {
 
       const { connection } = getWaitingForIdentityPeer(pm)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(localIdentity),
-          port: 9033,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: privateIdentityToIdentity(localIdentity),
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       connection.onMessage.emit(identify)
 
       expect(connection.state).toEqual({
@@ -891,19 +868,15 @@ describe('PeerManager', () => {
         throw new Error('Retry must exist')
       }
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(localIdentity),
-          port: 9033,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: privateIdentityToIdentity(localIdentity),
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       connection.onMessage.emit(identify)
 
       // Peer 1 should be disconnected and WS connection info removed
@@ -940,19 +913,15 @@ describe('PeerManager', () => {
       connection.setState({ type: 'WAITING_FOR_IDENTITY' })
       peer1.setWebSocketConnection(connection)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: peer2Identity,
-          port: peer1.port,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: peer2Identity,
+        port: peer1.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       connection.onMessage.emit(identify)
 
       // Should have 2 verified peers
@@ -994,19 +963,15 @@ describe('PeerManager', () => {
       const { connection } = getWaitingForIdentityPeer(pm)
 
       const sendSpy = jest.spyOn(connection, 'send')
-      const id: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: peerIdentity,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: 9033,
-        },
-      }
+      const id = new IdentifyMessage({
+        agent: '',
+        head: '',
+        identity: peerIdentity,
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0).toString(),
+      })
       connection.onMessage.emit(id)
 
       const response: DisconnectingMessage = {

@@ -59,6 +59,7 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
+import { NetworkMessage } from './messages/networkMessage'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -597,9 +598,13 @@ export class PeerNetwork {
 
   private async handleMessage(
     peer: Peer,
-    incomingMessage: IncomingPeerMessage<LooseMessage>,
+    incomingMessage: IncomingPeerMessage<LooseMessage | NetworkMessage>,
   ): Promise<void> {
     const { message } = incomingMessage
+    if (message instanceof NetworkMessage) {
+      throw new Error('Not implemented')
+    }
+
     let style = this.routingStyles.get(message.type)
     if (style === undefined) {
       if (message.type === InternalMessageType.cannotSatisfyRequest) {

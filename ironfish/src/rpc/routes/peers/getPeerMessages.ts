@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
+import { NetworkMessage } from '../../../network/messages/networkMessage'
 import { ApiNamespace, router } from '../router'
 
 type PeerMessage = {
@@ -16,7 +17,7 @@ type PeerMessage = {
         type: string
         payload: Record<string, unknown>
       }
-    | Buffer
+    | NetworkMessage
   timestamp: number
   type: Connection['type']
 }
