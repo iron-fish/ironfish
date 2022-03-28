@@ -26,20 +26,17 @@ export class IdentifyMessage extends NetworkMessage {
   readonly version: number
   readonly work: string
 
-  constructor(
-    {
-      agent,
-      head,
-      identity,
-      name,
-      port,
-      sequence,
-      version,
-      work,
-    }: CreateIdentifyMessageOptions,
-    messageId?: number,
-  ) {
-    super(NetworkMessageType.Identify, messageId)
+  constructor({
+    agent,
+    head,
+    identity,
+    name,
+    port,
+    sequence,
+    version,
+    work,
+  }: CreateIdentifyMessageOptions) {
+    super(NetworkMessageType.Identify)
     this.agent = agent
     this.head = head
     this.identity = identity
@@ -63,7 +60,7 @@ export class IdentifyMessage extends NetworkMessage {
     return bw.render()
   }
 
-  static deserialize(messageId: number, buffer: Buffer): IdentifyMessage {
+  static deserialize(buffer: Buffer): IdentifyMessage {
     const reader = bufio.read(buffer, true)
     const agent = reader.readVarString()
     const head = reader.readVarString()
@@ -73,19 +70,16 @@ export class IdentifyMessage extends NetworkMessage {
     const sequence = reader.readU64()
     const version = reader.readU64()
     const work = reader.readVarString()
-    return new IdentifyMessage(
-      {
-        agent,
-        head,
-        identity,
-        name,
-        port,
-        sequence,
-        version,
-        work,
-      },
-      messageId,
-    )
+    return new IdentifyMessage({
+      agent,
+      head,
+      identity,
+      name,
+      port,
+      sequence,
+      version,
+      work,
+    })
   }
 
   getSize(): number {

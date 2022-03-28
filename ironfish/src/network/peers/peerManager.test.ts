@@ -32,15 +32,15 @@ import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
 import {
-  DisconnectingMessage,
-  DisconnectingReason,
   InternalMessageType,
   PeerList,
   PeerListRequest,
   Signal,
   SignalRequest,
 } from '../messages'
+import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
+import { NetworkMessageType } from '../messages/networkMessage'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -277,12 +277,12 @@ describe('PeerManager', () => {
     expect(sendSpyPeer1).not.toHaveBeenCalled()
     expect(sendSpyPeer2).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: InternalMessageType.disconnecting,
+        type: NetworkMessageType.Disconnecting,
       }),
     )
     expect(sendSpyPeer3).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: InternalMessageType.disconnecting,
+        type: NetworkMessageType.Disconnecting,
       }),
     )
 
@@ -974,15 +974,12 @@ describe('PeerManager', () => {
       })
       connection.onMessage.emit(id)
 
-      const response: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: privateIdentityToIdentity(localIdentity),
-          destinationIdentity: peerIdentity,
-          reason: DisconnectingReason.Congested,
-          disconnectUntil: peer.localRequestedDisconnectUntil,
-        },
-      }
+      const response = new DisconnectingMessage({
+        sourceIdentity: privateIdentityToIdentity(localIdentity),
+        destinationIdentity: peerIdentity,
+        reason: DisconnectingReason.Congested,
+        disconnectUntil: peer.localRequestedDisconnectUntil,
+      })
       expect(sendSpy).toBeCalledWith(response)
 
       expect(connection.state).toEqual({
@@ -1123,15 +1120,12 @@ describe('PeerManager', () => {
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      const reply: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          disconnectUntil: expect.any(Number),
-          reason: DisconnectingReason.Congested,
-          sourceIdentity: pm.localPeer.publicIdentity,
-          destinationIdentity: webRtcCanInitiateIdentity(),
-        },
-      }
+      const reply = new DisconnectingMessage({
+        disconnectUntil: expect.any(Number),
+        reason: DisconnectingReason.Congested,
+        sourceIdentity: pm.localPeer.publicIdentity,
+        destinationIdentity: webRtcCanInitiateIdentity(),
+      })
 
       expect(sendSpy).toBeCalledWith(reply)
     })
@@ -1240,15 +1234,12 @@ describe('PeerManager', () => {
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      const reply: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          disconnectUntil: expect.any(Number),
-          reason: DisconnectingReason.Congested,
-          sourceIdentity: pm.localPeer.publicIdentity,
-          destinationIdentity: webRtcCannotInitiateIdentity(),
-        },
-      }
+      const reply = new DisconnectingMessage({
+        disconnectUntil: expect.any(Number),
+        reason: DisconnectingReason.Congested,
+        sourceIdentity: pm.localPeer.publicIdentity,
+        destinationIdentity: webRtcCannotInitiateIdentity(),
+      })
 
       expect(sendSpy).toBeCalledWith(reply)
     })
@@ -1601,15 +1592,12 @@ describe('PeerManager', () => {
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
       const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm, peer3Identity)
 
-      const signal: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const signal = new DisconnectingMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
@@ -1625,15 +1613,12 @@ describe('PeerManager', () => {
       const { peer, connection } = getConnectingPeer(pm)
       expect(peer.peerRequestedDisconnectUntil).toBeNull()
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peerIdentity,
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: peerIdentity,
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       connection.onMessage.emit(disconnectMessage)
 
@@ -1655,15 +1640,12 @@ describe('PeerManager', () => {
         webRtcCanInitiateIdentity(),
       )
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       expect(peer.state.type).toEqual('CONNECTING')
       expect(brokeringPeer.state.type).toEqual('CONNECTED')
@@ -1683,15 +1665,12 @@ describe('PeerManager', () => {
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
       expect(peer.peerRequestedDisconnectUntil).toBeNull()
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peerIdentity,
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: peerIdentity,
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       connection.onMessage.emit(disconnectMessage)
 

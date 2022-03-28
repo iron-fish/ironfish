@@ -16,11 +16,8 @@ import {
   isIdentity,
 } from '../identity'
 import {
-  DisconnectingMessage,
-  DisconnectingReason,
   IncomingPeerMessage,
   InternalMessageType,
-  isDisconnectingMessage,
   isMessage,
   isPeerList,
   isPeerListRequest,
@@ -32,6 +29,7 @@ import {
   Signal,
   SignalRequest,
 } from '../messages'
+import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessage } from '../messages/networkMessage'
 import { parseUrl } from '../utils'
@@ -525,15 +523,12 @@ export class PeerManager {
       return
     }
 
-    const message: DisconnectingMessage = {
-      type: InternalMessageType.disconnecting,
-      payload: {
-        sourceIdentity: this.localPeer.publicIdentity,
-        destinationIdentity: peer.state.identity,
-        reason,
-        disconnectUntil: until,
-      },
-    }
+    const message = new DisconnectingMessage({
+      sourceIdentity: this.localPeer.publicIdentity,
+      destinationIdentity: peer.state.identity,
+      reason,
+      disconnectUntil: until,
+    })
 
     const canSend = (connection: Connection): boolean => {
       return (
@@ -784,7 +779,7 @@ export class PeerManager {
    * @param peer The peer identity to send a message to.
    * @param message The message to send.
    */
-  sendTo(peer: Peer, message: LooseMessage): Connection | null {
+  sendTo(peer: Peer, message: LooseMessage | NetworkMessage): Connection | null {
     return peer.send(message)
   }
 
@@ -913,15 +908,15 @@ export class PeerManager {
         this.handleWaitingForIdentifyMessage(peer, connection, message)
       } else if (message instanceof IdentifyMessage) {
         this.handleIdentifyMessage(peer, connection, message)
+      } else if (message instanceof DisconnectingMessage) {
+        this.handleDisconnectingMessage(peer, connection, message)
       } else {
         throw new Error('Not implemented')
       }
       return
     }
 
-    if (isDisconnectingMessage(message)) {
-      this.handleDisconnectingMessage(peer, connection, message)
-    } else if (isSignalRequest(message)) {
+    if (isSignalRequest(message)) {
       this.handleSignalRequestMessage(peer, connection, message)
     } else if (isSignal(message)) {
       await this.handleSignalMessage(peer, connection, message)
@@ -959,29 +954,29 @@ export class PeerManager {
     message: DisconnectingMessage,
   ) {
     if (
-      message.payload.destinationIdentity !== this.localPeer.publicIdentity &&
-      message.payload.destinationIdentity !== null
+      message.destinationIdentity !== this.localPeer.publicIdentity &&
+      message.destinationIdentity !== null
     ) {
       // Only forward it if the message was received from the same peer as it originated from
-      if (message.payload.sourceIdentity !== messageSender.state.identity) {
+      if (message.sourceIdentity !== messageSender.state.identity) {
         this.logger.debug(
           `not forwarding disconnect from ${
             messageSender.displayName
           } because the message's source identity (${
-            message.payload.sourceIdentity
+            message.sourceIdentity
           }) doesn't match the sender's identity (${String(messageSender.state.identity)})`,
         )
         return
       }
 
-      const destinationPeer = this.getPeer(message.payload.destinationIdentity)
+      const destinationPeer = this.getPeer(message.destinationIdentity)
 
       if (!destinationPeer) {
         this.logger.debug(
           'not forwarding disconnect from',
           messageSender.displayName,
           'due to unknown peer',
-          message.payload.destinationIdentity,
+          message.destinationIdentity,
         )
         return
       }
@@ -997,10 +992,10 @@ export class PeerManager {
       disconnectingPeer = messageSender
     } else {
       // Otherwise, the sourceIdentity on the message requested the disconnect.
-      disconnectingPeer = this.getPeer(message.payload.sourceIdentity)
+      disconnectingPeer = this.getPeer(message.sourceIdentity)
       if (!disconnectingPeer) {
         this.logger.debug(
-          `Received disconnect request from ${message.payload.sourceIdentity} but have no peer with that identity`,
+          `Received disconnect request from ${message.sourceIdentity} but have no peer with that identity`,
         )
         return
       }
@@ -1016,11 +1011,11 @@ export class PeerManager {
       })
     }
 
-    disconnectingPeer.peerRequestedDisconnectReason = message.payload.reason
-    disconnectingPeer.peerRequestedDisconnectUntil = message.payload.disconnectUntil
+    disconnectingPeer.peerRequestedDisconnectReason = message.reason
+    disconnectingPeer.peerRequestedDisconnectUntil = message.disconnectUntil
     this.logger.debug(
       `${disconnectingPeer.displayName} requested we disconnect until ${
-        message.payload.disconnectUntil
+        message.disconnectUntil
       }. Current time is ${Date.now()}`,
     )
     disconnectingPeer.close()
@@ -1209,15 +1204,12 @@ export class PeerManager {
       existingPeer.localRequestedDisconnectUntil !== null &&
       Date.now() < existingPeer.localRequestedDisconnectUntil
     ) {
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: this.localPeer.publicIdentity,
-          destinationIdentity: identity,
-          reason: existingPeer.localRequestedDisconnectReason || DisconnectingReason.Congested,
-          disconnectUntil: existingPeer.localRequestedDisconnectUntil,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        destinationIdentity: identity,
+        disconnectUntil: existingPeer.localRequestedDisconnectUntil,
+        reason: existingPeer.localRequestedDisconnectReason || DisconnectingReason.Congested,
+        sourceIdentity: this.localPeer.publicIdentity,
+      })
       connection.send(disconnectMessage)
 
       const error = `Closing connection from ${
@@ -1300,15 +1292,12 @@ export class PeerManager {
     // Ignore the request if we're at max peers and don't have an existing connection
     if (this.shouldRejectDisconnectedPeers()) {
       if (!targetPeer || targetPeer.state.type !== 'CONNECTED') {
-        const disconnectingMessage: DisconnectingMessage = {
-          type: InternalMessageType.disconnecting,
-          payload: {
-            sourceIdentity: this.localPeer.publicIdentity,
-            destinationIdentity: message.payload.sourceIdentity,
-            reason: DisconnectingReason.Congested,
-            disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
-          },
-        }
+        const disconnectingMessage = new DisconnectingMessage({
+          sourceIdentity: this.localPeer.publicIdentity,
+          destinationIdentity: message.payload.sourceIdentity,
+          reason: DisconnectingReason.Congested,
+          disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
+        })
         messageSender.send(disconnectingMessage)
         this.logger.debug(
           `Ignoring signaling request from ${message.payload.sourceIdentity}, at max peers`,
@@ -1394,15 +1383,12 @@ export class PeerManager {
     if (this.shouldRejectDisconnectedPeers()) {
       const peer = this.getPeer(message.payload.sourceIdentity)
       if (!peer || peer.state.type !== 'CONNECTED') {
-        const disconnectingMessage: DisconnectingMessage = {
-          type: InternalMessageType.disconnecting,
-          payload: {
-            sourceIdentity: this.localPeer.publicIdentity,
-            destinationIdentity: message.payload.sourceIdentity,
-            reason: DisconnectingReason.Congested,
-            disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
-          },
-        }
+        const disconnectingMessage = new DisconnectingMessage({
+          sourceIdentity: this.localPeer.publicIdentity,
+          destinationIdentity: message.payload.sourceIdentity,
+          reason: DisconnectingReason.Congested,
+          disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
+        })
         messageSender.send(disconnectingMessage)
         this.logger.debug(
           `Ignoring signaling request from ${message.payload.sourceIdentity}, at max peers`,

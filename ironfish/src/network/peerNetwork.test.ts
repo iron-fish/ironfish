@@ -11,7 +11,9 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { createNodeTest } from '../testUtilities'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
-import { DisconnectingMessage, NodeMessageType } from './messages'
+import { NodeMessageType } from './messages'
+import { DisconnectingMessage } from './messages/disconnecting'
+import { NetworkMessageType } from './messages/networkMessage'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
@@ -171,7 +173,7 @@ describe('PeerNetwork', () => {
       const args = sendSpy.mock.calls[0][0]
       expect(typeof args).toEqual('string')
       const message = JSON.parse(args) as DisconnectingMessage
-      expect(message.type).toEqual('disconnecting')
+      expect(message.type).toEqual(NetworkMessageType.Disconnecting)
     })
   })
 
