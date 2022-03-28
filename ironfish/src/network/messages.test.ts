@@ -16,28 +16,11 @@ import {
   isMessage,
   isPeerList,
   isPeerListRequest,
-  isSignal,
   NodeMessageType,
   parseMessage,
   PeerList,
   PeerListRequest,
-  Signal,
 } from './messages'
-
-describe('isSignal', () => {
-  it('Returns true on signal message', () => {
-    const msg: Signal = {
-      type: InternalMessageType.signal,
-      payload: {
-        sourceIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        destinationIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        nonce: 'test',
-        signal: 'data',
-      },
-    }
-    expect(isSignal(msg)).toBeTruthy()
-  })
-})
 
 describe('isPeerListRequest', () => {
   it('Retuns true on peerlist request message', () => {

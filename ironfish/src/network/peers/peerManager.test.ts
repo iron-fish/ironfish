@@ -31,16 +31,11 @@ import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
-import {
-  InternalMessageType,
-  PeerList,
-  PeerListRequest,
-  Signal,
-  SignalRequest,
-} from '../messages'
+import { InternalMessageType, PeerList, PeerListRequest, SignalRequest } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessageType } from '../messages/networkMessage'
+import { SignalMessage } from '../messages/signal'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -1167,15 +1162,12 @@ describe('PeerManager', () => {
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, peer1Identity)
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
 
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer2, 'send')
       peer1.onMessage.emit(signal, peer1Connection)
@@ -1192,15 +1184,12 @@ describe('PeerManager', () => {
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
       const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm, peer3Identity)
 
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
@@ -1220,15 +1209,12 @@ describe('PeerManager', () => {
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
 
-      const message: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCannotInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const message = new SignalMessage({
+        sourceIdentity: webRtcCannotInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
@@ -1256,15 +1242,12 @@ describe('PeerManager', () => {
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
       getConnectedPeer(pm, webRtcCannotInitiateIdentity())
 
-      const message: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCannotInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const message = new SignalMessage({
+        sourceIdentity: webRtcCannotInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
@@ -1290,15 +1273,12 @@ describe('PeerManager', () => {
       const signalSpy = jest.spyOn(connection, 'signal')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).toBeCalledTimes(1)
@@ -1332,15 +1312,12 @@ describe('PeerManager', () => {
       const closeSpy = jest.spyOn(connection, 'close')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
@@ -1367,15 +1344,12 @@ describe('PeerManager', () => {
       const closeSpy = jest.spyOn(connection, 'close')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
