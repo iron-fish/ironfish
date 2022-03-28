@@ -114,7 +114,9 @@ fn process_commands(
                         Some(randomness) => randomness - batch_start,
                         None => batch_size,
                     };
-                    hash_rate_channel.send(work_done as u32).unwrap();
+                    hash_rate_channel
+                        .send((work_done / step_size) as u32)
+                        .unwrap();
 
                     // New command received, this work is now stale, stop working so we can start on new work
                     if let Ok(cmd) = work_receiver.try_recv() {

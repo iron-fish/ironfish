@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createNodeTest, useBlockWithTx } from '../testUtilities'
-import { Direction } from './messageRouters'
 import {
   DisconnectingMessage,
   DisconnectingReason,
@@ -18,20 +17,10 @@ import {
   isGetBlocksRequest,
   isGetBlocksResponse,
   isMessage,
-  isNoteRequestPayload,
-  isNoteResponse,
-  isNoteResponsePayload,
-  isNullifierRequestPayload,
-  isNullifierResponse,
-  isNullifierResponsePayload,
   isPeerList,
   isPeerListRequest,
   isSignal,
   NodeMessageType,
-  NoteRequest,
-  NoteResponse,
-  NullifierRequest,
-  NullifierResponse,
   parseMessage,
   PeerList,
   PeerListRequest,
@@ -150,10 +139,11 @@ describe('parseMessage', () => {
   })
 
   it('Parses json successfully', () => {
-    const msg: NoteRequest = {
-      type: NodeMessageType.Note,
+    const msg: GetBlockHashesRequest = {
+      type: NodeMessageType.GetBlockHashes,
       payload: {
-        position: 3,
+        start: 0,
+        limit: 1,
       },
     }
 
@@ -170,10 +160,11 @@ describe('isMessage', () => {
   })
 
   it('returns false when parameter is not an object', () => {
-    const msg: NoteRequest = {
-      type: NodeMessageType.Note,
+    const msg: GetBlockHashesRequest = {
+      type: NodeMessageType.GetBlockHashes,
       payload: {
-        position: 3,
+        limit: 3,
+        start: 3,
       },
     }
 
@@ -183,7 +174,7 @@ describe('isMessage', () => {
 
   it('returns false when the payload is not an object', () => {
     const msg = {
-      type: NodeMessageType.Note,
+      type: NodeMessageType.GetBlockHashes,
       payload: 3,
     }
 
@@ -203,279 +194,13 @@ describe('isMessage', () => {
 
   it('returns true when the message type is a string', () => {
     const msg = {
-      type: NodeMessageType.Note,
+      type: NodeMessageType.GetBlockHashes,
       payload: {
         position: 3,
       },
     }
 
     expect(isMessage(msg)).toBeTruthy()
-  })
-})
-
-describe('isNoteRequestPayload', () => {
-  it('returns false if the object is undefined', () => {
-    expect(isNoteRequestPayload(undefined)).toBeFalsy()
-  })
-
-  it('returns false if message does not have the position field', () => {
-    const msg = {
-      type: NodeMessageType.Note,
-      payload: {
-        location: 3,
-      },
-    }
-    expect(isNoteRequestPayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.position is not a number', () => {
-    const msg = {
-      type: NodeMessageType.Note,
-      payload: {
-        position: '3',
-      },
-    }
-    expect(isNoteRequestPayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns true if NoteRequest payload received', () => {
-    const msg: NoteRequest = {
-      type: NodeMessageType.Note,
-      payload: {
-        position: 3,
-      },
-    }
-    expect(isNoteRequestPayload(msg.payload)).toBeTruthy()
-  })
-})
-
-describe('isNoteResponsePayload', () => {
-  it('returns false if the object is undefined', () => {
-    expect(isNoteResponsePayload(undefined)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a note field', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        position: 3,
-      },
-    }
-    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a position field', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        note: 'someString',
-      },
-    }
-    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.position is not a number', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        note: 'someString',
-        position: '3',
-      },
-    }
-    expect(isNoteResponsePayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns true if NoteResponse payload received', () => {
-    const msg: NoteResponse<string> = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        note: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNoteResponsePayload(msg.payload)).toBeTruthy()
-  })
-})
-
-describe('isNoteResponse', () => {
-  it('returns false if the message type is not Note', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        note: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNoteResponse(msg)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a payload field', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-    }
-    expect(isNoteResponse(msg)).toBeFalsy()
-  })
-
-  it('returns false if payload.position is not a number', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        note: 'someString',
-        position: '3',
-      },
-    }
-    expect(isNoteResponse(msg)).toBeFalsy()
-  })
-
-  it('returns true if NoteResponse message received', () => {
-    const msg: NoteResponse<string> = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        note: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNoteResponse(msg)).toBeTruthy()
-  })
-})
-
-describe('isNullifierRequestPayload', () => {
-  it('returns false if the object is undefined', () => {
-    expect(isNullifierRequestPayload(undefined)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a position field', () => {
-    const msg = {
-      type: NodeMessageType.Nullifier,
-      payload: { location: 3 },
-    }
-    expect(isNullifierRequestPayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.position is not a number', () => {
-    const msg = {
-      type: NodeMessageType.Nullifier,
-      payload: { position: '3' },
-    }
-    expect(isNullifierRequestPayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns true if NullifierRequest payload received', () => {
-    const msg: NullifierRequest = {
-      type: NodeMessageType.Nullifier,
-      payload: { position: 3 },
-    }
-    expect(isNullifierRequestPayload(msg.payload)).toBeTruthy()
-  })
-})
-
-describe('isNullifierResponse', () => {
-  it('returns false if the message type is not Nullifier', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Note,
-      payload: {
-        nullifier: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNullifierResponse(msg)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a payload field', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-    }
-    expect(isNullifierResponse(msg)).toBeFalsy()
-  })
-
-  it('returns false if payload.position is not a number', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        nullifier: 'someString',
-        position: '3',
-      },
-    }
-    expect(isNullifierResponse(msg)).toBeFalsy()
-  })
-
-  it('returns true if NullifierResponse message received', () => {
-    const msg: NullifierResponse = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        nullifier: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNullifierResponse(msg)).toBeTruthy()
-  })
-})
-
-describe('isNullifierResponsePayload', () => {
-  it('returns false if the object is undefined', () => {
-    expect(isNullifierResponsePayload(undefined)).toBeFalsy()
-  })
-
-  it('returns false if message does not have a nullifier field', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        position: 3,
-      },
-    }
-    expect(isNullifierResponsePayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.nullifier is not a string', () => {
-    const msg = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        nullifier: 3,
-        position: 3,
-      },
-    }
-    expect(isNullifierResponsePayload(msg.payload)).toBeFalsy()
-  })
-
-  it('returns true if NullifierResponse payload received', () => {
-    const msg: NullifierResponse = {
-      rpcId: 1,
-      direction: Direction.response,
-      type: NodeMessageType.Nullifier,
-      payload: {
-        nullifier: 'someString',
-        position: 3,
-      },
-    }
-    expect(isNullifierResponsePayload(msg.payload)).toBeTruthy()
   })
 })
 
