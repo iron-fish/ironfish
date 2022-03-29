@@ -14,6 +14,7 @@ import { DisconnectingMessage } from '../../messages/disconnecting'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import { SignalMessage } from '../../messages/signal'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -239,6 +240,8 @@ export abstract class Connection {
         return DisconnectingMessage.deserialize(body)
       case NetworkMessageType.Identify:
         return IdentifyMessage.deserialize(body)
+      case NetworkMessageType.Signal:
+        return SignalMessage.deserialize(body)
     }
   }
 }
