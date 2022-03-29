@@ -6,7 +6,8 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { DisconnectingReason, InternalMessageType, LooseMessage } from '../messages'
+import { InternalMessageType, LooseMessage } from '../messages'
+import { DisconnectingReason } from '../messages/disconnecting'
 import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
@@ -424,7 +425,7 @@ export class Peer {
    * Sends a message over the peer's connection if CONNECTED, else drops it.
    * @param message The message to send.
    */
-  send(message: LooseMessage): Connection | null {
+  send(message: LooseMessage | NetworkMessage): Connection | null {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
       this.logger.debug(
@@ -440,7 +441,7 @@ export class Peer {
       if (this.state.connections.webRtc.send(message)) {
         this.pushLoggedMessage({
           direction: 'send',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: ConnectionType.WebRtc,
         })
@@ -457,7 +458,7 @@ export class Peer {
       if (this.state.connections.webSocket.send(message)) {
         this.pushLoggedMessage({
           direction: 'send',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: ConnectionType.WebSocket,
         })
