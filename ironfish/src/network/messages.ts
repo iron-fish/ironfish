@@ -101,44 +101,17 @@ export function isSignalRequest(obj: unknown): obj is SignalRequest {
     return false
   }
 
-  const payload = obj.payload as Signal['payload']
-  return (
-    obj.type === InternalMessageType.signalRequest &&
-    payload !== null &&
-    typeof payload.sourceIdentity === 'string' &&
-    typeof payload.destinationIdentity === 'string'
-  )
-}
-
-/**
- * A message used to signal an rtc session between two peers.
- *
- * The referring peer will forward the message to the sourceIdentity,
- * which will need to respond with a signal that has peer and source
- * inverted.
- */
-export type Signal = Message<
-  InternalMessageType.signal,
-  {
+  const payload = obj.payload as {
     sourceIdentity: Identity
     destinationIdentity: Identity
     nonce: string
     signal: string
   }
->
-
-export function isSignal(obj: unknown): obj is Signal {
-  if (!isPayloadMessage(obj)) {
-    return false
-  }
-  const payload = obj.payload as Signal['payload']
   return (
-    obj.type === InternalMessageType.signal &&
+    obj.type === InternalMessageType.signalRequest &&
     payload !== null &&
     typeof payload.sourceIdentity === 'string' &&
-    typeof payload.destinationIdentity === 'string' &&
-    typeof payload.nonce === 'string' &&
-    typeof payload.signal === 'string'
+    typeof payload.destinationIdentity === 'string'
   )
 }
 

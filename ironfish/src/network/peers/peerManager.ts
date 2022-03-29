@@ -21,17 +21,16 @@ import {
   isMessage,
   isPeerList,
   isPeerListRequest,
-  isSignal,
   isSignalRequest,
   LooseMessage,
   PeerList,
   PeerListRequest,
-  Signal,
   SignalRequest,
 } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessage } from '../messages/networkMessage'
+import { SignalMessage } from '../messages/signal'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { AddressManager } from './addressManager'
@@ -366,15 +365,12 @@ export class PeerManager {
           return
         }
 
-        const signal: Signal = {
-          type: InternalMessageType.signal,
-          payload: {
-            sourceIdentity: this.localPeer.publicIdentity,
-            destinationIdentity: peer.getIdentityOrThrow(),
-            nonce: nonce,
-            signal: boxedMessage,
-          },
-        }
+        const signal = new SignalMessage({
+          sourceIdentity: this.localPeer.publicIdentity,
+          destinationIdentity: peer.getIdentityOrThrow(),
+          nonce: nonce,
+          signal: boxedMessage,
+        })
 
         // If sending the message failed, try again (the brokeringPeer's state may have changed)
         const sendResult = brokeringPeer.send(signal)
@@ -382,13 +378,7 @@ export class PeerManager {
           brokeringPeer.pushLoggedMessage(
             {
               direction: 'send',
-              message: {
-                ...signal,
-                payload: {
-                  ...signal.payload,
-                  signal: data,
-                },
-              },
+              message: signal,
               timestamp: Date.now(),
               type: sendResult.type,
             },
@@ -400,13 +390,7 @@ export class PeerManager {
               {
                 direction: 'send',
                 brokeringPeerDisplayName: brokeringPeer.displayName,
-                message: {
-                  ...signal,
-                  payload: {
-                    ...signal.payload,
-                    signal: data,
-                  },
-                },
+                message: signal,
                 timestamp: Date.now(),
                 type: sendResult.type,
               },
@@ -910,6 +894,8 @@ export class PeerManager {
         this.handleIdentifyMessage(peer, connection, message)
       } else if (message instanceof DisconnectingMessage) {
         this.handleDisconnectingMessage(peer, connection, message)
+      } else if (message instanceof SignalMessage) {
+        await this.handleSignalMessage(peer, connection, message)
       } else {
         throw new Error('Not implemented')
       }
@@ -918,8 +904,6 @@ export class PeerManager {
 
     if (isSignalRequest(message)) {
       this.handleSignalRequestMessage(peer, connection, message)
-    } else if (isSignal(message)) {
-      await this.handleSignalMessage(peer, connection, message)
     } else if (isPeerListRequest(message)) {
       this.handlePeerListRequestMessage(peer)
     } else if (isPeerList(message)) {
@@ -1326,10 +1310,10 @@ export class PeerManager {
   private async handleSignalMessage(
     messageSender: Peer,
     connection: Connection,
-    message: Signal,
+    message: SignalMessage,
   ) {
     // Forward the message if it's not destined for us
-    if (message.payload.destinationIdentity !== this.localPeer.publicIdentity) {
+    if (message.destinationIdentity !== this.localPeer.publicIdentity) {
       messageSender.pushLoggedMessage(
         {
           timestamp: Date.now(),
@@ -1341,25 +1325,25 @@ export class PeerManager {
       )
 
       // Only forward it if the message was received from the same peer as it originated from
-      if (message.payload.sourceIdentity !== messageSender.state.identity) {
+      if (message.sourceIdentity !== messageSender.state.identity) {
         this.logger.debug(
           `not forwarding signal from ${
             messageSender.displayName
           } because the message's source identity (${
-            message.payload.sourceIdentity
+            message.sourceIdentity
           }) doesn't match the sender's identity (${String(messageSender.state.identity)})`,
         )
         return
       }
 
-      const destinationPeer = this.getPeer(message.payload.destinationIdentity)
+      const destinationPeer = this.getPeer(message.destinationIdentity)
 
       if (!destinationPeer) {
         this.logger.debug(
           'not forwarding signal from',
           messageSender.displayName,
           'due to unknown peer',
-          message.payload.destinationIdentity,
+          message.destinationIdentity,
         )
         return
       }
@@ -1381,24 +1365,24 @@ export class PeerManager {
 
     // Ignore the request if we're at max peers and don't have an existing connection
     if (this.shouldRejectDisconnectedPeers()) {
-      const peer = this.getPeer(message.payload.sourceIdentity)
+      const peer = this.getPeer(message.sourceIdentity)
       if (!peer || peer.state.type !== 'CONNECTED') {
         const disconnectingMessage = new DisconnectingMessage({
           sourceIdentity: this.localPeer.publicIdentity,
-          destinationIdentity: message.payload.sourceIdentity,
+          destinationIdentity: message.sourceIdentity,
           reason: DisconnectingReason.Congested,
           disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
         })
         messageSender.send(disconnectingMessage)
         this.logger.debug(
-          `Ignoring signaling request from ${message.payload.sourceIdentity}, at max peers`,
+          `Ignoring signaling request from ${message.sourceIdentity}, at max peers`,
         )
         return
       }
     }
 
     // Get or create a WebRTC connection for the signaling peer.
-    const signalingPeer = this.getOrCreatePeer(message.payload.sourceIdentity)
+    const signalingPeer = this.getOrCreatePeer(message.sourceIdentity)
     this.addKnownPeerTo(signalingPeer, messageSender)
 
     let signalingConnection: WebRtcConnection
@@ -1412,9 +1396,7 @@ export class PeerManager {
         return
       }
 
-      if (
-        !canInitiateWebRTC(signalingPeer.state.identity, message.payload.destinationIdentity)
-      ) {
+      if (!canInitiateWebRTC(signalingPeer.state.identity, message.destinationIdentity)) {
         this.logger.debug(
           'not handling signal message from',
           signalingPeer.displayName,
@@ -1430,9 +1412,9 @@ export class PeerManager {
 
     // Try decrypting the message
     const { message: result } = await this.localPeer.unboxMessage(
-      message.payload.signal,
-      message.payload.nonce,
-      message.payload.sourceIdentity,
+      message.signal,
+      message.nonce,
+      message.sourceIdentity,
     )
 
     // Close the connection if decrypting fails
@@ -1448,7 +1430,7 @@ export class PeerManager {
       {
         timestamp: Date.now(),
         direction: 'receive',
-        message: { ...message, payload: { message: result } },
+        message,
         brokeringPeerDisplayName:
           messageSender !== signalingPeer ? messageSender.displayName : undefined,
         type: connection.type,
