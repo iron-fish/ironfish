@@ -21,16 +21,15 @@ import {
   isMessage,
   isPeerList,
   isPeerListRequest,
-  isSignalRequest,
   LooseMessage,
   PeerList,
   PeerListRequest,
-  SignalRequest,
 } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessage } from '../messages/networkMessage'
 import { SignalMessage } from '../messages/signal'
+import { SignalRequestMessage } from '../messages/signalRequest'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { AddressManager } from './addressManager'
@@ -263,13 +262,10 @@ export class PeerManager {
       return true
     }
 
-    const signal: SignalRequest = {
-      type: InternalMessageType.signalRequest,
-      payload: {
-        sourceIdentity: this.localPeer.publicIdentity,
-        destinationIdentity: peer.state.identity,
-      },
-    }
+    const signal = new SignalRequestMessage({
+      sourceIdentity: this.localPeer.publicIdentity,
+      destinationIdentity: peer.state.identity,
+    })
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
@@ -896,15 +892,15 @@ export class PeerManager {
         this.handleDisconnectingMessage(peer, connection, message)
       } else if (message instanceof SignalMessage) {
         await this.handleSignalMessage(peer, connection, message)
+      } else if (message instanceof SignalRequestMessage) {
+        this.handleSignalRequestMessage(peer, connection, message)
       } else {
         throw new Error('Not implemented')
       }
       return
     }
 
-    if (isSignalRequest(message)) {
-      this.handleSignalRequestMessage(peer, connection, message)
-    } else if (isPeerListRequest(message)) {
+    if (isPeerListRequest(message)) {
       this.handlePeerListRequestMessage(peer)
     } else if (isPeerList(message)) {
       this.handlePeerListMessage(message, peer)
@@ -1217,43 +1213,41 @@ export class PeerManager {
   private handleSignalRequestMessage(
     messageSender: Peer,
     connection: Connection,
-    message: SignalRequest,
+    message: SignalRequestMessage,
   ) {
-    if (
-      canInitiateWebRTC(message.payload.sourceIdentity, message.payload.destinationIdentity)
-    ) {
+    if (canInitiateWebRTC(message.sourceIdentity, message.destinationIdentity)) {
       this.logger.debug(
         'not handling signal request from',
-        message.payload.sourceIdentity,
+        message.sourceIdentity,
         'to',
-        message.payload.destinationIdentity,
+        message.destinationIdentity,
         'because source peer should have initiated',
       )
       return
     }
 
     // Forward the message if it's not destined for us
-    if (message.payload.destinationIdentity !== this.localPeer.publicIdentity) {
+    if (message.destinationIdentity !== this.localPeer.publicIdentity) {
       // Only forward it if the message was received from the same peer as it originated from
-      if (message.payload.sourceIdentity !== messageSender.state.identity) {
+      if (message.sourceIdentity !== messageSender.state.identity) {
         this.logger.debug(
           `not forwarding signal request from ${
             messageSender.displayName
           } because the message's source identity (${
-            message.payload.sourceIdentity
+            message.sourceIdentity
           }) doesn't match the sender's identity (${String(messageSender.state.identity)})`,
         )
         return
       }
 
-      const destinationPeer = this.getPeer(message.payload.destinationIdentity)
+      const destinationPeer = this.getPeer(message.destinationIdentity)
 
       if (!destinationPeer) {
         this.logger.debug(
           'not forwarding signal request from',
           messageSender.displayName,
           'due to unknown peer',
-          message.payload.destinationIdentity,
+          message.destinationIdentity,
         )
         return
       }
@@ -1262,7 +1256,7 @@ export class PeerManager {
       return
     }
 
-    let targetPeer = this.getPeer(message.payload.sourceIdentity)
+    let targetPeer = this.getPeer(message.sourceIdentity)
     if (targetPeer && targetPeer !== messageSender) {
       targetPeer.pushLoggedMessage({
         timestamp: Date.now(),
@@ -1278,19 +1272,19 @@ export class PeerManager {
       if (!targetPeer || targetPeer.state.type !== 'CONNECTED') {
         const disconnectingMessage = new DisconnectingMessage({
           sourceIdentity: this.localPeer.publicIdentity,
-          destinationIdentity: message.payload.sourceIdentity,
+          destinationIdentity: message.sourceIdentity,
           reason: DisconnectingReason.Congested,
           disconnectUntil: this.getCongestedDisconnectUntilTimestamp(),
         })
         messageSender.send(disconnectingMessage)
         this.logger.debug(
-          `Ignoring signaling request from ${message.payload.sourceIdentity}, at max peers`,
+          `Ignoring signaling request from ${message.sourceIdentity}, at max peers`,
         )
         return
       }
     }
 
-    targetPeer = this.getOrCreatePeer(message.payload.sourceIdentity)
+    targetPeer = this.getOrCreatePeer(message.sourceIdentity)
     this.addKnownPeerTo(targetPeer, messageSender)
 
     if (targetPeer.state.type !== 'DISCONNECTED' && targetPeer.state.connections.webRtc) {
