@@ -15,6 +15,7 @@ import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { SignalMessage } from '../../messages/signal'
+import { SignalRequestMessage } from '../../messages/signalRequest'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -196,7 +197,7 @@ export abstract class Connection {
   }
 
   shouldLogMessageType(messageType: string | NetworkMessageType): boolean {
-    const bannedMessageTypes = [InternalMessageType.peerList, InternalMessageType.signal] as (
+    const bannedMessageTypes = [InternalMessageType.peerList, NetworkMessageType.Signal] as (
       | string
       | NetworkMessageType
     )[]
@@ -242,6 +243,8 @@ export abstract class Connection {
         return IdentifyMessage.deserialize(body)
       case NetworkMessageType.Signal:
         return SignalMessage.deserialize(body)
+      case NetworkMessageType.SignalRequest:
+        return SignalRequestMessage.deserialize(body)
     }
   }
 }
