@@ -25,7 +25,7 @@ export enum BAN_SCORE {
  */
 const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string | NetworkMessageType> = [
   InternalMessageType.peerList,
-  InternalMessageType.signal,
+  NetworkMessageType.Signal,
 ]
 
 type LoggedMessage = {
