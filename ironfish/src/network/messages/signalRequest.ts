@@ -12,7 +12,7 @@ interface CreateSignalRequestMessageOptions {
 
 /**
  * A message used to indicate to a peer that we want them to
- * initiatie signaling with us. This is most often used when
+ * initiate signaling with us. This is most often used when
  * we discover a peer through another peer but need to indicate
  * to them through a brokering peer to connect to us via webrtc.
  */
