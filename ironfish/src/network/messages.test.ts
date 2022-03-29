@@ -4,14 +4,11 @@
 
 import { createNodeTest, useBlockWithTx } from '../testUtilities'
 import {
-  DisconnectingMessage,
-  DisconnectingReason,
   GetBlockHashesRequest,
   GetBlockHashesResponse,
   GetBlocksRequest,
   GetBlocksResponse,
   InternalMessageType,
-  isDisconnectingMessage,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
   isGetBlocksRequest,
@@ -94,34 +91,6 @@ describe('isPeerList', () => {
     }
 
     expect(isPeerList(msg)).toBeFalsy()
-  })
-})
-
-describe('isDisconnectingMessage', () => {
-  it('Returns true on Disconnecting message', () => {
-    const msg: DisconnectingMessage = {
-      type: InternalMessageType.disconnecting,
-      payload: {
-        sourceIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        destinationIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        reason: DisconnectingReason.ShuttingDown,
-        disconnectUntil: Date.now(),
-      },
-    }
-    expect(isDisconnectingMessage(msg)).toBeTruthy()
-  })
-
-  it('Returns true on null destinationIdentity', () => {
-    const msg: DisconnectingMessage = {
-      type: InternalMessageType.disconnecting,
-      payload: {
-        sourceIdentity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-        destinationIdentity: null,
-        reason: DisconnectingReason.ShuttingDown,
-        disconnectUntil: Date.now(),
-      },
-    }
-    expect(isDisconnectingMessage(msg)).toBeTruthy()
   })
 })
 

@@ -23,7 +23,6 @@ export enum InternalMessageType {
   peerList = 'peerList',
   peerListRequest = 'peerListRequest',
   cannotSatisfyRequest = 'cannotSatisfyRequest',
-  disconnecting = 'disconnecting',
 }
 
 export type MessageType = InternalMessageType | string
@@ -177,37 +176,6 @@ export function isPeerList(obj: unknown): obj is PeerList {
     payload !== null &&
     Array.isArray(payload.connectedPeers) &&
     payload.connectedPeers.every((v) => isIdentity(v.identity))
-  )
-}
-
-export enum DisconnectingReason {
-  ShuttingDown = 0,
-  Congested = 1,
-}
-
-export type DisconnectingMessage = Message<
-  InternalMessageType.disconnecting,
-  {
-    sourceIdentity: Identity
-    // Can be null if we're sending the message to an unidentified Peer
-    destinationIdentity: Identity | null
-    reason: DisconnectingReason
-    disconnectUntil: number
-  }
->
-
-export function isDisconnectingMessage(obj: unknown): obj is DisconnectingMessage {
-  if (!isPayloadMessage(obj)) {
-    return false
-  }
-  const payload = obj.payload as DisconnectingMessage['payload']
-  return (
-    obj.type === InternalMessageType.disconnecting &&
-    payload !== null &&
-    typeof payload.sourceIdentity === 'string' &&
-    (typeof payload.destinationIdentity === 'string' || payload.destinationIdentity === null) &&
-    typeof payload.reason === 'number' &&
-    typeof payload.disconnectUntil === 'number'
   )
 }
 

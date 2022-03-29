@@ -5,17 +5,14 @@ import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 
 export enum NetworkMessageType {
-  Identify = 0,
+  Disconnecting = 0,
+  Identify = 1,
 }
 
 export abstract class NetworkMessage implements Serializable {
-  private static id = 0
-
-  readonly messageId: number
   readonly type: NetworkMessageType
 
-  constructor(type: NetworkMessageType, messageId?: number) {
-    this.messageId = messageId ?? NetworkMessage.id++
+  constructor(type: NetworkMessageType) {
     this.type = type
   }
 
@@ -23,9 +20,8 @@ export abstract class NetworkMessage implements Serializable {
   abstract getSize(): number
 
   serializeWithMetadata(): Buffer {
-    const headerSize = 17
+    const headerSize = 9
     const bw = bufio.write(headerSize + this.getSize())
-    bw.writeU64(this.messageId)
     bw.writeU8(this.type)
     bw.writeU64(this.getSize())
     bw.writeBytes(this.serialize())

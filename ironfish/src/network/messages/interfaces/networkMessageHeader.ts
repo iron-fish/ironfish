@@ -4,7 +4,6 @@
 import { NetworkMessageType } from '../networkMessage'
 
 export interface NetworkMessageHeader {
-  messageId: number
   type: NetworkMessageType
   body: Buffer
 }

@@ -41,8 +41,6 @@ import {
   isNewBlockPayload,
 } from './messages'
 import {
-  DisconnectingMessage,
-  DisconnectingReason,
   GetBlockHashesRequest,
   GetBlocksRequest,
   IncomingPeerMessage,
@@ -59,6 +57,7 @@ import {
   NodeMessageType,
   PayloadType,
 } from './messages'
+import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { NetworkMessage } from './messages/networkMessage'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
@@ -323,15 +322,12 @@ export class PeerNetwork {
             'Disconnecting inbound websocket connection because the node has max peers',
           )
 
-          const disconnect: DisconnectingMessage = {
-            type: InternalMessageType.disconnecting,
-            payload: {
-              sourceIdentity: this.localPeer.publicIdentity,
-              destinationIdentity: null,
-              reason: DisconnectingReason.Congested,
-              disconnectUntil: this.peerManager.getCongestedDisconnectUntilTimestamp(),
-            },
-          }
+          const disconnect = new DisconnectingMessage({
+            destinationIdentity: null,
+            disconnectUntil: this.peerManager.getCongestedDisconnectUntilTimestamp(),
+            reason: DisconnectingReason.Congested,
+            sourceIdentity: this.localPeer.publicIdentity,
+          })
           connection.send(JSON.stringify(disconnect))
           connection.close()
           return

@@ -10,6 +10,7 @@ import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { InternalMessageType, LooseMessage } from '../../messages'
+import { DisconnectingMessage } from '../../messages/disconnecting'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
@@ -175,7 +176,7 @@ export abstract class Connection {
       this.simulateLatencyQueue.push(message)
 
       let latency = Math.random() * (this.simulateLatency || 0)
-      if (args[0].type === InternalMessageType.disconnecting) {
+      if (args[0].type === NetworkMessageType.Disconnecting) {
         latency = 0
       }
 
@@ -209,15 +210,13 @@ export abstract class Connection {
       throw new Error(`Could not parse header from request: '${message.toString('hex')}'`)
     }
 
-    const { body, messageId, type } = header
+    const { body, type } = header
 
     let messageBody: NetworkMessage
     try {
       messageBody = this.parseBody(header)
     } catch {
-      const args = `(messageId: ${messageId}, type: ${
-        NetworkMessageType[type]
-      }, body: '${body.toString('hex')}')`
+      const args = `(type: ${NetworkMessageType[type]}, body: '${body.toString('hex')}')`
       throw new Error(`Could not parse payload from request: ${args}`)
     }
 
@@ -226,20 +225,20 @@ export abstract class Connection {
 
   private parseHeader(message: Buffer): NetworkMessageHeader {
     const br = bufio.read(message)
-    const messageId = Number(br.readU64())
     const type = br.readU8()
     const size = br.readU64()
     return {
-      messageId,
       type,
       body: br.readBytes(size),
     }
   }
 
-  private parseBody({ messageId, type, body }: NetworkMessageHeader): NetworkMessage {
+  private parseBody({ type, body }: NetworkMessageHeader): NetworkMessage {
     switch (type) {
+      case NetworkMessageType.Disconnecting:
+        return DisconnectingMessage.deserialize(body)
       case NetworkMessageType.Identify:
-        return IdentifyMessage.deserialize(messageId, body)
+        return IdentifyMessage.deserialize(body)
     }
   }
 }
