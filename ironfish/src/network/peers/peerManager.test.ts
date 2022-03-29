@@ -334,15 +334,14 @@ describe('PeerManager', () => {
       })
 
       expect(sendSpy).toBeCalledTimes(1)
-      expect(sendSpy).toBeCalledWith({
-        type: InternalMessageType.signal,
-        payload: {
+      expect(sendSpy).toBeCalledWith(
+        new SignalMessage({
           sourceIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
           destinationIdentity: webRtcCanInitiateIdentity(),
           nonce: 'boxMessageNonce',
           signal: 'boxMessageMessage',
-        },
-      })
+        }),
+      )
     })
 
     it('Attempts to establish a WebSocket connection to a peer with a webSocketAddress', () => {
@@ -440,15 +439,14 @@ describe('PeerManager', () => {
         },
       })
 
-      expect(sendSpy).toBeCalledWith({
-        type: 'signal',
-        payload: {
+      expect(sendSpy).toBeCalledWith(
+        new SignalMessage({
           sourceIdentity: 'bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=',
           destinationIdentity: 'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=',
           nonce: 'boxMessageNonce',
           signal: 'boxMessageMessage',
-        },
-      })
+        }),
+      )
     })
 
     it('Attempts to request WebRTC signaling through brokering peer', () => {
