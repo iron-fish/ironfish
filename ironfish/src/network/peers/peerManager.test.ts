@@ -31,11 +31,11 @@ import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
-import { InternalMessageType, PeerListRequest } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessageType } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
+import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import {
@@ -1348,10 +1348,7 @@ describe('PeerManager', () => {
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
 
-      const peerListRequest: PeerListRequest = {
-        type: InternalMessageType.peerListRequest,
-      }
-
+      const peerListRequest = new PeerListRequestMessage()
       const peerList = new PeerListMessage([
         {
           identity: peer.getIdentityOrThrow(),
