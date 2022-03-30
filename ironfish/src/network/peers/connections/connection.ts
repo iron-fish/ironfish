@@ -9,11 +9,12 @@ import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
-import { InternalMessageType, LooseMessage } from '../../messages'
+import { LooseMessage } from '../../messages'
 import { DisconnectingMessage } from '../../messages/disconnecting'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import { PeerListMessage } from '../../messages/peerList'
 import { SignalMessage } from '../../messages/signal'
 import { SignalRequestMessage } from '../../messages/signalRequest'
 import { HandshakeTimeoutError } from './errors'
@@ -197,7 +198,7 @@ export abstract class Connection {
   }
 
   shouldLogMessageType(messageType: string | NetworkMessageType): boolean {
-    const bannedMessageTypes = [InternalMessageType.peerList, NetworkMessageType.Signal] as (
+    const bannedMessageTypes = [NetworkMessageType.PeerList, NetworkMessageType.Signal] as (
       | string
       | NetworkMessageType
     )[]
@@ -241,6 +242,8 @@ export abstract class Connection {
         return DisconnectingMessage.deserialize(body)
       case NetworkMessageType.Identify:
         return IdentifyMessage.deserialize(body)
+      case NetworkMessageType.PeerList:
+        return PeerListMessage.deserialize(body)
       case NetworkMessageType.Signal:
         return SignalMessage.deserialize(body)
       case NetworkMessageType.SignalRequest:

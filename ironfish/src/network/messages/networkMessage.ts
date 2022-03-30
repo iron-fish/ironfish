@@ -7,8 +7,9 @@ import { Serializable } from '../../common/serializable'
 export enum NetworkMessageType {
   Disconnecting = 0,
   Identify = 1,
-  Signal = 2,
-  SignalRequest = 3,
+  PeerList = 2,
+  Signal = 3,
+  SignalRequest = 4,
 }
 
 export abstract class NetworkMessage implements Serializable {
