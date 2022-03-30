@@ -19,7 +19,7 @@ export interface Metric {
    * JS gives us millisecond accuracy here.
    * Defaults to new Date() if not specified
    */
-  timestamp?: Date
+  timestamp: Date
 
   /**
    * Collection of string keys and values to help identify

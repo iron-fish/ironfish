@@ -20,6 +20,7 @@ describe('Telemetry', () => {
         value: 0,
       },
     ],
+    timestamp: new Date(),
   }
 
   beforeEach(() => {
@@ -63,6 +64,7 @@ describe('Telemetry', () => {
         const metric: Metric = {
           measurement: 'node',
           fields: [],
+          timestamp: new Date(),
         }
 
         expect(() => telemetry.submit(metric)).toThrowError()
