@@ -31,10 +31,11 @@ import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
-import { InternalMessageType, PeerList, PeerListRequest } from '../messages'
+import { InternalMessageType, PeerListRequest } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessageType } from '../messages/networkMessage'
+import { PeerListMessage } from '../messages/peerList'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import {
@@ -1351,18 +1352,13 @@ describe('PeerManager', () => {
         type: InternalMessageType.peerListRequest,
       }
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: peer.getIdentityOrThrow(),
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: peer.getIdentityOrThrow(),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
 
       const sendToSpy = jest.spyOn(pm, 'sendTo')
       peer.onMessage.emit(peerListRequest, connection)
@@ -1382,18 +1378,13 @@ describe('PeerManager', () => {
 
       expect(peer.knownPeers.size).toBe(0)
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: privateIdentityToIdentity(localIdentity),
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: privateIdentityToIdentity(localIdentity),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
       expect(peer.knownPeers.size).toBe(0)
     })
@@ -1410,18 +1401,13 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(peer.knownPeers.size).toBe(0)
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: newPeerIdentity,
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       const onKnownPeersChangedSpy = jest.spyOn(peer.onKnownPeersChanged, 'emit')
       peer.onMessage.emit(peerList, connection)
       peer.onMessage.emit(peerList, connection)
@@ -1444,18 +1430,13 @@ describe('PeerManager', () => {
       // Clear onKnownPeersChanged handlers to avoid any side effects
       pm.onKnownPeersChanged.clear()
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: newPeerIdentity,
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
 
       expect(peer.knownPeers.size).toBe(1)
@@ -1494,18 +1475,13 @@ describe('PeerManager', () => {
       // Clear onKnownPeersChanged handlers to avoid any side effects
       pm.onKnownPeersChanged.clear()
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: newPeerIdentity,
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
 
       expect(peer.knownPeers.size).toBe(1)
@@ -1519,12 +1495,7 @@ describe('PeerManager', () => {
         ?.neverRetryConnecting()
 
       // Send another peer list without that peer
-      const newPeerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [],
-        },
-      }
+      const newPeerList = new PeerListMessage([])
       peer.onMessage.emit(newPeerList, connection)
 
       // newPeer should be disposed

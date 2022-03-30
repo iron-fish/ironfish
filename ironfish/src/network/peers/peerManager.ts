@@ -19,15 +19,14 @@ import {
   IncomingPeerMessage,
   InternalMessageType,
   isMessage,
-  isPeerList,
   isPeerListRequest,
   LooseMessage,
-  PeerList,
   PeerListRequest,
 } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessage } from '../messages/networkMessage'
+import { PeerListMessage } from '../messages/peerList'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import { parseUrl } from '../utils'
@@ -894,6 +893,8 @@ export class PeerManager {
         await this.handleSignalMessage(peer, connection, message)
       } else if (message instanceof SignalRequestMessage) {
         this.handleSignalRequestMessage(peer, connection, message)
+      } else if (message instanceof PeerListMessage) {
+        this.handlePeerListMessage(message, peer)
       } else {
         throw new Error('Not implemented')
       }
@@ -902,8 +903,6 @@ export class PeerManager {
 
     if (isPeerListRequest(message)) {
       this.handlePeerListRequestMessage(peer)
-    } else if (isPeerList(message)) {
-      this.handlePeerListMessage(message, peer)
     } else {
       if (peer.state.identity === null) {
         const messageType = isMessage(message) ? message.type : 'Unknown'
@@ -1467,15 +1466,11 @@ export class PeerManager {
       })
     }
 
-    const peerList: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: { connectedPeers },
-    }
-
+    const peerList = new PeerListMessage(connectedPeers)
     this.sendTo(peer, peerList)
   }
 
-  private handlePeerListMessage(peerList: PeerList, peer: Peer) {
+  private handlePeerListMessage(peerList: PeerListMessage, peer: Peer) {
     if (peer.state.type !== 'CONNECTED') {
       this.logger.warn('Should not handle the peer list message unless peer is connected')
       return
@@ -1483,7 +1478,7 @@ export class PeerManager {
 
     let changed = false
 
-    const newPeerSet = peerList.payload.connectedPeers.reduce(
+    const newPeerSet = peerList.connectedPeers.reduce(
       (memo, peer) => {
         memo.set(peer.identity, peer)
         return memo

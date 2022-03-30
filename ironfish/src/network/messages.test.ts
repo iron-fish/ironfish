@@ -14,11 +14,9 @@ import {
   isGetBlocksRequest,
   isGetBlocksResponse,
   isMessage,
-  isPeerList,
   isPeerListRequest,
   NodeMessageType,
   parseMessage,
-  PeerList,
   PeerListRequest,
 } from './messages'
 
@@ -28,52 +26,6 @@ describe('isPeerListRequest', () => {
       type: InternalMessageType.peerListRequest,
     }
     expect(isPeerListRequest(msg)).toBeTruthy()
-  })
-
-  it('Returns false on wrong type message', () => {
-    const msg: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: {
-        connectedPeers: [],
-      },
-    }
-    expect(isPeerListRequest(msg)).toBeFalsy()
-  })
-})
-
-describe('isPeerList', () => {
-  it('Returns true on empty connectedPeers', () => {
-    const msg: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: {
-        connectedPeers: [],
-      },
-    }
-    expect(isPeerList(msg)).toBeTruthy()
-  })
-
-  it('Returns true on peerlist message', () => {
-    const msg: PeerList = {
-      type: InternalMessageType.peerList,
-      payload: {
-        connectedPeers: [
-          {
-            identity: 'oVHAznOXv4FHdajFYsVNMZm14WHlCdXZz8z55IOhTwI=',
-            address: 'localhost',
-            port: null,
-          },
-        ],
-      },
-    }
-    expect(isPeerList(msg)).toBeTruthy()
-  })
-
-  it('Returns false on a message without a payload', () => {
-    const msg: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
-    }
-
-    expect(isPeerList(msg)).toBeFalsy()
   })
 })
 
