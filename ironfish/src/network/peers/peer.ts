@@ -6,7 +6,7 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { InternalMessageType, LooseMessage } from '../messages'
+import { LooseMessage } from '../messages'
 import { DisconnectingReason } from '../messages/disconnecting'
 import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
 import { ConnectionRetry } from './connectionRetry'
@@ -24,7 +24,7 @@ export enum BAN_SCORE {
  * Message types that should be excluded from loggedMessages (unless overridden).
  */
 const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string | NetworkMessageType> = [
-  InternalMessageType.peerList,
+  NetworkMessageType.PeerList,
   NetworkMessageType.Signal,
 ]
 

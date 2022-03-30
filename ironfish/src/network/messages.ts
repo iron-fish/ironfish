@@ -6,7 +6,7 @@ import { SerializedBlock } from '../primitives/block'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
-import { Identity, isIdentity } from './identity'
+import { Identity } from './identity'
 import { Gossip } from './messageRouters'
 import { NetworkMessage } from './messages/networkMessage'
 
@@ -18,7 +18,6 @@ import { NetworkMessage } from './messages/networkMessage'
  */
 export enum InternalMessageType {
   identity = 'identity',
-  peerList = 'peerList',
   peerListRequest = 'peerListRequest',
   cannotSatisfyRequest = 'cannotSatisfyRequest',
 }
@@ -90,31 +89,6 @@ export type PeerListRequest = Message<InternalMessageType.peerListRequest>
 
 export function isPeerListRequest(obj: unknown): obj is PeerListRequest {
   return isMessage(obj) && obj.type === InternalMessageType.peerListRequest
-}
-
-export type PeerList = Message<
-  InternalMessageType.peerList,
-  {
-    connectedPeers: {
-      identity: Identity
-      name?: string
-      address: string | null
-      port: number | null
-    }[]
-  }
->
-
-export function isPeerList(obj: unknown): obj is PeerList {
-  if (!isPayloadMessage(obj)) {
-    return false
-  }
-  const payload = obj.payload as PeerList['payload']
-  return (
-    obj.type === InternalMessageType.peerList &&
-    payload !== null &&
-    Array.isArray(payload.connectedPeers) &&
-    payload.connectedPeers.every((v) => isIdentity(v.identity))
-  )
 }
 
 /**
