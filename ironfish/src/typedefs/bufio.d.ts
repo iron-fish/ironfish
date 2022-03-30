@@ -33,6 +33,7 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    left(): number
     readU8(): number
     readU64(): number
     readU64BE(): number

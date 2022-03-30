@@ -19,7 +19,18 @@ describe('SubmitTelemetryRequest', () => {
           type: 'integer',
           value: 0,
         },
+        {
+          name: 'foo',
+          type: 'string',
+          value: 'bar',
+        },
+        {
+          name: 'baz',
+          type: 'integer',
+          value: 10,
+        },
       ],
+      timestamp: new Date(),
     }
     const request = new SubmitTelemetryRequest([mockMetric])
     const buffer = request.serialize()
@@ -51,6 +62,7 @@ describe('SubmitTelemetryTask', () => {
             value: 0,
           },
         ],
+        timestamp: new Date(),
       }
       const points = [mockMetric]
       const task = new SubmitTelemetryTask()
