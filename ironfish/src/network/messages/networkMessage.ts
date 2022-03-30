@@ -8,8 +8,9 @@ export enum NetworkMessageType {
   Disconnecting = 0,
   Identify = 1,
   PeerList = 2,
-  Signal = 3,
-  SignalRequest = 4,
+  PeerListRequest = 3,
+  Signal = 4,
+  SignalRequest = 5,
 }
 
 export abstract class NetworkMessage implements Serializable {

@@ -15,6 +15,7 @@ import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { PeerListMessage } from '../../messages/peerList'
+import { PeerListRequestMessage } from '../../messages/peerListRequest'
 import { SignalMessage } from '../../messages/signal'
 import { SignalRequestMessage } from '../../messages/signalRequest'
 import { HandshakeTimeoutError } from './errors'
@@ -244,6 +245,8 @@ export abstract class Connection {
         return IdentifyMessage.deserialize(body)
       case NetworkMessageType.PeerList:
         return PeerListMessage.deserialize(body)
+      case NetworkMessageType.PeerListRequest:
+        return PeerListRequestMessage.deserialize()
       case NetworkMessageType.Signal:
         return SignalMessage.deserialize(body)
       case NetworkMessageType.SignalRequest:
