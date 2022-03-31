@@ -4,6 +4,7 @@
 import type { Logger } from '../../../logger'
 import bufio from 'bufio'
 import colors from 'colors/safe'
+import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
@@ -11,6 +12,7 @@ import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { LooseMessage } from '../../messages'
 import { DisconnectingMessage } from '../../messages/disconnecting'
+import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
@@ -227,19 +229,36 @@ export abstract class Connection {
   }
 
   private parseHeader(message: Buffer): NetworkMessageHeader {
+    let rpcId
     const br = bufio.read(message)
     const type = br.readU8()
+    if (this.isRpcNetworkMessageType(type)) {
+      rpcId = br.readU64()
+    }
     const size = br.readU64()
     return {
       type,
+      rpcId,
       body: br.readBytes(size),
     }
   }
 
-  private parseBody({ type, body }: NetworkMessageHeader): NetworkMessage {
+  private isRpcNetworkMessageType(type: NetworkMessageType): boolean {
+    return [NetworkMessageType.GetBlocksRequest, NetworkMessageType.GetBlocksResponse].includes(
+      type,
+    )
+  }
+
+  private parseBody({ rpcId, type, body }: NetworkMessageHeader): NetworkMessage {
     switch (type) {
       case NetworkMessageType.Disconnecting:
         return DisconnectingMessage.deserialize(body)
+      case NetworkMessageType.GetBlocksRequest:
+        Assert.isNotUndefined(rpcId)
+        return GetBlocksRequest.deserialize(body, rpcId)
+      case NetworkMessageType.GetBlocksResponse:
+        Assert.isNotUndefined(rpcId)
+        return GetBlocksResponse.deserialize(body, rpcId)
       case NetworkMessageType.Identify:
         return IdentifyMessage.deserialize(body)
       case NetworkMessageType.PeerList:

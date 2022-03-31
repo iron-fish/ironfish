@@ -113,7 +113,6 @@ export enum NodeMessageType {
   NewBlock = 'NewBlock',
   NewTransaction = 'NewTransaction',
   GetBlockHashes = 'GetBlockHashes',
-  GetBlocks = 'GetBlocks',
 }
 
 export type GetBlockHashesRequest = Message<
@@ -130,50 +129,6 @@ export type GetBlockHashesResponse = Message<
     blocks: string[]
   }
 >
-
-export type GetBlocksRequest = Message<
-  NodeMessageType.GetBlocks,
-  {
-    start: string | number
-    limit: number
-  }
->
-
-export type GetBlocksResponse = Message<
-  NodeMessageType.GetBlocks,
-  {
-    blocks: SerializedBlock[]
-  }
->
-
-export function isGetBlocksResponse(obj: LooseMessage): obj is GetBlocksResponse {
-  if (
-    obj.type === NodeMessageType.GetBlocks &&
-    'payload' in obj &&
-    'blocks' in obj.payload &&
-    Array.isArray(obj.payload.blocks)
-  ) {
-    for (const block of obj.payload.blocks) {
-      if (!isBlock(block)) {
-        return false
-      }
-    }
-
-    return true
-  }
-
-  return false
-}
-
-export function isGetBlocksRequest(obj: PayloadType): obj is GetBlocksRequest['payload'] {
-  return (
-    obj !== undefined &&
-    'start' in obj &&
-    (typeof obj.start === 'string' || typeof obj.start === 'number') &&
-    'limit' in obj &&
-    typeof obj.limit === 'number'
-  )
-}
 
 export function isGetBlockHashesResponse(obj: LooseMessage): obj is GetBlockHashesResponse {
   if (
@@ -207,16 +162,6 @@ export function isGetBlockHashesRequest(
 
 function isBlockHash(obj: unknown | undefined): obj is string {
   return typeof obj === 'string'
-}
-
-function isBlock(obj: Record<string, unknown> | undefined): obj is SerializedBlock {
-  return (
-    obj !== undefined &&
-    'header' in obj &&
-    typeof obj.header === 'object' &&
-    obj.header !== null &&
-    'hash' in obj.header
-  )
 }
 
 /**

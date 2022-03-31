@@ -896,7 +896,15 @@ export class PeerManager {
       } else if (message instanceof PeerListMessage) {
         this.handlePeerListMessage(message, peer)
       } else {
-        throw new Error('Not implemented')
+        if (peer.state.identity === null) {
+          const messageType = message.type
+          this.logger.debug(
+            `Closing connection to unidentified peer that sent an unexpected message: ${messageType}`,
+          )
+          peer.close()
+          return
+        }
+        this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
       }
       return
     }

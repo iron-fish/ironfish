@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
+import { MessageRouter } from './messageRouter'
 
 /**
  * We store gossips that have already been seen and processed, and ignore them
@@ -35,7 +36,7 @@ export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> 
  * Router for gossip-style messages. Maintains a list of handlers and is responsible
  * for sending and receiving the messages.
  */
-export class GossipRouter {
+export class GossipRouter extends MessageRouter {
   peerManager: PeerManager
   private seenGossipFilter: RollingFilter
   private handlers: Map<
@@ -44,6 +45,7 @@ export class GossipRouter {
   >
 
   constructor(peerManager: PeerManager) {
+    super()
     this.peerManager = peerManager
     this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.handlers = new Map<

@@ -2,17 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest, useBlockWithTx } from '../testUtilities'
 import {
   GetBlockHashesRequest,
   GetBlockHashesResponse,
-  GetBlocksRequest,
-  GetBlocksResponse,
   InternalMessageType,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
-  isGetBlocksRequest,
-  isGetBlocksResponse,
   isMessage,
   isPeerListRequest,
   NodeMessageType,
@@ -108,151 +103,12 @@ describe('isMessage', () => {
   })
 })
 
-describe('isGetBlocksResponse', () => {
-  const nodeTest = createNodeTest()
-
-  it('returns false if the message type is not GetBlocks', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
-    const blockArray = [serialized, serialized]
-
-    const msg = {
-      type: NodeMessageType.NewBlock,
-      payload: {
-        blocks: blockArray,
-      },
-    }
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  }, 10000)
-
-  it('returns false if message does not have a payload field', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-    }
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  }, 10000)
-
-  it('returns false if the payload does not have a blocks field', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        position: 3,
-      },
-    }
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  }, 10000)
-
-  it('returns false if the blocks field is not an array', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
-
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        blocks: serialized,
-      },
-    }
-
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  }, 10000)
-
-  it('returns false if GetBlocksResponse message with invalid blocks received', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized0 = nodeTest.strategy.blockSerde.serialize(block)
-
-    const blockArray = [serialized0, undefined]
-
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        blocks: blockArray,
-      },
-    }
-
-    expect(isGetBlocksResponse(msg)).toBeFalsy()
-  }, 10000)
-
-  it('returns true if GetBlocksResponse message with valid blocks received', async () => {
-    const { block } = await useBlockWithTx(nodeTest.node)
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
-    const blockArray = [serialized, serialized]
-
-    const msg: GetBlocksResponse = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        blocks: blockArray,
-      },
-    }
-
-    expect(isGetBlocksResponse(msg)).toBeTruthy()
-  }, 10000)
-})
-
-describe('isGetBlocksRequest', () => {
-  it('returns false if the object is undefined', () => {
-    expect(isGetBlocksRequest(undefined)).toBeFalsy()
-  })
-
-  it('returns false if message does not have the start field', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        limit: 3,
-      },
-    }
-    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.start is not a string or number', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: null,
-        limit: 3,
-      },
-    }
-    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if message does not have the limit field', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: 3,
-      },
-    }
-    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
-  })
-
-  it('returns false if payload.limit is not a number', () => {
-    const msg = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: 3,
-        limit: 'three',
-      },
-    }
-    expect(isGetBlocksRequest(msg.payload)).toBeFalsy()
-  })
-
-  it('returns true if GetBlocksRequest payload received', () => {
-    const msg: GetBlocksRequest = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: 3,
-        limit: 3,
-      },
-    }
-    expect(isGetBlocksRequest(msg.payload)).toBeTruthy()
-  })
-})
-
 describe('isGetBlockHashesResponse', () => {
   it('returns false if the message type is not GetBlockHashes', () => {
     const stringArray = ['blockHash1', 'blockHash2']
 
     const msg = {
-      type: NodeMessageType.GetBlocks,
+      type: NodeMessageType.NewBlock,
       payload: {
         blocks: stringArray,
       },

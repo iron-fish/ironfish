@@ -34,20 +34,15 @@ import {
   Rpc,
   RpcRouter,
 } from './messageRouters'
-import {
-  GetBlockHashesResponse,
-  GetBlocksResponse,
-  isGetBlocksRequest,
-  isNewBlockPayload,
-} from './messages'
+import { nextRpcId } from './messageRouters/rpcId'
 import {
   GetBlockHashesRequest,
-  GetBlocksRequest,
+  GetBlockHashesResponse,
   IncomingPeerMessage,
   InternalMessageType,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
-  isGetBlocksResponse,
+  isNewBlockPayload,
   isNewTransactionPayload,
   LooseMessage,
   Message,
@@ -58,7 +53,9 @@ import {
   PayloadType,
 } from './messages'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
-import { NetworkMessage } from './messages/networkMessage'
+import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import { NetworkMessage, NetworkMessageType } from './messages/networkMessage'
+import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -109,7 +106,7 @@ export class PeerNetwork {
   private readonly bootstrapNodes: string[]
   private readonly listen: boolean
   private readonly peerConnectionManager: PeerConnectionManager
-  private readonly routingStyles: Map<MessageType, RoutingStyle>
+  private readonly routingStyles: Map<MessageType | NetworkMessageType, RoutingStyle>
   private readonly gossipRouter: GossipRouter
   private readonly fireAndForgetRouter: FireAndForgetRouter
   private readonly directRpcRouter: RpcRouter
@@ -260,14 +257,18 @@ export class PeerNetwork {
       (message) => this.onGetBlockHashesRequest(message),
     )
 
-    this.registerHandler(
-      NodeMessageType.GetBlocks,
+    this._registerHandler(
+      NetworkMessageType.GetBlocksRequest,
       RoutingStyle.directRPC,
-      (p) => {
-        return isGetBlocksRequest(p) ? Promise.resolve(p) : Promise.reject()
+      (m): Promise<GetBlocksRequest> => {
+        if (m instanceof GetBlocksRequest) {
+          return Promise.resolve(m)
+        }
+        return Promise.reject()
       },
       (message) => this.onGetBlocksRequest(message),
     )
+    this.routingStyles.set(NetworkMessageType.GetBlocksResponse, RoutingStyle.directRPC)
 
     this.node.miningManager.onNewBlock.on((block) => {
       this.gossipBlock(block)
@@ -482,6 +483,37 @@ export class PeerNetwork {
     this.routingStyles.set(type, style)
   }
 
+  _registerHandler<Request extends RpcNetworkMessage, Response extends RpcNetworkMessage>(
+    type: NetworkMessageType,
+    style: RoutingStyle,
+    validator: (payload: RpcNetworkMessage) => Promise<Request>,
+    handler: (parsedMessage: IncomingPeerMessage<Request>) => Promise<Response>,
+  ): void {
+    const hdlr = async (msg: IncomingPeerMessage<RpcNetworkMessage>) => {
+      return await handler({
+        peerIdentity: msg.peerIdentity,
+        message: await validator(msg.message),
+      })
+    }
+
+    switch (style) {
+      case RoutingStyle.gossip: {
+        this.gossipRouter._register(type, hdlr)
+        break
+      }
+      case RoutingStyle.directRPC:
+        this.directRpcRouter._register(type, hdlr)
+        break
+      case RoutingStyle.globalRPC:
+        this.globalRpcRouter._register(type, hdlr)
+        break
+      case RoutingStyle.fireAndForget:
+        this.fireAndForgetRouter._register(type, hdlr)
+        break
+    }
+    this.routingStyles.set(type, style)
+  }
+
   /**
    * Send the message to all connected peers with the expectation that they
    * will forward it to their other peers. The goal is for everyone to
@@ -514,8 +546,8 @@ export class PeerNetwork {
    */
   requestFrom(
     peer: Peer,
-    message: Message<MessageType, Record<string, unknown>>,
-  ): Promise<IncomingPeerMessage<LooseMessage>> {
+    message: Message<MessageType, Record<string, unknown>> | RpcNetworkMessage,
+  ): Promise<IncomingPeerMessage<LooseMessage> | IncomingPeerMessage<RpcNetworkMessage>> {
     const style = this.routingStyles.get(message.type)
     if (style !== RoutingStyle.directRPC) {
       throw new Error(`${message.type} type not meant to be direct RPC`)
@@ -532,7 +564,7 @@ export class PeerNetwork {
   async request(
     message: Message<MessageType, Record<string, unknown>>,
     peer?: Identity,
-  ): Promise<IncomingPeerMessage<LooseMessage>> {
+  ): Promise<IncomingPeerMessage<LooseMessage> | IncomingPeerMessage<RpcNetworkMessage>> {
     const style = this.routingStyles.get(message.type)
 
     if (style !== RoutingStyle.globalRPC) {
@@ -554,7 +586,10 @@ export class PeerNetwork {
 
     const response = await this.requestFrom(peer, message)
 
-    if (!isGetBlockHashesResponse(response.message)) {
+    if (
+      response.message instanceof RpcNetworkMessage ||
+      !isGetBlockHashesResponse(response.message)
+    ) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
     }
@@ -568,28 +603,20 @@ export class PeerNetwork {
     limit: number,
   ): Promise<SerializedBlock[]> {
     const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
-
-    const message = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: origin,
-        limit: limit,
-      },
-    } as GetBlocksRequest
-
+    const message = new GetBlocksRequest(origin, limit, nextRpcId())
     const response = await this.requestFrom(peer, message)
 
-    if (!isGetBlocksResponse(response.message)) {
+    if (!(response.message instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
     }
 
     // Hashes sent by the network are untrusted. Future messages should remove this field.
-    for (const block of response.message.payload.blocks) {
+    for (const block of response.message.blocks) {
       block.header.hash = undefined
     }
 
-    return response.message.payload.blocks
+    return response.message.blocks
   }
 
   private async handleMessage(
@@ -598,7 +625,23 @@ export class PeerNetwork {
   ): Promise<void> {
     const { message } = incomingMessage
     if (message instanceof NetworkMessage) {
-      throw new Error('Not implemented')
+      if (!(message instanceof RpcNetworkMessage)) {
+        throw new Error('Invalid message')
+      }
+      const style = this.routingStyles.get(message.type)
+      if (style === undefined) {
+        throw new Error('Not implemented')
+      }
+
+      switch (style) {
+        case RoutingStyle.directRPC:
+          await this.directRpcRouter.handle(peer, message)
+          break
+        default:
+          throw new Error('Not implemented')
+      }
+
+      return
     }
 
     let style = this.routingStyles.get(message.type)
@@ -712,34 +755,29 @@ export class PeerNetwork {
   }
 
   private async onGetBlocksRequest(
-    request: IncomingPeerMessage<Rpc<NodeMessageType.GetBlocks, GetBlocksRequest['payload']>>,
-  ): Promise<GetBlocksResponse['payload']> {
+    request: IncomingPeerMessage<GetBlocksRequest>,
+  ): Promise<GetBlocksResponse> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+    const rpcId = request.message.rpcId
 
-    if (request.message.payload.limit === 0) {
-      peer.punish(
-        BAN_SCORE.LOW,
-        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
-      )
-      return { blocks: [] }
+    if (request.message.limit === 0) {
+      peer.punish(BAN_SCORE.LOW, `Peer sent GetBlocks with limit of ${request.message.limit}`)
+      return new GetBlocksResponse([], rpcId)
     }
 
-    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(
-        BAN_SCORE.MAX,
-        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
-      )
+    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
+      peer.punish(BAN_SCORE.MAX, `Peer sent GetBlocks with limit of ${request.message.limit}`)
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
       throw error
     }
 
     const message = request.message
-    const start = message.payload.start
-    const limit = message.payload.limit
+    const start = message.start
+    const limit = message.limit
 
     const from = await this.resolveSequenceOrHash(start)
     if (!from) {
-      return { blocks: [] }
+      return new GetBlocksResponse([], rpcId)
     }
 
     const hashes = []
@@ -759,7 +797,7 @@ export class PeerNetwork {
       }),
     )
 
-    return { blocks: serialized }
+    return new GetBlocksResponse(serialized, rpcId)
   }
 
   private async onNewBlock(
