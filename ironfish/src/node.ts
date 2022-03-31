@@ -13,6 +13,7 @@ import {
   InternalStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
+import { MinedBlocksIndexer } from './indexer/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
@@ -44,6 +45,7 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
+  minedBlocksIndexer: MinedBlocksIndexer
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -65,6 +67,7 @@ export class IronfishNode {
     telemetry,
     privateIdentity,
     hostsStore,
+    minedBlocksIndexer,
   }: {
     pkg: Package
     files: FileSystem
@@ -81,6 +84,7 @@ export class IronfishNode {
     telemetry: Telemetry
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
+    minedBlocksIndexer: MinedBlocksIndexer
   }) {
     this.files = files
     this.config = config
@@ -96,6 +100,7 @@ export class IronfishNode {
     this.logger = logger
     this.pkg = pkg
     this.telemetry = telemetry
+    this.minedBlocksIndexer = minedBlocksIndexer
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
@@ -224,7 +229,19 @@ export class IronfishNode {
       files,
     })
 
-    const accounts = new Accounts({ database: accountDB, workerPool: workerPool, chain: chain })
+    const accounts = new Accounts({
+      database: accountDB,
+      workerPool: workerPool,
+      chain: chain,
+    })
+
+    const minedBlocksIndexer = new MinedBlocksIndexer({
+      files,
+      location: config.indexDatabasePath,
+      accounts,
+      chain,
+      logger,
+    })
 
     return new IronfishNode({
       pkg,
@@ -242,6 +259,7 @@ export class IronfishNode {
       telemetry,
       privateIdentity,
       hostsStore,
+      minedBlocksIndexer,
     })
   }
 
@@ -257,9 +275,11 @@ export class IronfishNode {
     try {
       await this.chain.open(options)
       await this.accounts.open(options)
+      await this.minedBlocksIndexer.open(options)
     } catch (e) {
       await this.chain.close()
       await this.accounts.close()
+      await this.minedBlocksIndexer.close()
       throw e
     }
   }
@@ -292,6 +312,7 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
+    this.minedBlocksIndexer.start()
     this.telemetry.submitNodeStarted()
   }
 
@@ -308,6 +329,7 @@ export class IronfishNode {
       this.telemetry.stop(),
       this.metrics.stop(),
       this.workerPool.stop(),
+      this.minedBlocksIndexer.stop(),
     ])
 
     if (this.shutdownResolve) {
