@@ -55,6 +55,9 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
     const getTransactionsFromBlock = async (block: Block) => {
       const transactions: Transaction[] = []
       for (const tx of block.transactions) {
+        if (await tx.isMinersFee()) {
+          continue
+        }
         const transaction: Transaction = {
           hash: tx.hash().toString('hex'),
           isMinersFee: await tx.isMinersFee(),
