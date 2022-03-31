@@ -38,7 +38,7 @@
     "lodash": "4.17.21",
     "node-datachannel": "0.2.4",
     "node-ipc": "9.1.3",
-    "parse-json": "5.1.0",
+    "parse-json": "5.2.0",
     "sqlite": "4.0.23",
     "sqlite3": "https://github.com/mapbox/node-sqlite3/archive/918052b538b0effe6c4a44c74a16b2749c08a0d2.tar.gz",
     "tweetnacl": "1.0.3",
