@@ -28,7 +28,9 @@ export class HostsStore extends KeyStore<HostsOptions> {
       await super.load()
     } catch (e) {
       if (e instanceof ParseJsonError) {
-        this.logger.warn(`Error: Could not parse JSON at ${this.storage.configPath}`)
+        this.logger.debug(
+          `Error: Could not parse JSON at ${this.storage.configPath}, overwriting file.`,
+        )
         await super.save()
       } else {
         throw e
