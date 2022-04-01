@@ -151,7 +151,12 @@ export class MiningPoolShares {
 
       await this.db.markPayoutSuccess(payoutId, timestamp)
 
-      this.discord?.poolPayoutSuccess(payoutId, transaction.content.hash, transactionReceives)
+      this.discord?.poolPayoutSuccess(
+        payoutId,
+        transaction.content.hash,
+        transactionReceives,
+        shareCounts.totalShares,
+      )
     } catch (e) {
       this.logger.error('There was an error with the transaction', e)
       this.discord?.poolPayoutError(e)
