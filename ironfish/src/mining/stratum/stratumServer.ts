@@ -128,6 +128,8 @@ export class StratumServer {
 
     socket.on('close', () => this.onDisconnect(client))
 
+    socket.on('error', (e) => this.onError(client, e))
+
     this.logger.debug(`Client ${client.id} connected:`, socket.remoteAddress)
     this.clients.set(client.id, client)
   }

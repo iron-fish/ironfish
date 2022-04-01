@@ -51,11 +51,14 @@ export class Discord {
     payoutId: number,
     transactionHashHex: string,
     receives: { publicAddress: string; amount: string; memo: string }[],
+    totalShareCount: number,
   ): void {
     const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
     this.sendText(
-      `Successfully paid out ${receives.length} users for ${displayIronAmountWithCurrency(
+      `Successfully paid out ${totalShareCount} shares to ${
+        receives.length
+      } users for ${displayIronAmountWithCurrency(
         Number(oreToIron(Number(total.toString()))),
         false,
       )} in transaction \`${transactionHashHex}\` (${payoutId})`,
