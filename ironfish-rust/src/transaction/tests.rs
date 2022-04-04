@@ -23,8 +23,8 @@ fn test_transaction() {
     let in_note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
     let out_note = Note::new(receiver_key.generate_public_address(), 40, Memo([0; 32]));
     let in_note2 = Note::new(spender_key.generate_public_address(), 18, Memo([0; 32]));
-    let witness = make_fake_witness(sapling.clone(), &in_note);
-    let _witness2 = make_fake_witness(sapling.clone(), &in_note2);
+    let witness = make_fake_witness(&in_note);
+    let _witness2 = make_fake_witness(&in_note2);
     transaction
         .spend(spender_key.clone(), &in_note, &witness)
         .expect("should be able to prove spend");
@@ -120,10 +120,10 @@ fn test_transaction_signature() {
     let spender_address = spender_key.generate_public_address();
     let receiver_address = receiver_key.generate_public_address();
 
-    let mut transaction = ProposedTransaction::new(sapling.clone());
+    let mut transaction = ProposedTransaction::new(sapling);
     let in_note = Note::new(spender_address, 42, Memo([0; 32]));
     let out_note = Note::new(receiver_address, 41, Memo([0; 32]));
-    let witness = make_fake_witness(sapling, &in_note);
+    let witness = make_fake_witness(&in_note);
 
     transaction
         .spend(spender_key.clone(), &in_note, &witness)

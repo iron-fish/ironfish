@@ -5,16 +5,15 @@
 use super::{
     note::Note,
     witness::{Witness, WitnessNode},
-    MerkleNoteHash, Sapling,
+    MerkleNoteHash,
 };
 use rand::{thread_rng, Rng};
-use std::sync::Arc;
 use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Given a note, construct a Witness with a valid root_hash and authentication
 /// path placing that note at a random location in a Merkle tree.
 #[cfg(test)]
-pub(crate) fn make_fake_witness(sapling: Arc<Sapling>, note: &Note) -> Witness {
+pub(crate) fn make_fake_witness(note: &Note) -> Witness {
     let mut rng = thread_rng();
     let mut buffer = [0u8; 64];
     thread_rng().fill(&mut buffer[..]);
@@ -28,7 +27,6 @@ pub(crate) fn make_fake_witness(sapling: Arc<Sapling>, note: &Note) -> Witness {
     }
     let root_hash = auth_path_to_root_hash(&witness_auth_path, note.commitment_point());
     Witness {
-        hasher: sapling,
         auth_path: witness_auth_path,
         root_hash,
         tree_size: 1400,

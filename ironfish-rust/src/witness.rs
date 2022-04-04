@@ -4,9 +4,8 @@
 
 use bls12_381::Scalar;
 
-use super::{MerkleNoteHash, Sapling};
+use super::MerkleNoteHash;
 use std::fmt::{self, Debug};
-use std::sync::Arc;
 
 /// Witness to a specific node in an authentication path.
 ///
@@ -37,7 +36,6 @@ pub trait WitnessTrait {
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
 pub struct Witness {
-    pub hasher: Arc<Sapling>,
     pub tree_size: usize,
     pub root_hash: Scalar,
     pub auth_path: Vec<WitnessNode<Scalar>>,
