@@ -29,13 +29,13 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             architecture: x64
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust@sha256:c9735923823026d494a3e544818911e187d0d014e8ac01bdf3bbd62efe5ee0d2
             build: cd ironfish-rust-nodejs && yarn build && strip *.node
 
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             architecture: x64
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust@sha256:749e81d2fa2fdcda2732e284069fdd8469702da007eb6088df426cdb813b3ecc
             build: cd ironfish-rust-nodejs && yarn build && strip *.node
 
           - host: macos-latest
@@ -54,16 +54,18 @@ jobs:
             build: |
               cd ironfish-rust-nodejs
               yarn build --target=aarch64-unknown-linux-gnu
+              ls
               aarch64-linux-gnu-strip *.node
 
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             architecture: x64
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust@sha256:749e81d2fa2fdcda2732e284069fdd8469702da007eb6088df426cdb813b3ecc
             build: |
               rustup target add aarch64-unknown-linux-musl
               cd ironfish-rust-nodejs
               yarn build --target=aarch64-unknown-linux-musl
+              ls
               aarch64-linux-musl-strip *.node
 
     name: Build ${{ matrix.settings.target }}
@@ -93,7 +95,7 @@ jobs:
         shell: bash
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-workspaces
         working-directory: ./ironfish-rust-nodejs
 
       - name: Build in Docker
@@ -139,7 +141,7 @@ jobs:
 
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
+            docker: ghcr.io/napi-rs/napi-rs/nodejs@sha256:b145122cb5e68d8133e0eef0395af490eab781a648c637e43522e7fa33e63970
 
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
@@ -168,7 +170,7 @@ jobs:
           path: ./ironfish-rust-nodejs
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-workspaces
         working-directory: ./ironfish-rust-nodejs
 
       - name: Run tests in Docker
@@ -206,7 +208,7 @@ jobs:
           cache: yarn
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-workspaces
 
       - name: Download all artifacts
         uses: actions/download-artifact@v2
