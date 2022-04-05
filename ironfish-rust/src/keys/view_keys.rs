@@ -12,16 +12,16 @@
 //! that you have spent.
 //!
 
-use super::{errors, PublicAddress, Sapling};
+use super::{errors, PublicAddress};
 use crate::serializing::{
     bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes,
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
+use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 
-use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder};
+use std::io;
 
 const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 
@@ -29,33 +29,26 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
 ///
 /// Referred to as `ivk` in the literature.
 #[derive(Clone)]
-pub struct IncomingViewKey<J: JubjubEngine + pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
-    pub(crate) view_key: J::Fs,
+pub struct IncomingViewKey {
+    pub(crate) view_key: jubjub::Fr,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
+impl IncomingViewKey {
     /// load view key from a Read implementation
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
-        reader: &mut R,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
         let view_key = read_scalar(reader)?;
-        Ok(IncomingViewKey { sapling, view_key })
+        Ok(IncomingViewKey { view_key })
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(errors::SaplingKeyError::InvalidViewingKey)
                 } else {
-                    Self::read(sapling, &mut bytes[..].as_ref())
+                    Self::read(&mut bytes[..].as_ref())
                 }
             }
         }
@@ -64,11 +57,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
     /// Load a key from a string of words to be decoded into bytes.
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
-    pub fn from_words(
-        sapling: Arc<Sapling<J>>,
-        language_code: &str,
-        value: String,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, errors::SaplingKeyError> {
         let language = Language::from_language_code(language_code)
             .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -76,7 +65,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; 32];
         byte_arr.clone_from_slice(&bytes[0..32]);
-        Self::read(sapling, &mut byte_arr[..].as_ref())
+        Self::read(&mut byte_arr[..].as_ref())
     }
 
     /// Viewing key as hexadecimal, for readability.
@@ -102,7 +91,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
     pub fn public_address(
         &self,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         PublicAddress::from_view_key(self, diversifier)
     }
 
@@ -111,7 +100,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
     ///
     /// This method always succeeds, retrying with a different diversifier if
     /// one doesn't work.
-    pub fn generate_public_address(&self) -> PublicAddress<J> {
+    pub fn generate_public_address(&self) -> PublicAddress {
         let public_address;
         loop {
             let mut diversifier_candidate = [0u8; 11];
@@ -127,16 +116,8 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
 
     /// Calculate the shared secret key given the ephemeral public key that was
     /// created for a transaction.
-    pub(crate) fn shared_secret(
-        &self,
-        ephemeral_public_key: &edwards::Point<J, PrimeOrder>,
-    ) -> [u8; 32] {
-        shared_secret(
-            &self.sapling.jubjub,
-            &self.view_key,
-            ephemeral_public_key,
-            ephemeral_public_key,
-        )
+    pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {
+        shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
 }
 
@@ -144,17 +125,13 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> IncomingViewKey<J> {
 ///
 /// Referred to as `ovk` in the literature.
 #[derive(Clone)]
-pub struct OutgoingViewKey<J: JubjubEngine + pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
+pub struct OutgoingViewKey {
     pub(crate) view_key: [u8; 32],
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
+impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
@@ -163,7 +140,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
                 } else {
                     let mut view_key = [0; 32];
                     view_key.clone_from_slice(&bytes[0..32]);
-                    Ok(Self { sapling, view_key })
+                    Ok(Self { view_key })
                 }
             }
         }
@@ -172,11 +149,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
     /// Load a key from a string of words to be decoded into bytes.
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
-    pub fn from_words(
-        sapling: Arc<Sapling<J>>,
-        language_code: &str,
-        value: String,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, errors::SaplingKeyError> {
         let language = Language::from_language_code(language_code)
             .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -184,7 +157,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
         let bytes = mnemonic.entropy();
         let mut view_key = [0; 32];
         view_key.clone_from_slice(&bytes[0..32]);
-        Ok(Self { sapling, view_key })
+        Ok(Self { view_key })
     }
 
     /// Viewing key as hexadecimal, for readability.
@@ -204,9 +177,9 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> OutgoingViewKey<J> {
 /// Pair of outgoing and incoming view keys for a complete audit
 /// of spends and receipts
 #[derive(Clone)]
-pub struct ViewKeys<J: JubjubEngine + pairing::MultiMillerLoop> {
-    pub incoming: IncomingViewKey<J>,
-    pub outgoing: OutgoingViewKey<J>,
+pub struct ViewKeys {
+    pub incoming: IncomingViewKey,
+    pub outgoing: OutgoingViewKey,
 }
 
 /// Derive a shared secret key from a secret key and the other person's public
@@ -236,13 +209,12 @@ pub struct ViewKeys<J: JubjubEngine + pairing::MultiMillerLoop> {
 ///     key (bob's public key) to get the final shared secret
 ///
 /// The resulting key can be used in any symmetric cipher
-pub(crate) fn shared_secret<J: JubjubEngine + pairing::MultiMillerLoop>(
-    jubjub: &J::Params,
-    secret_key: &J::Fs,
-    other_public_key: &edwards::Point<J, PrimeOrder>,
-    reference_public_key: &edwards::Point<J, PrimeOrder>,
+pub(crate) fn shared_secret(
+    secret_key: &jubjub::Fr,
+    other_public_key: &SubgroupPoint,
+    reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
-    let shared_secret = point_to_bytes(&other_public_key.mul(*secret_key, jubjub))
+    let shared_secret = point_to_bytes(&(other_public_key * secret_key))
         .expect("should be able to convert point to bytes");
     let reference_bytes =
         point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");

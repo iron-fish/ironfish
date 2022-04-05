@@ -1,9 +1,9 @@
 [package]
-name = "ironfish_rust"
-version = "0.1.0"
 authors = ["Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
 edition = "2018"
 license = "MPL-2.0"
+name = "ironfish_rust"
+version = "0.1.0"
 
 [lib]
 name = "ironfish_rust"
@@ -15,18 +15,23 @@ native = ["bellman/multicore", "zcash_proofs/multicore"]
 wasm = ["rand/wasm-bindgen"]
 
 [dependencies]
-zcash_primitives = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
-zcash_proofs = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84"}
-bellman = {git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.6", default-features = false, features = ["groth16"]}
-pairing = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.16", features = ["expose-arith"]}
-ff = { git = "https://github.com/iron-fish/librustzcash.git", rev = "8186d84", version = "0.6"}
+bls12_381 = "0.3.1"
+bellman = { version = "0.8", default-features = false, features = ["groth16"]}
+ff = "0.8"
+group = "0.8"
+jubjub = "0.5.1"
+zcash_primitives = "0.5"
+zcash_proofs = "0.5"
+
 byteorder = "1.3.1"
 lazy_static = "1.4.0"
-# in favor of rust-crypto as this one is wasm friendly
-rust-crypto-wasm="0.3.1"
-rand = {version = "0.7"}
-shrinkwraprs = "0.2.1"
-tiny-bip39 = "0.8.0"
 blake2b_simd = "0.5"
 blake2s_simd = "0.5"
 blake3 = "1.3.0"
+rand = "0.7"
+rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
+shrinkwraprs = "0.2.1"
+tiny-bip39 = "0.8.0"
+
+[patch.crates-io]
+bellman = { git = "https://github.com/iron-fish/bellman", rev = "368a62fb1821eaae495c60ada82d85faaea8b616" }

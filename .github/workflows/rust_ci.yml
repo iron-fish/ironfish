@@ -1,18 +1,18 @@
 on:
   pull_request:
     paths:
-      - 'ironfish-rust/**'
-      - 'ironfish-rust-nodejs/**'
-      - 'ironfish-rust-wasm/**'
-      - 'rust-toolchain'
+      - "ironfish-rust/**"
+      - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-wasm/**"
+      - "rust-toolchain"
   push:
     branches:
       - master
     paths:
-    - 'ironfish-rust/**'
-    - 'ironfish-rust-nodejs/**'
-    - 'ironfish-rust-wasm/**'
-    - 'rust-toolchain'
+      - "ironfish-rust/**"
+      - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-wasm/**"
+      - "rust-toolchain"
 
 name: Rust CI
 
@@ -39,8 +39,8 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.15.0'
-          args: --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
+          version: "0.20.0"
+          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
@@ -85,8 +85,8 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust-nodejs
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.15.0'
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml --release -- --test-threads 1
+          version: "0.20.0"
+          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-nodejs/Cargo.toml --release -- --test-threads 1
 
       # upload code coverage to Codecov
       - name: Upload to codecov.io
@@ -129,8 +129,8 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust-wasm
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.15.0'
-          args: --manifest-path ironfish-rust-wasm/Cargo.toml --release -- --test-threads 1
+          version: "0.20.0"
+          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-wasm/Cargo.toml --release -- --test-threads 1
 
       # upload code coverage to Codecov
       - name: Upload to codecov.io

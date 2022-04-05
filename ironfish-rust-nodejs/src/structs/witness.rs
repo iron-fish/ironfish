@@ -9,7 +9,7 @@ use napi::bindgen_prelude::*;
 use napi::Env;
 use napi::JsObject;
 
-use ironfish_rust::sapling_bls12::{Bls12, Fr, MerkleNoteHash};
+use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 pub struct JsWitness {
@@ -20,7 +20,7 @@ pub struct JsWitness {
 /// Implements WitnessTrait on JsWitness so that witnesses from the
 /// TypeScript side can be passed into classes that require witnesses,
 /// like transactions.
-impl WitnessTrait<Bls12> for JsWitness {
+impl WitnessTrait for JsWitness {
     fn verify(&self, hash: &MerkleNoteHash) -> bool {
         let f: JsFunction = self.obj.get("verify").unwrap().unwrap();
 
@@ -40,7 +40,7 @@ impl WitnessTrait<Bls12> for JsWitness {
             .unwrap()
     }
 
-    fn get_auth_path(&self) -> Vec<WitnessNode<Fr>> {
+    fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>> {
         let f: JsFunction = self.obj.get("authPath").unwrap().unwrap();
 
         let args: &[napi::JsBuffer; 0] = &[];
@@ -52,7 +52,7 @@ impl WitnessTrait<Bls12> for JsWitness {
 
         let len = arr.get_array_length().unwrap();
 
-        let mut witness_nodes: Vec<WitnessNode<Fr>> = vec![];
+        let mut witness_nodes: Vec<WitnessNode<Scalar>> = vec![];
 
         for i in 0..len {
             let element: JsObject = arr.get_element(i).unwrap();
@@ -90,7 +90,7 @@ impl WitnessTrait<Bls12> for JsWitness {
         witness_nodes
     }
 
-    fn root_hash(&self) -> Fr {
+    fn root_hash(&self) -> Scalar {
         let f: JsFunction = self.obj.get("serializeRootHash").unwrap().unwrap();
 
         let args: &[napi::JsBuffer; 0] = &[];

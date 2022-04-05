@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
-import { generateKey } from '@ironfish/rust-nodejs'
+import { initializeSapling } from '@ironfish/rust-nodejs'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
@@ -106,7 +106,7 @@ export class Worker {
     this.parent.on('message', this.onMessageFromParent)
 
     // Trigger loading of Sapling parameters if we're in a worker thread
-    generateKey()
+    initializeSapling()
   }
 
   private onMessageFromParent = (request: WorkerRequestMessage): void => {
