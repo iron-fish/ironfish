@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
-import { DEFAULT_DATA_DIR } from './fileStore'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'
+export const DEFAULT_DATA_DIR = '~/.ironfish'
 export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
