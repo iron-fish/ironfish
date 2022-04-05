@@ -45,10 +45,10 @@ export class GetBlocksRequest extends RpcNetworkMessage {
 
   getSize(): number {
     let size = 0
-    if (typeof this.start === 'number') {
-      size += 1 + 8
-    } else {
+    if (typeof this.start === 'string') {
       size += 1 + bufio.sizeVarString(this.start)
+    } else {
+      size += 1 + 8
     }
     return size + 8
   }
