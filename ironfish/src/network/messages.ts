@@ -17,8 +17,6 @@ import { NetworkMessage } from './messages/networkMessage'
  * and message routing types such as gossip, directRPC, and globalRPC.
  */
 export enum InternalMessageType {
-  identity = 'identity',
-  peerListRequest = 'peerListRequest',
   cannotSatisfyRequest = 'cannotSatisfyRequest',
 }
 
@@ -77,18 +75,6 @@ export function parseMessage(data: string): Message<MessageType, PayloadType> {
     throw new Error('Message must have a type field')
   }
   return message
-}
-
-/**
- * A message used to request a peer list from another peer.
- *
- * The referring peer will respond with a PeerList message,
- * which contains information about their connected peers.
- */
-export type PeerListRequest = Message<InternalMessageType.peerListRequest>
-
-export function isPeerListRequest(obj: unknown): obj is PeerListRequest {
-  return isMessage(obj) && obj.type === InternalMessageType.peerListRequest
 }
 
 /**

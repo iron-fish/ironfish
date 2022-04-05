@@ -15,18 +15,12 @@ import {
   Identity,
   isIdentity,
 } from '../identity'
-import {
-  IncomingPeerMessage,
-  InternalMessageType,
-  isMessage,
-  isPeerListRequest,
-  LooseMessage,
-  PeerListRequest,
-} from '../messages'
+import { IncomingPeerMessage, isMessage, LooseMessage } from '../messages'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
 import { NetworkMessage } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
+import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import { parseUrl } from '../utils'
@@ -730,7 +724,7 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
-        peer.send({ type: InternalMessageType.peerListRequest })
+        peer.send(new PeerListRequestMessage())
       }
     })
 
@@ -795,9 +789,7 @@ export class PeerManager {
   }
 
   private requestPeerList() {
-    const peerListRequest: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
-    }
+    const peerListRequest = new PeerListRequestMessage()
 
     for (const peer of this.getConnectedPeers()) {
       peer.send(peerListRequest)
@@ -895,6 +887,8 @@ export class PeerManager {
         this.handleSignalRequestMessage(peer, connection, message)
       } else if (message instanceof PeerListMessage) {
         this.handlePeerListMessage(message, peer)
+      } else if (message instanceof PeerListRequestMessage) {
+        this.handlePeerListRequestMessage(peer)
       } else {
         if (peer.state.identity === null) {
           const messageType = message.type
@@ -909,19 +903,15 @@ export class PeerManager {
       return
     }
 
-    if (isPeerListRequest(message)) {
-      this.handlePeerListRequestMessage(peer)
-    } else {
-      if (peer.state.identity === null) {
-        const messageType = isMessage(message) ? message.type : 'Unknown'
-        this.logger.debug(
-          `Closing connection to unidentified peer that sent an unexpected message: ${messageType}`,
-        )
-        peer.close()
-        return
-      }
-      this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
+    if (peer.state.identity === null) {
+      const messageType = isMessage(message) ? message.type : 'Unknown'
+      this.logger.debug(
+        `Closing connection to unidentified peer that sent an unexpected message: ${messageType}`,
+      )
+      peer.close()
+      return
     }
+    this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
   }
 
   private handleIdentifyMessage(

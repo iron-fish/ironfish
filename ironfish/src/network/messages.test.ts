@@ -5,24 +5,12 @@
 import {
   GetBlockHashesRequest,
   GetBlockHashesResponse,
-  InternalMessageType,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
   isMessage,
-  isPeerListRequest,
   NodeMessageType,
   parseMessage,
-  PeerListRequest,
 } from './messages'
-
-describe('isPeerListRequest', () => {
-  it('Retuns true on peerlist request message', () => {
-    const msg: PeerListRequest = {
-      type: InternalMessageType.peerListRequest,
-    }
-    expect(isPeerListRequest(msg)).toBeTruthy()
-  })
-})
 
 describe('parseMessage', () => {
   it('Throws error when no type field found in the json', () => {
