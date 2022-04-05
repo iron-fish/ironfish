@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
-import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -95,7 +95,7 @@ export class IronfishSdk {
 
     logger = logger.withTag('ironfishsdk')
 
-    const config = new Config(fileSystem, dataDir, configName)
+    const config = new Config(fileSystem, dataDir || DEFAULT_DATA_DIR, configName)
     await config.load()
 
     const internal = new InternalStore(fileSystem, dataDir)

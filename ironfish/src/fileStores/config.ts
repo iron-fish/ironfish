@@ -191,12 +191,12 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(
       files,
       configName || DEFAULT_CONFIG_NAME,
-      Config.GetDefaults(files, dataDir || DEFAULT_DATA_DIR),
-      dataDir || DEFAULT_DATA_DIR,
+      Config.GetDefaults(files, dataDir),
+      dataDir,
       ConfigOptionsSchema,
     )
   }
@@ -224,7 +224,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableTelemetry: false,
       enableMetrics: true,
       getFundsApi: DEFAULT_GET_FUNDS_API,
-      ipcPath: files.resolve(files.join(dataDir || DEFAULT_DATA_DIR, 'ironfish.ipc')),
+      ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
       logPrefix: '',
