@@ -4,14 +4,8 @@
 
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
-import {
-  IncomingPeerMessage,
-  InternalMessageType,
-  isMessage,
-  Message,
-  MessageType,
-  PayloadType,
-} from '../messages'
+import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
+import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Connection } from '../peers/connections/connection'
 import { NetworkError } from '../peers/connections/errors'
@@ -61,10 +55,6 @@ export function isRpc(obj: unknown): obj is Rpc<MessageType, PayloadType> {
     return false
   }
   const rpc = obj as Rpc<MessageType, Record<string, unknown>>
-
-  if (rpc.type === InternalMessageType.cannotSatisfyRequest) {
-    return rpc.payload === undefined
-  }
 
   return (
     (rpc.direction === Direction.Request || rpc.direction === Direction.Response) &&
@@ -266,11 +256,7 @@ export class RpcRouter extends MessageRouter {
         if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {
           this.logger.error(`Unexpected error in ${rpcMessage.type} handler: ${String(error)}`)
         }
-        responseMessage = {
-          rpcId: rpcId,
-          direction: Direction.Response,
-          type: InternalMessageType.cannotSatisfyRequest,
-        }
+        responseMessage = new CannotSatisfyRequest(rpcId)
       }
 
       if (peer.state.type === 'CONNECTED') {

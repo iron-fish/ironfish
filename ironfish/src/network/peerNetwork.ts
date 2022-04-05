@@ -39,7 +39,6 @@ import {
   GetBlockHashesRequest,
   GetBlockHashesResponse,
   IncomingPeerMessage,
-  InternalMessageType,
   isGetBlockHashesRequest,
   isGetBlockHashesResponse,
   isNewBlockPayload,
@@ -628,9 +627,15 @@ export class PeerNetwork {
       if (!(message instanceof RpcNetworkMessage)) {
         throw new Error('Invalid message')
       }
-      const style = this.routingStyles.get(message.type)
+
+      let style = this.routingStyles.get(message.type)
       if (style === undefined) {
-        throw new Error('Not implemented')
+        if (message.type === NetworkMessageType.CannotSatisfyRequest) {
+          style = RoutingStyle.globalRPC
+        } else {
+          this.logger.warn('Received unknown message type', message.type)
+          return
+        }
       }
 
       switch (style) {
@@ -644,14 +649,10 @@ export class PeerNetwork {
       return
     }
 
-    let style = this.routingStyles.get(message.type)
+    const style = this.routingStyles.get(message.type)
     if (style === undefined) {
-      if (message.type === InternalMessageType.cannotSatisfyRequest) {
-        style = RoutingStyle.globalRPC
-      } else {
-        this.logger.warn('Received unknown message type', message.type)
-        return
-      }
+      this.logger.warn('Received unknown message type', message.type)
+      return
     }
 
     switch (style) {
