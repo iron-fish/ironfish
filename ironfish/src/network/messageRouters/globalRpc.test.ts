@@ -7,7 +7,8 @@ jest.mock('ws')
 
 import '../testUtilities'
 import { mocked } from 'ts-jest/utils'
-import { InternalMessageType, MessageType } from '../messages'
+import { MessageType } from '../messages'
+import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
 import { PeerManager } from '../peers/peerManager'
 import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
 import { GlobalRpcRouter } from './globalRpc'
@@ -241,12 +242,7 @@ describe('Global Rpc', () => {
     mocked(nextRpcId).mockReturnValueOnce(34).mockReturnValueOnce(11)
     const promise = router.request({ type: 'test', payload: { test: 'payload' } })
 
-    await router.handle(peer1, {
-      rpcId: 34,
-      direction: Direction.Response,
-      type: InternalMessageType.cannotSatisfyRequest,
-      payload: {},
-    })
+    await router.handle(peer1, new CannotSatisfyRequest(34))
 
     void router.handle(peer2, {
       rpcId: 11,

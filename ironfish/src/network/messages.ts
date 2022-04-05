@@ -10,17 +10,7 @@ import { Identity } from './identity'
 import { Gossip } from './messageRouters'
 import { NetworkMessage } from './messages/networkMessage'
 
-/**
- * The type of the message for the purposes of routing within our code.
- * This includes messages consumed by our connection and peer manager layer,
- * such as identity, signal, and peerList,
- * and message routing types such as gossip, directRPC, and globalRPC.
- */
-export enum InternalMessageType {
-  cannotSatisfyRequest = 'cannotSatisfyRequest',
-}
-
-export type MessageType = InternalMessageType | string
+export type MessageType = string
 export type PayloadType = Record<string, unknown> | undefined
 /**
  * Used for functions that don't care about the contents of the message.

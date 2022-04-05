@@ -4,6 +4,7 @@
 
 jest.mock('./rpcId')
 import { mocked } from 'ts-jest/utils'
+import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
 import { NetworkError } from '../peers/connections/errors'
 import { PeerManager } from '../peers/peerManager'
 import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
@@ -156,8 +157,9 @@ describe('RPC Router', () => {
     router.register('test', handlerMock)
 
     const { peer } = getConnectedPeer(peers)
+    const rpcId = 18
     await router.handle(peer, {
-      rpcId: 18,
+      rpcId,
       direction: Direction.Request,
       type: 'test',
       payload: { test: 'payload' },
@@ -165,12 +167,6 @@ describe('RPC Router', () => {
 
     expect(router['requests'].size).toBe(0)
     expect(sendToMock).toBeCalledTimes(1)
-    expect(sendToMock).toHaveBeenCalledWith(
-      peer,
-      expect.objectContaining({
-        direction: Direction.Response,
-        type: 'cannotSatisfyRequest',
-      }),
-    )
+    expect(sendToMock).toHaveBeenCalledWith(peer, new CannotSatisfyRequest(rpcId))
   })
 })

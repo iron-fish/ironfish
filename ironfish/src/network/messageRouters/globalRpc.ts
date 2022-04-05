@@ -4,13 +4,7 @@
 
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
-import {
-  IncomingPeerMessage,
-  InternalMessageType,
-  Message,
-  MessageType,
-  PayloadType,
-} from '../messages'
+import { IncomingPeerMessage, Message, MessageType, PayloadType } from '../messages'
 import { NetworkMessageType } from '../messages/networkMessage'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Peer } from '../peers/peer'
@@ -112,7 +106,7 @@ export class GlobalRpcRouter {
 
       try {
         const response = await this.rpcRouter.requestFrom(peer, { ...message })
-        if (response.message.type !== InternalMessageType.cannotSatisfyRequest) {
+        if (response.message.type !== NetworkMessageType.CannotSatisfyRequest) {
           this.requestFails.get(peerIdentity)?.delete(message.type)
           return response
         }
@@ -135,7 +129,10 @@ export class GlobalRpcRouter {
    * some data or an incoming repsonse. Either way, we just forward it to the
    * RPC handler.
    */
-  async handle(peer: Peer, rpcMessage: IncomingRpcPeerMessage['message']): Promise<void> {
+  async handle(
+    peer: Peer,
+    rpcMessage: IncomingRpcPeerMessage['message'] | RpcNetworkMessage,
+  ): Promise<void> {
     await this.rpcRouter.handle(peer, rpcMessage)
   }
 
