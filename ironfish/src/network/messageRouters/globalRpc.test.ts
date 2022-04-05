@@ -151,7 +151,7 @@ describe('Global Rpc', () => {
       message: {
         type: 'test',
         rpcId: 0,
-        direction: Direction.request,
+        direction: Direction.Request,
         payload: { test: 'payload' },
       },
     })
@@ -212,7 +212,7 @@ describe('Global Rpc', () => {
 
     const response = {
       rpcId: 16,
-      direction: Direction.response,
+      direction: Direction.Response,
       type: 'test',
       payload: { response: 'payload' },
     }
@@ -243,14 +243,14 @@ describe('Global Rpc', () => {
 
     await router.handle(peer1, {
       rpcId: 34,
-      direction: Direction.response,
+      direction: Direction.Response,
       type: InternalMessageType.cannotSatisfyRequest,
       payload: {},
     })
 
     void router.handle(peer2, {
       rpcId: 11,
-      direction: Direction.response,
+      direction: Direction.Response,
       type: 'test',
       payload: { response: 'payload' },
     })
@@ -259,7 +259,7 @@ describe('Global Rpc', () => {
       peerIdentity: peer2.getIdentityOrThrow(),
       message: {
         rpcId: 11,
-        direction: Direction.response,
+        direction: Direction.Response,
         type: 'test',
         payload: { response: 'payload' },
       },

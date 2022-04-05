@@ -103,7 +103,7 @@ describe('RPC Router', () => {
 
     await router.handle(peer, {
       rpcId: 91,
-      direction: Direction.response,
+      direction: Direction.Response,
       type: 'test',
       payload: { response: 'payload' },
     })
@@ -129,7 +129,7 @@ describe('RPC Router', () => {
 
     const response = {
       rpcId: 91,
-      direction: Direction.response,
+      direction: Direction.Response,
       type: 'test',
       payload: { response: 'payload' },
     }
@@ -158,7 +158,7 @@ describe('RPC Router', () => {
     const { peer } = getConnectedPeer(peers)
     await router.handle(peer, {
       rpcId: 18,
-      direction: Direction.request,
+      direction: Direction.Request,
       type: 'test',
       payload: { test: 'payload' },
     })
@@ -168,7 +168,7 @@ describe('RPC Router', () => {
     expect(sendToMock).toHaveBeenCalledWith(
       peer,
       expect.objectContaining({
-        direction: Direction.response,
+        direction: Direction.Response,
         type: 'cannotSatisfyRequest',
       }),
     )
