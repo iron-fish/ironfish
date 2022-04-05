@@ -11,6 +11,7 @@ import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { LooseMessage } from '../../messages'
+import { CannotSatisfyRequest } from '../../messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from '../../messages/disconnecting'
 import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
@@ -245,13 +246,18 @@ export abstract class Connection {
   }
 
   private isRpcNetworkMessageType(type: NetworkMessageType): boolean {
-    return [NetworkMessageType.GetBlocksRequest, NetworkMessageType.GetBlocksResponse].includes(
-      type,
-    )
+    return [
+      NetworkMessageType.CannotSatisfyRequest,
+      NetworkMessageType.GetBlocksRequest,
+      NetworkMessageType.GetBlocksResponse,
+    ].includes(type)
   }
 
   private parseBody({ rpcId, type, body }: NetworkMessageHeader): NetworkMessage {
     switch (type) {
+      case NetworkMessageType.CannotSatisfyRequest:
+        Assert.isNotUndefined(rpcId)
+        return CannotSatisfyRequest.deserialize(rpcId)
       case NetworkMessageType.Disconnecting:
         return DisconnectingMessage.deserialize(body)
       case NetworkMessageType.GetBlocksRequest:
