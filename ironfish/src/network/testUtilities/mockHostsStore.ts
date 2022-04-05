@@ -51,7 +51,7 @@ class MockFileSystem extends FileSystem {
 
 class MockHostsStore extends HostsStore {
   constructor() {
-    super(new MockFileSystem())
+    super(new MockFileSystem(), "~/.ironfish")
     super.set('priorPeers', [
       {
         address: '127.0.0.1',
