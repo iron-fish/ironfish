@@ -4,6 +4,7 @@
 import { NetworkMessageType } from '../networkMessage'
 
 export interface NetworkMessageHeader {
-  type: NetworkMessageType
   body: Buffer
+  type: NetworkMessageType
+  rpcId?: number
 }

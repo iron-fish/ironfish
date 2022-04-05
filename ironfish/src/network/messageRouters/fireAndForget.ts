@@ -11,6 +11,7 @@ import {
 } from '../messages'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
+import { MessageRouter } from './messageRouter'
 
 export type IncomingFireAndForgetGeneric<T extends MessageType> = IncomingPeerMessage<
   Message<T, PayloadType>
@@ -22,7 +23,7 @@ export type IncomingFireAndForgetPeerMessage = IncomingFireAndForgetGeneric<Mess
  * Trivial router for sending a message to a connected peer without
  * expecting a response or receipt confirmation.
  */
-export class FireAndForgetRouter {
+export class FireAndForgetRouter extends MessageRouter {
   peerManager: PeerManager
   private handlers: Map<
     MessageType,
@@ -30,6 +31,7 @@ export class FireAndForgetRouter {
   >
 
   constructor(peerManager: PeerManager) {
+    super()
     this.peerManager = peerManager
     this.handlers = new Map<
       MessageType,

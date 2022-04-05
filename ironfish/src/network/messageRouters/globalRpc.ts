@@ -4,7 +4,15 @@
 
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
-import { InternalMessageType, Message, MessageType, PayloadType } from '../messages'
+import {
+  IncomingPeerMessage,
+  InternalMessageType,
+  Message,
+  MessageType,
+  PayloadType,
+} from '../messages'
+import { NetworkMessageType } from '../messages/networkMessage'
+import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Peer } from '../peers/peer'
 import {
   CannotSatisfyRequestError,
@@ -70,6 +78,15 @@ export class GlobalRpcRouter {
     })
   }
 
+  _register(
+    type: NetworkMessageType,
+    handler: (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>,
+  ): void {
+    this.rpcRouter._register(type, async (message: IncomingPeerMessage<RpcNetworkMessage>) => {
+      return await handler(message)
+    })
+  }
+
   /**
    * Make the RPC request to a randomly selected connected peer, and return the
    * response. Retries if the peer times out or does not have the necessary data.
@@ -82,7 +99,7 @@ export class GlobalRpcRouter {
   async request(
     message: Message<MessageType, Record<string, unknown>>,
     toPeer?: Identity,
-  ): Promise<IncomingRpcPeerMessage> {
+  ): Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>> {
     for (let i = 0; i < RETRIES; i++) {
       const peer = this.selectPeer(message.type, toPeer)
 
