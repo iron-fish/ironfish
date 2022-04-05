@@ -48,6 +48,11 @@ pub fn generate_new_public_address(private_key: String) -> Result<Key> {
     })
 }
 
+#[napi]
+pub fn initialize_sapling() {
+    let _ = sapling_bls12::SAPLING.clone();
+}
+
 #[napi(constructor)]
 pub struct FoundBlockResult {
     pub randomness: f64,
