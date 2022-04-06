@@ -36,11 +36,7 @@ import {
 } from './messageRouters'
 import { nextRpcId } from './messageRouters/rpcId'
 import {
-  GetBlockHashesRequest,
-  GetBlockHashesResponse,
   IncomingPeerMessage,
-  isGetBlockHashesRequest,
-  isGetBlockHashesResponse,
   isNewBlockPayload,
   isNewTransactionPayload,
   LooseMessage,
@@ -52,6 +48,7 @@ import {
   PayloadType,
 } from './messages'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
+import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import { NetworkMessage, NetworkMessageType } from './messages/networkMessage'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
@@ -247,14 +244,18 @@ export class PeerNetwork {
       )
     }
 
-    this.registerHandler(
-      NodeMessageType.GetBlockHashes,
+    this._registerHandler(
+      NetworkMessageType.GetBlockHashesRequest,
       RoutingStyle.directRPC,
       (p) => {
-        return isGetBlockHashesRequest(p) ? Promise.resolve(p) : Promise.reject()
+        if (p instanceof GetBlockHashesRequest) {
+          return Promise.resolve(p)
+        }
+        return Promise.reject()
       },
       (message) => this.onGetBlockHashesRequest(message),
     )
+    this.routingStyles.set(NetworkMessageType.GetBlockHashesResponse, RoutingStyle.directRPC)
 
     this._registerHandler(
       NetworkMessageType.GetBlocksRequest,
@@ -575,25 +576,15 @@ export class PeerNetwork {
   async getBlockHashes(peer: Peer, start: Buffer | number, limit: number): Promise<Buffer[]> {
     const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
 
-    const message = {
-      type: NodeMessageType.GetBlockHashes,
-      payload: {
-        start: origin,
-        limit: limit,
-      },
-    } as GetBlockHashesRequest
-
+    const message = new GetBlockHashesRequest(origin, limit, nextRpcId())
     const response = await this.requestFrom(peer, message)
 
-    if (
-      response.message instanceof RpcNetworkMessage ||
-      !isGetBlockHashesResponse(response.message)
-    ) {
+    if (!(response.message instanceof GetBlockHashesResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
     }
 
-    return response.message.payload.blocks.map((hash) => Buffer.from(hash, 'hex'))
+    return response.message.blocks.map((hash) => Buffer.from(hash, 'hex'))
   }
 
   async getBlocks(
@@ -709,36 +700,35 @@ export class PeerNetwork {
   }
 
   private async onGetBlockHashesRequest(
-    request: IncomingPeerMessage<
-      Rpc<NodeMessageType.GetBlockHashes, GetBlockHashesRequest['payload']>
-    >,
-  ): Promise<GetBlockHashesResponse['payload']> {
+    request: IncomingPeerMessage<GetBlocksRequest>,
+  ): Promise<GetBlockHashesResponse> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+    const rpcId = request.message.rpcId
 
-    if (request.message.payload.limit <= 0) {
+    if (request.message.limit <= 0) {
       peer.punish(
         BAN_SCORE.LOW,
-        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
       )
-      return { blocks: [] }
+      return new GetBlockHashesResponse([], rpcId)
     }
 
-    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
+    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
       peer.punish(
         BAN_SCORE.MAX,
-        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
       )
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
       throw error
     }
 
     const message = request.message
-    const start = message.payload.start
-    const limit = message.payload.limit
+    const start = message.start
+    const limit = message.limit
 
     const from = await this.resolveSequenceOrHash(start)
     if (!from) {
-      return { blocks: [] }
+      return new GetBlockHashesResponse([], rpcId)
     }
 
     const hashes = []
@@ -751,8 +741,7 @@ export class PeerNetwork {
     }
 
     const serialized = hashes.map((h) => h.toString('hex'))
-
-    return { blocks: serialized }
+    return new GetBlockHashesResponse(serialized, rpcId)
   }
 
   private async onGetBlocksRequest(

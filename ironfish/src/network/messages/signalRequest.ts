@@ -21,7 +21,7 @@ export class SignalRequestMessage extends NetworkMessage {
   readonly destinationIdentity: Identity
 
   constructor({ destinationIdentity, sourceIdentity }: CreateSignalRequestMessageOptions) {
-    super(NetworkMessageType.Signal)
+    super(NetworkMessageType.SignalRequest)
     this.destinationIdentity = destinationIdentity
     this.sourceIdentity = sourceIdentity
   }

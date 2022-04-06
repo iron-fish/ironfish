@@ -117,9 +117,6 @@ export class RpcRouter extends MessageRouter {
     message: Message<MessageType, Record<string, unknown>> | RpcNetworkMessage,
   ): Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>> {
     const rpcId = nextRpcId()
-    if (typeof rpcId !== 'number') {
-      throw new Error(`rpcId mocked: ${typeof rpcId}`)
-    }
 
     return new Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>>(
       (resolve, reject) => {
