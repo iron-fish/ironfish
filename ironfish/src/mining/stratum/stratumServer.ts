@@ -59,7 +59,8 @@ export class StratumServer {
   readonly config: Config
   readonly logger: Logger
 
-  private port: number
+  readonly port: number
+  readonly host: string
 
   clients: Map<number, StratumServerClient>
   nextMinerId: number
@@ -68,12 +69,19 @@ export class StratumServer {
   currentWork: Buffer | null = null
   currentMiningRequestId: number | null = null
 
-  constructor(options: { pool: MiningPool; config: Config; logger?: Logger }) {
+  constructor(options: {
+    pool: MiningPool
+    config: Config
+    logger?: Logger
+    port?: number
+    host?: string
+  }) {
     this.pool = options.pool
     this.config = options.config
     this.logger = options.logger ?? createRootLogger()
 
-    this.port = this.config.get('poolPort')
+    this.host = options.host ?? this.config.get('poolHost')
+    this.port = options.port ?? this.config.get('poolPort')
 
     this.clients = new Map()
     this.nextMinerId = 0
@@ -83,7 +91,7 @@ export class StratumServer {
   }
 
   start(): void {
-    this.server.listen(this.port, 'localhost')
+    this.server.listen(this.port, this.host)
   }
 
   stop(): void {
@@ -120,12 +128,14 @@ export class StratumServer {
 
     socket.on('close', () => this.onDisconnect(client))
 
-    this.logger.info(`Client ${client.id} connected:`, socket.remoteAddress)
+    socket.on('error', (e) => this.onError(client, e))
+
+    this.logger.debug(`Client ${client.id} connected:`, socket.remoteAddress)
     this.clients.set(client.id, client)
   }
 
   private onDisconnect(client: StratumServerClient): void {
-    this.logger.info(`Client ${client.id} disconnected`)
+    this.logger.debug(`Client ${client.id} disconnected`)
     client.socket.removeAllListeners()
     this.clients.delete(client.id)
   }
@@ -163,9 +173,12 @@ export class StratumServer {
             )
           }
 
-          const graffiti = `${this.pool.name}.${client.id.toString(16)}`
+          const idHex = client.id.toString(16)
+          const graffiti = `${this.pool.name}.${idHex}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
+
+          this.logger.info(`Miner ${idHex} connected`)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
@@ -202,7 +215,7 @@ export class StratumServer {
   }
 
   private onError(client: StratumServerClient, error: unknown): void {
-    this.logger.warn(
+    this.logger.debug(
       `Error during handling of data from client ${client.id}: ${ErrorUtils.renderError(
         error,
         true,

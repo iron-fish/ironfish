@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  initializeSapling,
   generateKey,
   generateNewPublicAddress,
   Note,
@@ -14,7 +15,7 @@ import {
 describe('Demonstrate the Sapling API', () => {
   beforeAll(async () => {
     // Pay the cost of setting up Sapling outside of any test
-    generateKey()
+    initializeSapling()
   })
 
   it('Should generate a key', () => {

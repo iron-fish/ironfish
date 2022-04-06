@@ -25,8 +25,7 @@ pub struct Key {
 
 #[napi]
 pub fn generate_key() -> Key {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::generate_key(hasher);
+    let sapling_key = sapling_bls12::Key::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -38,8 +37,7 @@ pub fn generate_key() -> Key {
 
 #[napi]
 pub fn generate_new_public_address(private_key: String) -> Result<Key> {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::from_hex(hasher, &private_key)
+    let sapling_key = sapling_bls12::Key::from_hex(&private_key)
         .map_err(|err| Error::from_reason(err.to_string()))?;
 
     Ok(Key {
@@ -50,6 +48,11 @@ pub fn generate_new_public_address(private_key: String) -> Result<Key> {
     })
 }
 
+#[napi]
+pub fn initialize_sapling() {
+    let _ = sapling_bls12::SAPLING.clone();
+}
+
 #[napi(constructor)]
 pub struct FoundBlockResult {
     pub randomness: f64,
@@ -58,11 +61,13 @@ pub struct FoundBlockResult {
 
 #[napi]
 struct ThreadPoolHandler {
+    #[allow(dead_code)]
     threadpool: mining::threadpool::ThreadPool,
 }
 #[napi]
 impl ThreadPoolHandler {
     #[napi(constructor)]
+    #[allow(dead_code)]
     pub fn new(thread_count: u32, batch_size: u32) -> Self {
         ThreadPoolHandler {
             threadpool: mining::threadpool::ThreadPool::new(thread_count as usize, batch_size),
@@ -70,22 +75,26 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32) {
         self.threadpool
             .new_work(&header_bytes, &target, mining_request_id)
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn stop(&self) {
         self.threadpool.stop()
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn pause(&self) {
         self.threadpool.pause()
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
             return Some(FoundBlockResult {
@@ -97,6 +106,7 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
+    #[allow(dead_code)]
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
     }

@@ -59,7 +59,7 @@ cp -R ../../build ./
 echo "Copying node_modules"
 # Exclude fsevents to fix brew audit error:
 # "Binaries built for a non-native architecture were installed into ironfish's prefix"
-rsync -L -avrq --exclude='ironfish-cli' --exclude 'fsevents' ../../../node_modules ./
+rsync -L -avrq --exclude 'ironfish' --exclude 'fsevents' ../../../node_modules ./
 # Copy node_modules from ironfish-cli folder into the production node_modules folder
 # yarn --production seems to split some packages into different folders for some reason
 cp -R ../../node_modules/* ./node_modules

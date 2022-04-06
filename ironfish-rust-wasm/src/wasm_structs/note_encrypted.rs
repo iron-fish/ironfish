@@ -19,9 +19,8 @@ impl WasmNoteEncrypted {
     pub fn deserialize(bytes: &[u8]) -> Result<WasmNoteEncrypted, JsValue> {
         panic_hook::set_once();
 
-        let hasher = sapling_bls12::SAPLING.clone();
         let cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(bytes);
-        let note = MerkleNote::read(cursor, hasher).map_err(WasmIoError)?;
+        let note = MerkleNote::read(cursor).map_err(WasmIoError)?;
         Ok(WasmNoteEncrypted { note })
     }
 
@@ -61,7 +60,6 @@ impl WasmNoteEncrypted {
         let mut cursor: Vec<u8> = Vec::with_capacity(32);
 
         sapling_bls12::MerkleNoteHash::new(sapling_bls12::MerkleNoteHash::combine_hash(
-            &sapling_bls12::SAPLING.clone(),
             depth,
             &left_hash.0,
             &right_hash.0,
@@ -76,8 +74,7 @@ impl WasmNoteEncrypted {
     #[wasm_bindgen(js_name = "decryptNoteForOwner")]
     pub fn decrypt_note_for_owner(&self, owner_hex_key: &str) -> Result<Option<WasmNote>, JsValue> {
         let owner_view_key =
-            sapling_bls12::IncomingViewKey::from_hex(sapling_bls12::SAPLING.clone(), owner_hex_key)
-                .map_err(WasmSaplingKeyError)?;
+            sapling_bls12::IncomingViewKey::from_hex(owner_hex_key).map_err(WasmSaplingKeyError)?;
         Ok(match self.note.decrypt_note_for_owner(&owner_view_key) {
             Ok(n) => Some(WasmNote { note: { n } }),
             Err(_) => None,
@@ -90,11 +87,8 @@ impl WasmNoteEncrypted {
         &self,
         spender_hex_key: &str,
     ) -> Result<Option<WasmNote>, JsValue> {
-        let spender_view_key = sapling_bls12::OutgoingViewKey::from_hex(
-            sapling_bls12::SAPLING.clone(),
-            spender_hex_key,
-        )
-        .map_err(WasmSaplingKeyError)?;
+        let spender_view_key = sapling_bls12::OutgoingViewKey::from_hex(spender_hex_key)
+            .map_err(WasmSaplingKeyError)?;
 
         Ok(
             match self.note.decrypt_note_for_spender(&spender_view_key) {
@@ -108,40 +102,28 @@ impl WasmNoteEncrypted {
 #[cfg(test)]
 mod tests {
     use rand::{thread_rng, Rng};
-    use zcash_primitives::{
-        jubjub::{fs::Fs, ToUniform},
-        primitives::ValueCommitment,
-    };
+    use zcash_primitives::primitives::ValueCommitment;
 
     use super::*;
     use ironfish_rust::merkle_note::MerkleNote;
     use ironfish_rust::note::Memo;
     use ironfish_rust::sapling_bls12::Note;
     use ironfish_rust::SaplingKey;
-    use pairing::bls12_381::Bls12;
 
     #[test]
     fn test_merkle_notes_are_equal() {
-        let spender_key: SaplingKey<Bls12> =
-            SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
-        let receiver_key: SaplingKey<Bls12> =
-            SaplingKey::generate_key(sapling_bls12::SAPLING.clone());
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let receiver_key: SaplingKey = SaplingKey::generate_key();
         let owner = receiver_key.generate_public_address();
-        let note = Note::new(
-            sapling_bls12::SAPLING.clone(),
-            owner.clone(),
-            42,
-            Memo([0; 32]),
-        );
-        let diffie_hellman_keys =
-            owner.generate_diffie_hellman_keys(&sapling_bls12::SAPLING.jubjub);
+        let note = Note::new(owner.clone(), 42, Memo([0; 32]));
+        let diffie_hellman_keys = owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: Fs = Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment::<Bls12> {
+        let value_commitment = ValueCommitment {
             value: note.value(),
             randomness: value_commitment_randomness,
         };

@@ -7,7 +7,7 @@ import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
 import { Identity, isIdentity } from './identity'
-import { Gossip, Rpc } from './messageRouters'
+import { Gossip } from './messageRouters'
 
 /**
  * The type of the message for the purposes of routing within our code.
@@ -264,95 +264,10 @@ export interface IncomingPeerMessage<M extends Message<MessageType, PayloadType>
  * Note: A Response to a Request must have the same MessageType
  */
 export enum NodeMessageType {
-  Note = 'Note',
-  Nullifier = 'Nullifier',
   NewBlock = 'NewBlock',
   NewTransaction = 'NewTransaction',
   GetBlockHashes = 'GetBlockHashes',
   GetBlocks = 'GetBlocks',
-}
-
-/**
- * A request for a note by its position in the notes merkle tree.
- *
- * Handler is in `TreeSyncer`
- */
-export type NoteRequest = Message<NodeMessageType.Note, { position: number }>
-
-/**
- * Type narrowing to confirm a `NoteRequest` has the requisite type and position field.
- */
-export function isNoteRequestPayload(obj: PayloadType): obj is MessagePayload<NoteRequest> {
-  return obj !== undefined && 'position' in obj && typeof obj.position === 'number'
-}
-
-/**
- * A response to a note request, returned by the handler in TreeSyncer
- *
- * The note is a serialized note entity.
- */
-export type NoteResponse<SE> = Rpc<NodeMessageType.Note, { note: SE; position: number }>
-
-/**
- * Type narrowing to confirm a `NoteResponse` has the requisite type and
- * a note payload. Does not try to deserialize the note or verify it in any way.
- */
-export function isNoteResponsePayload<SE>(
-  obj: PayloadType,
-): obj is MessagePayload<NoteResponse<SE>> {
-  return (
-    obj !== undefined && 'note' in obj && 'position' in obj && typeof obj.position === 'number'
-  )
-}
-
-/**
- * Type narrowing to confirm a `NoteResponse` has the requisite type and
- * a note payload. Does not try to deserialize the note or verify it in any way.
- */
-export function isNoteResponse<SE>(obj: LooseMessage): obj is NoteResponse<SE> {
-  return (
-    obj.type === NodeMessageType.Note && 'payload' in obj && isNoteResponsePayload(obj.payload)
-  )
-}
-
-/**
- * A request for a nullifier by its position in the notes merkle tree.
- */
-export type NullifierRequest = Message<NodeMessageType.Nullifier, { position: number }>
-
-/**
- * Type narrowing to confirm a `'nullifierRequest` has the requisite type and position
- */
-export function isNullifierRequestPayload(
-  obj: PayloadType,
-): obj is MessagePayload<NullifierRequest> {
-  return obj !== undefined && 'position' in obj && typeof obj.position === 'number'
-}
-
-/**
- * A response to a request for a nullifier
- */
-export type NullifierResponse = Rpc<
-  NodeMessageType.Nullifier,
-  { nullifier: string; position: number }
->
-
-/**
- * Type narrowing to confirm a `NullifierResponse` has the requisite type and
- * a nullifier payload. Does not try to deserialize the nullifier or verify it in any way.
- */
-export function isNullifierResponse(obj: LooseMessage): obj is NullifierResponse {
-  return (
-    obj.type === NodeMessageType.Nullifier &&
-    'payload' in obj &&
-    isNullifierRequestPayload(obj.payload)
-  )
-}
-
-export function isNullifierResponsePayload(
-  obj: PayloadType,
-): obj is MessagePayload<NullifierResponse> {
-  return obj !== undefined && 'nullifier' in obj && typeof obj.nullifier === 'string'
 }
 
 export type GetBlockHashesRequest = Message<

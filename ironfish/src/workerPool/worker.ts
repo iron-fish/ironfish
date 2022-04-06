@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { initializeSapling } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
@@ -117,7 +117,7 @@ export class Worker {
     this.parent.on('message', this.onMessageFromParent)
 
     // Trigger loading of Sapling parameters if we're in a worker thread
-    generateKey()
+    initializeSapling()
   }
 
   private onMessageFromParent = (request: Uint8Array): void => {
