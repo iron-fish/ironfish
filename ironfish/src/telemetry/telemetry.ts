@@ -21,6 +21,7 @@ export class Telemetry {
   private readonly chain: Blockchain
   private readonly defaultTags: Tag[]
   private readonly defaultFields: Field[]
+  private readonly graffiti: string
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
@@ -35,6 +36,7 @@ export class Telemetry {
   constructor(options: {
     chain: Blockchain
     workerPool: WorkerPool
+    graffiti?: string
     logger?: Logger
     metrics?: MetricsMonitor
     defaultFields?: Field[]
@@ -42,6 +44,7 @@ export class Telemetry {
   }) {
     this.chain = options.chain
     this.workerPool = options.workerPool
+    this.graffiti = options.graffiti ?? ''
     this.logger = options.logger ?? createRootLogger()
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
@@ -190,7 +193,7 @@ export class Telemetry {
     }
 
     try {
-      await this.workerPool.submitTelemetry(points)
+      await this.workerPool.submitTelemetry(points, this.graffiti)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0
       this._submitted += points.length

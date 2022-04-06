@@ -32,7 +32,7 @@ describe('SubmitTelemetryRequest', () => {
       ],
       timestamp: new Date(),
     }
-    const request = new SubmitTelemetryRequest([mockMetric])
+    const request = new SubmitTelemetryRequest([mockMetric], 'testgraffiti')
     const buffer = request.serialize()
     const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
@@ -65,11 +65,12 @@ describe('SubmitTelemetryTask', () => {
         timestamp: new Date(),
       }
       const points = [mockMetric]
+      const graffiti = 'testgraffiti'
       const task = new SubmitTelemetryTask()
-      const request = new SubmitTelemetryRequest(points)
+      const request = new SubmitTelemetryRequest(points, graffiti)
 
       await task.execute(request)
-      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points })
+      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points, graffiti })
     })
   })
 })

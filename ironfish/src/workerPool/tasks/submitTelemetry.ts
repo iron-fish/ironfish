@@ -10,14 +10,17 @@ import { WorkerTask } from './workerTask'
 
 export class SubmitTelemetryRequest extends WorkerMessage {
   readonly points: Metric[]
+  readonly graffiti: string
 
-  constructor(points: Metric[], jobId?: number) {
+  constructor(points: Metric[], graffiti: string, jobId?: number) {
     super(WorkerMessageType.SubmitTelemetry, jobId)
     this.points = points
+    this.graffiti = graffiti
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
+    bw.writeVarString(this.graffiti)
     bw.writeU64(this.points.length)
 
     for (const point of this.points) {
@@ -57,6 +60,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
 
   static deserialize(jobId: number, buffer: Buffer): SubmitTelemetryRequest {
     const reader = bufio.read(buffer, true)
+    const graffiti = reader.readVarString()
     const pointsLength = reader.readU64()
     const points = []
     for (let i = 0; i < pointsLength; i++) {
@@ -103,11 +107,11 @@ export class SubmitTelemetryRequest extends WorkerMessage {
 
       points.push({ measurement, tags, timestamp, fields })
     }
-    return new SubmitTelemetryRequest(points, jobId)
+    return new SubmitTelemetryRequest(points, graffiti, jobId)
   }
 
   getSize(): number {
-    let size = 8
+    let size = 8 + bufio.sizeVarString(this.graffiti)
     for (const point of this.points) {
       size += bufio.sizeVarString(point.measurement)
       size += bufio.sizeVarString(point.timestamp.toISOString())
@@ -171,9 +175,13 @@ export class SubmitTelemetryTask extends WorkerTask {
     return SubmitTelemetryTask.instance
   }
 
-  async execute({ jobId, points }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
+  async execute({
+    jobId,
+    points,
+    graffiti,
+  }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
     const api = new WebApi()
-    await api.submitTelemetry({ points })
+    await api.submitTelemetry({ points, graffiti })
     return new SubmitTelemetryResponse(jobId)
   }
 }

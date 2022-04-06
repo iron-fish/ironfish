@@ -22,11 +22,13 @@ describe('Telemetry', () => {
     ],
     timestamp: new Date(),
   }
+  const mockGraffiti = 'testgraffiti'
 
   beforeEach(() => {
     telemetry = new Telemetry({
       chain: mockChain(),
       workerPool: mockWorkerPool(),
+      graffiti: mockGraffiti,
     })
 
     telemetry.start()
@@ -128,6 +130,7 @@ describe('Telemetry', () => {
 
       expect(submitTelemetry).toHaveBeenCalledWith(
         points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
+        mockGraffiti,
       )
       expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
       expect(telemetry['points']).toHaveLength(
