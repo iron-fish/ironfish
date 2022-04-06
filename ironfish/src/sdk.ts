@@ -37,7 +37,7 @@ export class IronfishSdk {
   internal: InternalStore
   strategyClass: typeof Strategy | null
   privateIdentity: BoxKeyPair | null | undefined
-  dataDir?: string
+  dataDir: string
 
   private constructor(
     pkg: Package,
@@ -49,7 +49,7 @@ export class IronfishSdk {
     logger: Logger,
     metrics: MetricsMonitor,
     strategyClass: typeof Strategy | null = null,
-    dataDir?: string,
+    dataDir: string,
   ) {
     this.pkg = pkg
     this.client = client
