@@ -5,9 +5,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-#[macro_use]
-extern crate shrinkwraprs;
-
 use bellman::groth16;
 use bls12_381::Bls12;
 

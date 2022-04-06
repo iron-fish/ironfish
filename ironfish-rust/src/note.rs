@@ -20,7 +20,7 @@ pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
-#[derive(Shrinkwrap, Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Memo(pub [u8; 32]);
 
 impl From<&str> for Memo {
@@ -207,7 +207,7 @@ impl<'a> Note {
         bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
 
         LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
-        bytes_to_encrypt[51..].copy_from_slice(&self.memo[..]);
+        bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 
