@@ -16,7 +16,7 @@ export class PeerListMessage extends NetworkMessage {
   readonly connectedPeers: Peer[]
 
   constructor(connectedPeers: Peer[]) {
-    super(NetworkMessageType.Signal)
+    super(NetworkMessageType.PeerList)
     this.connectedPeers = connectedPeers
   }
 
