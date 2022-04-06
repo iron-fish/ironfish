@@ -94,12 +94,12 @@ export class IronfishSdk {
     }
 
     logger = logger.withTag('ironfishsdk')
+    dataDir = dataDir || DEFAULT_DATA_DIR
 
-    const dataDirOrDefault = dataDir || DEFAULT_DATA_DIR;
-    const config = new Config(fileSystem, dataDirOrDefault, configName)
+    const config = new Config(fileSystem, dataDir, configName)
     await config.load()
 
-    const internal = new InternalStore(fileSystem, dataDirOrDefault)
+    const internal = new InternalStore(fileSystem, dataDir)
     await internal.load()
 
     if (configOverrides) {

@@ -153,19 +153,19 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
+    dataDir = dataDir || DEFAULT_DATA_DIR
 
-    const dataDirOrDefault = dataDir || DEFAULT_DATA_DIR
     if (!config) {
-      config = new Config(files, dataDirOrDefault)
+      config = new Config(files, dataDir)
       await config.load()
     }
 
     if (!internal) {
-      internal = new InternalStore(files, dataDirOrDefault)
+      internal = new InternalStore(files, dataDir)
       await internal.load()
     }
 
-    const hostsStore = new HostsStore(files, dataDirOrDefault)
+    const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
 
     if (databaseName) {
