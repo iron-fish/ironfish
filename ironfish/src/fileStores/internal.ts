@@ -17,7 +17,7 @@ export const InternalOptionsDefaults: InternalOptions = {
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(files, configName || 'internal.json', InternalOptionsDefaults, dataDir)
   }
 }
