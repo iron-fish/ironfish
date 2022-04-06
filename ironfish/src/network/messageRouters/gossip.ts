@@ -5,9 +5,10 @@
 import { RollingFilter } from 'bfilter'
 import { v4 as uuid } from 'uuid'
 import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
+import { GossipNetworkMessage } from '../messages/gossipNetworkMessage'
+import { NetworkMessageType } from '../messages/networkMessage'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
-import { MessageRouter } from './messageRouter'
 
 /**
  * We store gossips that have already been seen and processed, and ignore them
@@ -36,21 +37,32 @@ export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> 
  * Router for gossip-style messages. Maintains a list of handlers and is responsible
  * for sending and receiving the messages.
  */
-export class GossipRouter extends MessageRouter {
+export class GossipRouter {
   peerManager: PeerManager
   private seenGossipFilter: RollingFilter
   private handlers: Map<
     MessageType,
     (message: IncomingGossipPeerMessage) => Promise<boolean | void> | boolean | void
   >
+  private readonly _handlers: Map<
+    NetworkMessageType,
+    (
+      message: IncomingPeerMessage<GossipNetworkMessage>,
+    ) => Promise<boolean | void> | boolean | void
+  >
 
   constructor(peerManager: PeerManager) {
-    super()
     this.peerManager = peerManager
     this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.handlers = new Map<
       MessageType,
       (message: IncomingPeerMessage<Gossip<MessageType, PayloadType>>) => Promise<boolean>
+    >()
+    this._handlers = new Map<
+      NetworkMessageType,
+      (
+        message: IncomingPeerMessage<GossipNetworkMessage>,
+      ) => Promise<boolean | void> | boolean | void
     >()
   }
 
@@ -72,19 +84,35 @@ export class GossipRouter extends MessageRouter {
     this.handlers.set(type, handler)
   }
 
+  _register(
+    type: NetworkMessageType,
+    handler: (
+      message: IncomingPeerMessage<GossipNetworkMessage>,
+    ) => Promise<boolean | void> | boolean | void,
+  ): void {
+    this._handlers.set(type, handler)
+  }
+
   /**
    * Pack the message in a Gossip envelope and send it to all connected peers with
    * the expectation that they will forward it to their other peers.
    * The goal is for everyone to receive the message.
    */
-  gossip<T extends MessageType, P extends PayloadType>(message: Message<T, P>): void {
+  gossip<T extends MessageType, P extends PayloadType>(
+    message: Message<T, P> | GossipNetworkMessage,
+  ): void {
     // TODO: A uuid takes up a lot of bytes, might be a better choice available
-    const nonce = uuid()
-    const gossipMessage: Gossip<T, P> = {
-      ...message,
-      nonce,
+    let gossipMessage
+    if (!(message instanceof GossipNetworkMessage)) {
+      const nonce = uuid()
+      gossipMessage = {
+        ...message,
+        nonce,
+      } as Gossip<T, P>
+    } else {
+      gossipMessage = message
     }
-    this.seenGossipFilter.add(nonce, 'utf-8')
+    this.seenGossipFilter.add(gossipMessage.nonce, 'utf-8')
     this.peerManager.broadcast(gossipMessage)
   }
 

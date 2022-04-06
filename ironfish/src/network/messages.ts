@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { SerializedBlock } from '../primitives/block'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { UnwrapPromise } from '../utils'
 import { Identity } from './identity'
@@ -87,7 +86,6 @@ export interface IncomingPeerMessage<
  */
 export enum NodeMessageType {
   NewBlock = 'NewBlock',
-  NewTransaction = 'NewTransaction',
 }
 
 /**
@@ -105,35 +103,7 @@ export function isNewBlockPayload(obj: PayloadType): obj is NewBlock['payload'] 
   )
 }
 
-/**
- * A newly spent transaction that a client would like to have mined
- */
-export type NewTransaction = Message<
-  'NewTransaction',
-  {
-    transaction: SerializedTransaction
-  }
->
-
-/**
- * Type narrowing to confirm the message payload contains a `transaction`
- * object. Does not try to validate the transaction.
- */
-export function isNewTransactionPayload(obj: PayloadType): obj is NewTransaction['payload'] {
-  return (
-    obj !== undefined &&
-    'transaction' in obj &&
-    typeof obj.transaction === 'object' &&
-    obj.transaction !== null
-  )
-}
-
 export type NewBlockMessage = Gossip<
   NodeMessageType.NewBlock,
   UnwrapPromise<{ block: SerializedBlock }>
->
-
-export type NewTransactionMessage = Gossip<
-  NodeMessageType.NewTransaction,
-  UnwrapPromise<{ transaction: Transaction }>
 >

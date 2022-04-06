@@ -14,6 +14,7 @@ import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { NodeMessageType } from './messages'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NetworkMessageType } from './messages/networkMessage'
+import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
@@ -233,8 +234,8 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -243,11 +244,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {},
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -282,8 +279,8 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -292,11 +289,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {},
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -333,8 +326,8 @@ describe('PeerNetwork', () => {
           'verifyNewTransaction',
         )
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -343,13 +336,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {
-              transaction: {},
-            },
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(verifyNewTransactionSpy).toHaveBeenCalled()
@@ -437,11 +424,11 @@ describe('PeerNetwork', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const onNewTransactionSpy2 = jest.spyOn(peerNetwork2 as any, 'onNewTransaction')
 
-      const newTransactionHandler1 = peerNetwork1['gossipRouter']['handlers'].get(
-        NodeMessageType.NewTransaction,
+      const newTransactionHandler1 = peerNetwork1['gossipRouter']['_handlers'].get(
+        NetworkMessageType.NewTransaction,
       )
-      const newTransactionHandler2 = peerNetwork2['gossipRouter']['handlers'].get(
-        NodeMessageType.NewTransaction,
+      const newTransactionHandler2 = peerNetwork2['gossipRouter']['_handlers'].get(
+        NetworkMessageType.NewTransaction,
       )
 
       Assert.isNotUndefined(
@@ -458,13 +445,10 @@ describe('PeerNetwork', () => {
 
       const message = {
         peerIdentity: '',
-        message: {
-          type: NodeMessageType.NewTransaction,
-          nonce: 'nonce',
-          payload: {
-            transaction: nodeTest.strategy.transactionSerde.serialize(block.minersFee),
-          },
-        },
+        message: new NewTransactionMessage(
+          nodeTest.strategy.transactionSerde.serialize(block.minersFee),
+          'nonce',
+        ),
       }
 
       await newTransactionHandler1(message)
