@@ -98,7 +98,7 @@ export class Job {
     return this
   }
 
-  async result(): Promise<WorkerMessage> {
+  result(): Promise<WorkerMessage> {
     return this.promise
   }
 }
