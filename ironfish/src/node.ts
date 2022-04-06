@@ -5,7 +5,13 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
-import { Config, ConfigOptions, DEFAULT_DATA_DIR, HostsStore, InternalStore, } from './fileStores'
+import {
+  Config,
+  ConfigOptions,
+  DEFAULT_DATA_DIR,
+  HostsStore,
+  InternalStore,
+} from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
