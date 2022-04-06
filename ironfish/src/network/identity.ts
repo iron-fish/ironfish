@@ -24,6 +24,11 @@ export type Identity = string
 export const identityLength = tweetnacl.box.publicKeyLength
 
 /**
+ * Length of the secret key from PrivateIdentity in bytes.
+ */
+export const secretKeyLength = tweetnacl.box.secretKeyLength
+
+/**
  * Length of the identity as a base64-encoded string.
  */
 export const base64IdentityLength = Math.ceil(identityLength / 3) * 4
