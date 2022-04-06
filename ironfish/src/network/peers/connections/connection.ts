@@ -13,6 +13,7 @@ import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { LooseMessage } from '../../messages'
 import { CannotSatisfyRequest } from '../../messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from '../../messages/disconnecting'
+import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
@@ -248,6 +249,8 @@ export abstract class Connection {
   private isRpcNetworkMessageType(type: NetworkMessageType): boolean {
     return [
       NetworkMessageType.CannotSatisfyRequest,
+      NetworkMessageType.GetBlockHashesRequest,
+      NetworkMessageType.GetBlockHashesResponse,
       NetworkMessageType.GetBlocksRequest,
       NetworkMessageType.GetBlocksResponse,
     ].includes(type)
@@ -260,6 +263,12 @@ export abstract class Connection {
         return CannotSatisfyRequest.deserialize(rpcId)
       case NetworkMessageType.Disconnecting:
         return DisconnectingMessage.deserialize(body)
+      case NetworkMessageType.GetBlockHashesRequest:
+        Assert.isNotUndefined(rpcId)
+        return GetBlockHashesRequest.deserialize(body, rpcId)
+      case NetworkMessageType.GetBlockHashesResponse:
+        Assert.isNotUndefined(rpcId)
+        return GetBlockHashesResponse.deserialize(body, rpcId)
       case NetworkMessageType.GetBlocksRequest:
         Assert.isNotUndefined(rpcId)
         return GetBlocksRequest.deserialize(body, rpcId)

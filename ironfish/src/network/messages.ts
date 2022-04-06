@@ -88,56 +88,6 @@ export interface IncomingPeerMessage<
 export enum NodeMessageType {
   NewBlock = 'NewBlock',
   NewTransaction = 'NewTransaction',
-  GetBlockHashes = 'GetBlockHashes',
-}
-
-export type GetBlockHashesRequest = Message<
-  NodeMessageType.GetBlockHashes,
-  {
-    start: string | number
-    limit: number
-  }
->
-
-export type GetBlockHashesResponse = Message<
-  NodeMessageType.GetBlockHashes,
-  {
-    blocks: string[]
-  }
->
-
-export function isGetBlockHashesResponse(obj: LooseMessage): obj is GetBlockHashesResponse {
-  if (
-    obj.type === NodeMessageType.GetBlockHashes &&
-    'payload' in obj &&
-    'blocks' in obj.payload &&
-    Array.isArray(obj.payload.blocks)
-  ) {
-    for (const block of obj.payload.blocks) {
-      if (!isBlockHash(block)) {
-        return false
-      }
-    }
-
-    return true
-  }
-
-  return false
-}
-export function isGetBlockHashesRequest(
-  obj: PayloadType,
-): obj is GetBlockHashesRequest['payload'] {
-  return (
-    obj !== undefined &&
-    'start' in obj &&
-    (typeof obj.start === 'string' || typeof obj.start === 'number') &&
-    'limit' in obj &&
-    typeof obj.limit === 'number'
-  )
-}
-
-function isBlockHash(obj: unknown | undefined): obj is string {
-  return typeof obj === 'string'
 }
 
 /**
