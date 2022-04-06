@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
+import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
+import { BlockHeader } from '../../../primitives/blockheader'
+import { PromiseUtils } from '../../../utils/promise'
 import { ApiNamespace, router } from '../router'
 
 interface Note {
@@ -33,15 +37,21 @@ const TransactionSchema = yup
   })
   .required()
 
-export type GetTransactionStreamRequest = { incomingViewKey: string }
-export type GetTransactionStreamResponse = { transactions: Transaction[] }
+export type GetTransactionStreamRequest = { incomingViewKey: string; head?: string | null }
+export type GetTransactionStreamResponse = { type: string; transactions: Transaction[] }
 
 export const GetTransactionStreamRequestSchema: yup.ObjectSchema<GetTransactionStreamRequest> =
-  yup.object({ incomingViewKey: yup.string().required() }).required()
+  yup
+    .object({
+      incomingViewKey: yup.string().required(),
+      head: yup.string().nullable().optional(),
+    })
+    .required()
 export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransactionStreamResponse> =
   yup
     .object({
       transactions: yup.array().of(TransactionSchema).required(),
+      type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
     })
     .required()
 
@@ -51,8 +61,15 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
   async (request, node): Promise<void> => {
     // TODO: Some validation on this input
     const incomingViewKey = request.data.incomingViewKey
+    const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
 
-    const getTransactionsFromBlock = async (block: Block) => {
+    const processor = new ChainProcessor({
+      chain: node.chain,
+      logger: node.logger,
+      head: head,
+    })
+
+    const getTransactionsFromBlock = async (block: Block, type: string) => {
       const transactions: Transaction[] = []
       for (const tx of block.transactions) {
         if (await tx.isMinersFee()) {
@@ -76,22 +93,45 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         transactions.push(transaction)
       }
 
-      if (transactions) {
-        request.stream({ transactions: transactions })
+      if (transactions.length) {
+        request.stream({ type, transactions })
       }
       return
     }
 
-    const timeoutWrappedListener = (block: Block) => {
-      setTimeout(() => {
-        void getTransactionsFromBlock(block)
-      })
+    const onAdd = async (header: BlockHeader) => {
+      const block = await node.chain.getBlock(header)
+      Assert.isNotNull(block)
+      await getTransactionsFromBlock(block, 'connected')
     }
 
-    node.chain.onConnectBlock.on(timeoutWrappedListener)
+    const onRemove = async (header: BlockHeader) => {
+      const block = await node.chain.getBlock(header)
+      Assert.isNotNull(block)
+      await getTransactionsFromBlock(block, 'disconnected')
+    }
 
-    request.onClose.once(() => {
-      node.chain.onConnectBlock.off(timeoutWrappedListener)
+    const onFork = async (block: Block) => {
+      await getTransactionsFromBlock(block, 'fork')
+    }
+
+    processor.onAdd.on(onAdd)
+    processor.onRemove.on(onRemove)
+    node.chain.onForkBlock.on(onFork)
+    const abortController = new AbortController()
+
+    request.onClose.on(() => {
+      abortController.abort()
+      processor.onAdd.off(onAdd)
+      processor.onRemove.off(onRemove)
+      node.chain.onForkBlock.off(onFork)
     })
+
+    while (!request.closed) {
+      await processor.update({ signal: abortController.signal })
+      await PromiseUtils.sleep(1000)
+    }
+
+    request.end()
   },
 )
