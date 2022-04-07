@@ -4,9 +4,8 @@
 
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
-import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
 import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
-import { NetworkMessageType } from '../messages/networkMessage'
+import { IncomingPeerMessage, NetworkMessageType } from '../messages/networkMessage'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Connection } from '../peers/connections/connection'
 import { NetworkError } from '../peers/connections/errors'
@@ -36,35 +35,8 @@ export class RequestTimeoutError extends Error {
   }
 }
 
-export type IncomingRpcGeneric<T extends MessageType> = IncomingPeerMessage<Rpc<T, PayloadType>>
-export type IncomingRpcPeerMessage = IncomingRpcGeneric<MessageType>
-
-/**
- * Rpc Messages essentially hold another message as its payload.
- * It adds an RpcId, and whether it is a request or a response.
- */
-export type Rpc<T extends MessageType, P extends PayloadType> = Message<T, P> & {
-  // Each rpc message gets an id that is unique for the requesting client
-  rpcId: RpcId
-  // Whether this is an outgoing request or an incoming response
-  direction: Direction
-}
-
-export function isRpc(obj: unknown): obj is Rpc<MessageType, PayloadType> {
-  if (!isMessage(obj)) {
-    return false
-  }
-  const rpc = obj as Rpc<MessageType, Record<string, unknown>>
-
-  return (
-    (rpc.direction === Direction.Request || rpc.direction === Direction.Response) &&
-    typeof rpc.rpcId === 'number' &&
-    rpc.payload !== null
-  )
-}
-
 type RpcRequest = {
-  resolve: (value: IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>) => void
+  resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
   connection?: Connection
 }
@@ -78,8 +50,7 @@ export class RpcRouter {
   peerManager: PeerManager
   private requests: Map<RpcId, RpcRequest>
   private logger: Logger
-  private handlers: Map<MessageType, (message: IncomingRpcPeerMessage) => Promise<PayloadType>>
-  private readonly _handlers: Map<
+  private handlers: Map<
     NetworkMessageType,
     (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>
   >
@@ -89,10 +60,6 @@ export class RpcRouter {
     this.requests = new Map<RpcId, RpcRequest>()
     this.logger = logger.withTag('rpcrouter')
     this.handlers = new Map<
-      MessageType,
-      (message: IncomingRpcPeerMessage) => Promise<PayloadType>
-    >()
-    this._handlers = new Map<
       NetworkMessageType,
       (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>
     >()
@@ -103,22 +70,11 @@ export class RpcRouter {
    * used for incoming *requests*. Incoming responses are handled using futures
    * on the request() function.
    */
-  register<T extends MessageType>(
-    type: T,
-    handler: (message: IncomingRpcGeneric<T>) => Promise<PayloadType>,
-  ): void
   register(
-    type: MessageType,
-    handler: (message: IncomingRpcPeerMessage) => Promise<PayloadType>,
-  ): void {
-    this.handlers.set(type, handler)
-  }
-
-  _register(
     type: NetworkMessageType,
     handler: (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>,
   ): void {
-    this._handlers.set(type, handler)
+    this.handlers.set(type, handler)
   }
 
   /**
@@ -128,99 +84,83 @@ export class RpcRouter {
    */
   requestFrom(
     peer: Peer,
-    message: Message<MessageType, Record<string, unknown>> | RpcNetworkMessage,
-  ): Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>> {
+    message: RpcNetworkMessage,
+  ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
     const rpcId = nextRpcId()
 
-    return new Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>>(
-      (resolve, reject) => {
-        const timeoutMs = rpcTimeoutMillis()
+    return new Promise<IncomingPeerMessage<RpcNetworkMessage>>((resolve, reject) => {
+      const timeoutMs = rpcTimeoutMillis()
 
-        // Reject requests if the connection becomes disconnected
-        const onConnectionStateChanged = () => {
-          const request = this.requests.get(rpcId)
+      // Reject requests if the connection becomes disconnected
+      const onConnectionStateChanged = () => {
+        const request = this.requests.get(rpcId)
 
-          if (request && request?.connection?.state.type === 'DISCONNECTED') {
-            request.connection.onStateChanged.off(onConnectionStateChanged)
+        if (request && request?.connection?.state.type === 'DISCONNECTED') {
+          request.connection.onStateChanged.off(onConnectionStateChanged)
 
-            const errorMessage = `Connection closed while waiting for request ${
-              message.type
-            }: ${rpcId}${
-              request.connection.error
-                ? ':' + ErrorUtils.renderError(request.connection.error)
-                : ''
-            }`
+          const errorMessage = `Connection closed while waiting for request ${
+            message.type
+          }: ${rpcId}${
+            request.connection.error
+              ? ':' + ErrorUtils.renderError(request.connection.error)
+              : ''
+          }`
 
-            request.reject(new NetworkError(errorMessage))
-          }
+          request.reject(new NetworkError(errorMessage))
         }
+      }
 
-        const clearDisconnectHandler = (): void => {
-          this.requests.get(rpcId)?.connection?.onStateChanged.off(onConnectionStateChanged)
+      const clearDisconnectHandler = (): void => {
+        this.requests.get(rpcId)?.connection?.onStateChanged.off(onConnectionStateChanged)
+      }
+
+      const timeout = setTimeout(() => {
+        const request = this.requests.get(rpcId)
+        if (!request) {
+          throw new Error(`Timed out request ${rpcId} not found`)
         }
+        const errorMessage = `Closing connections to ${peer.displayName} because RPC message of type ${message.type} timed out after ${timeoutMs} ms in request: ${rpcId}.`
+        const error = new RequestTimeoutError(timeoutMs, errorMessage)
+        this.logger.debug(errorMessage)
+        clearDisconnectHandler()
+        peer.close(error)
+        request.reject(error)
+      }, timeoutMs)
 
-        const timeout = setTimeout(() => {
-          const request = this.requests.get(rpcId)
-          if (!request) {
-            throw new Error(`Timed out request ${rpcId} not found`)
-          }
-          const errorMessage = `Closing connections to ${peer.displayName} because RPC message of type ${message.type} timed out after ${timeoutMs} ms in request: ${rpcId}.`
-          const error = new RequestTimeoutError(timeoutMs, errorMessage)
-          this.logger.debug(errorMessage)
+      const request: RpcRequest = {
+        resolve: (message: IncomingPeerMessage<RpcNetworkMessage>): void => {
           clearDisconnectHandler()
-          peer.close(error)
-          request.reject(error)
-        }, timeoutMs)
+          peer.pendingRPC--
+          this.requests.delete(rpcId)
+          clearTimeout(timeout)
+          resolve(message)
+        },
+        reject: (reason?: unknown): void => {
+          clearDisconnectHandler()
+          peer.pendingRPC--
+          this.requests.delete(rpcId)
+          clearTimeout(timeout)
+          reject(reason)
+        },
+      }
 
-        const request: RpcRequest = {
-          resolve: (
-            message: IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>,
-          ): void => {
-            clearDisconnectHandler()
-            peer.pendingRPC--
-            this.requests.delete(rpcId)
-            clearTimeout(timeout)
-            resolve(message)
-          },
-          reject: (reason?: unknown): void => {
-            clearDisconnectHandler()
-            peer.pendingRPC--
-            this.requests.delete(rpcId)
-            clearTimeout(timeout)
-            reject(reason)
-          },
-        }
+      peer.pendingRPC++
+      this.requests.set(rpcId, request)
 
-        peer.pendingRPC++
-        this.requests.set(rpcId, request)
+      const connection = this.peerManager.sendTo(peer, message)
+      if (!connection) {
+        return request.reject(
+          new Error(
+            `${String(peer.state.identity)} did not send ${message.type} in state ${
+              peer.state.type
+            }`,
+          ),
+        )
+      }
 
-        let rpcMessage
-        if (message instanceof RpcNetworkMessage) {
-          rpcMessage = message
-        } else {
-          rpcMessage = {
-            type: message.type,
-            rpcId,
-            direction: Direction.Request,
-            payload: message.payload,
-          } as Rpc<MessageType, Record<string, unknown>>
-        }
-
-        const connection = this.peerManager.sendTo(peer, rpcMessage)
-        if (!connection) {
-          return request.reject(
-            new Error(
-              `${String(peer.state.identity)} did not send ${message.type} in state ${
-                peer.state.type
-              }`,
-            ),
-          )
-        }
-
-        request.connection = connection
-        connection.onStateChanged.on(onConnectionStateChanged)
-      },
-    )
+      request.connection = connection
+      connection.onStateChanged.on(onConnectionStateChanged)
+    })
   }
 
   /**
@@ -233,35 +173,19 @@ export class RpcRouter {
    * The handler for a given request should either return a payload or throw
    * a CannotFulfillRequest error
    */
-  async handle(
-    peer: Peer,
-    rpcMessage: IncomingRpcPeerMessage['message'] | RpcNetworkMessage,
-  ): Promise<void> {
+  async handle(peer: Peer, rpcMessage: RpcNetworkMessage): Promise<void> {
     const rpcId = rpcMessage.rpcId
     const peerIdentity = peer.getIdentityOrThrow()
 
     if (rpcMessage.direction === Direction.Request) {
       let handler
-      let responseMessage: IncomingRpcPeerMessage['message'] | RpcNetworkMessage
+      let responseMessage: RpcNetworkMessage
       try {
-        if (rpcMessage instanceof RpcNetworkMessage) {
-          handler = this._handlers.get(rpcMessage.type)
-          if (handler === undefined) {
-            return
-          }
-          responseMessage = await handler({ peerIdentity, message: rpcMessage })
-        } else {
-          handler = this.handlers.get(rpcMessage.type)
-          if (handler === undefined) {
-            return
-          }
-          const response = await handler({ peerIdentity, message: rpcMessage })
-          responseMessage = {
-            ...rpcMessage,
-            direction: Direction.Response,
-            payload: response,
-          }
+        handler = this.handlers.get(rpcMessage.type)
+        if (handler === undefined) {
+          return
         }
+        responseMessage = await handler({ peerIdentity, message: rpcMessage })
       } catch (error: unknown) {
         const asError = error as Error
         if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {

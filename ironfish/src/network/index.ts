@@ -4,7 +4,6 @@
 
 export { PeerNetwork, RoutingStyle } from './peerNetwork'
 
-export type { Gossip, Rpc } from './messageRouters'
 export { CannotSatisfyRequestError, Direction } from './messageRouters'
 export { RPC_TIMEOUT_MILLIS } from './messageRouters/rpcId'
 
@@ -21,5 +20,4 @@ export {
   privateIdentityToIdentity,
 } from './identity'
 
-export * from './messages'
 export * from './utils'

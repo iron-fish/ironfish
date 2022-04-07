@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RollingFilter } from 'bfilter'
-import { v4 as uuid } from 'uuid'
-import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
 import { GossipNetworkMessage } from '../messages/gossipNetworkMessage'
-import { NetworkMessageType } from '../messages/networkMessage'
+import { IncomingPeerMessage, NetworkMessageType } from '../messages/networkMessage'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
 
@@ -19,20 +17,6 @@ import { PeerManager } from '../peers/peerManager'
 const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
 
-export type IncomingGossipGeneric<T extends MessageType> = IncomingPeerMessage<
-  Gossip<T, PayloadType>
->
-export type IncomingGossipPeerMessage = IncomingGossipGeneric<MessageType>
-
-export type Gossip<T extends MessageType, P extends PayloadType> = Message<T, P> & {
-  // Each message gets a unique identifier
-  nonce: string
-}
-
-export function isGossip(obj: unknown): obj is Gossip<MessageType, PayloadType> {
-  return isMessage(obj) && typeof (obj as Gossip<MessageType, PayloadType>).nonce === 'string'
-}
-
 /**
  * Router for gossip-style messages. Maintains a list of handlers and is responsible
  * for sending and receiving the messages.
@@ -41,10 +25,6 @@ export class GossipRouter {
   peerManager: PeerManager
   private seenGossipFilter: RollingFilter
   private handlers: Map<
-    MessageType,
-    (message: IncomingGossipPeerMessage) => Promise<boolean | void> | boolean | void
-  >
-  private readonly _handlers: Map<
     NetworkMessageType,
     (
       message: IncomingPeerMessage<GossipNetworkMessage>,
@@ -55,10 +35,6 @@ export class GossipRouter {
     this.peerManager = peerManager
     this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.handlers = new Map<
-      MessageType,
-      (message: IncomingPeerMessage<Gossip<MessageType, PayloadType>>) => Promise<boolean>
-    >()
-    this._handlers = new Map<
       NetworkMessageType,
       (
         message: IncomingPeerMessage<GossipNetworkMessage>,
@@ -66,31 +42,16 @@ export class GossipRouter {
     >()
   }
 
-  hasHandler(type: MessageType): boolean {
-    return this.handlers.has(type)
-  }
-
   /**
    * Register a callback function for a certain type of handler.
    */
-  register<T extends MessageType>(
-    type: T,
-    handler: (message: IncomingGossipGeneric<T>) => Promise<boolean | void> | boolean | void,
-  ): void
   register(
-    type: MessageType,
-    handler: (message: IncomingGossipPeerMessage) => Promise<boolean | void> | boolean | void,
-  ): void {
-    this.handlers.set(type, handler)
-  }
-
-  _register(
     type: NetworkMessageType,
     handler: (
       message: IncomingPeerMessage<GossipNetworkMessage>,
     ) => Promise<boolean | void> | boolean | void,
   ): void {
-    this._handlers.set(type, handler)
+    this.handlers.set(type, handler)
   }
 
   /**
@@ -98,25 +59,13 @@ export class GossipRouter {
    * the expectation that they will forward it to their other peers.
    * The goal is for everyone to receive the message.
    */
-  gossip<T extends MessageType, P extends PayloadType>(
-    message: Message<T, P> | GossipNetworkMessage,
-  ): void {
+  gossip(message: GossipNetworkMessage): void {
     // TODO: A uuid takes up a lot of bytes, might be a better choice available
-    let gossipMessage
-    if (!(message instanceof GossipNetworkMessage)) {
-      const nonce = uuid()
-      gossipMessage = {
-        ...message,
-        nonce,
-      } as Gossip<T, P>
-    } else {
-      gossipMessage = message
-    }
-    this.seenGossipFilter.add(gossipMessage.nonce, 'utf-8')
-    this.peerManager.broadcast(gossipMessage)
+    this.seenGossipFilter.add(message.nonce, 'utf-8')
+    this.peerManager.broadcast(message)
   }
 
-  async handle(peer: Peer, gossipMessage: IncomingGossipPeerMessage['message']): Promise<void> {
+  async handle(peer: Peer, gossipMessage: GossipNetworkMessage): Promise<void> {
     const handler = this.handlers.get(gossipMessage.type)
     if (handler === undefined) {
       return

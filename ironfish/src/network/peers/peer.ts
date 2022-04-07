@@ -6,7 +6,6 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { LooseMessage } from '../messages'
 import { DisconnectingReason } from '../messages/disconnecting'
 import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
 import { ConnectionRetry } from './connectionRetry'
@@ -31,7 +30,7 @@ const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string | NetworkMessageType> = [
 type LoggedMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: LooseMessage | NetworkMessage
+  message: NetworkMessage
   timestamp: number
   type: ConnectionType
 }
@@ -195,7 +194,7 @@ export class Peer {
    * by the application layer. Includes the connection from which the message
    * was received.
    */
-  readonly onMessage: Event<[LooseMessage | NetworkMessage, Connection]> = new Event()
+  readonly onMessage: Event<[NetworkMessage, Connection]> = new Event()
 
   /**
    * Event fired when the knownPeers map changes.
@@ -425,7 +424,7 @@ export class Peer {
    * Sends a message over the peer's connection if CONNECTED, else drops it.
    * @param message The message to send.
    */
-  send(message: LooseMessage | NetworkMessage): Connection | null {
+  send(message: NetworkMessage): Connection | null {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
       this.logger.debug(
@@ -497,8 +496,8 @@ export class Peer {
 
   private readonly connectionMessageHandlers: Map<
     Connection,
-    (message: LooseMessage | NetworkMessage) => void
-  > = new Map<Connection, (message: LooseMessage | NetworkMessage) => void>()
+    (message: NetworkMessage) => void
+  > = new Map<Connection, (message: NetworkMessage) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,
@@ -539,7 +538,7 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage | NetworkMessage) => {
+      const messageHandler = (message: NetworkMessage) => {
         this.pushLoggedMessage({
           direction: 'receive',
           message,

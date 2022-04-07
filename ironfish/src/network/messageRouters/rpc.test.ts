@@ -5,10 +5,12 @@
 jest.mock('./rpcId')
 import { mocked } from 'ts-jest/utils'
 import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
+import { GetBlockHashesRequest, GetBlockHashesResponse } from '../messages/getBlockHashes'
+import { NetworkMessageType } from '../messages/networkMessage'
 import { NetworkError } from '../peers/connections/errors'
 import { PeerManager } from '../peers/peerManager'
 import { getConnectedPeer, mockHostsStore, mockLocalPeer } from '../testUtilities'
-import { CannotSatisfyRequestError, Direction, RequestTimeoutError, RpcRouter } from './rpc'
+import { CannotSatisfyRequestError, RequestTimeoutError, RpcRouter } from './rpc'
 import { nextRpcId, rpcTimeoutMillis } from './rpcId'
 
 describe('RPC Router', () => {
@@ -26,9 +28,9 @@ describe('RPC Router', () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
     const router = new RpcRouter(peers)
     const handler = jest.fn()
-    router.register('test', handler)
+    router.register(NetworkMessageType.PeerList, handler)
     expect(router['handlers'].size).toBe(1)
-    expect(router['handlers'].get('test')).toBe(handler)
+    expect(router['handlers'].get(NetworkMessageType.PeerList)).toBe(handler)
   })
 
   it('should time out RPC requests', async () => {
@@ -40,13 +42,10 @@ describe('RPC Router', () => {
 
     const router = new RpcRouter(peers)
     const handlerMock = jest.fn()
-    router.register('test', handlerMock)
+    router.register(NetworkMessageType.GetBlockHashesRequest, handlerMock)
     expect(router['requests'].size).toBe(0)
 
-    const promise = router.requestFrom(peer, {
-      type: 'test',
-      payload: { test: 'payload' },
-    })
+    const promise = router.requestFrom(peer, new GetBlockHashesRequest(0, 0, 0))
 
     expect(router['requests'].size).toBe(1)
     jest.runOnlyPendingTimers()
@@ -65,15 +64,12 @@ describe('RPC Router', () => {
     const peerCloseMock = jest.spyOn(peer, 'close')
 
     const router = new RpcRouter(peers)
-    router.register('test', jest.fn())
+    router.register(NetworkMessageType.GetBlockHashesRequest, jest.fn())
     expect(router['requests'].size).toBe(0)
 
     const subscribers = connection.onStateChanged.subscribers
 
-    const promise = router.requestFrom(peer, {
-      type: 'test',
-      payload: { test: 'payload' },
-    })
+    const promise = router.requestFrom(peer, new GetBlockHashesRequest(0, 0, 0))
 
     expect(router['requests'].size).toBe(1)
     expect(connection.onStateChanged.subscribers).toBeGreaterThan(subscribers)
@@ -94,20 +90,14 @@ describe('RPC Router', () => {
     const { peer } = getConnectedPeer(peers, 'peer')
 
     const router = new RpcRouter(peers)
-    router.register('test', jest.fn())
+    router.register(NetworkMessageType.GetBlockHashesRequest, jest.fn())
 
-    void router.requestFrom(peer, {
-      type: 'test',
-      payload: { test: 'payload' },
-    })
+    const rpcId = 91
+    void router.requestFrom(peer, new GetBlockHashesRequest(0, 0, rpcId))
     expect(peer.pendingRPC).toBe(1)
 
-    await router.handle(peer, {
-      rpcId: 91,
-      direction: Direction.Response,
-      type: 'test',
-      payload: { response: 'payload' },
-    })
+    const response = new GetBlockHashesResponse(['chili'], rpcId)
+    await router.handle(peer, response)
     expect(peer.pendingRPC).toBe(0)
   })
 
@@ -118,22 +108,14 @@ describe('RPC Router', () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
 
     const router = new RpcRouter(peers)
-    router.register('test', jest.fn())
+    router.register(NetworkMessageType.GetBlockHashesRequest, jest.fn())
 
     const { peer: peer1 } = getConnectedPeer(peers)
     const { peer: peer2 } = getConnectedPeer(peers)
 
-    const promise = router.requestFrom(peer1, {
-      type: 'test',
-      payload: { test: 'payload' },
-    })
-
-    const response = {
-      rpcId: 91,
-      direction: Direction.Response,
-      type: 'test',
-      payload: { response: 'payload' },
-    }
+    const rpcId = 91
+    const promise = router.requestFrom(peer1, new GetBlockHashesRequest(0, 0, rpcId))
+    const response = new GetBlockHashesResponse(['chili'], rpcId)
 
     await router.handle(peer2, response)
     await expect(promise).resolves.toMatchObject({
@@ -154,16 +136,11 @@ describe('RPC Router', () => {
       throw new CannotSatisfyRequestError('Bad request')
     })
     const router = new RpcRouter(peers)
-    router.register('test', handlerMock)
+    router.register(NetworkMessageType.GetBlockHashesRequest, handlerMock)
 
     const { peer } = getConnectedPeer(peers)
     const rpcId = 18
-    await router.handle(peer, {
-      rpcId,
-      direction: Direction.Request,
-      type: 'test',
-      payload: { test: 'payload' },
-    })
+    await router.handle(peer, new GetBlockHashesRequest(0, 0, rpcId))
 
     expect(router['requests'].size).toBe(0)
     expect(sendToMock).toBeCalledTimes(1)

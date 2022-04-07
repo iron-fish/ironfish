@@ -9,7 +9,6 @@ import { Assert } from '../../../assert'
 import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-import { LooseMessage, parseMessage } from '../../messages'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -136,38 +135,22 @@ export class WebRtcConnection extends Connection {
     })
 
     this.datachannel.onMessage((data: string | Uint8Array) => {
-      let stringdata
-      if (data instanceof Uint8Array) {
-        stringdata = new TextDecoder().decode(data)
-      } else {
-        stringdata = data
-      }
-
-      // TODO: Switch network traffic to binary only so this can measure bytes and then decode the binary into JSON
-      const byteCount = Buffer.from(stringdata).byteLength
+      const bufferData = Buffer.from(data)
+      const byteCount = bufferData.byteLength
       this.metrics?.p2p_InboundTraffic.add(byteCount)
       this.metrics?.p2p_InboundTraffic_WebRTC.add(byteCount)
 
       let message
       try {
-        if (data instanceof Uint8Array) {
-          message = this.parseMessage(Buffer.from(data))
-        } else {
-          message = parseMessage(stringdata)
-        }
+        message = this.parseMessage(bufferData)
       } catch (error) {
-        this.logger.warn('Unable to parse webrtc message', stringdata)
+        this.logger.warn('Unable to parse webrtc message', data)
         this.close(error)
         return
       }
 
-      if (message instanceof NetworkMessage) {
-        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
-        this.onMessage.emit(message)
-      } else if (this.shouldLogMessageType(message.type)) {
-        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
-        this.onMessage.emit(message)
-      }
+      this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
+      this.onMessage.emit(message)
     })
   }
 
@@ -207,7 +190,7 @@ export class WebRtcConnection extends Connection {
   /**
    * Encode the message to json and send it to the peer
    */
-  send = (message: LooseMessage | NetworkMessage): boolean => {
+  send = (message: NetworkMessage): boolean => {
     if (!this.datachannel) {
       return false
     }
@@ -226,13 +209,9 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    const data = JSON.stringify(message)
+    const data = message.serializeWithMetadata()
     try {
-      if (message instanceof NetworkMessage) {
-        this.datachannel.sendMessageBinary(message.serializeWithMetadata())
-      } else {
-        this.datachannel.sendMessage(data)
-      }
+      this.datachannel.sendMessageBinary(message.serializeWithMetadata())
     } catch (e) {
       this.logger.debug(
         `Error occurred while sending ${message.type} message in state ${this.state.type}`,
@@ -242,8 +221,7 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    // TODO: Switch network traffic to binary
-    const byteCount = Buffer.from(data).byteLength
+    const byteCount = data.byteLength
     this.metrics?.p2p_OutboundTraffic.add(byteCount)
     this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
 

@@ -10,7 +10,6 @@ import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
-import { LooseMessage } from '../../messages'
 import { CannotSatisfyRequest } from '../../messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from '../../messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/getBlockHashes'
@@ -65,7 +64,7 @@ export abstract class Connection {
    * If set will simulate a random amount of latency up to this number
    */
   protected readonly simulateLatency: number = 0
-  protected readonly simulateLatencyQueue: Array<LooseMessage | NetworkMessage>
+  protected readonly simulateLatencyQueue: Array<NetworkMessage>
 
   /**
    * The last error received (if any), regardless of the current state of the connection.
@@ -102,12 +101,12 @@ export abstract class Connection {
    * json obj and verifies that it has a type attribute before being passed
    * in.
    */
-  readonly onMessage: Event<[LooseMessage] | [NetworkMessage]> = new Event()
+  readonly onMessage: Event<[NetworkMessage]> = new Event()
 
   /**
    * Send a message into this connection.
    */
-  abstract send: (object: LooseMessage | NetworkMessage) => boolean
+  abstract send: (object: NetworkMessage) => boolean
 
   /**
    * Shutdown the connection, if possible

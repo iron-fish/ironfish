@@ -11,9 +11,11 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage } from './messages/disconnecting'
+import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { NetworkMessageType } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { PeerListMessage } from './messages/peerList'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
@@ -50,11 +52,16 @@ describe('PeerNetwork', () => {
         hostsStore: mockHostsStore(),
       })
 
-      const type = 'hello'
+      const type = NetworkMessageType.NewTransaction
       peerNetwork.registerHandler(
         type,
         RoutingStyle.gossip,
-        (p) => Promise.resolve(p),
+        (p) => {
+          if (!(p instanceof GossipNetworkMessage)) {
+            throw new Error()
+          }
+          return p
+        },
         () => {},
       )
       expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.gossip)
@@ -76,14 +83,19 @@ describe('PeerNetwork', () => {
 
       const handlerMock = jest.fn(() => {})
       peerNetwork.registerHandler(
-        'hello',
+        NetworkMessageType.NewTransaction,
         RoutingStyle.gossip,
-        () => Promise.reject(new Error('invalid message')),
+        (p) => {
+          if (!(p instanceof GossipNetworkMessage)) {
+            throw new Error()
+          }
+          return p
+        },
         handlerMock,
       )
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const message = { type: 'hello', nonce: 'test_handler1', payload: { test: 'Payload' } }
+      const message = new PeerListMessage([])
       await peerNetwork['handleMessage'](peer, {
         peerIdentity: peer.getIdentityOrThrow(),
         message,
@@ -191,7 +203,7 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const newBlockHandler = peerNetwork['gossipRouter']['_handlers'].get(
+      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
         NetworkMessageType.NewBlock,
       )
       Assert.isNotUndefined(newBlockHandler)
@@ -249,7 +261,7 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
           NetworkMessageType.NewTransaction,
         )
 
@@ -294,7 +306,7 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
           NetworkMessageType.NewTransaction,
         )
 
@@ -341,7 +353,7 @@ describe('PeerNetwork', () => {
           'verifyNewTransaction',
         )
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
           NetworkMessageType.NewTransaction,
         )
 
@@ -377,7 +389,7 @@ describe('PeerNetwork', () => {
       }
 
       const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const newBlockHandler = peerNetwork['gossipRouter']['_handlers'].get(
+      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
         NetworkMessageType.NewBlock,
       )
       expect(newBlockHandler).toBeUndefined()
@@ -400,7 +412,7 @@ describe('PeerNetwork', () => {
       }
 
       const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+      const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
         NetworkMessageType.NewTransaction,
       )
       expect(newTransactionHandler).toBeUndefined()

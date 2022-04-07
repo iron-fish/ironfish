@@ -19,6 +19,7 @@ jest.mock('./encryption', () => {
 
 import ws from 'ws'
 import { createRootLogger } from '../../logger'
+import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { mockIdentity } from '../testUtilities'
 import {
   ConnectionDirection,
@@ -189,13 +190,13 @@ describe('Handles WebRTC message send failure', () => {
     if (!connection['datachannel']) {
       throw new Error('Should have datachannel')
     }
-    jest.spyOn(connection['datachannel'], 'sendMessage').mockImplementation(() => {
+    jest.spyOn(connection['datachannel'], 'sendMessageBinary').mockImplementation(() => {
       throw new Error('Error')
     })
     jest.spyOn(connection['datachannel'], 'isOpen').mockImplementation(() => true)
 
     expect(peer.state.type).toEqual('CONNECTED')
-    const result = peer.send({ type: 'test', payload: {} })
+    const result = peer.send(new PeerListRequestMessage())
     expect(result).toBeNull()
     expect(peer.state.type).toEqual('DISCONNECTED')
   })
@@ -223,7 +224,7 @@ describe('Handles WebRTC message send failure', () => {
     }
 
     const wsSendSpy = jest.spyOn(wsConnection, 'send')
-    const message = { type: 'test', payload: {} }
+    const message = new PeerListRequestMessage()
 
     expect(peer.state.type).toEqual('CONNECTED')
     const result = peer.send(message)
