@@ -5,7 +5,6 @@
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
-import { LooseMessage, parseMessage } from '../../messages'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
@@ -77,15 +76,11 @@ export class WebSocketConnection extends Connection {
     this.socket.onmessage = (event: MessageEvent) => {
       let message
       try {
-        if (event.data instanceof Uint8Array) {
-          message = this.parseMessage(Buffer.from(event.data))
-        } else {
-          // TODO: Switch network traffic to binary only so this can measure bytes and then decode the binary into JSON
-          const byteCount = Buffer.from(JSON.stringify(event.data)).byteLength
-          this.metrics?.p2p_InboundTraffic.add(byteCount)
-          this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
-          message = parseMessage(event.data)
-        }
+        const bufferData = Buffer.from(event.data)
+        message = this.parseMessage(bufferData)
+        const byteCount = bufferData.byteLength
+        this.metrics?.p2p_InboundTraffic.add(byteCount)
+        this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
       } catch (error) {
         // TODO: any socket that sends invalid messages should probably
         // be punished with some kind of "downgrade" event. This should
@@ -98,20 +93,15 @@ export class WebSocketConnection extends Connection {
         return
       }
 
-      if (message instanceof NetworkMessage) {
-        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
-        this.onMessage.emit(message)
-      } else if (this.shouldLogMessageType(message.type)) {
-        this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
-        this.onMessage.emit(message)
-      }
+      this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
+      this.onMessage.emit(message)
     }
   }
 
   /**
    * Encode the message to json and send it to the peer
    */
-  send = (message: LooseMessage | NetworkMessage): boolean => {
+  send = (message: NetworkMessage): boolean => {
     if (message.type === NetworkMessageType.NewBlock && this.socket.bufferedAmount > 0) {
       return false
     }
@@ -120,15 +110,10 @@ export class WebSocketConnection extends Connection {
       this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${message.type}`)
     }
 
-    const data = JSON.stringify(message)
-    if (message instanceof NetworkMessage) {
-      this.socket.send(message.serializeWithMetadata())
-    } else {
-      this.socket.send(data)
-    }
+    const data = message.serializeWithMetadata()
+    this.socket.send(data)
 
-    // TODO: Switch network traffic to binary
-    const byteCount = Buffer.from(data).byteLength
+    const byteCount = data.byteLength
     this.metrics?.p2p_OutboundTraffic.add(byteCount)
     this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
 
