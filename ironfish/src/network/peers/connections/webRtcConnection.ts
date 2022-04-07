@@ -9,8 +9,8 @@ import { Assert } from '../../../assert'
 import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
-import { NetworkMessage } from '../../messages/networkMessage'
+import { LooseMessage, parseMessage } from '../../messages'
+import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -212,7 +212,7 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    if (message.type === NodeMessageType.NewBlock && this.datachannel.bufferedAmount() > 0) {
+    if (message.type === NetworkMessageType.NewBlock && this.datachannel.bufferedAmount() > 0) {
       return false
     }
 

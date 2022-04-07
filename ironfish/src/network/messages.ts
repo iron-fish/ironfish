@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { SerializedBlock } from '../primitives/block'
 import { IJSON } from '../serde'
-import { UnwrapPromise } from '../utils'
 import { Identity } from './identity'
-import { Gossip } from './messageRouters'
 import { NetworkMessage } from './messages/networkMessage'
 
 export type MessageType = string
@@ -76,34 +73,3 @@ export interface IncomingPeerMessage<
   peerIdentity: Identity
   message: M
 }
-
-/**
- * The type of a Iron Fish message. This is an exhaustive list of
- * the messages that are sent from IronfishNode. Other messages may
- * be sent by peerNetwork's internal mechanisms (for example, a peer list).
- *
- * Note: A Response to a Request must have the same MessageType
- */
-export enum NodeMessageType {
-  NewBlock = 'NewBlock',
-}
-
-/**
- * A newly mined block gossipped on the P2P network
- */
-export type NewBlock = Message<'NewBlock', { block: SerializedBlock }>
-
-/**
- * Type narrowing to confirm the message payload contains a `block` object.
- * Does not try to confirm whether it is a correct block.
- */
-export function isNewBlockPayload(obj: PayloadType): obj is NewBlock['payload'] {
-  return (
-    obj !== undefined && 'block' in obj && typeof obj.block === 'object' && obj.block !== null
-  )
-}
-
-export type NewBlockMessage = Gossip<
-  NodeMessageType.NewBlock,
-  UnwrapPromise<{ block: SerializedBlock }>
->
