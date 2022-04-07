@@ -9,9 +9,9 @@ import {
   MessageType,
   PayloadType,
 } from '../messages'
+import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
-import { MessageRouter } from './messageRouter'
 
 export type IncomingFireAndForgetGeneric<T extends MessageType> = IncomingPeerMessage<
   Message<T, PayloadType>
@@ -23,19 +23,26 @@ export type IncomingFireAndForgetPeerMessage = IncomingFireAndForgetGeneric<Mess
  * Trivial router for sending a message to a connected peer without
  * expecting a response or receipt confirmation.
  */
-export class FireAndForgetRouter extends MessageRouter {
+export class FireAndForgetRouter {
   peerManager: PeerManager
   private handlers: Map<
     MessageType,
     (message: IncomingFireAndForgetPeerMessage) => Promise<unknown>
   >
+  private _handlers: Map<
+    NetworkMessageType,
+    (message: IncomingPeerMessage<NetworkMessage>) => void
+  >
 
   constructor(peerManager: PeerManager) {
-    super()
     this.peerManager = peerManager
     this.handlers = new Map<
       MessageType,
       (message: IncomingFireAndForgetPeerMessage) => Promise<unknown>
+    >()
+    this._handlers = new Map<
+      NetworkMessageType,
+      (message: IncomingPeerMessage<NetworkMessage>) => void
     >()
   }
 
@@ -74,5 +81,12 @@ export class FireAndForgetRouter extends MessageRouter {
     }
     const peerIdentity = peer.getIdentityOrThrow()
     await handler({ peerIdentity, message })
+  }
+
+  _register(
+    type: NetworkMessageType,
+    handler: (message: IncomingPeerMessage<NetworkMessage>) => void,
+  ): void {
+    this._handlers.set(type, handler)
   }
 }

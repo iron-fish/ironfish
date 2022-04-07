@@ -18,6 +18,7 @@ import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import { NewTransactionMessage } from '../../messages/newTransaction'
 import { PeerListMessage } from '../../messages/peerList'
 import { PeerListRequestMessage } from '../../messages/peerListRequest'
 import { SignalMessage } from '../../messages/signal'
@@ -233,15 +234,19 @@ export abstract class Connection {
 
   private parseHeader(message: Buffer): NetworkMessageHeader {
     let rpcId
+    let nonce
     const br = bufio.read(message)
     const type = br.readU8()
+    const size = br.readU64()
     if (this.isRpcNetworkMessageType(type)) {
       rpcId = br.readU64()
+    } else if (this.isGossipNetworkMessageType(type)) {
+      nonce = br.readVarString()
     }
-    const size = br.readU64()
     return {
       type,
       rpcId,
+      nonce,
       body: br.readBytes(size),
     }
   }
@@ -256,7 +261,11 @@ export abstract class Connection {
     ].includes(type)
   }
 
-  private parseBody({ rpcId, type, body }: NetworkMessageHeader): NetworkMessage {
+  private isGossipNetworkMessageType(type: NetworkMessageType): boolean {
+    return [NetworkMessageType.NewTransaction].includes(type)
+  }
+
+  private parseBody({ rpcId, nonce, type, body }: NetworkMessageHeader): NetworkMessage {
     switch (type) {
       case NetworkMessageType.CannotSatisfyRequest:
         Assert.isNotUndefined(rpcId)
@@ -277,6 +286,9 @@ export abstract class Connection {
         return GetBlocksResponse.deserialize(body, rpcId)
       case NetworkMessageType.Identify:
         return IdentifyMessage.deserialize(body)
+      case NetworkMessageType.NewTransaction:
+        Assert.isNotUndefined(nonce)
+        return NewTransactionMessage.deserialize(body, nonce)
       case NetworkMessageType.PeerList:
         return PeerListMessage.deserialize(body)
       case NetworkMessageType.PeerListRequest:
