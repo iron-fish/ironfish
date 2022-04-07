@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Event } from '../event'
-import { IronfishNode } from '../node'
 
 export class Request<TRequest = unknown, TResponse = unknown> {
   data: TRequest
-  node: IronfishNode
   ended = false
   closed = false
   code: number | null = null
@@ -17,12 +15,10 @@ export class Request<TRequest = unknown, TResponse = unknown> {
 
   constructor(
     data: TRequest,
-    node: IronfishNode,
     onEnd: (status: number, data?: unknown) => void,
     onStream: (data?: unknown) => void,
   ) {
     this.data = data
-    this.node = node
     this.onEnd = onEnd
     this.onStream = onStream
   }

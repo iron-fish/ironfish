@@ -243,7 +243,6 @@ export class IpcAdapter implements IAdapter {
 
     const request = new Request(
       message.data,
-      node,
       (status: number, data?: unknown) => {
         this.emitResponse(socket, message.mid, status, data)
       },
