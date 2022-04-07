@@ -10,9 +10,9 @@ import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
-import { NodeMessageType } from './messages'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NetworkMessageType } from './messages/networkMessage'
+import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
@@ -191,23 +191,39 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
-        NodeMessageType.NewBlock,
+      const newBlockHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        NetworkMessageType.NewBlock,
       )
       Assert.isNotUndefined(newBlockHandler)
 
+      const block = {
+        header: {
+          graffiti: 'chipotle',
+          minersFee: '0',
+          noteCommitment: {
+            commitment: Buffer.from('commitment'),
+            size: 1,
+          },
+          nullifierCommitment: {
+            commitment: 'commitment',
+            size: 2,
+          },
+          previousBlockHash: 'burrito',
+          randomness: 1,
+          sequence: 2,
+          target: 'icecream',
+          timestamp: 200000,
+          work: '123',
+          hash: 'ramen',
+        },
+        transactions: [],
+      }
       await newBlockHandler({
         peerIdentity: peer.getIdentityOrThrow(),
-        message: {
-          type: NodeMessageType.NewBlock,
-          nonce: 'nonce',
-          payload: { block: { header: { hash: '0' } } },
-        },
+        message: new NewBlockMessage(block, 'nonce'),
       })
 
-      expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, {
-        header: { hash: undefined },
-      })
+      expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
     })
 
     describe('when the worker pool is saturated', () => {
@@ -361,8 +377,8 @@ describe('PeerNetwork', () => {
       }
 
       const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
-        NodeMessageType.NewBlock,
+      const newBlockHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        NetworkMessageType.NewBlock,
       )
       expect(newBlockHandler).toBeUndefined()
     })

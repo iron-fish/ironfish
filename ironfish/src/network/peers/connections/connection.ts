@@ -18,6 +18,7 @@ import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
 import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import { NewBlockMessage } from '../../messages/newBlock'
 import { NewTransactionMessage } from '../../messages/newTransaction'
 import { PeerListMessage } from '../../messages/peerList'
 import { PeerListRequestMessage } from '../../messages/peerListRequest'
@@ -262,7 +263,7 @@ export abstract class Connection {
   }
 
   private isGossipNetworkMessageType(type: NetworkMessageType): boolean {
-    return [NetworkMessageType.NewTransaction].includes(type)
+    return [NetworkMessageType.NewBlock, NetworkMessageType.NewTransaction].includes(type)
   }
 
   private parseBody({ rpcId, nonce, type, body }: NetworkMessageHeader): NetworkMessage {
@@ -286,6 +287,9 @@ export abstract class Connection {
         return GetBlocksResponse.deserialize(body, rpcId)
       case NetworkMessageType.Identify:
         return IdentifyMessage.deserialize(body)
+      case NetworkMessageType.NewBlock:
+        Assert.isNotUndefined(nonce)
+        return NewBlockMessage.deserialize(body, nonce)
       case NetworkMessageType.NewTransaction:
         Assert.isNotUndefined(nonce)
         return NewTransactionMessage.deserialize(body, nonce)

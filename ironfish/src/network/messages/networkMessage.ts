@@ -12,11 +12,12 @@ export enum NetworkMessageType {
   GetBlocksRequest = 4,
   GetBlocksResponse = 5,
   Identify = 6,
-  NewTransaction = 7,
-  PeerList = 8,
-  PeerListRequest = 9,
-  Signal = 10,
-  SignalRequest = 11,
+  NewBlock = 7,
+  NewTransaction = 8,
+  PeerList = 9,
+  PeerListRequest = 10,
+  Signal = 11,
+  SignalRequest = 12,
 }
 
 export abstract class NetworkMessage implements Serializable {

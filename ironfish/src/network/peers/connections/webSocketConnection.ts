@@ -5,8 +5,8 @@
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
-import { LooseMessage, NodeMessageType, parseMessage } from '../../messages'
-import { NetworkMessage } from '../../messages/networkMessage'
+import { LooseMessage, parseMessage } from '../../messages'
+import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -112,7 +112,7 @@ export class WebSocketConnection extends Connection {
    * Encode the message to json and send it to the peer
    */
   send = (message: LooseMessage | NetworkMessage): boolean => {
-    if (message.type === NodeMessageType.NewBlock && this.socket.bufferedAmount > 0) {
+    if (message.type === NetworkMessageType.NewBlock && this.socket.bufferedAmount > 0) {
       return false
     }
 
