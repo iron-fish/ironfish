@@ -4,20 +4,11 @@
 
 import {
   IncomingPeerMessage,
-  LooseMessage,
-  Message,
-  MessageType,
-  PayloadType,
-} from '../messages'
-import { NetworkMessage, NetworkMessageType } from '../messages/networkMessage'
+  NetworkMessage,
+  NetworkMessageType,
+} from '../messages/networkMessage'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
-
-export type IncomingFireAndForgetGeneric<T extends MessageType> = IncomingPeerMessage<
-  Message<T, PayloadType>
->
-
-export type IncomingFireAndForgetPeerMessage = IncomingFireAndForgetGeneric<MessageType>
 
 /**
  * Trivial router for sending a message to a connected peer without
@@ -26,10 +17,6 @@ export type IncomingFireAndForgetPeerMessage = IncomingFireAndForgetGeneric<Mess
 export class FireAndForgetRouter {
   peerManager: PeerManager
   private handlers: Map<
-    MessageType,
-    (message: IncomingFireAndForgetPeerMessage) => Promise<unknown>
-  >
-  private _handlers: Map<
     NetworkMessageType,
     (message: IncomingPeerMessage<NetworkMessage>) => void
   >
@@ -37,10 +24,6 @@ export class FireAndForgetRouter {
   constructor(peerManager: PeerManager) {
     this.peerManager = peerManager
     this.handlers = new Map<
-      MessageType,
-      (message: IncomingFireAndForgetPeerMessage) => Promise<unknown>
-    >()
-    this._handlers = new Map<
       NetworkMessageType,
       (message: IncomingPeerMessage<NetworkMessage>) => void
     >()
@@ -49,13 +32,9 @@ export class FireAndForgetRouter {
   /**
    * Register a callback function for a given type of handler
    */
-  register<T extends MessageType>(
-    type: T,
-    handler: (message: IncomingFireAndForgetGeneric<T>) => Promise<unknown>,
-  ): void
   register(
-    type: MessageType,
-    handler: (message: IncomingFireAndForgetPeerMessage) => Promise<unknown>,
+    type: NetworkMessageType,
+    handler: (message: IncomingPeerMessage<NetworkMessage>) => void,
   ): void {
     this.handlers.set(type, handler)
   }
@@ -63,7 +42,7 @@ export class FireAndForgetRouter {
   /**
    * Forward the message directly to the intended recipient.
    */
-  fireAndForget(peer: Peer, message: LooseMessage): void {
+  fireAndForget(peer: Peer, message: NetworkMessage): void {
     this.peerManager.sendTo(peer, message)
   }
 
@@ -71,22 +50,12 @@ export class FireAndForgetRouter {
    * Handle an incoming fire and forget message. Just send it up to the
    * handler without any processing.
    */
-  async handle(
-    peer: Peer,
-    message: IncomingFireAndForgetPeerMessage['message'],
-  ): Promise<void> {
+  handle(peer: Peer, message: NetworkMessage): void {
     const handler = this.handlers.get(message.type)
     if (handler === undefined) {
       return
     }
     const peerIdentity = peer.getIdentityOrThrow()
-    await handler({ peerIdentity, message })
-  }
-
-  _register(
-    type: NetworkMessageType,
-    handler: (message: IncomingPeerMessage<NetworkMessage>) => void,
-  ): void {
-    this._handlers.set(type, handler)
+    handler({ peerIdentity, message })
   }
 }

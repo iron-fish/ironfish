@@ -4,16 +4,10 @@
 
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
-import { IncomingPeerMessage, Message, MessageType, PayloadType } from '../messages'
-import { NetworkMessageType } from '../messages/networkMessage'
+import { IncomingPeerMessage, NetworkMessageType } from '../messages/networkMessage'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Peer } from '../peers/peer'
-import {
-  CannotSatisfyRequestError,
-  IncomingRpcGeneric,
-  IncomingRpcPeerMessage,
-  RpcRouter,
-} from './rpc'
+import { CannotSatisfyRequestError, RpcRouter } from './rpc'
 
 /**
  * Number of times to attempt a request with another peer before giving up.
@@ -38,11 +32,11 @@ export class GlobalRpcRouter {
    * that have not received all the necessary data yet, as well as peers that are
    * not storing all of the data.
    */
-  requestFails: Map<Identity, Set<MessageType>>
+  requestFails: Map<Identity, Set<NetworkMessageType>>
 
   constructor(router: RpcRouter) {
     this.rpcRouter = router
-    this.requestFails = new Map<Identity, Set<MessageType>>()
+    this.requestFails = new Map<Identity, Set<NetworkMessageType>>()
 
     // Clear failures when a peer disconnects to avoid memory leaks
     this.rpcRouter.peerManager.onDisconnect.on((peer: Peer) => {
@@ -57,26 +51,11 @@ export class GlobalRpcRouter {
    * is used for incoming RPC requents, and should be responded to as with
    * a normal RPC handler.
    */
-  register<T extends MessageType>(
-    type: T,
-    handler: (message: IncomingRpcGeneric<T>) => Promise<PayloadType>,
-  ): void
   register(
-    type: MessageType,
-    handler: (message: IncomingRpcPeerMessage) => Promise<PayloadType>,
-  ): void {
-    this.rpcRouter.register(type, async (message: IncomingRpcPeerMessage) => {
-      // TODO: I think there will need to be some extra logic around this,
-      // but if not, it can be registered with the rpc handler directly
-      return await handler(message)
-    })
-  }
-
-  _register(
     type: NetworkMessageType,
     handler: (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>,
   ): void {
-    this.rpcRouter._register(type, async (message: IncomingPeerMessage<RpcNetworkMessage>) => {
+    this.rpcRouter.register(type, async (message: IncomingPeerMessage<RpcNetworkMessage>) => {
       return await handler(message)
     })
   }
@@ -91,9 +70,9 @@ export class GlobalRpcRouter {
    * or if the individual request times out.
    */
   async request(
-    message: Message<MessageType, Record<string, unknown>>,
+    message: RpcNetworkMessage,
     toPeer?: Identity,
-  ): Promise<IncomingRpcPeerMessage | IncomingPeerMessage<RpcNetworkMessage>> {
+  ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
     for (let i = 0; i < RETRIES; i++) {
       const peer = this.selectPeer(message.type, toPeer)
 
@@ -105,7 +84,7 @@ export class GlobalRpcRouter {
       const peerIdentity = peer.getIdentityOrThrow()
 
       try {
-        const response = await this.rpcRouter.requestFrom(peer, { ...message })
+        const response = await this.rpcRouter.requestFrom(peer, message)
         if (response.message.type !== NetworkMessageType.CannotSatisfyRequest) {
           this.requestFails.get(peerIdentity)?.delete(message.type)
           return response
@@ -115,7 +94,8 @@ export class GlobalRpcRouter {
       }
 
       if (peer.state.type === 'CONNECTED') {
-        const peerRequestFailMap = this.requestFails.get(peerIdentity) || new Set<MessageType>()
+        const peerRequestFailMap =
+          this.requestFails.get(peerIdentity) || new Set<NetworkMessageType>()
         this.requestFails.set(peerIdentity, peerRequestFailMap)
         peerRequestFailMap.add(message.type)
       }
@@ -129,10 +109,7 @@ export class GlobalRpcRouter {
    * some data or an incoming repsonse. Either way, we just forward it to the
    * RPC handler.
    */
-  async handle(
-    peer: Peer,
-    rpcMessage: IncomingRpcPeerMessage['message'] | RpcNetworkMessage,
-  ): Promise<void> {
+  async handle(peer: Peer, rpcMessage: RpcNetworkMessage): Promise<void> {
     await this.rpcRouter.handle(peer, rpcMessage)
   }
 
@@ -145,7 +122,7 @@ export class GlobalRpcRouter {
    *
    * Returns null if we were not able to find a valid candidate
    */
-  private selectPeer(type: MessageType, peerIdentity?: Identity): Peer | null {
+  private selectPeer(type: NetworkMessageType, peerIdentity?: Identity): Peer | null {
     if (peerIdentity) {
       const peer = this.rpcRouter.peerManager.getPeer(peerIdentity)
       if (peer && peer.state.type === 'CONNECTED') {

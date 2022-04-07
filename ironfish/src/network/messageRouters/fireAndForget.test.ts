@@ -6,6 +6,12 @@ jest.mock('ws')
 
 import ws from 'ws'
 import { mockChain, mockNode, mockStrategy } from '../../testUtilities/mocks'
+import {
+  IncomingPeerMessage,
+  NetworkMessage,
+  NetworkMessageType,
+} from '../messages/networkMessage'
+import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { PeerNetwork, RoutingStyle } from '../peerNetwork'
 import { AddressManager } from '../peers/addressManager'
 import { PeerManager } from '../peers/peerManager'
@@ -15,7 +21,7 @@ import {
   mockLocalPeer,
   mockPrivateIdentity,
 } from '../testUtilities'
-import { FireAndForgetRouter, IncomingFireAndForgetGeneric } from './fireAndForget'
+import { FireAndForgetRouter } from './fireAndForget'
 
 jest.useFakeTimers()
 
@@ -25,29 +31,27 @@ describe('FireAndForget Router', () => {
     const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const router = new FireAndForgetRouter(peers)
-    router.register('pass', jest.fn())
+    router.register(NetworkMessageType.PeerListRequest, jest.fn())
 
     const { peer } = getConnectedPeer(peers)
-    const request = { type: 'test', payload: { test: 'payload' } }
+    const request = new PeerListRequestMessage()
     router.fireAndForget(peer, request)
     expect(sendToMock).toBeCalledWith(peer, request)
   })
 
-  it('handles an incoming fire and forget message', async () => {
+  it('handles an incoming fire and forget message', () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
     const router = new FireAndForgetRouter(peers)
 
-    const handleMock = jest.fn((_message: IncomingFireAndForgetGeneric<'incoming'>) =>
-      Promise.resolve(),
-    )
-    router.register('incoming', handleMock)
+    const handleMock = jest.fn((_message: IncomingPeerMessage<NetworkMessage>) => undefined)
+    router.register(NetworkMessageType.PeerListRequest, handleMock)
 
     const { peer } = getConnectedPeer(peers)
-    await router.handle(peer, { type: 'incoming', payload: { test: 'payload' } })
+    router.handle(peer, new PeerListRequestMessage())
 
     expect(handleMock).toHaveBeenCalledWith({
       peerIdentity: peer.getIdentityOrThrow(),
-      message: { type: 'incoming', payload: { test: 'payload' } },
+      message: new PeerListRequestMessage(),
     })
   })
 
@@ -68,16 +72,16 @@ describe('FireAndForget Router', () => {
     network['fireAndForgetRouter'].handle = fireAndForgetMock
 
     network.registerHandler(
-      'test',
+      NetworkMessageType.PeerListRequest,
       RoutingStyle.fireAndForget,
-      jest.fn((p) => Promise.resolve(p)),
+      (p) => p,
       () => {},
     )
 
     const { peer } = getConnectedPeer(network.peerManager)
     await network['handleMessage'](peer, {
       peerIdentity: peer.getIdentityOrThrow(),
-      message: { type: 'test', payload: { test: 'payload' } },
+      message: new PeerListRequestMessage(),
     })
 
     expect(fireAndForgetMock).toBeCalled()
