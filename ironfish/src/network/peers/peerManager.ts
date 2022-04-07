@@ -759,7 +759,7 @@ export class PeerManager {
   /**
    * Send a message to all connected peers.
    */
-  broadcast(message: LooseMessage): void {
+  broadcast(message: LooseMessage | NetworkMessage): void {
     for (const peer of this.getConnectedPeers()) {
       peer.send(message)
     }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import tweetnacl from 'tweetnacl'
+import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
@@ -38,19 +39,19 @@ import { nextRpcId } from './messageRouters/rpcId'
 import {
   IncomingPeerMessage,
   isNewBlockPayload,
-  isNewTransactionPayload,
   LooseMessage,
   Message,
   MessageType,
   NewBlockMessage,
-  NewTransactionMessage,
   NodeMessageType,
   PayloadType,
 } from './messages'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { NetworkMessage, NetworkMessageType } from './messages/networkMessage'
+import { NewTransactionMessage } from './messages/newTransaction'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
@@ -78,10 +79,24 @@ interface RouteMap<T extends MessageType, P extends PayloadType> {
   [RoutingStyle.fireAndForget]: Message<T, P>
 }
 
+interface _RouteMap {
+  [RoutingStyle.gossip]: GossipNetworkMessage
+  [RoutingStyle.globalRPC]: RpcNetworkMessage
+  [RoutingStyle.directRPC]: RpcNetworkMessage
+  [RoutingStyle.fireAndForget]: NetworkMessage
+}
+
 interface ReturnMap {
   [RoutingStyle.gossip]: Promise<boolean | void> | boolean | void
   [RoutingStyle.globalRPC]: Promise<PayloadType>
   [RoutingStyle.directRPC]: Promise<PayloadType>
+  [RoutingStyle.fireAndForget]: void
+}
+
+interface _ReturnMap {
+  [RoutingStyle.gossip]: Promise<boolean | void> | boolean | void
+  [RoutingStyle.globalRPC]: Promise<RpcNetworkMessage>
+  [RoutingStyle.directRPC]: Promise<RpcNetworkMessage>
   [RoutingStyle.fireAndForget]: void
 }
 
@@ -215,32 +230,17 @@ export class PeerNetwork {
         (message) => this.onNewBlock(message),
       )
 
-      this.registerHandler(
-        NodeMessageType.NewTransaction,
+      this._registerHandler(
+        NetworkMessageType.NewTransaction,
         RoutingStyle.gossip,
         (p) => {
-          if (!isNewTransactionPayload(p)) {
+          if (!(p instanceof NewTransactionMessage)) {
             throw new Error('Payload is not a serialized transaction')
           }
 
-          return Promise.resolve({
-            transaction: this.node.chain.verifier.verifyNewTransaction(p.transaction),
-          })
+          return p
         },
         (message) => this.onNewTransaction(message),
-      )
-    } else {
-      this.registerHandler(
-        NodeMessageType.NewBlock,
-        RoutingStyle.gossip,
-        () => Promise.resolve(undefined),
-        () => Promise.resolve(undefined),
-      )
-      this.registerHandler(
-        NodeMessageType.NewTransaction,
-        RoutingStyle.gossip,
-        () => Promise.resolve(undefined),
-        () => Promise.resolve(undefined),
       )
     }
 
@@ -248,10 +248,10 @@ export class PeerNetwork {
       NetworkMessageType.GetBlockHashesRequest,
       RoutingStyle.directRPC,
       (p) => {
-        if (p instanceof GetBlockHashesRequest) {
-          return Promise.resolve(p)
+        if (!(p instanceof GetBlockHashesRequest)) {
+          throw new Error('Payload is not a valid get block hashes request')
         }
-        return Promise.reject()
+        return p
       },
       (message) => this.onGetBlockHashesRequest(message),
     )
@@ -260,11 +260,11 @@ export class PeerNetwork {
     this._registerHandler(
       NetworkMessageType.GetBlocksRequest,
       RoutingStyle.directRPC,
-      (m): Promise<GetBlocksRequest> => {
-        if (m instanceof GetBlocksRequest) {
-          return Promise.resolve(m)
+      (m): GetBlocksRequest => {
+        if (!(m instanceof GetBlocksRequest)) {
+          throw new Error('Payload is not a valid get blocks request')
         }
-        return Promise.reject()
+        return m
       },
       (message) => this.onGetBlocksRequest(message),
     )
@@ -277,10 +277,7 @@ export class PeerNetwork {
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
-      this.gossip({
-        type: NodeMessageType.NewTransaction,
-        payload: { transaction: serializedTransaction },
-      })
+      this.gossip(new NewTransactionMessage(serializedTransaction, uuid()))
     })
   }
 
@@ -483,32 +480,54 @@ export class PeerNetwork {
     this.routingStyles.set(type, style)
   }
 
-  _registerHandler<Request extends RpcNetworkMessage, Response extends RpcNetworkMessage>(
+  _registerHandler<
+    S extends RoutingStyle,
+    NetworkRequest extends _RouteMap[S],
+    NetworkResponse extends _ReturnMap[S],
+  >(
     type: NetworkMessageType,
-    style: RoutingStyle,
-    validator: (payload: RpcNetworkMessage) => Promise<Request>,
-    handler: (parsedMessage: IncomingPeerMessage<Request>) => Promise<Response>,
+    style: S,
+    validator: (payload: NetworkMessage) => NetworkRequest,
+    handler: (parsedMessage: IncomingPeerMessage<NetworkRequest>) => NetworkResponse,
   ): void {
-    const hdlr = async (msg: IncomingPeerMessage<RpcNetworkMessage>) => {
-      return await handler({
+    const hdlr = (msg: IncomingPeerMessage<NetworkMessage>): NetworkResponse => {
+      return handler({
         peerIdentity: msg.peerIdentity,
-        message: await validator(msg.message),
+        message: validator(msg.message),
       })
     }
 
     switch (style) {
       case RoutingStyle.gossip: {
-        this.gossipRouter._register(type, hdlr)
+        this.gossipRouter._register(
+          type,
+          hdlr as (
+            message: IncomingPeerMessage<GossipNetworkMessage>,
+          ) => Promise<boolean | void> | boolean | void,
+        )
         break
       }
       case RoutingStyle.directRPC:
-        this.directRpcRouter._register(type, hdlr)
+        this.directRpcRouter._register(
+          type,
+          hdlr as (
+            message: IncomingPeerMessage<RpcNetworkMessage>,
+          ) => Promise<RpcNetworkMessage>,
+        )
         break
       case RoutingStyle.globalRPC:
-        this.globalRpcRouter._register(type, hdlr)
+        this.globalRpcRouter._register(
+          type,
+          hdlr as (
+            message: IncomingPeerMessage<RpcNetworkMessage>,
+          ) => Promise<RpcNetworkMessage>,
+        )
         break
       case RoutingStyle.fireAndForget:
-        this.fireAndForgetRouter._register(type, hdlr)
+        this.fireAndForgetRouter._register(
+          type,
+          hdlr as (message: IncomingPeerMessage<NetworkMessage>) => void,
+        )
         break
     }
     this.routingStyles.set(type, style)
@@ -519,7 +538,7 @@ export class PeerNetwork {
    * will forward it to their other peers. The goal is for everyone to
    * receive the message.
    */
-  gossip(message: LooseMessage): void {
+  gossip(message: LooseMessage | GossipNetworkMessage): void {
     const style = this.routingStyles.get(message.type)
     if (style !== RoutingStyle.gossip) {
       throw new Error(`${message.type} type not meant to be gossipped`)
@@ -816,10 +835,12 @@ export class PeerNetwork {
   }
 
   private async onNewTransaction(
-    message: IncomingPeerMessage<
-      Gossip<NodeMessageType.NewTransaction, NewTransactionMessage['payload']>
-    >,
+    message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
+      message.message.transaction,
+    )
+
     if (this.node.workerPool.saturated) {
       return false
     }
@@ -833,9 +854,8 @@ export class PeerNetwork {
       return false
     }
 
-    const { transaction } = message.message.payload
-    if (await this.node.memPool.acceptTransaction(transaction)) {
-      await this.node.accounts.syncTransaction(transaction, {})
+    if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
+      await this.node.accounts.syncTransaction(verifiedTransaction, {})
     }
 
     return true

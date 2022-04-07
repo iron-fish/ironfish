@@ -7,4 +7,5 @@ export interface NetworkMessageHeader {
   body: Buffer
   type: NetworkMessageType
   rpcId?: number
+  nonce?: string
 }

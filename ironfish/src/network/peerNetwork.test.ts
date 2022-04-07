@@ -9,11 +9,11 @@ import http from 'http'
 import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
-import { createNodeTest } from '../testUtilities'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { NodeMessageType } from './messages'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NetworkMessageType } from './messages/networkMessage'
+import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerNetwork, RoutingStyle } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
@@ -233,8 +233,8 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -243,11 +243,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {},
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -282,8 +278,8 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -292,11 +288,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {},
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -333,8 +325,8 @@ describe('PeerNetwork', () => {
           'verifyNewTransaction',
         )
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NodeMessageType.NewTransaction,
+        const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+          NetworkMessageType.NewTransaction,
         )
 
         if (newTransactionHandler === undefined) {
@@ -343,13 +335,7 @@ describe('PeerNetwork', () => {
 
         await newTransactionHandler({
           peerIdentity: '',
-          message: {
-            type: NodeMessageType.NewTransaction,
-            nonce: 'nonce',
-            payload: {
-              transaction: {},
-            },
-          },
+          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
 
         expect(verifyNewTransactionSpy).toHaveBeenCalled()
@@ -358,9 +344,7 @@ describe('PeerNetwork', () => {
   })
 
   describe('when enable syncing is false', () => {
-    const nodeTest = createNodeTest()
-
-    it('does not handle blocks', async () => {
+    it('does not handle blocks', () => {
       // We have to create 2 peerNetworks because this test tests logic in the
       // constructor itself and I found that this test would pass because the
       // tested function was deleted. Now it ensures it does get called under
@@ -376,44 +360,14 @@ describe('PeerNetwork', () => {
         hostsStore: mockHostsStore(),
       }
 
-      const peerNetwork1 = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const peerNetwork2 = new PeerNetwork({ ...networkArgs, enableSyncing: true })
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const onNewBlockSpy1 = jest.spyOn(peerNetwork1 as any, 'onNewBlock')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const onNewBlockSpy2 = jest.spyOn(peerNetwork2 as any, 'onNewBlock')
-
-      const newBlockHandler1 = peerNetwork1['gossipRouter']['handlers'].get(
+      const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
+      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
         NodeMessageType.NewBlock,
       )
-      const newBlockHandler2 = peerNetwork2['gossipRouter']['handlers'].get(
-        NodeMessageType.NewBlock,
-      )
-
-      Assert.isNotUndefined(newBlockHandler1, 'Expected newBlockHandler to be defined')
-      Assert.isNotUndefined(newBlockHandler2, 'Expected newBlockHandler to be defined')
-
-      const block = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(block)
-
-      const message = {
-        peerIdentity: '',
-        message: {
-          type: NodeMessageType.NewBlock,
-          nonce: 'nonce',
-          payload: { block: nodeTest.strategy.blockSerde.serialize(block) },
-        },
-      }
-
-      await newBlockHandler1(message)
-      await newBlockHandler2(message)
-
-      expect(onNewBlockSpy1).not.toHaveBeenCalled()
-      expect(onNewBlockSpy2).toHaveBeenCalledTimes(1)
+      expect(newBlockHandler).toBeUndefined()
     })
 
-    it('does not handle transactions', async () => {
+    it('does not handle transactions', () => {
       // We have to create 2 peerNetworks because this test tests logic in the
       // constructor itself and I found that this test would pass because the
       // tested function was deleted. Now it ensures it does get called under
@@ -429,49 +383,11 @@ describe('PeerNetwork', () => {
         hostsStore: mockHostsStore(),
       }
 
-      const peerNetwork1 = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const peerNetwork2 = new PeerNetwork({ ...networkArgs, enableSyncing: true })
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const onNewTransactionSpy1 = jest.spyOn(peerNetwork1 as any, 'onNewTransaction')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const onNewTransactionSpy2 = jest.spyOn(peerNetwork2 as any, 'onNewTransaction')
-
-      const newTransactionHandler1 = peerNetwork1['gossipRouter']['handlers'].get(
-        NodeMessageType.NewTransaction,
+      const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
+      const newTransactionHandler = peerNetwork['gossipRouter']['_handlers'].get(
+        NetworkMessageType.NewTransaction,
       )
-      const newTransactionHandler2 = peerNetwork2['gossipRouter']['handlers'].get(
-        NodeMessageType.NewTransaction,
-      )
-
-      Assert.isNotUndefined(
-        newTransactionHandler1,
-        'Expected newTransactionHandler1 to be defined',
-      )
-      Assert.isNotUndefined(
-        newTransactionHandler2,
-        'Expected newTransactionHandler2 to be defined',
-      )
-
-      const block = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(block)
-
-      const message = {
-        peerIdentity: '',
-        message: {
-          type: NodeMessageType.NewTransaction,
-          nonce: 'nonce',
-          payload: {
-            transaction: nodeTest.strategy.transactionSerde.serialize(block.minersFee),
-          },
-        },
-      }
-
-      await newTransactionHandler1(message)
-      await newTransactionHandler2(message)
-
-      expect(onNewTransactionSpy1).not.toHaveBeenCalled()
-      expect(onNewTransactionSpy2).toHaveBeenCalledTimes(1)
+      expect(newTransactionHandler).toBeUndefined()
     })
   })
 })

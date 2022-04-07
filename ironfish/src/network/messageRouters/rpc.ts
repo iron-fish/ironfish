@@ -6,12 +6,12 @@ import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IncomingPeerMessage, isMessage, Message, MessageType, PayloadType } from '../messages'
 import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
+import { NetworkMessageType } from '../messages/networkMessage'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
 import { Connection } from '../peers/connections/connection'
 import { NetworkError } from '../peers/connections/errors'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
-import { MessageRouter } from './messageRouter'
 import { nextRpcId, RpcId, rpcTimeoutMillis } from './rpcId'
 
 export enum Direction {
@@ -74,21 +74,28 @@ type RpcRequest = {
  * are quite complicated, as there are essentially two streams, one for the
  * request and one for the response.
  */
-export class RpcRouter extends MessageRouter {
+export class RpcRouter {
   peerManager: PeerManager
-  private handlers: Map<MessageType, (message: IncomingRpcPeerMessage) => Promise<PayloadType>>
   private requests: Map<RpcId, RpcRequest>
   private logger: Logger
+  private handlers: Map<MessageType, (message: IncomingRpcPeerMessage) => Promise<PayloadType>>
+  private readonly _handlers: Map<
+    NetworkMessageType,
+    (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>
+  >
 
   constructor(peerManager: PeerManager, logger: Logger = createRootLogger()) {
-    super()
     this.peerManager = peerManager
+    this.requests = new Map<RpcId, RpcRequest>()
+    this.logger = logger.withTag('rpcrouter')
     this.handlers = new Map<
       MessageType,
       (message: IncomingRpcPeerMessage) => Promise<PayloadType>
     >()
-    this.requests = new Map<RpcId, RpcRequest>()
-    this.logger = logger.withTag('rpcrouter')
+    this._handlers = new Map<
+      NetworkMessageType,
+      (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>
+    >()
   }
 
   /**
@@ -105,6 +112,13 @@ export class RpcRouter extends MessageRouter {
     handler: (message: IncomingRpcPeerMessage) => Promise<PayloadType>,
   ): void {
     this.handlers.set(type, handler)
+  }
+
+  _register(
+    type: NetworkMessageType,
+    handler: (message: IncomingPeerMessage<RpcNetworkMessage>) => Promise<RpcNetworkMessage>,
+  ): void {
+    this._handlers.set(type, handler)
   }
 
   /**
