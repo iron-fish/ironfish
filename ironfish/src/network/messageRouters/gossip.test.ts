@@ -128,7 +128,7 @@ describe('Gossip Router', () => {
     network['gossipRouter'].handle = gossipMock
     network.registerHandler(
       NetworkMessageType.NewTransaction,
-      RoutingStyle.gossip,
+      RoutingStyle.Gossip,
       () => new NewTransactionMessage(Buffer.from(''), 'nonce'),
       () => true,
     )
@@ -155,7 +155,7 @@ describe('Gossip Router', () => {
 
     network.registerHandler(
       NetworkMessageType.NewTransaction,
-      RoutingStyle.gossip,
+      RoutingStyle.Gossip,
       () => new NewTransactionMessage(Buffer.from(''), 'nonce'),
       () => true,
     )
