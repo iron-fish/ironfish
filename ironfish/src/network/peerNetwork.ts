@@ -38,12 +38,9 @@ import {
 import { nextRpcId } from './messageRouters/rpcId'
 import {
   IncomingPeerMessage,
-  isNewBlockPayload,
   LooseMessage,
   Message,
   MessageType,
-  NewBlockMessage,
-  NodeMessageType,
   PayloadType,
 } from './messages'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
@@ -51,6 +48,7 @@ import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlo
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { NetworkMessage, NetworkMessageType } from './messages/networkMessage'
+import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { LocalPeer } from './peers/localPeer'
@@ -217,15 +215,15 @@ export class PeerNetwork {
     }
 
     if (enableSyncing) {
-      this.registerHandler(
-        NodeMessageType.NewBlock,
+      this._registerHandler(
+        NetworkMessageType.NewBlock,
         RoutingStyle.gossip,
         (p) => {
-          if (!isNewBlockPayload(p)) {
-            throw 'Payload is not a serialized block'
+          if (!(p instanceof NewBlockMessage)) {
+            throw new Error('Payload is not a serialized block')
           }
 
-          return Promise.resolve(p)
+          return p
         },
         (message) => this.onNewBlock(message),
       )
@@ -284,12 +282,7 @@ export class PeerNetwork {
   gossipBlock(block: Block): void {
     const serializedBlock = this.strategy.blockSerde.serialize(block)
 
-    this.gossip({
-      type: NodeMessageType.NewBlock,
-      payload: {
-        block: serializedBlock,
-      },
-    })
+    this.gossip(new NewBlockMessage(serializedBlock, uuid()))
   }
 
   start(): void {
@@ -809,10 +802,8 @@ export class PeerNetwork {
     return new GetBlocksResponse(serialized, rpcId)
   }
 
-  private async onNewBlock(
-    message: IncomingPeerMessage<Gossip<NodeMessageType.NewBlock, NewBlockMessage['payload']>>,
-  ): Promise<boolean> {
-    const block = message.message.payload.block
+  private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
+    const block = message.message.block
     const peer = this.peerManager.getPeer(message.peerIdentity)
     if (!peer) {
       return false
