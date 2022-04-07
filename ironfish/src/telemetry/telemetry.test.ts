@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { mockChain, mockWorkerPool } from '../testUtilities/mocks'
+import { mockChain, mockConfig, mockWorkerPool } from '../testUtilities/mocks'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -28,7 +28,7 @@ describe('Telemetry', () => {
     telemetry = new Telemetry({
       chain: mockChain(),
       workerPool: mockWorkerPool(),
-      graffiti: mockGraffiti,
+      config: mockConfig({ blockGraffiti: mockGraffiti }),
     })
 
     telemetry.start()
@@ -54,6 +54,7 @@ describe('Telemetry', () => {
         const disabledTelemetry = new Telemetry({
           chain: mockChain(),
           workerPool: mockWorkerPool(),
+          config: mockConfig({ blockGraffiti: mockGraffiti }),
         })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)

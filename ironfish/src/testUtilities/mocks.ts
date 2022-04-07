@@ -87,3 +87,9 @@ export function mockWorkerPool(): any {
     submitTelemetry: jest.fn(),
   }
 }
+
+export function mockConfig(values: Record<string, any>): any {
+  return {
+    get: jest.fn((x) => values[x]),
+  }
+}

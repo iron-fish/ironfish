@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block } from '../primitives/block'
@@ -19,9 +20,9 @@ export class Telemetry {
   private readonly METRICS_INTERVAL = 5 * 60 * 1000
 
   private readonly chain: Blockchain
+  private readonly config: Config
   private readonly defaultTags: Tag[]
   private readonly defaultFields: Field[]
-  private readonly graffiti: string
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
@@ -36,7 +37,7 @@ export class Telemetry {
   constructor(options: {
     chain: Blockchain
     workerPool: WorkerPool
-    graffiti?: string
+    config: Config
     logger?: Logger
     metrics?: MetricsMonitor
     defaultFields?: Field[]
@@ -44,7 +45,7 @@ export class Telemetry {
   }) {
     this.chain = options.chain
     this.workerPool = options.workerPool
-    this.graffiti = options.graffiti ?? ''
+    this.config = options.config
     this.logger = options.logger ?? createRootLogger()
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
@@ -193,7 +194,8 @@ export class Telemetry {
     }
 
     try {
-      await this.workerPool.submitTelemetry(points, this.graffiti)
+      const graffiti = this.config.get('blockGraffiti')
+      await this.workerPool.submitTelemetry(points, graffiti)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0
       this._submitted += points.length

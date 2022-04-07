@@ -205,7 +205,7 @@ export class IronfishNode {
     const telemetry = new Telemetry({
       chain,
       logger,
-      graffiti: config.get('blockGraffiti'),
+      config,
       metrics,
       workerPool,
       defaultTags: [{ name: 'version', value: pkg.version }],
