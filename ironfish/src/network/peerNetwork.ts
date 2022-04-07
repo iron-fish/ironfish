@@ -21,14 +21,7 @@ import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
-import { Identity } from './identity'
-import {
-  CannotSatisfyRequestError,
-  FireAndForgetRouter,
-  GlobalRpcRouter,
-  GossipRouter,
-  RpcRouter,
-} from './messageRouters'
+import { CannotSatisfyRequestError, GossipRouter, RpcRouter } from './messageRouters'
 import { nextRpcId } from './messageRouters/rpcId'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
@@ -55,24 +48,18 @@ import { WebSocketServer } from './webSocketServer'
  * The routing style that should be used for a message of a given type
  */
 export enum RoutingStyle {
-  gossip = 'gossip',
-  directRPC = 'directRPC',
-  globalRPC = 'globalRPC',
-  fireAndForget = 'fireAndForget',
+  DirectRPC = 'DirectRPC',
+  Gossip = 'Gossip',
 }
 
 interface RouteMap {
-  [RoutingStyle.gossip]: GossipNetworkMessage
-  [RoutingStyle.globalRPC]: RpcNetworkMessage
-  [RoutingStyle.directRPC]: RpcNetworkMessage
-  [RoutingStyle.fireAndForget]: NetworkMessage
+  [RoutingStyle.Gossip]: GossipNetworkMessage
+  [RoutingStyle.DirectRPC]: RpcNetworkMessage
 }
 
 interface ReturnMap {
-  [RoutingStyle.gossip]: Promise<boolean | void> | boolean | void
-  [RoutingStyle.globalRPC]: Promise<RpcNetworkMessage>
-  [RoutingStyle.directRPC]: Promise<RpcNetworkMessage>
-  [RoutingStyle.fireAndForget]: void
+  [RoutingStyle.Gossip]: Promise<boolean | void> | boolean | void
+  [RoutingStyle.DirectRPC]: Promise<RpcNetworkMessage>
 }
 
 /**
@@ -94,9 +81,7 @@ export class PeerNetwork {
   private readonly peerConnectionManager: PeerConnectionManager
   private readonly routingStyles: Map<NetworkMessageType, RoutingStyle>
   private readonly gossipRouter: GossipRouter
-  private readonly fireAndForgetRouter: FireAndForgetRouter
   private readonly directRpcRouter: RpcRouter
-  private readonly globalRpcRouter: GlobalRpcRouter
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
@@ -180,9 +165,7 @@ export class PeerNetwork {
 
     this.routingStyles = new Map<NetworkMessageType, RoutingStyle>()
     this.gossipRouter = new GossipRouter(this.peerManager)
-    this.fireAndForgetRouter = new FireAndForgetRouter(this.peerManager)
     this.directRpcRouter = new RpcRouter(this.peerManager)
-    this.globalRpcRouter = new GlobalRpcRouter(this.directRpcRouter)
 
     this.minPeers = options.minPeers || 1
     this.listen = options.listen === undefined ? true : options.listen
@@ -194,7 +177,7 @@ export class PeerNetwork {
     if (enableSyncing) {
       this.registerHandler(
         NetworkMessageType.NewBlock,
-        RoutingStyle.gossip,
+        RoutingStyle.Gossip,
         (p) => {
           if (!(p instanceof NewBlockMessage)) {
             throw new Error('Payload is not a serialized block')
@@ -207,7 +190,7 @@ export class PeerNetwork {
 
       this.registerHandler(
         NetworkMessageType.NewTransaction,
-        RoutingStyle.gossip,
+        RoutingStyle.Gossip,
         (p) => {
           if (!(p instanceof NewTransactionMessage)) {
             throw new Error('Payload is not a serialized transaction')
@@ -221,7 +204,7 @@ export class PeerNetwork {
 
     this.registerHandler(
       NetworkMessageType.GetBlockHashesRequest,
-      RoutingStyle.directRPC,
+      RoutingStyle.DirectRPC,
       (p) => {
         if (!(p instanceof GetBlockHashesRequest)) {
           throw new Error('Payload is not a valid get block hashes request')
@@ -230,11 +213,11 @@ export class PeerNetwork {
       },
       (message) => this.onGetBlockHashesRequest(message),
     )
-    this.routingStyles.set(NetworkMessageType.GetBlockHashesResponse, RoutingStyle.directRPC)
+    this.routingStyles.set(NetworkMessageType.GetBlockHashesResponse, RoutingStyle.DirectRPC)
 
     this.registerHandler(
       NetworkMessageType.GetBlocksRequest,
-      RoutingStyle.directRPC,
+      RoutingStyle.DirectRPC,
       (m): GetBlocksRequest => {
         if (!(m instanceof GetBlocksRequest)) {
           throw new Error('Payload is not a valid get blocks request')
@@ -243,7 +226,7 @@ export class PeerNetwork {
       },
       (message) => this.onGetBlocksRequest(message),
     )
-    this.routingStyles.set(NetworkMessageType.GetBlocksResponse, RoutingStyle.directRPC)
+    this.routingStyles.set(NetworkMessageType.GetBlocksResponse, RoutingStyle.DirectRPC)
 
     this.node.miningManager.onNewBlock.on((block) => {
       this.gossipBlock(block)
@@ -412,7 +395,7 @@ export class PeerNetwork {
     }
 
     switch (style) {
-      case RoutingStyle.gossip: {
+      case RoutingStyle.Gossip: {
         this.gossipRouter.register(
           type,
           hdlr as (
@@ -421,26 +404,12 @@ export class PeerNetwork {
         )
         break
       }
-      case RoutingStyle.directRPC:
+      case RoutingStyle.DirectRPC:
         this.directRpcRouter.register(
           type,
           hdlr as (
             message: IncomingPeerMessage<RpcNetworkMessage>,
           ) => Promise<RpcNetworkMessage>,
-        )
-        break
-      case RoutingStyle.globalRPC:
-        this.globalRpcRouter.register(
-          type,
-          hdlr as (
-            message: IncomingPeerMessage<RpcNetworkMessage>,
-          ) => Promise<RpcNetworkMessage>,
-        )
-        break
-      case RoutingStyle.fireAndForget:
-        this.fireAndForgetRouter.register(
-          type,
-          hdlr as (message: IncomingPeerMessage<NetworkMessage>) => void,
         )
         break
     }
@@ -454,22 +423,10 @@ export class PeerNetwork {
    */
   gossip(message: GossipNetworkMessage): void {
     const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.gossip) {
+    if (style !== RoutingStyle.Gossip) {
       throw new Error(`${message.type} type not meant to be gossipped`)
     }
     this.gossipRouter.gossip(message)
-  }
-
-  /**
-   * Send the message directly to the specified peer, if we are connected to it.
-   * No response or receipt confirmation is expected.
-   */
-  fireAndForget(peer: Peer, message: NetworkMessage): void {
-    const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.fireAndForget) {
-      throw new Error(`${message.type} type not meant to be firedAndForgot`)
-    }
-    this.fireAndForgetRouter.fireAndForget(peer, message)
   }
 
   /**
@@ -482,28 +439,10 @@ export class PeerNetwork {
     message: RpcNetworkMessage,
   ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
     const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.directRPC) {
-      throw new Error(`${message.type} type not meant to be direct RPC`)
+    if (style !== RoutingStyle.DirectRPC) {
+      throw new Error(`${message.type} type not meant to be Direct RPC`)
     }
     return this.directRpcRouter.requestFrom(peer, message)
-  }
-
-  /**
-   * Fire a global RPC request to a randomly chosen identity, retrying with other
-   * peers if the first one fails. Returns a promise that will resolve when the
-   * response is received, or throw an error if the request cannot be completed
-   * before timing out.
-   */
-  async request(
-    message: RpcNetworkMessage,
-    peer?: Identity,
-  ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
-    const style = this.routingStyles.get(message.type)
-
-    if (style !== RoutingStyle.globalRPC) {
-      throw new Error(`${message.type} type not meant to be global RPC`)
-    }
-    return await this.globalRpcRouter.request(message, peer)
   }
 
   async getBlockHashes(peer: Peer, start: Buffer | number, limit: number): Promise<Buffer[]> {
@@ -550,7 +489,7 @@ export class PeerNetwork {
     let style = this.routingStyles.get(message.type)
     if (style === undefined) {
       if (message.type === NetworkMessageType.CannotSatisfyRequest) {
-        style = RoutingStyle.globalRPC
+        style = RoutingStyle.DirectRPC
       } else {
         this.logger.warn('Received unknown message type', message.type)
         return
@@ -558,26 +497,17 @@ export class PeerNetwork {
     }
 
     switch (style) {
-      case RoutingStyle.gossip:
+      case RoutingStyle.Gossip:
         if (!(message instanceof GossipNetworkMessage)) {
           throw new Error('Invalid message for gossip')
         }
         await this.gossipRouter.handle(peer, message)
         break
-      case RoutingStyle.directRPC:
+      case RoutingStyle.DirectRPC:
         if (!(message instanceof RpcNetworkMessage)) {
-          throw new Error('Invalid message for direct RPC')
+          throw new Error('Invalid message for Direct RPC')
         }
         await this.directRpcRouter.handle(peer, message)
-        break
-      case RoutingStyle.globalRPC:
-        if (!(message instanceof RpcNetworkMessage)) {
-          throw new Error('Invalid message for global RPC')
-        }
-        await this.globalRpcRouter.handle(peer, message)
-        break
-      case RoutingStyle.fireAndForget:
-        this.fireAndForgetRouter.handle(peer, message)
         break
     }
   }

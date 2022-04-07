@@ -55,7 +55,7 @@ describe('PeerNetwork', () => {
       const type = NetworkMessageType.NewTransaction
       peerNetwork.registerHandler(
         type,
-        RoutingStyle.gossip,
+        RoutingStyle.Gossip,
         (p) => {
           if (!(p instanceof GossipNetworkMessage)) {
             throw new Error()
@@ -64,7 +64,7 @@ describe('PeerNetwork', () => {
         },
         () => {},
       )
-      expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.gossip)
+      expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.Gossip)
       await peerNetwork.stop()
     })
   })
@@ -84,7 +84,7 @@ describe('PeerNetwork', () => {
       const handlerMock = jest.fn(() => {})
       peerNetwork.registerHandler(
         NetworkMessageType.NewTransaction,
-        RoutingStyle.gossip,
+        RoutingStyle.Gossip,
         (p) => {
           if (!(p instanceof GossipNetworkMessage)) {
             throw new Error()
