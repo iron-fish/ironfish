@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { mockChain, mockConfig, mockWorkerPool } from '../testUtilities/mocks'
+import { GraffitiUtils } from '../utils/graffiti'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -131,7 +132,7 @@ describe('Telemetry', () => {
 
       expect(submitTelemetry).toHaveBeenCalledWith(
         points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
-        mockGraffiti,
+        GraffitiUtils.fromString(mockGraffiti),
       )
       expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
       expect(telemetry['points']).toHaveLength(

@@ -7,7 +7,7 @@ import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block } from '../primitives/block'
-import { renderError, SetIntervalToken } from '../utils'
+import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Field } from './interfaces/field'
 import { Metric } from './interfaces/metric'
@@ -194,7 +194,7 @@ export class Telemetry {
     }
 
     try {
-      const graffiti = this.config.get('blockGraffiti')
+      const graffiti = GraffitiUtils.fromString(this.config.get('blockGraffiti'))
       await this.workerPool.submitTelemetry(points, graffiti)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0

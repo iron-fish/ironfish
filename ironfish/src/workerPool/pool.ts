@@ -271,7 +271,7 @@ export class WorkerPool {
     return job
   }
 
-  async submitTelemetry(points: Metric[], graffiti: string): Promise<void> {
+  async submitTelemetry(points: Metric[], graffiti: Buffer): Promise<void> {
     const request = new SubmitTelemetryRequest(points, graffiti)
 
     await this.execute(request).result()
