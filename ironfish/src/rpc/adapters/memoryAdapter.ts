@@ -69,7 +69,6 @@ export class MemoryAdapter implements IAdapter {
 
     const request = new Request(
       data,
-      server.node,
       (status: number, data?: unknown) => {
         response.status = status
         stream.close()
