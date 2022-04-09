@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Metric } from '../../telemetry'
+import { GraffitiUtils } from '../../utils/graffiti'
 import { WebApi } from '../../webApi'
 import {
   SubmitTelemetryRequest,
@@ -32,7 +33,7 @@ describe('SubmitTelemetryRequest', () => {
       ],
       timestamp: new Date(),
     }
-    const request = new SubmitTelemetryRequest([mockMetric])
+    const request = new SubmitTelemetryRequest([mockMetric], GraffitiUtils.fromString(''))
     const buffer = request.serialize()
     const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
@@ -65,11 +66,13 @@ describe('SubmitTelemetryTask', () => {
         timestamp: new Date(),
       }
       const points = [mockMetric]
+      const graffitiBuffer = GraffitiUtils.fromString('testgraffiti')
+      const graffiti = GraffitiUtils.toHuman(graffitiBuffer)
       const task = new SubmitTelemetryTask()
-      const request = new SubmitTelemetryRequest(points)
+      const request = new SubmitTelemetryRequest(points, graffitiBuffer)
 
       await task.execute(request)
-      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points })
+      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points, graffiti })
     })
   })
 })

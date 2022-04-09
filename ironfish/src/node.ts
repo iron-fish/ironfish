@@ -205,6 +205,7 @@ export class IronfishNode {
     const telemetry = new Telemetry({
       chain,
       logger,
+      config,
       metrics,
       workerPool,
       defaultTags: [{ name: 'version', value: pkg.version }],

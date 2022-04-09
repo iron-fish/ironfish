@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { mockChain, mockWorkerPool } from '../testUtilities/mocks'
+import { mockChain, mockConfig, mockWorkerPool } from '../testUtilities/mocks'
+import { GraffitiUtils } from '../utils/graffiti'
 import { Metric } from './interfaces/metric'
 import { Telemetry } from './telemetry'
 
@@ -22,11 +23,13 @@ describe('Telemetry', () => {
     ],
     timestamp: new Date(),
   }
+  const mockGraffiti = 'testgraffiti'
 
   beforeEach(() => {
     telemetry = new Telemetry({
       chain: mockChain(),
       workerPool: mockWorkerPool(),
+      config: mockConfig({ blockGraffiti: mockGraffiti }),
     })
 
     telemetry.start()
@@ -52,6 +55,7 @@ describe('Telemetry', () => {
         const disabledTelemetry = new Telemetry({
           chain: mockChain(),
           workerPool: mockWorkerPool(),
+          config: mockConfig({ blockGraffiti: mockGraffiti }),
         })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)
@@ -128,6 +132,7 @@ describe('Telemetry', () => {
 
       expect(submitTelemetry).toHaveBeenCalledWith(
         points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
+        GraffitiUtils.fromString(mockGraffiti),
       )
       expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
       expect(telemetry['points']).toHaveLength(
