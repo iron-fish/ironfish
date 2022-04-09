@@ -3,15 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRootLogger, Logger } from '../../logger'
-import { ErrorUtils } from '../../utils'
 import { CannotSatisfyRequest } from '../messages/cannotSatisfyRequest'
 import { IncomingPeerMessage, NetworkMessageType } from '../messages/networkMessage'
 import { RpcNetworkMessage } from '../messages/rpcNetworkMessage'
-import { Connection } from '../peers/connections/connection'
 import { NetworkError } from '../peers/connections/errors'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
-import { nextRpcId, RpcId, rpcTimeoutMillis } from './rpcId'
+import { RpcId, rpcTimeoutMillis } from './rpcId'
 
 export enum Direction {
   Request = 'request',
@@ -38,7 +36,7 @@ export class RequestTimeoutError extends Error {
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
-  connection?: Connection
+  peer: Peer
 }
 
 /**
@@ -86,7 +84,7 @@ export class RpcRouter {
     peer: Peer,
     message: RpcNetworkMessage,
   ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
-    const rpcId = nextRpcId()
+    const rpcId = message.rpcId
 
     return new Promise<IncomingPeerMessage<RpcNetworkMessage>>((resolve, reject) => {
       const timeoutMs = rpcTimeoutMillis()
@@ -95,23 +93,17 @@ export class RpcRouter {
       const onConnectionStateChanged = () => {
         const request = this.requests.get(rpcId)
 
-        if (request && request?.connection?.state.type === 'DISCONNECTED') {
-          request.connection.onStateChanged.off(onConnectionStateChanged)
+        if (request && request.peer.state.type === 'DISCONNECTED') {
+          request.peer.onStateChanged.off(onConnectionStateChanged)
 
-          const errorMessage = `Connection closed while waiting for request ${
-            message.type
-          }: ${rpcId}${
-            request.connection.error
-              ? ':' + ErrorUtils.renderError(request.connection.error)
-              : ''
-          }`
+          const errorMessage = `Connection closed while waiting for request ${message.type}: ${rpcId}`
 
           request.reject(new NetworkError(errorMessage))
         }
       }
 
       const clearDisconnectHandler = (): void => {
-        this.requests.get(rpcId)?.connection?.onStateChanged.off(onConnectionStateChanged)
+        this.requests.get(rpcId)?.peer.onStateChanged.off(onConnectionStateChanged)
       }
 
       const timeout = setTimeout(() => {
@@ -142,12 +134,13 @@ export class RpcRouter {
           clearTimeout(timeout)
           reject(reason)
         },
+        peer: peer,
       }
 
       peer.pendingRPC++
       this.requests.set(rpcId, request)
 
-      const connection = this.peerManager.sendTo(peer, message)
+      const connection = peer.send(message)
       if (!connection) {
         return request.reject(
           new Error(
@@ -158,8 +151,7 @@ export class RpcRouter {
         )
       }
 
-      request.connection = connection
-      connection.onStateChanged.on(onConnectionStateChanged)
+      peer.onStateChanged.on(onConnectionStateChanged)
     })
   }
 
@@ -195,16 +187,14 @@ export class RpcRouter {
       }
 
       if (peer.state.type === 'CONNECTED') {
-        this.peerManager.sendTo(peer, responseMessage)
+        peer.send(responseMessage)
       }
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
-        if (rpcMessage instanceof RpcNetworkMessage) {
-          request.resolve({ peerIdentity, message: rpcMessage })
-        } else {
-          request.resolve({ peerIdentity, message: rpcMessage })
-        }
+        request.resolve({ peerIdentity, message: rpcMessage })
+      } else {
+        this.logger.debug('Dropping response to unknown request', rpcId)
       }
     }
   }
