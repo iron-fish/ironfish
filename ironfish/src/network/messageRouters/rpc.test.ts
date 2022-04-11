@@ -35,9 +35,9 @@ describe('RPC Router', () => {
 
   it('should time out RPC requests', async () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
-    const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const { peer } = getConnectedPeer(peers)
+    const sendMock = jest.spyOn(peer, 'send')
     const peerCloseMock = jest.spyOn(peer, 'close')
 
     const router = new RpcRouter(peers)
@@ -51,33 +51,33 @@ describe('RPC Router', () => {
     jest.runOnlyPendingTimers()
 
     expect(router['requests'].size).toBe(0)
-    expect(sendToMock).toHaveBeenCalledTimes(1)
+    expect(sendMock).toHaveBeenCalledTimes(1)
     expect(peerCloseMock).toHaveBeenCalled()
     await expect(promise).toRejectErrorInstance(RequestTimeoutError)
   })
 
   it('should reject requests when connection disconnects', async () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
-    const sendToMock = jest.spyOn(peers, 'sendTo')
 
     const { peer, connection } = getConnectedPeer(peers)
     const peerCloseMock = jest.spyOn(peer, 'close')
+    const sendMock = jest.spyOn(peer, 'send')
 
     const router = new RpcRouter(peers)
     router.register(NetworkMessageType.GetBlockHashesRequest, jest.fn())
     expect(router['requests'].size).toBe(0)
 
-    const subscribers = connection.onStateChanged.subscribers
+    const subscribers = peer.onStateChanged.subscribers
 
     const promise = router.requestFrom(peer, new GetBlockHashesRequest(0, 0, 0))
 
     expect(router['requests'].size).toBe(1)
-    expect(connection.onStateChanged.subscribers).toBeGreaterThan(subscribers)
+    expect(peer.onStateChanged.subscribers).toBeGreaterThan(subscribers)
     connection.close()
 
-    expect(connection.onStateChanged.subscribers).toBeLessThanOrEqual(subscribers)
+    expect(peer.onStateChanged.subscribers).toBeLessThanOrEqual(subscribers)
     expect(router['requests'].size).toBe(0)
-    expect(sendToMock).toHaveBeenCalledTimes(1)
+    expect(sendMock).toHaveBeenCalledTimes(1)
     expect(peerCloseMock).not.toHaveBeenCalled()
     await expect(promise).toRejectErrorInstance(NetworkError)
   })
@@ -129,8 +129,6 @@ describe('RPC Router', () => {
     mocked(nextRpcId).mockReturnValue(18)
 
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
-    const sendToMock = jest.fn()
-    peers.sendTo = sendToMock
 
     const handlerMock = jest.fn(() => {
       throw new CannotSatisfyRequestError('Bad request')
@@ -139,11 +137,12 @@ describe('RPC Router', () => {
     router.register(NetworkMessageType.GetBlockHashesRequest, handlerMock)
 
     const { peer } = getConnectedPeer(peers)
+    const sendMock = jest.spyOn(peer, 'send')
     const rpcId = 18
     await router.handle(peer, new GetBlockHashesRequest(0, 0, rpcId))
 
     expect(router['requests'].size).toBe(0)
-    expect(sendToMock).toBeCalledTimes(1)
-    expect(sendToMock).toHaveBeenCalledWith(peer, new CannotSatisfyRequest(rpcId))
+    expect(sendMock).toBeCalledTimes(1)
+    expect(sendMock).toHaveBeenCalledWith(new CannotSatisfyRequest(rpcId))
   })
 })
