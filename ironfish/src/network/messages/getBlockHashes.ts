@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Direction } from '../messageRouters'
 import { NetworkMessageType } from './networkMessage'
-import { RpcNetworkMessage } from './rpcNetworkMessage'
+import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlockHashesRequest extends RpcNetworkMessage {
   readonly start: string | number
   readonly limit: number
 
-  constructor(start: string | number, limit: number, rpcId: number) {
+  constructor(start: string | number, limit: number, rpcId?: number) {
     super(NetworkMessageType.GetBlockHashesRequest, Direction.Request, rpcId)
     this.start = start
     this.limit = limit
