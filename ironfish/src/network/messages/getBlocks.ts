@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { SerializedBlock } from '../../primitives/block'
-import { Direction } from '../messageRouters'
 import { NetworkMessageType } from './networkMessage'
-import { RpcNetworkMessage } from './rpcNetworkMessage'
+import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlocksRequest extends RpcNetworkMessage {
   readonly start: string | number
   readonly limit: number
 
-  constructor(start: string | number, limit: number, rpcId: number) {
+  constructor(start: string | number, limit: number, rpcId?: number) {
     super(NetworkMessageType.GetBlocksRequest, Direction.Request, rpcId)
     this.start = start
     this.limit = limit
