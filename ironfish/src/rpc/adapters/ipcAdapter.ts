@@ -7,7 +7,6 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -81,7 +80,6 @@ export type IpcAdapterConnectionInfo =
     }
 
 export class IpcAdapter implements IAdapter {
-  node: IronfishNode | null = null
   router: Router | null = null
   ipc: IPC | null = null
   server: IpcServer | null = null
@@ -189,12 +187,10 @@ export class IpcAdapter implements IAdapter {
   }
 
   attach(server: RpcServer): void {
-    this.node = server.node
     this.router = server.getRouter(this.namespaces)
   }
 
   unattach(): void {
-    this.node = null
     this.router = null
   }
 
@@ -233,11 +229,9 @@ export class IpcAdapter implements IAdapter {
     }
 
     const message = result.result
-    const node = this.node
     const router = this.router
     const server = this.server
 
-    Assert.isNotNull(node)
     Assert.isNotNull(router)
     Assert.isNotNull(server)
 
@@ -280,7 +274,7 @@ export class IpcAdapter implements IAdapter {
     this.server.emit(socket, 'stream', { id: messageId, data: data })
   }
 
-  renderError(error: unknown): IpcError {
+  renderError(error: Error): IpcError {
     let message = 'An error has occured'
     let stack = undefined
     let code: string = ERROR_CODES.ERROR
