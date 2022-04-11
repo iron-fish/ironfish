@@ -438,7 +438,9 @@ export class PeerNetwork {
     } else if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
     } else {
-      throw new Error(`Invalid message for handling in peer network: '${incomingMessage.message.type}'`)
+      throw new Error(
+        `Invalid message for handling in peer network: '${incomingMessage.message.type}'`,
+      )
     }
   }
 
