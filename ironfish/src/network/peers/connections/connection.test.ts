@@ -10,7 +10,7 @@ describe('Connection', () => {
     describe('with a malformed header', () => {
       it('throws an error', () => {
         const connection = new WebRtcConnection(false, createRootLogger())
-        expect(() => connection.parseMessage(Buffer.from('asdf'))).toThrowError()
+        expect(() => connection.parseMessage(Buffer.from(''))).toThrowError()
         connection.close()
       })
     })
