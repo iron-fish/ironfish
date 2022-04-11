@@ -29,13 +29,10 @@ export abstract class NetworkMessage implements Serializable {
   }
 
   abstract serialize(): Buffer
-  abstract getSize(): number
 
   serializeWithMetadata(): Buffer {
-    const headerSize = 9
-    const bw = bufio.write(headerSize + this.getSize())
+    const bw = bufio.write()
     bw.writeU8(this.type)
-    bw.writeU64(this.getSize())
     bw.writeBytes(this.serialize())
     return bw.render()
   }

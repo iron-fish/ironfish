@@ -15,7 +15,7 @@ export class NewTransactionMessage extends GossipNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     bw.writeVarBytes(this.transaction)
     return bw.render()
   }
@@ -24,9 +24,5 @@ export class NewTransactionMessage extends GossipNetworkMessage {
     const reader = bufio.read(buffer, true)
     const transaction = reader.readVarBytes()
     return new NewTransactionMessage(transaction, nonce)
-  }
-
-  getSize(): number {
-    return bufio.sizeVarBytes(this.transaction)
   }
 }

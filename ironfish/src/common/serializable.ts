@@ -4,5 +4,4 @@
 
 export interface Serializable {
   serialize(): Buffer
-  getSize(): number
 }

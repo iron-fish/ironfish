@@ -39,7 +39,7 @@ export class SignalMessage extends NetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     bw.writeVarString(this.destinationIdentity)
     bw.writeVarString(this.sourceIdentity)
     bw.writeVarString(this.nonce)
@@ -59,14 +59,5 @@ export class SignalMessage extends NetworkMessage {
       nonce,
       signal,
     })
-  }
-
-  getSize(): number {
-    return (
-      bufio.sizeVarString(this.destinationIdentity) +
-      bufio.sizeVarString(this.sourceIdentity) +
-      bufio.sizeVarString(this.nonce) +
-      bufio.sizeVarString(this.signal)
-    )
   }
 }

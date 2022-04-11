@@ -17,7 +17,7 @@ export class GetBlockHashesRequest extends RpcNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     if (typeof this.start === 'string') {
       bw.writeU8(1)
       bw.writeVarString(this.start)
@@ -41,16 +41,6 @@ export class GetBlockHashesRequest extends RpcNetworkMessage {
     const limit = reader.readU64()
     return new GetBlockHashesRequest(start, limit, rpcId)
   }
-
-  getSize(): number {
-    let size = 0
-    if (typeof this.start === 'string') {
-      size += 1 + bufio.sizeVarString(this.start)
-    } else {
-      size += 1 + 8
-    }
-    return size + 8
-  }
 }
 
 export class GetBlockHashesResponse extends RpcNetworkMessage {
@@ -62,7 +52,7 @@ export class GetBlockHashesResponse extends RpcNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     bw.writeU64(this.blocks.length)
     for (const block of this.blocks) {
       bw.writeVarString(block)
@@ -78,13 +68,5 @@ export class GetBlockHashesResponse extends RpcNetworkMessage {
       blocks.push(reader.readVarString())
     }
     return new GetBlockHashesResponse(blocks, rpcId)
-  }
-
-  getSize(): number {
-    let size = 8
-    for (const block of this.blocks) {
-      size += bufio.sizeVarString(block)
-    }
-    return size
   }
 }

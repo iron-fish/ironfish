@@ -15,8 +15,4 @@ export class PeerListRequestMessage extends NetworkMessage {
   static deserialize(): PeerListRequestMessage {
     return new PeerListRequestMessage()
   }
-
-  getSize(): number {
-    return 0
-  }
 }

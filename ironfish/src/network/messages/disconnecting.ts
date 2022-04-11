@@ -38,7 +38,7 @@ export class DisconnectingMessage extends NetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     bw.writeU64(this.disconnectUntil)
     bw.writeU8(this.reason)
     bw.writeVarString(this.sourceIdentity)
@@ -63,16 +63,5 @@ export class DisconnectingMessage extends NetworkMessage {
       reason,
       sourceIdentity,
     })
-  }
-
-  getSize(): number {
-    let size = 0
-    size += 8
-    size += 1
-    size += bufio.sizeVarString(this.sourceIdentity)
-    if (this.destinationIdentity) {
-      size += bufio.sizeVarString(this.destinationIdentity)
-    }
-    return size
   }
 }

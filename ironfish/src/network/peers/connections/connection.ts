@@ -237,7 +237,6 @@ export abstract class Connection {
     let nonce
     const br = bufio.read(message)
     const type = br.readU8()
-    const size = br.readU64()
     if (this.isRpcNetworkMessageType(type)) {
       rpcId = br.readU64()
     } else if (this.isGossipNetworkMessageType(type)) {
@@ -247,7 +246,7 @@ export abstract class Connection {
       type,
       rpcId,
       nonce,
-      body: br.readBytes(size),
+      body: br.readBytes(br.left()),
     }
   }
 

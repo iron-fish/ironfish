@@ -21,7 +21,7 @@ export class PeerListMessage extends NetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write()
     bw.writeU64(this.connectedPeers.length)
 
     for (const peer of this.connectedPeers) {
@@ -86,29 +86,5 @@ export class PeerListMessage extends NetworkMessage {
       })
     }
     return new PeerListMessage(connectedPeers)
-  }
-
-  getSize(): number {
-    let size = 8
-
-    for (const { identity, name, address, port } of this.connectedPeers) {
-      size += bufio.sizeVarString(identity)
-
-      size += 1
-      if (name) {
-        size += bufio.sizeVarString(name)
-      }
-
-      size += 1
-      if (address) {
-        size += bufio.sizeVarString(address)
-      }
-
-      size += 1
-      if (port) {
-        size += 8
-      }
-    }
-    return size
   }
 }
