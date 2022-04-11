@@ -48,7 +48,7 @@ export class IdentifyMessage extends NetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write()
+    const bw = bufio.write(this.getSize())
     bw.writeVarString(this.agent)
     bw.writeVarString(this.head)
     bw.writeVarString(this.identity)
@@ -80,5 +80,16 @@ export class IdentifyMessage extends NetworkMessage {
       version,
       work,
     })
+  }
+
+  getSize(): number {
+    let size = 0
+    size += bufio.sizeVarString(this.agent)
+    size += bufio.sizeVarString(this.head)
+    size += bufio.sizeVarString(this.identity)
+    size += bufio.sizeVarString(this.name)
+    size += 24
+    size += bufio.sizeVarString(this.work)
+    return size
   }
 }

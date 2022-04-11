@@ -15,7 +15,7 @@ export class NewBlockMessage extends GossipNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write()
+    const bw = bufio.write(this.getSize())
     const { header, transactions } = this.block
     bw.writeU64(header.sequence)
     bw.writeVarString(header.previousBlockHash)
@@ -93,5 +93,31 @@ export class NewBlockMessage extends GossipNetworkMessage {
       },
       nonce,
     )
+  }
+
+  getSize(): number {
+    const { header, transactions } = this.block
+    let size = 8
+    size += bufio.sizeVarString(header.previousBlockHash)
+    size += bufio.sizeVarBytes(header.noteCommitment.commitment)
+    size += 8
+    size += bufio.sizeVarString(header.nullifierCommitment.commitment)
+    size += 8
+    size += bufio.sizeVarString(header.target)
+    size += 8
+    size += 8
+    size += bufio.sizeVarString(header.minersFee)
+    size += bufio.sizeVarString(header.work)
+    size += bufio.sizeVarString(header.graffiti)
+    size += 1
+    if (header.hash) {
+      size += bufio.sizeVarString(header.hash)
+    }
+
+    size += 8
+    for (const transaction of transactions) {
+      size += bufio.sizeVarBytes(transaction)
+    }
+    return size
   }
 }

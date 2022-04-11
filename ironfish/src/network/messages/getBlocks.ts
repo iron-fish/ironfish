@@ -18,7 +18,7 @@ export class GetBlocksRequest extends RpcNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write()
+    const bw = bufio.write(this.getSize())
     if (typeof this.start === 'string') {
       bw.writeU8(1)
       bw.writeVarString(this.start)
@@ -42,6 +42,16 @@ export class GetBlocksRequest extends RpcNetworkMessage {
     const limit = reader.readU64()
     return new GetBlocksRequest(start, limit, rpcId)
   }
+
+  getSize(): number {
+    let size = 0
+    if (typeof this.start === 'string') {
+      size += 1 + bufio.sizeVarString(this.start)
+    } else {
+      size += 1 + 8
+    }
+    return size + 8
+  }
 }
 
 export class GetBlocksResponse extends RpcNetworkMessage {
@@ -53,7 +63,7 @@ export class GetBlocksResponse extends RpcNetworkMessage {
   }
 
   serialize(): Buffer {
-    const bw = bufio.write()
+    const bw = bufio.write(this.getSize())
     bw.writeU64(this.blocks.length)
     for (const block of this.blocks) {
       bw.writeU64(block.header.sequence)
@@ -136,5 +146,33 @@ export class GetBlocksResponse extends RpcNetworkMessage {
       })
     }
     return new GetBlocksResponse(blocks, rpcId)
+  }
+
+  getSize(): number {
+    let size = 8
+    for (const block of this.blocks) {
+      size += 8
+      size += bufio.sizeVarString(block.header.previousBlockHash)
+      size += bufio.sizeVarBytes(block.header.noteCommitment.commitment)
+      size += 8
+      size += bufio.sizeVarString(block.header.nullifierCommitment.commitment)
+      size += 8
+      size += bufio.sizeVarString(block.header.target)
+      size += 8
+      size += 8
+      size += bufio.sizeVarString(block.header.minersFee)
+      size += bufio.sizeVarString(block.header.work)
+      size += bufio.sizeVarString(block.header.graffiti)
+      size += 1
+      if (block.header.hash) {
+        size += bufio.sizeVarString(block.header.hash)
+      }
+
+      size += 8
+      for (const transaction of block.transactions) {
+        size += bufio.sizeVarBytes(transaction)
+      }
+    }
+    return size
   }
 }

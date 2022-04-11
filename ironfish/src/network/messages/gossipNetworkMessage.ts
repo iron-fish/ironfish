@@ -13,8 +13,10 @@ export abstract class GossipNetworkMessage extends NetworkMessage {
   }
 
   serializeWithMetadata(): Buffer {
-    const bw = bufio.write()
+    const headerSize = 9 + bufio.sizeVarString(this.nonce)
+    const bw = bufio.write(headerSize + this.getSize())
     bw.writeU8(this.type)
+    bw.writeU64(this.getSize())
     bw.writeVarString(this.nonce)
     bw.writeBytes(this.serialize())
     return bw.render()
