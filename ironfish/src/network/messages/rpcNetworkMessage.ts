@@ -2,17 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Direction } from '../messageRouters'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
+export type RpcId = number
+export const RPC_TIMEOUT_MILLIS = 30000
+
+export enum Direction {
+  Request = 'request',
+  Response = 'response',
+}
+
 export abstract class RpcNetworkMessage extends NetworkMessage {
+  private static id = 0
+
   readonly direction: Direction
   readonly rpcId: number
 
-  constructor(type: NetworkMessageType, direction: Direction, rpcId: number) {
+  constructor(type: NetworkMessageType, direction: Direction, rpcId?: number) {
     super(type)
     this.direction = direction
-    this.rpcId = rpcId
+    this.rpcId = rpcId ?? RpcNetworkMessage.id++
   }
 
   serializeWithMetadata(): Buffer {

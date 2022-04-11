@@ -9,7 +9,6 @@ import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
-import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
 import { CannotSatisfyRequest } from '../../messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from '../../messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/getBlockHashes'
@@ -21,6 +20,7 @@ import { NewBlockMessage } from '../../messages/newBlock'
 import { NewTransactionMessage } from '../../messages/newTransaction'
 import { PeerListMessage } from '../../messages/peerList'
 import { PeerListRequestMessage } from '../../messages/peerListRequest'
+import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
 import { SignalMessage } from '../../messages/signal'
 import { SignalRequestMessage } from '../../messages/signalRequest'
 import { HandshakeTimeoutError } from './errors'
@@ -148,7 +148,7 @@ export abstract class Connection {
         state.type === 'SIGNALING' ||
         state.type === 'WAITING_FOR_IDENTITY'
       ) {
-        const timeout = rpcTimeoutMillis()
+        const timeout = RPC_TIMEOUT_MILLIS
 
         this.handshakeTimeout = setTimeout(() => {
           const error = `Closing ${this.type} connection because handshake timed out in state ${state.type} after ${timeout}ms`

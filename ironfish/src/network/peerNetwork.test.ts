@@ -11,12 +11,11 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage } from './messages/disconnecting'
-import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { NetworkMessageType } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
-import { PeerNetwork, RoutingStyle } from './peerNetwork'
+import { PeerNetwork } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 
 jest.useFakeTimers()
@@ -40,37 +39,8 @@ describe('PeerNetwork', () => {
     })
   })
 
-  describe('registerHandler', () => {
-    it('stores the type in the routingStyles', async () => {
-      const peerNetwork = new PeerNetwork({
-        identity: mockPrivateIdentity('local'),
-        agent: 'sdk/1/cli',
-        webSocket: ws,
-        node: mockNode(),
-        chain: mockChain(),
-        strategy: mockStrategy(),
-        hostsStore: mockHostsStore(),
-      })
-
-      const type = NetworkMessageType.NewTransaction
-      peerNetwork.registerHandler(
-        type,
-        RoutingStyle.Gossip,
-        (p) => {
-          if (!(p instanceof GossipNetworkMessage)) {
-            throw new Error()
-          }
-          return p
-        },
-        () => {},
-      )
-      expect(peerNetwork['routingStyles'].get(type)).toBe(RoutingStyle.Gossip)
-      await peerNetwork.stop()
-    })
-  })
-
   describe('when validation fails', () => {
-    it('ignores a message', async () => {
+    it('throws an exception', async () => {
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
@@ -80,27 +50,15 @@ describe('PeerNetwork', () => {
         strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
-
-      const handlerMock = jest.fn(() => {})
-      peerNetwork.registerHandler(
-        NetworkMessageType.NewTransaction,
-        RoutingStyle.Gossip,
-        (p) => {
-          if (!(p instanceof GossipNetworkMessage)) {
-            throw new Error()
-          }
-          return p
-        },
-        handlerMock,
-      )
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const message = new PeerListMessage([])
-      await peerNetwork['handleMessage'](peer, {
-        peerIdentity: peer.getIdentityOrThrow(),
-        message,
-      })
-      expect(handlerMock).not.toBeCalled()
+      await expect(
+        peerNetwork['handleMessage'](peer, {
+          peerIdentity: peer.getIdentityOrThrow(),
+          message,
+        }),
+      ).rejects.not.toBeUndefined()
       await peerNetwork.stop()
     })
   })
@@ -203,11 +161,6 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
-        NetworkMessageType.NewBlock,
-      )
-      Assert.isNotUndefined(newBlockHandler)
-
       const block = {
         header: {
           graffiti: 'chipotle',
@@ -230,10 +183,7 @@ describe('PeerNetwork', () => {
         },
         transactions: [],
       }
-      await newBlockHandler({
-        peerIdentity: peer.getIdentityOrThrow(),
-        message: new NewBlockMessage(block, 'nonce'),
-      })
+      await peerNetwork['handleGossipMessage'](peer, new NewBlockMessage(block, 'nonce'))
 
       expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
     })
@@ -261,15 +211,7 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NetworkMessageType.NewTransaction,
-        )
-
-        if (newTransactionHandler === undefined) {
-          throw new Error('Expected newTransactionHandler to be defined')
-        }
-
-        await newTransactionHandler({
+        await peerNetwork['onNewTransaction']({
           peerIdentity: '',
           message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
@@ -306,15 +248,7 @@ describe('PeerNetwork', () => {
         const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NetworkMessageType.NewTransaction,
-        )
-
-        if (newTransactionHandler === undefined) {
-          throw new Error('Expected newTransactionHandler to be defined')
-        }
-
-        await newTransactionHandler({
+        await peerNetwork['onNewTransaction']({
           peerIdentity: '',
           message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
@@ -353,15 +287,7 @@ describe('PeerNetwork', () => {
           'verifyNewTransaction',
         )
 
-        const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-          NetworkMessageType.NewTransaction,
-        )
-
-        if (newTransactionHandler === undefined) {
-          throw new Error('Expected newTransactionHandler to be defined')
-        }
-
-        await newTransactionHandler({
+        await peerNetwork['onNewTransaction']({
           peerIdentity: '',
           message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
         })
@@ -372,13 +298,8 @@ describe('PeerNetwork', () => {
   })
 
   describe('when enable syncing is false', () => {
-    it('does not handle blocks', () => {
-      // We have to create 2 peerNetworks because this test tests logic in the
-      // constructor itself and I found that this test would pass because the
-      // tested function was deleted. Now it ensures it does get called under
-      // the same conditions.
-
-      const networkArgs = {
+    it('does not handle blocks', async () => {
+      const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
         webSocket: ws,
@@ -386,22 +307,43 @@ describe('PeerNetwork', () => {
         chain: mockChain(),
         strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
+        enableSyncing: false,
+      })
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const block = {
+        header: {
+          graffiti: 'chipotle',
+          minersFee: '0',
+          noteCommitment: {
+            commitment: Buffer.from('commitment'),
+            size: 1,
+          },
+          nullifierCommitment: {
+            commitment: 'commitment',
+            size: 2,
+          },
+          previousBlockHash: 'burrito',
+          randomness: 1,
+          sequence: 2,
+          target: 'icecream',
+          timestamp: 200000,
+          work: '123',
+          hash: 'ramen',
+        },
+        transactions: [],
       }
 
-      const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const newBlockHandler = peerNetwork['gossipRouter']['handlers'].get(
-        NetworkMessageType.NewBlock,
-      )
-      expect(newBlockHandler).toBeUndefined()
+      const peerIdentity = peer.getIdentityOrThrow()
+      const gossip = await peerNetwork['onNewBlock']({
+        peerIdentity,
+        message: new NewBlockMessage(block, 'nonce'),
+      })
+      expect(gossip).toBe(false)
+      expect(peerNetwork['node']['syncer'].addNewBlock).not.toHaveBeenCalled()
     })
 
-    it('does not handle transactions', () => {
-      // We have to create 2 peerNetworks because this test tests logic in the
-      // constructor itself and I found that this test would pass because the
-      // tested function was deleted. Now it ensures it does get called under
-      // the same conditions.
-
-      const networkArgs = {
+    it('does not handle transactions', async () => {
+      const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
         webSocket: ws,
@@ -409,13 +351,17 @@ describe('PeerNetwork', () => {
         chain: mockChain(),
         strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
-      }
+        enableSyncing: false,
+      })
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const peerNetwork = new PeerNetwork({ ...networkArgs, enableSyncing: false })
-      const newTransactionHandler = peerNetwork['gossipRouter']['handlers'].get(
-        NetworkMessageType.NewTransaction,
-      )
-      expect(newTransactionHandler).toBeUndefined()
+      const peerIdentity = peer.getIdentityOrThrow()
+      const gossip = await peerNetwork['onNewTransaction']({
+        peerIdentity,
+        message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
+      })
+      expect(gossip).toBe(false)
+      expect(peerNetwork['chain']['verifier'].verifyNewTransaction).not.toHaveBeenCalled()
     })
   })
 })
