@@ -203,11 +203,8 @@ export abstract class Connection {
     this.send = wrapper
   }
 
-  shouldLogMessageType(messageType: string | NetworkMessageType): boolean {
-    const bannedMessageTypes = [NetworkMessageType.PeerList, NetworkMessageType.Signal] as (
-      | string
-      | NetworkMessageType
-    )[]
+  shouldLogMessageType(messageType: NetworkMessageType): boolean {
+    const bannedMessageTypes = [NetworkMessageType.PeerList, NetworkMessageType.Signal]
     return !bannedMessageTypes.includes(messageType)
   }
 
