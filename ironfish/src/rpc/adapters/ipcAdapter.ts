@@ -275,14 +275,7 @@ export class IpcAdapter implements IAdapter {
   }
 
   renderError(error: Error): IpcError {
-    let message = 'An error has occured'
-    let stack = undefined
     let code: string = ERROR_CODES.ERROR
-
-    if (error instanceof Error) {
-      message = error.message
-      stack = error.stack
-    }
 
     if (error instanceof ResponseError) {
       code = error.code
@@ -290,8 +283,8 @@ export class IpcAdapter implements IAdapter {
 
     return {
       code: code,
-      message: message,
-      stack: stack,
+      message: error.message,
+      stack: error.stack,
     }
   }
 
