@@ -4,18 +4,18 @@
 
 import { Event } from '../event'
 import { PromiseReject, PromiseResolve, PromiseUtils } from '../utils'
-import { JobAbortedError } from './errors'
-import { WorkerRequestMessage, WorkerResponse, WorkerResponseMessage } from './messages'
-import { handleRequest } from './tasks'
+import { handleRequest } from './tasks/handlers'
+import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
+import { WorkerMessage } from './tasks/workerMessage'
 import { Worker } from './worker'
 
 export class Job {
   id: number
-  request: WorkerRequestMessage
+  request: WorkerMessage
   worker: Worker | null
   status: 'init' | 'queued' | 'executing' | 'success' | 'error' | 'aborted'
-  promise: Promise<WorkerResponseMessage>
-  resolve: PromiseResolve<WorkerResponseMessage>
+  promise: Promise<WorkerMessage>
+  resolve: PromiseResolve<WorkerMessage>
   reject: PromiseReject
 
   onEnded = new Event<[Job]>()
@@ -25,15 +25,15 @@ export class Job {
   // aborted. The code base hasn't been upgraded to handle these so it should be
   // enabled for each job that now properly handles it until all jobs handle it.
   // Then this should be removed.
-  enableJobAbortError = false
+  enableJobAbortedError = false
 
-  constructor(request: WorkerRequestMessage) {
+  constructor(request: WorkerMessage) {
     this.id = request.jobId
     this.request = request
     this.worker = null
     this.status = 'queued'
 
-    const [promise, resolve, reject] = PromiseUtils.split<WorkerResponseMessage>()
+    const [promise, resolve, reject] = PromiseUtils.split<WorkerMessage>()
     this.promise = promise
     this.resolve = resolve
     this.reject = reject
@@ -55,11 +55,11 @@ export class Job {
     this.onEnded.emit(this)
 
     if (this.worker) {
-      this.worker.send({ jobId: this.id, body: { type: 'jobAbort' } })
+      this.worker.send(new JobAbortedMessage(this.id))
       this.worker.jobs.delete(this.id)
     }
 
-    if (this.reject && this.enableJobAbortError) {
+    if (this.reject && this.enableJobAbortedError) {
       this.reject(new JobAbortedError())
     }
   }
@@ -82,7 +82,7 @@ export class Job {
           this.status = 'success'
           this.onChange.emit(this, prevStatus)
           this.onEnded.emit(this)
-          this.resolve?.(r)
+          this.resolve(r)
         }
       })
       .catch((e: unknown) => {
@@ -91,29 +91,14 @@ export class Job {
           this.status = 'error'
           this.onChange.emit(this, prevStatus)
           this.onEnded.emit(this)
-          this.reject?.(e)
+          this.reject(e)
         }
       })
 
     return this
   }
 
-  async response(): Promise<WorkerResponseMessage> {
-    const response = await this.promise
-
-    if (response === null || response?.body?.type !== this.request.body.type) {
-      throw new Error(
-        `Response type must match request type ${this.request.body.type} but was ${String(
-          response,
-        )} with job status ${this.status}`,
-      )
-    }
-
-    return response
-  }
-
-  async result(): Promise<WorkerResponse> {
-    const response = await this.response()
-    return response.body
+  result(): Promise<WorkerMessage> {
+    return this.promise
   }
 }

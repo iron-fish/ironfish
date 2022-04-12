@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
 import { Accounts } from './account'
-import { Config } from './fileStores'
+import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
@@ -57,6 +57,23 @@ describe('IronfishSdk', () => {
       expect(node.config).toBe(sdk.config)
       expect(node.accounts).toBeInstanceOf(Accounts)
       expect(node.config.get('databaseName')).toBe('foo')
+    })
+
+    it('should initialize an SDK with the default dataDir if none is passed in', async () => {
+      const fileSystem = new NodeFileProvider()
+      await fileSystem.init()
+
+      const sdk = await IronfishSdk.init({
+        configName: 'foo.config.json',
+        fileSystem: fileSystem,
+      })
+
+      const expectedDir = fileSystem.resolve(DEFAULT_DATA_DIR)
+      expect(sdk.config.dataDir).toBe(expectedDir)
+      expect(sdk.config.storage.dataDir).toBe(expectedDir)
+
+      const node = await sdk.node({ databaseName: 'foo' })
+      expect(node.config).toBe(sdk.config)
     })
   })
 

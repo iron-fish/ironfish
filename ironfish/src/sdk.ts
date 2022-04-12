@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
-import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -37,7 +37,7 @@ export class IronfishSdk {
   internal: InternalStore
   strategyClass: typeof Strategy | null
   privateIdentity: BoxKeyPair | null | undefined
-  dataDir?: string
+  dataDir: string
 
   private constructor(
     pkg: Package,
@@ -49,7 +49,7 @@ export class IronfishSdk {
     logger: Logger,
     metrics: MetricsMonitor,
     strategyClass: typeof Strategy | null = null,
-    dataDir?: string,
+    dataDir: string,
   ) {
     this.pkg = pkg
     this.client = client
@@ -94,6 +94,7 @@ export class IronfishSdk {
     }
 
     logger = logger.withTag('ironfishsdk')
+    dataDir = dataDir || DEFAULT_DATA_DIR
 
     const config = new Config(fileSystem, dataDir, configName)
     await config.load()

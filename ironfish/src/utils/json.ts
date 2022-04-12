@@ -4,10 +4,6 @@
 import parseJson, { JSONError } from 'parse-json'
 import { Assert } from '../assert'
 
-function IsParseJsonError(e: unknown): e is JSONError {
-  return typeof e === 'object' && !!e && 'codeFrame' in e
-}
-
 export class ParseJsonError extends Error {
   jsonMessage: string
   jsonFileName: string
@@ -38,7 +34,7 @@ function tryParse<T = unknown>(
     const config = parseJson(data, fileName || '') as T
     return [config, null]
   } catch (e) {
-    if (IsParseJsonError(e)) {
+    if (e instanceof JSONError) {
       const error = new ParseJsonError(e.fileName, e.message, e.codeFrame)
       return [null, error]
     }

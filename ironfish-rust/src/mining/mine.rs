@@ -88,8 +88,8 @@ mod test {
             0, 0, 1,
         ];
 
-        assert_eq!(true, bytes_lte(small, big));
-        assert_eq!(true, bytes_lte(small, small));
-        assert_eq!(false, bytes_lte(big, small));
+        assert!(bytes_lte(small, big));
+        assert!(bytes_lte(small, small));
+        assert!(!bytes_lte(big, small));
     }
 }

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HostsOptions, HostsStore } from '../../fileStores'
+import { DEFAULT_DATA_DIR, HostsOptions, HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { PeerAddress } from '../peers/peerAddress'
 
@@ -51,7 +51,7 @@ class MockFileSystem extends FileSystem {
 
 class MockHostsStore extends HostsStore {
   constructor() {
-    super(new MockFileSystem())
+    super(new MockFileSystem(), DEFAULT_DATA_DIR)
     super.set('priorPeers', [
       {
         address: '127.0.0.1',

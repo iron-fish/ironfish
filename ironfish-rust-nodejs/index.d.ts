@@ -22,6 +22,7 @@ export interface Key {
 }
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
+export function initializeSapling(): void
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)

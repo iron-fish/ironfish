@@ -6,7 +6,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 use ironfish_rust::note::Memo;
-use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
+use ironfish_rust::sapling_bls12::{Key, Note};
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -19,18 +19,16 @@ impl NativeNote {
     pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
-        let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
+        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(NativeNote {
-            note: Note::new(SAPLING.clone(), owner_address, value_u64, Memo::from(memo)),
+            note: Note::new(owner_address, value_u64, Memo::from(memo)),
         })
     }
 
     #[napi(factory)]
     pub fn deserialize(bytes: Buffer) -> Result<Self> {
-        let hasher = SAPLING.clone();
-        let note = Note::read(bytes.as_ref(), hasher)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = Note::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNote { note })
     }
@@ -69,10 +67,10 @@ impl NativeNote {
     pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let private_key = Key::from_hex(SAPLING.clone(), &owner_private_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let private_key =
+            Key::from_hex(&owner_private_key).map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64);
+        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }

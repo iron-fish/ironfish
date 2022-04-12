@@ -10,15 +10,17 @@ use super::{
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
     witness::{WitnessNode, WitnessTrait},
-    MerkleNoteHash, Sapling,
+    MerkleNoteHash,
 };
 
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Scalar;
 use ff::PrimeField;
+use group::GroupEncoding;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use zcash_primitives::primitives::ValueCommitment;
 
-use std::{convert::TryInto, io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, Unknown};
+use std::{convert::TryInto, io};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 /// The note encryption keys are used to allow the spender to
@@ -34,19 +36,19 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
 
 #[derive(Clone)]
-pub struct MerkleNote<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct MerkleNote {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Commits this note to the value it contains
     /// without revealing what that value is.
-    pub(crate) value_commitment: edwards::Point<J, Unknown>,
+    pub(crate) value_commitment: ExtendedPoint,
 
     /// The hash of the note, committing to it's internal state
-    pub(crate) note_commitment: J::Fr,
+    pub(crate) note_commitment: Scalar,
 
     /// Public part of ephemeral diffie-hellman key-pair. See the discussion on
     /// keys::shared_secret to understand how this is used
-    pub(crate) ephemeral_public_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) ephemeral_public_key: SubgroupPoint,
 
     /// note as encrypted by the diffie hellman public key
     pub(crate) encrypted_note: [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
@@ -58,40 +60,35 @@ pub struct MerkleNote<J: JubjubEngine + pairing::MultiMillerLoop> {
     pub(crate) note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE],
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for MerkleNote<J> {
-    fn eq(&self, other: &MerkleNote<J>) -> bool {
+impl PartialEq for MerkleNote {
+    fn eq(&self, other: &MerkleNote) -> bool {
         self.note_commitment == other.note_commitment
             && self.value_commitment == other.value_commitment
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
+impl MerkleNote {
     pub fn new(
-        spender_key: &SaplingKey<J>,
-        note: &Note<J>,
-        value_commitment: &ValueCommitment<J>,
-        diffie_hellman_keys: &(J::Fs, edwards::Point<J, PrimeOrder>),
-    ) -> MerkleNote<J> {
+        spender_key: &SaplingKey,
+        note: &Note,
+        value_commitment: &ValueCommitment,
+        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+    ) -> MerkleNote {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let encrypted_note = note.encrypt(&shared_secret(
-            &spender_key.sapling.jubjub,
             secret_key,
             &note.owner.transmission_key,
             public_key,
         ));
 
         let mut key_bytes = [0; 64];
-        note.owner
-            .transmission_key
-            .write(&mut key_bytes[..32])
-            .expect("transmission key should be convertible to bytes");
-
+        key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key.outgoing_view_key(),
-            &value_commitment.cm(&spender_key.sapling.jubjub).into(),
+            &value_commitment.commitment().into(),
             &note.commitment_point(),
             public_key,
         );
@@ -99,17 +96,29 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
 
         MerkleNote {
-            value_commitment: value_commitment.cm(&spender_key.sapling.jubjub).into(),
+            value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
-            ephemeral_public_key: (*public_key).clone(),
+            ephemeral_public_key: (*public_key),
             encrypted_note,
             note_encryption_keys,
         }
     }
 
     /// Load a MerkleNote from the given stream
-    pub fn read<R: io::Read>(mut reader: R, sapling: Arc<Sapling<J>>) -> io::Result<Self> {
-        let value_commitment = edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
+    pub fn read<R: io::Read>(mut reader: R) -> io::Result<Self> {
+        let value_commitment = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = ExtendedPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Unable to convert note commitment",
+                ));
+            }
+            point.unwrap()
+        };
+
         let note_commitment = read_scalar(&mut reader).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -117,16 +126,19 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
             )
         })?;
 
-        let public_key_non_prime =
-            edwards::Point::<J, Unknown>::read(&mut reader, &sapling.jubjub)?;
-        let ephemeral_public_key = public_key_non_prime
-            .as_prime_order(&sapling.jubjub)
-            .ok_or_else(|| {
-                io::Error::new(
+        let ephemeral_public_key = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = SubgroupPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "Unable to convert note commitment",
-                )
-            })?;
+                ));
+            }
+            point.unwrap()
+        };
+
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
@@ -140,23 +152,23 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
         })
     }
 
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> io::Result<()> {
-        self.value_commitment.write(&mut writer)?;
+    pub fn write<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
+        writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.note_commitment.to_repr().as_ref())?;
-        self.ephemeral_public_key.write(&mut writer)?;
+        writer.write_all(&self.ephemeral_public_key.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.note_encryption_keys[..])?;
         Ok(())
     }
 
-    pub fn merkle_hash(&self) -> MerkleNoteHash<J> {
+    pub fn merkle_hash(&self) -> MerkleNoteHash {
         MerkleNoteHash::new(self.note_commitment)
     }
 
     pub fn decrypt_note_for_owner(
         &self,
-        owner_view_key: &IncomingViewKey<J>,
-    ) -> Result<Note<J>, errors::NoteError> {
+        owner_view_key: &IncomingViewKey,
+    ) -> Result<Note, errors::NoteError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
@@ -166,8 +178,8 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
 
     pub fn decrypt_note_for_spender(
         &self,
-        spender_key: &OutgoingViewKey<J>,
-    ) -> Result<Note<J>, errors::NoteError> {
+        spender_key: &OutgoingViewKey,
+    ) -> Result<Note, errors::NoteError> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,
@@ -182,31 +194,17 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNote<J> {
             &mut note_encryption_keys,
         )?;
 
-        let transmission_key = PublicAddress::load_transmission_key(
-            &spender_key.sapling.jubjub,
-            &note_encryption_keys[..32],
-        )?;
+        let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
-        let shared_key = shared_secret(
-            &spender_key.sapling.jubjub,
-            &secret_key,
-            &transmission_key,
-            &self.ephemeral_public_key,
-        );
-        let note = Note::from_spender_encrypted(
-            spender_key.sapling.clone(),
-            transmission_key,
-            &shared_key,
-            &self.encrypted_note,
-        )?;
+        let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
+        let note =
+            Note::from_spender_encrypted(transmission_key, &shared_key, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
         Ok(note)
     }
 }
 
-pub(crate) fn sapling_auth_path<J: JubjubEngine + pairing::MultiMillerLoop>(
-    witness: &dyn WitnessTrait<J>,
-) -> Vec<Option<(J::Fr, bool)>> {
+pub(crate) fn sapling_auth_path(witness: &dyn WitnessTrait) -> Vec<Option<(Scalar, bool)>> {
     let mut auth_path = vec![];
     for element in &witness.get_auth_path() {
         let sapling_element = match element {
@@ -225,9 +223,7 @@ pub(crate) fn sapling_auth_path<J: JubjubEngine + pairing::MultiMillerLoop>(
 /// on an assumption that the tree is complete and binary. And I didn't feel
 /// like making Witness a trait since it's otherwise very simple.
 /// So this hacky function gets to live here.
-pub(crate) fn position<J: JubjubEngine + pairing::MultiMillerLoop>(
-    witness: &dyn WitnessTrait<J>,
-) -> u64 {
+pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     let mut pos = 0;
     for (i, element) in witness.get_auth_path().iter().enumerate() {
         if let WitnessNode::Right(_) = element {
@@ -247,17 +243,17 @@ pub(crate) fn position<J: JubjubEngine + pairing::MultiMillerLoop>(
 ///
 /// Naming is getting a bit far-fetched here because it's the keys used to
 /// encrypt other keys. Keys, all the way down!
-fn calculate_key_for_encryption_keys<J: JubjubEngine + pairing::MultiMillerLoop>(
-    outgoing_view_key: &OutgoingViewKey<J>,
-    value_commitment: &edwards::Point<J, Unknown>,
-    note_commitment: &J::Fr,
-    public_key: &edwards::Point<J, PrimeOrder>,
+fn calculate_key_for_encryption_keys(
+    outgoing_view_key: &OutgoingViewKey,
+    value_commitment: &ExtendedPoint,
+    note_commitment: &Scalar,
+    public_key: &SubgroupPoint,
 ) -> [u8; 32] {
     let mut key_input = [0u8; 128];
     key_input[0..32].copy_from_slice(&outgoing_view_key.view_key);
-    value_commitment.write(&mut key_input[32..64]).unwrap();
+    key_input[32..64].copy_from_slice(&value_commitment.to_bytes());
     key_input[64..96].copy_from_slice(note_commitment.to_repr().as_ref());
-    public_key.write(&mut key_input[96..128]).unwrap();
+    key_input[96..128].copy_from_slice(&public_key.to_bytes());
 
     Blake2b::new()
         .hash_length(32)
@@ -274,36 +270,26 @@ mod test {
     use crate::{
         keys::SaplingKey,
         note::{Memo, Note},
-        sapling_bls12,
     };
 
-    use pairing::bls12_381::Bls12;
+    use bls12_381::Scalar;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::{
-        jubjub::{fs::Fs, ToUniform},
-        primitives::ValueCommitment,
-    };
+    use zcash_primitives::primitives::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
-        let receiver_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
-        let note = Note::new(
-            sapling.clone(),
-            receiver_key.generate_public_address(),
-            42,
-            Memo([0; 32]),
-        );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys(&sapling.jubjub);
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let receiver_key: SaplingKey = SaplingKey::generate_key();
+        let note = Note::new(receiver_key.generate_public_address(), 42, Memo([0; 32]));
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: Fs = Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment::<Bls12> {
+        let value_commitment = ValueCommitment {
             value: note.value,
             randomness: value_commitment_randomness,
         };
@@ -320,22 +306,16 @@ mod test {
 
     #[test]
     fn test_receipt_invalid_commitment() {
-        let sapling = &*sapling_bls12::SAPLING;
-        let spender_key: SaplingKey<Bls12> = SaplingKey::generate_key(sapling.clone());
-        let note = Note::new(
-            sapling.clone(),
-            spender_key.generate_public_address(),
-            42,
-            Memo([0; 32]),
-        );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys(&sapling.jubjub);
+        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment_randomness: Fs = Fs::to_uniform(&buffer[..]);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment::<Bls12> {
+        let value_commitment = ValueCommitment {
             value: note.value,
             randomness: value_commitment_randomness,
         };
@@ -351,7 +331,7 @@ mod test {
 
         // should fail if note_commitment doesn't match
         let note_randomness: u64 = random();
-        merkle_note.note_commitment = pairing::bls12_381::Fr::from(note_randomness);
+        merkle_note.note_commitment = Scalar::from(note_randomness);
         assert!(merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .is_err());

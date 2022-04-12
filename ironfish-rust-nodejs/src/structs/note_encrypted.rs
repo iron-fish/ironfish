@@ -17,10 +17,8 @@ pub struct NativeNoteEncrypted {
 impl NativeNoteEncrypted {
     #[napi(constructor)]
     pub fn new(bytes: Buffer) -> Result<Self> {
-        let hasher = sapling_bls12::SAPLING.clone();
-
-        let note = MerkleNote::read(bytes.as_ref(), hasher)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let note =
+            MerkleNote::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNoteEncrypted { note })
     }
@@ -68,7 +66,6 @@ impl NativeNoteEncrypted {
         let mut vec = Vec::with_capacity(32);
 
         sapling_bls12::MerkleNoteHash::new(sapling_bls12::MerkleNoteHash::combine_hash(
-            &sapling_bls12::SAPLING.clone(),
             converted_depth,
             &left_hash.0,
             &right_hash.0,
@@ -82,11 +79,8 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
-        let incoming_view_key = sapling_bls12::IncomingViewKey::from_hex(
-            sapling_bls12::SAPLING.clone(),
-            &incoming_hex_key,
-        )
-        .map_err(|err| Error::from_reason(err.to_string()))?;
+        let incoming_view_key = sapling_bls12::IncomingViewKey::from_hex(&incoming_hex_key)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
             Ok(note) => {
@@ -102,11 +96,8 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
-        let outgoing_view_key = sapling_bls12::OutgoingViewKey::from_hex(
-            sapling_bls12::SAPLING.clone(),
-            &outgoing_hex_key,
-        )
-        .map_err(|err| Error::from_reason(err.to_string()))?;
+        let outgoing_view_key = sapling_bls12::OutgoingViewKey::from_hex(&outgoing_hex_key)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {
                 Ok(note) => {

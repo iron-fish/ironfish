@@ -4,7 +4,7 @@
 
 use super::{panic_hook, WasmIoError, WasmSaplingKeyError};
 use ironfish_rust::note::Memo;
-use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
+use ironfish_rust::sapling_bls12::{Key, Note};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -18,10 +18,10 @@ impl WasmNote {
     pub fn new(owner: &str, value: u64, memo: &str) -> Result<WasmNote, JsValue> {
         panic_hook::set_once();
 
-        let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), owner)
-            .map_err(WasmSaplingKeyError)?;
+        let owner_address =
+            ironfish_rust::PublicAddress::from_hex(owner).map_err(WasmSaplingKeyError)?;
         Ok(WasmNote {
-            note: Note::new(SAPLING.clone(), owner_address, value, Memo::from(memo)),
+            note: Note::new(owner_address, value, Memo::from(memo)),
         })
     }
 
@@ -29,9 +29,8 @@ impl WasmNote {
     pub fn deserialize(bytes: &[u8]) -> Result<WasmNote, JsValue> {
         panic_hook::set_once();
 
-        let hasher = SAPLING.clone();
         let cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(bytes);
-        let note = Note::read(cursor, hasher).map_err(WasmSaplingKeyError)?;
+        let note = Note::read(cursor).map_err(WasmSaplingKeyError)?;
         Ok(WasmNote { note })
     }
 
@@ -64,8 +63,7 @@ impl WasmNote {
     /// 'nullifier set', preventing double-spend.
     #[wasm_bindgen]
     pub fn nullifier(&self, owner_private_key: &str, position: u64) -> Result<Vec<u8>, JsValue> {
-        let private_key =
-            Key::from_hex(SAPLING.clone(), owner_private_key).map_err(WasmSaplingKeyError)?;
+        let private_key = Key::from_hex(owner_private_key).map_err(WasmSaplingKeyError)?;
         Ok(self.note.nullifier(&private_key, position).to_vec())
     }
 }

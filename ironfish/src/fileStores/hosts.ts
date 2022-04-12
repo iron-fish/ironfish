@@ -18,7 +18,7 @@ export const HostOptionsDefaults: HostsOptions = {
 export class HostsStore extends KeyStore<HostsOptions> {
   logger: Logger
 
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(files, configName || 'hosts.json', HostOptionsDefaults, dataDir)
     this.logger = createRootLogger()
   }
@@ -28,7 +28,9 @@ export class HostsStore extends KeyStore<HostsOptions> {
       await super.load()
     } catch (e) {
       if (e instanceof ParseJsonError) {
-        this.logger.warn(`Error: Could not parse JSON at ${this.storage.configPath}`)
+        this.logger.debug(
+          `Error: Could not parse JSON at ${this.storage.configPath}, overwriting file.`,
+        )
         await super.save()
       } else {
         throw e
