@@ -275,11 +275,7 @@ export class IpcAdapter implements IAdapter {
   }
 
   renderError(error: Error): IpcError {
-    let code: string = ERROR_CODES.ERROR
-
-    if (error instanceof ResponseError) {
-      code = error.code
-    }
+    const code = error instanceof ResponseError ? error.code : ERROR_CODES.ERROR
 
     return {
       code: code,
