@@ -22,7 +22,7 @@ export enum BAN_SCORE {
 /**
  * Message types that should be excluded from loggedMessages (unless overridden).
  */
-const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string | NetworkMessageType> = [
+const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<NetworkMessageType> = [
   NetworkMessageType.PeerList,
   NetworkMessageType.Signal,
 ]

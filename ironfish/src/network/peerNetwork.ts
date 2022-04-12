@@ -314,9 +314,9 @@ export class PeerNetwork {
   }
 
   /**
-   * Initiate a request for some data from a specific peer. The message is
-   * packed into a Request envelope and sent to the specified peer.
-   * This is an async method, so it returns a future that resolves either
+   * Fire an RPC request to the given peer identity. Returns a promise that
+   * will resolve when the response is received, or will be rejected if the
+   * request cannot be completed before timing out.
    */
   requestFrom(
     peer: Peer,
