@@ -223,11 +223,10 @@ export class Worker {
     const br = bufio.read(data)
     const jobId = Number(br.readU64())
     const type = br.readU8()
-    const size = br.readU64()
     return {
       jobId,
       type,
-      body: br.readBytes(size),
+      body: br.readBytes(br.left()),
     }
   }
 
