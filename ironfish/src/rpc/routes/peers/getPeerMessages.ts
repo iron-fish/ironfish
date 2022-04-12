@@ -3,13 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
-import { NetworkMessage, NetworkMessageType } from '../../../network/messages/networkMessage'
+import { NetworkMessageType } from '../../../network/messages/networkMessage'
 import { ApiNamespace, router } from '../router'
 
 type PeerMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: Pick<NetworkMessage, 'type'>
+  message: {
+    payload: string
+    type: string
+  }
   timestamp: number
   type: Connection['type']
 }
@@ -40,7 +43,8 @@ export const GetPeerMessagesResponseSchema: yup.ObjectSchema<GetPeerMessagesResp
             direction: yup.string<'send' | 'receive'>().defined(),
             message: yup
               .object({
-                type: yup.mixed<NetworkMessageType>().defined(),
+                payload: yup.string().defined(),
+                type: yup.string().defined(),
               })
               .defined(),
             timestamp: yup.number().defined(),
@@ -86,7 +90,13 @@ router.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
 function getPeerMessages(network: PeerNetwork, identity: string): Array<PeerMessage> {
   for (const peer of network.peerManager.peers) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
-      return peer.loggedMessages
+      return peer.loggedMessages.map((msg) => ({
+        ...msg,
+        message: {
+          type: NetworkMessageType[msg.message.type],
+          payload: JSON.stringify(msg.message),
+        },
+      }))
     }
   }
 
