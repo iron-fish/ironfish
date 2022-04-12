@@ -43,6 +43,12 @@ export type ConfigOptions = {
   getFundsApi: string
   ipcPath: string
   /**
+   * As part of IRO-1759 we are removing 'node-ipc' for RPC. This is
+   * essentially a feature flag for enabling use of the native TCP adapter
+   * without using 'node-ipc'
+   */
+  enableNativeRpcTcpAdapter: boolean
+  /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
    * otherwise you should not turn this on or you'll create useless
@@ -220,6 +226,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
+      enableNativeRpcTcpAdapter: false,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
