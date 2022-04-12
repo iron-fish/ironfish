@@ -63,12 +63,8 @@ export class ShowCommand extends IronfishCommand {
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
       : message.type
 
-    // TODO(rohanjadvani)
-    // Update to render the enum after the SDK is bumped with new types
     const messageType = colors.cyan(message.message.type.toString())
-    const payload = JSON.stringify(
-      'payload' in message.message ? message.message.payload : null,
-    )
+    const payload = message.message.payload
 
     return `${time} ${direction} ${type}: ${messageType} ${payload}`
   }
