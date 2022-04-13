@@ -1351,7 +1351,7 @@ describe('PeerManager', () => {
       const peerListRequest = new PeerListRequestMessage()
       const peerList = new PeerListMessage([
         {
-          identity: peer.getIdentityOrThrow(),
+          identity: Buffer.from(peer.getIdentityOrThrow(), 'base64'),
           address: peer.address,
           port: peer.port,
         },
@@ -1377,7 +1377,7 @@ describe('PeerManager', () => {
 
       const peerList = new PeerListMessage([
         {
-          identity: privateIdentityToIdentity(localIdentity),
+          identity: Buffer.from(privateIdentityToIdentity(localIdentity), 'base64'),
           address: peer.address,
           port: peer.port,
         },
@@ -1400,7 +1400,7 @@ describe('PeerManager', () => {
 
       const peerList = new PeerListMessage([
         {
-          identity: newPeerIdentity,
+          identity: Buffer.from(newPeerIdentity),
           address: peer.address,
           port: peer.port,
         },
@@ -1429,7 +1429,7 @@ describe('PeerManager', () => {
 
       const peerList = new PeerListMessage([
         {
-          identity: newPeerIdentity,
+          identity: Buffer.from(newPeerIdentity, 'base64'),
           address: peer.address,
           port: peer.port,
         },
@@ -1474,7 +1474,7 @@ describe('PeerManager', () => {
 
       const peerList = new PeerListMessage([
         {
-          identity: newPeerIdentity,
+          identity: Buffer.from(newPeerIdentity, 'base64'),
           address: peer.address,
           port: peer.port,
         },

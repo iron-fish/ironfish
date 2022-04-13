@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Identity } from '../identity'
+import { Assert } from '../../assert'
+import { identityLength } from '../identity'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 interface Peer {
-  identity: Identity
+  identity: Buffer
   name?: string
   address: string | null
   port: number | null
@@ -22,31 +23,30 @@ export class PeerListMessage extends NetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeU64(this.connectedPeers.length)
+    bw.writeU16(this.connectedPeers.length)
 
     for (const peer of this.connectedPeers) {
       const { identity, name, address, port } = peer
-      bw.writeVarString(identity)
+
+      Assert.isEqual(identity.byteLength, identityLength)
+      bw.writeBytes(identity)
+
+      let flags = 0
+      flags |= Number(!!name) << 0
+      flags |= Number(!!port) << 1
+      flags |= Number(!!address) << 2
+      bw.writeU8(flags)
 
       if (name) {
-        bw.writeU8(1)
-        bw.writeVarString(name)
-      } else {
-        bw.writeU8(0)
-      }
-
-      if (address) {
-        bw.writeU8(1)
-        bw.writeVarString(address)
-      } else {
-        bw.writeU8(0)
+        bw.writeVarString(name, 'utf8')
       }
 
       if (port) {
-        bw.writeU8(1)
-        bw.writeU64(port)
-      } else {
-        bw.writeU8(0)
+        bw.writeU16(port)
+      }
+
+      if (address) {
+        bw.writeVarString(address, 'utf8')
       }
     }
     return bw.render()
@@ -54,28 +54,30 @@ export class PeerListMessage extends NetworkMessage {
 
   static deserialize(buffer: Buffer): PeerListMessage {
     const reader = bufio.read(buffer, true)
-    const connectedPeersLength = reader.readU64()
+    const connectedPeersLength = reader.readU16()
     const connectedPeers = []
 
     for (let i = 0; i < connectedPeersLength; i++) {
-      const identity = reader.readVarString()
+      const identity = reader.readBytes(identityLength)
 
-      const hasName = reader.readU8()
+      const flags = reader.readU8()
+      const hasName = flags & (1 << 0)
+      const hasPort = flags & (1 << 1)
+      const hasAddress = flags & (1 << 2)
+
       let name = undefined
       if (hasName) {
-        name = reader.readVarString()
+        name = reader.readVarString('utf8')
       }
 
-      const hasAddress = reader.readU8()
-      let address = null
-      if (hasAddress) {
-        address = reader.readVarString()
-      }
-
-      const hasPort = reader.readU8()
       let port = null
       if (hasPort) {
-        port = reader.readU64()
+        port = reader.readU16()
+      }
+
+      let address = null
+      if (hasAddress) {
+        address = reader.readVarString('utf8')
       }
 
       connectedPeers.push({
@@ -89,24 +91,22 @@ export class PeerListMessage extends NetworkMessage {
   }
 
   getSize(): number {
-    let size = 8
+    let size = 2
 
-    for (const { identity, name, address, port } of this.connectedPeers) {
-      size += bufio.sizeVarString(identity)
+    for (const { name, address, port } of this.connectedPeers) {
+      size += identityLength
 
       size += 1
       if (name) {
-        size += bufio.sizeVarString(name)
+        size += bufio.sizeVarString(name, 'utf8')
       }
 
-      size += 1
-      if (address) {
-        size += bufio.sizeVarString(address)
-      }
-
-      size += 1
       if (port) {
-        size += 8
+        size += 2
+      }
+
+      if (address) {
+        size += bufio.sizeVarString(address, 'utf8')
       }
     }
     return size
