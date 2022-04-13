@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
 import { YupUtils } from '../../utils/yup'
@@ -44,6 +45,7 @@ export class TcpAdapter implements IAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
 
   constructor(
     host: string,
@@ -80,6 +82,12 @@ export class TcpAdapter implements IAdapter {
 
   stop(): Promise<void> {
     this.logger.debug(`tcpAdapter stopped: ${this.host}:${this.port}`)
+    this.pending.forEach(({ sock, reqs }) => {
+      reqs.forEach((req) => {
+        req.close()
+      })
+      sock.destroy()
+    })
     return Promise.resolve()
   }
 
@@ -92,12 +100,16 @@ export class TcpAdapter implements IAdapter {
   }
 
   onClientConnection(socket: net.Socket): void {
+    const connId = uuid()
+    const reqMap = new Map<string, Request>()
+    this.pending.set(connId, { sock: socket, reqs: reqMap })
     socket.on('data', (data) => {
-      this.onClientData(socket, data).catch((err) => this.logger.error(err))
+      this.onClientData(socket, data, reqMap).catch((err) => this.logger.log(err))
     })
     socket.on('close', () => {
-      //TODO: possibly keep track of ongoing reqeusts on this connection and
-      // cancel all of them. This seems like an optimization but not a requirement
+      // When the socket is closed, close all open requests and delete the connection
+      reqMap.forEach((req) => req.close())
+      this.pending.delete(connId)
       this.logger.debug(`client connection closed: ${this.host}:${this.port}`)
     })
     socket.on('error', (error: Error) => {
@@ -105,28 +117,35 @@ export class TcpAdapter implements IAdapter {
     })
   }
 
-  async onClientData(socket: net.Socket, data: Buffer): Promise<void> {
+  async onClientData(
+    socket: net.Socket,
+    data: Buffer,
+    reqMap: Map<string, Request>,
+  ): Promise<void> {
     const dataString = data.toString('utf8').trim()
     const result = await YupUtils.tryValidate(IncomingNodeIpcSchema, dataString)
 
     if (result.error) {
-      this.logger.log(
-        `${this.host}:${this.port} Error parsing message : ${result.error.message} raw: ${dataString} `,
-      )
+      this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
     } else {
       const message = result.result.data
 
+      const reqId = uuid()
       const request = new Request(
         message.data,
         (status: number, data?: unknown) => {
-          const res = this.encodeNodeIpc(this.constructMessage(message.mid, status, data))
-          socket.write(res)
+          this.emitResponse(
+            socket,
+            this.constructMessage(message.mid, status, data),
+            reqMap,
+            reqId,
+          )
         },
         (data: unknown) => {
-          const res = this.encodeNodeIpc(this.constructStream(message.mid, data))
-          socket.write(res)
+          this.emitStream(socket, this.constructStream(message.mid, data))
         },
       )
+      reqMap.set(reqId, request)
 
       if (this.router == null) {
         this.logger.log('handling incoming connection on unmounted adapter')
@@ -135,20 +154,37 @@ export class TcpAdapter implements IAdapter {
           await this.router.route(message.type, request)
         } catch (error: unknown) {
           if (error instanceof ResponseError) {
-            const res = this.encodeNodeIpc(
-              this.constructMessage(message.mid, error.status, {
-                code: error.code,
-                message: error.message,
-                stack: error.stack,
-              }),
-            )
-            socket.write(res)
+            const res = this.constructMessage(message.mid, error.status, {
+              code: error.code,
+              message: error.message,
+              stack: error.stack,
+            })
+            this.emitResponse(socket, res, reqMap, reqId)
           } else {
             throw error
           }
         }
       }
     }
+  }
+
+  emitResponse(
+    socket: net.Socket,
+    data: OutgoingNodeIpc,
+    connMap: Map<string, Request>,
+    reqId?: string,
+  ): void {
+    const res = this.encodeNodeIpc(data)
+    socket.write(res)
+    if (reqId) {
+      connMap.get(reqId)?.close()
+      connMap.delete(reqId)
+    }
+  }
+
+  emitStream(socket: net.Socket, data: OutgoingNodeIpc): void {
+    const res = this.encodeNodeIpc(data)
+    socket.write(res)
   }
 
   // `constructResponse`,  `constructStream` and `constructMalformedRequest` construct messages to return
