@@ -1439,7 +1439,7 @@ export class PeerManager {
       }
 
       connectedPeers.push({
-        identity: p.state.identity,
+        identity: Buffer.from(p.state.identity, 'base64'),
         name: p.name || undefined,
         address: p.address,
         port: p.port,
@@ -1460,7 +1460,11 @@ export class PeerManager {
 
     const newPeerSet = peerList.connectedPeers.reduce(
       (memo, peer) => {
-        memo.set(peer.identity, peer)
+        const newPeer = {
+          ...peer,
+          identity: peer.identity.toString('base64'),
+        }
+        memo.set(newPeer.identity, newPeer)
         return memo
       },
       new Map<
