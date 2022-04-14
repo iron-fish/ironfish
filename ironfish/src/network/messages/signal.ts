@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Identity } from '../identity'
+import { Identity, identityLength } from '../identity'
+import { nonceLength } from '../peers/encryption'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 interface CreateSignalMessageOptions {
@@ -40,19 +41,19 @@ export class SignalMessage extends NetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarString(this.destinationIdentity)
-    bw.writeVarString(this.sourceIdentity)
-    bw.writeVarString(this.nonce)
-    bw.writeVarString(this.signal)
+    bw.writeBytes(Buffer.from(this.destinationIdentity, 'base64'))
+    bw.writeBytes(Buffer.from(this.sourceIdentity, 'base64'))
+    bw.writeBytes(Buffer.from(this.nonce, 'base64'))
+    bw.writeBytes(Buffer.from(this.signal, 'base64'))
     return bw.render()
   }
 
   static deserialize(buffer: Buffer): SignalMessage {
     const reader = bufio.read(buffer, true)
-    const destinationIdentity = reader.readVarString()
-    const sourceIdentity = reader.readVarString()
-    const nonce = reader.readVarString()
-    const signal = reader.readVarString()
+    const destinationIdentity = reader.readBytes(identityLength).toString('base64')
+    const sourceIdentity = reader.readBytes(identityLength).toString('base64')
+    const nonce = reader.readBytes(nonceLength).toString('base64')
+    const signal = reader.readBytes(reader.left()).toString('base64')
     return new SignalMessage({
       destinationIdentity,
       sourceIdentity,
@@ -63,10 +64,7 @@ export class SignalMessage extends NetworkMessage {
 
   getSize(): number {
     return (
-      bufio.sizeVarString(this.destinationIdentity) +
-      bufio.sizeVarString(this.sourceIdentity) +
-      bufio.sizeVarString(this.nonce) +
-      bufio.sizeVarString(this.signal)
+      identityLength + identityLength + nonceLength + Buffer.byteLength(this.signal, 'base64')
     )
   }
 }
