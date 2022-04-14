@@ -12,20 +12,20 @@ coverage:
     patch:
       default:
         target: auto
-        threshold: 50%
+        threshold: 0%
     project:
       default:
-        target: 63%
+        target: 10%
       ironfish-rust:
-        target: 53%
+        target: 10%
         flags:
           - ironfish-rust
       ironfish-cli:
-        target: 50%
+        target: 10%
         flags:
           - ironfish-cli
       ironfish:
-        target: 60%
+        target: 10%
         flags:
           - ironfish
       event:
