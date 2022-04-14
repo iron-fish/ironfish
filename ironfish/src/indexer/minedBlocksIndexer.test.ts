@@ -41,10 +41,9 @@ describe('MinedBlockIndexer', () => {
 
     expect(putSpy).toHaveBeenCalledTimes(1)
     expect(putSpy).toHaveBeenCalledWith(
-      blockA1.header.hash.toString('hex'),
+      blockA1.header.hash,
       {
         main: true,
-        hash: blockA1.header.hash.toString('hex'),
         sequence: blockA1.header.sequence,
         account: 'a',
         minersFee: 0,
@@ -88,10 +87,9 @@ describe('MinedBlockIndexer', () => {
 
     expect(putSpy).toHaveBeenCalledTimes(1)
     expect(putSpy).toHaveBeenCalledWith(
-      blockA1.header.hash.toString('hex'),
+      blockA1.header.hash,
       {
         main: true,
-        hash: blockA1.header.hash.toString('hex'),
         sequence: blockA1.header.sequence,
         account: 'a',
         minersFee: 0,
@@ -109,9 +107,8 @@ describe('MinedBlockIndexer', () => {
     await indexer.updateHead()
 
     expect(putSpy).toHaveBeenCalledTimes(4)
-    expect(await indexer['minedBlocks'].get(blockA1.header.hash.toString('hex'))).toEqual({
+    expect(await indexer['minedBlocks'].get(blockA1.header.hash)).toEqual({
       main: false,
-      hash: blockA1.header.hash.toString('hex'),
       sequence: blockA1.header.sequence,
       account: 'a',
       minersFee: 0,
@@ -150,7 +147,7 @@ describe('MinedBlockIndexer', () => {
 
     await indexer.updateHead()
 
-    const minedBlocks = await indexer.getMinedBlocks()
+    const minedBlocks = await indexer.getMinedBlocks({})
     expect(minedBlocks.length).toEqual(3)
     expect(minedBlocks[0].sequence).toBeLessThan(minedBlocks[1].sequence)
 

@@ -7,10 +7,17 @@ import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
-import { IDatabase, IDatabaseStore, JsonEncoding, StringEncoding } from '../storage'
+import {
+  BufferEncoding,
+  IDatabase,
+  IDatabaseStore,
+  IDatabaseTransaction,
+  JsonEncoding,
+  StringEncoding,
+} from '../storage'
 import { createDB } from '../storage/utils'
 import { SetTimeoutToken } from '../utils'
-import { isBlockMine } from '../utils/blockchain'
+import { BlockchainUtils, isBlockMine } from '../utils/blockchain'
 
 const DATABASE_VERSION = 1
 
@@ -20,7 +27,6 @@ type MinedBlocksDBMeta = {
 
 type MinedBlock = {
   main: boolean
-  hash: string
   sequence: number
   account: string
   minersFee: number
@@ -31,8 +37,8 @@ export class MinedBlocksIndexer {
     key: keyof MinedBlocksDBMeta
     value: MinedBlocksDBMeta[keyof MinedBlocksDBMeta]
   }>
-  protected minedBlocks: IDatabaseStore<{ key: string; value: MinedBlock }>
-  protected accountToBlockHashes: IDatabaseStore<{ key: string; value: string[] }>
+  protected minedBlocks: IDatabaseStore<{ key: Buffer; value: MinedBlock }>
+  protected accountToBlockHashes: IDatabaseStore<{ key: string; value: Buffer[] }>
 
   protected files: FileSystem
   protected database: IDatabase
@@ -76,13 +82,13 @@ export class MinedBlocksIndexer {
       valueEncoding: new JsonEncoding(),
     })
 
-    this.minedBlocks = this.database.addStore<{ key: string; value: MinedBlock }>({
+    this.minedBlocks = this.database.addStore<{ key: Buffer; value: MinedBlock }>({
       name: 'minedBlocks',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new JsonEncoding(),
     })
 
-    this.accountToBlockHashes = this.database.addStore<{ key: string; value: string[] }>({
+    this.accountToBlockHashes = this.database.addStore<{ key: string; value: Buffer[] }>({
       name: 'accountToBlockHashes',
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
@@ -95,50 +101,56 @@ export class MinedBlocksIndexer {
       Assert.isNotNull(block)
 
       const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
-      await this.database.transaction(async (tx) => {
-        if (account) {
+      if (account) {
+        await this.database.transaction(async (tx) => {
           await this.minedBlocks.put(
-            header.hash.toString('hex'),
+            header.hash,
             {
               main: true,
-              hash: header.hash.toString('hex'),
               sequence: header.sequence,
               account: account.name,
               minersFee: Number(header.minersFee),
             },
             tx,
           )
-          const hashes: string[] = (await this.accountToBlockHashes.get(account.name, tx)) || []
-          hashes.concat(block.header.hash.toString('hex'))
-          await this.accountToBlockHashes.put(account.name, hashes, tx)
-        }
-      })
 
-      await this.updateHeadHash(header.hash)
+          let hashes = await this.accountToBlockHashes.get(account.name, tx)
+          if (hashes) {
+            await this.accountToBlockHashes.del(account.name)
+            hashes.concat(block.header.hash)
+            await this.accountToBlockHashes.put(account.name, hashes, tx)
+          } else {
+            hashes = [block.header.hash]
+            await this.accountToBlockHashes.put(account.name, hashes, tx)
+          }
+
+          await this.updateHeadHash(header.hash, tx)
+        })
+      }
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
-      if (await this.minedBlocks.has(header.hash.toString('hex'))) {
-        const block = await this.chain.getBlock(header)
-        Assert.isNotNull(block)
+      await this.database.transaction(async (tx) => {
+        if (await this.minedBlocks.has(header.hash, tx)) {
+          const block = await this.chain.getBlock(header)
+          Assert.isNotNull(block)
 
-        const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
-        if (account) {
-          const minedBlock = await this.minedBlocks.get(header.hash.toString('hex'))
-          if (minedBlock) {
-            minedBlock.main = false
-            await this.minedBlocks.put(header.hash.toString('hex'), minedBlock)
+          const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
+          if (account) {
+            const minedBlock = await this.minedBlocks.get(header.hash, tx)
+            if (minedBlock) {
+              minedBlock.main = false
+              await this.minedBlocks.put(header.hash, minedBlock, tx)
+            }
           }
         }
-      }
 
-      await this.updateHeadHash(header.previousBlockHash)
+        await this.updateHeadHash(header.previousBlockHash, tx)
+      })
     })
 
-    this.accounts.onAccountCreated.on((_account, imported) => {
-      if (imported) {
-        this.chainProcessor.hash = null
-      }
+    this.accounts.onAccountImported.on(() => {
+      this.chainProcessor.hash = null
     })
 
     this.accounts.onAccountRemoved.on(async (accountName) => {
@@ -241,23 +253,39 @@ export class MinedBlocksIndexer {
     }
   }
 
-  async updateHeadHash(headHash: Buffer | null): Promise<void> {
+  async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
     const hashString = headHash && headHash.toString('hex')
-    await this.meta.put('headHash', hashString)
+    await this.meta.put('headHash', hashString, tx)
   }
 
-  async getMinedBlocks(includeForks?: boolean): Promise<
+  async getMinedBlocks({
+    includeForks,
+    startSeq,
+    stopSeq,
+  }: {
+    includeForks?: boolean
+    startSeq?: number
+    stopSeq?: number
+  }): Promise<
     {
       main: boolean
-      hash: string
       sequence: number
       account: string
       minersFee: number
     }[]
   > {
-    const minedBlocks = (await this.minedBlocks.getAllValues()).sort(
-      (a, b) => a.sequence - b.sequence,
-    )
+    const { start, stop } = BlockchainUtils.getBlockRange(this.chain, {
+      start: startSeq,
+      stop: stopSeq,
+    })
+
+    const minedBlocks = (await this.minedBlocks.getAllValues())
+      .filter((block) => {
+        if (start <= block.sequence && block.sequence <= stop) {
+          return block
+        }
+      })
+      .sort((a, b) => a.sequence - b.sequence)
 
     if (includeForks) {
       return minedBlocks

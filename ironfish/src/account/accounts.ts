@@ -33,7 +33,7 @@ export class Accounts {
     [account: Account | null, oldAccount: Account | null]
   >()
 
-  readonly onAccountCreated = new Event<[account: Account, imported: boolean]>()
+  readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[accountName: string]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
 
@@ -912,8 +912,6 @@ export class Accounts {
       await this.setDefaultAccount(account.name)
     }
 
-    await this.onAccountCreated.emitAsync(account, false)
-
     return account
   }
 
@@ -940,7 +938,7 @@ export class Accounts {
     this.accounts.set(account.name, account)
     await this.db.setAccount(account)
 
-    await this.onAccountCreated.emitAsync(account, true)
+    this.onAccountImported.emit(account)
 
     return account
   }
@@ -965,7 +963,7 @@ export class Accounts {
     this.accounts.delete(name)
     await this.db.removeAccount(name)
 
-    await this.onAccountRemoved.emitAsync(name)
+    this.onAccountRemoved.emit(name)
   }
 
   get hasDefaultAccount(): boolean {
