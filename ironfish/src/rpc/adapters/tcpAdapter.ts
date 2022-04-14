@@ -151,7 +151,7 @@ export class TcpAdapter implements IAdapter {
 
       if (this.router == null) {
         this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
-        return 
+        return
       } else {
         try {
           await this.router.route(message.type, request)
