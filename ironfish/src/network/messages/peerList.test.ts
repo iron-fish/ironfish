@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { identityLength } from '../identity'
 import { PeerListMessage } from './peerList'
 
 describe('PeerListMessage', () => {
@@ -8,13 +9,13 @@ describe('PeerListMessage', () => {
     const message = new PeerListMessage([
       {
         address: 'address',
-        identity: 'identity',
+        identity: Buffer.alloc(identityLength, 123),
         port: 9033,
         name: 'name',
       },
       {
         address: null,
-        identity: 'identity',
+        identity: Buffer.alloc(identityLength, 456),
         port: null,
       },
     ])
