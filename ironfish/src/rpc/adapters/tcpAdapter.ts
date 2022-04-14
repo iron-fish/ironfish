@@ -23,6 +23,7 @@ type IncomingNodeIpc = {
 type OutgoingNodeIpc =
   | { type: 'message'; data: IpcResponse }
   | { type: 'malformedRequest'; data: IpcError }
+  | { type: 'error'; data: IpcError }
   | { type: 'stream'; data: IpcStream }
 
 export const IncomingNodeIpcSchema: yup.ObjectSchema<IncomingNodeIpc> = yup
@@ -126,7 +127,8 @@ export class TcpAdapter implements IAdapter {
     const result = await YupUtils.tryValidate(IncomingNodeIpcSchema, dataString)
 
     if (result.error) {
-      this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
+      this.emitResponse(socket, this.constructUnmountedAdapter(), reqMap)
+      return
     } else {
       const message = result.result.data
 
@@ -148,7 +150,8 @@ export class TcpAdapter implements IAdapter {
       reqMap.set(reqId, request)
 
       if (this.router == null) {
-        this.logger.log('handling incoming connection on unmounted adapter')
+        this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
+        return 
       } else {
         try {
           await this.router.route(message.type, request)
@@ -160,6 +163,7 @@ export class TcpAdapter implements IAdapter {
               stack: error.stack,
             })
             this.emitResponse(socket, res, reqMap, reqId)
+            return
           } else {
             throw error
           }
@@ -237,6 +241,19 @@ export class TcpAdapter implements IAdapter {
 
     return {
       type: 'malformedRequest',
+      data: ipcError,
+    }
+  }
+
+  constructUnmountedAdapter(): OutgoingNodeIpc {
+    const error = new Error(`Tried to connect to unmounted adapter`)
+    const ipcError = {
+      code: ERROR_CODES.ERROR,
+      message: error.message,
+      stack: error.stack,
+    }
+    return {
+      type: 'error',
       data: ipcError,
     }
   }
