@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Identity } from '../identity'
+import { Identity, identityLength } from '../identity'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 export enum DisconnectingReason {
@@ -13,6 +13,7 @@ export enum DisconnectingReason {
 interface CreateDisconnectingMessageOptions {
   // Can be null if we're sending the message to an unidentified Peer
   destinationIdentity: Identity | null
+  // Expects a timestamp with millisecond precision
   disconnectUntil: number
   reason: DisconnectingReason
   sourceIdentity: Identity
@@ -39,23 +40,24 @@ export class DisconnectingMessage extends NetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeU64(this.disconnectUntil)
+    // Truncates the timestamp to seconds
+    bw.writeU32(Math.ceil(this.disconnectUntil / 1000))
     bw.writeU8(this.reason)
-    bw.writeVarString(this.sourceIdentity)
+    bw.writeBytes(Buffer.from(this.sourceIdentity, 'base64'))
     if (this.destinationIdentity) {
-      bw.writeVarString(this.destinationIdentity)
+      bw.writeBytes(Buffer.from(this.destinationIdentity, 'base64'))
     }
     return bw.render()
   }
 
   static deserialize(buffer: Buffer): DisconnectingMessage {
     const reader = bufio.read(buffer, true)
-    const disconnectUntil = reader.readU64()
+    const disconnectUntil = reader.readU32() * 1000
     const reason = reader.readU8()
-    const sourceIdentity = reader.readVarString()
+    const sourceIdentity = reader.readBytes(identityLength).toString('base64')
     let destinationIdentity = null
     if (reader.left()) {
-      destinationIdentity = reader.readVarString()
+      destinationIdentity = reader.readBytes(identityLength).toString('base64')
     }
     return new DisconnectingMessage({
       destinationIdentity,
@@ -67,11 +69,11 @@ export class DisconnectingMessage extends NetworkMessage {
 
   getSize(): number {
     let size = 0
-    size += 8
-    size += 1
-    size += bufio.sizeVarString(this.sourceIdentity)
+    size += 4 // disconnectUntil
+    size += 1 // reason
+    size += identityLength
     if (this.destinationIdentity) {
-      size += bufio.sizeVarString(this.destinationIdentity)
+      size += identityLength
     }
     return size
   }
