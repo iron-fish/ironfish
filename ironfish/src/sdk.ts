@@ -19,6 +19,7 @@ import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
+import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishIpcClient } from './rpc/clients/ipcClient'
 import { IronfishMemoryClient } from './rpc/clients/memoryClient'
 import { IronfishRpcClient } from './rpc/clients/rpcClient'
@@ -231,17 +232,28 @@ export class IronfishSdk {
         namespaces.push(ApiNamespace.account, ApiNamespace.config)
       }
 
-      await node.rpc.mount(
-        new IpcAdapter(
-          namespaces,
-          {
-            mode: 'tcp',
-            host: this.config.get('rpcTcpHost'),
-            port: this.config.get('rpcTcpPort'),
-          },
-          this.logger,
-        ),
-      )
+      if (this.config.get('enableNativeRpcTcpAdapter')) {
+        await node.rpc.mount(
+          new TcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
+            this.logger,
+            namespaces,
+          ),
+        )
+      } else {
+        await node.rpc.mount(
+          new IpcAdapter(
+            namespaces,
+            {
+              mode: 'tcp',
+              host: this.config.get('rpcTcpHost'),
+              port: this.config.get('rpcTcpPort'),
+            },
+            this.logger,
+          ),
+        )
+      }
     }
 
     return node
