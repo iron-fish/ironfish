@@ -116,6 +116,15 @@ export class WebApi {
       .catch(() => null)
   }
 
+  async findUser(params: { graffiti: string; with_rank?: boolean }): Promise<ApiUser | null> {
+    const options = this.options()
+    options.params = params
+    return await axios
+      .get<ApiUser>(`${this.host}/users/find`, options)
+      .then((r) => r.data)
+      .catch(() => null)
+  }
+
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {
     this.requireToken()
 
