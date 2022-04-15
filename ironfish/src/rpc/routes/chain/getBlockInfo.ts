@@ -140,7 +140,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
     const main = await node.chain.isHeadChain(header)
 
-    request.status(200).end({
+    request.end({
       block: {
         graffiti: header.graffiti.toString('hex'),
         difficulty: header.target.toDifficulty().toString(),

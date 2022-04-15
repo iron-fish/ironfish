@@ -8,7 +8,6 @@ export class Request<TRequest = unknown, TResponse = unknown> {
   data: TRequest
   ended = false
   closed = false
-  code: number | null = null
   onEnd: (status: number, data?: TResponse) => void
   onStream: (data?: TResponse) => void
   onClose = new Event<[]>()
@@ -23,11 +22,6 @@ export class Request<TRequest = unknown, TResponse = unknown> {
     this.onStream = onStream
   }
 
-  status(code: number): Request<TRequest, TResponse> {
-    this.code = code
-    return this
-  }
-
   end(data?: TResponse, status?: number): void {
     if (this.ended) {
       throw new Error(`Request has already ended`)
@@ -37,7 +31,7 @@ export class Request<TRequest = unknown, TResponse = unknown> {
       return
     }
     this.onClose.clear()
-    this.onEnd(status || this.code || 200, data)
+    this.onEnd(status || 200, data)
   }
 
   stream(data: TResponse): void {
