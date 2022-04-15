@@ -28,18 +28,6 @@ coverage:
         target: 10%
         flags:
           - ironfish
-      event:
-        target: 84%
-        flags:
-          - event
-      logger:
-        target: 90%
-        flags:
-          - logger
-      serde:
-        target: 90%
-        flags:
-          - serde
 flags:
   ironfish-rust:
     paths:
