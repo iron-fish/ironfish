@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Identity } from '../identity'
+import { Identity, identityLength } from '../identity'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 interface CreateSignalRequestMessageOptions {
@@ -28,15 +28,15 @@ export class SignalRequestMessage extends NetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarString(this.destinationIdentity)
-    bw.writeVarString(this.sourceIdentity)
+    bw.writeBytes(Buffer.from(this.destinationIdentity, 'base64'))
+    bw.writeBytes(Buffer.from(this.sourceIdentity, 'base64'))
     return bw.render()
   }
 
   static deserialize(buffer: Buffer): SignalRequestMessage {
     const reader = bufio.read(buffer, true)
-    const destinationIdentity = reader.readVarString()
-    const sourceIdentity = reader.readVarString()
+    const destinationIdentity = reader.readBytes(identityLength).toString('base64')
+    const sourceIdentity = reader.readBytes(identityLength).toString('base64')
     return new SignalRequestMessage({
       destinationIdentity,
       sourceIdentity,
@@ -44,8 +44,6 @@ export class SignalRequestMessage extends NetworkMessage {
   }
 
   getSize(): number {
-    return (
-      bufio.sizeVarString(this.destinationIdentity) + bufio.sizeVarString(this.sourceIdentity)
-    )
+    return identityLength * 2
   }
 }

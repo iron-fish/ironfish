@@ -6,8 +6,8 @@ import { SignalRequestMessage } from './signalRequest'
 describe('SignalRequestMessage', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const message = new SignalRequestMessage({
-      destinationIdentity: 'destination',
-      sourceIdentity: 'source',
+      destinationIdentity: '7stEY4c02HipHyFKrSTY6Cd8ob8SP1uJGAIuvK2EJwA=',
+      sourceIdentity: '6stEY4c02HipHyFKrSTY6Cd8ob8SP1uJGAIuvK2EJwA=',
     })
 
     const buffer = message.serialize()
