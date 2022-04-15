@@ -10,7 +10,7 @@ export class CannotSatisfyRequest extends RpcNetworkMessage {
   }
 
   serialize(): Buffer {
-    return Buffer.from('')
+    return Buffer.alloc(0)
   }
 
   static deserialize(rpcId: number): CannotSatisfyRequest {
