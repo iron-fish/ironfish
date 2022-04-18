@@ -137,46 +137,46 @@ export class TcpAdapter implements IAdapter {
     if (result.error) {
       this.emitResponse(socket, this.constructUnmountedAdapter(), reqMap)
       return
-    } else {
-      const message = result.result.data
+    }
 
-      const reqId = uuid()
-      const request = new Request(
-        message.data,
-        (status: number, data?: unknown) => {
-          this.emitResponse(
-            socket,
-            this.constructMessage(message.mid, status, data),
-            reqMap,
-            reqId,
-          )
-        },
-        (data: unknown) => {
-          this.emitStream(socket, this.constructStream(message.mid, data))
-        },
-      )
-      reqMap.set(reqId, request)
+    const message = result.result.data
 
-      if (this.router == null) {
-        this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
+    const reqId = uuid()
+    const request = new Request(
+      message.data,
+      (status: number, data?: unknown) => {
+        this.emitResponse(
+          socket,
+          this.constructMessage(message.mid, status, data),
+          reqMap,
+          reqId,
+        )
+      },
+      (data: unknown) => {
+        this.emitStream(socket, this.constructStream(message.mid, data))
+      },
+    )
+    reqMap.set(reqId, request)
+
+    if (this.router == null) {
+      this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
+      return
+    }
+
+    try {
+      await this.router.route(message.type, request)
+    } catch (error: unknown) {
+      if (error instanceof ResponseError) {
+        const res = this.constructMessage(message.mid, error.status, {
+          code: error.code,
+          message: error.message,
+          stack: error.stack,
+        })
+        this.emitResponse(socket, res, reqMap, reqId)
         return
-      } else {
-        try {
-          await this.router.route(message.type, request)
-        } catch (error: unknown) {
-          if (error instanceof ResponseError) {
-            const res = this.constructMessage(message.mid, error.status, {
-              code: error.code,
-              message: error.message,
-              stack: error.stack,
-            })
-            this.emitResponse(socket, res, reqMap, reqId)
-            return
-          } else {
-            throw error
-          }
-        }
       }
+
+      throw error
     }
   }
 
