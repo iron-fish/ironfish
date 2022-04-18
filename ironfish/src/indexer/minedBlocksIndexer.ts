@@ -26,6 +26,7 @@ type MinedBlocksDBMeta = {
 }
 
 type MinedBlock = {
+  hash: Buffer
   main: boolean
   sequence: number
   account: string
@@ -106,6 +107,7 @@ export class MinedBlocksIndexer {
           await this.minedBlocks.put(
             header.hash,
             {
+              hash: header.hash,
               main: true,
               sequence: header.sequence,
               account: account.name,
@@ -259,37 +261,28 @@ export class MinedBlocksIndexer {
   }
 
   async *getMinedBlocks({
-    includeForks,
-    startSeq,
-    stopSeq,
+    scanForks,
+    start,
+    stop,
   }: {
-    includeForks?: boolean
-    startSeq?: number
-    stopSeq?: number
-  }): AsyncGenerator<
-    {
-      main: boolean
-      sequence: number
-      account: string
-      minersFee: number
-    },
-    void,
-    unknown
-  > {
-    const { start, stop } = BlockchainUtils.getBlockRange(this.chain, {
-      start: startSeq,
-      stop: stopSeq,
+    scanForks?: boolean
+    start?: number
+    stop?: number
+  }): AsyncGenerator<MinedBlock, void, unknown> {
+    const { start: begin, stop: end } = BlockchainUtils.getBlockRange(this.chain, {
+      start,
+      stop,
     })
 
     let minedBlocks = (await this.minedBlocks.getAllValues())
       .filter((block) => {
-        if (start <= block.sequence && block.sequence <= stop) {
+        if (begin <= block.sequence && block.sequence <= end) {
           return block
         }
       })
       .sort((a, b) => a.sequence - b.sequence)
 
-    if (!includeForks) {
+    if (!scanForks) {
       minedBlocks = minedBlocks.filter((block) => block.main === true)
     }
 

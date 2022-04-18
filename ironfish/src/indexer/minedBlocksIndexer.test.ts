@@ -43,6 +43,7 @@ describe('MinedBlockIndexer', () => {
     expect(putSpy).toHaveBeenCalledWith(
       blockA1.header.hash,
       {
+        hash: blockA1.header.hash,
         main: true,
         sequence: blockA1.header.sequence,
         account: 'a',
@@ -89,6 +90,7 @@ describe('MinedBlockIndexer', () => {
     expect(putSpy).toHaveBeenCalledWith(
       blockA1.header.hash,
       {
+        hash: blockA1.header.hash,
         main: true,
         sequence: blockA1.header.sequence,
         account: 'a',
@@ -108,6 +110,7 @@ describe('MinedBlockIndexer', () => {
 
     expect(putSpy).toHaveBeenCalledTimes(4)
     expect(await indexer['minedBlocks'].get(blockA1.header.hash)).toEqual({
+      hash: blockA1.header.hash,
       main: false,
       sequence: blockA1.header.sequence,
       account: 'a',
