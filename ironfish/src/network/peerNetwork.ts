@@ -391,10 +391,8 @@ export class PeerNetwork {
     })
   }
 
-  async getBlockHashes(peer: Peer, start: Buffer | number, limit: number): Promise<Buffer[]> {
-    const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
-
-    const message = new GetBlockHashesRequest(origin, limit)
+  async getBlockHashes(peer: Peer, start: number, limit: number): Promise<Buffer[]> {
+    const message = new GetBlockHashesRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
     if (!(response.message instanceof GetBlockHashesResponse)) {
@@ -402,16 +400,11 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
     }
 
-    return response.message.blocks.map((hash) => Buffer.from(hash, 'hex'))
+    return response.message.hashes
   }
 
-  async getBlocks(
-    peer: Peer,
-    start: Buffer | bigint,
-    limit: number,
-  ): Promise<SerializedBlock[]> {
-    const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
-    const message = new GetBlocksRequest(origin, limit)
+  async getBlocks(peer: Peer, start: Buffer, limit: number): Promise<SerializedBlock[]> {
+    const message = new GetBlocksRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
     if (!(response.message instanceof GetBlocksResponse)) {
@@ -546,24 +539,16 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: string | number): Promise<BlockHeader | null> {
-    if (typeof start === 'string') {
-      const hash = Buffer.from(start, 'hex')
-      return await this.chain.getHeader(hash)
+  private async resolveSequenceOrHash(start: Buffer | number): Promise<BlockHeader | null> {
+    if (Buffer.isBuffer(start)) {
+      return await this.chain.getHeader(start)
     }
 
-    if (typeof start === 'number') {
-      const header = await this.chain.getHeaderAtSequence(start)
-      if (header) {
-        return header
-      }
-    }
-
-    return null
+    return await this.chain.getHeaderAtSequence(start)
   }
 
   private async onGetBlockHashesRequest(
-    request: IncomingPeerMessage<GetBlocksRequest>,
+    request: IncomingPeerMessage<GetBlockHashesRequest>,
   ): Promise<GetBlockHashesResponse> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
     const rpcId = request.message.rpcId
@@ -603,8 +588,7 @@ export class PeerNetwork {
       }
     }
 
-    const serialized = hashes.map((h) => h.toString('hex'))
-    return new GetBlockHashesResponse(serialized, rpcId)
+    return new GetBlockHashesResponse(hashes, rpcId)
   }
 
   private async onGetBlocksRequest(
@@ -643,12 +627,10 @@ export class PeerNetwork {
 
     const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
 
-    const serialized = await Promise.all(
-      blocks.map((block) => {
-        Assert.isNotNull(block)
-        return this.strategy.blockSerde.serialize(block)
-      }),
-    )
+    const serialized = blocks.map((block) => {
+      Assert.isNotNull(block)
+      return this.strategy.blockSerde.serialize(block)
+    })
 
     return new GetBlocksResponse(serialized, rpcId)
   }

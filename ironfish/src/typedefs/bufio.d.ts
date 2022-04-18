@@ -9,7 +9,7 @@ declare module 'bufio' {
     writeDoubleBE(value: number): StaticWriter
     writeU8(value: number): StaticWriter
     writeU16(value: number): StaticWriter
-    writeU32(value: number): BufferWriter
+    writeU32(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
     writeString(value: string, enc?: BufferEncoding | null): StaticWriter
