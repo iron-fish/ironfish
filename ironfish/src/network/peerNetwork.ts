@@ -4,7 +4,6 @@
 
 import { RollingFilter } from 'bfilter'
 import tweetnacl from 'tweetnacl'
-import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
@@ -183,14 +182,14 @@ export class PeerNetwork {
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
-      this.gossip(new NewTransactionMessage(serializedTransaction, uuid()))
+      this.gossip(new NewTransactionMessage(serializedTransaction))
     })
   }
 
   gossipBlock(block: Block): void {
     const serializedBlock = this.strategy.blockSerde.serialize(block)
 
-    this.gossip(new NewBlockMessage(serializedBlock, uuid()))
+    this.gossip(new NewBlockMessage(serializedBlock))
   }
 
   start(): void {
@@ -309,7 +308,7 @@ export class PeerNetwork {
    * receive the message.
    */
   gossip(message: GossipNetworkMessage): void {
-    this.seenGossipFilter.add(message.nonce, 'utf-8')
+    this.seenGossipFilter.add(message.nonce)
     this.peerManager.broadcast(message)
   }
 
@@ -441,7 +440,7 @@ export class PeerNetwork {
     peer: Peer,
     gossipMessage: GossipNetworkMessage,
   ): Promise<void> {
-    if (!this.seenGossipFilter.added(gossipMessage.nonce, 'utf-8')) {
+    if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
       return
     }
 

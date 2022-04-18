@@ -9,7 +9,7 @@ import { NetworkMessageType } from './networkMessage'
 export class NewTransactionMessage extends GossipNetworkMessage {
   readonly transaction: SerializedTransaction
 
-  constructor(transaction: SerializedTransaction, nonce: string) {
+  constructor(transaction: SerializedTransaction, nonce?: Buffer) {
     super(NetworkMessageType.NewTransaction, nonce)
     this.transaction = transaction
   }
@@ -20,7 +20,7 @@ export class NewTransactionMessage extends GossipNetworkMessage {
     return bw.render()
   }
 
-  static deserialize(buffer: Buffer, nonce: string): NewTransactionMessage {
+  static deserialize(buffer: Buffer, nonce: Buffer): NewTransactionMessage {
     const reader = bufio.read(buffer, true)
     const transaction = reader.readVarBytes()
     return new NewTransactionMessage(transaction, nonce)

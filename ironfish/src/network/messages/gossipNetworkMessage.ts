@@ -2,21 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
+import tweetnacl from 'tweetnacl'
+import { Assert } from '../../assert'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 export abstract class GossipNetworkMessage extends NetworkMessage {
-  readonly nonce: string
+  readonly nonce: Buffer
 
-  constructor(type: NetworkMessageType, nonce: string) {
+  constructor(type: NetworkMessageType, nonce?: Buffer) {
     super(type)
-    this.nonce = nonce
+
+    this.nonce = nonce ?? Buffer.from(tweetnacl.randomBytes(16))
+
+    Assert.isEqual(this.nonce.byteLength, 16)
   }
 
   serializeWithMetadata(): Buffer {
-    const headerSize = 1 + bufio.sizeVarString(this.nonce)
+    const headerSize = 17
     const bw = bufio.write(headerSize + this.getSize())
     bw.writeU8(this.type)
-    bw.writeVarString(this.nonce)
+    bw.writeBytes(this.nonce)
     bw.writeBytes(this.serialize())
     return bw.render()
   }

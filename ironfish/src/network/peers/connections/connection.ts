@@ -237,7 +237,7 @@ export abstract class Connection {
     if (this.isRpcNetworkMessageType(type)) {
       rpcId = br.readU64()
     } else if (this.isGossipNetworkMessageType(type)) {
-      nonce = br.readVarString()
+      nonce = br.readBytes(16)
     }
     return {
       type,

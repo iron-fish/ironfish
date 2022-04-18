@@ -183,7 +183,10 @@ describe('PeerNetwork', () => {
         },
         transactions: [],
       }
-      await peerNetwork['handleGossipMessage'](peer, new NewBlockMessage(block, 'nonce'))
+      await peerNetwork['handleGossipMessage'](
+        peer,
+        new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
+      )
 
       expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
     })
@@ -213,7 +216,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork['onNewTransaction']({
           peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
+          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -250,7 +253,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork['onNewTransaction']({
           peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
+          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
         })
 
         expect(acceptTransaction).not.toHaveBeenCalled()
@@ -289,7 +292,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork['onNewTransaction']({
           peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
+          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
         })
 
         expect(verifyNewTransactionSpy).toHaveBeenCalled()
@@ -336,7 +339,7 @@ describe('PeerNetwork', () => {
       const peerIdentity = peer.getIdentityOrThrow()
       const gossip = await peerNetwork['onNewBlock']({
         peerIdentity,
-        message: new NewBlockMessage(block, 'nonce'),
+        message: new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
       })
       expect(gossip).toBe(false)
       expect(peerNetwork['node']['syncer'].addNewBlock).not.toHaveBeenCalled()
@@ -358,7 +361,7 @@ describe('PeerNetwork', () => {
       const peerIdentity = peer.getIdentityOrThrow()
       const gossip = await peerNetwork['onNewTransaction']({
         peerIdentity,
-        message: new NewTransactionMessage(Buffer.from(''), 'nonce'),
+        message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
       })
       expect(gossip).toBe(false)
       expect(peerNetwork['chain']['verifier'].verifyNewTransaction).not.toHaveBeenCalled()
