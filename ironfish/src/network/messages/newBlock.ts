@@ -27,6 +27,12 @@ export class NewBlockMessage extends GossipNetworkMessage {
     bw.writeU64(header.randomness)
     bw.writeU64(header.timestamp)
     bw.writeVarString(header.minersFee)
+    if (header.work) {
+      bw.writeU8(1)
+      bw.writeVarString(header.work)
+    } else {
+      bw.writeU8(0)
+    }
     bw.writeVarString(header.graffiti)
     if (header.hash) {
       bw.writeU8(1)
@@ -54,6 +60,13 @@ export class NewBlockMessage extends GossipNetworkMessage {
     const randomness = reader.readU64()
     const timestamp = reader.readU64()
     const minersFee = reader.readVarString()
+
+    const workFlag = reader.readU8()
+    let work
+    if (workFlag === 1) {
+      work = reader.readVarString()
+    }
+
     const graffiti = reader.readVarString()
     const flag = reader.readU8()
     let hash
@@ -83,6 +96,7 @@ export class NewBlockMessage extends GossipNetworkMessage {
           randomness,
           timestamp,
           minersFee,
+          work,
           graffiti,
           hash,
         },
@@ -104,6 +118,10 @@ export class NewBlockMessage extends GossipNetworkMessage {
     size += 8
     size += 8
     size += bufio.sizeVarString(header.minersFee)
+    size += 1
+    if (header.work) {
+      size += bufio.sizeVarString(header.work)
+    }
     size += bufio.sizeVarString(header.graffiti)
     size += 1
     if (header.hash) {
