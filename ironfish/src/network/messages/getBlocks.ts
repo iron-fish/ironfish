@@ -3,14 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { SerializedBlock } from '../../primitives/block'
+import { GraffitiSerdeInstance } from '../../serde'
+import { BigIntUtils } from '../../utils/bigint'
 import { NetworkMessageType } from './networkMessage'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlocksRequest extends RpcNetworkMessage {
-  readonly start: string | number
+  readonly start: Buffer
   readonly limit: number
 
-  constructor(start: string | number, limit: number, rpcId?: number) {
+  constructor(start: Buffer, limit: number, rpcId?: number) {
     super(NetworkMessageType.GetBlocksRequest, Direction.Request, rpcId)
     this.start = start
     this.limit = limit
@@ -18,38 +20,23 @@ export class GetBlocksRequest extends RpcNetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    if (typeof this.start === 'string') {
-      bw.writeU8(1)
-      bw.writeVarString(this.start)
-    } else {
-      bw.writeU8(0)
-      bw.writeU64(this.start)
-    }
-    bw.writeU64(this.limit)
+    bw.writeHash(this.start)
+    bw.writeU16(this.limit)
     return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetBlocksRequest {
     const reader = bufio.read(buffer, true)
-    const flag = reader.readU8()
-    let start
-    if (flag) {
-      start = reader.readVarString()
-    } else {
-      start = reader.readU64()
-    }
-    const limit = reader.readU64()
+    const start = reader.readHash()
+    const limit = reader.readU16()
     return new GetBlocksRequest(start, limit, rpcId)
   }
 
   getSize(): number {
     let size = 0
-    if (typeof this.start === 'string') {
-      size += 1 + bufio.sizeVarString(this.start)
-    } else {
-      size += 1 + 8
-    }
-    return size + 8
+    size += 32
+    size += 2
+    return size
   }
 }
 
@@ -63,32 +50,28 @@ export class GetBlocksResponse extends RpcNetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeU64(this.blocks.length)
+
+    bw.writeU16(this.blocks.length)
+
     for (const block of this.blocks) {
-      bw.writeU64(block.header.sequence)
-      bw.writeVarString(block.header.previousBlockHash)
-      bw.writeVarBytes(block.header.noteCommitment.commitment)
-      bw.writeU64(block.header.noteCommitment.size)
-      bw.writeVarString(block.header.nullifierCommitment.commitment)
-      bw.writeU64(block.header.nullifierCommitment.size)
-      bw.writeVarString(block.header.target)
+      bw.writeU32(block.header.sequence)
+      bw.writeHash(block.header.previousBlockHash)
+      bw.writeHash(block.header.noteCommitment.commitment)
+      bw.writeU32(block.header.noteCommitment.size)
+      bw.writeHash(block.header.nullifierCommitment.commitment)
+      bw.writeU32(block.header.nullifierCommitment.size)
+      bw.writeBytes(BigIntUtils.toBytesLE(BigInt(block.header.target), 32))
       bw.writeU64(block.header.randomness)
       bw.writeU64(block.header.timestamp)
-      bw.writeVarString(block.header.minersFee)
-      bw.writeVarString(block.header.work)
-      bw.writeVarString(block.header.graffiti)
-      if (block.header.hash) {
-        bw.writeU8(1)
-        bw.writeVarString(block.header.hash)
-      } else {
-        bw.writeU8(0)
-      }
+      bw.writeBytes(BigIntUtils.toBytesLE(BigInt(block.header.minersFee), 8))
+      bw.writeBytes(GraffitiSerdeInstance.deserialize(block.header.graffiti))
 
-      bw.writeU64(block.transactions.length)
+      bw.writeU16(block.transactions.length)
       for (const transaction of block.transactions) {
         bw.writeVarBytes(transaction)
       }
     }
+
     return bw.render()
   }
 
@@ -96,27 +79,21 @@ export class GetBlocksResponse extends RpcNetworkMessage {
     const reader = bufio.read(buffer, true)
     const blocks = []
 
-    const blocksLength = reader.readU64()
+    const blocksLength = reader.readU16()
     for (let i = 0; i < blocksLength; i++) {
-      const sequence = reader.readU64()
-      const previousBlockHash = reader.readVarString()
-      const noteCommitment = reader.readVarBytes()
-      const noteCommitmentSize = reader.readU64()
-      const nullifierCommitment = reader.readVarString()
-      const nullifierCommitmentSize = reader.readU64()
-      const target = reader.readVarString()
+      const sequence = reader.readU32()
+      const previousBlockHash = reader.readHash('hex')
+      const noteCommitment = reader.readHash()
+      const noteCommitmentSize = reader.readU32()
+      const nullifierCommitment = reader.readHash('hex')
+      const nullifierCommitmentSize = reader.readU32()
+      const target = BigIntUtils.fromBytesLE(reader.readBytes(32)).toString()
       const randomness = reader.readU64()
       const timestamp = reader.readU64()
-      const minersFee = reader.readVarString()
-      const work = reader.readVarString()
-      const graffiti = reader.readVarString()
-      const flag = reader.readU8()
-      let hash
-      if (flag) {
-        hash = reader.readVarString()
-      }
+      const minersFee = BigIntUtils.fromBytesLE(reader.readBytes(8)).toString()
+      const graffiti = GraffitiSerdeInstance.serialize(reader.readBytes(32))
 
-      const transactionsLength = reader.readU64()
+      const transactionsLength = reader.readU16()
       const transactions = []
       for (let j = 0; j < transactionsLength; j++) {
         transactions.push(reader.readVarBytes())
@@ -137,9 +114,7 @@ export class GetBlocksResponse extends RpcNetworkMessage {
           randomness,
           timestamp,
           minersFee,
-          work,
           graffiti,
-          hash,
         },
         transactions,
       })
@@ -148,26 +123,22 @@ export class GetBlocksResponse extends RpcNetworkMessage {
   }
 
   getSize(): number {
-    let size = 8
+    let size = 0
+    size += 2 // blocks length
     for (const block of this.blocks) {
-      size += 8
-      size += bufio.sizeVarString(block.header.previousBlockHash)
-      size += bufio.sizeVarBytes(block.header.noteCommitment.commitment)
-      size += 8
-      size += bufio.sizeVarString(block.header.nullifierCommitment.commitment)
-      size += 8
-      size += bufio.sizeVarString(block.header.target)
-      size += 8
-      size += 8
-      size += bufio.sizeVarString(block.header.minersFee)
-      size += bufio.sizeVarString(block.header.work)
-      size += bufio.sizeVarString(block.header.graffiti)
-      size += 1
-      if (block.header.hash) {
-        size += bufio.sizeVarString(block.header.hash)
-      }
+      size += 4 // sequence
+      size += 32 // previousBlockHash
+      size += 32 // noteCommitment.commitment
+      size += 4 // noteCommitment.size
+      size += 32 // nullifierCommitment.commitment
+      size += 4 // nullifierCommitment.size
+      size += 32 // target
+      size += 8 // randomness
+      size += 8 // timestamp
+      size += 8 // minersFee
+      size += 32 // graffiti
 
-      size += 8
+      size += 2 // transactions length
       for (const transaction of block.transactions) {
         size += bufio.sizeVarBytes(transaction)
       }

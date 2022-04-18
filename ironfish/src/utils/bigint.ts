@@ -46,6 +46,13 @@ function fromBytes(bytes: Buffer): bigint {
   return BigInt('0x' + hex.join(''))
 }
 
+function fromBytesLE(bytes: Buffer): bigint {
+  return fromBytes(bytes.reverse())
+}
+
+/**
+ * Writes a bigint to a Buffer, in big endian format.
+ */
 function toBytes(value: bigint): Buffer {
   let hex = value.toString(16)
   if (hex.length % 2) {
@@ -64,6 +71,10 @@ function toBytes(value: bigint): Buffer {
   }
 
   return u8
+}
+
+function toBytesLE(value: bigint, size?: number): Buffer {
+  return toBytesBE(value, size).reverse()
 }
 
 function toBytesBE(value: bigint, size?: number): Buffer {
@@ -86,7 +97,9 @@ function divide(a: bigint, b: bigint): number {
 export const BigIntUtils = {
   toBytes,
   fromBytes,
+  fromBytesLE,
   toBytesBE,
+  toBytesLE,
   max,
   divide,
 }
