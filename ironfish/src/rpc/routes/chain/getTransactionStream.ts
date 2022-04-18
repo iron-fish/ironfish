@@ -38,7 +38,17 @@ const TransactionSchema = yup
   .required()
 
 export type GetTransactionStreamRequest = { incomingViewKey: string; head?: string | null }
-export type GetTransactionStreamResponse = { type: string; transactions: Transaction[] }
+export type GetTransactionStreamResponse = {
+  type: string
+  head: {
+    sequence: number
+  }
+  block: {
+    hash: string
+    sequence: number
+  }
+  transactions: Transaction[]
+}
 
 export const GetTransactionStreamRequestSchema: yup.ObjectSchema<GetTransactionStreamRequest> =
   yup
@@ -52,6 +62,17 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
     .object({
       transactions: yup.array().of(TransactionSchema).required(),
       type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
+      block: yup
+        .object({
+          hash: yup.string().required(),
+          sequence: yup.number().required(),
+        })
+        .required(),
+      head: yup
+        .object({
+          sequence: yup.number().required(),
+        })
+        .required(),
     })
     .required()
 
@@ -94,7 +115,17 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       }
 
       if (transactions.length) {
-        request.stream({ type, transactions })
+        request.stream({
+          type,
+          transactions,
+          block: {
+            hash: block.header.hash.toString('hex'),
+            sequence: block.header.sequence,
+          },
+          head: {
+            sequence: node.chain.head.sequence,
+          },
+        })
       }
       return
     }
