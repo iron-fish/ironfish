@@ -23,6 +23,20 @@ describe('BigIntUtils', () => {
     }
   })
 
+  it('can convert to a little-endian representation', () => {
+    const bigint = BigInt(258)
+
+    const bigintBuffer = BigIntUtils.toBytesLE(bigint, 2)
+
+    const buffer = Buffer.alloc(2)
+    buffer.writeUInt16LE(Number(bigint))
+
+    expect(bigintBuffer).toEqual(buffer)
+
+    const back = BigIntUtils.fromBytesLE(bigintBuffer)
+    expect(back).toEqual(bigint)
+  })
+
   it('converts empty array to 0', () => {
     expect(BigIntUtils.fromBytes(Buffer.from([]))).toEqual(BigInt(0))
   })

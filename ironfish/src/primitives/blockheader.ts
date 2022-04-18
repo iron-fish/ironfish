@@ -208,7 +208,7 @@ export type SerializedBlockHeader = {
   timestamp: number
   minersFee: string
 
-  work: string
+  work?: string
   hash?: string
   graffiti: string
 }
