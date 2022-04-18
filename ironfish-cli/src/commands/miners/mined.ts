@@ -9,7 +9,7 @@ import {
   oreToIron,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import readline from 'readline'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
@@ -22,6 +22,10 @@ export class MinedCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    scanForks: Flags.boolean({
+      default: false,
+      description: 'Scan forks for mined blocks',
+    }),
   }
 
   static args = [
@@ -41,7 +45,7 @@ export class MinedCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(MinedCommand)
+    const { flags, args } = await this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
     this.log('Scanning for mined blocks...')
@@ -49,6 +53,7 @@ export class MinedCommand extends IronfishCommand {
     const stream = client.exportMinedStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
+      forks: flags.scanForks as boolean | null,
     })
 
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
