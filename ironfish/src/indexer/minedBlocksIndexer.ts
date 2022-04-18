@@ -258,7 +258,7 @@ export class MinedBlocksIndexer {
     await this.meta.put('headHash', hashString, tx)
   }
 
-  async getMinedBlocks({
+  async *getMinedBlocks({
     includeForks,
     startSeq,
     stopSeq,
@@ -266,20 +266,22 @@ export class MinedBlocksIndexer {
     includeForks?: boolean
     startSeq?: number
     stopSeq?: number
-  }): Promise<
+  }): AsyncGenerator<
     {
       main: boolean
       sequence: number
       account: string
       minersFee: number
-    }[]
+    },
+    void,
+    unknown
   > {
     const { start, stop } = BlockchainUtils.getBlockRange(this.chain, {
       start: startSeq,
       stop: stopSeq,
     })
 
-    const minedBlocks = (await this.minedBlocks.getAllValues())
+    let minedBlocks = (await this.minedBlocks.getAllValues())
       .filter((block) => {
         if (start <= block.sequence && block.sequence <= stop) {
           return block
@@ -287,10 +289,12 @@ export class MinedBlocksIndexer {
       })
       .sort((a, b) => a.sequence - b.sequence)
 
-    if (includeForks) {
-      return minedBlocks
+    if (!includeForks) {
+      minedBlocks = minedBlocks.filter((block) => block.main === true)
     }
 
-    return minedBlocks.filter((block) => block.main === true)
+    for (const block of minedBlocks) {
+      yield block
+    }
   }
 }

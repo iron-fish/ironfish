@@ -147,7 +147,12 @@ describe('MinedBlockIndexer', () => {
 
     await indexer.updateHead()
 
-    const minedBlocks = await indexer.getMinedBlocks({})
+    const minedBlocks = []
+
+    for await (const block of indexer.getMinedBlocks({})) {
+      minedBlocks.push(block)
+    }
+
     expect(minedBlocks.length).toEqual(3)
     expect(minedBlocks[0].sequence).toBeLessThan(minedBlocks[1].sequence)
 
