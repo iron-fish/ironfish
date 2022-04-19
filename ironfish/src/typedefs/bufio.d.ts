@@ -50,9 +50,9 @@ declare module 'bufio' {
     readDoubleBE(): number
     readI64(): number
     readDouble(): number
-    readBytes(size: number, zeroCopy?: boolean): Buffer
     readString(size: number, enc?: BufferEncoding | null): string
     readVarString(enc?: BufferEncoding | null, limit?: number): string
+    readBytes(size: number, zeroCopy?: boolean): Buffer
     readVarBytes(): Buffer
 
     readHash(enc: BufferEncoding): string
