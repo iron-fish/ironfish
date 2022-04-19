@@ -13,7 +13,7 @@ import {
   InternalStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { MinedBlocksIndexer } from './indexer/minedBlocksIndexer'
+import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
