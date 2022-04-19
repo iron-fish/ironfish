@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
+import { Assert } from '../../assert'
 import { SerializedBlock } from '../../primitives/block'
 import { GraffitiSerdeInstance } from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
@@ -21,7 +22,10 @@ export function writeBlock(
   bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.target), 32))
   bw.writeU64(header.randomness)
   bw.writeU64(header.timestamp)
-  bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.minersFee), 8))
+
+  Assert.isTrue(BigInt(header.minersFee) <= 0)
+  bw.writeBytes(BigIntUtils.toBytesLE(-BigInt(header.minersFee), 8))
+
   bw.writeBytes(GraffitiSerdeInstance.deserialize(header.graffiti))
 
   bw.writeU16(transactions.length)
@@ -42,7 +46,7 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32)).toString()
   const randomness = reader.readU64()
   const timestamp = reader.readU64()
-  const minersFee = BigIntUtils.fromBytesLE(reader.readBytes(8)).toString()
+  const minersFee = (-BigIntUtils.fromBytesLE(reader.readBytes(8))).toString()
   const graffiti = GraffitiSerdeInstance.serialize(reader.readBytes(32))
 
   const transactionsLength = reader.readU16()

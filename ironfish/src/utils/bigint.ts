@@ -52,6 +52,10 @@ function fromBytesLE(bytes: Buffer): bigint {
 
 /**
  * Writes a bigint to a Buffer, in big endian format.
+ *
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
  */
 function toBytes(value: bigint): Buffer {
   let hex = value.toString(16)
@@ -73,10 +77,20 @@ function toBytes(value: bigint): Buffer {
   return u8
 }
 
+/**
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
+ */
 function toBytesLE(value: bigint, size?: number): Buffer {
   return toBytesBE(value, size).reverse()
 }
 
+/**
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
+ */
 function toBytesBE(value: bigint, size?: number): Buffer {
   const bytes = toBytes(value)
 
