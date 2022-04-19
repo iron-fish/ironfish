@@ -21,6 +21,10 @@ export enum NetworkMessageType {
   SignalRequest = 12,
 }
 
+export function displayNetworkMessageType(type: NetworkMessageType): string {
+  return `${NetworkMessageType[type]} (${type})`
+}
+
 export abstract class NetworkMessage implements Serializable {
   readonly type: NetworkMessageType
 

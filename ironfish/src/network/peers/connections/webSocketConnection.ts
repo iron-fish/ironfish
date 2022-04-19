@@ -5,7 +5,11 @@
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
-import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import {
+  displayNetworkMessageType,
+  NetworkMessage,
+  NetworkMessageType,
+} from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -93,7 +97,11 @@ export class WebSocketConnection extends Connection {
         return
       }
 
-      this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
+      this.logger.debug(
+        `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
+          message.type,
+        )}`,
+      )
       this.onMessage.emit(message)
     }
   }
@@ -107,7 +115,11 @@ export class WebSocketConnection extends Connection {
     }
 
     if (this.shouldLogMessageType(message.type)) {
-      this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${message.type}`)
+      this.logger.debug(
+        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
+          message.type,
+        )}`,
+      )
     }
 
     const data = message.serializeWithMetadata()

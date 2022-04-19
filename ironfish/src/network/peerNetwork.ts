@@ -26,7 +26,12 @@ import { DisconnectingMessage, DisconnectingReason } from './messages/disconnect
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
-import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
+import {
+  displayNetworkMessageType,
+  IncomingPeerMessage,
+  NetworkMessage,
+  NetworkMessageType,
+} from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import {
@@ -331,7 +336,9 @@ export class PeerNetwork {
         if (request && request.peer.state.type === 'DISCONNECTED') {
           request.peer.onStateChanged.off(onConnectionStateChanged)
 
-          const errorMessage = `Connection closed while waiting for request ${message.type}: ${rpcId}`
+          const errorMessage = `Connection closed while waiting for request ${displayNetworkMessageType(
+            message.type,
+          )}: ${rpcId}`
 
           request.reject(new NetworkError(errorMessage))
         }
@@ -346,7 +353,11 @@ export class PeerNetwork {
         if (!request) {
           throw new Error(`Timed out request ${rpcId} not found`)
         }
-        const errorMessage = `Closing connections to ${peer.displayName} because RPC message of type ${message.type} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
+        const errorMessage = `Closing connections to ${
+          peer.displayName
+        } because RPC message of type ${displayNetworkMessageType(
+          message.type,
+        )} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
         const error = new RequestTimeoutError(RPC_TIMEOUT_MILLIS, errorMessage)
         this.logger.debug(errorMessage)
         clearDisconnectHandler()
@@ -379,9 +390,9 @@ export class PeerNetwork {
       if (!connection) {
         return request.reject(
           new Error(
-            `${String(peer.state.identity)} did not send ${message.type} in state ${
-              peer.state.type
-            }`,
+            `${String(peer.state.identity)} did not send ${displayNetworkMessageType(
+              message.type,
+            )} in state ${peer.state.type}`,
           ),
         )
       }
@@ -396,7 +407,9 @@ export class PeerNetwork {
 
     if (!(response.message instanceof GetBlockHashesResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
+      throw new Error(
+        `Invalid GetBlockHashesResponse: ${displayNetworkMessageType(message.type)}`,
+      )
     }
 
     return response.message.hashes
@@ -408,7 +421,7 @@ export class PeerNetwork {
 
     if (!(response.message instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
+      throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
     // Hashes sent by the network are untrusted. Future messages should remove this field.
@@ -431,7 +444,9 @@ export class PeerNetwork {
       await this.handleRpcMessage(peer, message)
     } else {
       throw new Error(
-        `Invalid message for handling in peer network: '${incomingMessage.message.type}'`,
+        `Invalid message for handling in peer network: '${displayNetworkMessageType(
+          incomingMessage.message.type,
+        )}'`,
       )
     }
   }
@@ -511,7 +526,11 @@ export class PeerNetwork {
       } catch (error: unknown) {
         const asError = error as Error
         if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {
-          this.logger.error(`Unexpected error in ${rpcMessage.type} handler: ${String(error)}`)
+          this.logger.error(
+            `Unexpected error in ${displayNetworkMessageType(
+              rpcMessage.type,
+            )} handler: ${String(error)}`,
+          )
         }
         responseMessage = new CannotSatisfyRequest(rpcId)
       }

@@ -17,7 +17,11 @@ import {
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
-import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
+import {
+  displayNetworkMessageType,
+  IncomingPeerMessage,
+  NetworkMessage,
+} from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
@@ -884,9 +888,10 @@ export class PeerManager {
       this.handlePeerListRequestMessage(peer)
     } else {
       if (peer.state.identity === null) {
-        const messageType = message.type
         this.logger.debug(
-          `Closing connection to unidentified peer that sent an unexpected message: ${messageType}`,
+          `Closing connection to unidentified peer that sent an unexpected message: ${displayNetworkMessageType(
+            message.type,
+          )}`,
         )
         peer.close()
         return
@@ -995,7 +1000,11 @@ export class PeerManager {
     // If we receive any message other than an Identity message, close the connection
     if (!(message instanceof IdentifyMessage)) {
       this.logger.debug(
-        `Disconnecting from ${peer.displayName} - Sent unexpected message ${message.type} while waiting for identity`,
+        `Disconnecting from ${
+          peer.displayName
+        } - Sent unexpected message ${displayNetworkMessageType(
+          message.type,
+        )} while waiting for identity`,
       )
       peer.close()
       return

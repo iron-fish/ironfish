@@ -9,7 +9,11 @@ import { Assert } from '../../../assert'
 import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import {
+  displayNetworkMessageType,
+  NetworkMessage,
+  NetworkMessageType,
+} from '../../messages/networkMessage'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -149,7 +153,11 @@ export class WebRtcConnection extends Connection {
         return
       }
 
-      this.logger.debug(`${colors.yellow('RECV')} ${this.displayName}: ${message.type}`)
+      this.logger.debug(
+        `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
+          message.type,
+        )}`,
+      )
       this.onMessage.emit(message)
     })
   }
@@ -200,7 +208,11 @@ export class WebRtcConnection extends Connection {
     }
 
     if (this.shouldLogMessageType(message.type)) {
-      this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${message.type}`)
+      this.logger.debug(
+        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
+          message.type,
+        )}`,
+      )
     }
 
     if (!this.datachannel.isOpen()) {
@@ -214,7 +226,9 @@ export class WebRtcConnection extends Connection {
       this.datachannel.sendMessageBinary(data)
     } catch (e) {
       this.logger.debug(
-        `Error occurred while sending ${message.type} message in state ${this.state.type}`,
+        `Error occurred while sending ${displayNetworkMessageType(
+          message.type,
+        )} message in state ${this.state.type}`,
         e,
       )
       this.close(e)
