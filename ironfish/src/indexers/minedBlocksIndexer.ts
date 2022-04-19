@@ -155,9 +155,9 @@ export class MinedBlocksIndexer {
       this.chainProcessor.hash = null
     })
 
-    this.accounts.onAccountRemoved.on(async (accountName) => {
+    this.accounts.onAccountRemoved.on(async (account) => {
       await this.database.transaction(async (tx) => {
-        const hashes = await this.accountToBlockHashes.get(accountName, tx)
+        const hashes = await this.accountToBlockHashes.get(account.name, tx)
         if (hashes) {
           for (const hash of hashes) {
             await this.minedBlocks.del(hash, tx)
