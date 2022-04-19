@@ -211,7 +211,7 @@ export class WebRtcConnection extends Connection {
 
     const data = message.serializeWithMetadata()
     try {
-      this.datachannel.sendMessageBinary(message.serializeWithMetadata())
+      this.datachannel.sendMessageBinary(data)
     } catch (e) {
       this.logger.debug(
         `Error occurred while sending ${message.type} message in state ${this.state.type}`,
