@@ -14,7 +14,7 @@ describe('LocalPeer', () => {
         identity: peer.publicIdentity,
         sequence: Number(peer.chain.head.sequence),
         version: peer.version,
-        work: peer.chain.head.work.toString(),
+        work: peer.chain.head.work,
       })
     })
   })

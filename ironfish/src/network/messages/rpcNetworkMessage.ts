@@ -21,14 +21,14 @@ export abstract class RpcNetworkMessage extends NetworkMessage {
   constructor(type: NetworkMessageType, direction: Direction, rpcId?: number) {
     super(type)
     this.direction = direction
-    this.rpcId = rpcId ?? RpcNetworkMessage.id++
+    this.rpcId = rpcId ?? (RpcNetworkMessage.id = ++RpcNetworkMessage.id % 0xffff)
   }
 
   serializeWithMetadata(): Buffer {
-    const headerSize = 9
+    const headerSize = 3
     const bw = bufio.write(headerSize + this.getSize())
     bw.writeU8(this.type)
-    bw.writeU64(this.rpcId)
+    bw.writeU16(this.rpcId)
     bw.writeBytes(this.serialize())
     return bw.render()
   }
