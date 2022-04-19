@@ -29,7 +29,7 @@ describe('MinedBlockIndexer', () => {
     })
 
     await indexer.open()
-    indexer.start()
+    await indexer.start()
 
     const putSpy = jest.spyOn(indexer['minedBlocks'], 'put')
 
@@ -73,7 +73,7 @@ describe('MinedBlockIndexer', () => {
       chain: nodeA.chain,
     })
     await indexer.open()
-    indexer.start()
+    await indexer.start()
 
     const putSpy = jest.spyOn(indexer['minedBlocks'], 'put')
 
@@ -135,7 +135,7 @@ describe('MinedBlockIndexer', () => {
     })
 
     await indexer.open()
-    indexer.start()
+    await indexer.start()
 
     const accountA = await useAccountFixture(node.accounts, 'a')
     const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
@@ -155,6 +155,48 @@ describe('MinedBlockIndexer', () => {
 
     expect(minedBlocks.length).toEqual(3)
     expect(minedBlocks[0].sequence).toBeLessThan(minedBlocks[1].sequence)
+
+    await indexer.stop()
+    await indexer.close()
+  })
+
+  it('removeMinedBlocks removes mined block info for a given account', async () => {
+    const { node, strategy } = await nodeTest.createSetup()
+    strategy.disableMiningReward()
+
+    const genesis = await node.chain.getBlock(node.chain.genesis)
+    Assert.isNotNull(genesis)
+
+    const files = new NodeFileProvider()
+    await files.init()
+
+    const indexer = new MinedBlocksIndexer({
+      files,
+      location: path.join(os.tmpdir(), uuid()),
+      accounts: node.accounts,
+      chain: node.chain,
+    })
+    await indexer.open()
+    await indexer.start()
+
+    const accountA = await useAccountFixture(node.accounts, 'a')
+    const accountB = await useAccountFixture(node.accounts, 'b')
+
+    const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
+    await expect(node.chain).toAddBlock(blockA1)
+    const blockB1 = await useMinerBlockFixture(node.chain, 3, accountB)
+    await expect(node.chain).toAddBlock(blockB1)
+    await indexer.updateHead()
+
+    await indexer.removeMinedBlocks(accountB.name)
+
+    const minedBlocks = []
+
+    for await (const block of indexer.getMinedBlocks({})) {
+      minedBlocks.push(block)
+    }
+    expect(minedBlocks.length).toEqual(1)
+    expect(minedBlocks[0].account).toEqual(accountA.name)
 
     await indexer.stop()
     await indexer.close()

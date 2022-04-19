@@ -22,7 +22,13 @@ import { BlockchainUtils, isBlockMine } from '../utils/blockchain'
 
 const DATABASE_VERSION = 1
 
+const getMinedBlocksDBMetaDefaults = (): MinedBlocksDBMeta => ({
+  accountToRemove: null,
+  headHash: null,
+})
+
 type MinedBlocksDBMeta = {
+  accountToRemove: string | null
   headHash: string | null
 }
 
@@ -40,7 +46,6 @@ export class MinedBlocksIndexer {
   }>
   protected minedBlocks: IDatabaseStore<{ key: Buffer; value: MinedBlock }>
   protected sequenceToHashes: IDatabaseStore<{ key: number; value: Buffer[] }>
-  protected accountToBlockHashes: IDatabaseStore<{ key: string; value: Buffer[] }>
 
   protected files: FileSystem
   protected database: IDatabase
@@ -49,6 +54,7 @@ export class MinedBlocksIndexer {
   protected readonly logger: Logger
   protected isOpen: boolean
   protected isStarted: boolean
+  protected removalInProgress: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
   protected chain: Blockchain
   protected chainProcessor: ChainProcessor
@@ -74,32 +80,27 @@ export class MinedBlocksIndexer {
     this.chain = chain
     this.isOpen = false
     this.isStarted = false
+    this.removalInProgress = false
 
     this.meta = this.database.addStore<{
       key: keyof MinedBlocksDBMeta
       value: MinedBlocksDBMeta[keyof MinedBlocksDBMeta]
     }>({
-      name: 'minedBlocksDBMeta',
+      name: 'meta',
       keyEncoding: new StringEncoding<keyof MinedBlocksDBMeta>(),
       valueEncoding: new JsonEncoding(),
     })
 
     this.minedBlocks = this.database.addStore<{ key: Buffer; value: MinedBlock }>({
-      name: 'minedBlocks',
+      name: 'blocks',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new JsonEncoding<MinedBlock>(),
     })
 
     this.sequenceToHashes = this.database.addStore<{ key: number; value: Buffer[] }>({
-      name: 'sequenceToHashes',
+      name: 'seqToHash',
       keyEncoding: new NumberEncoding(),
       valueEncoding: new JsonEncoding<Buffer[]>(),
-    })
-
-    this.accountToBlockHashes = this.database.addStore<{ key: string; value: Buffer[] }>({
-      name: 'accountToBlockHashes',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
     })
 
     this.chainProcessor = new ChainProcessor({ logger, chain, head: null })
@@ -125,16 +126,6 @@ export class MinedBlocksIndexer {
           const sequences = (await this.sequenceToHashes.get(header.sequence, tx)) ?? []
           sequences.push(header.hash)
           await this.sequenceToHashes.put(header.sequence, sequences, tx)
-
-          let hashes = await this.accountToBlockHashes.get(account.name, tx)
-          if (hashes) {
-            await this.accountToBlockHashes.del(account.name)
-            hashes.concat(block.header.hash)
-            await this.accountToBlockHashes.put(account.name, hashes, tx)
-          } else {
-            hashes = [block.header.hash]
-            await this.accountToBlockHashes.put(account.name, hashes, tx)
-          }
 
           await this.updateHeadHash(header.hash, tx)
         })
@@ -166,14 +157,7 @@ export class MinedBlocksIndexer {
     })
 
     this.accounts.onAccountRemoved.on(async (account) => {
-      await this.database.transaction(async (tx) => {
-        const hashes = await this.accountToBlockHashes.get(account.name, tx)
-        if (hashes) {
-          for (const hash of hashes) {
-            await this.minedBlocks.del(hash, tx)
-          }
-        }
-      })
+      await this.removeMinedBlocks(account.name)
     })
   }
 
@@ -215,15 +199,35 @@ export class MinedBlocksIndexer {
   }
 
   async load(): Promise<void> {
-    const headHash = await this.meta.get('headHash')
-    this.chainProcessor.hash = headHash ? Buffer.from(headHash, 'hex') : null
+    const meta = await this.loadMinedBlocksMeta()
+    this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
+    if (meta.accountToRemove !== null) {
+      this.removalInProgress = true
+    }
   }
 
-  start(): void {
+  async loadMinedBlocksMeta(): Promise<MinedBlocksDBMeta> {
+    const meta = { ...getMinedBlocksDBMetaDefaults() }
+
+    for await (const [key, value] of this.meta.getAllIter()) {
+      meta[key] = value
+    }
+
+    return meta
+  }
+
+  async start(): Promise<void> {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
+
+    if (this.removalInProgress) {
+      const accountName = await this.meta.get('accountToRemove')
+      if (accountName) {
+        await this.removeMinedBlocks(accountName)
+      }
+    }
 
     void this.eventLoop()
   }
@@ -268,6 +272,37 @@ export class MinedBlocksIndexer {
   async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
     const hashString = headHash && headHash.toString('hex')
     await this.meta.put('headHash', hashString, tx)
+  }
+
+  async removeMinedBlocks(accountName: string): Promise<void> {
+    await this.meta.put('accountToRemove', accountName)
+
+    const hashes: Buffer[] = []
+    const sequences: number[] = []
+
+    await this.database.transaction(async (tx) => {
+      const iterator = this.minedBlocks.getAllIter()
+      for await (const [hash, block] of iterator) {
+        if (block.account === accountName) {
+          hashes.push(hash)
+          sequences.push(block.sequence)
+        }
+      }
+
+      if (hashes) {
+        for (const hash of hashes) {
+          await this.minedBlocks.del(hash, tx)
+        }
+      }
+
+      if (sequences) {
+        for (const seq of sequences) {
+          await this.sequenceToHashes.del(seq, tx)
+        }
+      }
+    })
+
+    await this.meta.put('accountToRemove', null)
   }
 
   async *getMinedBlocks({
