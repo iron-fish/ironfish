@@ -27,7 +27,6 @@ type MinedBlocksDBMeta = {
 }
 
 type MinedBlock = {
-  hash: Buffer
   main: boolean
   sequence: number
   account: string
@@ -115,7 +114,6 @@ export class MinedBlocksIndexer {
           await this.minedBlocks.put(
             header.hash,
             {
-              hash: header.hash,
               main: true,
               sequence: header.sequence,
               account: account.name,
@@ -282,7 +280,7 @@ export class MinedBlocksIndexer {
     stop?: number
   }): AsyncGenerator<MinedBlock, void, unknown> {
     // eslint-disable-next-line prettier/prettier
-    ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }));
+    ;({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
 
     for (let sequence = start; sequence <= stop; ++sequence) {
       const hashes = await this.sequenceToHashes.get(sequence)
