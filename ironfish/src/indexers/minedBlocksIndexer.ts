@@ -13,6 +13,7 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
+  NumberEncoding,
   StringEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
@@ -39,6 +40,7 @@ export class MinedBlocksIndexer {
     value: MinedBlocksDBMeta[keyof MinedBlocksDBMeta]
   }>
   protected minedBlocks: IDatabaseStore<{ key: Buffer; value: MinedBlock }>
+  protected sequenceToHashes: IDatabaseStore<{ key: number; value: Buffer[] }>
   protected accountToBlockHashes: IDatabaseStore<{ key: string; value: Buffer[] }>
 
   protected files: FileSystem
@@ -89,6 +91,12 @@ export class MinedBlocksIndexer {
       valueEncoding: new JsonEncoding(),
     })
 
+    this.sequenceToHashes = this.database.addStore<{ key: number; value: Buffer[] }>({
+      name: 'sequenceToHashes',
+      keyEncoding: new NumberEncoding(),
+      valueEncoding: new JsonEncoding<Buffer[]>(),
+    })
+
     this.accountToBlockHashes = this.database.addStore<{ key: string; value: Buffer[] }>({
       name: 'accountToBlockHashes',
       keyEncoding: new StringEncoding(),
@@ -115,6 +123,10 @@ export class MinedBlocksIndexer {
             },
             tx,
           )
+
+          const sequences = (await this.sequenceToHashes.get(header.sequence, tx)) ?? []
+          sequences.push(header.hash)
+          await this.sequenceToHashes.put(header.sequence, sequences, tx)
 
           let hashes = await this.accountToBlockHashes.get(account.name, tx)
           if (hashes) {
@@ -269,25 +281,27 @@ export class MinedBlocksIndexer {
     start?: number
     stop?: number
   }): AsyncGenerator<MinedBlock, void, unknown> {
-    const { start: begin, stop: end } = BlockchainUtils.getBlockRange(this.chain, {
-      start,
-      stop,
-    })
+    // eslint-disable-next-line prettier/prettier
+    ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }));
 
-    let minedBlocks = (await this.minedBlocks.getAllValues())
-      .filter((block) => {
-        if (begin <= block.sequence && block.sequence <= end) {
-          return block
+    for (let sequence = start; sequence <= stop; ++sequence) {
+      const hashes = await this.sequenceToHashes.get(sequence)
+
+      if (!hashes) {
+        continue
+      }
+
+      const blocks = await Promise.all(hashes.map((h) => this.minedBlocks.get(h)))
+
+      for (const block of blocks) {
+        Assert.isNotUndefined(block)
+
+        if (!scanForks && !block.main) {
+          continue
         }
-      })
-      .sort((a, b) => a.sequence - b.sequence)
 
-    if (!scanForks) {
-      minedBlocks = minedBlocks.filter((block) => block.main === true)
-    }
-
-    for (const block of minedBlocks) {
-      yield block
+        yield block
+      }
     }
   }
 }
