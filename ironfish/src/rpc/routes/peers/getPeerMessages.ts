@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/messages/networkMessage'
+import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 
 type PeerMessage = {
@@ -94,7 +95,7 @@ function getPeerMessages(network: PeerNetwork, identity: string): Array<PeerMess
         ...msg,
         message: {
           type: NetworkMessageType[msg.message.type],
-          payload: JSON.stringify(msg.message),
+          payload: IJSON.stringify(msg.message),
         },
       }))
     }
