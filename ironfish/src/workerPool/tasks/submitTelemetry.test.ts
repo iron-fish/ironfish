@@ -12,6 +12,9 @@ import {
 
 describe('SubmitTelemetryRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
+    const unsafeInteger = 0.2
+    expect(Number.isSafeInteger(unsafeInteger)).toBe(false)
+
     const mockMetric: Metric = {
       measurement: 'node',
       fields: [
@@ -30,9 +33,15 @@ describe('SubmitTelemetryRequest', () => {
           type: 'integer',
           value: 10,
         },
+        {
+          name: 'buz',
+          type: 'float',
+          value: unsafeInteger,
+        },
       ],
       timestamp: new Date(),
     }
+
     const request = new SubmitTelemetryRequest([mockMetric], GraffitiUtils.fromString(''))
     const buffer = request.serialize()
     const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
