@@ -15,6 +15,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
+import { ProgressBar } from '../types'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 // TODO: Fetch from API
@@ -67,6 +68,8 @@ export default class Bank extends IronfishCommand {
       this.exit(1)
     }
 
+    const graffiti = this.sdk.config.get('blockGraffiti')
+
     const balanceResp = await this.client.getAccountBalance()
     const newBalance = oreToIron(
       Number(balanceResp.content.confirmed) - IRON_TO_SEND - feeInIron,
@@ -79,6 +82,7 @@ export default class Bank extends IronfishCommand {
       this.log(`
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
+The memo will contain the graffiti "${graffiti}".
 
 * This action is NOT reversible *
       `)
@@ -90,18 +94,66 @@ Your remaining balance after this transaction will be ${displayNewBalance}.
       }
     }
 
-    const result = await this.client.sendTransaction({
-      fromAccountName: accountName,
-      receives: [
-        {
-          publicAddress: BANK_PUBLIC_ADDRESS,
-          amount: ironToOre(IRON_TO_SEND).toString(),
-          memo: this.sdk.config.get('blockGraffiti'),
-        },
-      ],
-      fee: fee.toString(),
-      expirationSequence: expirationSequence,
-    })
+    // Run the progress bar for about 2 minutes
+    // Chances are that the transaction will finish faster (error or faster computer)
+    const bar = CliUx.ux.progress({
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',
+    }) as ProgressBar
+
+    bar.start()
+
+    let value = 0
+    const timer = setInterval(() => {
+      value++
+      bar.update(value)
+      if (value >= bar.getTotal()) {
+        bar.stop()
+      }
+    }, 1000)
+
+    const stopProgressBar = () => {
+      clearInterval(timer)
+      bar.update(100)
+      bar.stop()
+    }
+
+    try {
+      const result = await this.client.sendTransaction({
+        fromAccountName: accountName,
+        receives: [
+          {
+            publicAddress: BANK_PUBLIC_ADDRESS,
+            amount: ironToOre(IRON_TO_SEND).toString(),
+            memo: graffiti,
+          },
+        ],
+        fee: fee.toString(),
+        expirationSequence: expirationSequence,
+      })
+
+      stopProgressBar()
+
+      const transaction = result.content
+      this.log(`
+Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
+        transaction.fromAccountName
+      }
+Transaction Hash: ${transaction.hash}
+Transaction fee: ${displayIronAmountWithCurrency(fee, true)}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${
+        transaction.hash
+      } (it can take a few minutes before the transaction appears in the Explorer)`)
+    } catch (error: unknown) {
+      stopProgressBar()
+      this.log(`An error occurred while sending the transaction.`)
+      if (error instanceof Error) {
+        this.error(error.message)
+      }
+      this.exit(2)
+    }
   }
 
   private async verifyCanSend(
@@ -122,7 +174,7 @@ Your remaining balance after this transaction will be ${displayNewBalance}.
     if (!graffiti) {
       return {
         canSend: false,
-        errorReason: `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your node`,
+        errorReason: `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
       }
     }
     const user = await this.api.findUser({ graffiti })
