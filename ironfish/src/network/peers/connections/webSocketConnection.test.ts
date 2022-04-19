@@ -26,12 +26,12 @@ describe('WebSocketConnection', () => {
         const send = jest.spyOn(socket, 'send').mockImplementationOnce(jest.fn())
         const message = new IdentifyMessage({
           agent: '',
-          head: '',
-          identity: 'identity',
+          head: Buffer.alloc(32, 0),
+          identity: Buffer.alloc(32, 'identity').toString('base64'),
           port: 9033,
           sequence: 1,
           version: 0,
-          work: BigInt(0).toString(),
+          work: BigInt(0),
         })
 
         expect(connection.send(message)).toBe(true)

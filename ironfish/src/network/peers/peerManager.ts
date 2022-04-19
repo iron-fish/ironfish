@@ -1152,9 +1152,9 @@ export class PeerManager {
     peer.name = name
     peer.version = version
     peer.agent = agent
-    peer.head = Buffer.from(message.head, 'hex')
+    peer.head = message.head
     peer.sequence = message.sequence
-    peer.work = BigInt(message.work)
+    peer.work = message.work
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection

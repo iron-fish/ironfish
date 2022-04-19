@@ -61,13 +61,13 @@ export class LocalPeer {
 
     return new IdentifyMessage({
       agent: this.agent,
-      head: this.chain.head.hash.toString('hex'),
+      head: this.chain.head.hash,
       identity: this.publicIdentity,
       name: this.name || undefined,
       port: this.port,
       sequence: Number(this.chain.head.sequence),
       version: this.version,
-      work: this.chain.head.work.toString(),
+      work: this.chain.head.work,
     })
   }
 

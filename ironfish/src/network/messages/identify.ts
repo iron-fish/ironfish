@@ -2,29 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Identity } from '../identity'
+import { BigIntUtils } from '../../utils/bigint'
+import { Identity, identityLength } from '../identity'
 import { NetworkMessage, NetworkMessageType } from './networkMessage'
 
 interface CreateIdentifyMessageOptions {
   agent: string
-  head: string
+  head: Buffer
   identity: Identity
   name?: string
   port: number | null
   sequence: number
   version: number
-  work: string
+  work: bigint
 }
 
 export class IdentifyMessage extends NetworkMessage {
   readonly agent: string
-  readonly head: string
+  readonly head: Buffer
   readonly identity: Identity
   readonly name: string
   readonly port: number
   readonly sequence: number
   readonly version: number
-  readonly work: string
+  readonly work: bigint
 
   constructor({
     agent,
@@ -49,27 +50,27 @@ export class IdentifyMessage extends NetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarString(this.agent)
-    bw.writeVarString(this.head)
-    bw.writeVarString(this.identity)
+    bw.writeBytes(Buffer.from(this.identity, 'base64'))
     bw.writeVarString(this.name)
-    bw.writeU64(this.port)
-    bw.writeU64(this.sequence)
-    bw.writeU64(this.version)
-    bw.writeVarString(this.work)
+    bw.writeU16(this.port)
+    bw.writeU16(this.version)
+    bw.writeVarString(this.agent)
+    bw.writeU32(this.sequence)
+    bw.writeHash(this.head)
+    bw.writeVarBytes(BigIntUtils.toBytesLE(this.work))
     return bw.render()
   }
 
   static deserialize(buffer: Buffer): IdentifyMessage {
     const reader = bufio.read(buffer, true)
-    const agent = reader.readVarString()
-    const head = reader.readVarString()
-    const identity = reader.readVarString()
+    const identity = reader.readBytes(identityLength).toString('base64')
     const name = reader.readVarString()
-    const port = reader.readU64()
-    const sequence = reader.readU64()
-    const version = reader.readU64()
-    const work = reader.readVarString()
+    const port = reader.readU16()
+    const version = reader.readU16()
+    const agent = reader.readVarString()
+    const sequence = reader.readU32()
+    const head = reader.readHash()
+    const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     return new IdentifyMessage({
       agent,
       head,
@@ -84,12 +85,14 @@ export class IdentifyMessage extends NetworkMessage {
 
   getSize(): number {
     let size = 0
-    size += bufio.sizeVarString(this.agent)
-    size += bufio.sizeVarString(this.head)
-    size += bufio.sizeVarString(this.identity)
+    size += identityLength
     size += bufio.sizeVarString(this.name)
-    size += 24
-    size += bufio.sizeVarString(this.work)
+    size += 2 // port
+    size += 2 // version
+    size += bufio.sizeVarString(this.agent)
+    size += 4 // sequence
+    size += 32 // head
+    size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(this.work))
     return size
   }
 }

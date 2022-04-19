@@ -138,12 +138,12 @@ describe('PeerManager', () => {
     const identity = webRtcCannotInitiateIdentity()
     const message = new IdentifyMessage({
       agent: '',
-      head: '',
+      head: Buffer.alloc(32, 0),
       identity: identity,
       port: null,
       sequence: 1,
       version: VERSION_PROTOCOL,
-      work: BigInt(0).toString(),
+      work: BigInt(0),
     })
 
     // Identify peerOut
@@ -251,7 +251,7 @@ describe('PeerManager', () => {
       agent: pm.localPeer.agent,
       head: pm.localPeer.chain.head.hash,
       sequence: Number(pm.localPeer.chain.head.sequence),
-      work: pm.localPeer.chain.head.work.toString(),
+      work: pm.localPeer.chain.head.work,
     })
   })
 
@@ -720,12 +720,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: other,
         port: peer.port,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -761,12 +761,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: privateIdentityToIdentity(other),
         port: peer.port,
         sequence: 1,
         version: VERSION_PROTOCOL_MIN - 1,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -794,12 +794,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: 'test',
         port: peer.port,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toBeCalled()
@@ -819,12 +819,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: privateIdentityToIdentity(localIdentity),
         port: 9033,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       connection.onMessage.emit(identify)
 
@@ -864,12 +864,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: privateIdentityToIdentity(localIdentity),
         port: 9033,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       connection.onMessage.emit(identify)
 
@@ -909,12 +909,12 @@ describe('PeerManager', () => {
 
       const identify = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: peer2Identity,
         port: peer1.port,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       connection.onMessage.emit(identify)
 
@@ -959,12 +959,12 @@ describe('PeerManager', () => {
       const sendSpy = jest.spyOn(connection, 'send')
       const id = new IdentifyMessage({
         agent: '',
-        head: '',
+        head: Buffer.alloc(32, 0),
         identity: peerIdentity,
         port: 9033,
         sequence: 1,
         version: VERSION_PROTOCOL,
-        work: BigInt(0).toString(),
+        work: BigInt(0),
       })
       connection.onMessage.emit(id)
 
