@@ -153,11 +153,14 @@ export class WebRtcConnection extends Connection {
         return
       }
 
-      this.logger.debug(
-        `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
-          message.type,
-        )}`,
-      )
+      if (this.shouldLogMessageType(message.type)) {
+        this.logger.debug(
+          `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
+            message.type,
+          )}`,
+        )
+      }
+
       this.onMessage.emit(message)
     })
   }
