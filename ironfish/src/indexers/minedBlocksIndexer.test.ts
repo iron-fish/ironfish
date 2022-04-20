@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { NodeFileProvider } from '../fileSystems'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { MinedBlocksIndexer } from './minedBlocksIndexer'
 
 describe('MinedBlockIndexer', () => {
@@ -219,45 +220,93 @@ describe('MinedBlockIndexer', () => {
     })
   })
 
-  it('removeMinedBlocks removes mined block info for a given account', async () => {
-    const { node, strategy } = await nodeTest.createSetup()
-    strategy.disableMiningReward()
+  describe('removeMinedBlocks', () => {
+    it('removes mined block info for a given account', async () => {
+      const { node, strategy } = await nodeTest.createSetup()
+      strategy.disableMiningReward()
 
-    const genesis = await node.chain.getBlock(node.chain.genesis)
-    Assert.isNotNull(genesis)
+      const genesis = await node.chain.getBlock(node.chain.genesis)
+      Assert.isNotNull(genesis)
 
-    const files = new NodeFileProvider()
-    await files.init()
+      const files = new NodeFileProvider()
+      await files.init()
 
-    const indexer = new MinedBlocksIndexer({
-      files,
-      location: path.join(os.tmpdir(), uuid()),
-      accounts: node.accounts,
-      chain: node.chain,
+      const indexer = new MinedBlocksIndexer({
+        files,
+        location: path.join(os.tmpdir(), uuid()),
+        accounts: node.accounts,
+        chain: node.chain,
+      })
+      await indexer.open()
+      indexer.start()
+
+      const accountA = await useAccountFixture(node.accounts, 'a')
+      const accountB = await useAccountFixture(node.accounts, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockB1 = await useMinerBlockFixture(node.chain, 3, accountB)
+      await expect(node.chain).toAddBlock(blockB1)
+      await indexer.updateHead()
+
+      await indexer.removeMinedBlocks(accountB.name)
+
+      const minedBlocks = []
+
+      for await (const block of indexer.getMinedBlocks({})) {
+        minedBlocks.push(block)
+      }
+      expect(minedBlocks.length).toEqual(1)
+      expect(minedBlocks[0].account).toEqual(accountA.name)
+
+      await indexer.stop()
+      await indexer.close()
     })
-    await indexer.open()
-    indexer.start()
 
-    const accountA = await useAccountFixture(node.accounts, 'a')
-    const accountB = await useAccountFixture(node.accounts, 'b')
+    it('does not remove mined blocks not associated to given account', async () => {
+      const { node, strategy } = await nodeTest.createSetup()
+      strategy.disableMiningReward()
 
-    const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
-    await expect(node.chain).toAddBlock(blockA1)
-    const blockB1 = await useMinerBlockFixture(node.chain, 3, accountB)
-    await expect(node.chain).toAddBlock(blockB1)
-    await indexer.updateHead()
+      const genesis = await node.chain.getBlock(node.chain.genesis)
+      Assert.isNotNull(genesis)
 
-    await indexer.removeMinedBlocks(accountB.name)
+      const files = new NodeFileProvider()
+      await files.init()
 
-    const minedBlocks = []
+      const indexer = new MinedBlocksIndexer({
+        files,
+        location: path.join(os.tmpdir(), uuid()),
+        accounts: node.accounts,
+        chain: node.chain,
+      })
+      await indexer.open()
+      indexer.start()
 
-    for await (const block of indexer.getMinedBlocks({})) {
-      minedBlocks.push(block)
-    }
-    expect(minedBlocks.length).toEqual(1)
-    expect(minedBlocks[0].account).toEqual(accountA.name)
+      const [blockA1, blockB1] = await Promise.all([
+        makeBlockAfter(node.chain, genesis),
+        makeBlockAfter(node.chain, genesis),
+      ])
 
-    await indexer.stop()
-    await indexer.close()
+      await indexer['sequenceToHashes'].put(2, [blockA1.header.hash, blockB1.header.hash])
+      await indexer['minedBlocks'].put(blockA1.header.hash, {
+        main: true,
+        sequence: 2,
+        account: 'a',
+        minersFee: 0,
+      })
+      await indexer['minedBlocks'].put(blockB1.header.hash, {
+        main: false,
+        sequence: 2,
+        account: 'b',
+        minersFee: 0,
+      })
+
+      await indexer.removeMinedBlocks('b')
+      expect(await indexer['sequenceToHashes'].get(2)).not.toBeUndefined()
+      expect(await indexer['sequenceToHashes'].get(2)).toContainEqual(blockA1.header.hash)
+
+      await indexer.stop()
+      await indexer.close()
+    })
   })
 })
