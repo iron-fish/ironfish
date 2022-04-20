@@ -498,7 +498,7 @@ export class PeerNetwork {
    * If a response, we resolve the promise waiting for it.
    *
    * The handler for a given request should either return a payload or throw
-   * a CannotFulfillRequest error
+   * a CannotSatisfyRequest error
    */
   private async handleRpcMessage(peer: Peer, rpcMessage: RpcNetworkMessage): Promise<void> {
     const rpcId = rpcMessage.rpcId
