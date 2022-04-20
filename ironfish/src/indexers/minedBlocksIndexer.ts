@@ -54,7 +54,6 @@ export class MinedBlocksIndexer {
   protected readonly logger: Logger
   protected isOpen: boolean
   protected isStarted: boolean
-  protected removalInProgress: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
   protected chain: Blockchain
   protected chainProcessor: ChainProcessor
@@ -80,7 +79,6 @@ export class MinedBlocksIndexer {
     this.chain = chain
     this.isOpen = false
     this.isStarted = false
-    this.removalInProgress = false
 
     this.meta = this.database.addStore<{
       key: keyof MinedBlocksDBMeta
@@ -157,7 +155,7 @@ export class MinedBlocksIndexer {
     })
 
     this.accounts.onAccountRemoved.on(async (account) => {
-      await this.removeMinedBlocks(account.name)
+      await this.meta.put('accountToRemove', account.name)
     })
   }
 
@@ -201,9 +199,6 @@ export class MinedBlocksIndexer {
   async load(): Promise<void> {
     const meta = await this.loadMinedBlocksMeta()
     this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
-    if (meta.accountToRemove !== null) {
-      this.removalInProgress = true
-    }
   }
 
   async loadMinedBlocksMeta(): Promise<MinedBlocksDBMeta> {
@@ -216,18 +211,11 @@ export class MinedBlocksIndexer {
     return meta
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
-
-    if (this.removalInProgress) {
-      const accountName = await this.meta.get('accountToRemove')
-      if (accountName) {
-        await this.removeMinedBlocks(accountName)
-      }
-    }
 
     void this.eventLoop()
   }
@@ -250,6 +238,11 @@ export class MinedBlocksIndexer {
   async eventLoop(): Promise<void> {
     if (!this.isStarted) {
       return
+    }
+
+    const accountName = await this.meta.get('accountToRemove')
+    if (accountName) {
+      await this.removeMinedBlocks(accountName)
     }
 
     await this.updateHead()
@@ -280,15 +273,15 @@ export class MinedBlocksIndexer {
     const hashes: Buffer[] = []
     const sequences: number[] = []
 
-    await this.database.transaction(async (tx) => {
-      const iterator = this.minedBlocks.getAllIter()
-      for await (const [hash, block] of iterator) {
-        if (block.account === accountName) {
-          hashes.push(hash)
-          sequences.push(block.sequence)
-        }
+    const iterator = this.minedBlocks.getAllIter()
+    for await (const [hash, block] of iterator) {
+      if (block.account === accountName) {
+        hashes.push(hash)
+        sequences.push(block.sequence)
       }
+    }
 
+    await this.database.transaction(async (tx) => {
       if (hashes) {
         for (const hash of hashes) {
           await this.minedBlocks.del(hash, tx)
@@ -315,7 +308,7 @@ export class MinedBlocksIndexer {
     stop?: number
   }): AsyncGenerator<MinedBlock, void, unknown> {
     // eslint-disable-next-line prettier/prettier
-    ;({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
+    ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
 
     for (let sequence = start; sequence <= stop; ++sequence) {
       const hashes = await this.sequenceToHashes.get(sequence)

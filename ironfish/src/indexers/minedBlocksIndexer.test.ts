@@ -29,7 +29,7 @@ describe('MinedBlockIndexer', () => {
     })
 
     await indexer.open()
-    await indexer.start()
+    indexer.start()
 
     const putSpy = jest.spyOn(indexer['minedBlocks'], 'put')
 
@@ -73,7 +73,7 @@ describe('MinedBlockIndexer', () => {
       chain: nodeA.chain,
     })
     await indexer.open()
-    await indexer.start()
+    indexer.start()
 
     const putSpy = jest.spyOn(indexer['minedBlocks'], 'put')
 
@@ -135,7 +135,7 @@ describe('MinedBlockIndexer', () => {
     })
 
     await indexer.open()
-    await indexer.start()
+    indexer.start()
 
     const accountA = await useAccountFixture(node.accounts, 'a')
     const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
@@ -177,7 +177,7 @@ describe('MinedBlockIndexer', () => {
       chain: node.chain,
     })
     await indexer.open()
-    await indexer.start()
+    indexer.start()
 
     const accountA = await useAccountFixture(node.accounts, 'a')
     const accountB = await useAccountFixture(node.accounts, 'b')
