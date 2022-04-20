@@ -873,7 +873,7 @@ export class PeerManager {
    */
   private async handleMessage(peer: Peer, connection: Connection, message: NetworkMessage) {
     if (connection.state.type === 'WAITING_FOR_IDENTITY') {
-      this.handleWaitingForIdentifyMessage(peer, connection, message)
+      this.handleMessageInWaitingForIdentityState(peer, connection, message)
     } else if (message instanceof IdentifyMessage) {
       this.handleIdentifyMessage(peer, connection, message)
     } else if (message instanceof DisconnectingMessage) {
@@ -898,7 +898,6 @@ export class PeerManager {
       }
       this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
     }
-    return
   }
 
   private handleIdentifyMessage(
@@ -992,7 +991,7 @@ export class PeerManager {
    * @param peer The Peer the message was received from.
    * @param connection The Connection the message was received from.
    */
-  private handleWaitingForIdentifyMessage(
+  private handleMessageInWaitingForIdentityState(
     peer: Peer,
     connection: Connection,
     message: NetworkMessage,

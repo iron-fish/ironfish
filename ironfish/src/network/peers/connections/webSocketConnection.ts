@@ -90,9 +90,7 @@ export class WebSocketConnection extends Connection {
         // be punished with some kind of "downgrade" event. This should
         // probably happen at a higher layer of abstraction
         const message = 'error parsing message'
-        if (event instanceof MessageEvent) {
-          this.logger.warn(message, event.data)
-        }
+        this.logger.warn(message, event.data)
         this.close(new NetworkError(message))
         return
       }
