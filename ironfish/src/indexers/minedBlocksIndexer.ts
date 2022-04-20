@@ -268,30 +268,15 @@ export class MinedBlocksIndexer {
   }
 
   async removeMinedBlocks(accountName: string): Promise<void> {
-    const hashes: Buffer[] = []
-    const sequences: number[] = []
-
     const iterator = this.minedBlocks.getAllIter()
     for await (const [hash, block] of iterator) {
       if (block.account === accountName) {
-        hashes.push(hash)
-        sequences.push(block.sequence)
+        await this.database.transaction(async (tx) => {
+          await this.sequenceToHashes.del(block.sequence, tx)
+          await this.minedBlocks.del(hash, tx)
+        })
       }
     }
-
-    await this.database.transaction(async (tx) => {
-      if (hashes) {
-        for (const hash of hashes) {
-          await this.minedBlocks.del(hash, tx)
-        }
-      }
-
-      if (sequences) {
-        for (const seq of sequences) {
-          await this.sequenceToHashes.del(seq, tx)
-        }
-      }
-    })
 
     await this.meta.put('accountToRemove', null)
   }
