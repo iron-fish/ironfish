@@ -309,7 +309,7 @@ export class MinedBlocksIndexer {
       const blocks = await Promise.all(
         hashes.map(async (h) => {
           const minedBlock = await this.minedBlocks.get(h)
-          if (minedBlock !== undefined) {
+          if (minedBlock) {
             return { hash: h, ...minedBlock }
           }
         }),
