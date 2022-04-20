@@ -306,7 +306,11 @@ export class MinedBlocksIndexer {
     scanForks?: boolean
     start?: number
     stop?: number
-  }): AsyncGenerator<MinedBlock, void, unknown> {
+  }): AsyncGenerator<
+    { main: boolean; sequence: number; account: string; minersFee: number; hash: Buffer },
+    void,
+    unknown
+  > {
     // eslint-disable-next-line prettier/prettier
     ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
 
@@ -317,7 +321,14 @@ export class MinedBlocksIndexer {
         continue
       }
 
-      const blocks = await Promise.all(hashes.map((h) => this.minedBlocks.get(h)))
+      const blocks = await Promise.all(
+        hashes.map(async (h) => {
+          const minedBlock = await this.minedBlocks.get(h)
+          if (minedBlock !== undefined) {
+            return { hash: h, ...minedBlock }
+          }
+        }),
+      )
 
       for (const block of blocks) {
         Assert.isNotUndefined(block)
