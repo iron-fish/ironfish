@@ -15,7 +15,7 @@ import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/ge
 import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
-import { NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import { displayNetworkMessageType, NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
 import { NewBlockMessage } from '../../messages/newBlock'
 import { NewTransactionMessage } from '../../messages/newTransaction'
 import { PeerListMessage } from '../../messages/peerList'
@@ -222,7 +222,7 @@ export abstract class Connection {
     try {
       messageBody = this.parseBody(header)
     } catch {
-      const args = `(type: ${NetworkMessageType[type]}, body: '${body.toString('hex')}')`
+      const args = `(type: ${displayNetworkMessageType(type)}, body: '${body.toString('hex')}')`
       throw new Error(`Could not parse payload from request: ${args}`)
     }
 
