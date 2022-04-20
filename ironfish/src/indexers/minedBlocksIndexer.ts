@@ -268,8 +268,6 @@ export class MinedBlocksIndexer {
   }
 
   async removeMinedBlocks(accountName: string): Promise<void> {
-    await this.meta.put('accountToRemove', accountName)
-
     const hashes: Buffer[] = []
     const sequences: number[] = []
 
