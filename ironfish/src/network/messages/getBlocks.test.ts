@@ -42,7 +42,7 @@ describe('GetBlocksResponse', () => {
         {
           header: {
             graffiti: Buffer.alloc(32, 'graffiti2', 'utf8').toString('hex'),
-            minersFee: '10',
+            minersFee: '-10',
             noteCommitment: {
               commitment: Buffer.alloc(32, 5),
               size: 1,
@@ -95,7 +95,7 @@ describe('GetBlocksResponse', () => {
       {
         header: {
           graffiti: Buffer.alloc(32, 'graffiti2', 'utf8').toString('hex'),
-          minersFee: '10',
+          minersFee: '-10',
           noteCommitment: {
             commitment: Buffer.alloc(32, 5),
             size: 1,

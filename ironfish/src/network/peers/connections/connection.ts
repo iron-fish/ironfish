@@ -15,7 +15,11 @@ import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/ge
 import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
 import { IdentifyMessage } from '../../messages/identify'
 import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
-import { displayNetworkMessageType, NetworkMessage, NetworkMessageType } from '../../messages/networkMessage'
+import {
+  displayNetworkMessageType,
+  NetworkMessage,
+  NetworkMessageType,
+} from '../../messages/networkMessage'
 import { NewBlockMessage } from '../../messages/newBlock'
 import { NewTransactionMessage } from '../../messages/newTransaction'
 import { PeerListMessage } from '../../messages/peerList'
