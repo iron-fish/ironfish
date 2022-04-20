@@ -15,7 +15,6 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
-import { Block } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
@@ -30,7 +29,6 @@ import {
   displayNetworkMessageType,
   IncomingPeerMessage,
   NetworkMessage,
-  NetworkMessageType,
 } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
@@ -181,7 +179,9 @@ export class PeerNetwork {
     }
 
     this.node.miningManager.onNewBlock.on((block) => {
-      this.gossipBlock(block)
+      const serializedBlock = this.strategy.blockSerde.serialize(block)
+
+      this.gossip(new NewBlockMessage(serializedBlock))
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
@@ -189,12 +189,6 @@ export class PeerNetwork {
 
       this.gossip(new NewTransactionMessage(serializedTransaction))
     })
-  }
-
-  gossipBlock(block: Block): void {
-    const serializedBlock = this.strategy.blockSerde.serialize(block)
-
-    this.gossip(new NewBlockMessage(serializedBlock))
   }
 
   start(): void {
@@ -312,7 +306,7 @@ export class PeerNetwork {
    * will forward it to their other peers. The goal is for everyone to
    * receive the message.
    */
-  gossip(message: GossipNetworkMessage): void {
+  private gossip(message: GossipNetworkMessage): void {
     this.seenGossipFilter.add(message.nonce)
     this.peerManager.broadcast(message)
   }
@@ -322,7 +316,7 @@ export class PeerNetwork {
    * will resolve when the response is received, or will be rejected if the
    * request cannot be completed before timing out.
    */
-  requestFrom(
+  private requestFrom(
     peer: Peer,
     message: RpcNetworkMessage,
   ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
