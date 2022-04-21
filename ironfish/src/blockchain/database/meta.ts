@@ -11,9 +11,9 @@ export type MetaValue = {
 
 export class MetaValueEncoding implements IDatabaseEncoding<MetaValue> {
   serialize(value: MetaValue): Buffer {
-    const writer = bufio.write(this.getSize())
-    writer.writeHash(value.hash)
-    return writer.render()
+    const bw = bufio.write(this.getSize())
+    bw.writeHash(value.hash)
+    return bw.render()
   }
 
   deserialize(data: Buffer): MetaValue {
