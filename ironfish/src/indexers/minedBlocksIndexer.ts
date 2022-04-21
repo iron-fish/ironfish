@@ -294,6 +294,10 @@ export class MinedBlocksIndexer {
     this.logger.debug(`Finished removing mined blocks for account ${accountName}`)
   }
 
+  async getMinedBlock(blockHash: Buffer): Promise<MinedBlock | undefined> {
+    return await this.minedBlocks.get(blockHash)
+  }
+
   async *getMinedBlocks({
     scanForks,
     start,

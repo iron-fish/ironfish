@@ -119,6 +119,33 @@ describe('MinedBlockIndexer', () => {
     await indexer.close()
   })
 
+  it('getMinedBlock returns mined block given a hash', async () => {
+    const {node, strategy} = await nodeTest.createSetup()
+    strategy.disableMiningReward()
+
+    const genesis = await node.chain.getBlock(node.chain.genesis)
+    Assert.isNotNull(genesis)
+
+    await node.minedBlocksIndexer.open()
+    node.minedBlocksIndexer.start()
+
+    const accountA = await useAccountFixture(node.accounts, 'a')
+    const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA)
+    await expect(node.chain).toAddBlock(blockA1)
+
+    await node.minedBlocksIndexer.updateHead()
+
+    expect(await node.minedBlocksIndexer.getMinedBlock(blockA1.header.hash)).toEqual({
+      main: true,
+      sequence: 2,
+      account: accountA.name,
+      minersFee: 0
+    })
+
+    await node.minedBlocksIndexer.stop()
+    await node.minedBlocksIndexer.close()
+  })
+
   describe('getMinedBlocks', () => {
     it('returns non-fork mined blocks by default in sorted order', async () => {
       const { node, strategy } = await nodeTest.createSetup()
