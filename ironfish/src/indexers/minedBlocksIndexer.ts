@@ -54,6 +54,7 @@ export class MinedBlocksIndexer {
   protected readonly logger: Logger
   protected isOpen: boolean
   protected isStarted: boolean
+  protected rescan: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
   protected chain: Blockchain
   protected chainProcessor: ChainProcessor
@@ -79,6 +80,7 @@ export class MinedBlocksIndexer {
     this.chain = chain
     this.isOpen = false
     this.isStarted = false
+    this.rescan = false
 
     this.meta = this.database.addStore<{
       key: keyof MinedBlocksDBMeta
@@ -151,7 +153,7 @@ export class MinedBlocksIndexer {
     })
 
     this.accounts.onAccountImported.on(() => {
-      this.chainProcessor.hash = null
+      this.rescan = true
     })
 
     this.accounts.onAccountRemoved.on(async (account) => {
@@ -243,6 +245,11 @@ export class MinedBlocksIndexer {
     const accountName = await this.meta.get('accountToRemove')
     if (accountName) {
       await this.removeMinedBlocks(accountName)
+    }
+
+    if (this.rescan) {
+      this.chainProcessor.hash = null
+      this.rescan = false
     }
 
     await this.updateHead()
