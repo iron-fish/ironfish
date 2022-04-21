@@ -300,6 +300,8 @@ export class MinedBlocksIndexer {
     // eslint-disable-next-line prettier/prettier
     ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
 
+    const accountToRemove = await this.meta.get('accountToRemove')
+
     for (let sequence = start; sequence <= stop; ++sequence) {
       const hashes = await this.sequenceToHashes.get(sequence)
 
@@ -310,7 +312,7 @@ export class MinedBlocksIndexer {
       const blocks = await Promise.all(
         hashes.map(async (h) => {
           const minedBlock = await this.minedBlocks.get(h)
-          if (minedBlock) {
+          if (minedBlock && minedBlock.account !== accountToRemove) {
             return { hash: h, ...minedBlock }
           }
         }),
