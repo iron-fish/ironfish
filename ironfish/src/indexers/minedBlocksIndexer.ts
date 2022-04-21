@@ -272,7 +272,8 @@ export class MinedBlocksIndexer {
     for await (const [hash, block] of iterator) {
       if (block.account === accountName) {
         await this.database.transaction(async (tx) => {
-          let hashes = (await this.sequenceToHashes.get(block.sequence)) ?? []
+          let hashes = await this.sequenceToHashes.get(block.sequence)
+          Assert.isNotUndefined(hashes)
           hashes = hashes.filter((h) => !h.equals(hash))
           await this.sequenceToHashes.put(block.sequence, hashes, tx)
           await this.minedBlocks.del(hash, tx)
