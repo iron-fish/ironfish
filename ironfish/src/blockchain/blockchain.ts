@@ -186,10 +186,10 @@ export class Blockchain {
       valueEncoding: new SequenceToHashesValueEncoding(),
     })
 
-    // BigInt -> BlockHash
+    // number -> BlockHash
     this.sequenceToHash = this.db.addStore({
       name: 'bS',
-      keyEncoding: NUMBER_ENCODING,
+      keyEncoding: U32_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
 
