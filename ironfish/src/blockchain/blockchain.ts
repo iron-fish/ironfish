@@ -36,13 +36,13 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
   NUMBER_ENCODING,
   StringEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { MetaValueEncoding } from './database/meta'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import {
   HashToNextSchema,
@@ -160,7 +160,7 @@ export class Blockchain {
     this.meta = this.db.addStore({
       name: 'bm',
       keyEncoding: new StringEncoding<'head' | 'latest'>(),
-      valueEncoding: new JsonEncoding<Buffer>(),
+      valueEncoding: new MetaValueEncoding(),
     })
 
     // BlockHash -> BlockHeader
@@ -277,10 +277,10 @@ export class Blockchain {
 
     const headHash = await this.meta.get('head')
     if (headHash) {
-      const head = await this.getHeader(headHash)
+      const head = await this.getHeader(headHash.hash)
       Assert.isNotNull(
         head,
-        `The blockchain meta table has a head hash of ${headHash.toString(
+        `The blockchain meta table has a head hash of ${headHash.hash.toString(
           'hex',
         )}, but no block header for that hash.`,
       )
@@ -289,10 +289,10 @@ export class Blockchain {
 
     const latestHash = await this.meta.get('latest')
     if (latestHash) {
-      const latest = await this.getHeader(latestHash)
+      const latest = await this.getHeader(latestHash.hash)
       Assert.isNotNull(
         latest,
-        `The blockchain meta table has a latest hash of ${latestHash.toString(
+        `The blockchain meta table has a latest hash of ${latestHash.hash.toString(
           'hex',
         )}, but no block header for that hash.`,
       )
@@ -1104,7 +1104,7 @@ export class Blockchain {
       // TODO: use a new heads table to recalculate this
       if (this.latest.hash.equals(hash)) {
         this.latest = this.head
-        await this.meta.put('latest', this.head.hash, tx)
+        await this.meta.put('latest', { hash: this.head.hash }, tx)
       }
     })
   }
@@ -1189,7 +1189,7 @@ export class Blockchain {
     }
 
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
-    await this.meta.put('head', block.header.hash, tx)
+    await this.meta.put('head', { hash: block.header.hash }, tx)
 
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
@@ -1229,7 +1229,7 @@ export class Blockchain {
       this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
     ])
 
-    await this.meta.put('head', prev.hash, tx)
+    await this.meta.put('head', { hash: prev.hash }, tx)
 
     await tx.update()
   }
@@ -1259,7 +1259,7 @@ export class Blockchain {
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
-      await this.meta.put('latest', hash, tx)
+      await this.meta.put('latest', { hash }, tx)
     }
 
     await tx.update()
