@@ -31,18 +31,19 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import {
-  BUFFER_ARRAY_ENCODING,
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
   NUMBER_ENCODING,
   StringEncoding,
+  U32_ENCODING,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { MetaValueEncoding } from './database/meta'
+import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
 import { BlockHeaderEncoding } from './encoding'
 import {
@@ -178,11 +179,11 @@ export class Blockchain {
       valueEncoding: new TransactionsValueEncoding(this.strategy.workerPool),
     })
 
-    // BigInt -> BlockHash[]
+    // number -> BlockHash[]
     this.sequenceToHashes = this.db.addStore({
       name: 'bs',
-      keyEncoding: NUMBER_ENCODING,
-      valueEncoding: BUFFER_ARRAY_ENCODING,
+      keyEncoding: U32_ENCODING,
+      valueEncoding: new SequenceToHashesValueEncoding(),
     })
 
     // BigInt -> BlockHash
@@ -834,7 +835,7 @@ export class Blockchain {
       return []
     }
 
-    return hashes
+    return hashes.hashes
   }
 
   /**
@@ -1037,7 +1038,7 @@ export class Blockchain {
     }
 
     const headers = await Promise.all(
-      hashes.map(async (h) => {
+      hashes.hashes.map(async (h) => {
         const header = await this.getHeader(h, tx)
         Assert.isNotNull(header)
         return header
@@ -1091,12 +1092,12 @@ export class Blockchain {
         await this.disconnect(block, tx)
       }
 
-      let sequences = await this.sequenceToHashes.get(header.sequence, tx)
-      sequences = (sequences || []).filter((h) => !h.equals(hash))
-      if (sequences.length === 0) {
+      const result = await this.sequenceToHashes.get(header.sequence, tx)
+      const hashes = (result?.hashes || []).filter((h) => !h.equals(hash))
+      if (hashes.length === 0) {
         await this.sequenceToHashes.del(header.sequence, tx)
       } else {
-        await this.sequenceToHashes.put(header.sequence, sequences, tx)
+        await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
       await this.transactions.del(hash, tx)
@@ -1252,7 +1253,7 @@ export class Blockchain {
 
     // Update Sequence -> BlockHash[]
     const hashes = await this.sequenceToHashes.get(sequence, tx)
-    await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
+    await this.sequenceToHashes.put(sequence, { hashes: [...(hashes?.hashes || []), hash] }, tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)

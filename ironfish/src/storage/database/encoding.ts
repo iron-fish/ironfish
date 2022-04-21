@@ -42,6 +42,18 @@ export class NumberEncoding implements IDatabaseEncoding<number> {
   }
 }
 
+export class U32Encoding implements IDatabaseEncoding<number> {
+  serialize(value: number): Buffer {
+    const buffer = Buffer.alloc(4)
+    buffer.writeUInt32LE(value)
+    return buffer
+  }
+
+  deserialize(buffer: Buffer): number {
+    return buffer.readUInt32LE()
+  }
+}
+
 export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   serialize = (value: Buffer): Buffer => value
   deserialize = (buffer: Buffer): Buffer => buffer
@@ -87,3 +99,4 @@ export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
 export const BUFFER_ENCODING = new BufferEncoding()
 export const BUFFER_ARRAY_ENCODING = new BufferArrayEncoding()
 export const NUMBER_ENCODING = new NumberEncoding()
+export const U32_ENCODING = new U32Encoding()
