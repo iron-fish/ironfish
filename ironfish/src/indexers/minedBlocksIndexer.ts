@@ -275,6 +275,8 @@ export class MinedBlocksIndexer {
   }
 
   async removeMinedBlocks(accountName: string): Promise<void> {
+    this.logger.debug(`Removing mined blocks for account ${accountName}`)
+
     const iterator = this.minedBlocks.getAllIter()
     for await (const [hash, block] of iterator) {
       if (block.account === accountName) {
@@ -289,6 +291,7 @@ export class MinedBlocksIndexer {
     }
 
     await this.meta.put('accountToRemove', null)
+    this.logger.debug(`Finished removing mined blocks for account ${accountName}`)
   }
 
   async *getMinedBlocks({
