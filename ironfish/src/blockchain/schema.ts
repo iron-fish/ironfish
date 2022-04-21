@@ -4,8 +4,8 @@
 
 import type { MetaValue } from './database/meta'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
-import { Transaction } from '../primitives/transaction'
 import { DatabaseSchema } from '../storage'
+import { TransactionsValue } from './database/transactions'
 
 export interface MetaSchema extends DatabaseSchema {
   key: 'head' | 'latest'
@@ -19,7 +19,7 @@ export interface HeadersSchema extends DatabaseSchema {
 
 export interface TransactionsSchema extends DatabaseSchema {
   key: BlockHash
-  value: Transaction[]
+  value: TransactionsValue
 }
 
 export interface SequenceToHashesSchema extends DatabaseSchema {

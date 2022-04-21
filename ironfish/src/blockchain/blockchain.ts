@@ -43,7 +43,8 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { MetaValueEncoding } from './database/meta'
-import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
+import { TransactionsValueEncoding } from './database/transactions'
+import { BlockHeaderEncoding } from './encoding'
 import {
   HashToNextSchema,
   HeadersSchema,
@@ -174,7 +175,7 @@ export class Blockchain {
     this.transactions = this.db.addStore({
       name: 'bt',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionArrayEncoding(this.strategy.transactionSerde),
+      valueEncoding: new TransactionsValueEncoding(this.strategy.workerPool),
     })
 
     // BigInt -> BlockHash[]
@@ -798,7 +799,7 @@ export class Blockchain {
         )
       }
 
-      return new Block(header, transactions)
+      return new Block(header, transactions.transactions)
     })
   }
 
@@ -1247,7 +1248,7 @@ export class Blockchain {
     await this.headers.put(hash, block.header, tx)
 
     // Update BlockHash -> Transaction
-    await this.transactions.add(hash, block.transactions, tx)
+    await this.transactions.add(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
     const hashes = await this.sequenceToHashes.get(sequence, tx)
