@@ -115,6 +115,7 @@ describe('MinedBlockIndexer', () => {
       sequence: 2,
       account: accountA.name,
       minersFee: 0,
+      hash: blockA1.header.hash.toString('hex'),
     })
 
     await node.minedBlocksIndexer.stop()
@@ -154,7 +155,7 @@ describe('MinedBlockIndexer', () => {
         sequence: expect.any(Number),
         account: 'a',
         minersFee: expect.any(Number),
-        hash: expect.any(Buffer),
+        hash: expect.any(String),
       })
 
       await node.minedBlocksIndexer.stop()

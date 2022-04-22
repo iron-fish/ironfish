@@ -294,8 +294,15 @@ export class MinedBlocksIndexer {
     this.logger.debug(`Finished removing mined blocks for account ${accountName}`)
   }
 
-  async getMinedBlock(blockHash: Buffer): Promise<MinedBlock | undefined> {
-    return await this.minedBlocks.get(blockHash)
+  async getMinedBlock(
+    blockHash: Buffer,
+  ): Promise<
+    | { main: boolean; sequence: number; account: string; minersFee: number; hash: string }
+    | undefined
+  > {
+    const minedBlock = await this.minedBlocks.get(blockHash)
+
+    return minedBlock ? { hash: blockHash.toString('hex'), ...minedBlock } : undefined
   }
 
   async *getMinedBlocks({
@@ -307,7 +314,7 @@ export class MinedBlocksIndexer {
     start?: number
     stop?: number
   }): AsyncGenerator<
-    { main: boolean; sequence: number; account: string; minersFee: number; hash: Buffer },
+    { main: boolean; sequence: number; account: string; minersFee: number; hash: string },
     void,
     unknown
   > {
@@ -327,7 +334,7 @@ export class MinedBlocksIndexer {
         hashes.map(async (h) => {
           const minedBlock = await this.minedBlocks.get(h)
           if (minedBlock && minedBlock.account !== accountToRemove) {
-            return { hash: h, ...minedBlock }
+            return { hash: h.toString('hex'), ...minedBlock }
           }
         }),
       )
