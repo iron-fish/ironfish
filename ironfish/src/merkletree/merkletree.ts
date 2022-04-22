@@ -12,6 +12,8 @@ import {
   JsonEncoding,
   NumberEncoding,
   SchemaValue,
+  StringEncoding,
+  U32_ENCODING,
 } from '../storage'
 import { LeafEncoding, NodeEncoding } from './encoding'
 import { MerkleHasher } from './hasher'
@@ -53,8 +55,8 @@ export class MerkleTree<
 
     this.counter = db.addStore({
       name: `${name}c`,
-      keyEncoding: new JsonEncoding<CounterSchema['key']>(),
-      valueEncoding: new JsonEncoding<CounterSchema['value']>(),
+      keyEncoding: new StringEncoding<'Leaves' | 'Nodes'>(),
+      valueEncoding: U32_ENCODING,
     })
 
     this.leaves = db.addStore({
