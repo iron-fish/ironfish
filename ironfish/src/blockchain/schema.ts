@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { MetaValue } from './database/meta'
 import { BlockHash } from '../primitives/blockheader'
 import { DatabaseSchema } from '../storage'
 import { HeaderValue } from './database/headers'
@@ -11,7 +10,7 @@ import { TransactionsValue } from './database/transactions'
 
 export interface MetaSchema extends DatabaseSchema {
   key: 'head' | 'latest'
-  value: MetaValue
+  value: BlockHash
 }
 
 export interface HeadersSchema extends DatabaseSchema {
