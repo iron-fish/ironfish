@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  Assert,
   AsyncUtils,
   GENESIS_BLOCK_SEQUENCE,
   MathUtils,
@@ -26,6 +27,9 @@ export class MinedCommand extends IronfishCommand {
       default: false,
       description: 'Scan forks for mined blocks',
     }),
+    blockHash: Flags.string({
+      description: 'Check for mined block given a hash',
+    }),
   }
 
   static args = [
@@ -48,55 +52,81 @@ export class MinedCommand extends IronfishCommand {
     const { flags, args } = await this.parse(MinedCommand)
     const client = await this.sdk.connectRpc()
 
-    this.log('Scanning for mined blocks...')
+    if (flags.blockHash) {
+      const stream = client.exportMinedStream({
+        blockHash: flags.blockHash as string | null,
+      })
 
-    const stream = client.exportMinedStream({
-      start: args.start as number | null,
-      stop: args.stop as number | null,
-      forks: flags.scanForks as boolean | null,
-    })
-
-    const { start, stop } = await AsyncUtils.first(stream.contentStream())
-    this.log(`Scanning for mined blocks from ${start} -> ${stop}`)
-
-    const speed = new Meter()
-
-    const progress = CliUx.ux.progress({
-      format:
-        'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
-    }) as ProgressBar
-
-    speed.start()
-    progress.start(stop - start + 1, 0)
-
-    for await (const { sequence, block } of stream.contentStream()) {
+      const { block } = await AsyncUtils.first(stream.contentStream())
       if (block) {
-        readline.clearLine(process.stdout, -1)
-        readline.cursorTo(process.stdout, 0)
+        this.logLineForMinedBlock(block)
+      } else {
+        this.log(`No mined block found for hash ${flags.blockHash}`)
+      }
+    } else {
+      const stream = client.exportMinedStream({
+        start: args.start as number | null,
+        stop: args.stop as number | null,
+        forks: flags.scanForks as boolean | null,
+      })
 
-        const amount = MathUtils.round(oreToIron(block.minersFee), 2)
+      const { start, stop } = await AsyncUtils.first(stream.contentStream())
+      Assert.isNotUndefined(start)
+      Assert.isNotUndefined(stop)
 
-        const link = linkText(
-          `https://explorer.ironfish.network/blocks/${block.hash}`,
-          'view in web',
-        )
+      this.log(`Scanning for mined blocks from ${start} -> ${stop}`)
 
-        this.log(
-          `${block.hash} ${block.account} ${amount} ${block.main ? 'MAIN' : 'FORK'} ${
-            block.sequence
-          }: ${link}`,
-        )
+      const speed = new Meter()
+
+      const progress = CliUx.ux.progress({
+        format:
+          'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
+      }) as ProgressBar
+
+      speed.start()
+      progress.start(stop - start + 1, 0)
+
+      for await (const { sequence, block } of stream.contentStream()) {
+        Assert.isNotUndefined(sequence)
+
+        if (block) {
+          this.logLineForMinedBlock(block)
+        }
+
+        speed.add(1)
+
+        progress.update(sequence - start, {
+          estimate: TimeUtils.renderEstimate(sequence - start, stop - start, speed.rate5s),
+          sequence,
+        })
       }
 
-      speed.add(1)
-
-      progress.update(sequence - start, {
-        estimate: TimeUtils.renderEstimate(sequence - start, stop - start, speed.rate5s),
-        sequence,
-      })
+      progress.update(stop, { estimate: 0, sequence: stop })
+      progress.stop()
     }
+  }
 
-    progress.update(stop, { estimate: 0, sequence: stop })
-    progress.stop()
+  logLineForMinedBlock(block: {
+    hash: string
+    minersFee: number
+    sequence: number
+    main: boolean
+    account: string
+  }): void {
+    readline.clearLine(process.stdout, -1)
+    readline.cursorTo(process.stdout, 0)
+
+    const amount = MathUtils.round(oreToIron(block.minersFee), 2)
+
+    const link = linkText(
+      `https://explorer.ironfish.network/blocks/${block.hash}`,
+      'view in web',
+    )
+
+    this.log(
+      `${block.hash} ${block.account} ${amount} ${block.main ? 'MAIN' : 'FORK'} ${
+        block.sequence
+      }: ${link}`,
+    )
   }
 }

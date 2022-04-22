@@ -8,6 +8,7 @@ import { ApiNamespace, router } from '../router'
 
 export type ExportMinedStreamRequest =
   | {
+      blockHash?: string | null
       start?: number | null
       stop?: number | null
       forks?: boolean | null
@@ -15,9 +16,9 @@ export type ExportMinedStreamRequest =
   | undefined
 
 export type ExportMinedStreamResponse = {
-  start: number
-  stop: number
-  sequence: number
+  start?: number
+  stop?: number
+  sequence?: number
   block?: {
     hash: string
     minersFee: number
@@ -29,6 +30,7 @@ export type ExportMinedStreamResponse = {
 
 export const ExportMinedStreamRequestSchema: yup.ObjectSchema<ExportMinedStreamRequest> = yup
   .object({
+    blockHash: yup.string().nullable().optional(),
     start: yup.number().nullable().optional(),
     stop: yup.number().nullable().optional(),
     forks: yup.boolean().nullable().optional(),
@@ -59,13 +61,19 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
-    const scanForks = request.data?.forks == null ? false : true
+    const blockHash = request.data?.blockHash == null ? undefined : request.data.blockHash
 
+    if (blockHash) {
+      const block = await node.minedBlocksIndexer.getMinedBlock(Buffer.from(blockHash, 'hex'))
+      request.stream({ block })
+      request.end()
+    }
+
+    const scanForks = request.data?.forks == null ? false : true
     const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
       start: request.data?.start,
       stop: request.data?.stop,
     })
-
     request.stream({ start, stop, sequence: 0 })
 
     for await (const block of node.minedBlocksIndexer.getMinedBlocks({
@@ -77,7 +85,7 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
         start,
         stop,
         sequence: block.sequence,
-        block: { ...block, hash: block.hash.toString('hex') },
+        block,
       })
     }
 
