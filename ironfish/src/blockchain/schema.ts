@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { MetaValue } from './database/meta'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHash } from '../primitives/blockheader'
 import { DatabaseSchema } from '../storage'
+import { HeaderValue } from './database/headers'
 import { SequenceToHashesValue } from './database/sequenceToHashes'
 import { TransactionsValue } from './database/transactions'
 
@@ -15,7 +16,7 @@ export interface MetaSchema extends DatabaseSchema {
 
 export interface HeadersSchema extends DatabaseSchema {
   key: BlockHash
-  value: BlockHeader
+  value: HeaderValue
 }
 
 export interface TransactionsSchema extends DatabaseSchema {

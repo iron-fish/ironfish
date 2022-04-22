@@ -35,17 +35,16 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  NUMBER_ENCODING,
   StringEncoding,
   U32_ENCODING,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { HeaderEncoding } from './database/headers'
 import { MetaValueEncoding } from './database/meta'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
-import { BlockHeaderEncoding } from './encoding'
 import {
   HashToNextSchema,
   HeadersSchema,
@@ -169,7 +168,7 @@ export class Blockchain {
     this.headers = this.db.addStore({
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new BlockHeaderEncoding(this.strategy.blockHeaderSerde),
+      valueEncoding: new HeaderEncoding(this.strategy),
     })
 
     // BlockHash -> Transaction[]
@@ -786,7 +785,7 @@ export class Blockchain {
 
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
-        blockHeader || this.headers.get(blockHash, tx),
+        blockHeader || this.headers.get(blockHash, tx).then((result) => result?.header),
         this.transactions.get(blockHash, tx),
       ])
 
@@ -991,7 +990,7 @@ export class Blockchain {
   }
 
   async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
-    return (await this.headers.get(hash, tx)) || null
+    return (await this.headers.get(hash, tx))?.header || null
   }
 
   async getPrevious(
@@ -1246,7 +1245,7 @@ export class Blockchain {
     const sequence = block.header.sequence
 
     // Update BlockHash -> BlockHeader
-    await this.headers.put(hash, block.header, tx)
+    await this.headers.put(hash, { header: block.header }, tx)
 
     // Update BlockHash -> Transaction
     await this.transactions.add(hash, { transactions: block.transactions }, tx)
