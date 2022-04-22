@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 
 describe('MinedBlockIndexer', () => {
   const nodeTest = createNodeTest()
@@ -239,45 +238,34 @@ describe('MinedBlockIndexer', () => {
     })
 
     it('does not remove mined blocks not associated to given account', async () => {
-      const { node, strategy } = await nodeTest.createSetup()
+      const { node: nodeA, strategy } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
       strategy.disableMiningReward()
 
-      const genesis = await node.chain.getBlock(node.chain.genesis)
+      const genesis = await nodeA.chain.getBlock(nodeA.chain.genesis)
       Assert.isNotNull(genesis)
 
-      await node.minedBlocksIndexer.open()
-      node.minedBlocksIndexer.start()
+      await nodeA.minedBlocksIndexer.open()
+      nodeA.minedBlocksIndexer.start()
 
-      const [blockA1, blockB1] = await Promise.all([
-        makeBlockAfter(node.chain, genesis),
-        makeBlockAfter(node.chain, genesis),
-      ])
+      const accountA = await useAccountFixture(nodeA.accounts, 'a')
+      const accountB = await useAccountFixture(nodeB.accounts, 'b')
+      await nodeA.accounts.importAccount(accountB)
 
-      await node.minedBlocksIndexer['sequenceToHashes'].put(2, [
-        blockA1.header.hash,
-        blockB1.header.hash,
-      ])
-      await node.minedBlocksIndexer['minedBlocks'].put(blockA1.header.hash, {
-        main: true,
-        sequence: 2,
-        account: 'a',
-        minersFee: 0,
-      })
-      await node.minedBlocksIndexer['minedBlocks'].put(blockB1.header.hash, {
-        main: false,
-        sequence: 2,
-        account: 'b',
-        minersFee: 0,
-      })
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      await expect(nodeA.chain).toAddBlock(blockA1)
+      const blockB1 = await useMinerBlockFixture(nodeA.chain, 3, accountB)
+      await expect(nodeA.chain).toAddBlock(blockB1)
+      await nodeA.minedBlocksIndexer.updateHead()
 
-      await node.minedBlocksIndexer.removeMinedBlocks('b')
-      expect(await node.minedBlocksIndexer['sequenceToHashes'].get(2)).not.toBeUndefined()
-      expect(await node.minedBlocksIndexer['sequenceToHashes'].get(2)).toContainEqual(
+      await nodeA.minedBlocksIndexer.removeMinedBlocks('b')
+      expect(await nodeA.minedBlocksIndexer['sequenceToHashes'].get(2)).not.toBeUndefined()
+      expect(await nodeA.minedBlocksIndexer['sequenceToHashes'].get(2)).toContainEqual(
         blockA1.header.hash,
       )
 
-      await node.minedBlocksIndexer.stop()
-      await node.minedBlocksIndexer.close()
+      await nodeA.minedBlocksIndexer.stop()
+      await nodeA.minedBlocksIndexer.close()
     })
   })
 })
