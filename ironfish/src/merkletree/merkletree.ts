@@ -7,13 +7,16 @@ import { JsonSerializable } from '../serde'
 import {
   DatabaseKey,
   IDatabase,
+  IDatabaseEncoding,
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
   NumberEncoding,
   SchemaValue,
+  StringEncoding,
+  U32_ENCODING,
 } from '../storage'
-import { LeafEncoding, NodeEncoding } from './encoding'
+import { NodeEncoding } from './encoding'
 import { MerkleHasher } from './hasher'
 import { CounterSchema, LeavesIndexSchema, LeavesSchema, NodesSchema } from './schema'
 import { depthAtLeafCount, isEmpty, isRight } from './utils'
@@ -38,11 +41,13 @@ export class MerkleTree<
   constructor({
     hasher,
     db,
+    leafEncoding,
     name = '',
     depth = 32,
   }: {
     hasher: MerkleHasher<E, H, SE, SH>
     db: IDatabase
+    leafEncoding: IDatabaseEncoding<LeavesSchema<E, H>['value']>
     name?: string
     depth?: number
   }) {
@@ -53,14 +58,14 @@ export class MerkleTree<
 
     this.counter = db.addStore({
       name: `${name}c`,
-      keyEncoding: new JsonEncoding<CounterSchema['key']>(),
-      valueEncoding: new JsonEncoding<CounterSchema['value']>(),
+      keyEncoding: new StringEncoding<'Leaves' | 'Nodes'>(),
+      valueEncoding: U32_ENCODING,
     })
 
     this.leaves = db.addStore({
       name: `${name}l`,
-      keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
-      valueEncoding: new LeafEncoding<E, H, SE, SH>(hasher),
+      keyEncoding: U32_ENCODING,
+      valueEncoding: leafEncoding,
     })
 
     this.leavesIndex = db.addStore({
