@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../assert'
+import { NoteLeafEncoding } from '../../merkletree/database/leaves'
 import { NoteHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
 import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted'
@@ -35,6 +36,7 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafEncoding: new NoteLeafEncoding(),
     db: database,
     name: name,
     depth: depth,
