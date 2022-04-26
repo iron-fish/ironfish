@@ -133,7 +133,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async createTransaction(
@@ -169,7 +169,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async transactionFee(transaction: Transaction): Promise<bigint> {
@@ -181,6 +181,14 @@ export class WorkerPool {
     }
 
     return response.fee
+  }
+
+  async isMinersFee(transaction: Transaction): Promise<boolean> {
+    return (
+      transaction.spendsLength() === 0 &&
+      transaction.notesLength() === 1 &&
+      (await this.transactionFee(transaction)) <= 0
+    )
   }
 
   async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {

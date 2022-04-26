@@ -36,7 +36,7 @@ describe('TransactionFeeTask', () => {
       const request = new TransactionFeeRequest(transaction.serialize())
       const task = new TransactionFeeTask()
       const response = task.execute(request)
-      expect(response.fee).toEqual(await transaction.fee())
+      expect(response.fee).toEqual(await nodeTest.node.workerPool.transactionFee(transaction))
     })
   })
 })

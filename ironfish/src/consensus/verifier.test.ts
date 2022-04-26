@@ -88,7 +88,9 @@ describe('Verifier', () => {
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
-      await expect(block.transactions[0].fee()).resolves.toBeGreaterThan(0)
+      await expect(
+        nodeTest.node.workerPool.transactionFee(block.transactions[0]),
+      ).resolves.toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
@@ -460,7 +462,7 @@ describe('Verifier', () => {
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
         jest
-          .spyOn(transaction['workerPool'], 'verify')
+          .spyOn(nodeTest.node.workerPool, 'verify')
           .mockImplementationOnce(() => Promise.resolve(false))
 
         await expect(
@@ -478,7 +480,7 @@ describe('Verifier', () => {
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
         jest
-          .spyOn(transaction['workerPool'], 'verify')
+          .spyOn(nodeTest.node.workerPool, 'verify')
           .mockImplementationOnce(() => Promise.resolve(true))
 
         expect(
@@ -494,7 +496,7 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
+        jest.spyOn(nodeTest.node.workerPool, 'verify').mockImplementation(() => {
           throw new Error('Response type must match request type')
         })
 

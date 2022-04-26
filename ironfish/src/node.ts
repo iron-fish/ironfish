@@ -200,6 +200,7 @@ export class IronfishNode {
       logger,
       metrics,
       autoSeed,
+      workerPool,
     })
 
     const telemetry = new Telemetry({
@@ -215,7 +216,7 @@ export class IronfishNode {
       ],
     })
 
-    const memPool = new MemPool({ chain, metrics, strategy, logger })
+    const memPool = new MemPool({ chain, strategy, metrics, logger, workerPool })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,

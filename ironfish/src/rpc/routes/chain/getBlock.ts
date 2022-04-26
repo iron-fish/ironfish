@@ -182,7 +182,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
           notes,
           spends,
           size: transactionBuffer.byteLength,
-          fee: Number(transaction.fee()),
+          fee: Number(node.workerPool.transactionFee(transaction)),
         },
       }
     })

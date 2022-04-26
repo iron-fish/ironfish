@@ -43,6 +43,7 @@ import {
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { WorkerPool } from '../workerPool'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import {
   HashToNextSchema,
@@ -61,6 +62,7 @@ export class Blockchain {
   strategy: Strategy
   verifier: Verifier
   metrics: MetricsMonitor
+  workerPool: WorkerPool
 
   synced = false
   opened = false
@@ -139,6 +141,7 @@ export class Blockchain {
   constructor(options: {
     location: string
     strategy: Strategy
+    workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
@@ -147,6 +150,7 @@ export class Blockchain {
     const logger = options.logger || createRootLogger()
 
     this.strategy = options.strategy
+    this.workerPool = options.workerPool
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this)
@@ -915,7 +919,7 @@ export class Blockchain {
         target,
         0,
         timestamp,
-        await minersFee.fee(),
+        await this.workerPool.transactionFee(minersFee),
         graffiti,
       )
 

@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
-import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
-import { WorkerPool } from '../workerPool'
-import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -16,14 +13,12 @@ export type SerializedTransaction = Buffer
 
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
-  private readonly workerPool: WorkerPool
 
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
+  constructor(transactionPostedSerialized: Buffer) {
     this.transactionPostedSerialized = transactionPostedSerialized
-    this.workerPool = workerPool
   }
 
   serialize(): Buffer {
@@ -68,17 +63,6 @@ export class Transaction {
   }
 
   /**
-   * Verify whether the transaction has valid proofs.
-   */
-  async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
-    const result = await this.workerPool.verify(this, options)
-
-    return result === true
-      ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
-  }
-
-  /**
    * The number of notes in the transaction.
    */
   notesLength(): number {
@@ -90,10 +74,6 @@ export class Transaction {
       const serializedNote = Buffer.from(t.getNote(index))
       return new NoteEncrypted(serializedNote)
     })
-  }
-
-  async isMinersFee(): Promise<boolean> {
-    return this.spendsLength() === 0 && this.notesLength() === 1 && (await this.fee()) <= 0
   }
 
   /**
@@ -142,24 +122,6 @@ export class Transaction {
   }
 
   /**
-   * Get the transaction fee for this transactions.
-   *
-   * In general, each transaction has outputs lower than the amount spent; the
-   * miner can collect the difference as a transaction fee.
-   *
-   * In a block header's minersFee transaction, the opposite happens;
-   * the miner creates a block with zero spends and output equal to the sum
-   * of the miner's fee for the block's transaction, plus the block chain's
-   * mining reward.
-   *
-   * The transaction fee is the difference between outputs and spends on the
-   * transaction.
-   */
-  fee(): Promise<bigint> {
-    return this.workerPool.transactionFee(this)
-  }
-
-  /**
    * Get transaction signature for this transaction.
    */
   transactionSignature(): Buffer {
@@ -186,8 +148,6 @@ export class Transaction {
  * Serializer and equality checker for Transaction wrappers.
  */
 export class TransactionSerde implements Serde<Transaction, SerializedTransaction> {
-  constructor(private readonly workerPool: WorkerPool) {}
-
   equals(tx1: Transaction, tx2: Transaction): boolean {
     return tx1.equals(tx2)
   }
@@ -197,6 +157,6 @@ export class TransactionSerde implements Serde<Transaction, SerializedTransactio
   }
 
   deserialize(data: SerializedTransaction): Transaction {
-    return new Transaction(data, this.workerPool)
+    return new Transaction(data)
   }
 }

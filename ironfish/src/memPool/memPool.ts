@@ -11,6 +11,7 @@ import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
+import { WorkerPool } from '../workerPool'
 
 interface MempoolEntry {
   fee: bigint
@@ -26,11 +27,13 @@ export class MemPool {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly strategy: Strategy
+  private readonly workerPool: WorkerPool
 
   constructor(options: {
     strategy: Strategy
     chain: Blockchain
     metrics: MetricsMonitor
+    workerPool: WorkerPool
     logger?: Logger
   }) {
     const logger = options.logger || createRootLogger()
@@ -47,6 +50,7 @@ export class MemPool {
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
     this.strategy = options.strategy
+    this.workerPool = options.workerPool
 
     this.chain.onConnectBlock.on((block) => {
       this.onConnectBlock(block)
@@ -144,7 +148,7 @@ export class MemPool {
         continue
       }
 
-      if (await transaction.isMinersFee()) {
+      if (await this.workerPool.isMinersFee(transaction)) {
         continue
       }
 
@@ -160,7 +164,7 @@ export class MemPool {
   private async addTransaction(transaction: Transaction): Promise<void> {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.fee(), hash })
+    this.queue.add({ fee: await this.workerPool.transactionFee(transaction), hash })
     this.metrics.memPoolSize.value = this.size()
   }
 

@@ -126,7 +126,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
     await block.withTransactionReferences(async () => {
       for (const tx of block.transactions) {
-        const fee = await tx.fee()
+        const fee = await node.workerPool.transactionFee(tx)
 
         transactions.push({
           signature: tx.transactionSignature().toString('hex'),

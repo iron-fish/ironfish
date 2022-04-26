@@ -14,6 +14,7 @@ import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { Telemetry } from '../telemetry'
 import { AsyncUtils } from '../utils/async'
 import { GraffitiUtils } from '../utils/graffiti'
+import { WorkerPool } from '../workerPool'
 
 const MAX_TRANSACTIONS_PER_BLOCK = 10
 
@@ -31,6 +32,7 @@ export class MiningManager {
   private readonly memPool: MemPool
   private readonly node: IronfishNode
   private readonly telemetry: Telemetry
+  private readonly workerPool: WorkerPool
 
   blocksMined = 0
   minersConnected = 0
@@ -47,6 +49,7 @@ export class MiningManager {
     this.memPool = options.memPool
     this.chain = options.chain
     this.telemetry = options.telemetry
+    this.workerPool = this.node.workerPool
   }
 
   /**
@@ -97,7 +100,9 @@ export class MiningManager {
 
     // Sum the transaction fees
     let totalTransactionFees = BigInt(0)
-    const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
+    const transactionFees = await Promise.all(
+      blockTransactions.map((t) => this.workerPool.transactionFee(t)),
+    )
     for (const transactionFee of transactionFees) {
       totalTransactionFees += transactionFee
     }

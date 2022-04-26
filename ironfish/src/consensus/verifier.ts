@@ -11,12 +11,14 @@ import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
+import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
   strategy: Strategy
   chain: Blockchain
+  private readonly workerPool: WorkerPool
 
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
@@ -26,6 +28,7 @@ export class Verifier {
   constructor(chain: Blockchain) {
     this.strategy = chain.strategy
     this.chain = chain
+    this.workerPool = chain.workerPool
   }
 
   /**
@@ -60,7 +63,9 @@ export class Verifier {
     let totalTransactionFees = BigInt(0)
     let minersFee = BigInt(0)
 
-    const transactionFees = await Promise.all(block.transactions.map((t) => t.fee()))
+    const transactionFees = await Promise.all(
+      block.transactions.map((t) => this.workerPool.transactionFee(t)),
+    )
 
     for (let i = 0; i < transactionFees.length; i++) {
       const fee = transactionFees[i]
@@ -163,7 +168,12 @@ export class Verifier {
     }
 
     try {
-      return await transaction.verify(options)
+      const verified = await this.workerPool.verify(transaction, options)
+      if (!verified) {
+        return { valid: false, reason: VerificationResultReason.ERROR }
+      }
+
+      return { valid: true }
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -192,14 +202,18 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    let validity = await this.verifyTransactionSpends(transaction, tx)
+    const validity = await this.verifyTransactionSpends(transaction, tx)
 
     if (!validity.valid) {
       return validity
     }
 
-    validity = await transaction.verify()
-    return validity
+    const verified = await this.workerPool.verify(transaction)
+    if (!verified) {
+      return { valid: false, reason: VerificationResultReason.ERROR }
+    }
+
+    return { valid: true }
   }
 
   isExpiredSequence(expirationSequence: number, sequence: number): boolean {

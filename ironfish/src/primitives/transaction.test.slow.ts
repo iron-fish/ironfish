@@ -42,8 +42,8 @@ describe('Accounts', () => {
       account.spendingKey,
     )
 
-    expect(await transactionA.isMinersFee()).toBe(true)
-    expect(await transactionB.isMinersFee()).toBe(true)
+    expect(await nodeTest.node.workerPool.isMinersFee(transactionA)).toBe(true)
+    expect(await nodeTest.node.workerPool.isMinersFee(transactionB)).toBe(true)
   })
 
   it('check if a transaction is not a miners fee', async () => {
@@ -74,6 +74,6 @@ describe('Accounts', () => {
       BigInt(1),
       0,
     )
-    expect(await transaction.isMinersFee()).toBe(false)
+    expect(await nodeA.workerPool.transactionFee(transaction)).toBe(false)
   }, 600000)
 })

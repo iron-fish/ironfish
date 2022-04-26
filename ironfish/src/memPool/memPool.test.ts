@@ -60,9 +60,15 @@ describe('MemPool', () => {
       const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
-      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(3)))
+      jest
+        .spyOn(memPool['workerPool'], 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(1)))
+      jest
+        .spyOn(memPool['workerPool'], 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+      jest
+        .spyOn(memPool['workerPool'], 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(3)))
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -80,8 +86,12 @@ describe('MemPool', () => {
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+      jest
+        .spyOn(memPool['workerPool'], 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(1)))
+      jest
+        .spyOn(memPool['workerPool'], 'transactionFee')
+        .mockImplementationOnce(() => Promise.resolve(BigInt(4)))
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -155,7 +165,10 @@ describe('MemPool', () => {
 
         const hash = transaction.hash()
         expect(add).toHaveBeenCalledTimes(1)
-        expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
+        expect(add).toHaveBeenCalledWith({
+          fee: await memPool['workerPool'].transactionFee(transaction),
+          hash,
+        })
         expect(set).toHaveBeenCalledTimes(1)
         expect(set).toHaveBeenCalledWith(hash, transaction)
       }, 60000)
@@ -212,7 +225,7 @@ describe('MemPool', () => {
       let minersFee
       let transaction
       for (const tx of block.transactions) {
-        if (await tx.isMinersFee()) {
+        if (await node.workerPool.isMinersFee(tx)) {
           minersFee = tx
         } else {
           transaction = tx
@@ -227,12 +240,15 @@ describe('MemPool', () => {
 
       const hash = transaction.hash()
       expect(transactions.get(hash)).not.toBeUndefined()
-      expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
+      expect(add).toHaveBeenCalledWith({
+        fee: await node.workerPool.transactionFee(transaction),
+        hash,
+      })
 
       const minersHash = minersFee.hash()
       expect(transactions.get(minersHash)).toBeUndefined()
       expect(add).not.toHaveBeenCalledWith({
-        fee: await block.minersFee.fee(),
+        fee: await memPool['workerPool'].transactionFee(block.minersFee),
         hash: minersHash,
       })
     }, 60000)
