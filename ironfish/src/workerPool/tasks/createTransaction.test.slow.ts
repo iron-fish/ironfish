@@ -7,7 +7,7 @@ import { NoteLeafEncoding } from '../../merkletree/database/leaves'
 import { NoteHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
 import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted'
-import { IDatabase } from '../../storage'
+import { BUFFER_ENCODING, IDatabase } from '../../storage'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { makeDb, makeDbName } from '../../testUtilities/helpers/storage'
 import {
@@ -36,6 +36,7 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafIndexKeyEncoding: BUFFER_ENCODING,
     leafEncoding: new NoteLeafEncoding(),
     db: database,
     name: name,

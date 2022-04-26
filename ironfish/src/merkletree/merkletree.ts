@@ -11,7 +11,6 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
-  NumberEncoding,
   SchemaValue,
   StringEncoding,
   U32_ENCODING,
@@ -42,12 +41,14 @@ export class MerkleTree<
     hasher,
     db,
     leafEncoding,
+    leafIndexKeyEncoding,
     name = '',
     depth = 32,
   }: {
     hasher: MerkleHasher<E, H, SE, SH>
     db: IDatabase
     leafEncoding: IDatabaseEncoding<LeavesSchema<E, H>['value']>
+    leafIndexKeyEncoding: IDatabaseEncoding<H>
     name?: string
     depth?: number
   }) {
@@ -70,8 +71,8 @@ export class MerkleTree<
 
     this.leavesIndex = db.addStore({
       name: `${name}i`,
-      keyEncoding: new JsonEncoding<LeavesIndexSchema<H>['key']>(),
-      valueEncoding: new NumberEncoding(),
+      keyEncoding: leafIndexKeyEncoding,
+      valueEncoding: U32_ENCODING,
     })
 
     this.nodes = db.addStore({

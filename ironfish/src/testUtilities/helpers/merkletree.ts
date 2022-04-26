@@ -5,7 +5,7 @@
 import bufio from 'bufio'
 import { MerkleTree } from '../../merkletree'
 import { StructureHasher } from '../../merkletree/hasher'
-import { IDatabase, IDatabaseEncoding } from '../../storage'
+import { IDatabase, IDatabaseEncoding, StringEncoding } from '../../storage'
 import { createDB } from '../helpers/storage'
 
 type StructureLeafValue = {
@@ -61,6 +61,7 @@ export async function makeTree({
 
   const tree = new MerkleTree({
     hasher: new StructureHasher(),
+    leafIndexKeyEncoding: new StringEncoding(),
     leafEncoding: new StructureLeafEncoding(),
     db: db,
     name: name,

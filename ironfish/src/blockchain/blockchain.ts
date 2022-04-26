@@ -200,6 +200,7 @@ export class Blockchain {
 
     this.notes = new MerkleTree({
       hasher: this.strategy.noteHasher,
+      leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NoteLeafEncoding(),
       db: this.db,
       name: 'n',
@@ -208,6 +209,7 @@ export class Blockchain {
 
     this.nullifiers = new MerkleTree({
       hasher: this.strategy.nullifierHasher,
+      leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NullifierLeafEncoding(),
       db: this.db,
       name: 'u',
