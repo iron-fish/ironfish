@@ -135,19 +135,21 @@ export class Verifier {
    * @returns deserialized transaction to be processed by the main handler.
    */
   verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
-    const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
-
     try {
+      const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
+
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
       transaction.takeReference()
-    } catch {
-      throw new Error('Transaction cannot deserialize')
-    } finally {
-      transaction.returnReference()
-    }
 
-    return transaction
+      return transaction
+    } catch (e) {
+      let message = 'Transaction cannot deserialize.'
+      if (e instanceof Error) {
+        message += ` Message: ${e.message}`
+      }
+      throw new Error(message)
+    }
   }
 
   async verifyTransaction(
@@ -281,19 +283,17 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
     }
 
-    return block.withTransactionReferences(async () => {
-      let verification = this.isValidAgainstPrevious(block, prev)
-      if (!verification.valid) {
-        return verification
-      }
+    let verification = this.isValidAgainstPrevious(block, prev)
+    if (!verification.valid) {
+      return verification
+    }
 
-      verification = await this.verifyBlock(block)
-      if (!verification.valid) {
-        return verification
-      }
+    verification = await this.verifyBlock(block)
+    if (!verification.valid) {
+      return verification
+    }
 
-      return { valid: true }
-    })
+    return { valid: true }
   }
 
   /**

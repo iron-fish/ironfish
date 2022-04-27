@@ -88,7 +88,7 @@ describe('Verifier', () => {
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
-      await expect(block.transactions[0].fee()).resolves.toBeGreaterThan(0)
+      expect(block.transactions[0].fee()).toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,

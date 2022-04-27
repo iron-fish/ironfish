@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
+import bufio from 'bufio'
 import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
 import { WorkerPool } from '../workerPool'
@@ -18,11 +19,49 @@ export class Transaction {
   private readonly transactionPostedSerialized: Buffer
   private readonly workerPool: WorkerPool
 
+  private readonly _fee: bigint
+  private readonly _expirationSequence: number
+  private readonly _spends: Spend[] = []
+  private readonly _notes: NoteEncrypted[]
+  private readonly _signature: Buffer
+
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
   constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
     this.transactionPostedSerialized = transactionPostedSerialized
+
+    const reader = bufio.read(this.transactionPostedSerialized, true)
+    const _spendsLength = reader.readU64()
+    const _notesLength = reader.readU64()
+    this._fee = BigInt(reader.readI64())
+    this._expirationSequence = reader.readU32()
+    this._spends = Array.from({ length: _spendsLength }, () => {
+      // skip proof, value commitment, randomized public key
+      reader.seek(256)
+
+      const rootHash = reader.readHash()
+      const treeSize = reader.readU32()
+      const nullifier = reader.readHash()
+
+      // skip signature
+      reader.seek(64)
+
+      return {
+        size: treeSize,
+        commitment: rootHash,
+        nullifier,
+      }
+    })
+    this._notes = Array.from({ length: _notesLength }, () => {
+      // skip proof
+      reader.seek(192)
+
+      return new NoteEncrypted(reader.readBytes(275, true))
+    })
+
+    this._signature = reader.readBytes(64, true)
+
     this.workerPool = workerPool
   }
 
@@ -82,36 +121,29 @@ export class Transaction {
    * The number of notes in the transaction.
    */
   notesLength(): number {
-    return this.withReference((t) => t.notesLength())
+    return this._notes.length
   }
 
   getNote(index: number): NoteEncrypted {
-    return this.withReference((t) => {
-      const serializedNote = Buffer.from(t.getNote(index))
-      return new NoteEncrypted(serializedNote)
-    })
+    return this._notes[index]
   }
 
-  async isMinersFee(): Promise<boolean> {
-    return this.spendsLength() === 0 && this.notesLength() === 1 && (await this.fee()) <= 0
+  isMinersFee(): boolean {
+    return this._spends.length === 0 && this._notes.length === 1 && this._fee <= 0
   }
 
   /**
    * Iterate over all the notes created by this transaction.
    */
-  *notes(): Iterable<NoteEncrypted> {
-    const notesLength = this.notesLength()
-
-    for (let i = 0; i < notesLength; i++) {
-      yield this.getNote(i)
-    }
+  notes(): Iterable<NoteEncrypted> {
+    return this._notes.values()
   }
 
   /**
    * The number of spends in the transaction.
    */
   spendsLength(): number {
-    return this.withReference((t) => t.spendsLength())
+    return this._spends.length
   }
 
   /**
@@ -119,26 +151,12 @@ export class Transaction {
    * indicating that a note was spent, and a commitment committing to
    * the root hash and tree size at the time the note was spent.
    */
-  *spends(): Iterable<Spend> {
-    const spendsLength = this.spendsLength()
-
-    for (let i = 0; i < spendsLength; i++) {
-      yield this.getSpend(i)
-    }
+  spends(): Iterable<Spend> {
+    return this._spends.values()
   }
 
   getSpend(index: number): Spend {
-    return this.withReference((t) => {
-      const spend = t.getSpend(index)
-
-      const jsSpend = {
-        size: spend.treeSize,
-        nullifier: spend.nullifier,
-        commitment: spend.rootHash,
-      }
-
-      return jsSpend
-    })
+    return this._spends[index]
   }
 
   /**
@@ -155,15 +173,15 @@ export class Transaction {
    * The transaction fee is the difference between outputs and spends on the
    * transaction.
    */
-  fee(): Promise<bigint> {
-    return this.workerPool.transactionFee(this)
+  fee(): bigint {
+    return this._fee
   }
 
   /**
    * Get transaction signature for this transaction.
    */
   transactionSignature(): Buffer {
-    return this.withReference((t) => t.transactionSignature())
+    return this._signature
   }
 
   /**
@@ -174,11 +192,11 @@ export class Transaction {
   }
 
   equals(other: Transaction): boolean {
-    return this.hash().equals(other.hash())
+    return this.transactionPostedSerialized.equals(other.transactionPostedSerialized)
   }
 
   expirationSequence(): number {
-    return this.withReference<number>((t) => t.expirationSequence())
+    return this._expirationSequence
   }
 }
 

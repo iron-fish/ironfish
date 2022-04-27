@@ -915,7 +915,7 @@ export class Blockchain {
         target,
         0,
         timestamp,
-        await minersFee.fee(),
+        minersFee.fee(),
         graffiti,
       )
 
@@ -1194,19 +1194,17 @@ export class Blockchain {
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    const verify = await block.withTransactionReferences(async () => {
-      for (const note of block.allNotes()) {
-        await this.addNote(notesIndex, note, tx)
-        notesIndex++
-      }
+    for (const note of block.allNotes()) {
+      await this.addNote(notesIndex, note, tx)
+      notesIndex++
+    }
 
-      for (const spend of block.spends()) {
-        await this.addNullifier(nullifierIndex, spend.nullifier, tx)
-        nullifierIndex++
-      }
+    for (const spend of block.spends()) {
+      await this.addNullifier(nullifierIndex, spend.nullifier, tx)
+      nullifierIndex++
+    }
 
-      return await this.verifier.verifyConnectedBlock(block, tx)
-    })
+    const verify = await this.verifier.verifyConnectedBlock(block, tx)
 
     if (!verify.valid) {
       Assert.isNotUndefined(verify.reason)

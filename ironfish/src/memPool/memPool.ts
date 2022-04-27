@@ -96,7 +96,7 @@ export class MemPool {
       return false
     }
 
-    await this.addTransaction(transaction)
+    this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
@@ -136,11 +136,11 @@ export class MemPool {
         continue
       }
 
-      if (await transaction.isMinersFee()) {
+      if (transaction.isMinersFee()) {
         continue
       }
 
-      await this.addTransaction(transaction)
+      this.addTransaction(transaction)
       addedTransactions++
     }
 
@@ -149,10 +149,10 @@ export class MemPool {
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
-  private async addTransaction(transaction: Transaction): Promise<void> {
+  private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.fee(), hash })
+    this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
   }
 
