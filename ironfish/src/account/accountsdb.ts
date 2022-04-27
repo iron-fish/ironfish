@@ -6,7 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
 import { Transaction } from '../primitives/transaction'
 import {
-  BufferEncoding,
+  BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
@@ -16,6 +16,7 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
+import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
 const DATABASE_VERSION = 3
 
@@ -70,11 +71,7 @@ export class AccountsDB {
 
   transactions: IDatabaseStore<{
     key: Buffer
-    value: {
-      transaction: Buffer
-      blockHash: string | null
-      submittedSequence: number | null
-    }
+    value: TransactionsValue
   }>
 
   constructor({
@@ -130,8 +127,8 @@ export class AccountsDB {
       }
     }>({
       name: 'transactions',
-      keyEncoding: new BufferEncoding(),
-      valueEncoding: new JsonEncoding(),
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new TransactionsValueEncoding(),
     })
   }
 
