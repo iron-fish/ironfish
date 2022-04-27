@@ -200,6 +200,7 @@ export class IronfishNode {
       logger,
       metrics,
       autoSeed,
+      workerPool,
     })
 
     const telemetry = new Telemetry({

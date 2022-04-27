@@ -240,7 +240,7 @@ export async function useTxFixture(
       return tx.serialize()
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx, accounts.workerPool)
+      return new Transaction(tx)
     },
   })
 }
