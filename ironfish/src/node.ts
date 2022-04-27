@@ -216,7 +216,7 @@ export class IronfishNode {
       ],
     })
 
-    const memPool = new MemPool({ chain, metrics, strategy, logger })
+    const memPool = new MemPool({ chain, metrics, logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,
