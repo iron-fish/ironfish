@@ -45,6 +45,7 @@ pub enum SaplingProofError {
     SigningError,
     VerificationFailed,
     InconsistentWitness,
+    NoteError(String),
 }
 
 impl fmt::Display for SaplingProofError {
@@ -64,6 +65,12 @@ impl From<SaplingKeyError> for SaplingProofError {
 impl From<SynthesisError> for SaplingProofError {
     fn from(e: SynthesisError) -> SaplingProofError {
         SaplingProofError::SpendCircuitProofError(e.to_string())
+    }
+}
+
+impl From<NoteError> for SaplingProofError {
+    fn from(e: NoteError) -> SaplingProofError {
+        SaplingProofError::NoteError(e.to_string())
     }
 }
 

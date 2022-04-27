@@ -129,7 +129,7 @@ mod tests {
         };
 
         let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys).unwrap();
 
         let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::new(vec![]);
         merkle_note.write(&mut cursor).unwrap();

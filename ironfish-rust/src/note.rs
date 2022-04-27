@@ -201,7 +201,7 @@ impl<'a> Note {
     /// Send encrypted form of the note, which is what gets publicly stored on
     /// the tree. Only someone with the incoming viewing key for the note can
     /// actually read the contents.
-    pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
+    pub fn encrypt(&self, shared_secret: &[u8; 32]) -> Result<[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE], errors::NoteError> {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
         bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
         bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
@@ -209,9 +209,9 @@ impl<'a> Note {
         LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
         bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
-        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
+        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes)?;
 
-        encrypted_bytes
+        Ok(encrypted_bytes)
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.

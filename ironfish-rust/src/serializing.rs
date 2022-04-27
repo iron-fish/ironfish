@@ -79,10 +79,8 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
 
 pub(crate) mod aead {
     use crate::errors;
-    use crypto::{
-        aead::{AeadDecryptor, AeadEncryptor},
-        chacha20poly1305::ChaCha20Poly1305,
-    };
+    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, Tag};
+    use chacha20poly1305::aead::{AeadInPlace, NewAead};
 
     pub const MAC_SIZE: usize = 16;
 
@@ -91,16 +89,16 @@ pub(crate) mod aead {
     ///
     /// This is just a facade around the ChaCha20Poly1305 struct. It ignores
     /// nonce and aad and automatically stores the mac tag.
-    pub(crate) fn encrypt(key: &[u8], plaintext: &[u8], encrypted_output: &mut [u8]) {
+    pub(crate) fn encrypt(key: &[u8], plaintext: &[u8], encrypted_output: &mut [u8]) -> Result<(), errors::NoteError> {
         assert_eq!(encrypted_output.len(), plaintext.len() + MAC_SIZE);
-        let mut encryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
-        let mut tag = [0; MAC_SIZE];
-        encryptor.encrypt(
+        let encryptor = ChaCha20Poly1305::new(Key::from_slice(key));
+        let tag = encryptor.encrypt_in_place_detached(
+            &Nonce::default(),
             plaintext,
             &mut encrypted_output[..plaintext.len()],
-            &mut tag,
-        );
-        encrypted_output[plaintext.len()..].clone_from_slice(&tag);
+        ).map_err(|_| errors::NoteError::KeyError)?;
+        encrypted_output[plaintext.len()..].clone_from_slice(tag.as_slice());
+        Ok(())
     }
 
     /// Decrypt the encrypted text using the given key and ciphertext, also checking
@@ -113,18 +111,15 @@ pub(crate) mod aead {
         plaintext_output: &mut [u8],
     ) -> Result<(), errors::NoteError> {
         assert!(plaintext_output.len() == ciphertext.len() - MAC_SIZE);
-        let mut decryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
-        let success = decryptor.decrypt(
+        let decryptor = ChaCha20Poly1305::new(Key::from_slice(key));
+        decryptor.decrypt_in_place_detached(
+            &Nonce::default(),
             &ciphertext[..ciphertext.len() - MAC_SIZE],
             plaintext_output,
-            &ciphertext[ciphertext.len() - MAC_SIZE..],
-        );
+            Tag::from_slice(&ciphertext[ciphertext.len() - MAC_SIZE..]),
+        ).map_err(|_| errors::NoteError::KeyError)?;
 
-        if success {
-            Ok(())
-        } else {
-            Err(errors::NoteError::KeyError)
-        }
+        Ok(())
     }
 
     #[cfg(test)]

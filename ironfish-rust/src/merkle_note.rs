@@ -73,14 +73,14 @@ impl MerkleNote {
         note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
-    ) -> MerkleNote {
+    ) -> Result<MerkleNote, errors::NoteError> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let encrypted_note = note.encrypt(&shared_secret(
             secret_key,
             &note.owner.transmission_key,
             public_key,
-        ));
+        ))?;
 
         let mut key_bytes = [0; 64];
         key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
@@ -93,15 +93,15 @@ impl MerkleNote {
             public_key,
         );
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
-        aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
+        aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys)?;
 
-        MerkleNote {
+        Ok(MerkleNote {
             value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
             ephemeral_public_key: (*public_key),
             encrypted_note,
             note_encryption_keys,
-        }
+        })
     }
 
     /// Load a MerkleNote from the given stream
@@ -295,7 +295,7 @@ mod test {
         };
 
         let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys).unwrap();
         merkle_note
             .decrypt_note_for_owner(receiver_key.incoming_view_key())
             .expect("should be able to decrypt note");
@@ -321,7 +321,7 @@ mod test {
         };
 
         let mut merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys).unwrap();
         merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .expect("should be able to decrypt note");

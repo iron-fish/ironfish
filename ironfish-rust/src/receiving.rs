@@ -52,7 +52,7 @@ impl ReceiptParams {
         };
 
         let merkle_note =
-            MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys)?;
 
         let output_circuit = Output {
             value_commitment: Some(value_commitment),
