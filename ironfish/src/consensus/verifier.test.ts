@@ -482,8 +482,7 @@ describe('Verifier', () => {
 
         jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
           Promise.resolve({
-            valid: false,
-            reason: VerificationResultReason.ERROR,
+            valid: true,
           }),
         )
 
