@@ -33,29 +33,11 @@ export class Block {
     let nullifiers = 0
 
     for (const transaction of this.transactions) {
-      transaction.withReference(() => {
-        notes += transaction.notesLength()
-        nullifiers += transaction.spendsLength()
-      })
+      notes += transaction.notesLength()
+      nullifiers += transaction.spendsLength()
     }
 
     return { notes, nullifiers }
-  }
-
-  withTransactionReferences<R>(callback: () => R | Promise<R>): R | Promise<R> {
-    for (const t of this.transactions) {
-      t.takeReference()
-    }
-
-    const result = callback()
-
-    Promise.resolve(result).finally(() => {
-      for (const t of this.transactions) {
-        t.returnReference()
-      }
-    })
-
-    return result
   }
 
   /**

@@ -349,11 +349,7 @@ export async function useBlockWithTx(
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(
-        await transaction.fee(),
-        3,
-        generateKey().spending_key,
-      ),
+      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
     )
   })
 

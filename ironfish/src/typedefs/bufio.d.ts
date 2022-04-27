@@ -33,6 +33,9 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    offset: number
+
+    seek(offset: number): BufferReader
     left(): number
     readU8(): number
     readU32(): number
