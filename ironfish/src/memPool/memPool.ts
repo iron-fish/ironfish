@@ -10,7 +10,6 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { Strategy } from '../strategy'
 
 interface MempoolEntry {
   fee: bigint
@@ -25,14 +24,8 @@ export class MemPool {
   private readonly chain: Blockchain
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
-  private readonly strategy: Strategy
 
-  constructor(options: {
-    strategy: Strategy
-    chain: Blockchain
-    metrics: MetricsMonitor
-    logger?: Logger
-  }) {
+  constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -46,7 +39,6 @@ export class MemPool {
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
-    this.strategy = options.strategy
 
     this.chain.onConnectBlock.on((block) => {
       this.onConnectBlock(block)
