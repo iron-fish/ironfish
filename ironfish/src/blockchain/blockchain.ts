@@ -17,6 +17,7 @@ import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
+import { NodeEncoding } from '../merkletree/database/nodes'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
 import { Block, SerializedBlock } from '../primitives/block'
@@ -202,6 +203,7 @@ export class Blockchain {
       hasher: this.strategy.noteHasher,
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NoteLeafEncoding(),
+      nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'n',
       depth: 32,
@@ -211,6 +213,7 @@ export class Blockchain {
       hasher: this.strategy.nullifierHasher,
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NullifierLeafEncoding(),
+      nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'u',
       depth: 32,
