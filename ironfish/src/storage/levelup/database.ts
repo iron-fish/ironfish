@@ -14,10 +14,10 @@ import {
   IDatabaseStore,
   IDatabaseStoreOptions,
   IDatabaseTransaction,
-  JsonEncoding,
   SchemaKey,
   SchemaValue,
   StringEncoding,
+  U32_ENCODING,
 } from '../database'
 import { DatabaseIsLockedError } from '../database/errors'
 import { LevelupBatch } from './batch'
@@ -51,7 +51,7 @@ export class LevelupDatabase extends Database {
     this.metaStore = this.addStore<MetaSchema>({
       name: 'Meta',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: U32_ENCODING,
     }) as LevelupStore<MetaSchema>
   }
 
