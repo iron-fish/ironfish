@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
-import bufio, { sizeVarBytes } from 'bufio'
+import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 
 export interface LeafValue<T> {
@@ -13,16 +13,19 @@ export interface LeafValue<T> {
   parentIndex: number
 }
 
+const NOTE_BYTES = 275
+const NULLIFIER_BYTES = 32
+
 export type NoteLeafValue = LeafValue<NoteEncrypted>
 
 export type NullifierLeafValue = LeafValue<Buffer>
 
 export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
   serialize(value: NoteLeafValue): Buffer {
-    const bw = bufio.write(this.getSize(value))
+    const bw = bufio.write(this.getSize())
 
     bw.writeU32(value.index)
-    bw.writeVarBytes(value.element.serialize())
+    bw.writeBytes(value.element.serialize())
     bw.writeHash(value.merkleHash)
     bw.writeU32(value.parentIndex)
 
@@ -33,7 +36,7 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
     const reader = bufio.read(buffer, true)
 
     const index = reader.readU32()
-    const element = new NoteEncrypted(reader.readVarBytes())
+    const element = new NoteEncrypted(reader.readBytes(NOTE_BYTES))
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 
@@ -45,11 +48,10 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
     }
   }
 
-  getSize(value: NoteLeafValue): number {
+  getSize(): number {
     let size = 0
     size += 4 // index
-    // TODO: This is fixed size
-    size += sizeVarBytes(value.element.serialize())
+    size += NOTE_BYTES // element
     size += 32 // merkleHash
     size += 4 // parentIndex
     return size
@@ -58,10 +60,10 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
 
 export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafValue> {
   serialize(value: NullifierLeafValue): Buffer {
-    const bw = bufio.write(this.getSize(value))
+    const bw = bufio.write(this.getSize())
 
     bw.writeU32(value.index)
-    bw.writeVarBytes(value.element)
+    bw.writeBytes(value.element)
     bw.writeHash(value.merkleHash)
     bw.writeU32(value.parentIndex)
 
@@ -72,7 +74,7 @@ export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafVal
     const reader = bufio.read(buffer, true)
 
     const index = reader.readU32()
-    const element = reader.readVarBytes()
+    const element = reader.readBytes(NULLIFIER_BYTES)
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 
@@ -84,11 +86,10 @@ export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafVal
     }
   }
 
-  getSize(value: NullifierLeafValue): number {
+  getSize(): number {
     let size = 0
     size += 4 // index
-    // TODO: This is fixed size
-    size += sizeVarBytes(value.element)
+    size += NULLIFIER_BYTES // element
     size += 32 // merkleHash
     size += 4 // parentIndex
     return size
