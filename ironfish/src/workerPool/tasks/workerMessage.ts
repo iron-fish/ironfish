@@ -14,9 +14,8 @@ export enum WorkerMessageType {
   JobError = 5,
   Sleep = 6,
   SubmitTelemetry = 7,
-  TransactionFee = 8,
-  UnboxMessage = 9,
-  VerifyTransaction = 10,
+  UnboxMessage = 8,
+  VerifyTransaction = 9,
 }
 
 export abstract class WorkerMessage implements Serializable {
