@@ -51,12 +51,13 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
     const bw = bufio.write()
 
     bw.writeU32(value.index)
-    bw.writeU8(value.side)
     bw.writeVarString(value.hashOfSibling)
 
     if (value.side === Side.Left) {
+      bw.writeU8(0)
       bw.writeU32(value.parentIndex)
     } else {
+      bw.writeU8(1)
       bw.writeU32(value.leftIndex)
     }
 
@@ -67,8 +68,11 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
     const reader = bufio.read(buffer, true)
 
     const index = reader.readU32()
-    const side = reader.readU8() as Side
     const hashOfSibling = reader.readVarString()
+
+    const sideNumber = reader.readU8()
+    const side = sideNumber === 0 ? Side.Left : Side.Right
+
     const otherIndex = reader.readU32()
 
     if (side === Side.Left) {
@@ -77,7 +81,7 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
         side,
         hashOfSibling,
         parentIndex: otherIndex,
-      }
+      } as const
       return leftNode
     }
 
@@ -86,7 +90,7 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
       side,
       hashOfSibling,
       leftIndex: otherIndex,
-    }
+    } as const
     return rightNode
   }
 }

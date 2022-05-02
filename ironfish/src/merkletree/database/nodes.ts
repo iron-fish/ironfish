@@ -27,12 +27,13 @@ export class NodeEncoding implements IDatabaseEncoding<NodeValue<Buffer>> {
     const bw = bufio.write(this.getSize())
 
     bw.writeU32(value.index)
-    bw.writeU8(value.side)
     bw.writeHash(value.hashOfSibling)
 
     if (value.side === Side.Left) {
+      bw.writeU8(0)
       bw.writeU32(value.parentIndex)
     } else {
+      bw.writeU8(1)
       bw.writeU32(value.leftIndex)
     }
 
@@ -43,8 +44,11 @@ export class NodeEncoding implements IDatabaseEncoding<NodeValue<Buffer>> {
     const reader = bufio.read(buffer, true)
 
     const index = reader.readU32()
-    const side = reader.readU8() as Side
     const hashOfSibling = reader.readHash()
+
+    const sideNumber = reader.readU8()
+    const side = sideNumber === 0 ? Side.Left : Side.Right
+
     const otherIndex = reader.readU32()
 
     if (side === Side.Left) {

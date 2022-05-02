@@ -690,8 +690,8 @@ export class MerkleTree<
 }
 
 export enum Side {
-  Left = 0,
-  Right = 1,
+  Left = 'Left',
+  Right = 'Right',
 }
 
 export type LeafIndex = number
