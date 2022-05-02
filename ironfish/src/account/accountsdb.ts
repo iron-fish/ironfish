@@ -16,6 +16,7 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
+import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import {
   NoteToNullifiersValue,
   NoteToNullifiersValueEncoding,
@@ -47,11 +48,6 @@ const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   headHash: null,
 })
 
-export type AccountsDBMeta = {
-  defaultAccountName: string | null
-  headHash: string | null
-}
-
 export class AccountsDB {
   database: IDatabase
   workerPool: WorkerPool
@@ -62,7 +58,7 @@ export class AccountsDB {
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
-    value: AccountsDBMeta[keyof AccountsDBMeta]
+    value: MetaValue
   }>
 
   // Transaction-related database stores
@@ -98,7 +94,7 @@ export class AccountsDB {
     }>({
       name: 'meta',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new MetaValueEncoding(),
     })
 
     this.accounts = this.database.addStore<{ key: string; value: SerializedAccount }>({
