@@ -16,7 +16,8 @@ import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
-import { AccountDefaults, AccountsDB, SerializedAccount } from './accountsdb'
+import { AccountDefaults, AccountsDB } from './accountsdb'
+import { AccountsValue } from './database/accounts'
 import { validateAccount } from './validator'
 
 type SyncTransactionParams =
@@ -891,7 +892,7 @@ export class Accounts {
 
     const key = generateKey()
 
-    const serializedAccount: SerializedAccount = {
+    const serializedAccount: AccountsValue = {
       ...AccountDefaults,
       name: name,
       incomingViewKey: key.incoming_view_key,
@@ -918,14 +919,14 @@ export class Accounts {
     await this.scanTransactions()
   }
 
-  async importAccount(toImport: Partial<SerializedAccount>): Promise<Account> {
+  async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.accounts.has(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    const serializedAccount: SerializedAccount = {
+    const serializedAccount: AccountsValue = {
       ...AccountDefaults,
       ...toImport,
     }
