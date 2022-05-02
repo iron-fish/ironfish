@@ -4,7 +4,9 @@
 
 import bufio from 'bufio'
 import { MerkleTree } from '../../merkletree'
+import { NodeValue } from '../../merkletree/database/nodes'
 import { StructureHasher } from '../../merkletree/hasher'
+import { Side } from '../../merkletree/merkletree'
 import { IDatabase, IDatabaseEncoding, StringEncoding } from '../../storage'
 import { createDB } from '../helpers/storage'
 
@@ -44,6 +46,55 @@ class StructureLeafEncoding implements IDatabaseEncoding<StructureLeafValue> {
   }
 }
 
+class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
+  serialize(value: NodeValue<string>): Buffer {
+    const bw = bufio.write()
+
+    bw.writeU32(value.index)
+    bw.writeVarString(value.hashOfSibling)
+
+    if (value.side === Side.Left) {
+      bw.writeU8(0)
+      bw.writeU32(value.parentIndex)
+    } else {
+      bw.writeU8(1)
+      bw.writeU32(value.leftIndex)
+    }
+
+    return bw.render()
+  }
+
+  deserialize(buffer: Buffer): NodeValue<string> {
+    const reader = bufio.read(buffer, true)
+
+    const index = reader.readU32()
+    const hashOfSibling = reader.readVarString()
+
+    const sideNumber = reader.readU8()
+    const side = sideNumber === 0 ? Side.Left : Side.Right
+
+    const otherIndex = reader.readU32()
+
+    if (side === Side.Left) {
+      const leftNode = {
+        index,
+        side,
+        hashOfSibling,
+        parentIndex: otherIndex,
+      } as const
+      return leftNode
+    }
+
+    const rightNode = {
+      index,
+      side,
+      hashOfSibling,
+      leftIndex: otherIndex,
+    } as const
+    return rightNode
+  }
+}
+
 export async function makeTree({
   name,
   db,
@@ -63,6 +114,7 @@ export async function makeTree({
     hasher: new StructureHasher(),
     leafIndexKeyEncoding: new StringEncoding(),
     leafEncoding: new StructureLeafEncoding(),
+    nodeEncoding: new StructureNodeEncoding(),
     db: db,
     name: name,
     depth: depth,
