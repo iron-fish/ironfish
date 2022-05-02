@@ -16,6 +16,7 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
+import { NoteToNullifiersValue } from './database/noteToNullifiers'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
 const DATABASE_VERSION = 3
@@ -64,7 +65,7 @@ export class AccountsDB {
   // Transaction-related database stores
   noteToNullifier: IDatabaseStore<{
     key: string
-    value: { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
+    value: NoteToNullifiersValue
   }>
 
   nullifierToNote: IDatabaseStore<{ key: string; value: string }>
