@@ -16,7 +16,10 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
-import { NoteToNullifiersValue } from './database/noteToNullifiers'
+import {
+  NoteToNullifiersValue,
+  NoteToNullifiersValueEncoding,
+} from './database/noteToNullifiers'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
 const DATABASE_VERSION = 3
@@ -106,11 +109,11 @@ export class AccountsDB {
 
     this.noteToNullifier = this.database.addStore<{
       key: string
-      value: { nullifierHash: string; noteIndex: number | null; spent: boolean }
+      value: NoteToNullifiersValue
     }>({
       name: 'noteToNullifier',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new NoteToNullifiersValueEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
@@ -121,11 +124,7 @@ export class AccountsDB {
 
     this.transactions = this.database.addStore<{
       key: Buffer
-      value: {
-        transaction: Buffer
-        blockHash: string | null
-        submittedSequence: number | null
-      }
+      value: TransactionsValue
     }>({
       name: 'transactions',
       keyEncoding: BUFFER_ENCODING,
