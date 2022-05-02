@@ -14,7 +14,10 @@ jest.mock('@ironfish/rust-nodejs', () => {
   const moduleMock = jest.requireActual<typeof native>('@ironfish/rust-nodejs')
   return {
     ...moduleMock,
-    generateNewPublicAddress: jest.fn().mockReturnValue({ publicAddress: 'newkey' }),
+    generateNewPublicAddress: jest.fn().mockReturnValue({
+      public_address:
+        'f0486664761c625bad7024f11724b42968244a4bb05446b17719bcc48d5fb65899da4fb204358a3b9d6d05',
+    }),
   }
 })
 
