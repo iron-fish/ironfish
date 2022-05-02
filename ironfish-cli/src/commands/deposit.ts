@@ -18,8 +18,6 @@ import { RemoteFlags } from '../flags'
 import { ProgressBar } from '../types'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
-// TODO: Fetch from API
-const BANK_PUBLIC_ADDRESS = 'asdf'
 const IRON_TO_SEND = 0.1
 
 export default class Bank extends IronfishCommand {
@@ -60,6 +58,12 @@ export default class Bank extends IronfishCommand {
 
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
+
+    const bankDepositAddress = await this.api.getDepositAddress()
+    if (!bankDepositAddress) {
+      this.log('Error fetching deposit address. Please try again later.')
+      this.exit(1)
+    }
 
     const { canSend, errorReason } = await this.verifyCanSend(flags)
     if (!canSend) {
@@ -124,7 +128,7 @@ The memo will contain the graffiti "${graffiti}".
         fromAccountName: accountName,
         receives: [
           {
-            publicAddress: BANK_PUBLIC_ADDRESS,
+            publicAddress: bankDepositAddress,
             amount: ironToOre(IRON_TO_SEND).toString(),
             memo: graffiti,
           },
