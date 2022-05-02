@@ -14,7 +14,7 @@ use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Note as SaplingNote, Nullifier, Rseed};
 
-use std::{fmt, io, io::Read};
+use std::{convert::TryInto, fmt, io, io::Read};
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
@@ -201,17 +201,20 @@ impl<'a> Note {
     /// Send encrypted form of the note, which is what gets publicly stored on
     /// the tree. Only someone with the incoming viewing key for the note can
     /// actually read the contents.
-    pub fn encrypt(&self, shared_secret: &[u8; 32]) -> Result<[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE], errors::NoteError> {
+    pub fn encrypt(
+        &self,
+        shared_secret: &[u8; 32],
+    ) -> Result<[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE], errors::NoteError> {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
         bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
         bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
 
         LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
         bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
-        let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
-        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes)?;
+        let encrypted_bytes = aead::encrypt(shared_secret, &bytes_to_encrypt)?;
+        assert_eq!(encrypted_bytes.len(), ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE);
 
-        Ok(encrypted_bytes)
+        Ok(encrypted_bytes.try_into().unwrap())
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
@@ -253,8 +256,8 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), errors::NoteError> {
-        let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
-        aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
+        let plaintext_bytes = aead::decrypt(shared_secret, encrypted_bytes)?;
+        assert_eq!(plaintext_bytes.len(), ENCRYPTED_NOTE_SIZE);
 
         let mut reader = plaintext_bytes[..].as_ref();
         let mut diversifier_bytes = [0; 11];
@@ -322,7 +325,9 @@ mod test {
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
         let note = Note::new(public_address, 42, Memo([0; 32]));
-        let encryption_result = note.encrypt(&public_shared_secret);
+        let encryption_result = note
+            .encrypt(&public_shared_secret)
+            .expect("Should be able to encrypt");
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);
         assert_eq!(private_shared_secret, public_shared_secret);

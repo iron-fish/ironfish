@@ -79,47 +79,31 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
 
 pub(crate) mod aead {
     use crate::errors;
-    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, Tag};
-    use chacha20poly1305::aead::{AeadInPlace, NewAead};
+    use chacha20poly1305::aead::{Aead, NewAead};
+    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 
     pub const MAC_SIZE: usize = 16;
 
-    /// Encrypt the plaintext using the given key, and append the MAC tag to the
-    /// end of the output array to be decrypted and checked in one step below.
+    /// Encrypt the plaintext using the given key, appending the MAC tag to the
+    /// end of the output array.
     ///
-    /// This is just a facade around the ChaCha20Poly1305 struct. It ignores
-    /// nonce and aad and automatically stores the mac tag.
-    pub(crate) fn encrypt(key: &[u8], plaintext: &[u8], encrypted_output: &mut [u8]) -> Result<(), errors::NoteError> {
-        assert_eq!(encrypted_output.len(), plaintext.len() + MAC_SIZE);
+    /// This is just a facade around the ChaCha20Poly1305 struct. The nonce and
+    /// associated data are zeroed.
+    pub(crate) fn encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<Vec<u8>, errors::NoteError> {
         let encryptor = ChaCha20Poly1305::new(Key::from_slice(key));
-        let tag = encryptor.encrypt_in_place_detached(
-            &Nonce::default(),
-            plaintext,
-            &mut encrypted_output[..plaintext.len()],
-        ).map_err(|_| errors::NoteError::KeyError)?;
-        encrypted_output[plaintext.len()..].clone_from_slice(tag.as_slice());
-        Ok(())
+        let result = encryptor
+            .encrypt(&Nonce::default(), plaintext)
+            .map_err(|_| errors::NoteError::KeyError)?;
+        Ok(result)
     }
 
-    /// Decrypt the encrypted text using the given key and ciphertext, also checking
-    /// that the mac tag is correct.
-    ///
-    /// Returns Ok(()) if the mac matches the decrypted text, Err(()) if not
-    pub(crate) fn decrypt(
-        key: &[u8],
-        ciphertext: &[u8],
-        plaintext_output: &mut [u8],
-    ) -> Result<(), errors::NoteError> {
-        assert!(plaintext_output.len() == ciphertext.len() - MAC_SIZE);
+    /// Decrypt the encrypted text using the given key and ciphertext.
+    pub(crate) fn decrypt(key: &[u8; 32], ciphertext: &[u8]) -> Result<Vec<u8>, errors::NoteError> {
         let decryptor = ChaCha20Poly1305::new(Key::from_slice(key));
-        decryptor.decrypt_in_place_detached(
-            &Nonce::default(),
-            &ciphertext[..ciphertext.len() - MAC_SIZE],
-            plaintext_output,
-            Tag::from_slice(&ciphertext[ciphertext.len() - MAC_SIZE..]),
-        ).map_err(|_| errors::NoteError::KeyError)?;
-
-        Ok(())
+        let result = decryptor
+            .decrypt(&Nonce::default(), ciphertext)
+            .map_err(|_| errors::NoteError::KeyError)?;
+        Ok(result)
     }
 
     #[cfg(test)]
@@ -128,14 +112,15 @@ pub(crate) mod aead {
 
         #[test]
         fn test_aead_facade() {
-            let key = b"I'm so secret!!!";
+            let key = b"an example very very secret key.";
             let plaintext = b"hello world";
-            let mut encrypted_text = [0; 27];
-            encrypt(&key[..], &plaintext[..], &mut encrypted_text[..]);
+            let encrypted_text =
+                encrypt(&key, &plaintext[..]).expect("Should successfully encrypt plaintext");
 
-            let mut decrypted_plaintext = [0; 11];
-            decrypt(&key[..], &encrypted_text[..], &mut decrypted_plaintext[..])
-                .expect("Should successfully decrypt with MAC verification");
+            let decrypted_plaintext =
+                decrypt(&key, &encrypted_text[..]).expect("Should successfully decrypt plaintext");
+            println!("{:?}", decrypted_plaintext);
+            println!("{:?}", plaintext);
             assert_eq!(&decrypted_plaintext, plaintext);
         }
     }

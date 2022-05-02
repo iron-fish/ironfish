@@ -92,15 +92,14 @@ impl MerkleNote {
             &note.commitment_point(),
             public_key,
         );
-        let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
-        aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys)?;
+        let note_encryption_keys = aead::encrypt(&encryption_key, &key_bytes)?;
 
         Ok(MerkleNote {
             value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
             ephemeral_public_key: (*public_key),
             encrypted_note,
-            note_encryption_keys,
+            note_encryption_keys: note_encryption_keys.try_into().unwrap(),
         })
     }
 
@@ -187,12 +186,7 @@ impl MerkleNote {
             &self.ephemeral_public_key,
         );
 
-        let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE];
-        aead::decrypt(
-            &encryption_key,
-            &self.note_encryption_keys,
-            &mut note_encryption_keys,
-        )?;
+        let note_encryption_keys = aead::decrypt(&encryption_key, &self.note_encryption_keys)?;
 
         let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
