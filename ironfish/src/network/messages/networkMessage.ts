@@ -4,22 +4,7 @@
 import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 import { Identity } from '../identity'
-
-export enum NetworkMessageType {
-  Disconnecting = 0,
-  CannotSatisfyRequest = 1,
-  GetBlockHashesRequest = 2,
-  GetBlockHashesResponse = 3,
-  GetBlocksRequest = 4,
-  GetBlocksResponse = 5,
-  Identify = 6,
-  NewBlock = 7,
-  NewTransaction = 8,
-  PeerList = 9,
-  PeerListRequest = 10,
-  Signal = 11,
-  SignalRequest = 12,
-}
+import { NetworkMessageType } from '../types'
 
 export function displayNetworkMessageType(type: NetworkMessageType): string {
   return `${NetworkMessageType[type]} (${type})`
@@ -34,6 +19,12 @@ export abstract class NetworkMessage implements Serializable {
 
   abstract serialize(): Buffer
   abstract getSize(): number
+
+  static deserializeType(buffer: Buffer): { type: NetworkMessageType; remaining: Buffer } {
+    const br = bufio.read(buffer, true)
+    const type = br.readU8()
+    return { type, remaining: br.readBytes(br.left()) }
+  }
 
   serializeWithMetadata(): Buffer {
     const headerSize = 1

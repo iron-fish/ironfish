@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
-import { NetworkMessageType } from '../../../network/messages/networkMessage'
+import { NetworkMessageType } from '../../../network/types'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 

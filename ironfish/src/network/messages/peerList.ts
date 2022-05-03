@@ -4,7 +4,8 @@
 import bufio from 'bufio'
 import { Assert } from '../../assert'
 import { identityLength } from '../identity'
-import { NetworkMessage, NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
+import { NetworkMessage } from './networkMessage'
 
 interface Peer {
   identity: Buffer

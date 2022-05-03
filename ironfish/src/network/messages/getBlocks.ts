@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { SerializedBlock } from '../../primitives/block'
+import { NetworkMessageType } from '../types'
 import { getBlockSize, readBlock, writeBlock } from '../utils/block'
-import { NetworkMessageType } from './networkMessage'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlocksRequest extends RpcNetworkMessage {

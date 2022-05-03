@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { Identity, identityLength } from '../identity'
-import { NetworkMessage, NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
+import { NetworkMessage } from './networkMessage'
 
 export enum DisconnectingReason {
   ShuttingDown = 0,
