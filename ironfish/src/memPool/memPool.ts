@@ -10,7 +10,6 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { Strategy } from '../strategy'
 
 interface MempoolEntry {
   fee: bigint
@@ -25,14 +24,8 @@ export class MemPool {
   private readonly chain: Blockchain
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
-  private readonly strategy: Strategy
 
-  constructor(options: {
-    strategy: Strategy
-    chain: Blockchain
-    metrics: MetricsMonitor
-    logger?: Logger
-  }) {
+  constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -46,7 +39,6 @@ export class MemPool {
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
-    this.strategy = options.strategy
 
     this.chain.onConnectBlock.on((block) => {
       this.onConnectBlock(block)
@@ -104,7 +96,7 @@ export class MemPool {
       return false
     }
 
-    await this.addTransaction(transaction)
+    this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
@@ -144,11 +136,11 @@ export class MemPool {
         continue
       }
 
-      if (await transaction.isMinersFee()) {
+      if (transaction.isMinersFee()) {
         continue
       }
 
-      await this.addTransaction(transaction)
+      this.addTransaction(transaction)
       addedTransactions++
     }
 
@@ -157,10 +149,10 @@ export class MemPool {
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
-  private async addTransaction(transaction: Transaction): Promise<void> {
+  private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.fee(), hash })
+    this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
   }
 

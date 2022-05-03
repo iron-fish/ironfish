@@ -32,6 +32,8 @@ import {
   GetPublicKeyResponse,
   GetStatusRequest,
   GetStatusResponse,
+  GetTransactionStreamRequest,
+  GetTransactionStreamResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   SendTransactionRequest,
@@ -350,6 +352,15 @@ export abstract class IronfishRpcClient {
       `${ApiNamespace.chain}/showChain`,
       params,
     ).waitForEnd()
+  }
+
+  getTransactionStream(
+    params: GetTransactionStreamRequest,
+  ): Response<void, GetTransactionStreamResponse> {
+    return this.request<void, GetTransactionStreamResponse>(
+      `${ApiNamespace.chain}/getTransactionStream`,
+      params,
+    )
   }
 
   async getConfig(

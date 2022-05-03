@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
+import {
+  ApiDepositUpload,
+  GetTransactionStreamResponse,
+  MemoUtils,
+  Meter,
+  TimeUtils,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -10,15 +17,19 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 100 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export default class Sync extends IronfishCommand {
+export default class SyncTransactions extends IronfishCommand {
   static hidden = true
 
-  static description = `
-    Upload blocks to an HTTP API using IronfishApi
-  `
+  static description = 'Upload transactions to an HTTP API using IronfishApi'
 
   static flags = {
     ...RemoteFlags,
+    viewKey: Flags.string({
+      char: 'k',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: true,
+      description: 'View key to watch transactions with',
+    }),
     endpoint: Flags.string({
       char: 'e',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -26,7 +37,7 @@ export default class Sync extends IronfishCommand {
       description: 'API host to sync to',
     }),
     token: Flags.string({
-      char: 'e',
+      char: 't',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host token to authenticate with',
@@ -42,7 +53,7 @@ export default class Sync extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(Sync)
+    const { flags, args } = await this.parse(SyncTransactions)
 
     const apiHost = (flags.endpoint || process.env.IRONFISH_API_HOST || '').trim()
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
@@ -61,6 +72,7 @@ export default class Sync extends IronfishCommand {
       this.exit(1)
     }
 
+    this.log('Watching with view key: ', flags.viewKey)
     this.log('Connecting to node...')
 
     const client = await this.sdk.connectRpc()
@@ -70,32 +82,40 @@ export default class Sync extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await api.headBlocks()
+      head = await api.headDeposits()
+      this.log(`Starting from ${head || 'Genesis Block'}`)
     }
+
+    let lastCountedSequence = 0
 
     if (head) {
       this.log(`Starting from head ${head}`)
+      const blockInfo = await client.getBlockInfo({ hash: head })
+      lastCountedSequence = blockInfo.content.block.sequence
     }
 
-    const response = client.followChainStream({
+    const response = this.sdk.client.getTransactionStream({
+      incomingViewKey: flags.viewKey,
       head: head,
     })
 
     const speed = new Meter()
     speed.start()
 
-    const buffer = new Array<FollowChainStreamResponse>()
+    const buffer = new Array<GetTransactionStreamResponse>()
 
     async function commit(): Promise<void> {
-      await api.blocks(buffer)
+      const serialized = buffer.map(serializeDeposit)
       buffer.length = 0
+      await api.uploadDeposits(serialized)
     }
 
     for await (const content of response.contentStream()) {
       buffer.push(content)
-      speed.add(1)
+      speed.add(content.block.sequence - lastCountedSequence)
+      lastCountedSequence = content.block.sequence
 
-      // We're almost done syncing if we are within 5 sequence to the HEAD
+      // We're almost done syncing if we are within NEAR_SYNC_THRESHOLD sequence to the HEAD
       const finishing =
         Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
 
@@ -119,7 +139,19 @@ export default class Sync extends IronfishCommand {
         await commit()
       }
     }
+  }
+}
 
-    await commit()
+function serializeDeposit(data: GetTransactionStreamResponse): ApiDepositUpload {
+  return {
+    ...data,
+    transactions: data.transactions.map((tx) => ({
+      ...tx,
+      notes: tx.notes.map((note) => ({
+        ...note,
+        memo: MemoUtils.toHuman(note.memo),
+        amount: Number(note.amount),
+      })),
+    })),
   }
 }

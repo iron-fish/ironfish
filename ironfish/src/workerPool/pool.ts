@@ -4,6 +4,7 @@
 
 import type { Side } from '../merkletree/merkletree'
 import _ from 'lodash'
+import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
@@ -18,7 +19,6 @@ import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/cre
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
@@ -54,7 +54,6 @@ export class WorkerPool {
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.TransactionFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
@@ -133,7 +132,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async createTransaction(
@@ -169,21 +168,13 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
-  async transactionFee(transaction: Transaction): Promise<bigint> {
-    const request = new TransactionFeeRequest(transaction.serialize())
-
-    const response = await this.execute(request).result()
-    if (!(response instanceof TransactionFeeResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return response.fee
-  }
-
-  async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
+  async verify(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     const request: VerifyTransactionRequest = new VerifyTransactionRequest(
       transaction.serialize(),
       options,
@@ -195,6 +186,8 @@ export class WorkerPool {
     }
 
     return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   async boxMessage(

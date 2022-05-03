@@ -68,10 +68,7 @@ export async function makeGenesisBlock(
 
   const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new Transaction(
-    minersFeeTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
    *
@@ -86,10 +83,7 @@ export async function makeGenesisBlock(
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new Transaction(
-    initialTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
   transactionList.push(postedInitialTransaction)
 
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
@@ -134,7 +128,6 @@ export async function makeGenesisBlock(
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
     transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
-    workerPool,
   )
   transactionList.push(postedTransaction)
 

@@ -41,6 +41,8 @@ export class SubmitTelemetryRequest extends WorkerMessage {
             bw.writeU8(Number(field.value))
             break
           case 'float':
+            bw.writeDouble(field.value)
+            break
           case 'integer':
             bw.writeU64(field.value)
             break
@@ -84,7 +86,11 @@ export class SubmitTelemetryRequest extends WorkerMessage {
             fields.push({ name, type, value })
             break
           }
-          case 'float':
+          case 'float': {
+            const value = reader.readDouble()
+            fields.push({ name, type, value })
+            break
+          }
           case 'integer': {
             const value = reader.readU64()
             fields.push({ name, type, value })

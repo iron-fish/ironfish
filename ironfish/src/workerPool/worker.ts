@@ -17,7 +17,6 @@ import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
 import { JobError, JobErrorMessage } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
@@ -248,8 +247,6 @@ export class Worker {
         return SleepRequest.deserialize(jobId, request)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryRequest.deserialize(jobId, request)
-      case WorkerMessageType.TransactionFee:
-        return TransactionFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.UnboxMessage:
         return UnboxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
@@ -279,8 +276,6 @@ export class Worker {
         return SleepResponse.deserialize(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
         return SubmitTelemetryResponse.deserialize(jobId)
-      case WorkerMessageType.TransactionFee:
-        return TransactionFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.UnboxMessage:
         return UnboxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
