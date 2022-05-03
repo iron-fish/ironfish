@@ -11,6 +11,7 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   StringEncoding,
+  StringHashEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
@@ -99,13 +100,13 @@ export class AccountsDB {
       value: NoteToNullifiersValue
     }>({
       name: 'noteToNullifier',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new StringHashEncoding(),
       valueEncoding: new NoteToNullifiersValueEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
       name: 'nullifierToNote',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new StringHashEncoding(),
       valueEncoding: new StringEncoding(),
     })
 
