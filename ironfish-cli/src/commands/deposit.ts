@@ -39,7 +39,6 @@ export default class Bank extends IronfishCommand {
     }),
     account: Flags.string({
       char: 'a',
-      default: 'default',
       parse: (input) => Promise.resolve(input.trim()),
       description: 'the account to send money from',
     }),
@@ -51,15 +50,27 @@ export default class Bank extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Bank)
-    const fee = flags.fee
-    const feeInIron = oreToIron(fee)
-    const accountName = flags.account
-    const expirationSequence = flags.expirationSequence
 
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
 
+    const fee = flags.fee
+    const feeInIron = oreToIron(fee)
+    const expirationSequence = flags.expirationSequence
+
+    const accountName =
+      flags.account || (await this.client.getDefaultAccount()).content.account?.name
+
+    if (!accountName) {
+      this.log(
+        'Error fetching account name. Please use --account or make sure your default account is set properly.',
+      )
+      this.exit(1)
+    }
+    Assert.isNotUndefined(accountName)
+
     const bankDepositAddress = await this.api.getDepositAddress()
+
     if (!bankDepositAddress) {
       this.log('Error fetching deposit address. Please try again later.')
       this.exit(1)
@@ -74,7 +85,7 @@ export default class Bank extends IronfishCommand {
 
     const graffiti = this.sdk.config.get('blockGraffiti')
 
-    const balanceResp = await this.client.getAccountBalance()
+    const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const newBalance = oreToIron(
       Number(balanceResp.content.confirmed) - IRON_TO_SEND - feeInIron,
     )
