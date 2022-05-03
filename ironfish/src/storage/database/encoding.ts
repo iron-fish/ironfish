@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bufio from 'bufio'
 import hexArray from 'hex-array'
 import { IJSON, IJsonSerializable, Serde } from '../../serde'
 import { IDatabaseEncoding } from './types'
@@ -57,6 +58,24 @@ export class U32Encoding implements IDatabaseEncoding<number> {
 export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   serialize = (value: Buffer): Buffer => value
   deserialize = (buffer: Buffer): Buffer => buffer
+
+  equals(): boolean {
+    throw new Error('You should never use this')
+  }
+}
+
+export class StringHashEncoding implements IDatabaseEncoding<string> {
+  serialize(value: string): Buffer {
+    const buffer = bufio.write(32)
+    buffer.writeHash(value)
+    return buffer.render()
+  }
+
+  deserialize(buffer: Buffer): string {
+    const reader = bufio.read(buffer, true)
+    const hash = reader.readHash()
+    return hash.toString('hex')
+  }
 
   equals(): boolean {
     throw new Error('You should never use this')
