@@ -4,7 +4,6 @@
 
 import axios, { AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
-import { GetTransactionStreamResponse } from './rpc/routes/chain/getTransactionStream'
 import { Metric } from './telemetry'
 import { UnwrapPromise } from './utils/types'
 
