@@ -1,6 +1,10 @@
 name: Deploy Node Image to Github
 on: workflow_dispatch
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   Deploy:
     name: Deploy
