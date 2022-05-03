@@ -83,7 +83,9 @@ export default class Bank extends IronfishCommand {
       this.exit(1)
     }
 
-    const graffiti = this.sdk.config.get('blockGraffiti')
+    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
+      .blockGraffiti
+    Assert.isNotUndefined(graffiti)
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const newBalance = oreToIron(
@@ -185,7 +187,8 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
     }
 
-    const graffiti = this.sdk.config.get('blockGraffiti')
+    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
+      .blockGraffiti
     if (!graffiti) {
       return {
         canSend: false,
