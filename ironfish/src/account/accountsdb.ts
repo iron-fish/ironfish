@@ -10,12 +10,12 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
   StringEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
+import { AccountsValue, AccountsValueEncoding } from './database/accounts'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import {
   NoteToNullifiersValue,
@@ -25,16 +25,7 @@ import { TransactionsValue, TransactionsValueEncoding } from './database/transac
 
 const DATABASE_VERSION = 3
 
-export interface SerializedAccount {
-  name: string
-  spendingKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  rescan: number | null
-}
-
-export const AccountDefaults: SerializedAccount = {
+export const AccountDefaults: AccountsValue = {
   name: '',
   spendingKey: '',
   incomingViewKey: '',
@@ -54,7 +45,7 @@ export class AccountsDB {
   location: string
   files: FileSystem
 
-  accounts: IDatabaseStore<{ key: string; value: SerializedAccount }>
+  accounts: IDatabaseStore<{ key: string; value: AccountsValue }>
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
@@ -97,10 +88,10 @@ export class AccountsDB {
       valueEncoding: new MetaValueEncoding(),
     })
 
-    this.accounts = this.database.addStore<{ key: string; value: SerializedAccount }>({
+    this.accounts = this.database.addStore<{ key: string; value: AccountsValue }>({
       name: 'accounts',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new AccountsValueEncoding(),
     })
 
     this.noteToNullifier = this.database.addStore<{

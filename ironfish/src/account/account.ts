@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import MurmurHash3 from 'imurmurhash'
-import { SerializedAccount } from './accountsdb'
+import { AccountsValue } from './database/accounts'
 
 export class Account {
   readonly displayName: string
@@ -14,7 +14,7 @@ export class Account {
   publicAddress: string
   rescan: number | null
 
-  constructor(serializedAccount: SerializedAccount) {
+  constructor(serializedAccount: AccountsValue) {
     this.name = serializedAccount.name
     this.spendingKey = serializedAccount.spendingKey
     this.incomingViewKey = serializedAccount.incomingViewKey
@@ -31,7 +31,7 @@ export class Account {
     this.displayName = `${this.name} (${hashSlice})`
   }
 
-  serialize(): SerializedAccount {
+  serialize(): AccountsValue {
     return {
       name: this.name,
       spendingKey: this.spendingKey,
