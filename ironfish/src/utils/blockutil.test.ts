@@ -20,7 +20,7 @@ import { getBlockRange } from './blockchain'
 // Set it up before running tests
 const workerPool = new WorkerPool()
 const strategy = new Strategy(workerPool)
-const chain = new Blockchain({ location: makeDbPath(), strategy })
+const chain = new Blockchain({ location: makeDbPath(), strategy, workerPool })
 
 beforeAll(async () => {
   await chain.open()

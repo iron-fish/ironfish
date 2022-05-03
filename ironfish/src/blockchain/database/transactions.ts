@@ -30,7 +30,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     const transactions = []
 
     while (reader.left()) {
-      transactions.push(new Transaction(reader.readVarBytes(), this.workerPool))
+      transactions.push(new Transaction(reader.readVarBytes()))
     }
 
     return { transactions }

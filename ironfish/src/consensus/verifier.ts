@@ -11,21 +11,24 @@ import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
+import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
   strategy: Strategy
   chain: Blockchain
+  private readonly workerPool: WorkerPool
 
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
    */
   enableVerifyTarget = true
 
-  constructor(chain: Blockchain) {
+  constructor(chain: Blockchain, workerPool: WorkerPool) {
     this.strategy = chain.strategy
     this.chain = chain
+    this.workerPool = workerPool
   }
 
   /**
@@ -135,19 +138,21 @@ export class Verifier {
    * @returns deserialized transaction to be processed by the main handler.
    */
   verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
-    const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
-
     try {
+      const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
+
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
       transaction.takeReference()
-    } catch {
-      throw new Error('Transaction cannot deserialize')
-    } finally {
-      transaction.returnReference()
-    }
 
-    return transaction
+      return transaction
+    } catch (e) {
+      let message = 'Transaction cannot deserialize.'
+      if (e instanceof Error) {
+        message += ` Message: ${e.message}`
+      }
+      throw new Error(message)
+    }
   }
 
   async verifyTransaction(
@@ -163,7 +168,7 @@ export class Verifier {
     }
 
     try {
-      return await transaction.verify(options)
+      return await this.workerPool.verify(transaction, options)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -198,7 +203,7 @@ export class Verifier {
       return validity
     }
 
-    validity = await transaction.verify()
+    validity = await this.workerPool.verify(transaction)
     return validity
   }
 
@@ -281,19 +286,17 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
     }
 
-    return block.withTransactionReferences(async () => {
-      let verification = this.isValidAgainstPrevious(block, prev)
-      if (!verification.valid) {
-        return verification
-      }
+    let verification = this.isValidAgainstPrevious(block, prev)
+    if (!verification.valid) {
+      return verification
+    }
 
-      verification = await this.verifyBlock(block)
-      if (!verification.valid) {
-        return verification
-      }
+    verification = await this.verifyBlock(block)
+    if (!verification.valid) {
+      return verification
+    }
 
-      return { valid: true }
-    })
+    return { valid: true }
   }
 
   /**

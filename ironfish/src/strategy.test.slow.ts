@@ -88,10 +88,11 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Rejects incoming new transactions if fees are negative', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      const verifier = new Verifier(nodeTest.chain)
+      const verifier = new Verifier(nodeTest.chain, workerPool)
 
       expect(await verifier.verifyTransaction(minersFee, nodeTest.chain.head)).toMatchObject({
         valid: false,
@@ -176,11 +177,12 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      expect(await minersFee.verify({ verifyFees: false })).toEqual({ valid: true })
+      expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
     }, 60000)
 

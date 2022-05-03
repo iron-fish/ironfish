@@ -216,7 +216,7 @@ export class AccountsDB {
     for await (const [key, value] of this.transactions.getAllIter()) {
       const deserialized = {
         ...value,
-        transaction: new Transaction(value.transaction, this.workerPool),
+        transaction: new Transaction(value.transaction),
       }
 
       map.set(key, deserialized)

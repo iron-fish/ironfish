@@ -39,16 +39,19 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    offset: number
+
+    seek(offset: number): BufferReader
     left(): number
     readU8(): number
     readU16(): number
     readU32(): number
     readU64(): number
     readU64BE(): number
+    readI64(): number
     readFloat(): number
     readFloatBE(): number
     readDoubleBE(): number
-    readI64(): number
     readDouble(): number
     readString(size: number, enc?: BufferEncoding | null): string
     readVarString(enc?: BufferEncoding | null, limit?: number): string

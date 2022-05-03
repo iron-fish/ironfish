@@ -43,6 +43,7 @@ import {
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { WorkerPool } from '../workerPool'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
@@ -141,6 +142,7 @@ export class Blockchain {
   constructor(options: {
     location: string
     strategy: Strategy
+    workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
@@ -151,7 +153,7 @@ export class Blockchain {
     this.strategy = options.strategy
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
-    this.verifier = new Verifier(this)
+    this.verifier = new Verifier(this, options.workerPool)
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
@@ -923,7 +925,7 @@ export class Blockchain {
         target,
         0,
         timestamp,
-        await minersFee.fee(),
+        minersFee.fee(),
         graffiti,
       )
 
@@ -1202,19 +1204,17 @@ export class Blockchain {
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    const verify = await block.withTransactionReferences(async () => {
-      for (const note of block.allNotes()) {
-        await this.addNote(notesIndex, note, tx)
-        notesIndex++
-      }
+    for (const note of block.allNotes()) {
+      await this.addNote(notesIndex, note, tx)
+      notesIndex++
+    }
 
-      for (const spend of block.spends()) {
-        await this.addNullifier(nullifierIndex, spend.nullifier, tx)
-        nullifierIndex++
-      }
+    for (const spend of block.spends()) {
+      await this.addNullifier(nullifierIndex, spend.nullifier, tx)
+      nullifierIndex++
+    }
 
-      return await this.verifier.verifyConnectedBlock(block, tx)
-    })
+    const verify = await this.verifier.verifyConnectedBlock(block, tx)
 
     if (!verify.valid) {
       Assert.isNotUndefined(verify.reason)
