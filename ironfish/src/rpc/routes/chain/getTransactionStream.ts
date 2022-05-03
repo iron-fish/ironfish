@@ -103,10 +103,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       head: head,
     })
 
-    const processBlock = async (
-      block: Block,
-      type: 'connected' | 'disconnected' | 'fork',
-    ): Promise<void> => {
+    const processBlock = (block: Block, type: 'connected' | 'disconnected' | 'fork'): void => {
       const transactions: Transaction[] = []
 
       for (const tx of block.transactions) {
@@ -149,17 +146,17 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await processBlock(block, 'connected')
+      processBlock(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await processBlock(block, 'disconnected')
+      processBlock(block, 'disconnected')
     }
 
-    const onFork = async (block: Block) => {
-      await processBlock(block, 'fork')
+    const onFork = (block: Block) => {
+      processBlock(block, 'fork')
     }
 
     const abortController = new AbortController()
