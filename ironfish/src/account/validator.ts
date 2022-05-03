@@ -70,6 +70,6 @@ export function validateAccount(toImport: Partial<SerializedAccount>): void {
 }
 
 function haveAllowedCharacters(text: string): boolean {
-  const validInputRegex = /^[0-9a-z]+$/
-  return validInputRegex.exec(text) != null
+  const validInputRegex = /^[0-9a-f]+$/
+  return validInputRegex.exec(text.toLowerCase()) != null
 }
