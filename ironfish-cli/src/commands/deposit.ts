@@ -89,7 +89,7 @@ export default class Bank extends IronfishCommand {
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const newBalance = oreToIron(
-      Number(balanceResp.content.confirmed) - IRON_TO_SEND - feeInIron,
+      Number(balanceResp.content.confirmed) - ironToOre(IRON_TO_SEND) - fee,
     )
 
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
