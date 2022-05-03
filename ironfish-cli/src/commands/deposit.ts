@@ -211,6 +211,13 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
     }
 
+    if (expirationSequence !== undefined && expirationSequence > 120) {
+      return {
+        canSend: false,
+        errorReason: 'Expiration sequence should not be above 120 blocks',
+      }
+    }
+
     const fee = flags.fee as number
     if (!isValidAmount(fee)) {
       return {
