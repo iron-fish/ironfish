@@ -123,7 +123,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           }
         }
 
-        const isMinersFee = await tx.isMinersFee()
+        const isMinersFee = tx.isMinersFee()
 
         if (notes.length) {
           transactions.push({
