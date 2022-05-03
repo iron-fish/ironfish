@@ -105,6 +105,11 @@ export class WebApi {
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
   }
 
+  async getDepositAddress(): Promise<string> {
+    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
+    return response.data.address
+  }
+
   async getFunds(data: { email?: string; public_key: string }): Promise<{
     id: number
     object: 'faucet_transaction'
