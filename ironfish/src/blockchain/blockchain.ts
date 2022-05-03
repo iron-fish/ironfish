@@ -43,6 +43,7 @@ import {
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
+import { WorkerPool } from '../workerPool'
 import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
 import {
   HashToNextSchema,
@@ -139,6 +140,7 @@ export class Blockchain {
   constructor(options: {
     location: string
     strategy: Strategy
+    workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
@@ -149,7 +151,7 @@ export class Blockchain {
     this.strategy = options.strategy
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
-    this.verifier = new Verifier(this)
+    this.verifier = new Verifier(this, options.workerPool)
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)

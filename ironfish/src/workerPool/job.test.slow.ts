@@ -34,9 +34,9 @@ describe('Worker Pool', () => {
     const genesis = await nodeTest.node.chain.getBlock(nodeTest.node.chain.head.hash)
     Assert.isNotNull(genesis)
     const transaction = genesis.transactions[0]
-    const verified = await workerPool.verify(transaction, { verifyFees: false })
+    const result = await workerPool.verify(transaction, { verifyFees: false })
 
-    expect(verified).toBe(true)
+    expect(result.valid).toBe(true)
     expect(workerPool.completed).toBe(1)
   }, 60000)
 

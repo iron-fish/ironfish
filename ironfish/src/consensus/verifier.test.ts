@@ -459,9 +459,12 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest
-          .spyOn(transaction['workerPool'], 'verify')
-          .mockImplementationOnce(() => Promise.resolve(false))
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
+          Promise.resolve({
+            valid: false,
+            reason: VerificationResultReason.ERROR,
+          }),
+        )
 
         await expect(
           nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
@@ -477,9 +480,11 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest
-          .spyOn(transaction['workerPool'], 'verify')
-          .mockImplementationOnce(() => Promise.resolve(true))
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
+          Promise.resolve({
+            valid: true,
+          }),
+        )
 
         expect(
           await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
@@ -494,7 +499,7 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementation(() => {
           throw new Error('Response type must match request type')
         })
 

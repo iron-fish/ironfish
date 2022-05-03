@@ -4,6 +4,7 @@
 
 import type { Side } from '../merkletree/merkletree'
 import _ from 'lodash'
+import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
@@ -131,7 +132,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async createTransaction(
@@ -167,10 +168,13 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
-  async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
+  async verify(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     const request: VerifyTransactionRequest = new VerifyTransactionRequest(
       transaction.serialize(),
       options,
@@ -182,6 +186,8 @@ export class WorkerPool {
     }
 
     return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   async boxMessage(

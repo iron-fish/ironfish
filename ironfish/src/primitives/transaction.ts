@@ -4,10 +4,7 @@
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
-import { WorkerPool } from '../workerPool'
-import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -17,7 +14,6 @@ export type SerializedTransaction = Buffer
 
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
-  private readonly workerPool: WorkerPool
 
   private readonly _fee: bigint
   private readonly _expirationSequence: number
@@ -28,7 +24,7 @@ export class Transaction {
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
+  constructor(transactionPostedSerialized: Buffer) {
     this.transactionPostedSerialized = transactionPostedSerialized
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
@@ -61,8 +57,6 @@ export class Transaction {
     })
 
     this._signature = reader.readBytes(64, true)
-
-    this.workerPool = workerPool
   }
 
   serialize(): Buffer {
@@ -104,17 +98,6 @@ export class Transaction {
     })
 
     return result
-  }
-
-  /**
-   * Verify whether the transaction has valid proofs.
-   */
-  async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
-    const result = await this.workerPool.verify(this, options)
-
-    return result === true
-      ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   /**
@@ -204,8 +187,6 @@ export class Transaction {
  * Serializer and equality checker for Transaction wrappers.
  */
 export class TransactionSerde implements Serde<Transaction, SerializedTransaction> {
-  constructor(private readonly workerPool: WorkerPool) {}
-
   equals(tx1: Transaction, tx2: Transaction): boolean {
     return tx1.equals(tx2)
   }
@@ -215,6 +196,6 @@ export class TransactionSerde implements Serde<Transaction, SerializedTransactio
   }
 
   deserialize(data: SerializedTransaction): Transaction {
-    return new Transaction(data, this.workerPool)
+    return new Transaction(data)
   }
 }
