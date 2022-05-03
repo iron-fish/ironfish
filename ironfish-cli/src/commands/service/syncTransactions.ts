@@ -4,7 +4,6 @@
 import {
   ApiDepositUpload,
   GetTransactionStreamResponse,
-  GraffitiUtils,
   MemoUtils,
   Meter,
   TimeUtils,
