@@ -16,9 +16,6 @@ export interface AccountsValue {
   rescan: number | null
 }
 
-// TODO: Remove after SDK release
-export type SerializedAccount = AccountsValue
-
 export class AccountsValueEncoding implements IDatabaseEncoding<AccountsValue> {
   serialize(value: AccountsValue): Buffer {
     const bw = bufio.write(this.getSize(value))
