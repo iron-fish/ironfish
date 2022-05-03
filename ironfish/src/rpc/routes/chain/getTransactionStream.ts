@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { isValidIncomingViewKey } from '../../../account/validator'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { PromiseUtils } from '../../../utils/promise'
+import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 interface Note {
@@ -38,14 +40,16 @@ const TransactionSchema = yup
   .required()
 
 export type GetTransactionStreamRequest = { incomingViewKey: string; head?: string | null }
+
 export type GetTransactionStreamResponse = {
-  type: string
+  type: 'connected' | 'disconnected' | 'fork'
   head: {
     sequence: number
   }
   block: {
     hash: string
     sequence: number
+    timestamp: number
   }
   transactions: Transaction[]
 }
@@ -66,23 +70,32 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
         .object({
           hash: yup.string().required(),
           sequence: yup.number().required(),
+          timestamp: yup.number().required(),
         })
-        .required(),
+        .defined(),
       head: yup
         .object({
           sequence: yup.number().required(),
         })
-        .required(),
+        .defined(),
     })
-    .required()
+    .defined()
 
 router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamResponse>(
   `${ApiNamespace.chain}/getTransactionStream`,
   GetTransactionStreamRequestSchema,
   async (request, node): Promise<void> => {
-    // TODO: Some validation on this input
-    const incomingViewKey = request.data.incomingViewKey
+    if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
+      throw new ValidationError(`incomingViewKey is not valid`)
+    }
+
     const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
+
+    if (head && !(await node.chain.hasBlock(head))) {
+      throw new ValidationError(
+        `Block with hash ${String(request.data.head)} was not found in the chain`,
+      )
+    }
 
     const processor = new ChainProcessor({
       chain: node.chain,
@@ -90,66 +103,72 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       head: head,
     })
 
-    const getTransactionsFromBlock = async (block: Block, type: string) => {
+    const processBlock = async (
+      block: Block,
+      type: 'connected' | 'disconnected' | 'fork',
+    ): Promise<void> => {
       const transactions: Transaction[] = []
+
       for (const tx of block.transactions) {
-        if (await tx.isMinersFee()) {
-          continue
-        }
-        const transaction: Transaction = {
-          hash: tx.hash().toString('hex'),
-          isMinersFee: await tx.isMinersFee(),
-          notes: [],
-        }
+        const notes = new Array<Note>()
+
         for (const note of tx.notes()) {
-          const decryptedNote = note.decryptNoteForOwner(incomingViewKey)
+          const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
+
           if (decryptedNote) {
-            transaction.notes.push({
+            notes.push({
               amount: decryptedNote.value().toString(),
               memo: decryptedNote.memo(),
             })
           }
         }
 
-        transactions.push(transaction)
+        const isMinersFee = await tx.isMinersFee()
+
+        if (notes.length) {
+          transactions.push({
+            hash: tx.hash().toString('hex'),
+            isMinersFee,
+            notes: notes,
+          })
+        }
       }
 
-      if (transactions.length) {
-        request.stream({
-          type,
-          transactions,
-          block: {
-            hash: block.header.hash.toString('hex'),
-            sequence: block.header.sequence,
-          },
-          head: {
-            sequence: node.chain.head.sequence,
-          },
-        })
-      }
-      return
+      request.stream({
+        type,
+        transactions,
+        block: {
+          hash: block.header.hash.toString('hex'),
+          sequence: block.header.sequence,
+          timestamp: block.header.timestamp.valueOf(),
+        },
+        head: {
+          sequence: node.chain.head.sequence,
+        },
+      })
     }
 
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await getTransactionsFromBlock(block, 'connected')
+      await processBlock(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await getTransactionsFromBlock(block, 'disconnected')
+      await processBlock(block, 'disconnected')
     }
 
     const onFork = async (block: Block) => {
-      await getTransactionsFromBlock(block, 'fork')
+      await processBlock(block, 'fork')
     }
+
+    const abortController = new AbortController()
 
     processor.onAdd.on(onAdd)
     processor.onRemove.on(onRemove)
     node.chain.onForkBlock.on(onFork)
-    const abortController = new AbortController()
 
     request.onClose.on(() => {
       abortController.abort()

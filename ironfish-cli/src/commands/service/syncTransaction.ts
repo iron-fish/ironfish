@@ -1,7 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GetTransactionStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
+import {
+  ApiDepositUpload,
+  GetTransactionStreamResponse,
+  GraffitiUtils,
+  MemoUtils,
+  Meter,
+  TimeUtils,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -65,7 +73,7 @@ export default class SyncTransactions extends IronfishCommand {
       this.exit(1)
     }
 
-    this.log('Watching with view key:', flags.viewKey)
+    this.log('Watching with view key: ', flags.viewKey)
     this.log('Connecting to node...')
 
     const client = await this.sdk.connectRpc()
@@ -75,7 +83,8 @@ export default class SyncTransactions extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await api.head()
+      head = await api.headDeposits()
+      this.log(`Starting from ${head || 'Genesis Block'}`)
     }
 
     let lastCountedSequence = 0
@@ -97,13 +106,13 @@ export default class SyncTransactions extends IronfishCommand {
     const buffer = new Array<GetTransactionStreamResponse>()
 
     async function commit(): Promise<void> {
-      // await api.blocks(buffer)
+      const serialized = buffer.map(serializeDeposit)
       buffer.length = 0
+      await api.uploadDeposits(serialized)
     }
 
     for await (const content of response.contentStream()) {
-      console.log('Received:', content)
-      // buffer.push(content)
+      buffer.push(content)
       speed.add(content.block.sequence - lastCountedSequence)
       lastCountedSequence = content.block.sequence
 
@@ -131,5 +140,19 @@ export default class SyncTransactions extends IronfishCommand {
         await commit()
       }
     }
+  }
+}
+
+function serializeDeposit(data: GetTransactionStreamResponse): ApiDepositUpload {
+  return {
+    ...data,
+    transactions: data.transactions.map((tx) => ({
+      ...tx,
+      notes: tx.notes.map((note) => ({
+        ...note,
+        memo: MemoUtils.toHuman(note.memo),
+        amount: Number(note.amount),
+      })),
+    })),
   }
 }

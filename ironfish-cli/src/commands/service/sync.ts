@@ -70,7 +70,7 @@ export default class Sync extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await api.head()
+      head = await api.headBlocks()
     }
 
     if (head) {
