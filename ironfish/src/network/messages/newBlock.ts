@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { SerializedBlock } from '../../primitives/block'
+import { NetworkMessageType } from '../types'
 import { getBlockSize, readBlock, writeBlock } from '../utils/block'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
-import { NetworkMessageType } from './networkMessage'
 
 export class NewBlockMessage extends GossipNetworkMessage {
   readonly block: SerializedBlock

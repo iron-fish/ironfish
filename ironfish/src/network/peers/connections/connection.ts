@@ -2,31 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Logger } from '../../../logger'
-import bufio from 'bufio'
 import colors from 'colors/safe'
-import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
-import { CannotSatisfyRequest } from '../../messages/cannotSatisfyRequest'
-import { DisconnectingMessage } from '../../messages/disconnecting'
-import { GetBlockHashesRequest, GetBlockHashesResponse } from '../../messages/getBlockHashes'
-import { GetBlocksRequest, GetBlocksResponse } from '../../messages/getBlocks'
-import { IdentifyMessage } from '../../messages/identify'
-import { NetworkMessageHeader } from '../../messages/interfaces/networkMessageHeader'
-import {
-  displayNetworkMessageType,
-  NetworkMessage,
-  NetworkMessageType,
-} from '../../messages/networkMessage'
-import { NewBlockMessage } from '../../messages/newBlock'
-import { NewTransactionMessage } from '../../messages/newTransaction'
-import { PeerListMessage } from '../../messages/peerList'
-import { PeerListRequestMessage } from '../../messages/peerListRequest'
+import { NetworkMessage } from '../../messages/networkMessage'
 import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
-import { SignalMessage } from '../../messages/signal'
-import { SignalRequestMessage } from '../../messages/signalRequest'
+import { NetworkMessageType } from '../../types'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -210,96 +193,5 @@ export abstract class Connection {
   shouldLogMessageType(messageType: NetworkMessageType): boolean {
     const bannedMessageTypes = [NetworkMessageType.PeerList, NetworkMessageType.Signal]
     return !bannedMessageTypes.includes(messageType)
-  }
-
-  parseMessage(message: Buffer): NetworkMessage {
-    let header: NetworkMessageHeader
-    try {
-      header = this.parseHeader(message)
-    } catch {
-      throw new Error(`Could not parse header from request: '${message.toString('hex')}'`)
-    }
-
-    const { body, type } = header
-
-    let messageBody: NetworkMessage
-    try {
-      messageBody = this.parseBody(header)
-    } catch {
-      const args = `(type: ${displayNetworkMessageType(type)}, body: '${body.toString('hex')}')`
-      throw new Error(`Could not parse payload from request: ${args}`)
-    }
-
-    return messageBody
-  }
-
-  private parseHeader(message: Buffer): NetworkMessageHeader {
-    let rpcId
-    let nonce
-    const br = bufio.read(message)
-    const type = br.readU8()
-    if (this.isRpcNetworkMessageType(type)) {
-      rpcId = br.readU16()
-    } else if (this.isGossipNetworkMessageType(type)) {
-      nonce = br.readBytes(16)
-    }
-    return {
-      type,
-      rpcId,
-      nonce,
-      body: br.readBytes(br.left()),
-    }
-  }
-
-  private isRpcNetworkMessageType(type: NetworkMessageType): boolean {
-    return [
-      NetworkMessageType.CannotSatisfyRequest,
-      NetworkMessageType.GetBlockHashesRequest,
-      NetworkMessageType.GetBlockHashesResponse,
-      NetworkMessageType.GetBlocksRequest,
-      NetworkMessageType.GetBlocksResponse,
-    ].includes(type)
-  }
-
-  private isGossipNetworkMessageType(type: NetworkMessageType): boolean {
-    return [NetworkMessageType.NewBlock, NetworkMessageType.NewTransaction].includes(type)
-  }
-
-  private parseBody({ rpcId, nonce, type, body }: NetworkMessageHeader): NetworkMessage {
-    switch (type) {
-      case NetworkMessageType.CannotSatisfyRequest:
-        Assert.isNotUndefined(rpcId)
-        return CannotSatisfyRequest.deserialize(rpcId)
-      case NetworkMessageType.Disconnecting:
-        return DisconnectingMessage.deserialize(body)
-      case NetworkMessageType.GetBlockHashesRequest:
-        Assert.isNotUndefined(rpcId)
-        return GetBlockHashesRequest.deserialize(body, rpcId)
-      case NetworkMessageType.GetBlockHashesResponse:
-        Assert.isNotUndefined(rpcId)
-        return GetBlockHashesResponse.deserialize(body, rpcId)
-      case NetworkMessageType.GetBlocksRequest:
-        Assert.isNotUndefined(rpcId)
-        return GetBlocksRequest.deserialize(body, rpcId)
-      case NetworkMessageType.GetBlocksResponse:
-        Assert.isNotUndefined(rpcId)
-        return GetBlocksResponse.deserialize(body, rpcId)
-      case NetworkMessageType.Identify:
-        return IdentifyMessage.deserialize(body)
-      case NetworkMessageType.NewBlock:
-        Assert.isNotUndefined(nonce)
-        return NewBlockMessage.deserialize(body, nonce)
-      case NetworkMessageType.NewTransaction:
-        Assert.isNotUndefined(nonce)
-        return NewTransactionMessage.deserialize(body, nonce)
-      case NetworkMessageType.PeerList:
-        return PeerListMessage.deserialize(body)
-      case NetworkMessageType.PeerListRequest:
-        return PeerListRequestMessage.deserialize()
-      case NetworkMessageType.Signal:
-        return SignalMessage.deserialize(body)
-      case NetworkMessageType.SignalRequest:
-        return SignalRequestMessage.deserialize(body)
-    }
   }
 }

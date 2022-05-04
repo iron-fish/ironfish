@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
+import { NetworkMessageType } from '../types'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
-import { NetworkMessageType } from './networkMessage'
 
 export class NewTransactionMessage extends GossipNetworkMessage {
   readonly transaction: SerializedTransaction

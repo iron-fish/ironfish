@@ -5,12 +5,13 @@
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
+import { parseNetworkMessage } from '../../messageRegistry'
+import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
 import {
-  displayNetworkMessageType,
-  NetworkMessage,
+  IsomorphicWebSocket,
+  IsomorphicWebSocketErrorEvent,
   NetworkMessageType,
-} from '../../messages/networkMessage'
-import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
+} from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -78,11 +79,17 @@ export class WebSocketConnection extends Connection {
     }
 
     this.socket.onmessage = (event: MessageEvent) => {
+      if (!Buffer.isBuffer(event.data)) {
+        const message = 'Received non-buffer message'
+        this.logger.warn(message, event.data)
+        this.close(new NetworkError(message))
+        return
+      }
+
       let message
       try {
-        const bufferData = Buffer.from(event.data)
-        message = this.parseMessage(bufferData)
-        const byteCount = bufferData.byteLength
+        message = parseNetworkMessage(event.data)
+        const byteCount = event.data.byteLength
         this.metrics?.p2p_InboundTraffic.add(byteCount)
         this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
       } catch (error) {

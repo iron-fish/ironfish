@@ -7,11 +7,8 @@ import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
-import {
-  displayNetworkMessageType,
-  NetworkMessage,
-  NetworkMessageType,
-} from '../messages/networkMessage'
+import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessageType } from '../types'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'

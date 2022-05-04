@@ -15,7 +15,7 @@ import { Telemetry } from '../telemetry'
 import { AsyncUtils } from '../utils/async'
 import { GraffitiUtils } from '../utils/graffiti'
 
-const MAX_TRANSACTIONS_PER_BLOCK = 10
+const MAX_TRANSACTIONS_PER_BLOCK = 300
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
