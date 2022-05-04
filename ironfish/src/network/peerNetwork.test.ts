@@ -11,12 +11,12 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
 import { DisconnectingMessage } from './messages/disconnecting'
-import { NetworkMessageType } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
 import { PeerNetwork } from './peerNetwork'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
+import { NetworkMessageType } from './types'
 
 jest.useFakeTimers()
 

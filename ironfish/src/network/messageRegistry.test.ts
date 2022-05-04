@@ -1,23 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createRootLogger } from '../../../logger'
-import { IdentifyMessage } from '../../messages/identify'
-import { WebRtcConnection } from './webRtcConnection'
+import { parseNetworkMessage } from './messageRegistry'
+import { IdentifyMessage } from './messages/identify'
 
-describe('Connection', () => {
-  describe('parseMessage', () => {
+describe('messageRegistry', () => {
+  describe('parseNetworkMessage', () => {
     describe('with a malformed header', () => {
       it('throws an error', () => {
-        const connection = new WebRtcConnection(false, createRootLogger())
-        expect(() => connection.parseMessage(Buffer.from(''))).toThrowError()
-        connection.close()
+        expect(() => parseNetworkMessage(Buffer.from(''))).toThrowError()
       })
     })
 
     describe('with a malformed body', () => {
       it('throws an error', () => {
-        const connection = new WebRtcConnection(false, createRootLogger())
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
@@ -29,14 +25,12 @@ describe('Connection', () => {
         })
         jest.spyOn(message, 'serialize').mockImplementationOnce(() => Buffer.from('adsf'))
 
-        expect(() => connection.parseMessage(message.serializeWithMetadata())).toThrowError()
-        connection.close()
+        expect(() => parseNetworkMessage(message.serializeWithMetadata())).toThrowError()
       })
     })
 
     describe('with a valid message', () => {
       it('parses the message', () => {
-        const connection = new WebRtcConnection(false, createRootLogger())
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
@@ -47,8 +41,7 @@ describe('Connection', () => {
           work: BigInt(0),
         })
 
-        expect(connection.parseMessage(message.serializeWithMetadata())).toEqual(message)
-        connection.close()
+        expect(parseNetworkMessage(message.serializeWithMetadata())).toEqual(message)
       })
     })
   })

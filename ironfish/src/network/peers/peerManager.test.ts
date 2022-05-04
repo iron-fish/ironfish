@@ -33,7 +33,6 @@ import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
-import { NetworkMessageType } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
@@ -51,6 +50,7 @@ import {
   webRtcCannotInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { NetworkMessageType } from '../types'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
   ConnectionDirection,
