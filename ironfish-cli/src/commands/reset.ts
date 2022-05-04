@@ -44,7 +44,8 @@ export default class Reset extends IronfishCommand {
     confirmed = flags.confirm || (await CliUx.ux.confirm(warningMessage))
 
     if (!confirmed) {
-      this.exit(1)
+      this.log('Reset aborted.')
+      this.exit(0)
     }
 
     const accountDatabasePath = this.sdk.config.accountDatabasePath
@@ -59,7 +60,8 @@ export default class Reset extends IronfishCommand {
     confirmed = flags.confirm || (await CliUx.ux.confirm(message))
 
     if (!confirmed) {
-      this.exit(1)
+      this.log('Reset aborted.')
+      this.exit(0)
     }
 
     CliUx.ux.action.start('Deleting databases...')
