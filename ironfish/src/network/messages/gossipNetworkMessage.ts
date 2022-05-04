@@ -4,7 +4,8 @@
 import bufio from 'bufio'
 import tweetnacl from 'tweetnacl'
 import { Assert } from '../../assert'
-import { NetworkMessage, NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
+import { NetworkMessage } from './networkMessage'
 
 export abstract class GossipNetworkMessage extends NetworkMessage {
   readonly nonce: Buffer
@@ -15,6 +16,13 @@ export abstract class GossipNetworkMessage extends NetworkMessage {
     this.nonce = nonce ?? Buffer.from(tweetnacl.randomBytes(16))
 
     Assert.isEqual(this.nonce.byteLength, 16)
+  }
+
+  static deserializeHeader(buffer: Buffer): { nonce: Buffer; remaining: Buffer } {
+    const br = bufio.read(buffer, true)
+    const nonce = br.readBytes(16)
+    const remaining = br.readBytes(br.left())
+    return { nonce, remaining }
   }
 
   serializeWithMetadata(): Buffer {

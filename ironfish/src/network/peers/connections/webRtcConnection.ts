@@ -9,11 +9,9 @@ import { Assert } from '../../../assert'
 import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-import {
-  displayNetworkMessageType,
-  NetworkMessage,
-  NetworkMessageType,
-} from '../../messages/networkMessage'
+import { parseNetworkMessage } from '../../messageRegistry'
+import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
+import { NetworkMessageType } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -146,7 +144,7 @@ export class WebRtcConnection extends Connection {
 
       let message
       try {
-        message = this.parseMessage(bufferData)
+        message = parseNetworkMessage(bufferData)
       } catch (error) {
         this.logger.warn('Unable to parse webrtc message', data)
         this.close(error)

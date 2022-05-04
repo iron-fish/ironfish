@@ -4,7 +4,8 @@
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils/bigint'
 import { Identity, identityLength } from '../identity'
-import { NetworkMessage, NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
+import { NetworkMessage } from './networkMessage'
 
 interface CreateIdentifyMessageOptions {
   agent: string

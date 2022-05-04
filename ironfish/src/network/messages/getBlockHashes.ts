@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { Assert } from '../../assert'
-import { NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlockHashesRequest extends RpcNetworkMessage {

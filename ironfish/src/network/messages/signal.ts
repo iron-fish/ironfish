@@ -4,7 +4,8 @@
 import bufio from 'bufio'
 import { Identity, identityLength } from '../identity'
 import { nonceLength } from '../peers/encryption'
-import { NetworkMessage, NetworkMessageType } from './networkMessage'
+import { NetworkMessageType } from '../types'
+import { NetworkMessage } from './networkMessage'
 
 interface CreateSignalMessageOptions {
   destinationIdentity: Identity
