@@ -17,7 +17,7 @@ import {
 } from '../flags'
 
 export default class Reset extends IronfishCommand {
-  static description = 'Reset the node to a fresh state but preserve accounts'
+  static description = 'Reset the node to its initial state'
 
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
