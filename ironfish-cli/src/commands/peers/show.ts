@@ -62,10 +62,9 @@ export class ShowCommand extends IronfishCommand {
     const type = message.brokeringPeerDisplayName
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
       : message.type
-    const messageType = colors.cyan(message.message.type)
-    const payload = JSON.stringify(
-      'payload' in message.message ? message.message.payload : null,
-    )
+
+    const messageType = colors.cyan(message.message.type.toString())
+    const payload = message.message.payload
 
     return `${time} ${direction} ${type}: ${messageType} ${payload}`
   }
