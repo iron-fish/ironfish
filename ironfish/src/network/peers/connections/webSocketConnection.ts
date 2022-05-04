@@ -79,6 +79,9 @@ export class WebSocketConnection extends Connection {
 
     this.socket.onmessage = (event: MessageEvent) => {
       if (!Buffer.isBuffer(event.data)) {
+        const message = 'Received non-buffer message'
+        this.logger.warn(message, event.data)
+        this.close(new NetworkError(message))
         return
       }
 
