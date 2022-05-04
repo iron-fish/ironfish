@@ -17,17 +17,17 @@ pub(crate) fn bytes_lte(a: &[u8], b: &[u8]) -> bool {
     true
 }
 
-fn randomize_header(i: usize, mut header_bytes: &mut [u8]) {
-    header_bytes.write_f64::<BigEndian>(i as f64).unwrap();
+fn randomize_header(i: u64, mut header_bytes: &mut [u8]) {
+    header_bytes.write_u64::<BigEndian>(i).unwrap();
 }
 
 pub(crate) fn mine_batch(
     header_bytes: &mut [u8],
     target: &[u8],
-    start: usize,
+    start: u64,
     step_size: usize,
-    batch_size: usize,
-) -> Option<usize> {
+    batch_size: u64,
+) -> Option<u64> {
     let end = start + batch_size;
     for i in (start..end).step_by(step_size) {
         randomize_header(i, header_bytes);

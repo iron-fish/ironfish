@@ -55,7 +55,7 @@ pub fn initialize_sapling() {
 
 #[napi(constructor)]
 pub struct FoundBlockResult {
-    pub randomness: f64,
+    pub randomness: String,
     pub mining_request_id: f64,
 }
 
@@ -98,7 +98,7 @@ impl ThreadPoolHandler {
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
             return Some(FoundBlockResult {
-                randomness: result.0 as f64,
+                randomness: format!("{:016x}", result.0 as u64),
                 mining_request_id: result.1 as f64,
             });
         }

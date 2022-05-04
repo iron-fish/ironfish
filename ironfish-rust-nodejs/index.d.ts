@@ -107,9 +107,9 @@ export class Transaction {
   setExpirationSequence(expirationSequence: number): void
 }
 export class FoundBlockResult {
-  randomness: number
+  randomness: string
   miningRequestId: number
-  constructor(randomness: number, miningRequestId: number)
+  constructor(randomness: string, miningRequestId: number)
 }
 export class ThreadPoolHandler {
   constructor(threadCount: number, batchSize: number)
