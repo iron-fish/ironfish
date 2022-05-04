@@ -48,6 +48,7 @@ export type GetTransactionStreamResponse = {
   }
   block: {
     hash: string
+    previousBlockHash: string
     sequence: number
     timestamp: number
   }
@@ -71,6 +72,7 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
           hash: yup.string().required(),
           sequence: yup.number().required(),
           timestamp: yup.number().required(),
+          previousBlockHash: yup.string().required(),
         })
         .defined(),
       head: yup
@@ -136,6 +138,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           hash: block.header.hash.toString('hex'),
           sequence: block.header.sequence,
           timestamp: block.header.timestamp.valueOf(),
+          previousBlockHash: block.header.previousBlockHash.toString('hex'),
         },
         head: {
           sequence: node.chain.head.sequence,
