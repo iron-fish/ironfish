@@ -78,11 +78,14 @@ export class WebSocketConnection extends Connection {
     }
 
     this.socket.onmessage = (event: MessageEvent) => {
+      if (!Buffer.isBuffer(event.data)) {
+        return
+      }
+
       let message
       try {
-        const bufferData = Buffer.from(event.data)
-        message = this.parseMessage(bufferData)
-        const byteCount = bufferData.byteLength
+        message = this.parseMessage(event.data)
+        const byteCount = event.data.byteLength
         this.metrics?.p2p_InboundTraffic.add(byteCount)
         this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
       } catch (error) {
