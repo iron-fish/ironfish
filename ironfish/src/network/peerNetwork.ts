@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { RollingFilter } from 'bfilter'
 import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -14,51 +15,34 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
-import { Block } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
-import { Identity } from './identity'
+import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
+import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
+import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
+import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
+import {
+  displayNetworkMessageType,
+  IncomingPeerMessage,
+  NetworkMessage,
+} from './messages/networkMessage'
+import { NewBlockMessage } from './messages/newBlock'
+import { NewTransactionMessage } from './messages/newTransaction'
+import {
+  Direction,
+  RPC_TIMEOUT_MILLIS,
+  RpcId,
+  RpcNetworkMessage,
+} from './messages/rpcNetworkMessage'
 import {
   CannotSatisfyRequestError,
-  FireAndForgetRouter,
-  GlobalRpcRouter,
-  Gossip,
-  GossipRouter,
-  IncomingGossipGeneric,
-  IncomingRpcGeneric,
-  isGossip,
-  isRpc,
-  Rpc,
-  RpcRouter,
-} from './messageRouters'
-import {
-  GetBlockHashesResponse,
-  GetBlocksResponse,
-  isGetBlocksRequest,
-  isNewBlockPayload,
-} from './messages'
-import {
-  DisconnectingMessage,
-  DisconnectingReason,
-  GetBlockHashesRequest,
-  GetBlocksRequest,
-  IncomingPeerMessage,
-  InternalMessageType,
-  isGetBlockHashesRequest,
-  isGetBlockHashesResponse,
-  isGetBlocksResponse,
-  isNewTransactionPayload,
-  LooseMessage,
-  Message,
-  MessageType,
-  NewBlockMessage,
-  NewTransactionMessage,
-  NodeMessageType,
-  PayloadType,
-} from './messages'
+  NetworkError,
+  RequestTimeoutError,
+} from './peers/connections'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
@@ -69,27 +53,18 @@ import { VERSION_PROTOCOL } from './version'
 import { WebSocketServer } from './webSocketServer'
 
 /**
- * The routing style that should be used for a message of a given type
+ * We store gossips that have already been seen and processed, and ignore them
+ * if we have seen them before. The set that contains these gossips is
+ * bounded to a specific size and old ones are evicted in the order
+ * they were inserted.
  */
-export enum RoutingStyle {
-  gossip = 'gossip',
-  directRPC = 'directRPC',
-  globalRPC = 'globalRPC',
-  fireAndForget = 'fireAndForget',
-}
+const GOSSIP_FILTER_SIZE = 100000
+const GOSSIP_FILTER_FP_RATE = 0.000001
 
-interface RouteMap<T extends MessageType, P extends PayloadType> {
-  [RoutingStyle.gossip]: Gossip<T, P>
-  [RoutingStyle.globalRPC]: Rpc<T, P>
-  [RoutingStyle.directRPC]: Rpc<T, P>
-  [RoutingStyle.fireAndForget]: Message<T, P>
-}
-
-interface ReturnMap {
-  [RoutingStyle.gossip]: Promise<boolean | void> | boolean | void
-  [RoutingStyle.globalRPC]: Promise<PayloadType>
-  [RoutingStyle.directRPC]: Promise<PayloadType>
-  [RoutingStyle.fireAndForget]: void
+type RpcRequest = {
+  resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
+  reject: (e: unknown) => void
+  peer: Peer
 }
 
 /**
@@ -109,16 +84,14 @@ export class PeerNetwork {
   private readonly bootstrapNodes: string[]
   private readonly listen: boolean
   private readonly peerConnectionManager: PeerConnectionManager
-  private readonly routingStyles: Map<MessageType, RoutingStyle>
-  private readonly gossipRouter: GossipRouter
-  private readonly fireAndForgetRouter: FireAndForgetRouter
-  private readonly directRpcRouter: RpcRouter
-  private readonly globalRpcRouter: GlobalRpcRouter
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
   private readonly strategy: Strategy
   private readonly chain: Blockchain
+  private readonly seenGossipFilter: RollingFilter
+  private readonly requests: Map<RpcId, RpcRequest>
+  private readonly enableSyncing: boolean
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -150,8 +123,8 @@ export class PeerNetwork {
     hostsStore: HostsStore
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
-    const enableSyncing = options.enableSyncing ?? true
 
+    this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
     this.chain = options.chain
     this.strategy = options.strategy
@@ -195,102 +168,26 @@ export class PeerNetwork {
       maxPeers,
     })
 
-    this.routingStyles = new Map<MessageType, RoutingStyle>()
-    this.gossipRouter = new GossipRouter(this.peerManager)
-    this.fireAndForgetRouter = new FireAndForgetRouter(this.peerManager)
-    this.directRpcRouter = new RpcRouter(this.peerManager)
-    this.globalRpcRouter = new GlobalRpcRouter(this.directRpcRouter)
-
     this.minPeers = options.minPeers || 1
     this.listen = options.listen === undefined ? true : options.listen
+
+    this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
+    this.requests = new Map<RpcId, RpcRequest>()
 
     if (options.name && options.name.length > 32) {
       options.name = options.name.slice(32)
     }
 
-    if (enableSyncing) {
-      this.registerHandler(
-        NodeMessageType.NewBlock,
-        RoutingStyle.gossip,
-        (p) => {
-          if (!isNewBlockPayload(p)) {
-            throw 'Payload is not a serialized block'
-          }
-
-          return Promise.resolve(p)
-        },
-        (message) => this.onNewBlock(message),
-      )
-
-      this.registerHandler(
-        NodeMessageType.NewTransaction,
-        RoutingStyle.gossip,
-        (p) => {
-          if (!isNewTransactionPayload(p)) {
-            throw new Error('Payload is not a serialized transaction')
-          }
-
-          return Promise.resolve({
-            transaction: this.node.chain.verifier.verifyNewTransaction(p.transaction),
-          })
-        },
-        (message) => this.onNewTransaction(message),
-      )
-    } else {
-      this.registerHandler(
-        NodeMessageType.NewBlock,
-        RoutingStyle.gossip,
-        () => Promise.resolve(undefined),
-        () => Promise.resolve(undefined),
-      )
-      this.registerHandler(
-        NodeMessageType.NewTransaction,
-        RoutingStyle.gossip,
-        () => Promise.resolve(undefined),
-        () => Promise.resolve(undefined),
-      )
-    }
-
-    this.registerHandler(
-      NodeMessageType.GetBlockHashes,
-      RoutingStyle.directRPC,
-      (p) => {
-        return isGetBlockHashesRequest(p) ? Promise.resolve(p) : Promise.reject()
-      },
-      (message) => this.onGetBlockHashesRequest(message),
-    )
-
-    this.registerHandler(
-      NodeMessageType.GetBlocks,
-      RoutingStyle.directRPC,
-      (p) => {
-        return isGetBlocksRequest(p) ? Promise.resolve(p) : Promise.reject()
-      },
-      (message) => this.onGetBlocksRequest(message),
-    )
-
     this.node.miningManager.onNewBlock.on((block) => {
-      this.gossipBlock(block)
+      const serializedBlock = this.strategy.blockSerde.serialize(block)
+
+      this.gossip(new NewBlockMessage(serializedBlock))
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
-      this.gossip({
-        type: NodeMessageType.NewTransaction,
-        payload: { transaction: serializedTransaction },
-      })
-    })
-  }
-
-  gossipBlock(block: Block): void {
-    const serializedBlock = this.strategy.blockSerde.serialize(block)
-
-    this.gossip({
-      type: NodeMessageType.NewBlock,
-      payload: {
-        block: serializedBlock,
-      },
+      this.gossip(new NewTransactionMessage(serializedTransaction))
     })
   }
 
@@ -322,15 +219,12 @@ export class PeerNetwork {
             'Disconnecting inbound websocket connection because the node has max peers',
           )
 
-          const disconnect: DisconnectingMessage = {
-            type: InternalMessageType.disconnecting,
-            payload: {
-              sourceIdentity: this.localPeer.publicIdentity,
-              destinationIdentity: null,
-              reason: DisconnectingReason.Congested,
-              disconnectUntil: this.peerManager.getCongestedDisconnectUntilTimestamp(),
-            },
-          }
+          const disconnect = new DisconnectingMessage({
+            destinationIdentity: null,
+            disconnectUntil: this.peerManager.getCongestedDisconnectUntilTimestamp(),
+            reason: DisconnectingReason.Congested,
+            sourceIdentity: this.localPeer.publicIdentity,
+          })
           connection.send(JSON.stringify(disconnect))
           connection.close()
           return
@@ -408,106 +302,13 @@ export class PeerNetwork {
   }
 
   /**
-   * Register a handler as being the processor for a specific message type.
-   * Specify the routing style to be associated with the handler so it receives
-   * the right kinds of messages.
-   *
-   * Handlers for RPC messages can return a payload that will be sent as a reply.
-   *
-   * The validator function is responsible for processing the incoming message
-   * and determining whether the payload is correct. It should return the
-   * correctly typed payload. If the payload is incorrect, it should throw
-   * an error.
-   *
-   * If the validator throws, the incoming message is silently dropped.
-   *
-   * For RPC messages, the validation handler is only called on incoming
-   * requests. Incoming responses pass the message up to the application layer
-   * without evaluation.
-   *
-   * For gossip messages, the validation handler should determine whether the
-   * message is valid with respect to local state. If the validator throws,
-   * the message is not gossiped out to other peers.
-   */
-  registerHandler<
-    P extends PayloadType,
-    S extends RoutingStyle = RoutingStyle,
-    T extends MessageType = MessageType,
-  >(
-    type: T,
-    style: S,
-    validator: (payload: PayloadType) => Promise<P>,
-    handler: (parsedMessage: IncomingPeerMessage<RouteMap<T, P>[S]>) => ReturnMap[S],
-  ): void {
-    const hdlr = async (msg: IncomingPeerMessage<Message<T, PayloadType>>) => {
-      let resp: P
-      try {
-        resp = await validator('payload' in msg.message ? msg.message.payload : undefined)
-      } catch {
-        // Skip the handler if the message doesn't validate
-        return
-      }
-
-      const newMsg = {
-        ...msg,
-        message: { ...msg.message, payload: resp },
-      }
-
-      return await handler(newMsg as IncomingPeerMessage<RouteMap<T, P>[S]>)
-    }
-
-    switch (style) {
-      case RoutingStyle.gossip: {
-        this.gossipRouter.register(
-          type,
-          hdlr as (
-            message: IncomingGossipGeneric<T>,
-          ) => Promise<boolean | void> | boolean | void,
-        )
-        break
-      }
-      case RoutingStyle.directRPC:
-        this.directRpcRouter.register(
-          type,
-          hdlr as (message: IncomingRpcGeneric<T>) => Promise<PayloadType>,
-        )
-        break
-      case RoutingStyle.globalRPC:
-        this.globalRpcRouter.register(
-          type,
-          hdlr as (message: IncomingRpcGeneric<T>) => Promise<PayloadType>,
-        )
-        break
-      case RoutingStyle.fireAndForget:
-        this.fireAndForgetRouter.register(type, hdlr)
-        break
-    }
-    this.routingStyles.set(type, style)
-  }
-
-  /**
    * Send the message to all connected peers with the expectation that they
    * will forward it to their other peers. The goal is for everyone to
    * receive the message.
    */
-  gossip(message: LooseMessage): void {
-    const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.gossip) {
-      throw new Error(`${message.type} type not meant to be gossipped`)
-    }
-    this.gossipRouter.gossip<string, PayloadType>(message)
-  }
-
-  /**
-   * Send the message directly to the specified peer, if we are connected to it.
-   * No response or receipt confirmation is expected.
-   */
-  fireAndForget(peer: Peer, message: LooseMessage): void {
-    const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.fireAndForget) {
-      throw new Error(`${message.type} type not meant to be firedAndForgot`)
-    }
-    this.fireAndForgetRouter.fireAndForget(peer, message)
+  private gossip(message: GossipNetworkMessage): void {
+    this.seenGossipFilter.add(message.nonce)
+    this.peerManager.broadcast(message)
   }
 
   /**
@@ -515,126 +316,229 @@ export class PeerNetwork {
    * will resolve when the response is received, or will be rejected if the
    * request cannot be completed before timing out.
    */
-  requestFrom(
+  private requestFrom(
     peer: Peer,
-    message: Message<MessageType, Record<string, unknown>>,
-  ): Promise<IncomingPeerMessage<LooseMessage>> {
-    const style = this.routingStyles.get(message.type)
-    if (style !== RoutingStyle.directRPC) {
-      throw new Error(`${message.type} type not meant to be direct RPC`)
-    }
-    return this.directRpcRouter.requestFrom(peer, message)
+    message: RpcNetworkMessage,
+  ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
+    const rpcId = message.rpcId
+
+    return new Promise<IncomingPeerMessage<RpcNetworkMessage>>((resolve, reject) => {
+      // Reject requests if the connection becomes disconnected
+      const onConnectionStateChanged = () => {
+        const request = this.requests.get(rpcId)
+
+        if (request && request.peer.state.type === 'DISCONNECTED') {
+          request.peer.onStateChanged.off(onConnectionStateChanged)
+
+          const errorMessage = `Connection closed while waiting for request ${displayNetworkMessageType(
+            message.type,
+          )}: ${rpcId}`
+
+          request.reject(new NetworkError(errorMessage))
+        }
+      }
+
+      const clearDisconnectHandler = (): void => {
+        this.requests.get(rpcId)?.peer.onStateChanged.off(onConnectionStateChanged)
+      }
+
+      const timeout = setTimeout(() => {
+        const request = this.requests.get(rpcId)
+        if (!request) {
+          throw new Error(`Timed out request ${rpcId} not found`)
+        }
+        const errorMessage = `Closing connections to ${
+          peer.displayName
+        } because RPC message of type ${displayNetworkMessageType(
+          message.type,
+        )} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
+        const error = new RequestTimeoutError(RPC_TIMEOUT_MILLIS, errorMessage)
+        this.logger.debug(errorMessage)
+        clearDisconnectHandler()
+        peer.close(error)
+        request.reject(error)
+      }, RPC_TIMEOUT_MILLIS)
+
+      const request: RpcRequest = {
+        resolve: (message: IncomingPeerMessage<RpcNetworkMessage>): void => {
+          clearDisconnectHandler()
+          peer.pendingRPC--
+          this.requests.delete(rpcId)
+          clearTimeout(timeout)
+          resolve(message)
+        },
+        reject: (reason?: unknown): void => {
+          clearDisconnectHandler()
+          peer.pendingRPC--
+          this.requests.delete(rpcId)
+          clearTimeout(timeout)
+          reject(reason)
+        },
+        peer: peer,
+      }
+
+      peer.pendingRPC++
+      this.requests.set(rpcId, request)
+
+      const connection = peer.send(message)
+      if (!connection) {
+        return request.reject(
+          new Error(
+            `${String(peer.state.identity)} did not send ${displayNetworkMessageType(
+              message.type,
+            )} in state ${peer.state.type}`,
+          ),
+        )
+      }
+
+      peer.onStateChanged.on(onConnectionStateChanged)
+    })
   }
 
-  /**
-   * Fire a global RPC request to a randomly chosen identity, retrying with other
-   * peers if the first one fails. Returns a promise that will resolve when the
-   * response is received, or throw an error if the request cannot be completed
-   * before timing out.
-   */
-  async request(
-    message: Message<MessageType, Record<string, unknown>>,
-    peer?: Identity,
-  ): Promise<IncomingPeerMessage<LooseMessage>> {
-    const style = this.routingStyles.get(message.type)
-
-    if (style !== RoutingStyle.globalRPC) {
-      throw new Error(`${message.type} type not meant to be global RPC`)
-    }
-    return await this.globalRpcRouter.request(message, peer)
-  }
-
-  async getBlockHashes(peer: Peer, start: Buffer | number, limit: number): Promise<Buffer[]> {
-    const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
-
-    const message = {
-      type: NodeMessageType.GetBlockHashes,
-      payload: {
-        start: origin,
-        limit: limit,
-      },
-    } as GetBlockHashesRequest
-
+  async getBlockHashes(peer: Peer, start: number, limit: number): Promise<Buffer[]> {
+    const message = new GetBlockHashesRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
-    if (!isGetBlockHashesResponse(response.message)) {
+    if (!(response.message instanceof GetBlockHashesResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlockHashesResponse: ${message.type}`)
+      throw new Error(
+        `Invalid GetBlockHashesResponse: ${displayNetworkMessageType(message.type)}`,
+      )
     }
 
-    return response.message.payload.blocks.map((hash) => Buffer.from(hash, 'hex'))
+    return response.message.hashes
   }
 
-  async getBlocks(
-    peer: Peer,
-    start: Buffer | bigint,
-    limit: number,
-  ): Promise<SerializedBlock[]> {
-    const origin = start instanceof Buffer ? start.toString('hex') : Number(start)
-
-    const message = {
-      type: NodeMessageType.GetBlocks,
-      payload: {
-        start: origin,
-        limit: limit,
-      },
-    } as GetBlocksRequest
-
+  async getBlocks(peer: Peer, start: Buffer, limit: number): Promise<SerializedBlock[]> {
+    const message = new GetBlocksRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
-    if (!isGetBlocksResponse(response.message)) {
+    if (!(response.message instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlocksResponse: ${message.type}`)
+      throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
     // Hashes sent by the network are untrusted. Future messages should remove this field.
-    for (const block of response.message.payload.blocks) {
+    for (const block of response.message.blocks) {
       block.header.hash = undefined
     }
 
-    return response.message.payload.blocks
+    return response.message.blocks
   }
 
   private async handleMessage(
     peer: Peer,
-    incomingMessage: IncomingPeerMessage<LooseMessage>,
+    incomingMessage: IncomingPeerMessage<NetworkMessage>,
   ): Promise<void> {
     const { message } = incomingMessage
-    let style = this.routingStyles.get(message.type)
-    if (style === undefined) {
-      if (message.type === InternalMessageType.cannotSatisfyRequest) {
-        style = RoutingStyle.globalRPC
-      } else {
-        this.logger.warn('Received unknown message type', message.type)
-        return
-      }
+
+    if (message instanceof GossipNetworkMessage) {
+      await this.handleGossipMessage(peer, message)
+    } else if (message instanceof RpcNetworkMessage) {
+      await this.handleRpcMessage(peer, message)
+    } else {
+      throw new Error(
+        `Invalid message for handling in peer network: '${displayNetworkMessageType(
+          incomingMessage.message.type,
+        )}'`,
+      )
+    }
+  }
+
+  private async handleGossipMessage(
+    peer: Peer,
+    gossipMessage: GossipNetworkMessage,
+  ): Promise<void> {
+    if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
+      return
     }
 
-    switch (style) {
-      case RoutingStyle.gossip:
-        if (!isGossip(message)) {
-          this.logger.warn('Handler', message.type, 'expected gossip')
-          return
+    const peerIdentity = peer.getIdentityOrThrow()
+
+    let gossip
+    if (gossipMessage instanceof NewBlockMessage) {
+      gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
+    } else if (gossipMessage instanceof NewTransactionMessage) {
+      gossip = await this.onNewTransaction({ peerIdentity, message: gossipMessage })
+    } else {
+      throw new Error(`Invalid gossip message type: '${gossipMessage.type}'`)
+    }
+
+    if (!gossip) {
+      return
+    }
+
+    const peersConnections =
+      this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
+
+    for (const activePeer of this.peerManager.getConnectedPeers()) {
+      if (activePeer.state.type !== 'CONNECTED') {
+        throw new Error('Peer not in state CONNECTED returned from getConnectedPeers')
+      }
+
+      // To reduce network noise, we don't send the message back to the peer that
+      // sent it to us, or any of the peers connected to it
+      if (
+        activePeer.state.identity === peerIdentity ||
+        (peersConnections.has(activePeer.state.identity) &&
+          peersConnections.get(activePeer.state.identity)?.state.type === 'CONNECTED')
+      ) {
+        continue
+      }
+
+      activePeer.send(gossipMessage)
+    }
+  }
+
+  /**
+   * Handle an incoming RPC message. This may be an incoming request for some
+   * data, or an incoming response to one of our requests.
+   *
+   * If it is a request, we pass it to the handler registered for it.
+   * If a response, we resolve the promise waiting for it.
+   *
+   * The handler for a given request should either return a payload or throw
+   * a CannotSatisfyRequest error
+   */
+  private async handleRpcMessage(peer: Peer, rpcMessage: RpcNetworkMessage): Promise<void> {
+    const rpcId = rpcMessage.rpcId
+    const peerIdentity = peer.getIdentityOrThrow()
+
+    if (rpcMessage.direction === Direction.Request) {
+      let responseMessage: RpcNetworkMessage
+      try {
+        if (rpcMessage instanceof GetBlockHashesRequest) {
+          responseMessage = await this.onGetBlockHashesRequest({
+            peerIdentity,
+            message: rpcMessage,
+          })
+        } else if (rpcMessage instanceof GetBlocksRequest) {
+          responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
+        } else {
+          throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
-        await this.gossipRouter.handle(peer, message)
-        break
-      case RoutingStyle.directRPC:
-        if (!isRpc(message)) {
-          this.logger.warn('Handler', message.type, 'expected RPC')
-          return
+      } catch (error: unknown) {
+        const asError = error as Error
+        if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {
+          this.logger.error(
+            `Unexpected error in ${displayNetworkMessageType(
+              rpcMessage.type,
+            )} handler: ${String(error)}`,
+          )
         }
-        await this.directRpcRouter.handle(peer, message)
-        break
-      case RoutingStyle.globalRPC:
-        if (!isRpc(message)) {
-          this.logger.warn('Handler', message.type, 'expected (global) RPC')
-          return
-        }
-        await this.globalRpcRouter.handle(peer, message)
-        break
-      case RoutingStyle.fireAndForget:
-        await this.fireAndForgetRouter.handle(peer, message)
-        break
+        responseMessage = new CannotSatisfyRequest(rpcId)
+      }
+
+      if (peer.state.type === 'CONNECTED') {
+        peer.send(responseMessage)
+      }
+    } else {
+      const request = this.requests.get(rpcId)
+      if (request) {
+        request.resolve({ peerIdentity, message: rpcMessage })
+      } else {
+        this.logger.debug('Dropping response to unknown request', rpcId)
+      }
     }
   }
 
@@ -647,53 +551,44 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: string | number): Promise<BlockHeader | null> {
-    if (typeof start === 'string') {
-      const hash = Buffer.from(start, 'hex')
-      return await this.chain.getHeader(hash)
+  private async resolveSequenceOrHash(start: Buffer | number): Promise<BlockHeader | null> {
+    if (Buffer.isBuffer(start)) {
+      return await this.chain.getHeader(start)
     }
 
-    if (typeof start === 'number') {
-      const header = await this.chain.getHeaderAtSequence(start)
-      if (header) {
-        return header
-      }
-    }
-
-    return null
+    return await this.chain.getHeaderAtSequence(start)
   }
 
   private async onGetBlockHashesRequest(
-    request: IncomingPeerMessage<
-      Rpc<NodeMessageType.GetBlockHashes, GetBlockHashesRequest['payload']>
-    >,
-  ): Promise<GetBlockHashesResponse['payload']> {
+    request: IncomingPeerMessage<GetBlockHashesRequest>,
+  ): Promise<GetBlockHashesResponse> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+    const rpcId = request.message.rpcId
 
-    if (request.message.payload.limit <= 0) {
+    if (request.message.limit <= 0) {
       peer.punish(
         BAN_SCORE.LOW,
-        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
       )
-      return { blocks: [] }
+      return new GetBlockHashesResponse([], rpcId)
     }
 
-    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
+    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
       peer.punish(
         BAN_SCORE.MAX,
-        `Peer sent GetBlockHashes with limit of ${request.message.payload.limit}`,
+        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
       )
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
       throw error
     }
 
     const message = request.message
-    const start = message.payload.start
-    const limit = message.payload.limit
+    const start = message.start
+    const limit = message.limit
 
     const from = await this.resolveSequenceOrHash(start)
     if (!from) {
-      return { blocks: [] }
+      return new GetBlockHashesResponse([], rpcId)
     }
 
     const hashes = []
@@ -705,40 +600,33 @@ export class PeerNetwork {
       }
     }
 
-    const serialized = hashes.map((h) => h.toString('hex'))
-
-    return { blocks: serialized }
+    return new GetBlockHashesResponse(hashes, rpcId)
   }
 
   private async onGetBlocksRequest(
-    request: IncomingPeerMessage<Rpc<NodeMessageType.GetBlocks, GetBlocksRequest['payload']>>,
-  ): Promise<GetBlocksResponse['payload']> {
+    request: IncomingPeerMessage<GetBlocksRequest>,
+  ): Promise<GetBlocksResponse> {
     const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+    const rpcId = request.message.rpcId
 
-    if (request.message.payload.limit === 0) {
-      peer.punish(
-        BAN_SCORE.LOW,
-        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
-      )
-      return { blocks: [] }
+    if (request.message.limit === 0) {
+      peer.punish(BAN_SCORE.LOW, `Peer sent GetBlocks with limit of ${request.message.limit}`)
+      return new GetBlocksResponse([], rpcId)
     }
 
-    if (request.message.payload.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(
-        BAN_SCORE.MAX,
-        `Peer sent GetBlocks with limit of ${request.message.payload.limit}`,
-      )
+    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
+      peer.punish(BAN_SCORE.MAX, `Peer sent GetBlocks with limit of ${request.message.limit}`)
       const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
       throw error
     }
 
     const message = request.message
-    const start = message.payload.start
-    const limit = message.payload.limit
+    const start = message.start
+    const limit = message.limit
 
     const from = await this.resolveSequenceOrHash(start)
     if (!from) {
-      return { blocks: [] }
+      return new GetBlocksResponse([], rpcId)
     }
 
     const hashes = []
@@ -751,20 +639,20 @@ export class PeerNetwork {
 
     const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
 
-    const serialized = await Promise.all(
-      blocks.map((block) => {
-        Assert.isNotNull(block)
-        return this.strategy.blockSerde.serialize(block)
-      }),
-    )
+    const serialized = blocks.map((block) => {
+      Assert.isNotNull(block)
+      return this.strategy.blockSerde.serialize(block)
+    })
 
-    return { blocks: serialized }
+    return new GetBlocksResponse(serialized, rpcId)
   }
 
-  private async onNewBlock(
-    message: IncomingPeerMessage<Gossip<NodeMessageType.NewBlock, NewBlockMessage['payload']>>,
-  ): Promise<boolean> {
-    const block = message.message.payload.block
+  private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
+    if (!this.enableSyncing) {
+      return false
+    }
+
+    const block = message.message.block
     const peer = this.peerManager.getPeer(message.peerIdentity)
     if (!peer) {
       return false
@@ -787,10 +675,16 @@ export class PeerNetwork {
   }
 
   private async onNewTransaction(
-    message: IncomingPeerMessage<
-      Gossip<NodeMessageType.NewTransaction, NewTransactionMessage['payload']>
-    >,
+    message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    if (!this.enableSyncing) {
+      return false
+    }
+
+    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
+      message.message.transaction,
+    )
+
     if (this.node.workerPool.saturated) {
       return false
     }
@@ -804,9 +698,8 @@ export class PeerNetwork {
       return false
     }
 
-    const { transaction } = message.message.payload
-    if (await this.node.memPool.acceptTransaction(transaction)) {
-      await this.node.accounts.syncTransaction(transaction, {})
+    if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
+      await this.node.accounts.syncTransaction(verifiedTransaction, {})
     }
 
     return true

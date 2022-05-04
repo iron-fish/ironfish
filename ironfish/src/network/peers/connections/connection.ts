@@ -7,8 +7,9 @@ import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
-import { rpcTimeoutMillis } from '../../messageRouters/rpcId'
-import { InternalMessageType, LooseMessage } from '../../messages'
+import { NetworkMessage } from '../../messages/networkMessage'
+import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
+import { NetworkMessageType } from '../../types'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -50,7 +51,7 @@ export abstract class Connection {
    * If set will simulate a random amount of latency up to this number
    */
   protected readonly simulateLatency: number = 0
-  protected readonly simulateLatencyQueue: Array<LooseMessage>
+  protected readonly simulateLatencyQueue: Array<NetworkMessage>
 
   /**
    * The last error received (if any), regardless of the current state of the connection.
@@ -87,12 +88,12 @@ export abstract class Connection {
    * json obj and verifies that it has a type attribute before being passed
    * in.
    */
-  readonly onMessage: Event<[LooseMessage]> = new Event()
+  readonly onMessage: Event<[NetworkMessage]> = new Event()
 
   /**
    * Send a message into this connection.
    */
-  abstract send: (object: LooseMessage) => boolean
+  abstract send: (object: NetworkMessage) => boolean
 
   /**
    * Shutdown the connection, if possible
@@ -134,7 +135,7 @@ export abstract class Connection {
         state.type === 'SIGNALING' ||
         state.type === 'WAITING_FOR_IDENTITY'
       ) {
-        const timeout = rpcTimeoutMillis()
+        const timeout = RPC_TIMEOUT_MILLIS
 
         this.handshakeTimeout = setTimeout(() => {
           const error = `Closing ${this.type} connection because handshake timed out in state ${state.type} after ${timeout}ms`
@@ -167,11 +168,11 @@ export abstract class Connection {
     const wrapper = (
       ...args: Parameters<typeof originalSend>
     ): ReturnType<typeof originalSend> => {
-      const message: LooseMessage = args[0]
+      const message = args[0]
       this.simulateLatencyQueue.push(message)
 
       let latency = Math.random() * (this.simulateLatency || 0)
-      if (args[0].type === InternalMessageType.disconnecting) {
+      if (args[0].type === NetworkMessageType.Disconnecting) {
         latency = 0
       }
 
@@ -189,11 +190,8 @@ export abstract class Connection {
     this.send = wrapper
   }
 
-  shouldLogMessageType(messageType: string): boolean {
-    const bannedMessageTypes = [
-      InternalMessageType.peerList,
-      InternalMessageType.signal,
-    ] as string[]
+  shouldLogMessageType(messageType: NetworkMessageType): boolean {
+    const bannedMessageTypes = [NetworkMessageType.PeerList, NetworkMessageType.Signal]
     return !bannedMessageTypes.includes(messageType)
   }
 }
