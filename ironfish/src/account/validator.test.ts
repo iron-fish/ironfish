@@ -16,9 +16,21 @@ describe('account-validator tests', () => {
     expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
   })
 
+  test('valid uppercase public address should return true', () => {
+    const VALID_PUBLIC_ADDRESS =
+      'E877D6903692094B67D889C483D09AD2F8438EFC8F00C82E1EC3B2CCD1798CECA48216546DBAE48C685F50'
+    expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
+  })
+
   test('public address with non valid character should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       '#877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
+  })
+
+  test('public address with non valid hex character should return false', () => {
+    const INVALID_PUBLIC_ADDRESS =
+      'g877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
     expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
