@@ -5,15 +5,12 @@
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
 import { Transaction } from '../../primitives/transaction'
-import { WorkerPool } from '../../workerPool'
 
 export type TransactionsValue = {
   transactions: Transaction[]
 }
 
 export class TransactionsValueEncoding implements IDatabaseEncoding<TransactionsValue> {
-  constructor(readonly workerPool: WorkerPool) {}
-
   serialize(value: TransactionsValue): Buffer {
     const bw = bufio.write(this.getSize(value))
 

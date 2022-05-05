@@ -178,7 +178,7 @@ export class Blockchain {
     this.transactions = this.db.addStore({
       name: 'bt',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(this.strategy.workerPool),
+      valueEncoding: new TransactionsValueEncoding(),
     })
 
     // number -> BlockHash[]
