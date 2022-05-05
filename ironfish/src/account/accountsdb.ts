@@ -6,29 +6,27 @@ import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
 import { Transaction } from '../primitives/transaction'
 import {
-  BufferEncoding,
+  BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
   StringEncoding,
+  StringHashEncoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
+import { AccountsValue, AccountsValueEncoding } from './database/accounts'
+import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
+import {
+  NoteToNullifiersValue,
+  NoteToNullifiersValueEncoding,
+} from './database/noteToNullifiers'
+import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
-const DATABASE_VERSION = 3
+const DATABASE_VERSION = 4
 
-export interface SerializedAccount {
-  name: string
-  spendingKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  rescan: number | null
-}
-
-export const AccountDefaults: SerializedAccount = {
+export const AccountDefaults: AccountsValue = {
   name: '',
   spendingKey: '',
   incomingViewKey: '',
@@ -42,39 +40,30 @@ const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   headHash: null,
 })
 
-export type AccountsDBMeta = {
-  defaultAccountName: string | null
-  headHash: string | null
-}
-
 export class AccountsDB {
   database: IDatabase
   workerPool: WorkerPool
   location: string
   files: FileSystem
 
-  accounts: IDatabaseStore<{ key: string; value: SerializedAccount }>
+  accounts: IDatabaseStore<{ key: string; value: AccountsValue }>
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
-    value: AccountsDBMeta[keyof AccountsDBMeta]
+    value: MetaValue
   }>
 
   // Transaction-related database stores
   noteToNullifier: IDatabaseStore<{
     key: string
-    value: { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
+    value: NoteToNullifiersValue
   }>
 
   nullifierToNote: IDatabaseStore<{ key: string; value: string }>
 
   transactions: IDatabaseStore<{
     key: Buffer
-    value: {
-      transaction: Buffer
-      blockHash: string | null
-      submittedSequence: number | null
-    }
+    value: TransactionsValue
   }>
 
   constructor({
@@ -97,41 +86,37 @@ export class AccountsDB {
     }>({
       name: 'meta',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new MetaValueEncoding(),
     })
 
-    this.accounts = this.database.addStore<{ key: string; value: SerializedAccount }>({
+    this.accounts = this.database.addStore<{ key: string; value: AccountsValue }>({
       name: 'accounts',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new AccountsValueEncoding(),
     })
 
     this.noteToNullifier = this.database.addStore<{
       key: string
-      value: { nullifierHash: string; noteIndex: number | null; spent: boolean }
+      value: NoteToNullifiersValue
     }>({
       name: 'noteToNullifier',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new JsonEncoding(),
+      keyEncoding: new StringHashEncoding(),
+      valueEncoding: new NoteToNullifiersValueEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
       name: 'nullifierToNote',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new StringHashEncoding(),
       valueEncoding: new StringEncoding(),
     })
 
     this.transactions = this.database.addStore<{
       key: Buffer
-      value: {
-        transaction: Buffer
-        blockHash: string | null
-        submittedSequence: number | null
-      }
+      value: TransactionsValue
     }>({
       name: 'transactions',
-      keyEncoding: new BufferEncoding(),
-      valueEncoding: new JsonEncoding(),
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new TransactionsValueEncoding(),
     })
   }
 
