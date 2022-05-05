@@ -27,7 +27,6 @@ export interface LeavesIndexSchema<H extends DatabaseKey> extends DatabaseSchema
 }
 
 export type NodeValue<H> = {
-  index: NodeIndex
   side: Side
   hashOfSibling: H
   parentIndex?: NodeIndex // left nodes have a parent index
