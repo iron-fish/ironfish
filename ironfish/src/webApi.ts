@@ -63,10 +63,10 @@ export class WebApi {
 
   async headDeposits(): Promise<string | null> {
     const response = await axios
-      .get<{ hash: string }>(`${this.host}/deposits/head`)
+      .get<{ block_hash: string }>(`${this.host}/deposits/head`)
       .catch(() => null)
 
-    return response?.data.hash || null
+    return response?.data.block_hash || null
   }
 
   async headBlocks(): Promise<string | null> {
