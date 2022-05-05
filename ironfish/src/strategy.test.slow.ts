@@ -12,10 +12,12 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
+import { NoteLeafEncoding } from './merkletree/database/leaves'
+import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
-import { IDatabase } from './storage'
+import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -41,6 +43,9 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafIndexKeyEncoding: BUFFER_ENCODING,
+    leafEncoding: new NoteLeafEncoding(),
+    nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
     depth: depth,
