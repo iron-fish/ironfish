@@ -2,11 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export const GENESIS_HASH = Buffer.from(
-  '4655C8E9B27EEC8129830AD94C970A0AE3C2338B8CB29CBA3AB572ED65ACAC1C',
-  'hex',
-)
-
 export const genesisBlockData = `
 {
   "header": {
