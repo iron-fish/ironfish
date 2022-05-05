@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export * from './fireAndForget'
-export * from './globalRpc'
-export * from './gossip'
-export * from './rpc'
+function toHuman(memo: string): string {
+  return memo.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim()
+}
+
+export const MemoUtils = {
+  toHuman,
+}

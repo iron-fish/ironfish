@@ -5,7 +5,7 @@ import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { WorkerPool } from '../../workerPool'
 import { Identity, PrivateIdentity, privateIdentityToIdentity } from '../identity'
-import { Identify, InternalMessageType } from '../messages'
+import { IdentifyMessage } from '../messages/identify'
 import { IsomorphicWebSocketConstructor } from '../types'
 
 /**
@@ -56,22 +56,19 @@ export class LocalPeer {
   /**
    * Construct an Identify message with our identity and version.
    */
-  getIdentifyMessage(): Identify {
+  getIdentifyMessage(): IdentifyMessage {
     Assert.isNotNull(this.chain.head, 'Cannot connect to the network without a genesis block')
 
-    return {
-      type: InternalMessageType.identity,
-      payload: {
-        identity: this.publicIdentity,
-        version: this.version,
-        agent: this.agent,
-        name: this.name || undefined,
-        port: this.port,
-        head: this.chain.head.hash.toString('hex'),
-        work: this.chain.head.work.toString(),
-        sequence: Number(this.chain.head.sequence),
-      },
-    }
+    return new IdentifyMessage({
+      agent: this.agent,
+      head: this.chain.head.hash,
+      identity: this.publicIdentity,
+      name: this.name || undefined,
+      port: this.port,
+      sequence: Number(this.chain.head.sequence),
+      version: this.version,
+      work: this.chain.head.work,
+    })
   }
 
   /**

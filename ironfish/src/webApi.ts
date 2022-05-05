@@ -15,6 +15,22 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
+export type ApiDepositUpload = {
+  type: 'connected' | 'disconnected' | 'fork'
+  block: {
+    hash: string
+    timestamp: number
+    sequence: number
+  }
+  transactions: {
+    hash: string
+    notes: {
+      memo: string
+      amount: number
+    }[]
+  }[]
+}
+
 type ApiUser = {
   id: number
   country_code: string
@@ -45,12 +61,27 @@ export class WebApi {
     this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
-  async head(): Promise<string | null> {
+  async headDeposits(): Promise<string | null> {
     const response = await axios
-      .get<{ hash: string }>(`${this.host}/blocks/head`)
+      .get<{ hash: string }>(`${this.host}/deposits/head`)
       .catch(() => null)
 
     return response?.data.hash || null
+  }
+
+  async headBlocks(): Promise<string | null> {
+    const response = await axios
+      .get<{ block_hash: string }>(`${this.host}/blocks/head`)
+      .catch(() => null)
+
+    return response?.data.block_hash || null
+  }
+
+  async uploadDeposits(deposits: ApiDepositUpload[]): Promise<void> {
+    this.requireToken()
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+    await axios.post(`${this.host}/deposits`, { operations: deposits }, options)
   }
 
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
@@ -72,6 +103,11 @@ export class WebApi {
     const options = this.options({ 'Content-Type': 'application/json' })
 
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
+  }
+
+  async getDepositAddress(): Promise<string> {
+    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
+    return response.data.address
   }
 
   async getFunds(data: { email?: string; public_key: string }): Promise<{

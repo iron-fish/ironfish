@@ -124,19 +124,17 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
     const transactions: GetBlockInfoResponse['block']['transactions'] = []
 
-    await block.withTransactionReferences(async () => {
-      for (const tx of block.transactions) {
-        const fee = await tx.fee()
+    for (const tx of block.transactions) {
+      const fee = tx.fee()
 
-        transactions.push({
-          signature: tx.transactionSignature().toString('hex'),
-          hash: tx.hash().toString('hex'),
-          fee: fee.toString(),
-          spends: tx.spendsLength(),
-          notes: tx.notesLength(),
-        })
-      }
-    })
+      transactions.push({
+        signature: tx.transactionSignature().toString('hex'),
+        hash: tx.hash().toString('hex'),
+        fee: fee.toString(),
+        spends: tx.spendsLength(),
+        notes: tx.notesLength(),
+      })
+    }
 
     const main = await node.chain.isHeadChain(header)
 

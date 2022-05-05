@@ -3,14 +3,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Note as NativeNote } from '@ironfish/rust-nodejs'
+import bufio from 'bufio'
 
 export class Note {
   private readonly noteSerialized: Buffer
   private note: NativeNote | null = null
   private referenceCount = 0
 
+  private readonly _value: bigint
+  private readonly _memo: Buffer
+
   constructor(noteSerialized: Buffer) {
     this.noteSerialized = noteSerialized
+
+    const reader = bufio.read(this.noteSerialized, true)
+
+    // skip owner
+    reader.seek(43)
+
+    this._value = BigInt(reader.readU64())
+
+    // skip randomness
+    reader.seek(32)
+
+    this._memo = reader.readBytes(32, true)
   }
 
   serialize(): Buffer {
@@ -34,19 +50,15 @@ export class Note {
   }
 
   value(): bigint {
-    const value = this.takeReference().value()
-    this.returnReference()
-    return value
+    return this._value
   }
 
   memo(): string {
-    const memo = this.takeReference().memo()
-    this.returnReference()
-    return memo
+    return this._memo.toString('utf8')
   }
 
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {
-    const buf = Buffer.from(this.takeReference().nullifier(ownerPrivateKey, position))
+    const buf = this.takeReference().nullifier(ownerPrivateKey, position)
     this.returnReference()
     return buf
   }

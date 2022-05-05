@@ -122,7 +122,7 @@ export class MiningSoloMiner {
   }
 
   newWork(miningRequestId: number, header: Buffer): void {
-    this.logger.info(
+    this.logger.debug(
       'new work',
       this.target.toString('hex'),
       miningRequestId,

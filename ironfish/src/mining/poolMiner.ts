@@ -104,7 +104,7 @@ export class MiningPoolMiner {
   newWork(miningRequestId: number, header: Buffer): void {
     Assert.isNotNull(this.graffiti)
 
-    this.logger.info(
+    this.logger.debug(
       'new work',
       this.target.toString('hex'),
       miningRequestId,
