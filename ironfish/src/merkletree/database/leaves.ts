@@ -7,7 +7,6 @@ import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 
 export interface LeafValue<T> {
-  index: number
   element: T
   merkleHash: Buffer
   parentIndex: number
@@ -24,7 +23,6 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
   serialize(value: NoteLeafValue): Buffer {
     const bw = bufio.write(this.getSize())
 
-    bw.writeU32(value.index)
     bw.writeBytes(value.element.serialize())
     bw.writeHash(value.merkleHash)
     bw.writeU32(value.parentIndex)
@@ -35,13 +33,11 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
   deserialize(buffer: Buffer): NoteLeafValue {
     const reader = bufio.read(buffer, true)
 
-    const index = reader.readU32()
     const element = new NoteEncrypted(reader.readBytes(NOTE_BYTES))
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 
     return {
-      index,
       element,
       merkleHash,
       parentIndex,
@@ -50,7 +46,6 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
 
   getSize(): number {
     let size = 0
-    size += 4 // index
     size += NOTE_BYTES // element
     size += 32 // merkleHash
     size += 4 // parentIndex
@@ -62,7 +57,6 @@ export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafVal
   serialize(value: NullifierLeafValue): Buffer {
     const bw = bufio.write(this.getSize())
 
-    bw.writeU32(value.index)
     bw.writeBytes(value.element)
     bw.writeHash(value.merkleHash)
     bw.writeU32(value.parentIndex)
@@ -73,13 +67,11 @@ export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafVal
   deserialize(buffer: Buffer): NullifierLeafValue {
     const reader = bufio.read(buffer, true)
 
-    const index = reader.readU32()
     const element = reader.readBytes(NULLIFIER_BYTES)
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 
     return {
-      index,
       element,
       merkleHash,
       parentIndex,
@@ -88,7 +80,6 @@ export class NullifierLeafEncoding implements IDatabaseEncoding<NullifierLeafVal
 
   getSize(): number {
     let size = 0
-    size += 4 // index
     size += NULLIFIER_BYTES // element
     size += 32 // merkleHash
     size += 4 // parentIndex

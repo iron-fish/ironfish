@@ -11,7 +11,6 @@ import { IDatabase, IDatabaseEncoding, StringEncoding } from '../../storage'
 import { createDB } from '../helpers/storage'
 
 type StructureLeafValue = {
-  index: number
   element: string
   merkleHash: string
   parentIndex: number
@@ -21,7 +20,6 @@ class StructureLeafEncoding implements IDatabaseEncoding<StructureLeafValue> {
   serialize(value: StructureLeafValue): Buffer {
     const bw = bufio.write()
 
-    bw.writeU32(value.index)
     bw.writeVarString(value.element)
     bw.writeVarString(value.merkleHash)
     bw.writeU32(value.parentIndex)
@@ -32,13 +30,11 @@ class StructureLeafEncoding implements IDatabaseEncoding<StructureLeafValue> {
   deserialize(buffer: Buffer): StructureLeafValue {
     const bw = bufio.read(buffer, true)
 
-    const index = bw.readU32()
     const element = bw.readVarString()
     const merkleHash = bw.readVarString()
     const parentIndex = bw.readU32()
 
     return {
-      index,
       element,
       merkleHash,
       parentIndex,

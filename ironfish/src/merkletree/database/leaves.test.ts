@@ -17,7 +17,6 @@ describe('NoteLeafEncoding', () => {
     const noteEncrypted = new NoteEncrypted(txp.getNote(0))
 
     const noteLeafValue = {
-      index: 7,
       element: noteEncrypted,
       merkleHash: Buffer.alloc(32, 'hashOfSibling'),
       parentIndex: 14,
@@ -34,7 +33,6 @@ describe('NullifierLeafEncoding', () => {
     const encoding = new NullifierLeafEncoding()
 
     const nullifierLeafValue = {
-      index: 7,
       element: Buffer.alloc(32, 'element'),
       merkleHash: Buffer.alloc(32, 'hashOfSibling'),
       parentIndex: 14,
