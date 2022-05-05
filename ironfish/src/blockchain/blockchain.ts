@@ -915,7 +915,7 @@ export class Blockchain {
         noteCommitment,
         nullifierCommitment,
         target,
-        0n,
+        BigInt(0),
         timestamp,
         minersFee.fee(),
         graffiti,

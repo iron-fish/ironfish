@@ -125,7 +125,7 @@ export class BlockHeader {
     noteCommitment: { commitment: NoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
-    randomness = 0n,
+    randomness = BigInt(0),
     timestamp: Date | undefined = undefined,
     minersFee: bigint,
     graffiti: Buffer,
