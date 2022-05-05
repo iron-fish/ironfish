@@ -9,7 +9,6 @@ describe('NodeEncoding', () => {
     const encoding = new NodeEncoding()
 
     const leftNodeValue = {
-      index: 7,
       side: Side.Left,
       hashOfSibling: Buffer.alloc(32, 'hashOfSibling'),
       parentIndex: 14,
@@ -24,7 +23,6 @@ describe('NodeEncoding', () => {
     const encoding = new NodeEncoding()
 
     const rightNodeValue = {
-      index: 7,
       side: Side.Right,
       hashOfSibling: Buffer.alloc(32, 'hashOfSibling'),
       leftIndex: 14,

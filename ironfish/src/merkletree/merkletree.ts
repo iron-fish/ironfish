@@ -226,7 +226,6 @@ export class MerkleTree<
             side: Side.Left,
             parentIndex: 0,
             hashOfSibling,
-            index: newParentIndex,
           },
           tx,
         )
@@ -237,7 +236,6 @@ export class MerkleTree<
             element: leftLeaf.element,
             merkleHash: leftLeaf.merkleHash,
             parentIndex: newParentIndex,
-            index: leftLeafIndex,
           },
           tx,
         )
@@ -299,7 +297,6 @@ export class MerkleTree<
                   side: Side.Left,
                   hashOfSibling: previousParent.hashOfSibling,
                   parentIndex: nextNodeIndex,
-                  index: previousParentIndex,
                 },
                 tx,
               )
@@ -350,7 +347,6 @@ export class MerkleTree<
           element,
           merkleHash,
           parentIndex: newParentIndex,
-          index: indexOfNewLeaf,
         },
         tx,
       )
@@ -360,14 +356,13 @@ export class MerkleTree<
   }
 
   async addLeaf(
-    index: LeafIndex,
-    value: { index: LeafIndex; element: E; merkleHash: H; parentIndex: NodeIndex },
+    index: LeavesSchema<E, H>['key'],
+    value: LeavesSchema<E, H>['value'],
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.leaves.put(
       index,
       {
-        index: index,
         element: value.element,
         merkleHash: value.merkleHash,
         parentIndex: value.parentIndex,
@@ -412,9 +407,10 @@ export class MerkleTree<
       if (pastSize === 1) {
         await this.counter.put('Nodes', 1, tx)
 
-        const firstLeaf = await this.getLeaf(0, tx)
+        const index = 0
+        const firstLeaf = await this.getLeaf(index, tx)
         firstLeaf.parentIndex = 0
-        await this.addLeaf(firstLeaf.index, firstLeaf, tx)
+        await this.addLeaf(index, firstLeaf, tx)
         return
       }
 
@@ -447,7 +443,7 @@ export class MerkleTree<
       }
 
       parent.parentIndex = 0
-      await this.nodes.put(parent.index, parent, tx)
+      await this.nodes.put(parentIndex, parent, tx)
       await this.counter.put('Nodes', maxParentIndex + 1, tx)
       await this.rehashRightPath(tx)
     })
@@ -649,7 +645,6 @@ export class MerkleTree<
               side: Side.Left,
               hashOfSibling: parentHash,
               parentIndex: node.parentIndex,
-              index: parentIndex,
             },
             tx,
           )
@@ -664,7 +659,7 @@ export class MerkleTree<
           // hash because we set it correctly when we inserted it. But the left
           // node needs to have its hashOfSibling set to our current hash.
           if (node.leftIndex === undefined) {
-            throw new Error(`Expected node ${node.index} to have left node`)
+            throw new Error(`Expected node ${parentIndex} to have left node`)
           }
 
           const leftNode = await this.getNode(node.leftIndex, tx)
@@ -675,7 +670,6 @@ export class MerkleTree<
               side: Side.Left,
               parentIndex: leftNode.parentIndex,
               hashOfSibling: parentHash,
-              index: node.leftIndex,
             },
             tx,
           )
