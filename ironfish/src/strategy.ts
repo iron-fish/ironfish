@@ -30,7 +30,7 @@ export class Strategy {
   constructor(workerPool: WorkerPool) {
     this.noteHasher = new NoteHasher()
     this.nullifierHasher = new NullifierHasher()
-    this.transactionSerde = new TransactionSerde(workerPool)
+    this.transactionSerde = new TransactionSerde()
     this.blockSerde = new BlockSerde(this)
     this.blockHeaderSerde = new BlockHeaderSerde(this)
     this.noteSerde = this.noteHasher.elementSerde()

@@ -19,7 +19,6 @@ import { ResponseError } from './errors'
  * This is useful any time you want to make requests without hitting an IO layer.
  */
 export class MemoryAdapter implements IAdapter {
-  server: RpcServer | null = null
   router: Router | null = null
 
   start(): Promise<void> {
@@ -31,12 +30,10 @@ export class MemoryAdapter implements IAdapter {
   }
 
   attach(server: RpcServer): void {
-    this.server = server
     this.router = server.getRouter(ALL_API_NAMESPACES)
   }
 
   unattach(): void {
-    this.server = null
     this.router = null
   }
 
@@ -58,10 +55,8 @@ export class MemoryAdapter implements IAdapter {
     data?: unknown,
   ): MemoryResponse<TEnd, TStream> {
     const router = this.router
-    const server = this.server
 
     Assert.isNotNull(router)
-    Assert.isNotNull(server)
 
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
     const stream = new Stream<TStream>()
@@ -69,7 +64,6 @@ export class MemoryAdapter implements IAdapter {
 
     const request = new Request(
       data,
-      server.node,
       (status: number, data?: unknown) => {
         response.status = status
         stream.close()

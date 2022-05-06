@@ -2,33 +2,87 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Job } from '../job'
+import bufio from 'bufio'
 import { PromiseUtils } from '../../utils'
-import { Job } from '../job'
+import { WorkerMessage, WorkerMessageType } from './workerMessage'
+import { WorkerTask } from './workerTask'
 
-export type SleepRequest = {
-  type: 'sleep'
-  sleep: number
-  error: string
-}
+export class SleepRequest extends WorkerMessage {
+  readonly sleep: number
+  readonly error: string
 
-export type SleepResponse = {
-  type: 'sleep'
-  aborted: boolean
-}
-
-export async function handleSleep(
-  { sleep, error }: SleepRequest,
-  job: Job,
-): Promise<SleepResponse> {
-  await PromiseUtils.sleep(sleep)
-
-  if (error) {
-    throw new Error(error)
+  constructor(sleep: number, error: string, jobId?: number) {
+    super(WorkerMessageType.Sleep, jobId)
+    this.sleep = sleep
+    this.error = error
   }
 
-  if (job.status === 'aborted') {
-    return { type: 'sleep', aborted: true }
+  serialize(): Buffer {
+    const bw = bufio.write(this.getSize())
+    bw.writeDouble(this.sleep)
+    bw.writeVarString(this.error)
+    return bw.render()
   }
 
-  return { type: 'sleep', aborted: false }
+  static deserialize(jobId: number, buffer: Buffer): SleepRequest {
+    const reader = bufio.read(buffer, true)
+    const sleep = reader.readDouble()
+    const error = reader.readVarString()
+    return new SleepRequest(sleep, error, jobId)
+  }
+
+  getSize(): number {
+    return 8 + bufio.sizeVarString(this.error)
+  }
+}
+
+export class SleepResponse extends WorkerMessage {
+  readonly aborted: boolean
+
+  constructor(aborted: boolean, jobId: number) {
+    super(WorkerMessageType.Sleep, jobId)
+    this.aborted = aborted
+  }
+
+  serialize(): Buffer {
+    const bw = bufio.write(this.getSize())
+    bw.writeU8(Number(this.aborted))
+    return bw.render()
+  }
+
+  static deserialize(jobId: number, buffer: Buffer): SleepResponse {
+    const reader = bufio.read(buffer, true)
+    const aborted = Boolean(reader.readU8())
+    return new SleepResponse(aborted, jobId)
+  }
+
+  getSize(): number {
+    return 1
+  }
+}
+
+export class SleepTask extends WorkerTask {
+  private static instance: SleepTask | undefined
+
+  static getInstance(): SleepTask {
+    if (!SleepTask.instance) {
+      SleepTask.instance = new SleepTask()
+    }
+    return SleepTask.instance
+  }
+
+  async execute({ jobId, sleep, error }: SleepRequest, job: Job): Promise<SleepResponse> {
+    await PromiseUtils.sleep(sleep)
+
+    if (error) {
+      throw new Error(error)
+    }
+
+    if (job.status === 'aborted') {
+      return new SleepResponse(true, jobId)
+    }
+
+    return new SleepResponse(false, jobId)
+  }
 }

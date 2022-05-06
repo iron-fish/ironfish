@@ -14,11 +14,11 @@ import { Block } from '../primitives'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { GraffitiUtils } from '../utils/graffiti'
-import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
   memo: string
   timestamp: number
+  target: Target
   allocations: {
     publicAddress: string
     amount: number
@@ -34,7 +34,6 @@ export async function makeGenesisBlock(
   chain: Blockchain,
   info: GenesisBlockInfo,
   account: Account,
-  workerPool: WorkerPool,
   logger: Logger,
 ): Promise<{ block: Block }> {
   logger = logger.withTag('makeGenesisBlock')
@@ -68,10 +67,7 @@ export async function makeGenesisBlock(
 
   const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new Transaction(
-    minersFeeTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
    *
@@ -86,10 +82,7 @@ export async function makeGenesisBlock(
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new Transaction(
-    initialTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
   transactionList.push(postedInitialTransaction)
 
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
@@ -134,7 +127,6 @@ export async function makeGenesisBlock(
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
     transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
-    workerPool,
   )
   transactionList.push(postedTransaction)
 
@@ -155,7 +147,7 @@ export async function makeGenesisBlock(
   )
 
   // Modify the block with any custom properties.
-  block.header.target = Target.initialTarget()
+  block.header.target = info.target
   block.header.timestamp = new Date(info.timestamp)
 
   logger.info('Block complete.')

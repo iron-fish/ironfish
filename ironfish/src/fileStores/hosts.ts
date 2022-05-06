@@ -18,7 +18,7 @@ export const HostOptionsDefaults: HostsOptions = {
 export class HostsStore extends KeyStore<HostsOptions> {
   logger: Logger
 
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(files, configName || 'hosts.json', HostOptionsDefaults, dataDir)
     this.logger = createRootLogger()
   }

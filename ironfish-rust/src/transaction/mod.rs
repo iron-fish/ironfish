@@ -15,12 +15,16 @@ use super::{
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
+use group::GroupEncoding;
+use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
-use zcash_primitives::redjubjub::{PrivateKey, PublicKey, Signature};
+use zcash_primitives::{
+    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
+    redjubjub::{PrivateKey, PublicKey, Signature},
+};
 
 use std::{io, slice::Iter, sync::Arc};
-use zcash_primitives::jubjub::{edwards, FixedGenerators, JubjubEngine, JubjubParams, Unknown};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -39,27 +43,27 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 ///
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
-pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct ProposedTransaction {
     /// Essentially a global reference to the sapling parameters, including
     /// proving and verification keys.
-    sapling: Arc<Sapling<J>>,
+    sapling: Arc<Sapling>,
 
     /// A "private key" manufactured from a bunch of randomness added for each
     /// spend and output.
-    binding_signature_key: J::Fs,
+    binding_signature_key: jubjub::Fr,
 
     /// A "public key" manufactured from a combination of the values of each
     /// transaction and the same randomness as above
-    binding_verification_key: edwards::Point<J, Unknown>,
+    binding_verification_key: ExtendedPoint,
 
     /// Proofs of the individual spends with all values required to calculate
     /// the signatures.
-    spends: Vec<SpendParams<J>>,
+    spends: Vec<SpendParams>,
 
     /// proofs of the individual receipts with values required to calculate
     /// signatures. Note: This is commonly referred to as
     /// `outputs` in the literature.
-    receipts: Vec<ReceiptParams<J>>,
+    receipts: Vec<ReceiptParams>,
 
     /// The balance of all the spends minus all the receipts. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -74,12 +78,12 @@ pub struct ProposedTransaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     // signature hash method, and also to Transaction.
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
-    pub fn new(sapling: Arc<Sapling<J>>) -> ProposedTransaction<J> {
+impl ProposedTransaction {
+    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction {
         ProposedTransaction {
             sapling,
-            binding_signature_key: <J::Fs as Field>::zero(),
-            binding_verification_key: edwards::Point::zero(),
+            binding_signature_key: <jubjub::Fr as Field>::zero(),
+            binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
             receipts: vec![],
             transaction_fee: 0,
@@ -90,9 +94,9 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// Spend the note owned by spender_key at the given witness location.
     pub fn spend(
         &mut self,
-        spender_key: SaplingKey<J>,
-        note: &Note<J>,
-        witness: &dyn WitnessTrait<J>,
+        spender_key: SaplingKey,
+        note: &Note,
+        witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());
@@ -103,7 +107,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     ///
     /// This allows for parallel immutable spends without having to take
     /// a mutable pointer out on self.
-    pub fn add_spend_proof(&mut self, spend: SpendParams<J>, note_value: u64) {
+    pub fn add_spend_proof(&mut self, spend: SpendParams, note_value: u64) {
         self.increment_binding_signature_key(&spend.value_commitment.randomness, false);
         self.increment_binding_verification_key(&spend.value_commitment(), false);
 
@@ -115,8 +119,8 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// transaction.
     pub fn receive(
         &mut self,
-        spender_key: &SaplingKey<J>,
-        note: &Note<J>,
+        spender_key: &SaplingKey,
+        note: &Note,
     ) -> Result<(), SaplingProofError> {
         let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
 
@@ -141,10 +145,10 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// aka: self.transaction_fee - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
-        spender_key: &SaplingKey<J>,
-        change_goes_to: Option<PublicAddress<J>>,
+        spender_key: &SaplingKey,
+        change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
-    ) -> Result<Transaction<J>, TransactionError> {
+    ) -> Result<Transaction, TransactionError> {
         let change_amount = self.transaction_fee - intended_transaction_fee as i64;
 
         if change_amount < 0 {
@@ -159,7 +163,6 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
             let change_address =
                 change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
             let change_note = Note::new(
-                self.sapling.clone(),
                 change_address,
                 change_amount as u64, // we checked it was positive
                 Memo([0; 32]),
@@ -174,7 +177,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(&mut self) -> Result<Transaction<J>, TransactionError> {
+    pub fn post_miners_fee(&mut self) -> Result<Transaction, TransactionError> {
         if !self.spends.is_empty() || self.receipts.len() != 1 {
             return Err(TransactionError::InvalidBalanceError);
         }
@@ -189,7 +192,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
-    pub fn post_genesis_transaction(&self) -> Result<Transaction<J>, TransactionError> {
+    pub fn post_genesis_transaction(&self) -> Result<Transaction, TransactionError> {
         self._partial_post()
     }
 
@@ -204,7 +207,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     }
 
     // post transaction without much validation.
-    fn _partial_post(&self) -> Result<Transaction<J>, TransactionError> {
+    fn _partial_post(&self) -> Result<Transaction, TransactionError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
@@ -268,18 +271,14 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// binding_signature below. I find the separation of concerns easier
     /// to read, but it's an easy win if we see a performance bottleneck here.
     fn check_value_consistency(&self) -> Result<(), TransactionError> {
-        let jubjub = &self.sapling.jubjub;
-        let private_key = PrivateKey::<J>(self.binding_signature_key);
-        let public_key = PublicKey::from_private(
-            &private_key,
-            FixedGenerators::ValueCommitmentRandomness,
-            jubjub,
-        );
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64, jubjub)?;
+        let private_key = PrivateKey(self.binding_signature_key);
+        let public_key =
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
-        value_balance_point = value_balance_point.negate();
-        let mut calculated_public_key = self.binding_verification_key.clone();
-        calculated_public_key = calculated_public_key.add(&value_balance_point, jubjub);
+        value_balance_point = -value_balance_point;
+        let mut calculated_public_key = self.binding_verification_key;
+        calculated_public_key += value_balance_point;
 
         if calculated_public_key != public_key.0 {
             Err(TransactionError::InvalidBalanceError)
@@ -294,30 +293,23 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
     /// performs the calculation and sets the value on this struct.
     fn binding_signature(&self) -> Result<Signature, TransactionError> {
         let mut data_to_be_signed = [0u8; 64];
-        let private_key = PrivateKey::<J>(self.binding_signature_key);
-        let public_key = PublicKey::from_private(
-            &private_key,
-            FixedGenerators::ValueCommitmentRandomness,
-            &self.sapling.jubjub,
-        );
+        let private_key = PrivateKey(self.binding_signature_key);
+        let public_key =
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
-        public_key
-            .0
-            .write(&mut data_to_be_signed[..32])
-            .expect("Should be able to copy key");
+        data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
         (&mut data_to_be_signed[32..]).copy_from_slice(&self.transaction_signature_hash());
 
         Ok(private_key.sign(
             &data_to_be_signed,
             &mut OsRng,
-            FixedGenerators::ValueCommitmentRandomness,
-            &self.sapling.jubjub,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
     }
 
     /// Helper method to encapsulate the verbose way incrementing the signature
     /// key works
-    fn increment_binding_signature_key(&mut self, value: &J::Fs, negate: bool) {
+    fn increment_binding_signature_key(&mut self, value: &jubjub::Fr, negate: bool) {
         let tmp = *value;
         if negate {
             //binding_signature_key - value
@@ -330,16 +322,12 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
 
     /// Helper method to encapsulate the verboseness around incrementing the
     /// binding verificaiton key
-    fn increment_binding_verification_key(
-        &mut self,
-        value: &edwards::Point<J, Unknown>,
-        negate: bool,
-    ) {
-        let mut tmp = value.clone();
+    fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
+        let mut tmp = *value;
         if negate {
-            tmp = tmp.negate();
+            tmp = -tmp;
         }
-        tmp = tmp.add(&self.binding_verification_key, &self.sapling.jubjub);
+        tmp += self.binding_verification_key;
         self.binding_verification_key = tmp;
     }
 }
@@ -349,18 +337,18 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> ProposedTransaction<J> {
 ///
 /// This is the serializable form of a transaction.
 #[derive(Clone)]
-pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct Transaction {
     /// reference to the sapling object associated with this transaction
-    sapling: Arc<Sapling<J>>,
+    sapling: Arc<Sapling>,
 
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
     transaction_fee: i64,
 
     /// List of spends, or input notes, that have been destroyed.
-    spends: Vec<SpendProof<J>>,
+    spends: Vec<SpendProof>,
 
     /// List of receipts, or output notes that have been created.
-    receipts: Vec<ReceiptProof<J>>,
+    receipts: Vec<ReceiptProof>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and receipts when the transaction was created.
@@ -372,12 +360,12 @@ pub struct Transaction<J: JubjubEngine + pairing::MultiMillerLoop> {
     expiration_sequence: u32,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
+impl Transaction {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
     pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
+        sapling: Arc<Sapling>,
         mut reader: R,
     ) -> Result<Self, TransactionError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
@@ -387,10 +375,10 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
         let mut spends = vec![];
         let mut receipts = vec![];
         for _ in 0..num_spends {
-            spends.push(SpendProof::read(&sapling.jubjub, &mut reader)?);
+            spends.push(SpendProof::read(&mut reader)?);
         }
         for _ in 0..num_receipts {
-            receipts.push(ReceiptProof::read(sapling.clone(), &mut reader)?);
+            receipts.push(ReceiptProof::read(&mut reader)?);
         }
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -432,50 +420,50 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
     pub fn verify(&self) -> Result<(), TransactionError> {
         // Context to accumulate a signature of all the spends and outputs and
         // guarantee they are part of this transaction, unmodified.
-        let mut binding_verification_key = edwards::Point::zero();
+        let mut binding_verification_key = ExtendedPoint::identity();
 
         for spend in self.spends.iter() {
             spend.verify_proof(&self.sapling)?;
-            let mut tmp = spend.value_commitment.clone();
-            tmp = tmp.add(&binding_verification_key, &self.sapling.jubjub);
+            let mut tmp = spend.value_commitment;
+            tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
 
         for receipt in self.receipts.iter() {
             receipt.verify_proof(&self.sapling)?;
-            let mut tmp = receipt.merkle_note.value_commitment.clone();
-            tmp = tmp.negate();
-            tmp = tmp.add(&binding_verification_key, &self.sapling.jubjub);
+            let mut tmp = receipt.merkle_note.value_commitment;
+            tmp = -tmp;
+            tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
 
         let hash_to_verify_signature = self.transaction_signature_hash();
 
         for spend in self.spends.iter() {
-            spend.verify_signature(&self.sapling.jubjub, &hash_to_verify_signature)?;
+            spend.verify_signature(&hash_to_verify_signature)?;
         }
 
-        self.verify_binding_signature(&self.sapling, &binding_verification_key)?;
+        self.verify_binding_signature(&binding_verification_key)?;
 
         Ok(())
     }
 
     /// Get an iterator over the spends in this transaction. Each spend
     /// is by reference
-    pub fn iter_spends(&self) -> Iter<SpendProof<J>> {
+    pub fn iter_spends(&self) -> Iter<SpendProof> {
         self.spends.iter()
     }
 
-    pub fn spends(&self) -> &Vec<SpendProof<J>> {
+    pub fn spends(&self) -> &Vec<SpendProof> {
         &self.spends
     }
 
     /// Get an iterator over the receipts in this transaction, by reference
-    pub fn iter_receipts(&self) -> Iter<ReceiptProof<J>> {
+    pub fn iter_receipts(&self) -> Iter<ReceiptProof> {
         self.receipts.iter()
     }
 
-    pub fn receipts(&self) -> &Vec<ReceiptProof<J>> {
+    pub fn receipts(&self) -> &Vec<ReceiptProof> {
         &self.receipts
     }
 
@@ -532,29 +520,23 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
     /// Called from the public verify function.
     fn verify_binding_signature(
         &self,
-        sapling: &Sapling<J>,
-        binding_verification_key: &edwards::Point<J, Unknown>,
+        binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
-        let mut value_balance_point =
-            value_balance_to_point(self.transaction_fee, &sapling.jubjub)?;
-        value_balance_point = value_balance_point.negate();
+        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
+        value_balance_point = -value_balance_point;
 
-        let mut public_key_point = binding_verification_key.clone();
-        public_key_point = public_key_point.add(&value_balance_point, &sapling.jubjub);
+        let mut public_key_point = *binding_verification_key;
+        public_key_point += value_balance_point;
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
-        public_key
-            .0
-            .write(&mut data_to_verify_signature[..32])
-            .expect("Should be able to copy key");
+        data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
         (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
 
         if !public_key.verify(
             &data_to_verify_signature,
             &self.binding_signature,
-            FixedGenerators::ValueCommitmentRandomness,
-            &sapling.jubjub,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
             Err(TransactionError::VerificationFailed)
         } else {
@@ -565,10 +547,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> Transaction<J> {
 
 // Convert the integer value to a point on the Jubjub curve, accounting for
 // negative values
-fn value_balance_to_point<J: JubjubEngine + pairing::MultiMillerLoop>(
-    value: i64,
-    params: &J::Params,
-) -> Result<edwards::Point<J, Unknown>, TransactionError> {
+fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
@@ -577,12 +556,10 @@ fn value_balance_to_point<J: JubjubEngine + pairing::MultiMillerLoop>(
         None => return Err(TransactionError::IllegalValueError),
     };
 
-    let mut value_balance = params
-        .generator(FixedGenerators::ValueCommitmentValue)
-        .mul(J::Fs::from(abs), params);
+    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
-        value_balance = value_balance.negate();
+        value_balance = -value_balance;
     }
 
     Ok(value_balance.into())

@@ -5,3 +5,5 @@
 *.ts text
 *.js text
 *.json text
+*.png -text
+*.params -text

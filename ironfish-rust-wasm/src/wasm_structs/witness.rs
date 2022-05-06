@@ -5,7 +5,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use ironfish_rust::sapling_bls12::{Bls12, Fr, MerkleNoteHash};
+use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 use super::panic_hook;
@@ -67,7 +67,7 @@ extern "C" {
 /// Implements WitnessTrait on JsWitness so that witnesses from the
 /// TypeScript side can be passed into classes that require witnesses,
 /// like transactions.
-impl WitnessTrait<Bls12> for JsWitness {
+impl WitnessTrait for JsWitness {
     fn verify(&self, hash: &MerkleNoteHash) -> bool {
         panic_hook::set_once();
 
@@ -77,7 +77,7 @@ impl WitnessTrait<Bls12> for JsWitness {
         self.verify(&cursor.into_inner())
     }
 
-    fn get_auth_path(&self) -> Vec<WitnessNode<Fr>> {
+    fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>> {
         panic_hook::set_once();
 
         self.auth_path()
@@ -102,10 +102,10 @@ impl WitnessTrait<Bls12> for JsWitness {
             .collect()
     }
 
-    fn root_hash(&self) -> Fr {
+    fn root_hash(&self) -> Scalar {
         panic_hook::set_once();
 
-        // Convert the serialized root hash back to a Fr
+        // Convert the serialized root hash back to a Scalar
         let bytes = self.serialize_root_hash();
         let mut cursor: std::io::Cursor<&[u8]> = std::io::Cursor::new(&bytes);
         MerkleNoteHash::read(&mut cursor).unwrap().0

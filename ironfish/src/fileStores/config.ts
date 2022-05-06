@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
-import { DEFAULT_DATA_DIR } from './fileStore'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'
+export const DEFAULT_DATA_DIR = '~/.ironfish'
 export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
@@ -42,6 +42,12 @@ export type ConfigOptions = {
   enableMetrics: boolean
   getFundsApi: string
   ipcPath: string
+  /**
+   * As part of IRO-1759 we are removing 'node-ipc' for RPC. This is
+   * essentially a feature flag for enabling use of the native TCP adapter
+   * without using 'node-ipc'
+   */
+  enableNativeRpcTcpAdapter: boolean
   /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
@@ -191,12 +197,12 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(
       files,
       configName || DEFAULT_CONFIG_NAME,
-      Config.GetDefaults(files, dataDir || DEFAULT_DATA_DIR),
-      dataDir || DEFAULT_DATA_DIR,
+      Config.GetDefaults(files, dataDir),
+      dataDir,
       ConfigOptionsSchema,
     )
   }
@@ -220,11 +226,12 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
+      enableNativeRpcTcpAdapter: false,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
       getFundsApi: DEFAULT_GET_FUNDS_API,
-      ipcPath: files.resolve(files.join(dataDir || DEFAULT_DATA_DIR, 'ironfish.ipc')),
+      ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
       logPrefix: '',

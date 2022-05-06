@@ -5,17 +5,15 @@ import path from 'path'
 import { FileSystem } from '../fileSystems'
 import { JSONUtils, PartialRecursive } from '../utils'
 
-export const DEFAULT_DATA_DIR = '~/.ironfish'
-
 export class FileStore<T extends Record<string, unknown>> {
   files: FileSystem
   dataDir: string
   configPath: string
   configName: string
 
-  constructor(files: FileSystem, configName: string, dataDir?: string) {
+  constructor(files: FileSystem, configName: string, dataDir: string) {
     this.files = files
-    this.dataDir = files.resolve(dataDir || DEFAULT_DATA_DIR)
+    this.dataDir = files.resolve(dataDir)
     this.configName = configName
     this.configPath = path.join(this.dataDir, configName)
   }

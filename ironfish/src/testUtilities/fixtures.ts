@@ -240,7 +240,7 @@ export async function useTxFixture(
       return tx.serialize()
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx, accounts.workerPool)
+      return new Transaction(tx)
     },
   })
 }
@@ -349,11 +349,7 @@ export async function useBlockWithTx(
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(
-        await transaction.fee(),
-        3,
-        generateKey().spending_key,
-      ),
+      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
     )
   })
 

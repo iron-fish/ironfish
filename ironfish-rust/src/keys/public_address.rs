@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
+use group::GroupEncoding;
+use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::primitives::{Diversifier, PaymentAddress};
 
-use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{edwards, JubjubEngine, PrimeOrder, ToUniform, Unknown};
+use std::{convert::TryInto, io};
 
-use super::{errors, IncomingViewKey, Sapling, SaplingKey};
+use super::{errors, IncomingViewKey, SaplingKey};
 
 /// The address to which funds can be sent, stored as a diversifier and public
 /// transmission key. Combining a diversifier with an incoming_viewing_key allows
@@ -17,7 +18,7 @@ use super::{errors, IncomingViewKey, Sapling, SaplingKey};
 /// This allows the user to have multiple "accounts", or to even have different
 /// payment addresses per transaction.
 #[derive(Clone)]
-pub struct PublicAddress<J: JubjubEngine + pairing::MultiMillerLoop> {
+pub struct PublicAddress {
     /// Diversifier is a struct of 11 bytes. The array is hashed and interpreted
     /// as an edwards point, but we have to store the diversifier independently
     /// because the pre-hashed bytes cannot be extracted from the point.
@@ -26,24 +27,20 @@ pub struct PublicAddress<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// The same diversifier, but represented as a point on the jubjub curve.
     /// Often referred to as
     /// `g_d` in the literature.
-    pub(crate) diversifier_point: edwards::Point<J, PrimeOrder>,
+    pub(crate) diversifier_point: SubgroupPoint,
 
     /// The transmission key is the result of combining the diversifier with the
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
-    pub(crate) transmission_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) transmission_key: SubgroupPoint,
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
+impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
-    pub fn new(
-        sapling: Arc<Sapling<J>>,
-        address_bytes: &[u8; 43],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    pub fn new(address_bytes: &[u8; 43]) -> Result<PublicAddress, errors::SaplingKeyError> {
         let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&sapling.jubjub, &address_bytes[..11])?;
-        let transmission_key =
-            PublicAddress::load_transmission_key(&sapling.jubjub, &address_bytes[11..])?;
+            PublicAddress::load_diversifier(&address_bytes[..11])?;
+        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
 
         Ok(PublicAddress {
             diversifier,
@@ -53,35 +50,32 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
-        reader: &mut R,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
         let mut address_bytes = [0; 43];
         reader.read_exact(&mut address_bytes)?;
-        Self::new(sapling, &address_bytes)
+        Self::new(&address_bytes)
     }
 
     /// Initialize a public address from a sapling key and the bytes
     /// representing a diversifier. Typically constructed from
     /// SaplingKey::public_address()
     pub fn from_key(
-        sapling_key: &SaplingKey<J>,
+        sapling_key: &SaplingKey,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
     }
 
     pub fn from_view_key(
-        view_key: &IncomingViewKey<J>,
+        view_key: &IncomingViewKey,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         let diversifier = Diversifier(*diversifier);
-        if let Some(key_part) = diversifier.g_d(&view_key.sapling.jubjub) {
+        if let Some(key_part) = diversifier.g_d() {
             Ok(PublicAddress {
                 diversifier,
-                diversifier_point: key_part.clone(),
-                transmission_key: key_part.mul(view_key.view_key, &view_key.sapling.jubjub),
+                diversifier_point: key_part,
+                transmission_key: key_part * view_key.view_key,
             })
         } else {
             Err(errors::SaplingKeyError::DiversificationError)
@@ -91,10 +85,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
             Ok(bytes) => {
@@ -103,7 +94,7 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
                 } else {
                     let mut byte_arr = [0; 43];
                     byte_arr.clone_from_slice(&bytes[0..43]);
-                    Self::new(sapling, &byte_arr)
+                    Self::new(&byte_arr)
                 }
             }
         }
@@ -133,28 +124,29 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     }
 
     pub(crate) fn load_diversifier(
-        jubjub: &J::Params,
         diversifier_slice: &[u8],
-    ) -> Result<(Diversifier, edwards::Point<J, PrimeOrder>), errors::SaplingKeyError> {
+    ) -> Result<(Diversifier, SubgroupPoint), errors::SaplingKeyError> {
         let mut diversifier_bytes = [0; 11];
         diversifier_bytes.clone_from_slice(diversifier_slice);
         let diversifier = Diversifier(diversifier_bytes);
         let diversifier_point = diversifier
-            .g_d(jubjub)
+            .g_d()
             .ok_or(errors::SaplingKeyError::DiversificationError)?;
         Ok((diversifier, diversifier_point))
     }
 
     pub(crate) fn load_transmission_key(
-        jubjub: &J::Params,
         transmission_key_bytes: &[u8],
-    ) -> Result<edwards::Point<J, PrimeOrder>, errors::SaplingKeyError> {
+    ) -> Result<SubgroupPoint, errors::SaplingKeyError> {
         assert!(transmission_key_bytes.len() == 32);
         let transmission_key_non_prime =
-            edwards::Point::<J, Unknown>::read(transmission_key_bytes, jubjub)?;
-        transmission_key_non_prime
-            .as_prime_order(jubjub)
-            .ok_or(errors::SaplingKeyError::InvalidPaymentAddress)
+            SubgroupPoint::from_bytes(transmission_key_bytes.try_into().unwrap());
+
+        if transmission_key_non_prime.is_some().into() {
+            Ok(transmission_key_non_prime.unwrap())
+        } else {
+            Err(errors::SaplingKeyError::InvalidPaymentAddress)
+        }
     }
 
     /// Calculate secret key and ephemeral public key for Diffie Hellman
@@ -166,15 +158,12 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     /// Returns a tuple of:
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(
-        &self,
-        jubjub: &J::Params,
-    ) -> (J::Fs, edwards::Point<J, PrimeOrder>) {
+    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let secret_key: J::Fs = J::Fs::to_uniform(&buffer[..]);
-        let public_key = self.diversifier_point.mul(secret_key, jubjub);
+        let secret_key: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let public_key = self.diversifier_point * secret_key;
         (secret_key, public_key)
     }
 
@@ -182,19 +171,19 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> PublicAddress<J> {
     /// crate. This is essentially just an adapter from one struct name to
     /// another because `pk_d` is not a name I want to expose in a public
     /// interface.
-    pub(crate) fn sapling_payment_address(&self) -> PaymentAddress<J> {
-        PaymentAddress::from_parts(self.diversifier, self.transmission_key.clone())
+    pub(crate) fn sapling_payment_address(&self) -> PaymentAddress {
+        PaymentAddress::from_parts(self.diversifier, self.transmission_key)
             .expect("Converting PaymentAddress types shouldn't fail")
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> std::fmt::Debug for PublicAddress<J> {
+impl std::fmt::Debug for PublicAddress {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "PublicAddress {}", self.hex_public_address())
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> std::cmp::PartialEq for PublicAddress<J> {
+impl std::cmp::PartialEq for PublicAddress {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
     }

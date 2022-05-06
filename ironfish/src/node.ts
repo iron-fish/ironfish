@@ -5,7 +5,13 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
-import { Config, ConfigOptions, HostsStore, InternalStore } from './fileStores'
+import {
+  Config,
+  ConfigOptions,
+  DEFAULT_DATA_DIR,
+  HostsStore,
+  InternalStore,
+} from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
@@ -153,6 +159,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
   }): Promise<IronfishNode> {
     logger = logger.withTag('ironfishnode')
+    dataDir = dataDir || DEFAULT_DATA_DIR
 
     if (!config) {
       config = new Config(files, dataDir)
@@ -193,11 +200,13 @@ export class IronfishNode {
       logger,
       metrics,
       autoSeed,
+      workerPool,
     })
 
     const telemetry = new Telemetry({
       chain,
       logger,
+      config,
       metrics,
       workerPool,
       defaultTags: [{ name: 'version', value: pkg.version }],
@@ -207,7 +216,7 @@ export class IronfishNode {
       ],
     })
 
-    const memPool = new MemPool({ chain, metrics, strategy, logger })
+    const memPool = new MemPool({ chain, metrics, logger })
 
     const accountDB = new AccountsDB({
       location: config.accountDatabasePath,

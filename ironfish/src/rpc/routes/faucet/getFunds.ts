@@ -44,14 +44,14 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
       .catch((error: AxiosError<{ code: string; message?: string }>) => {
         if (error.response) {
           const { data, status } = error.response
-          if (data.code === 'faucet_max_requests_reached' && data.message) {
-            throw new ResponseError(data.message, ERROR_CODES.ERROR, status)
-          } else if (status === 422) {
+          if (status === 422) {
             throw new ResponseError(
               'You entered an invalid email.',
               ERROR_CODES.VALIDATION,
               status,
             )
+          } else if (data.message) {
+            throw new ResponseError(data.message, ERROR_CODES.ERROR, status)
           }
         }
 

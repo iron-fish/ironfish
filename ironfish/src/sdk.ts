@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from 'tweetnacl'
-import { Config, ConfigOptions, InternalStore } from './fileStores'
+import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -19,6 +19,7 @@ import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
+import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishIpcClient } from './rpc/clients/ipcClient'
 import { IronfishMemoryClient } from './rpc/clients/memoryClient'
 import { IronfishRpcClient } from './rpc/clients/rpcClient'
@@ -37,7 +38,7 @@ export class IronfishSdk {
   internal: InternalStore
   strategyClass: typeof Strategy | null
   privateIdentity: BoxKeyPair | null | undefined
-  dataDir?: string
+  dataDir: string
 
   private constructor(
     pkg: Package,
@@ -49,7 +50,7 @@ export class IronfishSdk {
     logger: Logger,
     metrics: MetricsMonitor,
     strategyClass: typeof Strategy | null = null,
-    dataDir?: string,
+    dataDir: string,
   ) {
     this.pkg = pkg
     this.client = client
@@ -94,6 +95,7 @@ export class IronfishSdk {
     }
 
     logger = logger.withTag('ironfishsdk')
+    dataDir = dataDir || DEFAULT_DATA_DIR
 
     const config = new Config(fileSystem, dataDir, configName)
     await config.load()
@@ -230,17 +232,28 @@ export class IronfishSdk {
         namespaces.push(ApiNamespace.account, ApiNamespace.config)
       }
 
-      await node.rpc.mount(
-        new IpcAdapter(
-          namespaces,
-          {
-            mode: 'tcp',
-            host: this.config.get('rpcTcpHost'),
-            port: this.config.get('rpcTcpPort'),
-          },
-          this.logger,
-        ),
-      )
+      if (this.config.get('enableNativeRpcTcpAdapter')) {
+        await node.rpc.mount(
+          new TcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
+            this.logger,
+            namespaces,
+          ),
+        )
+      } else {
+        await node.rpc.mount(
+          new IpcAdapter(
+            namespaces,
+            {
+              mode: 'tcp',
+              host: this.config.get('rpcTcpHost'),
+              port: this.config.get('rpcTcpPort'),
+            },
+            this.logger,
+          ),
+        )
+      }
     }
 
     return node

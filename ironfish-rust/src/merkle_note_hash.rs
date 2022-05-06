@@ -4,31 +4,33 @@
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
-use super::{serializing::read_scalar, Sapling};
+use super::serializing::read_scalar;
 
-use ff::{BitIterator, PrimeField};
+use bls12_381::Scalar;
+use ff::PrimeField;
+use group::Curve;
+use jubjub::ExtendedPoint;
 
 use std::io;
-use zcash_primitives::jubjub::JubjubEngine;
 use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
-pub struct MerkleNoteHash<J: JubjubEngine + pairing::MultiMillerLoop>(pub J::Fr);
+pub struct MerkleNoteHash(pub Scalar);
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> PartialEq for MerkleNoteHash<J> {
-    fn eq(&self, other: &MerkleNoteHash<J>) -> bool {
+impl PartialEq for MerkleNoteHash {
+    fn eq(&self, other: &MerkleNoteHash) -> bool {
         self.0.eq(&other.0)
     }
 }
 
-impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNoteHash<J> {
+impl MerkleNoteHash {
     // Tuple struct constructors can't be used with type aliases,
     // so explicitly define one here
-    pub fn new(fr: J::Fr) -> MerkleNoteHash<J> {
+    pub fn new(fr: Scalar) -> MerkleNoteHash {
         MerkleNoteHash(fr)
     }
 
-    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash<J>> {
+    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash> {
         let res = read_scalar(reader).map_err(|_| {
             io::Error::new(io::ErrorKind::InvalidInput, "Unable to convert note hash")
         });
@@ -41,20 +43,18 @@ impl<J: JubjubEngine + pairing::MultiMillerLoop> MerkleNoteHash<J> {
 
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
-    pub fn combine_hash(sapling: &Sapling<J>, depth: usize, left: &J::Fr, right: &J::Fr) -> J::Fr {
-        let mut lhs: Vec<bool> = BitIterator::<u8, _>::new(left.to_repr()).collect();
-        let mut rhs: Vec<bool> = BitIterator::<u8, _>::new(right.to_repr()).collect();
-        lhs.reverse();
-        rhs.reverse();
-        let num_bits = <J::Fr as PrimeField>::NUM_BITS as usize;
-        pedersen_hash::<J, _>(
+    pub fn combine_hash(depth: usize, left: &Scalar, right: &Scalar) -> Scalar {
+        let lhs = left.to_le_bits();
+        let rhs = right.to_le_bits();
+        let num_bits = <Scalar as PrimeField>::NUM_BITS as usize;
+        ExtendedPoint::from(pedersen_hash(
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
-                .chain(rhs.into_iter().take(num_bits)),
-            &sapling.jubjub,
-        )
-        .to_xy()
-        .0
+                .chain(rhs.into_iter().take(num_bits))
+                .cloned(),
+        ))
+        .to_affine()
+        .get_u()
     }
 }
