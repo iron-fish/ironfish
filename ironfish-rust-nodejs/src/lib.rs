@@ -98,7 +98,7 @@ impl ThreadPoolHandler {
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
             return Some(FoundBlockResult {
-                randomness: format!("{:016x}", result.0 as u64),
+                randomness: format!("{:016x}", result.0),
                 mining_request_id: result.1 as f64,
             });
         }

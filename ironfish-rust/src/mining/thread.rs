@@ -92,7 +92,7 @@ fn process_commands(
             Command::NewWork(mut header_bytes, target, mining_request_id) => {
                 let mut batch_start = start;
                 loop {
-                    let remaining_search_space = u64::MAX - batch_start as u64;
+                    let remaining_search_space = u64::MAX - batch_start;
                     let batch_size = if remaining_search_space > default_batch_size {
                         default_batch_size
                     } else {
@@ -127,7 +127,7 @@ fn process_commands(
                         }
                     }
 
-                    if remaining_search_space < batch_size as u64 {
+                    if remaining_search_space < default_batch_size {
                         // miner has exhausted it's search space, stop mining
                         println!("Search space exhausted, no longer mining this block.");
                         break;
