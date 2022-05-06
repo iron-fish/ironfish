@@ -88,9 +88,15 @@ export default class Bank extends IronfishCommand {
     Assert.isNotUndefined(graffiti)
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const newBalance = oreToIron(
-      Number(balanceResp.content.confirmed) - ironToOre(IRON_TO_SEND) - fee,
-    )
+    const confirmedBalance = Number(balanceResp.content.confirmed)
+    if (confirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
+      const balance = oreToIron(confirmedBalance)
+      const required = IRON_TO_SEND + feeInIron
+      this.log(`Insufficient balance: ${balance}. Required: ${required}`)
+      this.exit(1)
+    }
+
+    const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
 
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
     const displayFee = displayIronAmountWithCurrency(feeInIron, true)
