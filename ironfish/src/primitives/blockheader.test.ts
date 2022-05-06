@@ -21,7 +21,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(0),
       Buffer.alloc(32),
@@ -34,7 +34,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(0),
       Buffer.alloc(32),
@@ -79,7 +79,7 @@ describe('BlockHeaderSerde', () => {
     expect(serde.equals(header1, header2)).toBe(true)
 
     // randomness
-    header2.randomness = 19
+    header2.randomness = BigInt(19)
     expect(serde.equals(header1, header2)).toBe(false)
     header2.randomness = header1.randomness
     expect(serde.equals(header1, header2)).toBe(true)
@@ -108,7 +108,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(-1),
       GraffitiUtils.fromString('test'),
@@ -127,7 +127,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 0 },
       { commitment: Buffer.alloc(32), size: 0 },
       new Target(0),
-      0,
+      BigInt(0),
       new Date(0),
       BigInt(0),
       Buffer.alloc(32),
@@ -156,7 +156,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 0 },
       { commitment: Buffer.alloc(32), size: 0 },
       new Target(1),
-      0,
+      BigInt(0),
       new Date(0),
       BigInt(0),
       Buffer.alloc(32),

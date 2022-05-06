@@ -20,7 +20,7 @@ export function writeBlock(
   bw.writeHash(header.nullifierCommitment.commitment)
   bw.writeU32(header.nullifierCommitment.size)
   bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.target), 32))
-  bw.writeU64(header.randomness)
+  bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.randomness), 8))
   bw.writeU64(header.timestamp)
 
   Assert.isTrue(BigInt(header.minersFee) <= 0)
@@ -44,7 +44,7 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const nullifierCommitment = reader.readHash('hex')
   const nullifierCommitmentSize = reader.readU32()
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32)).toString()
-  const randomness = reader.readU64()
+  const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8)).toString()
   const timestamp = reader.readU64()
   const minersFee = (-BigIntUtils.fromBytesLE(reader.readBytes(8))).toString()
   const graffiti = GraffitiSerdeInstance.serialize(reader.readBytes(32))

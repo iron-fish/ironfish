@@ -17,17 +17,17 @@ pub(crate) fn bytes_lte(a: &[u8], b: &[u8]) -> bool {
     true
 }
 
-fn randomize_header(i: usize, mut header_bytes: &mut [u8]) {
-    header_bytes.write_f64::<BigEndian>(i as f64).unwrap();
+fn randomize_header(i: u64, mut header_bytes: &mut [u8]) {
+    header_bytes.write_u64::<BigEndian>(i).unwrap();
 }
 
 pub(crate) fn mine_batch(
     header_bytes: &mut [u8],
     target: &[u8],
-    start: usize,
+    start: u64,
     step_size: usize,
-    batch_size: usize,
-) -> Option<usize> {
+    batch_size: u64,
+) -> Option<u64> {
     let end = start + batch_size;
     for i in (start..end).step_by(step_size) {
         randomize_header(i, header_bytes);
@@ -64,11 +64,11 @@ mod test {
         let start = 42;
         let step_size = 1;
 
-        // Hardcoded target value derived from a randomness of 1, which is lower than 42
+        // Hardcoded target value derived from a randomness of 43, which is lower than 42
         // This allows us to test the looping and target comparison a little better
         let target: &[u8; 32] = &[
-            189, 32, 143, 150, 173, 48, 164, 172, 76, 199, 72, 88, 197, 68, 105, 250, 191, 202,
-            126, 52, 252, 66, 35, 112, 87, 238, 229, 149, 47, 55, 233, 45,
+            74, 52, 167, 52, 16, 135, 245, 240, 229, 92, 212, 133, 140, 231, 169, 56, 16, 105, 46,
+            67, 145, 116, 198, 241, 183, 88, 140, 172, 79, 139, 210, 162,
         ];
 
         let result = mine_batch(header_bytes, target, start, step_size, batch_size);

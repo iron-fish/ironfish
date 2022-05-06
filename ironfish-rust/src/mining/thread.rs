@@ -9,10 +9,6 @@ use std::{
 
 use super::mine;
 
-// TODO: Remove this when we change the header serializer randomness to use a u64 field instead of a double
-// Javascript's Number.MAX_SAFE_INTEGER
-const MAX_SAFE_INTEGER: usize = 9007199254740991;
-
 #[derive(Debug)]
 pub(crate) enum Command {
     NewWork(
@@ -29,8 +25,8 @@ pub(crate) struct Thread {
 }
 impl Thread {
     pub(crate) fn new(
-        id: usize,
-        block_found_channel: Sender<(usize, u32)>,
+        id: u64,
+        block_found_channel: Sender<(u64, u32)>,
         hash_rate_channel: Sender<u32>,
         pool_size: usize,
         batch_size: u32,
@@ -46,7 +42,7 @@ impl Thread {
                     hash_rate_channel,
                     id,
                     pool_size,
-                    batch_size as usize,
+                    batch_size as u64,
                 )
             })
             .unwrap();
@@ -77,11 +73,11 @@ impl Thread {
 
 fn process_commands(
     work_receiver: Receiver<Command>,
-    block_found_channel: Sender<(usize, u32)>,
+    block_found_channel: Sender<(u64, u32)>,
     hash_rate_channel: Sender<u32>,
-    start: usize,
+    start: u64,
     step_size: usize,
-    default_batch_size: usize,
+    default_batch_size: u64,
 ) {
     let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
@@ -96,10 +92,11 @@ fn process_commands(
             Command::NewWork(mut header_bytes, target, mining_request_id) => {
                 let mut batch_start = start;
                 loop {
-                    let batch_size = if batch_start + default_batch_size > MAX_SAFE_INTEGER {
-                        MAX_SAFE_INTEGER - batch_start
-                    } else {
+                    let remaining_search_space = u64::MAX - batch_start;
+                    let batch_size = if remaining_search_space > default_batch_size {
                         default_batch_size
+                    } else {
+                        remaining_search_space
                     };
                     let match_found = mine::mine_batch(
                         &mut header_bytes,
@@ -115,7 +112,7 @@ fn process_commands(
                         None => batch_size,
                     };
                     hash_rate_channel
-                        .send((work_done / step_size) as u32)
+                        .send((work_done / step_size as u64) as u32)
                         .unwrap();
 
                     // New command received, this work is now stale, stop working so we can start on new work
@@ -130,12 +127,12 @@ fn process_commands(
                         }
                     }
 
-                    batch_start += default_batch_size;
-                    if batch_start >= MAX_SAFE_INTEGER {
+                    if remaining_search_space < default_batch_size {
                         // miner has exhausted it's search space, stop mining
                         println!("Search space exhausted, no longer mining this block.");
                         break;
                     }
+                    batch_start += default_batch_size;
                 }
             }
             Command::Pause => {
