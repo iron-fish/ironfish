@@ -39,7 +39,7 @@ export class MiningPool {
 
   nextMiningRequestId: number
   miningRequestBlocks: LeastRecentlyUsed<number, SerializedBlockTemplate>
-  recentSubmissions: Map<number, number[]>
+  recentSubmissions: Map<number, string[]>
 
   difficulty: bigint
   target: Buffer
@@ -172,7 +172,7 @@ export class MiningPool {
   async submitWork(
     client: StratumServerClient,
     miningRequestId: number,
-    randomness: number,
+    randomness: string,
   ): Promise<void> {
     Assert.isNotNull(client.publicAddress)
     Assert.isNotNull(client.graffiti)
@@ -342,7 +342,7 @@ export class MiningPool {
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 
-  private isDuplicateSubmission(clientId: number, randomness: number): boolean {
+  private isDuplicateSubmission(clientId: number, randomness: string): boolean {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       return false
@@ -350,7 +350,7 @@ export class MiningPool {
     return submissions.includes(randomness)
   }
 
-  private addWorkSubmission(clientId: number, randomness: number): void {
+  private addWorkSubmission(clientId: number, randomness: string): void {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       this.recentSubmissions.set(clientId, [randomness])

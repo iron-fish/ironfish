@@ -12,6 +12,7 @@ export type BlockHash = Buffer
 
 import { blake3 } from '@napi-rs/blake-hash'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
+import { BigIntUtils } from '../utils/bigint'
 
 export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   return blake3(serializedHeader)
@@ -82,7 +83,7 @@ export class BlockHeader {
    * A value added to the block to try to make it hash to something that is below
    * the target number.
    */
-  public randomness: number
+  public randomness: bigint
 
   /**
    * Unix timestamp according to the miner who mined the block. This value
@@ -124,7 +125,7 @@ export class BlockHeader {
     noteCommitment: { commitment: NoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
-    randomness = 0,
+    randomness = BigInt(0),
     timestamp: Date | undefined = undefined,
     minersFee: bigint,
     graffiti: Buffer,
@@ -172,7 +173,7 @@ export class BlockHeader {
     const partialHeader = this.serializePartial()
 
     const headerBytes = Buffer.alloc(partialHeader.byteLength + 8)
-    headerBytes.writeDoubleBE(this.randomness, 0)
+    headerBytes.set(BigIntUtils.toBytesBE(this.randomness, 8))
     headerBytes.set(partialHeader, 8)
 
     const hash = this.strategy.hashBlockHeader(headerBytes)
@@ -204,7 +205,7 @@ export type SerializedBlockHeader = {
     size: number
   }
   target: string
-  randomness: number
+  randomness: string
   timestamp: number
   minersFee: string
 
@@ -255,7 +256,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
         size: header.nullifierCommitment.size,
       },
       target: header.target.targetValue.toString(),
-      randomness: header.randomness,
+      randomness: header.randomness.toString(),
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
       work: header.work.toString(),
@@ -291,7 +292,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
         size: data.nullifierCommitment.size,
       },
       new Target(data.target),
-      data.randomness,
+      BigInt(data.randomness),
       new Date(data.timestamp),
       BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),

@@ -27,7 +27,7 @@ export async function makeBlockAfter(
 
   const timestamp = new Date()
   const target = Target.calculateTarget(timestamp, after.timestamp, after.target)
-  const randomness = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+  const randomness = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
   const graffiti = GraffitiUtils.fromString('fake block')
 
   const header = new BlockHeader(

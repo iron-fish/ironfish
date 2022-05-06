@@ -7,7 +7,7 @@ import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 
 export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
   const bw = bufio.write(208)
-  bw.writeDoubleBE(header.randomness)
+  bw.writeBytes(Buffer.from(header.randomness, 'hex'))
   bw.writeU64(header.sequence)
   bw.writeHash(header.previousBlockHash)
   bw.writeHash(header.noteCommitment.commitment)
@@ -24,7 +24,7 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
 // deserialize into a partial header
 export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['header'] {
   const br = bufio.read(data)
-  const randomness = br.readDoubleBE()
+  const randomness = br.readBytes(8)
   const sequence = br.readU64()
   const previousBlockHash = br.readHash()
   const noteCommitment = br.readHash()
@@ -37,7 +37,7 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
   const graffiti = br.readBytes(32)
 
   return {
-    randomness: randomness,
+    randomness: randomness.toString('hex'),
     sequence: sequence,
     previousBlockHash: previousBlockHash.toString('hex'),
     target: target.toString('hex'),

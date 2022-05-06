@@ -40,7 +40,7 @@ const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
           .required()
           .defined(),
         target: yup.string().required(),
-        randomness: yup.number().required(),
+        randomness: yup.string().required(),
         timestamp: yup.number().required(),
         minersFee: yup.string().required(),
         graffiti: yup.string().required(),

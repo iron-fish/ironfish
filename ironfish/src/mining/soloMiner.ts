@@ -203,7 +203,7 @@ export class MiningSoloMiner {
 
   async submitWork(
     miningRequestId: number,
-    randomness: number,
+    randomness: string,
     graffiti: Buffer,
   ): Promise<void> {
     const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
