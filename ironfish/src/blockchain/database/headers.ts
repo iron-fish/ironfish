@@ -27,7 +27,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeHash(value.header.nullifierCommitment.commitment)
     bw.writeU32(value.header.nullifierCommitment.size)
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.target.asBigInt(), 32))
-    bw.writeU64(value.header.randomness)
+    bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
     bw.writeU64(value.header.timestamp.getTime())
 
     Assert.isTrue(value.header.minersFee <= 0)
@@ -50,7 +50,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const nullifierCommitment = reader.readHash()
     const nullifierCommitmentSize = reader.readU32()
     const target = new Target(BigIntUtils.fromBytesLE(reader.readBytes(32)))
-    const randomness = reader.readU64()
+    const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
     const timestamp = reader.readU64()
     const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
     const graffiti = reader.readBytes(32)
