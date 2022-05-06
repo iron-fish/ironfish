@@ -14,11 +14,11 @@ import { Block } from '../primitives'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { GraffitiUtils } from '../utils/graffiti'
-import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
   memo: string
   timestamp: number
+  target: Target
   allocations: {
     publicAddress: string
     amount: number
@@ -34,7 +34,6 @@ export async function makeGenesisBlock(
   chain: Blockchain,
   info: GenesisBlockInfo,
   account: Account,
-  workerPool: WorkerPool,
   logger: Logger,
 ): Promise<{ block: Block }> {
   logger = logger.withTag('makeGenesisBlock')
@@ -148,7 +147,7 @@ export async function makeGenesisBlock(
   )
 
   // Modify the block with any custom properties.
-  block.header.target = Target.initialTarget()
+  block.header.target = info.target
   block.header.timestamp = new Date(info.timestamp)
 
   logger.info('Block complete.')

@@ -201,7 +201,6 @@ export default class Start extends IronfishCommand {
     }
 
     const newSecretKey = Buffer.from(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       node.peerNetwork.localPeer.privateIdentity.secretKey,
     ).toString('hex')
     node.internal.set('networkIdentity', newSecretKey)

@@ -868,7 +868,7 @@ export class Blockchain {
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
-        target = Target.initialTarget()
+        target = Target.maxTarget()
       } else {
         const heaviestHead = this.head
         if (
