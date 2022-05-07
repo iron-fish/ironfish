@@ -224,7 +224,7 @@ export async function useTxFixture(
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.from(''),
           },
         ],
         fee ?? BigInt(0),
@@ -340,7 +340,7 @@ export async function useBlockWithTx(
         {
           publicAddress: to.publicAddress,
           amount: BigInt(1),
-          memo: '',
+          memo: Buffer.from(''),
         },
       ],
       BigInt(1),

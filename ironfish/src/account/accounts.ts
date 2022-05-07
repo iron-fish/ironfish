@@ -656,7 +656,7 @@ export class Accounts {
   async pay(
     memPool: MemPool,
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: { publicAddress: string; amount: bigint; memo: Buffer }[],
     transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
@@ -689,7 +689,7 @@ export class Accounts {
 
   async createTransaction(
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: { publicAddress: string; amount: bigint; memo: Buffer }[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {

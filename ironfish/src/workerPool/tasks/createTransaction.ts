@@ -27,7 +27,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       hashOfSibling: Buffer
     }[]
   }[]
-  readonly receives: { publicAddress: string; amount: bigint; memo: string }[]
+  readonly receives: { publicAddress: string; amount: bigint; memo: Buffer }[]
 
   constructor(
     spendKey: string,
@@ -39,7 +39,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       rootHash: Buffer
       authPath: { side: Side; hashOfSibling: Buffer }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: { publicAddress: string; amount: bigint; memo: Buffer }[],
     jobId?: number,
   ) {
     super(WorkerMessageType.CreateTransaction, jobId)
@@ -80,7 +80,8 @@ export class CreateTransactionRequest extends WorkerMessage {
     for (const receive of this.receives) {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
-      bw.writeVarString(receive.memo)
+      // bw.writeVarString(receive.memo)
+      bw.writeVarBytes(receive.memo)
     }
 
     return bw.render()
@@ -115,7 +116,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     for (let i = 0; i < receivesLength; i++) {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytes(reader.readVarBytes())
-      const memo = reader.readVarString()
+      const memo = reader.readVarBytes()
       receives.push({ publicAddress, amount, memo })
     }
 
@@ -151,7 +152,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       receivesSize +=
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
-        bufio.sizeVarString(receive.memo)
+        bufio.sizeVarBytes(receive.memo)
     }
 
     return (
@@ -223,7 +224,7 @@ export class CreateTransactionTask extends WorkerTask {
     }
 
     for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(publicAddress, amount, memo)
+      const note = new Note(publicAddress, amount, memo.toString())
       transaction.receive(spendKey, note)
     }
 

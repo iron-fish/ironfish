@@ -116,7 +116,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       return {
         publicAddress: receive.publicAddress,
         amount: BigInt(receive.amount),
-        memo: receive.memo,
+        memo: Buffer.from(receive.memo),
       }
     })
 
