@@ -19,6 +19,7 @@ jest.mock('node-datachannel', () => {
           close: () => {},
           isOpen: () => {},
           sendMessage: () => {},
+          sendMessageBinary: (_buffer) => {},
         }
       }
     },

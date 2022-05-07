@@ -60,7 +60,7 @@ describe('Block', () => {
       nodeTest.node.strategy.blockSerde.serialize(block1),
     )
     expect(block1.equals(block2)).toBe(true)
-    block2.header.randomness = 400
+    block2.header.randomness = BigInt(400)
     expect(block1.equals(block2)).toBe(false)
     block2.header.randomness = block1.header.randomness
     expect(block1.equals(block2)).toBe(true)
