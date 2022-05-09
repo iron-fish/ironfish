@@ -59,7 +59,7 @@ export default class Reset extends IronfishCommand {
       '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
       `\nAccounts: ${accountDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
-      `\nHosts File: ${hostFilePath}` +
+      `\nHosts: ${hostFilePath}` +
       `\n\nAre you sure? (Y)es / (N)o`
 
     confirmed = flags.confirm || (await CliUx.ux.confirm(message))
