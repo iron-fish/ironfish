@@ -19,7 +19,7 @@ export interface AccountsValue {
 export class AccountsValueEncoding implements IDatabaseEncoding<AccountsValue> {
   serialize(value: AccountsValue): Buffer {
     const bw = bufio.write(this.getSize(value))
-    bw.writeVarString(value.name)
+    bw.writeVarString(value.name, 'utf8')
     bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
@@ -34,7 +34,7 @@ export class AccountsValueEncoding implements IDatabaseEncoding<AccountsValue> {
 
   deserialize(buffer: Buffer): AccountsValue {
     const reader = bufio.read(buffer, true)
-    const name = reader.readVarString()
+    const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
@@ -56,7 +56,7 @@ export class AccountsValueEncoding implements IDatabaseEncoding<AccountsValue> {
   }
 
   getSize(value: AccountsValue): number {
-    let size = bufio.sizeVarString(value.name)
+    let size = bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH

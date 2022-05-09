@@ -7,10 +7,10 @@ import { IdentifyMessage } from './identify'
 describe('IdentifyMessage', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const message = new IdentifyMessage({
-      agent: 'agent',
+      agent: 'agent👁️🏃🐟',
       head: Buffer.alloc(32, 'head'),
       identity: Buffer.alloc(identityLength, 'identity').toString('base64'),
-      name: 'name',
+      name: 'name👁️🏃🐟',
       port: 9033,
       sequence: 1,
       version: 1,
