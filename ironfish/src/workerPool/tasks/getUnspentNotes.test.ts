@@ -24,7 +24,7 @@ describe('GetUnspentNotesResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const notes = [
       {
-        account: 'foo',
+        account: 'foo👁️🏃🐟',
         hash: 'bar',
         note: Buffer.from('baz'),
       },

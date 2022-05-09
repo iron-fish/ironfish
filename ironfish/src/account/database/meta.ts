@@ -15,7 +15,7 @@ export class MetaValueEncoding implements IDatabaseEncoding<MetaValue> {
   serialize(value: MetaValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     if (value) {
-      bw.writeVarString(value)
+      bw.writeVarString(value, 'utf8')
     }
     return bw.render()
   }
@@ -23,7 +23,7 @@ export class MetaValueEncoding implements IDatabaseEncoding<MetaValue> {
   deserialize(buffer: Buffer): MetaValue {
     const reader = bufio.read(buffer, true)
     if (reader.left()) {
-      return reader.readVarString()
+      return reader.readVarString('utf8')
     }
     return null
   }
@@ -32,6 +32,6 @@ export class MetaValueEncoding implements IDatabaseEncoding<MetaValue> {
     if (!value) {
       return 0
     }
-    return bufio.sizeVarString(value)
+    return bufio.sizeVarString(value, 'utf8')
   }
 }

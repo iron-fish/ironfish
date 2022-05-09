@@ -19,7 +19,7 @@ describe('MetaValueEncoding', () => {
     it('serializes the value into a buffer and deserializes to the original value', () => {
       const encoder = new MetaValueEncoding()
 
-      const value: MetaValue = 'foobar'
+      const value: MetaValue = 'foobar👁️🏃🐟'
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
       expect(deserializedValue).toEqual(value)

@@ -52,10 +52,10 @@ export class IdentifyMessage extends NetworkMessage {
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeBytes(Buffer.from(this.identity, 'base64'))
-    bw.writeVarString(this.name)
+    bw.writeVarString(this.name, 'utf8')
     bw.writeU16(this.port)
     bw.writeU16(this.version)
-    bw.writeVarString(this.agent)
+    bw.writeVarString(this.agent, 'utf8')
     bw.writeU32(this.sequence)
     bw.writeHash(this.head)
     bw.writeVarBytes(BigIntUtils.toBytesLE(this.work))
@@ -65,10 +65,10 @@ export class IdentifyMessage extends NetworkMessage {
   static deserialize(buffer: Buffer): IdentifyMessage {
     const reader = bufio.read(buffer, true)
     const identity = reader.readBytes(identityLength).toString('base64')
-    const name = reader.readVarString()
+    const name = reader.readVarString('utf8')
     const port = reader.readU16()
     const version = reader.readU16()
-    const agent = reader.readVarString()
+    const agent = reader.readVarString('utf8')
     const sequence = reader.readU32()
     const head = reader.readHash()
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
@@ -87,10 +87,10 @@ export class IdentifyMessage extends NetworkMessage {
   getSize(): number {
     let size = 0
     size += identityLength
-    size += bufio.sizeVarString(this.name)
+    size += bufio.sizeVarString(this.name, 'utf8')
     size += 2 // port
     size += 2 // version
-    size += bufio.sizeVarString(this.agent)
+    size += bufio.sizeVarString(this.agent, 'utf8')
     size += 4 // sequence
     size += 32 // head
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(this.work))
