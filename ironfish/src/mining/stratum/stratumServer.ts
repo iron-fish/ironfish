@@ -63,6 +63,7 @@ export class StratumServer {
   readonly host: string
 
   clients: Map<number, StratumServerClient>
+  badClients: Set<number>
   nextMinerId: number
   nextMessageId: number
 
@@ -84,6 +85,7 @@ export class StratumServer {
     this.port = options.port ?? this.config.get('poolPort')
 
     this.clients = new Map()
+    this.badClients = new Set()
     this.nextMinerId = 0
     this.nextMessageId = 0
 
@@ -117,6 +119,11 @@ export class StratumServer {
 
   hasWork(): boolean {
     return this.currentWork != null
+  }
+
+  addBadClient(client: StratumServerClient): void {
+    this.badClients.add(client.id)
+    this.send(client, 'mining.wait_for_work')
   }
 
   private onConnection(socket: net.Socket): void {
@@ -253,6 +260,9 @@ export class StratumServer {
     const serialized = JSON.stringify(message) + '\n'
 
     for (const client of this.clients.values()) {
+      if (this.badClients.has(client.id)) {
+        continue
+      }
       client.socket.write(serialized)
     }
   }
@@ -271,6 +281,7 @@ export class StratumServer {
     method: 'mining.subscribed',
     body: MiningSubscribedMessage,
   ): void
+  private send(client: StratumServerClient, method: 'mining.wait_for_work'): void
   private send(client: StratumServerClient, method: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
