@@ -56,7 +56,7 @@ export default class Reset extends IronfishCommand {
     )
 
     const message =
-      '\nYou are about to destroy your node databases. The following directories will be deleted:\n' +
+      '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
       `\nAccounts: ${accountDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts File: ${hostFilePath}` +
