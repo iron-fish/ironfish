@@ -164,7 +164,7 @@ Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(fee, true)}
+Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
 
 Find the transaction on https://explorer.ironfish.network/transaction/${
         transaction.hash
