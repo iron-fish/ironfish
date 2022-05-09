@@ -97,7 +97,7 @@ describe('CreateTransactionRequest', () => {
         {
           publicAddress: '',
           amount: BigInt(5),
-          memo: '',
+          memo: '👁️🏃🐟',
         },
       ],
     )

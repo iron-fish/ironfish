@@ -80,7 +80,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     for (const receive of this.receives) {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
-      bw.writeVarString(receive.memo)
+      bw.writeVarString(receive.memo, 'utf8')
     }
 
     return bw.render()
@@ -115,7 +115,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     for (let i = 0; i < receivesLength; i++) {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytes(reader.readVarBytes())
-      const memo = reader.readVarString()
+      const memo = reader.readVarString('utf8')
       receives.push({ publicAddress, amount, memo })
     }
 
@@ -151,7 +151,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       receivesSize +=
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
-        bufio.sizeVarString(receive.memo)
+        bufio.sizeVarString(receive.memo, 'utf8')
     }
 
     return (
