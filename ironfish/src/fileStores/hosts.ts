@@ -15,13 +15,11 @@ export const HostOptionsDefaults: HostsOptions = {
   priorPeers: [],
 }
 
-export const HOST_FILE_NAME = 'hosts.json'
-
 export class HostsStore extends KeyStore<HostsOptions> {
   logger: Logger
 
-  constructor(files: FileSystem, dataDir: string) {
-    super(files, HOST_FILE_NAME, HostOptionsDefaults, dataDir)
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
+    super(files, configName || 'hosts.json', HostOptionsDefaults, dataDir)
     this.logger = createRootLogger()
   }
 
