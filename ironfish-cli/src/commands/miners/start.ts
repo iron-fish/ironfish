@@ -139,6 +139,6 @@ export class Miner extends IronfishCommand {
       CliUx.ux.action.status = formatted
     }
 
-    this.updateInterval = setInterval(() => updateHashPower(), 1000)
+    this.updateInterval = setInterval(updateHashPower, 1000)
   }
 }
