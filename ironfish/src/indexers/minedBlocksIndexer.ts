@@ -13,8 +13,8 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   JsonEncoding,
-  NumberEncoding,
   StringEncoding,
+  U32Encoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { SetTimeoutToken } from '../utils'
@@ -99,7 +99,7 @@ export class MinedBlocksIndexer {
 
     this.sequenceToHashes = this.database.addStore<{ key: number; value: Buffer[] }>({
       name: 'seqToHash',
-      keyEncoding: new NumberEncoding(),
+      keyEncoding: new U32Encoding(),
       valueEncoding: new JsonEncoding<Buffer[]>(),
     })
 
