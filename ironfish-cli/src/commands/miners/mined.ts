@@ -60,9 +60,9 @@ export class MinedCommand extends IronfishCommand {
       const { block } = await AsyncUtils.first(stream.contentStream())
       if (block) {
         this.logLineForMinedBlock(block)
-      } else {
-        this.log(`No mined block found for hash ${flags.blockHash}`)
       }
+
+      return
     } else {
       const stream = client.exportMinedStream({
         start: args.start as number | null,
