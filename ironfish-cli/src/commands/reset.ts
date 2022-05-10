@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode, NodeUtils } from '@ironfish/sdk'
+import { HOST_FILE_NAME, IronfishNode } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
@@ -50,11 +50,16 @@ export default class Reset extends IronfishCommand {
 
     const accountDatabasePath = this.sdk.config.accountDatabasePath
     const chainDatabasePath = this.sdk.config.chainDatabasePath
+    const hostFilePath: string = this.sdk.config.files.join(
+      this.sdk.config.dataDir,
+      HOST_FILE_NAME,
+    )
 
     const message =
-      '\nYou are about to destroy your node databases. The following directories will be deleted:\n' +
+      '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
       `\nAccounts: ${accountDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
+      `\nHosts: ${hostFilePath}` +
       `\n\nAre you sure? (Y)es / (N)o`
 
     confirmed = flags.confirm || (await CliUx.ux.confirm(message))
@@ -69,14 +74,9 @@ export default class Reset extends IronfishCommand {
     await Promise.all([
       fsAsync.rm(accountDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
+      fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
 
-    // Re-initialize the databases
-    const node = await this.sdk.node()
-    await NodeUtils.waitForOpen(node)
-    node.internal.set('isFirstRun', true)
-    await node.internal.save()
-
-    CliUx.ux.action.stop('Reset the node successfully.')
+    CliUx.ux.action.stop('Databases deleted successfully')
   }
 }

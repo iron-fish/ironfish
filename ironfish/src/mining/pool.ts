@@ -183,14 +183,17 @@ export class MiningPool {
       return
     }
 
-    const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
+    const originalBlockTemplate = this.miningRequestBlocks.get(miningRequestId)
 
-    if (!blockTemplate) {
+    if (!originalBlockTemplate) {
       this.logger.warn(
         `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
       )
       return
     }
+
+    const blockTemplate = Object.assign({}, originalBlockTemplate)
+    blockTemplate.header = Object.assign({}, originalBlockTemplate.header)
 
     const isDuplicate = this.isDuplicateSubmission(client.id, randomness)
 
@@ -206,7 +209,14 @@ export class MiningPool {
     blockTemplate.header.graffiti = client.graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
-    const headerBytes = mineableHeaderString(blockTemplate.header)
+    let headerBytes
+    try {
+      headerBytes = mineableHeaderString(blockTemplate.header)
+    } catch (error) {
+      this.logger.debug(`${client.id} sent malformed work. No longer sending work.`)
+      this.stratum.addBadClient(client)
+      return
+    }
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
