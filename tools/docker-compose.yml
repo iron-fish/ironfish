@@ -29,7 +29,7 @@ services:
                     memory: 8192M
             restart_policy:
                 condition: on-failure
-        command: miners:start --rpc.tcp --rpc.tcp.host=node --rpc.tcp.port=8001 -t -1 
+        command: miners:start -v --rpc.tcp --rpc.tcp.host=node --rpc.tcp.port=8001 -t -1 
 
 networks:
     node_network:
