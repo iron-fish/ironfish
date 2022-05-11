@@ -201,7 +201,21 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
         errorReason: `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
       }
     }
-    const user = await this.api.findUser({ graffiti })
+
+    let user
+    try {
+      user = await this.api.findUser({ graffiti })
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.error(error.message)
+      }
+
+      return {
+        canSend: false,
+        errorReason: `There is a problem with the Iron Fish API. Please try again later.`,
+      }
+    }
+
     if (!user) {
       return {
         canSend: false,
