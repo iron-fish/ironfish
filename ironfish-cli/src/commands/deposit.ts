@@ -202,14 +202,17 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
     }
 
-    let user;
+    let user
     try {
       user = await this.api.findUser({ graffiti })
-    } catch (error) {
-      this.logger.debug(`API error: ${error}`)
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.debug(`API error: ${error.message}`)
+      }
+
       return {
         canSend: false,
-        errorReason: `There is a problem with the Iron Fish API. Please try again later.`
+        errorReason: `There is a problem with the Iron Fish API. Please try again later.`,
       }
     }
 
