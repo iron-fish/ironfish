@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import axios, { AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
 import { Metric } from './telemetry'
 import { UnwrapPromise } from './utils/types'
@@ -158,7 +158,18 @@ export class WebApi {
     return await axios
       .get<ApiUser>(`${this.host}/users/find`, options)
       .then((r) => r.data)
-      .catch(() => null)
+      .catch((error: AxiosError<{ code: string; message?: string }>) => {
+        if (error.response) {
+          const { status } = error.response
+          if (status >= 500) {
+            throw new Error(`API status code: ${status}`)
+          } else {
+            return null
+          }
+        } else {
+          return null
+        }
+      })
   }
 
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {
