@@ -161,14 +161,14 @@ export class WebApi {
       .catch((error: AxiosError<{ code: string; message?: string }>) => {
         if (error.response) {
           const { status } = error.response
-          if (status >= 500) {
-            throw new Error(`API status code: ${status}`)
-          } else {
-            return null
+          if (status >= 500 && status <= 599) {
+            throw new Error(
+              `API request to fetch user '${params.graffiti}' failed with status code: ${status}`,
+            )
           }
-        } else {
-          return null
         }
+
+        return null
       })
   }
 

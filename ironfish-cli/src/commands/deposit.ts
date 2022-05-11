@@ -207,7 +207,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       user = await this.api.findUser({ graffiti })
     } catch (error: unknown) {
       if (error instanceof Error) {
-        this.logger.debug(`API error: ${error.message}`)
+        this.error(error.message)
       }
 
       return {
