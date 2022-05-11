@@ -8,18 +8,26 @@ import { ChainProcessor } from '../chainProcessor'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import {
-  ArrayEncoding,
   BufferEncoding,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
   StringEncoding,
   U32Encoding,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { SetTimeoutToken } from '../utils'
 import { BlockchainUtils, isBlockMine } from '../utils/blockchain'
+import {
+  AccountsToRemoveValue,
+  AccountsToRemoveValueEncoding,
+} from './database/accountsToRemove'
+import { MetaValue, MetaValueEncoding } from './database/meta'
+import { MinedBlockValue, MinedBlockValueEncoding } from './database/minedBlock'
+import {
+  SequenceToHashesValue,
+  SequenceToHashesValueEncoding,
+} from './database/sequenceToHashes'
 
 const DATABASE_VERSION = 1
 const REMOVAL_KEY = 'accountsToRemove'
@@ -32,21 +40,14 @@ type MinedBlocksDBMeta = {
   headHash: string | null
 }
 
-type MinedBlock = {
-  main: boolean
-  sequence: number
-  account: string
-  minersFee: number
-}
-
 export class MinedBlocksIndexer {
   protected meta: IDatabaseStore<{
     key: keyof MinedBlocksDBMeta
-    value: MinedBlocksDBMeta[keyof MinedBlocksDBMeta]
+    value: MetaValue
   }>
-  protected minedBlocks: IDatabaseStore<{ key: Buffer; value: MinedBlock }>
-  protected sequenceToHashes: IDatabaseStore<{ key: number; value: Buffer[] }>
-  protected accountsToRemove: IDatabaseStore<{ key: string; value: string[] }>
+  protected minedBlocks: IDatabaseStore<{ key: Buffer; value: MinedBlockValue }>
+  protected sequenceToHashes: IDatabaseStore<{ key: number; value: SequenceToHashesValue }>
+  protected accountsToRemove: IDatabaseStore<{ key: string; value: AccountsToRemoveValue }>
 
   protected files: FileSystem
   protected database: IDatabase
@@ -89,25 +90,31 @@ export class MinedBlocksIndexer {
     }>({
       name: 'meta',
       keyEncoding: new StringEncoding<keyof MinedBlocksDBMeta>(),
-      valueEncoding: new JsonEncoding(),
+      valueEncoding: new MetaValueEncoding(),
     })
 
-    this.minedBlocks = this.database.addStore<{ key: Buffer; value: MinedBlock }>({
+    this.minedBlocks = this.database.addStore<{ key: Buffer; value: MinedBlockValue }>({
       name: 'blocks',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new JsonEncoding<MinedBlock>(),
+      valueEncoding: new MinedBlockValueEncoding(),
     })
 
-    this.sequenceToHashes = this.database.addStore<{ key: number; value: Buffer[] }>({
+    this.sequenceToHashes = this.database.addStore<{
+      key: number
+      value: SequenceToHashesValue
+    }>({
       name: 'seqToHash',
       keyEncoding: new U32Encoding(),
-      valueEncoding: new JsonEncoding<Buffer[]>(),
+      valueEncoding: new SequenceToHashesValueEncoding(),
     })
 
-    this.accountsToRemove = this.database.addStore<{ key: string; value: string[] }>({
+    this.accountsToRemove = this.database.addStore<{
+      key: string
+      value: AccountsToRemoveValue
+    }>({
       name: 'accsToRemove',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new ArrayEncoding<string[]>(),
+      valueEncoding: new AccountsToRemoveValueEncoding(),
     })
 
     this.chainProcessor = new ChainProcessor({ logger, chain, head: null })
@@ -130,9 +137,9 @@ export class MinedBlocksIndexer {
             tx,
           )
 
-          const sequences = (await this.sequenceToHashes.get(header.sequence, tx)) ?? []
-          sequences.push(header.hash)
-          await this.sequenceToHashes.put(header.sequence, sequences, tx)
+          const hashes = await this.getHashesAtSequence(header.sequence)
+          hashes.push(header.hash)
+          await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
 
           await this.updateHeadHash(header.hash, tx)
         })
@@ -164,9 +171,9 @@ export class MinedBlocksIndexer {
     })
 
     this.accounts.onAccountRemoved.on(async (account) => {
-      const accounts: string[] = (await this.accountsToRemove.get(REMOVAL_KEY)) ?? []
+      const accounts = await this.getAccountsToBeRemoved()
       accounts.push(account.name)
-      await this.accountsToRemove.put(REMOVAL_KEY, accounts)
+      await this.accountsToRemove.put(REMOVAL_KEY, { accounts })
     })
   }
 
@@ -251,7 +258,7 @@ export class MinedBlocksIndexer {
       return
     }
 
-    const accountNames = await this.accountsToRemove.get(REMOVAL_KEY)
+    const accountNames = await this.getAccountsToBeRemoved()
     if (accountNames) {
       for (const accountName of accountNames) {
         await this.removeMinedBlocks(accountName)
@@ -280,6 +287,26 @@ export class MinedBlocksIndexer {
     }
   }
 
+  async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<Buffer[]> {
+    const hashes = await this.sequenceToHashes.get(sequence, tx)
+
+    if (!hashes) {
+      return []
+    }
+
+    return hashes.hashes
+  }
+
+  async getAccountsToBeRemoved(): Promise<string[]> {
+    const accounts = await this.accountsToRemove.get(REMOVAL_KEY)
+
+    if (!accounts) {
+      return []
+    }
+
+    return accounts.accounts
+  }
+
   async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
     const hashString = headHash && headHash.toString('hex')
     await this.meta.put('headHash', hashString, tx)
@@ -292,19 +319,18 @@ export class MinedBlocksIndexer {
     for await (const [hash, block] of iterator) {
       if (block.account === accountName) {
         await this.database.transaction(async (tx) => {
-          let hashes = await this.sequenceToHashes.get(block.sequence)
-          Assert.isNotUndefined(hashes)
+          let hashes = await this.getHashesAtSequence(block.sequence)
           hashes = hashes.filter((h) => !h.equals(hash))
-          await this.sequenceToHashes.put(block.sequence, hashes, tx)
+          await this.sequenceToHashes.put(block.sequence, { hashes }, tx)
           await this.minedBlocks.del(hash, tx)
         })
       }
     }
 
-    const accountsToRemove = await this.accountsToRemove.get(REMOVAL_KEY)
+    const accountsToRemove = await this.getAccountsToBeRemoved()
     if (accountsToRemove) {
       accountsToRemove.filter((name) => name !== accountName)
-      await this.accountsToRemove.put(REMOVAL_KEY, accountsToRemove)
+      await this.accountsToRemove.put(REMOVAL_KEY, { accounts: accountsToRemove })
     }
 
     this.logger.debug(`Finished removing mined blocks for account ${accountName}`)
@@ -337,10 +363,10 @@ export class MinedBlocksIndexer {
     // eslint-disable-next-line prettier/prettier
     ({ start, stop } = BlockchainUtils.getBlockRange(this.chain, { start, stop }))
 
-    const accountsToRemove = new Set(await this.accountsToRemove.get(REMOVAL_KEY)) ?? []
+    const accountsToRemove = new Set(await this.getAccountsToBeRemoved()) ?? []
 
     for (let sequence = start; sequence <= stop; ++sequence) {
-      const hashes = await this.sequenceToHashes.get(sequence)
+      const hashes = await this.getHashesAtSequence(sequence)
 
       if (!hashes) {
         continue

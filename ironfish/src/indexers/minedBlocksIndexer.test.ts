@@ -261,9 +261,9 @@ describe('MinedBlockIndexer', () => {
 
       await nodeA.minedBlocksIndexer.removeMinedBlocks('b')
       expect(await nodeA.minedBlocksIndexer['sequenceToHashes'].get(2)).not.toBeUndefined()
-      expect(await nodeA.minedBlocksIndexer['sequenceToHashes'].get(2)).toContainEqual(
-        blockA1.header.hash,
-      )
+      expect(await nodeA.minedBlocksIndexer['sequenceToHashes'].get(2)).toEqual({
+        hashes: [blockA1.header.hash],
+      })
 
       await nodeA.minedBlocksIndexer.stop()
       await nodeA.minedBlocksIndexer.close()
