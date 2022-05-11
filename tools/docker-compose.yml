@@ -1,22 +1,35 @@
-version: "2.4"
+version: '3.7'
 
 services:
     node:
+        container_name: ironfish
         image: ghcr.io/iron-fish/ironfish:latest
+        ports:
+            - "8001:8001"
+            - "9001:9001"
+        networks:
+            - node_network
+        deploy:
+            restart_policy:
+                condition: on-failure
+        command: start --graffiti "graffitiExample" --name "nodeExample" --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8001 --port 9001
         volumes:
             - ~/.ironfish:/root/.ironfish
-        tty: true
-        restart: always
-        command: ["start", "--graffiti", "graffitiExample", "--name", "nodeExample"]
 
     miner:
+        container_name: ironfish-miner
         image: ghcr.io/iron-fish/ironfish:latest
-        volumes:
-            - ~/.ironfish:/root/.ironfish
-        tty: true
-        mem_limit: 8192M
-        restart: always
-        command: miners:start --threads -1
+        depends_on:
+            - "node"
+        networks:
+            - node_network
+        deploy:
+            resources:
+                limits:
+                    memory: 8192M
+            restart_policy:
+                condition: on-failure
+        command: miners:start --rpc.tcp --rpc.tcp.host=node --rpc.tcp.port=8001 -t -1 
 
 networks:
-    default:
+    node_network:
