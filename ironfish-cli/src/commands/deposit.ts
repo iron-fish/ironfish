@@ -33,7 +33,7 @@ export default class Bank extends IronfishCommand {
       default: 1,
       description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
-    expirationSequence: Flags.integer({
+    expirationSequenceDelta: Flags.integer({
       char: 'e',
       description: 'max number of blocks for the transaction to wait before expiring',
     }),
@@ -56,7 +56,7 @@ export default class Bank extends IronfishCommand {
 
     const fee = flags.fee
     const feeInIron = oreToIron(fee)
-    const expirationSequence = flags.expirationSequence
+    const expirationSequenceDelta = flags.expirationSequenceDelta
 
     const accountName =
       flags.account || (await this.client.getDefaultAccount()).content.account?.name
@@ -153,7 +153,7 @@ The memo will contain the graffiti "${graffiti}".
           },
         ],
         fee: fee.toString(),
-        expirationSequence: expirationSequence,
+        expirationSequenceDelta: expirationSequenceDelta,
       })
 
       stopProgressBar()
@@ -209,18 +209,18 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
     }
 
-    const expirationSequence = flags.expirationSequence as number | undefined
-    if (expirationSequence !== undefined && expirationSequence < 0) {
+    const expirationSequenceDelta = flags.expirationSequenceDelta as number | undefined
+    if (expirationSequenceDelta !== undefined && expirationSequenceDelta < 0) {
       return {
         canSend: false,
-        errorReason: `Expiration sequence must be non-negative`,
+        errorReason: `Expiration sequence delta must be non-negative`,
       }
     }
 
-    if (expirationSequence !== undefined && expirationSequence > 120) {
+    if (expirationSequenceDelta !== undefined && expirationSequenceDelta > 120) {
       return {
         canSend: false,
-        errorReason: 'Expiration sequence should not be above 120 blocks',
+        errorReason: 'Expiration sequence delta should not be above 120 blocks',
       }
     }
 
