@@ -76,7 +76,17 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         return
       }
 
-      const serializedBlock = await node.miningManager.createNewBlockTemplate(block)
+      let serializedBlock: SerializedBlockTemplate
+      try {
+        // The chain may change while block creation is in progress -- if so,
+        // we can catch the error and expect the next call of `streamBlockTemplate`
+        // to generate a block template.
+        serializedBlock = await node.miningManager.createNewBlockTemplate(block)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown Error'
+        node.logger.debug(`Failed to create new block template: ${message}`)
+        return
+      }
       request.stream(serializedBlock)
     }
 
