@@ -16,8 +16,19 @@ interface MempoolEntry {
   hash: TransactionHash
 }
 
+function compareTransaction(
+  firstTransaction: MempoolEntry,
+  secondTransaction: MempoolEntry,
+): boolean {
+  if (firstTransaction.fee === secondTransaction.fee) {
+    return firstTransaction.hash.compare(secondTransaction.hash) > 0
+  }
+  return firstTransaction.fee > secondTransaction.fee
+}
+
 export class MemPool {
   readonly transactions = new BufferMap<Transaction>()
+  readonly nullifiers = new BufferMap<Buffer>()
   readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
@@ -29,12 +40,7 @@ export class MemPool {
     const logger = options.logger || createRootLogger()
 
     this.head = null
-    this.queue = new FastPriorityQueue<MempoolEntry>((firstTransaction, secondTransaction) => {
-      if (firstTransaction.fee === secondTransaction.fee) {
-        return firstTransaction.hash.compare(secondTransaction.hash) > 0
-      }
-      return firstTransaction.fee > secondTransaction.fee
-    })
+    this.queue = new FastPriorityQueue<MempoolEntry>(compareTransaction)
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
@@ -96,6 +102,29 @@ export class MemPool {
       return false
     }
 
+    for (const spend of transaction.spends()) {
+      if (this.nullifiers.has(spend.nullifier)) {
+        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
+        Assert.isNotUndefined(existingTransactionHash)
+
+        const existingTransaction = this.transactions.get(existingTransactionHash)
+        if (!existingTransaction) {
+          continue
+        }
+
+        if (
+          compareTransaction(
+            { fee: transaction.fee(), hash },
+            { fee: existingTransaction.fee(), hash: existingTransactionHash },
+          )
+        ) {
+          this.deleteTransaction(existingTransaction)
+        } else {
+          return false
+        }
+      }
+    }
+
     this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
@@ -152,6 +181,11 @@ export class MemPool {
   private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.set(spend.nullifier, hash)
+    }
+
     this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
   }
@@ -159,6 +193,11 @@ export class MemPool {
   private deleteTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.delete(hash)
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.delete(spend.nullifier)
+    }
+
     this.queue.removeOne((t) => t.hash.equals(hash))
     this.metrics.memPoolSize.value = this.size()
   }
