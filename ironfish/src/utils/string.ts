@@ -20,7 +20,7 @@ function hashToNumber(value: string): number {
  * simple way to hash a string for test or display purposes
  */
 function hash(value: string): Buffer {
-  return Buffer.from(crypto.createHash('md5').update(value).digest('hex'))
+  return Buffer.from(crypto.createHash(SHA256).update(value).digest('hex'))
 }
 
 /**
