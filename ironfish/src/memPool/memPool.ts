@@ -16,16 +16,6 @@ interface MempoolEntry {
   hash: TransactionHash
 }
 
-function compareTransaction(
-  firstTransaction: MempoolEntry,
-  secondTransaction: MempoolEntry,
-): boolean {
-  if (firstTransaction.fee === secondTransaction.fee) {
-    return firstTransaction.hash.compare(secondTransaction.hash) > 0
-  }
-  return firstTransaction.fee > secondTransaction.fee
-}
-
 export class MemPool {
   readonly transactions = new BufferMap<Transaction>()
   readonly nullifiers = new BufferMap<Buffer>()
@@ -40,7 +30,12 @@ export class MemPool {
     const logger = options.logger || createRootLogger()
 
     this.head = null
-    this.queue = new FastPriorityQueue<MempoolEntry>(compareTransaction)
+    this.queue = new FastPriorityQueue<MempoolEntry>((firstTransaction, secondTransaction) => {
+      if (firstTransaction.fee === secondTransaction.fee) {
+        return firstTransaction.hash.compare(secondTransaction.hash) > 0
+      }
+      return firstTransaction.fee > secondTransaction.fee
+    })
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
@@ -112,12 +107,7 @@ export class MemPool {
           continue
         }
 
-        if (
-          compareTransaction(
-            { fee: transaction.fee(), hash },
-            { fee: existingTransaction.fee(), hash: existingTransactionHash },
-          )
-        ) {
+        if (transaction.fee() > existingTransaction.fee()) {
           this.deleteTransaction(existingTransaction)
         } else {
           return false
