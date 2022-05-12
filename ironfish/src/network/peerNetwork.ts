@@ -677,6 +677,15 @@ export class PeerNetwork {
   private async onNewTransaction(
     message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    // Ignore new transactions if the node is still syncing
+    //
+    // TODO(rohanjadvani): However, it's okay to accept transactions if you are
+    // not synced and not syncing. We should update this logic after syncing
+    // becomes more reliable
+    if (!this.node.chain.synced) {
+      return false
+    }
+
     if (!this.enableSyncing) {
       return false
     }
@@ -686,15 +695,6 @@ export class PeerNetwork {
     )
 
     if (this.node.workerPool.saturated) {
-      return false
-    }
-
-    // Ignore new transactions if the node is still syncing
-    //
-    // TODO(rohanjadvani): However, it's okay to accept transactions if you are
-    // not synced and not syncing. We should update this logic after syncing
-    // becomes more reliable
-    if (!this.node.chain.synced) {
       return false
     }
 
