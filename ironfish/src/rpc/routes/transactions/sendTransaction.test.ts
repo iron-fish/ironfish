@@ -35,7 +35,7 @@ const TEST_PARAMS_MULTI = {
 }
 
 describe('Transactions sendTransaction', () => {
-  const routeTest = createRouteTest()
+  const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
     await routeTest.node.accounts.createAccount('existingAccount', true)

@@ -7,7 +7,7 @@ import { getAccount } from './utils'
 
 describe('Accounts utils', () => {
   describe('getAccount', () => {
-    const routeTest = createRouteTest()
+    const routeTest = createRouteTest(true)
     const name = 'testAccount'
     let publicAddress = ''
 
