@@ -33,8 +33,6 @@ export class SequenceToHashesValueEncoding implements IDatabaseEncoding<Sequence
   }
 
   getSize(value: SequenceToHashesValue): number {
-    let size = 0
-    size += 32 * value.hashes.length
-    return size
+    return 32 * value.hashes.length
   }
 }

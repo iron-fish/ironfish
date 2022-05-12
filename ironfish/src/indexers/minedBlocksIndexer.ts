@@ -22,7 +22,7 @@ import {
   AccountsToRemoveValue,
   AccountsToRemoveValueEncoding,
 } from './database/accountsToRemove'
-import { MetaValue, MetaValueEncoding } from './database/meta'
+import { MetaValue, MetaValueEncoding, MinedBlocksDBMeta } from './database/meta'
 import { MinedBlockValue, MinedBlockValueEncoding } from './database/minedBlock'
 import {
   SequenceToHashesValue,
@@ -35,10 +35,6 @@ const REMOVAL_KEY = 'accountsToRemove'
 const getMinedBlocksDBMetaDefaults = (): MinedBlocksDBMeta => ({
   headHash: null,
 })
-
-type MinedBlocksDBMeta = {
-  headHash: string | null
-}
 
 export class MinedBlocksIndexer {
   protected meta: IDatabaseStore<{
