@@ -309,6 +309,7 @@ export async function useBlockWithTx(
   useFee = true,
   options: {
     expiration?: number
+    fee?: number
   } = { expiration: 0 },
 ): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
@@ -343,7 +344,7 @@ export async function useBlockWithTx(
           memo: '',
         },
       ],
-      BigInt(1),
+      BigInt(options.fee ?? 1),
       options.expiration ?? 0,
     )
 
