@@ -9,7 +9,7 @@ import http from 'http'
 import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
-import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
+import { mockChain, mockNode, mockStrategy, mockWorkerPool } from '../testUtilities/mocks'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
@@ -269,9 +269,14 @@ describe('PeerNetwork', () => {
             verifyNewTransaction: jest.fn(),
           },
         }
+        const workerPool = {
+          ...mockWorkerPool,
+          saturated: false,
+        }
         const node = {
           ...mockNode(),
           chain,
+          workerPool,
         }
 
         const peerNetwork = new PeerNetwork({
@@ -289,6 +294,9 @@ describe('PeerNetwork', () => {
           peerNetwork['chain']['verifier'],
           'verifyNewTransaction',
         )
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expect(node.workerPool.saturated).toEqual(false)
 
         await peerNetwork['onNewTransaction']({
           peerIdentity: '',
