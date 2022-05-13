@@ -28,29 +28,37 @@ export class Transaction {
     this.transactionPostedSerialized = transactionPostedSerialized
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
-    const _spendsLength = reader.readU64()
-    const _notesLength = reader.readU64()
-    this._fee = BigInt(reader.readI64())
-    this._expirationSequence = reader.readU32()
+
+    const _spendsLength = reader.readU64() // 8
+    const _notesLength = reader.readU64() // 8
+    this._fee = BigInt(reader.readI64()) // 8
+    this._expirationSequence = reader.readU32() // 4
+
     this._spends = Array.from({ length: _spendsLength }, () => {
-      // skip proof, value commitment, randomized public key
-      reader.seek(256)
+      // proof
+      reader.seek(192)
+      // value commitment
+      reader.seek(32)
+      // randomized public key
+      reader.seek(32)
 
-      const rootHash = reader.readHash()
-      const treeSize = reader.readU32()
-      const nullifier = reader.readHash()
+      const rootHash = reader.readHash() // 32
+      const treeSize = reader.readU32() // 4
+      const nullifier = reader.readHash() // 32
 
-      // skip signature
+      // signature
       reader.seek(64)
 
+      // total serialized size: 192 + 32 + 32 + 32 + 4 + 32 + 64 = 388 bytes
       return {
         size: treeSize,
         commitment: rootHash,
         nullifier,
       }
     })
+
     this._notes = Array.from({ length: _notesLength }, () => {
-      // skip proof
+      // proof
       reader.seek(192)
 
       return new NoteEncrypted(reader.readBytes(275, true))
