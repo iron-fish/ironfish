@@ -19,7 +19,7 @@ import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
-import { PrivateIdentity, Identity } from './identity'
+import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
@@ -703,7 +703,7 @@ export class PeerNetwork {
     const count = this.badMessageCounter.get(message.peerIdentity)
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
-      if (count) {
+      if (count && count > 0) {
         this.badMessageCounter.set(message.peerIdentity, count - 1)
       }
       return true
@@ -718,8 +718,8 @@ export class PeerNetwork {
         this.badMessageCounter.set(message.peerIdentity, count + 1)
       }
       this.logger.info(
-        `Bad tx from ${message.peerIdentity}. Count is ${this.badMessageCounter.get(
-          message.peerIdentity,
+        `Bad tx from ${message.peerIdentity}. Count is ${<number>(
+          this.badMessageCounter.get(message.peerIdentity)
         )}.`,
       )
     }
