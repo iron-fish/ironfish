@@ -75,10 +75,18 @@ export class RouteTest extends NodeTest {
 /** Call this to create a {@link RouteTest} and ensure its test lifecycle
  * methods are called properly like beforeEach, beforeAll, etc
  */
-export function createRouteTest(): RouteTest {
+export function createRouteTest(preserveState = false): RouteTest {
   const routeTest = new RouteTest()
-  beforeAll(() => routeTest.setup(), 10000)
-  afterEach(() => routeTest.teardownEach())
-  afterAll(() => routeTest.teardownAll())
+
+  if (preserveState) {
+    beforeAll(() => routeTest.setup(), 10000)
+    afterEach(() => routeTest.teardownEach())
+    afterAll(() => routeTest.teardownAll())
+  } else {
+    beforeEach(() => routeTest.setup(), 10000)
+    afterEach(() => routeTest.teardownEach())
+    afterEach(() => routeTest.teardownAll())
+  }
+
   return routeTest
 }

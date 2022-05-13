@@ -22,7 +22,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 })
 
 describe('Route account/getPublicKey', () => {
-  const routeTest = createRouteTest()
+  const routeTest = createRouteTest(true)
   let account = {} as Account
   let publicAddress = ''
 
