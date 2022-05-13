@@ -490,7 +490,12 @@ export class PeerManager {
    * @param reason The reason for disconnecting from the peer
    * @param until Stay disconnected from the peer until after this timestamp
    */
-  disconnect(peer: Peer, reason: DisconnectingReason, until: number): void {
+  disconnect(
+    peer: Peer,
+    reason: DisconnectingReason,
+    until: number,
+    errorMessage?: string,
+  ): void {
     peer.localRequestedDisconnectReason = reason
     peer.localRequestedDisconnectUntil = until
 
@@ -520,7 +525,11 @@ export class PeerManager {
       peer.state.connections.webSocket.send(message)
     }
 
-    peer.close()
+    if (reason) {
+      peer.close(new Error(errorMessage))
+    } else {
+      peer.close()
+    }
   }
 
   getPeersWithConnection(): ReadonlyArray<Peer> {
@@ -730,19 +739,20 @@ export class PeerManager {
       }
     })
 
-    peer.onBanned.on(() => this.banPeer(peer))
+    peer.onBanned.on((reason) => this.banPeer(peer, reason))
 
     return peer
   }
 
-  banPeer(peer: Peer): void {
+  banPeer(peer: Peer, reason: string): void {
     const identity = peer.state.identity
 
     if (identity) {
       this.banned.add(identity)
     }
 
-    peer.close()
+    const disconnectDuration = this.getCongestedDisconnectUntilTimestamp()
+    this.disconnect(peer, DisconnectingReason.Banned, disconnectDuration, reason)
   }
 
   isBanned(peer: Peer): boolean {

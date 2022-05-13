@@ -4,7 +4,7 @@
 import colors from 'colors/safe'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
-import { ErrorUtils } from '../../utils'
+import { ErrorUtils, SetIntervalToken } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
 import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
@@ -19,6 +19,10 @@ export enum BAN_SCORE {
   MED = 5,
   MAX = 10,
 }
+
+const MESSAGE_COUNT_CLEANUP_TIME_MS = 5000
+const MESSAGE_COUNT_PUNISH_AMOUNT = 50 * (MESSAGE_COUNT_CLEANUP_TIME_MS / 1000)
+const MESSAGE_COUNT_BAN_AMOUNT = MESSAGE_COUNT_PUNISH_AMOUNT * 4
 
 /**
  * Message types that should be excluded from loggedMessages (unless overridden).
@@ -63,6 +67,9 @@ export type PeerState =
 export class Peer {
   readonly pendingRPCMax: number
   readonly logger: Logger
+
+  private rollingMessageCount: Array<number>
+  private rollingMessageCountCleanupInterval: SetIntervalToken | undefined
 
   /**
    * The current state of the peer.
@@ -205,7 +212,7 @@ export class Peer {
   /**
    * Fired when the peer should be banned
    */
-  readonly onBanned: Event<[]> = new Event()
+  readonly onBanned: Event<[string]> = new Event()
 
   /**
    * Event fired when the peer changes state. The event may fire when connections change, even if the
@@ -232,6 +239,7 @@ export class Peer {
     this.pendingRPCMax = maxPending
     this.maxBanScore = maxBanScore
     this.shouldLogMessages = shouldLogMessages
+    this.rollingMessageCount = []
     this._error = null
     this._state = {
       type: 'DISCONNECTED',
@@ -525,6 +533,10 @@ export class Peer {
       connection.onStateChanged.off(stateChangedHandler)
       this.connectionStateChangedHandlers.delete(connection)
     }
+
+    this.rollingMessageCount = []
+    this.rollingMessageCountCleanupInterval &&
+      clearInterval(this.rollingMessageCountCleanupInterval)
   }
 
   private bindConnectionEvents(connection?: Connection): void {
@@ -549,9 +561,15 @@ export class Peer {
           type: connection.type,
         })
         this.onMessage.emit(message, connection)
+        this.rollingMessageCount.push(new Date().getTime())
       }
       this.connectionMessageHandlers.set(connection, messageHandler)
       connection.onMessage.on(messageHandler)
+
+      this.rollingMessageCountCleanupInterval = setInterval(
+        () => this.cleanupRollingMessageCount(),
+        MESSAGE_COUNT_CLEANUP_TIME_MS,
+      )
     }
 
     // onStateChanged
@@ -644,6 +662,28 @@ export class Peer {
     this.onStateChanged.emit({ peer: this, state: nextState, prevState })
   }
 
+  private cleanupRollingMessageCount(): void {
+    const timeCutoff = new Date()
+    timeCutoff.setMilliseconds(timeCutoff.getMilliseconds() - MESSAGE_COUNT_CLEANUP_TIME_MS)
+    const timeCutoffTimestamp = timeCutoff.getTime()
+
+    this.rollingMessageCount = this.rollingMessageCount.filter(
+      (timestamp) => timestamp >= timeCutoffTimestamp,
+    )
+
+    if (this.rollingMessageCount.length > MESSAGE_COUNT_BAN_AMOUNT) {
+      this.logger.debug(
+        `Peer ${this.displayName} has sent too many messages (${this.rollingMessageCount.length}), banning.`,
+      )
+      this.punish(BAN_SCORE.MAX, 'Too many messages sent')
+    } else if (this.rollingMessageCount.length > MESSAGE_COUNT_PUNISH_AMOUNT) {
+      this.logger.debug(
+        `Peer ${this.displayName} has sent too many messages (${this.rollingMessageCount.length}), punshing.`,
+      )
+      this.punish(BAN_SCORE.LOW, 'Too many messages sent')
+    }
+  }
+
   /**
    * Set the peer's state to DISCONNECTED, closing open connections.
    */
@@ -676,8 +716,7 @@ export class Peer {
     }
 
     this.logger.info(`Peer ${this.displayName} has been banned: ${reason || 'UNKNOWN'}`)
-    this.close(new Error(`BANNED: ${reason || 'UNKNOWN'}`))
-    this.onBanned.emit()
+    this.onBanned.emit(reason || 'UNKNOWN')
     return true
   }
 
