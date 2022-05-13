@@ -133,7 +133,7 @@ export class MinedBlocksIndexer {
             tx,
           )
 
-          const hashes = await this.getHashesAtSequence(header.sequence)
+          const hashes = await this.getHashesAtSequence(header.sequence, tx)
           hashes.push(header.hash)
           await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
 
@@ -145,7 +145,7 @@ export class MinedBlocksIndexer {
     this.chainProcessor.onRemove.on(async (header) => {
       await this.database.transaction(async (tx) => {
         if (await this.minedBlocks.has(header.hash, tx)) {
-          const block = await this.chain.getBlock(header)
+          const block = await this.chain.getBlock(header, tx)
           Assert.isNotNull(block)
 
           const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
@@ -315,7 +315,7 @@ export class MinedBlocksIndexer {
     for await (const [hash, block] of iterator) {
       if (block.account === accountName) {
         await this.database.transaction(async (tx) => {
-          let hashes = await this.getHashesAtSequence(block.sequence)
+          let hashes = await this.getHashesAtSequence(block.sequence, tx)
           hashes = hashes.filter((h) => !h.equals(hash))
           await this.sequenceToHashes.put(block.sequence, { hashes }, tx)
           await this.minedBlocks.del(hash, tx)
@@ -368,23 +368,15 @@ export class MinedBlocksIndexer {
         continue
       }
 
-      const blocks = await Promise.all(
-        hashes.map(async (h) => {
-          const minedBlock = await this.minedBlocks.get(h)
-          if (minedBlock && !accountsToRemove.has(minedBlock.account)) {
-            return { hash: h.toString('hex'), ...minedBlock }
+      for (const hash of hashes) {
+        const minedBlock = await this.minedBlocks.get(hash)
+        if (minedBlock && !accountsToRemove.has(minedBlock.account)) {
+          if (!scanForks && !minedBlock.main) {
+            continue
           }
-        }),
-      )
 
-      for (const block of blocks) {
-        Assert.isNotUndefined(block)
-
-        if (!scanForks && !block.main) {
-          continue
+          yield { hash: hash.toString('hex'), ...minedBlock }
         }
-
-        yield block
       }
     }
   }
