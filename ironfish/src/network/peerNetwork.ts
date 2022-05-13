@@ -19,7 +19,7 @@ import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
-import { PrivateIdentity } from './identity'
+import { PrivateIdentity, Identity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
@@ -92,6 +92,7 @@ export class PeerNetwork {
   private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
+  private badMessageCounter: Map<Identity, number>
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -123,6 +124,7 @@ export class PeerNetwork {
     hostsStore: HostsStore
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
+    this.badMessageCounter = new Map<Identity, number>();
 
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
@@ -701,6 +703,18 @@ export class PeerNetwork {
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
       return true
+    } else {
+      const count = this.badMessageCounter.get(message.peerIdentity);
+      if(!count) {
+        this.badMessageCounter.set(message.peerIdentity, 1);
+      } else if(count > 1000) {
+        this.logger.info(`Sorry bro you're out of the club ${message.peerIdentity}`);
+        const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity);
+        this.peerManager.banPeer(badPeer);
+      } else {
+        this.badMessageCounter.set(message.peerIdentity, count + 1);
+      }
+      this.logger.info(`Bad tx from ${message.peerIdentity}. Count is ${this.badMessageCounter.get(message.peerIdentity)}.`)
     }
 
     return false
