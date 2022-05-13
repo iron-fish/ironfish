@@ -703,9 +703,11 @@ export class PeerNetwork {
     const count = this.badMessageCounter.get(message.peerIdentity)
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
+      if (count) {
+        this.badMessageCounter.set(message.peerIdentity, count - 1)
+      }
       return true
     } else {
-      const count = this.badMessageCounter.get(message.peerIdentity)
       if (!count) {
         this.badMessageCounter.set(message.peerIdentity, 1)
       } else if (count > 1000) {
