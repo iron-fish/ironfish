@@ -12,7 +12,7 @@ import {
 describe('Mining manager', () => {
   const nodeTest = createNodeTest()
 
-  it('should not add conflicting transactions', async () => {
+  it.skip('should not add conflicting transactions', async () => {
     const node = nodeTest.node
     const { chain, accounts, memPool, miningManager } = node
 
