@@ -60,6 +60,7 @@ import { WebSocketServer } from './webSocketServer'
  */
 const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
+const BAD_TRANSACTION_MAX = 100
 
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
@@ -710,8 +711,8 @@ export class PeerNetwork {
     } else {
       if (!count) {
         this.badMessageCounter.set(message.peerIdentity, 1)
-      } else if (count > 1000) {
-        this.logger.info(`Sorry bro you're out of the club ${message.peerIdentity}`)
+      } else if (count > BAD_TRANSACTION_MAX) {
+        this.logger.info(`Banning peer ${message.peerIdentity}`)
         const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity)
         this.peerManager.banPeer(badPeer)
       } else {
