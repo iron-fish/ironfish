@@ -231,29 +231,14 @@ export class IronfishSdk {
       if (this.config.get('rpcTcpSecure')) {
         namespaces.push(ApiNamespace.account, ApiNamespace.config)
       }
-
-      if (this.config.get('enableNativeRpcTcpAdapter')) {
-        await node.rpc.mount(
-          new TcpAdapter(
-            this.config.get('rpcTcpHost'),
-            this.config.get('rpcTcpPort'),
-            this.logger,
-            namespaces,
-          ),
-        )
-      } else {
-        await node.rpc.mount(
-          new IpcAdapter(
-            namespaces,
-            {
-              mode: 'tcp',
-              host: this.config.get('rpcTcpHost'),
-              port: this.config.get('rpcTcpPort'),
-            },
-            this.logger,
-          ),
-        )
-      }
+      await node.rpc.mount(
+        new TcpAdapter(
+          this.config.get('rpcTcpHost'),
+          this.config.get('rpcTcpPort'),
+          this.logger,
+          namespaces,
+        ),
+      )
     }
 
     return node
