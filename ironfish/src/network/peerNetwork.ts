@@ -690,13 +690,13 @@ export class PeerNetwork {
       return false
     }
 
-    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
-      message.message.transaction,
-    )
-
     if (this.node.workerPool.saturated) {
       return false
     }
+
+    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
+      message.message.transaction,
+    )
 
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
