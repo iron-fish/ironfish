@@ -681,14 +681,6 @@ export class PeerNetwork {
       return false
     }
 
-    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
-      message.message.transaction,
-    )
-
-    if (this.node.workerPool.saturated) {
-      return false
-    }
-
     // Ignore new transactions if the node is still syncing
     //
     // TODO(rohanjadvani): However, it's okay to accept transactions if you are
@@ -698,10 +690,19 @@ export class PeerNetwork {
       return false
     }
 
-    if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
-      await this.node.accounts.syncTransaction(verifiedTransaction, {})
+    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
+      message.message.transaction,
+    )
+
+    if (this.node.workerPool.saturated) {
+      return false
     }
 
-    return true
+    if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
+      await this.node.accounts.syncTransaction(verifiedTransaction, {})
+      return true
+    }
+
+    return false
   }
 }

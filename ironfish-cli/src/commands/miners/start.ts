@@ -85,7 +85,7 @@ export class Miner extends IronfishCommand {
         }
       }
 
-      this.log(`Staring to mine with public address: ${flags.address} at pool ${host}:${port}`)
+      this.log(`Starting to mine with public address: ${flags.address} at pool ${host}:${port}`)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
