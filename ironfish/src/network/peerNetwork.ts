@@ -700,8 +700,9 @@ export class PeerNetwork {
 
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
+      return true
     }
 
-    return true
+    return false
   }
 }
