@@ -41,6 +41,31 @@ See https://ironfish.network
 
 Once your environment is setup - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).
 
+## Run Ironfish Node/Miner with Auto-update Scripts(Ubuntu)
+- Start by cloning the Ironfish Github repository:
+    ```aidl
+    git clone https://github.com/iron-fish/ironfish.git
+    ```
+- Next, move into the ironfish directory:
+    ```aidl
+    cd ironfish
+    ```
+- [For Ubuntu users] A helper script to install dependencies and build is available. From the ironfish directory, run:
+    ```
+  ./build_ubuntu.sh
+    ```
+- To start a full node and keep auto-updated, from the ironfish directory, run:
+    ```
+  ./run_node.sh
+    ```
+- To mine with ironfish official pool and keep auto-updated, from the ironfish directory, run:
+    ```
+  ./pool_mine.sh
+    ```
+- Notes: 
+  - If you already have an account, you should run `ironfish accounts:import` before run your node. Or a new generated will be used for you node.
+  - Join a mining pool is a better choice considering limited hardware.
+
 ## Running Tests
 
 1. To test the entire monorepo:
