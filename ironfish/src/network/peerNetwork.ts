@@ -717,7 +717,7 @@ export class PeerNetwork {
         this.peerManager.disconnect(
           badPeer,
           DisconnectingReason.BadMessages,
-          Date.now() + 60 * 10,
+          Date.now() + 60 * 10 * 1000,
         )
       } else {
         this.badMessageCounter.set(message.peerIdentity, count + 1)
