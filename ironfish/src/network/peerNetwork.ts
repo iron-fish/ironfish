@@ -693,13 +693,13 @@ export class PeerNetwork {
       return false
     }
 
-    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
-      message.message.transaction,
-    )
-
     if (this.node.workerPool.saturated) {
       return false
     }
+
+    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
+      message.message.transaction,
+    )
 
     const count = this.badMessageCounter.get(message.peerIdentity)
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
