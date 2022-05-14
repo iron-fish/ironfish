@@ -712,9 +712,13 @@ export class PeerNetwork {
       if (!count) {
         this.badMessageCounter.set(message.peerIdentity, 1)
       } else if (count > BAD_TRANSACTION_MAX) {
-        this.logger.info(`Banning peer ${message.peerIdentity}`)
+        this.logger.info(`Disconnecting peer ${message.peerIdentity}`)
         const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity)
-        this.peerManager.disconnect(badPeer, DisconnectingReason.BadMessages, Date.now() + 60 * 10)
+        this.peerManager.disconnect(
+          badPeer,
+          DisconnectingReason.BadMessages,
+          Date.now() + 60 * 10,
+        )
       } else {
         this.badMessageCounter.set(message.peerIdentity, count + 1)
       }
