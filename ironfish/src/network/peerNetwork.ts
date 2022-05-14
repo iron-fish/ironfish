@@ -712,8 +712,8 @@ export class PeerNetwork {
       if (!count) {
         this.badMessageCounter.set(message.peerIdentity, 1)
       } else if (count > BAD_TRANSACTION_MAX) {
-        this.logger.info(`Disconnecting peer ${message.peerIdentity}`)
         const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity)
+        this.logger.debug(`Disconnecting peer ${message.peerIdentity} with version ${badPeer.agent}`)
         this.peerManager.disconnect(
           badPeer,
           DisconnectingReason.BadMessages,
@@ -722,7 +722,7 @@ export class PeerNetwork {
       } else {
         this.badMessageCounter.set(message.peerIdentity, count + 1)
       }
-      this.logger.info(
+      this.logger.debug(
         `Bad tx from ${message.peerIdentity}. Count is ${<number>(
           this.badMessageCounter.get(message.peerIdentity)
         )}.`,
