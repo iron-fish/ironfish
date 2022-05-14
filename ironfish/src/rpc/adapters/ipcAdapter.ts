@@ -68,16 +68,10 @@ export const IpcStreamSchema: yup.ObjectSchema<IpcStream> = yup
   })
   .defined()
 
-export type IpcAdapterConnectionInfo =
-  | {
-      mode: 'ipc'
-      socketPath: string
-    }
-  | {
-      mode: 'tcp'
-      host: string
-      port: number
-    }
+export type IpcAdapterConnectionInfo = {
+  mode: 'ipc'
+  socketPath: string
+}
 
 export class IpcAdapter implements IAdapter {
   router: Router | null = null
@@ -138,13 +132,8 @@ export class IpcAdapter implements IAdapter {
         reject(error)
       }
 
-      if (this.connection.mode === 'ipc') {
-        this.logger.debug(`Serving RPC on IPC ${this.connection.socketPath}`)
-        ipc.serve(this.connection.socketPath, onServed)
-      } else if (this.connection.mode === 'tcp') {
-        this.logger.debug(`Serving RPC on TCP ${this.connection.host}:${this.connection.port}`)
-        ipc.serveNet(this.connection.host, this.connection.port, onServed)
-      }
+      this.logger.debug(`Serving RPC on IPC ${this.connection.socketPath}`)
+      ipc.serve(this.connection.socketPath, onServed)
 
       ipc.server.on('error', onError)
       ipc.server.start()
