@@ -713,7 +713,9 @@ export class PeerNetwork {
         this.badMessageCounter.set(message.peerIdentity, 1)
       } else if (count > BAD_TRANSACTION_MAX) {
         const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity)
-        this.logger.debug(`Disconnecting peer ${message.peerIdentity} with version ${badPeer.agent}`)
+        this.logger.debug(
+          `Disconnecting peer ${message.peerIdentity} with version ${<string>badPeer.agent}`,
+        )
         this.peerManager.disconnect(
           badPeer,
           DisconnectingReason.BadMessages,
