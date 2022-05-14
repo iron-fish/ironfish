@@ -56,9 +56,10 @@ describe('MemPool', () => {
       const { accounts, memPool } = node
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
+      const accountC = await useAccountFixture(accounts, 'accountC')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionB } = await useBlockWithTx(node, accountB, accountC)
+      const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
 
       jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
       jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
@@ -128,6 +129,46 @@ describe('MemPool', () => {
       }, 60000)
     })
 
+    describe('with an existing nullifier in a transaction in the mempool', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction: transaction2 } = await useBlockWithTx(node, accountA, accountB)
+
+        expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(await memPool.acceptTransaction(transaction2)).toBe(false)
+      }, 60000)
+
+      it('returns true with a higher fee', async () => {
+        const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction: transaction2 } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          { fee: 2 },
+        )
+
+        expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(await memPool.acceptTransaction(transaction2)).toBe(true)
+      }, 60000)
+    })
+
     describe('with a new hash', () => {
       const nodeTest = createNodeTest()
 
@@ -175,8 +216,8 @@ describe('MemPool', () => {
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { block, transaction: transactionB } = await useBlockWithTx(
         node,
-        accountA,
         accountB,
+        accountA,
       )
       const hashA = transactionA.hash()
       const hashB = transactionB.hash()
