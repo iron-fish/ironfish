@@ -1,0 +1,32 @@
+version: "2.4"
+
+services:
+    node:
+        image: ghcr.io/iron-fish/ironfish:latest
+        volumes:
+            - ~/.ironfish:/root/.ironfish
+        tty: true
+        restart: always
+        command: ["start", "--graffiti", "graffitiExample", "--name", "nodeExample"]
+
+    pool:
+        image: ghcr.io/iron-fish/ironfish:latest
+        volumes:
+            - ~/.ironfish:/root/.ironfish
+        ports:
+            - "9034:9034"
+        tty: true
+        restart: always
+        command: miners:pools:start --no-payouts -v --rpc.tcp --rpc.tcp.host=node --rpc.tcp.port=8001
+
+    miner:
+        image: ghcr.io/iron-fish/ironfish:latest
+        volumes:
+            - ~/.ironfish:/root/.ironfish
+        tty: true
+        mem_limit: 8192M
+        restart: always
+        command: miners:start --threads -1 -v
+
+networks:
+    default:

@@ -15,7 +15,19 @@ services:
         command: start --graffiti "graffitiExample" --name "nodeExample" --rpc.tcp --rpc.tcp.host=0.0.0.0 --rpc.tcp.port=8001 --port 9001
         volumes:
             - ~/.ironfish:/root/.ironfish
-
+    pool:
+        container_name: ironfish-pool
+        image: ghcr.io/iron-fish/ironfish:latest
+        ports:
+            - "9034:9034"
+        networks:
+            - node_network
+        deploy:
+            restart_policy:
+                condition: on-failure
+        command: miners:pools:start --no-payouts -v --rpc.tcp --rpc.tcp.host=node --rpc.tcp.port=8001
+        volumes:
+            - ~/.ironfish:/root/.ironfish
     miner:
         container_name: ironfish-miner
         image: ghcr.io/iron-fish/ironfish:latest
