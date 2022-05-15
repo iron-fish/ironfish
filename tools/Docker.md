@@ -2,8 +2,8 @@
 
 There are 2 docker-compose files:
 
- 1. `docker-compose.yml` - Intended for users who wish to start a node, pool, and miner using Docker and latest version of Docker Compose.
- 2. `docker-compose.legacy.yml` - Intended for users who wish to start a node, pool (optional), and miner (optional) using Docker and older versions of Docker Compose.
+ 1. `docker-compose.yml` - Intended for users who wish to start a node, pool, and miner using Docker and newer versions of Docker Compose.
+ 2. `docker-compose.legacy.yml` - Intended for users who wish to start a node, pool, and miner using Docker and older versions of Docker Compose.
  3. `docker-compose.dev.yml` - Intended for developers who wish to run two (or more) nodes with a miner on a new network.
 
 ## Production config
@@ -12,7 +12,7 @@ There are 2 docker-compose files:
 
 Please check if your Linux distribution has latest version of docker-compose; if not -- install it using official Docker repositories. E.g for Ubuntu see https://docs.docker.com/engine/install/ubuntu/ or https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04).
 
-In case you don't want to update and prefer to use the older Docker Compose, we keep and older 2.4 version of configuration file in `docker-compose.legacy.yml` -- you can rename it to  and use.
+In case you don't want to update and prefer to use the older Docker Compose, we also keep older 2.4 version of configuration file in `docker-compose.legacy.yml` -- you can rename it to `docker-compose.yml` and use.
 
 ### User config 
 Users should change their node name and graffiti by editing the following line in the `docker-compose.yml` file:
@@ -60,7 +60,7 @@ Create a transaction: `docker-compose exec node ironfish accounts:pay`
 You can find more commands by running `docker-compose exec node ironfish help`.
 
 ### Choosing which components to run
-If you don't want to run the pool, miner, or node itself, just comment out or remove the corresponding section from `docker-compose.yml`. This is useful if you have different machines for the node, pool, and mining.
+If you don't want to run the pool, miner, or node itself, just comment out or remove the corresponding section from `docker-compose.yml`. This is useful if you have different machines for the node, pool, and miners.
 
 Alternatively, you can specify service name (`node`, `pool`, or `miner`) in any `docker-compose ...` command to apply it to that service only. 
 
@@ -75,7 +75,7 @@ Update (recreate) the containers: `docker-compose up -d` (you can add `--force-r
 
 Double-check the new version after updating. 
 
-**Note**: that will not affect the node data directory, please refer the Release Notes to check if you need to run `ironfish reset` or do any other changes on your local data. 
+**Note**: that will not affect the node data directory, please read the Release Notes to check if you need to run `ironfish reset` or do any other changes on your local data. 
 
 ## Developer config
 
