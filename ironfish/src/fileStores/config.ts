@@ -209,6 +209,10 @@ export class Config extends KeyStore<ConfigOptions> {
     return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
   }
 
+  get indexDatabasePath(): string {
+    return this.files.join(this.storage.dataDir, 'indexes', this.get('databaseName'))
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
