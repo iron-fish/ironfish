@@ -53,6 +53,8 @@ export class MinedCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (flags.blockHash) {
+      this.log(`Scanning mined blocks for ${flags.blockHash}`)
+
       const stream = client.exportMinedStream({
         blockHash: flags.blockHash as string | null,
       })

@@ -61,7 +61,7 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
-    const blockHash = request.data?.blockHash == null ? undefined : request.data.blockHash
+    const blockHash = request.data?.blockHash ?? undefined
 
     if (blockHash) {
       const block = await node.minedBlocksIndexer.getMinedBlock(Buffer.from(blockHash, 'hex'))
