@@ -8,6 +8,7 @@ import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { Discord } from './discord'
+import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 export class MiningPoolShares {
@@ -15,6 +16,7 @@ export class MiningPoolShares {
   readonly config: Config
   readonly logger: Logger
   readonly discord: Discord | null
+  readonly lark: Lark | null
 
   private readonly db: PoolDatabase
   private enablePayouts: boolean
@@ -33,6 +35,7 @@ export class MiningPoolShares {
     config: Config
     logger: Logger
     discord?: Discord
+    lark?: Lark
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }) {
@@ -41,6 +44,7 @@ export class MiningPoolShares {
     this.config = options.config
     this.logger = options.logger
     this.discord = options.discord ?? null
+    this.lark = options.lark ?? null
     this.enablePayouts = options.enablePayouts ?? true
 
     this.poolName = this.config.get('poolName')
@@ -58,6 +62,7 @@ export class MiningPoolShares {
     config: Config
     logger: Logger
     discord?: Discord
+    lark?: Lark
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
@@ -72,6 +77,7 @@ export class MiningPoolShares {
       config: options.config,
       logger: options.logger,
       discord: options.discord,
+      lark: options.lark,
       enablePayouts: options.enablePayouts,
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
@@ -171,9 +177,17 @@ export class MiningPoolShares {
         transactionReceives,
         shareCounts.totalShares,
       )
+
+      this.lark?.poolPayoutSuccess(
+        payoutId,
+        transaction.content.hash,
+        transactionReceives,
+        shareCounts.totalShares,
+      )
     } catch (e) {
       this.logger.error('There was an error with the transaction', e)
       this.discord?.poolPayoutError(e)
+      this.lark?.poolPayoutError(e)
     }
   }
 
