@@ -58,52 +58,55 @@ export class MinedCommand extends IronfishCommand {
       })
 
       const { block } = await AsyncUtils.first(stream.contentStream())
+
+      if (block) {
+        this.logLineForMinedBlock(block)
+      } else {
+        this.log(`No mined block found for hash ${flags.blockHash}`)
+      }
+
+      return
+    }
+
+    const stream = client.exportMinedStream({
+      start: args.start as number | null,
+      stop: args.stop as number | null,
+      forks: flags.scanForks as boolean | null,
+    })
+
+    const { start, stop } = await AsyncUtils.first(stream.contentStream())
+    Assert.isNotUndefined(start)
+    Assert.isNotUndefined(stop)
+
+    this.log(`Scanning for mined blocks from ${start} -> ${stop}`)
+
+    const speed = new Meter()
+
+    const progress = CliUx.ux.progress({
+      format:
+        'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
+    }) as ProgressBar
+
+    speed.start()
+    progress.start(stop - start + 1, 0)
+
+    for await (const { sequence, block } of stream.contentStream()) {
+      Assert.isNotUndefined(sequence)
+
       if (block) {
         this.logLineForMinedBlock(block)
       }
 
-      return
-    } else {
-      const stream = client.exportMinedStream({
-        start: args.start as number | null,
-        stop: args.stop as number | null,
-        forks: flags.scanForks as boolean | null,
+      speed.add(1)
+
+      progress.update(sequence - start, {
+        estimate: TimeUtils.renderEstimate(sequence - start, stop - start, speed.rate5s),
+        sequence,
       })
-
-      const { start, stop } = await AsyncUtils.first(stream.contentStream())
-      Assert.isNotUndefined(start)
-      Assert.isNotUndefined(stop)
-
-      this.log(`Scanning for mined blocks from ${start} -> ${stop}`)
-
-      const speed = new Meter()
-
-      const progress = CliUx.ux.progress({
-        format:
-          'Scanning blocks: [{bar}] {value}/{total} {percentage}% | ETA: {estimate} | SEQ {sequence}',
-      }) as ProgressBar
-
-      speed.start()
-      progress.start(stop - start + 1, 0)
-
-      for await (const { sequence, block } of stream.contentStream()) {
-        Assert.isNotUndefined(sequence)
-
-        if (block) {
-          this.logLineForMinedBlock(block)
-        }
-
-        speed.add(1)
-
-        progress.update(sequence - start, {
-          estimate: TimeUtils.renderEstimate(sequence - start, stop - start, speed.rate5s),
-          sequence,
-        })
-      }
-
-      progress.update(stop, { estimate: 0, sequence: stop })
-      progress.stop()
     }
+
+    progress.update(stop, { estimate: 0, sequence: stop })
+    progress.stop()
   }
 
   logLineForMinedBlock(block: {
