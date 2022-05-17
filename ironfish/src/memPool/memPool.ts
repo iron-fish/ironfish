@@ -125,8 +125,10 @@ export class MemPool {
     let deletedTransactions = 0
 
     for (const transaction of block.transactions) {
-      this.deleteTransaction(transaction)
-      deletedTransactions++
+      const didDelete = this.deleteTransaction(transaction)
+      if (didDelete) {
+        deletedTransactions++
+      }
     }
 
     for (const transaction of this.transactions.values()) {
@@ -136,11 +138,16 @@ export class MemPool {
       )
 
       if (isExpired) {
-        this.deleteTransaction(transaction)
+        const didDelete = this.deleteTransaction(transaction)
+        if (didDelete) {
+          deletedTransactions++
+        }
       }
     }
 
-    this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    if (deletedTransactions) {
+      this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    }
 
     this.head = block.header
   }
@@ -180,7 +187,7 @@ export class MemPool {
     this.metrics.memPoolSize.value = this.size()
   }
 
-  private deleteTransaction(transaction: Transaction): void {
+  private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
     this.transactions.delete(hash)
 
@@ -188,7 +195,11 @@ export class MemPool {
       this.nullifiers.delete(spend.nullifier)
     }
 
-    this.queue.removeOne((t) => t.hash.equals(hash))
+    const entry = this.queue.removeOne((t) => t.hash.equals(hash))
+    if (!entry) {
+      return false
+    }
     this.metrics.memPoolSize.value = this.size()
+    return true
   }
 }
