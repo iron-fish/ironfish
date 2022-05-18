@@ -101,8 +101,8 @@ impl WasmNoteEncrypted {
 
 #[cfg(test)]
 mod tests {
+    use ironfish_rust::primitives::asset_type::AssetType;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::primitives::ValueCommitment;
 
     use super::*;
     use ironfish_rust::merkle_note::MerkleNote;
@@ -123,10 +123,8 @@ mod tests {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment {
-            value: note.value(),
-            randomness: value_commitment_randomness,
-        };
+        let value_commitment =
+            AssetType::default().value_commitment(note.value(), value_commitment_randomness);
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);

@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::primitives::asset_type::AssetType;
+
 use super::{
     errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
+    primitives::sapling::Note as SaplingNote,
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
 use bls12_381::Scalar;
@@ -12,7 +15,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::{Note as SaplingNote, Nullifier, Rseed};
+use zcash_primitives::primitives::{Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 
@@ -279,6 +282,7 @@ impl<'a> Note {
     /// being spent have to create these.
     fn sapling_note(&self) -> SaplingNote {
         SaplingNote {
+            asset_type: AssetType::default(),
             value: self.value,
             g_d: self.owner.diversifier.g_d().unwrap(),
             pk_d: self.owner.transmission_key,

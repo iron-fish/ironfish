@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::primitives::asset_type::AssetType;
+
 use super::{
     errors::{SaplingProofError, TransactionError},
     keys::{PublicAddress, SaplingKey},
@@ -547,6 +549,7 @@ impl Transaction {
 
 // Convert the integer value to a point on the Jubjub curve, accounting for
 // negative values
+// TODO: this is really more like "transaction fee to point"
 fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
@@ -556,7 +559,10 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
         None => return Err(TransactionError::IllegalValueError),
     };
 
-    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
+    // Note: this is probably the only place AssetType::default should stay when support for asset types is added
+    // since transaction fee must always be denominated in the default asset type
+    let asset_type = AssetType::default();
+    let mut value_balance = asset_type.value_commitment_generator() * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
