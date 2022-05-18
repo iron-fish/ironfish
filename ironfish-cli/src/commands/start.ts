@@ -85,7 +85,7 @@ export default class Start extends IronfishCommand {
     }),
     generateNewIdentity: Flags.boolean({
       default: false,
-      description: 'genereate new identity for each new start',
+      description: 'generate new identity for each new start',
       hidden: true,
     }),
   }
@@ -93,7 +93,7 @@ export default class Start extends IronfishCommand {
   node: IronfishNode | null = null
 
   /**
-   * This promise is used to wait until start is finished beforer closeFromSignal continues
+   * This promise is used to wait until start is finished before closeFromSignal continues
    * because you can cause errors if you attempt to shutdown while the node is still starting
    * up to reduce shutdown hanging, start should cancel if it detects this.isClosing is true
    * and resolve this promise
