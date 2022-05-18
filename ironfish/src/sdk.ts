@@ -146,7 +146,7 @@ export class IronfishSdk {
       config.get('rpcRetryConnect'),
     )
 
-    const clientMemory = new IronfishMemoryClient()
+    const clientMemory = new IronfishMemoryClient({ logger })
 
     return new IronfishSdk(
       pkg || IronfishPKG,
