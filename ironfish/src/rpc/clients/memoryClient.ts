@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { MemoryAdapter } from '../adapters'
 import { Response } from '../response'
@@ -12,20 +12,20 @@ export class IronfishMemoryClient extends IronfishClient {
   node: IronfishNode | null = null
   adapter: MemoryAdapter
 
-  constructor(options?: { logger?: Logger; node?: IronfishNode }) {
-    super((options?.logger ?? createRootLogger()).withTag('memoryclient'))
+  constructor(logger: Logger, node?: IronfishNode) {
+    super(logger)
 
     this.adapter = new MemoryAdapter()
-    this.node = options?.node ?? null
+    this.node = node ?? null
   }
 
-  async connect(options?: { node: IronfishNode }): Promise<void> {
-    if (options?.node === this.node) {
+  async connect(node?: IronfishNode): Promise<void> {
+    if (node === this.node) {
       return
     }
 
-    if (options?.node) {
-      this.node = options.node
+    if (node) {
+      this.node = node
     }
 
     Assert.isNotNull(this.node, 'Memory RPc client requires a node')
