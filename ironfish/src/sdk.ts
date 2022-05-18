@@ -269,8 +269,7 @@ export class IronfishSdk {
     }
 
     const node = await this.node()
-    const clientMemory = new IronfishMemoryClient(this.logger)
-    await clientMemory.connect(node)
+    const clientMemory = await IronfishMemoryClient.init(this.logger, node)
     await NodeUtils.waitForOpen(node)
     return clientMemory
   }
