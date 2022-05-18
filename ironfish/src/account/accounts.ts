@@ -33,6 +33,8 @@ export class Accounts {
     [account: Account | null, oldAccount: Account | null]
   >()
 
+  readonly onAccountImported = new Event<[account: Account]>()
+  readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
@@ -936,6 +938,8 @@ export class Accounts {
     this.accounts.set(account.name, account)
     await this.db.setAccount(account)
 
+    this.onAccountImported.emit(account)
+
     return account
   }
 
@@ -948,16 +952,21 @@ export class Accounts {
   }
 
   async removeAccount(name: string): Promise<void> {
+    const account = this.getAccountByName(name)
+    if (!account) {
+      return
+    }
+
     if (name === this.defaultAccount) {
-      const prev = this.getDefaultAccount()
       await this.db.setDefaultAccount(null)
 
       this.defaultAccount = null
-      this.onDefaultAccountChange.emit(null, prev)
+      this.onDefaultAccountChange.emit(null, account)
     }
 
     this.accounts.delete(name)
     await this.db.removeAccount(name)
+    this.onAccountRemoved.emit(account)
   }
 
   get hasDefaultAccount(): boolean {
@@ -995,6 +1004,7 @@ export class Accounts {
     if (!this.defaultAccount) {
       return null
     }
+
     return this.getAccountByName(this.defaultAccount)
   }
 

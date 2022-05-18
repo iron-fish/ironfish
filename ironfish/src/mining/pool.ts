@@ -232,7 +232,7 @@ export class MiningPool {
             'hex',
           )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
         )
-        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
+        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.getClientCount())
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
