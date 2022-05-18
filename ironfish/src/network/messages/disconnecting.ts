@@ -9,7 +9,6 @@ import { NetworkMessage } from './networkMessage'
 export enum DisconnectingReason {
   ShuttingDown = 0,
   Congested = 1,
-  BadMessages = 2,
 }
 
 interface CreateDisconnectingMessageOptions {

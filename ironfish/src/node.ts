@@ -116,7 +116,6 @@ export class IronfishNode {
       strategy: strategy,
       metrics: this.metrics,
       hostsStore: hostsStore,
-      logger: logger,
     })
 
     this.syncer = new Syncer({
