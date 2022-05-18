@@ -141,7 +141,7 @@ export class StratumServer {
     this.clients.set(client.id, client)
   }
 
-  /// Returns the count of connected clients excluding those marked as bad clients
+  // Returns the count of connected clients excluding those marked as bad clients
   getClientCount(): number {
     let count = 0
     for (const client of this.clients.keys()) {
