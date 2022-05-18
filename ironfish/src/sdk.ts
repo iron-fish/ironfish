@@ -22,7 +22,7 @@ import { IpcAdapter } from './rpc/adapters/ipcAdapter'
 import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishIpcClient } from './rpc/clients/ipcClient'
 import { IronfishMemoryClient } from './rpc/clients/memoryClient'
-import { IronfishRpcClient } from './rpc/clients/rpcClient'
+import { IronfishClient } from './rpc/clients/client'
 import { ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
@@ -146,7 +146,7 @@ export class IronfishSdk {
       config.get('rpcRetryConnect'),
     )
 
-    const clientMemory = new IronfishMemoryClient({ logger })
+    const clientMemory = new IronfishMemoryClient()
 
     return new IronfishSdk(
       pkg || IronfishPKG,
@@ -244,7 +244,7 @@ export class IronfishSdk {
     return node
   }
 
-  async connectRpc(forceLocal = false, forceRemote = false): Promise<IronfishRpcClient> {
+  async connectRpc(forceLocal = false, forceRemote = false): Promise<IronfishClient> {
     forceRemote = forceRemote || this.config.get('enableRpcTcp')
 
     if (!forceLocal) {

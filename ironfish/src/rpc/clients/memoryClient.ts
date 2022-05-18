@@ -6,9 +6,9 @@ import { createRootLogger, Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { MemoryAdapter } from '../adapters'
 import { Response } from '../response'
-import { IronfishRpcClient } from './rpcClient'
+import { IronfishClient } from './client'
 
-export class IronfishMemoryClient extends IronfishRpcClient {
+export class IronfishMemoryClient extends IronfishClient {
   node: IronfishNode | null = null
   adapter: MemoryAdapter
 
