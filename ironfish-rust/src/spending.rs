@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::{
+    primitives::{asset_type::AssetType, sapling::ValueCommitment},
+    proofs::circuit::sapling::Spend,
+};
+
 use super::{
     errors,
     keys::SaplingKey,
@@ -20,12 +25,10 @@ use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
-use zcash_proofs::circuit::sapling::Spend;
-
 use ff::PrimeField;
 use std::{io, sync::Arc};
 use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::primitives::{Nullifier, ValueCommitment};
+use zcash_primitives::primitives::Nullifier;
 use zcash_primitives::redjubjub;
 
 /// Parameters used when constructing proof that the spender owns a note with
@@ -97,10 +100,10 @@ impl<'a> SpendParams {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::from_bytes_wide(&buffer),
-        };
+        let asset_type = AssetType::default();
+
+        let value_commitment =
+            asset_type.value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
@@ -110,6 +113,7 @@ impl<'a> SpendParams {
 
         let spend_circuit = Spend {
             value_commitment: Some(value_commitment.clone()),
+            asset_type: Some(asset_type),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
             auth_path: sapling_auth_path(witness),

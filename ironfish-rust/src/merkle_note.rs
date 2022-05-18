@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::primitives::sapling::ValueCommitment;
+
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::{
@@ -18,7 +20,6 @@ use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use zcash_primitives::primitives::ValueCommitment;
 
 use std::{convert::TryInto, io};
 
@@ -270,12 +271,12 @@ mod test {
     use crate::{
         keys::SaplingKey,
         note::{Memo, Note},
+        primitives::asset_type::AssetType,
     };
 
     use bls12_381::Scalar;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::primitives::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {
@@ -289,10 +290,8 @@ mod test {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: value_commitment_randomness,
-        };
+        let value_commitment =
+            AssetType::default().value_commitment(note.value, value_commitment_randomness);
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -315,10 +314,8 @@ mod test {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: value_commitment_randomness,
-        };
+        let value_commitment =
+            AssetType::default().value_commitment(note.value, value_commitment_randomness);
 
         let mut merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);

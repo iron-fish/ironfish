@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::primitives::asset_type::AssetType;
+
 use super::{
     errors::{SaplingProofError, TransactionError},
     keys::{PublicAddress, SaplingKey},
@@ -20,7 +22,7 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
 use zcash_primitives::{
-    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
+    constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
     redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
@@ -274,7 +276,7 @@ impl ProposedTransaction {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
+        let mut value_balance_point = transaction_fee_to_point(self.transaction_fee as i64)?;
 
         value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key;
@@ -291,6 +293,7 @@ impl ProposedTransaction {
     /// transaction and uses it as a private key to sign all the values
     /// that were calculated as part of the transaction. This function
     /// performs the calculation and sets the value on this struct.
+    // TODO: Remove the result if we dont actually have a path that surfaces an error
     fn binding_signature(&self) -> Result<Signature, TransactionError> {
         let mut data_to_be_signed = [0u8; 64];
         let private_key = PrivateKey(self.binding_signature_key);
@@ -522,7 +525,7 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), TransactionError> {
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
+        let mut value_balance_point = transaction_fee_to_point(self.transaction_fee)?;
         value_balance_point = -value_balance_point;
 
         let mut public_key_point = *binding_verification_key;
@@ -545,9 +548,11 @@ impl Transaction {
     }
 }
 
-// Convert the integer value to a point on the Jubjub curve, accounting for
-// negative values
-fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
+// Convert the integer value to a point on the Jubjub curve, accounting for negative values
+// Note: If this functionality is needed for other values, it is probably best to create a separate
+// function that takes in an asset type. Transaction fee should always be denominated in the default
+// asset type.
+fn transaction_fee_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
@@ -556,7 +561,10 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
         None => return Err(TransactionError::IllegalValueError),
     };
 
-    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
+    // Note: this is probably the only place AssetType::default should stay when support for asset types is added
+    // since transaction fee must always be denominated in the default asset type
+    let asset_type = AssetType::default();
+    let mut value_balance = asset_type.value_commitment_generator() * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;

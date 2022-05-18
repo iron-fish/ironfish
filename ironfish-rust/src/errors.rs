@@ -136,3 +136,17 @@ impl From<SaplingKeyError> for NoteError {
         NoteError::KeyError
     }
 }
+
+/// Errors raised when creating an asset
+#[derive(Debug)]
+pub enum AssetError {
+    RandomnessError,
+}
+
+impl fmt::Display for AssetError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for AssetError {}
