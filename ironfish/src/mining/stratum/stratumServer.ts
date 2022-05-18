@@ -141,6 +141,18 @@ export class StratumServer {
     this.clients.set(client.id, client)
   }
 
+  // Returns the count of connected clients excluding those marked as bad clients
+  getClientCount(): number {
+    let count = 0
+    for (const client of this.clients.keys()) {
+      if (this.badClients.has(client)) {
+        continue
+      }
+      count += 1
+    }
+    return count
+  }
+
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected`)
     client.socket.removeAllListeners()
@@ -229,7 +241,9 @@ export class StratumServer {
       )}`,
     )
 
+    client.socket.removeAllListeners()
     client.close()
+    this.clients.delete(client.id)
   }
 
   private getNotifyMessage(): MiningNotifyMessage {
