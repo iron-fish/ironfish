@@ -33,10 +33,6 @@ export class MemoryAdapter implements IAdapter {
     this.router = server.getRouter(ALL_API_NAMESPACES)
   }
 
-  unattach(): void {
-    this.router = null
-  }
-
   /**
    * Makes a request against the routing layer with a given route, and data and waits
    * for the response to end. This is used if you want to make a request against a route

@@ -190,10 +190,6 @@ export class IpcAdapter implements IAdapter {
     this.router = server.getRouter(this.namespaces)
   }
 
-  unattach(): void {
-    this.router = null
-  }
-
   onConnect(socket: IpcSocket): void {
     if (!socket.id) {
       socket.id = uuid()

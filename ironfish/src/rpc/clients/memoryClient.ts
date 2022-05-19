@@ -24,10 +24,6 @@ export class IronfishMemoryClient extends IronfishClient {
     return new IronfishMemoryClient(logger, node, adapter)
   }
 
-  async close(): Promise<void> {
-    await this.node.rpc.unmount(this.adapter)
-  }
-
   request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,
