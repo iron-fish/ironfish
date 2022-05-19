@@ -50,7 +50,7 @@ impl ReceiptParams {
 
         let value_commitment = asset_type.value_commitment(note.value, value_commitment_randomness);
 
-        let asset_identifier = asset_type.identifier_bits();
+        // let asset_identifier = asset_type.identifier_bits();
 
         let merkle_note =
             MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
@@ -58,7 +58,8 @@ impl ReceiptParams {
         let output_circuit = Output {
             value_commitment: Some(value_commitment),
             // TODO: Decide whether this should be an Option or not, since it's already a Vec<Option<>> but makes the API less consistent
-            asset_identifier,
+            // asset_identifier,
+            asset_type: Some(asset_type),
             payment_address: Some(note.owner.sapling_payment_address()),
             commitment_randomness: Some(note.randomness),
             esk: Some(diffie_hellman_keys.0),

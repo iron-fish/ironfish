@@ -103,6 +103,8 @@ impl<'a> SpendParams {
         let value_commitment =
             AssetType::default().value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
 
+        let asset_type = AssetType::default();
+
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
         let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
@@ -111,6 +113,7 @@ impl<'a> SpendParams {
 
         let spend_circuit = Spend {
             value_commitment: Some(value_commitment.clone()),
+            asset_type: Some(asset_type),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
             auth_path: sapling_auth_path(witness),

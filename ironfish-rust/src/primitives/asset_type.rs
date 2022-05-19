@@ -128,14 +128,17 @@ impl AssetType {
     pub fn value_commitment_generator(&self) -> jubjub::SubgroupPoint {
         CofactorGroup::clear_cofactor(&self.asset_generator())
     }
+    // 0101 (5) (true) >> 0010 (2) (false) >> 0001 (1) (true)
 
     /// Get the asset identifier as a vector of bools
-    pub fn identifier_bits(&self) -> Vec<Option<bool>> {
-        self.get_identifier()
-            .iter()
-            .flat_map(|&v| (0..8).map(move |i| Some((v >> i) & 1 == 1)))
-            .collect()
-    }
+    // TODO: This is basically just bellman::gadgets::boolean::{field|u64}_into_boolean_vec_le
+    // TODO: We can probably find a place to store this as a util fn rather than an AssetType method
+    // pub fn identifier_bits(&self) -> Vec<Option<bool>> {
+    //     self.get_identifier()
+    //         .iter()
+    //         .flat_map(|&v| (0..8).map(move |i| Some((v >> i) & 1 == 1)))
+    //         .collect()
+    // }
 
     /// Construct a value commitment from given value and randomness
     pub fn value_commitment(&self, value: u64, randomness: jubjub::Fr) -> ValueCommitment {
@@ -150,6 +153,7 @@ impl AssetType {
         self.nonce
     }
 }
+
 impl PartialEq for AssetType {
     fn eq(&self, other: &Self) -> bool {
         self.get_identifier() == other.get_identifier()

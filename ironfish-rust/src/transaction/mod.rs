@@ -293,6 +293,7 @@ impl ProposedTransaction {
     /// transaction and uses it as a private key to sign all the values
     /// that were calculated as part of the transaction. This function
     /// performs the calculation and sets the value on this struct.
+    // TODO: Remove the result if we dont actually have a path that surfaces an error
     fn binding_signature(&self) -> Result<Signature, TransactionError> {
         let mut data_to_be_signed = [0u8; 64];
         let private_key = PrivateKey(self.binding_signature_key);
