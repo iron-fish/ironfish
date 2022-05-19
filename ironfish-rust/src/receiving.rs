@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::{primitives::asset_type::AssetType, proofs::circuit::sapling::Output};
+
 use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::primitives::ValueCommitment;
-use zcash_proofs::circuit::sapling::Output;
 
 use std::{io, sync::Arc};
 
@@ -46,16 +46,20 @@ impl ReceiptParams {
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: value_commitment_randomness,
-        };
+        let asset_type = AssetType::default();
+
+        let value_commitment = asset_type.value_commitment(note.value, value_commitment_randomness);
+
+        // let asset_identifier = asset_type.identifier_bits();
 
         let merkle_note =
             MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
 
         let output_circuit = Output {
             value_commitment: Some(value_commitment),
+            // TODO: Decide whether this should be an Option or not, since it's already a Vec<Option<>> but makes the API less consistent
+            // asset_identifier,
+            asset_type: Some(asset_type),
             payment_address: Some(note.owner.sapling_payment_address()),
             commitment_randomness: Some(note.randomness),
             esk: Some(diffie_hellman_keys.0),
