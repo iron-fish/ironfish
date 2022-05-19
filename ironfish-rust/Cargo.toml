@@ -28,8 +28,6 @@ lazy_static = "1.4.0"
 blake2b_simd = "0.5"
 blake2s_simd = "0.5"
 blake3 = "1.3.0"
-# TODO: remove need for this dependency
-itertools = "0.10.3"
 rand = "0.7"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 tiny-bip39 = "0.8.0"
