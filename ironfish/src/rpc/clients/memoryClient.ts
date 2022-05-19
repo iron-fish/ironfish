@@ -1,41 +1,31 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../assert'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { MemoryAdapter } from '../adapters'
 import { Response } from '../response'
 import { IronfishClient } from './client'
 
 export class IronfishMemoryClient extends IronfishClient {
-  node: IronfishNode | null = null
+  node: IronfishNode
   adapter: MemoryAdapter
 
-  constructor(options?: { logger?: Logger; node?: IronfishNode }) {
-    super((options?.logger ?? createRootLogger()).withTag('memoryclient'))
+  private constructor(logger: Logger, node: IronfishNode, adapter: MemoryAdapter) {
+    super(logger)
 
-    this.adapter = new MemoryAdapter()
-    this.node = options?.node ?? null
+    this.adapter = adapter
+    this.node = node
   }
 
-  async connect(options?: { node: IronfishNode }): Promise<void> {
-    if (options?.node === this.node) {
-      return
-    }
-
-    if (options?.node) {
-      this.node = options.node
-    }
-
-    Assert.isNotNull(this.node, 'Memory RPc client requires a node')
-    await this.node.rpc.mount(this.adapter)
+  static async init(logger: Logger, node: IronfishNode): Promise<IronfishMemoryClient> {
+    const adapter = new MemoryAdapter()
+    await node.rpc.mount(adapter)
+    return new IronfishMemoryClient(logger, node, adapter)
   }
 
   async close(): Promise<void> {
-    if (this.node) {
-      await this.node.rpc.unmount(this.adapter)
-    }
+    await this.node.rpc.unmount(this.adapter)
   }
 
   request<TEnd = unknown, TStream = unknown>(

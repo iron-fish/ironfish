@@ -4,6 +4,7 @@
 import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
+import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -38,8 +39,8 @@ export class RouteTest extends NodeTest {
   }> {
     const setup = await super.createSetup()
 
-    const client = new IronfishMemoryClient({ node: setup.node })
-    await client.connect()
+    const logger = createRootLogger().withTag('memoryclient')
+    const client = await IronfishMemoryClient.init(logger, setup.node)
     const adapter = client.adapter
 
     return { ...setup, adapter, client }

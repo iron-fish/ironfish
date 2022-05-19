@@ -30,7 +30,6 @@ import { NodeUtils } from './utils'
 export class IronfishSdk {
   pkg: Package
   client: IronfishIpcClient
-  clientMemory: IronfishMemoryClient
   config: Config
   fileSystem: FileSystem
   logger: Logger
@@ -43,7 +42,6 @@ export class IronfishSdk {
   private constructor(
     pkg: Package,
     client: IronfishIpcClient,
-    clientMemory: IronfishMemoryClient,
     config: Config,
     internal: InternalStore,
     fileSystem: FileSystem,
@@ -54,7 +52,6 @@ export class IronfishSdk {
   ) {
     this.pkg = pkg
     this.client = client
-    this.clientMemory = clientMemory
     this.config = config
     this.internal = internal
     this.fileSystem = fileSystem
@@ -146,12 +143,9 @@ export class IronfishSdk {
       config.get('rpcRetryConnect'),
     )
 
-    const clientMemory = new IronfishMemoryClient({ logger })
-
     return new IronfishSdk(
       pkg || IronfishPKG,
       client,
-      clientMemory,
       config,
       internal,
       fileSystem,
@@ -275,8 +269,8 @@ export class IronfishSdk {
     }
 
     const node = await this.node()
-    await this.clientMemory.connect({ node })
+    const clientMemory = await IronfishMemoryClient.init(this.logger, node)
     await NodeUtils.waitForOpen(node)
-    return this.clientMemory
+    return clientMemory
   }
 }
