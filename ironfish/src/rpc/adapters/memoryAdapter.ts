@@ -9,7 +9,6 @@ import { Response, ResponseEnded } from '../response'
 import { ALL_API_NAMESPACES, Router } from '../routes'
 import { RpcServer } from '../server'
 import { Stream } from '../stream'
-import { IAdapter } from './adapter'
 import { ResponseError } from './errors'
 
 /**
@@ -18,18 +17,10 @@ import { ResponseError } from './errors'
  *
  * This is useful any time you want to make requests without hitting an IO layer.
  */
-export class MemoryAdapter implements IAdapter {
-  router: Router | null = null
+export class MemoryAdapter {
+  router: Router
 
-  start(): Promise<void> {
-    return Promise.resolve()
-  }
-
-  stop(): Promise<void> {
-    return Promise.resolve()
-  }
-
-  attach(server: RpcServer): void {
+  constructor(server: RpcServer) {
     this.router = server.getRouter(ALL_API_NAMESPACES)
   }
 
@@ -51,8 +42,6 @@ export class MemoryAdapter implements IAdapter {
     data?: unknown,
   ): MemoryResponse<TEnd, TStream> {
     const router = this.router
-
-    Assert.isNotNull(router)
 
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
     const stream = new Stream<TStream>()

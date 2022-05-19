@@ -40,7 +40,7 @@ export class RouteTest extends NodeTest {
     const setup = await super.createSetup()
 
     const logger = createRootLogger().withTag('memoryclient')
-    const client = await IronfishMemoryClient.init(logger, setup.node)
+    const client = new IronfishMemoryClient(logger, setup.node)
     const adapter = client.adapter
 
     return { ...setup, adapter, client }

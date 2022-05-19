@@ -11,17 +11,13 @@ export class IronfishMemoryClient extends IronfishClient {
   node: IronfishNode
   adapter: MemoryAdapter
 
-  private constructor(logger: Logger, node: IronfishNode, adapter: MemoryAdapter) {
+  constructor(logger: Logger, node: IronfishNode) {
     super(logger)
+
+    const adapter = new MemoryAdapter(node.rpc)
 
     this.adapter = adapter
     this.node = node
-  }
-
-  static async init(logger: Logger, node: IronfishNode): Promise<IronfishMemoryClient> {
-    const adapter = new MemoryAdapter()
-    await node.rpc.mount(adapter)
-    return new IronfishMemoryClient(logger, node, adapter)
   }
 
   request<TEnd = unknown, TStream = unknown>(
