@@ -18,6 +18,7 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
+import { IronfishRpcClient, IronfishTcpClient } from './rpc'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
 import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishClient } from './rpc/clients/client'
@@ -29,7 +30,7 @@ import { NodeUtils } from './utils'
 
 export class IronfishSdk {
   pkg: Package
-  client: IronfishIpcClient
+  client: IronfishRpcClient
   config: Config
   fileSystem: FileSystem
   logger: Logger
@@ -41,7 +42,7 @@ export class IronfishSdk {
 
   private constructor(
     pkg: Package,
-    client: IronfishIpcClient,
+    client: IronfishRpcClient,
     config: Config,
     internal: InternalStore,
     fileSystem: FileSystem,
@@ -128,20 +129,25 @@ export class IronfishSdk {
       metrics = metrics || new MetricsMonitor({ logger })
     }
 
-    const client = new IronfishIpcClient(
-      config.get('enableRpcTcp')
-        ? {
-            mode: 'tcp',
-            host: config.get('rpcTcpHost'),
-            port: config.get('rpcTcpPort'),
-          }
-        : {
-            mode: 'ipc',
-            socketPath: config.get('ipcPath'),
-          },
-      logger,
-      config.get('rpcRetryConnect'),
-    )
+    let client: IronfishRpcClient
+    if (config.get('enableNativeRpcTcpAdapter')) {
+      client = new IronfishTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+    } else {
+      client = new IronfishIpcClient(
+        config.get('enableRpcTcp')
+          ? {
+              mode: 'tcp',
+              host: config.get('rpcTcpHost'),
+              port: config.get('rpcTcpPort'),
+            }
+          : {
+              mode: 'ipc',
+              socketPath: config.get('ipcPath'),
+            },
+        logger,
+        config.get('rpcRetryConnect'),
+      )
+    }
 
     return new IronfishSdk(
       pkg || IronfishPKG,

@@ -5,4 +5,5 @@
 export * from './adapter'
 export * from './errors'
 export * from './ipcAdapter'
+export * from './tcpAdapter'
 export * from './memoryAdapter'

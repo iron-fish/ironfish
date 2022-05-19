@@ -20,7 +20,7 @@ type IncomingNodeIpc = {
 }
 
 // Message type that node-ipc client listens for over a TCP socket
-type OutgoingNodeIpc =
+export type OutgoingNodeIpc =
   | { type: 'message'; data: IpcResponse }
   | { type: 'malformedRequest'; data: IpcError }
   | { type: 'error'; data: IpcError }
