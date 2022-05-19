@@ -18,12 +18,6 @@ export interface IAdapter {
   attach(server: RpcServer): Promise<void> | void
 
   /**
-   * Called when the adapter has been removed from an RpcServer.
-   * This lets you clean up state you stored in attach()
-   */
-  unattach(): Promise<void> | void
-
-  /**
    * Called when the adapter should start serving requests to the router
    * This is when an adapter would normally listen on a port for data and
    * create {@link Request } for the routing layer.

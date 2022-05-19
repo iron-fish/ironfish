@@ -104,10 +104,6 @@ export class TcpAdapter implements IAdapter {
     this.router = server.getRouter(this.namespaces)
   }
 
-  unattach(): void {
-    this.router = null
-  }
-
   onClientConnection(socket: net.Socket): void {
     const connId = uuid()
     const reqMap = new Map<string, Request>()
