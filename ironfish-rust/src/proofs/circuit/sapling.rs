@@ -1,24 +1,30 @@
-use bellman::{
-    gadgets::{blake2s, boolean, multipack, num, Assignment},
-    Circuit, ConstraintSystem, SynthesisError,
-};
+//! The Sapling circuits.
+
 use ff::PrimeField;
 use group::Curve;
-use itertools::multizip;
-use zcash_primitives::{
-    constants,
-    primitives::{PaymentAddress, ProofGenerationKey},
-};
-use zcash_proofs::{
-    circuit::{ecc, pedersen_hash},
-    constants::{
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
-        PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
-        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    },
+
+use bellman::{Circuit, ConstraintSystem, SynthesisError};
+
+use zcash_primitives::constants;
+
+use zcash_primitives::primitives::{PaymentAddress, ProofGenerationKey};
+
+// use super::pedersen_hash;
+use bellman::gadgets::blake2s;
+use bellman::gadgets::boolean;
+use bellman::gadgets::multipack;
+use bellman::gadgets::num;
+use bellman::gadgets::Assignment;
+use zcash_proofs::circuit::{ecc, pedersen_hash};
+use zcash_proofs::constants::{
+    NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
+    PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 
 use crate::primitives::sapling::ValueCommitment;
+
+pub const TREE_DEPTH: usize = zcash_primitives::sapling::SAPLING_COMMITMENT_TREE_DEPTH;
 
 /// This is an instance of the `Spend` circuit.
 pub struct Spend {
@@ -51,9 +57,6 @@ pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
-    /// Asset Type (256 bit identifier)
-    pub asset_identifier: Vec<Option<bool>>,
-
     /// The payment address of the recipient
     pub payment_address: Option<PaymentAddress>,
 
@@ -69,35 +72,10 @@ pub struct Output {
 fn expose_value_commitment<CS>(
     mut cs: CS,
     value_commitment: Option<ValueCommitment>,
-) -> Result<(Vec<boolean::Boolean>, Vec<boolean::Boolean>), SynthesisError>
+) -> Result<Vec<boolean::Boolean>, SynthesisError>
 where
     CS: ConstraintSystem<bls12_381::Scalar>,
 {
-    // Witness the asset type
-    let asset_generator = ecc::EdwardsPoint::witness(
-        cs.namespace(|| "asset_generator"),
-        value_commitment.as_ref().map(|vc| vc.asset_generator),
-    )?;
-
-    // Booleanize the asset type
-    let asset_generator_bits = asset_generator.repr(cs.namespace(|| "unpack asset_generator"))?;
-
-    // Clear the cofactor of the asset generator, producing the value commitment generator
-    let asset_generator =
-        asset_generator.double(cs.namespace(|| "asset_generator first doubling"))?;
-    let asset_generator =
-        asset_generator.double(cs.namespace(|| "asset_generator second doubling"))?;
-    let asset_generator =
-        asset_generator.double(cs.namespace(|| "asset_generator third doubling"))?;
-
-    // (0, -1) is a small order point, but won't ever appear here
-    // because cofactor is 2^3, and we performed three doublings.
-    // (0, 1) is the neutral element, so checking if x is nonzero
-    // is sufficient to prevent small order points here.
-    asset_generator
-        .get_u()
-        .assert_nonzero(cs.namespace(|| "check asset_generator != 0"))?;
-
     // Booleanize the value into little-endian bit order
     let value_bits = boolean::u64_into_boolean_vec_le(
         cs.namespace(|| "value"),
@@ -105,8 +83,9 @@ where
     )?;
 
     // Compute the note value in the exponent
-    let value = asset_generator.mul(
+    let value = ecc::fixed_base_multiplication(
         cs.namespace(|| "compute the value in the exponent"),
+        &VALUE_COMMITMENT_VALUE_GENERATOR,
         &value_bits,
     )?;
 
@@ -131,7 +110,7 @@ where
     // Expose the commitment as an input to the circuit
     cv.inputize(cs.namespace(|| "commitment point"))?;
 
-    Ok((asset_generator_bits, value_bits))
+    Ok(value_bits)
 }
 
 impl Circuit<bls12_381::Scalar> for Spend {
@@ -239,7 +218,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
         // Compute note contents:
-        // asset_generator, then value (in big endian) followed by g_d and pk_d
+        // value (in big endian) followed by g_d and pk_d
         let mut note_contents = vec![];
 
         // Handle the value; we'll need it later for the
@@ -247,7 +226,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
         let mut value_num = num::Num::zero();
         {
             // Get the value in little-endian bit order
-            let (asset_generator_bits, value_bits) = expose_value_commitment(
+            let value_bits = expose_value_commitment(
                 cs.namespace(|| "value commitment"),
                 self.value_commitment,
             )?;
@@ -259,9 +238,6 @@ impl Circuit<bls12_381::Scalar> for Spend {
                 value_num = value_num.add_bool_with_coeff(CS::one(), bit, coeff);
                 coeff = coeff.double();
             }
-
-            // Place the asset generator in the note
-            note_contents.extend(asset_generator_bits);
 
             // Place the value in the note
             note_contents.extend(value_bits);
@@ -275,7 +251,6 @@ impl Circuit<bls12_381::Scalar> for Spend {
 
         assert_eq!(
             note_contents.len(),
-            256 + // asset_generator bits
             64 + // value
             256 + // g_d
             256 // p_d
@@ -421,69 +396,14 @@ impl Circuit<bls12_381::Scalar> for Output {
     ) -> Result<(), SynthesisError> {
         // Let's start to construct our note, which contains
         // value (big endian)
-        // asset_generator || value || g_d || pk_d
         let mut note_contents = vec![];
 
-        // Reserve 256 bits for the preimage
-        let mut asset_generator_preimage = Vec::with_capacity(256);
-
-        // Ensure the input identifier is 32 bytes
-        assert_eq!(256, self.asset_identifier.len());
-
-        for (i, bit) in self.asset_identifier.iter().enumerate() {
-            let cs = &mut cs.namespace(|| format!("witness asset type bit {}", i));
-
-            //  Witness each bit of the asset identifier
-            let asset_identifier_preimage_bit = boolean::Boolean::from(
-                boolean::AllocatedBit::alloc(cs.namespace(|| "asset type bit"), *bit)?,
-            );
-
-            // Push this boolean for asset generator computation later
-            asset_generator_preimage.push(asset_identifier_preimage_bit.clone());
-        }
-
-        // Ensure the preimage of the generator is 32 bytes
-        assert_eq!(256, asset_generator_preimage.len());
-
-        // Compute the asset generator from the asset identifier
-        let asset_generator_image = blake2s::blake2s(
-            cs.namespace(|| "value base computation"),
-            &asset_generator_preimage,
-            constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-        )?;
-
-        // Expose the value commitment
-        let (asset_generator_bits, value_bits) =
-            expose_value_commitment(cs.namespace(|| "value commitment"), self.value_commitment)?;
-
-        // Ensure the witnessed asset generator is 32 bytes
-        assert_eq!(256, asset_generator_bits.len());
-
-        // Ensure the computed asset generator is 32 bytes
-        assert_eq!(256, asset_generator_image.len());
-
-        // Check integrity of the asset generator
-        // The following 256 constraints may not be strictly
-        // necessary; the output of the BLAKE2s hash may be
-        // interpreted directly as a curve point instead
-        // However, witnessing the asset generator separately
-        // and checking equality to the image of the hash
-        // is conceptually clear and not particularly expensive
-        for (i, asset_generator_bit, asset_generator_image_bit) in
-            multizip((0..256, &asset_generator_bits, &asset_generator_image))
-        {
-            boolean::Boolean::enforce_equal(
-                cs.namespace(|| format!("integrity of asset generator bit {}", i)),
-                asset_generator_bit,
-                asset_generator_image_bit,
-            )?;
-        }
-
-        // Place the asset generator in the note commitment
-        note_contents.extend(asset_generator_bits);
-
-        // Place the value in the note
-        note_contents.extend(value_bits);
+        // Expose the value commitment and place the value
+        // in the note.
+        note_contents.extend(expose_value_commitment(
+            cs.namespace(|| "value commitment"),
+            self.value_commitment,
+        )?);
 
         // Let's deal with g_d
         {
@@ -541,7 +461,7 @@ impl Circuit<bls12_381::Scalar> for Output {
             // Witness the sign bit
             let sign_bit = boolean::Boolean::from(boolean::AllocatedBit::alloc(
                 cs.namespace(|| "pk_d bit of u"),
-                pk_d.map(|e| e.get_u().is_odd().into()),
+                pk_d.map(|e| e.get_u().is_odd()),
             )?);
 
             // Extend the note with pk_d representation
@@ -551,7 +471,6 @@ impl Circuit<bls12_381::Scalar> for Output {
 
         assert_eq!(
             note_contents.len(),
-            256 + // asset generator
             64 + // value
             256 + // g_d
             256 // pk_d
@@ -591,3 +510,425 @@ impl Circuit<bls12_381::Scalar> for Output {
         Ok(())
     }
 }
+
+// #[test]
+// fn test_input_circuit_with_bls12_381() {
+//     use bellman::gadgets::test::*;
+//     use ff::Field;
+//     use group::Group;
+//     use rand_core::{RngCore, SeedableRng};
+//     use rand_xorshift::XorShiftRng;
+//     use zcash_primitives::{
+//         pedersen_hash,
+//         primitives::{Diversifier, Note, ProofGenerationKey, Rseed},
+//     };
+
+//     let mut rng = XorShiftRng::from_seed([
+//         0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+//         0xe5,
+//     ]);
+
+//     let tree_depth = 32;
+
+//     for _ in 0..10 {
+//         let value_commitment = ValueCommitment {
+//             value: rng.next_u64(),
+//             randomness: jubjub::Fr::random(&mut rng),
+//         };
+
+//         let proof_generation_key = ProofGenerationKey {
+//             ak: jubjub::SubgroupPoint::random(&mut rng),
+//             nsk: jubjub::Fr::random(&mut rng),
+//         };
+
+//         let viewing_key = proof_generation_key.to_viewing_key();
+
+//         let payment_address;
+
+//         loop {
+//             let diversifier = {
+//                 let mut d = [0; 11];
+//                 rng.fill_bytes(&mut d);
+//                 Diversifier(d)
+//             };
+
+//             if let Some(p) = viewing_key.to_payment_address(diversifier) {
+//                 payment_address = p;
+//                 break;
+//             }
+//         }
+
+//         let g_d = payment_address.diversifier().g_d().unwrap();
+//         let commitment_randomness = jubjub::Fr::random(&mut rng);
+//         let auth_path =
+//             vec![Some((bls12_381::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
+//         let ar = jubjub::Fr::random(&mut rng);
+
+//         {
+//             let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
+//             let expected_value_commitment =
+//                 jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+//             let note = Note {
+//                 value: value_commitment.value,
+//                 g_d,
+//                 pk_d: *payment_address.pk_d(),
+//                 rseed: Rseed::BeforeZip212(commitment_randomness),
+//             };
+
+//             let mut position = 0u64;
+//             let cmu = note.cmu();
+//             let mut cur = cmu;
+
+//             for (i, val) in auth_path.clone().into_iter().enumerate() {
+//                 let (uncle, b) = val.unwrap();
+
+//                 let mut lhs = cur;
+//                 let mut rhs = uncle;
+
+//                 if b {
+//                     ::std::mem::swap(&mut lhs, &mut rhs);
+//                 }
+
+//                 let lhs = lhs.to_le_bits();
+//                 let rhs = rhs.to_le_bits();
+
+//                 cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+//                     pedersen_hash::Personalization::MerkleTree(i),
+//                     lhs.into_iter()
+//                         .take(bls12_381::Scalar::NUM_BITS as usize)
+//                         .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
+//                         .cloned(),
+//                 ))
+//                 .to_affine()
+//                 .get_u();
+
+//                 if b {
+//                     position |= 1 << i;
+//                 }
+//             }
+
+//             let expected_nf = note.nf(&viewing_key, position);
+//             let expected_nf = multipack::bytes_to_bits_le(&expected_nf.0);
+//             let expected_nf = multipack::compute_multipacking(&expected_nf);
+//             assert_eq!(expected_nf.len(), 2);
+
+//             let mut cs = TestConstraintSystem::new();
+
+//             let instance = Spend {
+//                 value_commitment: Some(value_commitment.clone()),
+//                 proof_generation_key: Some(proof_generation_key.clone()),
+//                 payment_address: Some(payment_address.clone()),
+//                 commitment_randomness: Some(commitment_randomness),
+//                 ar: Some(ar),
+//                 auth_path: auth_path.clone(),
+//                 anchor: Some(cur),
+//             };
+
+//             instance.synthesize(&mut cs).unwrap();
+
+//             assert!(cs.is_satisfied());
+//             assert_eq!(cs.num_constraints(), 98777);
+//             assert_eq!(
+//                 cs.hash(),
+//                 "d37c738e83df5d9b0bb6495ac96abf21bcb2697477e2c15c2c7916ff7a3b6a89"
+//             );
+
+//             assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
+
+//             assert_eq!(cs.num_inputs(), 8);
+//             assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+//             assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
+//             assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
+//             assert_eq!(
+//                 cs.get_input(3, "value commitment/commitment point/u/input variable"),
+//                 expected_value_commitment.get_u()
+//             );
+//             assert_eq!(
+//                 cs.get_input(4, "value commitment/commitment point/v/input variable"),
+//                 expected_value_commitment.get_v()
+//             );
+//             assert_eq!(cs.get_input(5, "anchor/input variable"), cur);
+//             assert_eq!(cs.get_input(6, "pack nullifier/input 0"), expected_nf[0]);
+//             assert_eq!(cs.get_input(7, "pack nullifier/input 1"), expected_nf[1]);
+//         }
+//     }
+// }
+
+// #[test]
+// fn test_input_circuit_with_bls12_381_external_test_vectors() {
+//     use bellman::gadgets::test::*;
+//     use ff::Field;
+//     use group::Group;
+//     use rand_core::{RngCore, SeedableRng};
+//     use rand_xorshift::XorShiftRng;
+//     use zcash_primitives::{
+//         pedersen_hash,
+//         primitives::{Diversifier, Note, ProofGenerationKey, Rseed},
+//     };
+
+//     let mut rng = XorShiftRng::from_seed([
+//         0x59, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+//         0xe5,
+//     ]);
+
+//     let tree_depth = 32;
+
+//     let expected_commitment_us = vec![
+//         "43821661663052659750276289184181083197337192946256245809816728673021647664276",
+//         "7220807656052227578299730541645543434083158611414003423211850718229633594616",
+//         "13239753550660714843257636471668037031928211668773449453628093339627668081697",
+//         "10900524635678389360790699587556574797582192824300145558807405770494079767974",
+//         "1411013767457690636461779630023011774660680126764323588543800715293173598850",
+//         "32334206652383066267661379202183359608706535021387905923603014648832344657662",
+//         "20206750741605167608500278423400565295188703622528437817438897624149653579380",
+//         "46716485782200334735478719487356079850582051575003452698983255860512578229998",
+//         "31221372899739042781372142393132358519434268512685538373976981051223051220367",
+//         "18269767207277008186871145355531741929166733260352590789136389380124992250945",
+//     ];
+
+//     let expected_commitment_vs = vec![
+//         "27630722367128086497290371604583225252915685718989450292520883698391703910",
+//         "23310648738313092772044712773481584369462075017189681529702825235349449805260",
+//         "25709635353183537915646348052945798827495141780341329896098121888376871589480",
+//         "10516315852014492141081718791576479298042117442649432716255936672048164184691",
+//         "23970713991179488695004801139667700217127937225554773561645815034212389459772",
+//         "3256052161046564597126736968199320852691566092694819239485673781545479548450",
+//         "18887250722195819674378865377623103071236046274361890247643850134985809137409",
+//         "36501156873031641173054592888886902104303750771545647842488588827138867116570",
+//         "21927526310070011864833939629345235038589128172309792087590183778192091594775",
+//         "32959334601512756708397683646222389414681003290313255304927423560477040775488",
+//     ];
+
+//     for i in 0..10 {
+//         let value_commitment = ValueCommitment {
+//             value: i,
+//             randomness: jubjub::Fr::from_str(&(1000 * (i + 1)).to_string()).unwrap(),
+//         };
+
+//         let proof_generation_key = ProofGenerationKey {
+//             ak: jubjub::SubgroupPoint::random(&mut rng),
+//             nsk: jubjub::Fr::random(&mut rng),
+//         };
+
+//         let viewing_key = proof_generation_key.to_viewing_key();
+
+//         let payment_address;
+
+//         loop {
+//             let diversifier = {
+//                 let mut d = [0; 11];
+//                 rng.fill_bytes(&mut d);
+//                 Diversifier(d)
+//             };
+
+//             if let Some(p) = viewing_key.to_payment_address(diversifier) {
+//                 payment_address = p;
+//                 break;
+//             }
+//         }
+
+//         let g_d = payment_address.diversifier().g_d().unwrap();
+//         let commitment_randomness = jubjub::Fr::random(&mut rng);
+//         let auth_path =
+//             vec![Some((bls12_381::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
+//         let ar = jubjub::Fr::random(&mut rng);
+
+//         {
+//             let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
+//             let expected_value_commitment =
+//                 jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+//             assert_eq!(
+//                 expected_value_commitment.get_u(),
+//                 bls12_381::Scalar::from_str(&expected_commitment_us[i as usize]).unwrap()
+//             );
+//             assert_eq!(
+//                 expected_value_commitment.get_v(),
+//                 bls12_381::Scalar::from_str(&expected_commitment_vs[i as usize]).unwrap()
+//             );
+//             let note = Note {
+//                 value: value_commitment.value,
+//                 g_d,
+//                 pk_d: *payment_address.pk_d(),
+//                 rseed: Rseed::BeforeZip212(commitment_randomness),
+//             };
+
+//             let mut position = 0u64;
+//             let cmu = note.cmu();
+//             let mut cur = cmu;
+
+//             for (i, val) in auth_path.clone().into_iter().enumerate() {
+//                 let (uncle, b) = val.unwrap();
+
+//                 let mut lhs = cur;
+//                 let mut rhs = uncle;
+
+//                 if b {
+//                     ::std::mem::swap(&mut lhs, &mut rhs);
+//                 }
+
+//                 let lhs = lhs.to_le_bits();
+//                 let rhs = rhs.to_le_bits();
+
+//                 cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+//                     pedersen_hash::Personalization::MerkleTree(i),
+//                     lhs.into_iter()
+//                         .take(bls12_381::Scalar::NUM_BITS as usize)
+//                         .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
+//                         .cloned(),
+//                 ))
+//                 .to_affine()
+//                 .get_u();
+
+//                 if b {
+//                     position |= 1 << i;
+//                 }
+//             }
+
+//             let expected_nf = note.nf(&viewing_key, position);
+//             let expected_nf = multipack::bytes_to_bits_le(&expected_nf.0);
+//             let expected_nf = multipack::compute_multipacking(&expected_nf);
+//             assert_eq!(expected_nf.len(), 2);
+
+//             let mut cs = TestConstraintSystem::new();
+
+//             let instance = Spend {
+//                 value_commitment: Some(value_commitment.clone()),
+//                 proof_generation_key: Some(proof_generation_key.clone()),
+//                 payment_address: Some(payment_address.clone()),
+//                 commitment_randomness: Some(commitment_randomness),
+//                 ar: Some(ar),
+//                 auth_path: auth_path.clone(),
+//                 anchor: Some(cur),
+//             };
+
+//             instance.synthesize(&mut cs).unwrap();
+
+//             assert!(cs.is_satisfied());
+//             assert_eq!(cs.num_constraints(), 98777);
+//             assert_eq!(
+//                 cs.hash(),
+//                 "d37c738e83df5d9b0bb6495ac96abf21bcb2697477e2c15c2c7916ff7a3b6a89"
+//             );
+
+//             assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
+
+//             assert_eq!(cs.num_inputs(), 8);
+//             assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+//             assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
+//             assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
+//             assert_eq!(
+//                 cs.get_input(3, "value commitment/commitment point/u/input variable"),
+//                 expected_value_commitment.get_u()
+//             );
+//             assert_eq!(
+//                 cs.get_input(4, "value commitment/commitment point/v/input variable"),
+//                 expected_value_commitment.get_v()
+//             );
+//             assert_eq!(cs.get_input(5, "anchor/input variable"), cur);
+//             assert_eq!(cs.get_input(6, "pack nullifier/input 0"), expected_nf[0]);
+//             assert_eq!(cs.get_input(7, "pack nullifier/input 1"), expected_nf[1]);
+//         }
+//     }
+// }
+
+// #[test]
+// fn test_output_circuit_with_bls12_381() {
+//     use bellman::gadgets::test::*;
+//     use ff::Field;
+//     use group::Group;
+//     use rand_core::{RngCore, SeedableRng};
+//     use rand_xorshift::XorShiftRng;
+//     use zcash_primitives::primitives::{Diversifier, ProofGenerationKey, Rseed};
+
+//     let mut rng = XorShiftRng::from_seed([
+//         0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
+//         0xe5,
+//     ]);
+
+//     for _ in 0..100 {
+//         let value_commitment = ValueCommitment {
+//             value: rng.next_u64(),
+//             randomness: jubjub::Fr::random(&mut rng),
+//         };
+
+//         let nsk = jubjub::Fr::random(&mut rng);
+//         let ak = jubjub::SubgroupPoint::random(&mut rng);
+
+//         let proof_generation_key = ProofGenerationKey { ak, nsk };
+
+//         let viewing_key = proof_generation_key.to_viewing_key();
+
+//         let payment_address;
+
+//         loop {
+//             let diversifier = {
+//                 let mut d = [0; 11];
+//                 rng.fill_bytes(&mut d);
+//                 Diversifier(d)
+//             };
+
+//             if let Some(p) = viewing_key.to_payment_address(diversifier) {
+//                 payment_address = p;
+//                 break;
+//             }
+//         }
+
+//         let commitment_randomness = jubjub::Fr::random(&mut rng);
+//         let esk = jubjub::Fr::random(&mut rng);
+
+//         {
+//             let mut cs = TestConstraintSystem::new();
+
+//             let instance = Output {
+//                 value_commitment: Some(value_commitment.clone()),
+//                 payment_address: Some(payment_address.clone()),
+//                 commitment_randomness: Some(commitment_randomness),
+//                 esk: Some(esk),
+//             };
+
+//             instance.synthesize(&mut cs).unwrap();
+
+//             assert!(cs.is_satisfied());
+//             assert_eq!(cs.num_constraints(), 7827);
+//             assert_eq!(
+//                 cs.hash(),
+//                 "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
+//             );
+
+//             let expected_cmu = payment_address
+//                 .create_note(
+//                     value_commitment.value,
+//                     Rseed::BeforeZip212(commitment_randomness),
+//                 )
+//                 .expect("should be valid")
+//                 .cmu();
+
+//             let expected_value_commitment =
+//                 jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+
+//             let expected_epk =
+//                 jubjub::ExtendedPoint::from(payment_address.g_d().expect("should be valid") * esk)
+//                     .to_affine();
+
+//             assert_eq!(cs.num_inputs(), 6);
+//             assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+//             assert_eq!(
+//                 cs.get_input(1, "value commitment/commitment point/u/input variable"),
+//                 expected_value_commitment.get_u()
+//             );
+//             assert_eq!(
+//                 cs.get_input(2, "value commitment/commitment point/v/input variable"),
+//                 expected_value_commitment.get_v()
+//             );
+//             assert_eq!(
+//                 cs.get_input(3, "epk/u/input variable"),
+//                 expected_epk.get_u()
+//             );
+//             assert_eq!(
+//                 cs.get_input(4, "epk/v/input variable"),
+//                 expected_epk.get_v()
+//             );
+//             assert_eq!(cs.get_input(5, "commitment/input variable"), expected_cmu);
+//         }
+//     }
+// }
