@@ -4,18 +4,17 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { MemoryAdapter, MemoryResponse } from '../adapters'
+import { ALL_API_NAMESPACES, Router } from '../routes'
 import { IronfishClient } from './client'
 
 export class IronfishMemoryClient extends IronfishClient {
   node: IronfishNode
-  adapter: MemoryAdapter
+  router: Router
 
   constructor(logger: Logger, node: IronfishNode) {
     super(logger)
 
-    const adapter = new MemoryAdapter(node.rpc)
-
-    this.adapter = adapter
+    this.router = node.rpc.getRouter(ALL_API_NAMESPACES)
     this.node = node
   }
 
@@ -30,6 +29,6 @@ export class IronfishMemoryClient extends IronfishClient {
       throw new Error(`MemoryAdapter does not support timeoutMs`)
     }
 
-    return this.adapter.requestStream<TEnd, TStream>(route, data)
+    return MemoryAdapter.requestStream<TEnd, TStream>(this.router, route, data)
   }
 }
