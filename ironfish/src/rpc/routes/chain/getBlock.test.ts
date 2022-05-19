@@ -13,7 +13,7 @@ describe('Route chain.getBlock', () => {
   const routeTest = createRouteTest()
 
   it('should fail if no sequence or hash provided', async () => {
-    await expect(routeTest.adapter.request('chain/getBlock', {})).rejects.toThrow(
+    await expect(routeTest.client.request('chain/getBlock', {}).waitForEnd()).rejects.toThrow(
       'Missing hash or sequence',
     )
   }, 10000)
@@ -21,15 +21,15 @@ describe('Route chain.getBlock', () => {
   it(`should fail if block can't be found with hash`, async () => {
     const hash = BlockHashSerdeInstance.serialize(Buffer.alloc(32, 'blockhashnotfound'))
 
-    await expect(routeTest.adapter.request('chain/getBlock', { hash })).rejects.toThrow(
-      'No block found',
-    )
+    await expect(
+      routeTest.client.request('chain/getBlock', { hash }).waitForEnd(),
+    ).rejects.toThrow('No block found')
   }, 10000)
 
   it(`should fail if block can't be found with sequence`, async () => {
-    await expect(routeTest.adapter.request('chain/getBlock', { index: 5 })).rejects.toThrow(
-      'No block found',
-    )
+    await expect(
+      routeTest.client.request('chain/getBlock', { index: 5 }).waitForEnd(),
+    ).rejects.toThrow('No block found')
   }, 10000)
 
   it('responds with a block', async () => {
@@ -40,7 +40,9 @@ describe('Route chain.getBlock', () => {
 
     // by hash first
     const hash = BlockHashSerdeInstance.serialize(block.header.hash)
-    let response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { hash })
+    let response = await routeTest.client
+      .request<GetBlockResponse>('chain/getBlock', { hash })
+      .waitForEnd()
 
     expect(response.content).toMatchObject({
       timestamp: block.header.timestamp.valueOf(),
@@ -60,7 +62,9 @@ describe('Route chain.getBlock', () => {
     expect(response.content.transactions).toHaveLength(1)
 
     // now by sequence
-    response = await routeTest.adapter.request<GetBlockResponse>('chain/getBlock', { index: 2 })
+    response = await routeTest.client
+      .request<GetBlockResponse>('chain/getBlock', { index: 2 })
+      .waitForEnd()
     expect(response.content.blockIdentifier.hash).toEqual(
       block.header.hash.toString('hex').toUpperCase(),
     )

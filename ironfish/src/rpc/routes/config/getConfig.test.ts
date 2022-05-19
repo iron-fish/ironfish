@@ -8,25 +8,29 @@ describe('Route config/getConfig', () => {
 
   it('should error if the config name does not exist', async () => {
     await expect(
-      routeTest.adapter.request('config/getConfig', { name: 'asdf' }),
+      routeTest.client.request('config/getConfig', { name: 'asdf' }).waitForEnd(),
     ).rejects.toThrow()
   })
 
   it('returns value of the requested ConfigOptions', async () => {
     const target = { minerBatchSize: 10000 }
-    const response = await routeTest.adapter.request('config/getConfig', {
-      name: 'minerBatchSize',
-    })
+    const response = await routeTest.client
+      .request('config/getConfig', {
+        name: 'minerBatchSize',
+      })
+      .waitForEnd()
     expect(response.status).toBe(200)
     expect(response.content).toEqual(target)
   })
 
   it('returns nothing when no datadir exists', async () => {
     const target = {}
-    const response = await routeTest.adapter.request('config/getConfig', {
-      name: 'minerBatchSize',
-      user: true,
-    })
+    const response = await routeTest.client
+      .request('config/getConfig', {
+        name: 'minerBatchSize',
+        user: true,
+      })
+      .waitForEnd()
     expect(response.status).toBe(200)
     expect(response.content).toEqual(target)
   })

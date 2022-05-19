@@ -3,25 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
-import { MemoryAdapter } from '../adapters'
-import { Response } from '../response'
+import { MemoryAdapter, MemoryResponse } from '../adapters'
+import { ALL_API_NAMESPACES, Router } from '../routes'
 import { IronfishClient } from './client'
 
 export class IronfishMemoryClient extends IronfishClient {
   node: IronfishNode
-  adapter: MemoryAdapter
+  router: Router
 
-  private constructor(logger: Logger, node: IronfishNode, adapter: MemoryAdapter) {
+  constructor(logger: Logger, node: IronfishNode) {
     super(logger)
 
-    this.adapter = adapter
+    this.router = node.rpc.getRouter(ALL_API_NAMESPACES)
     this.node = node
-  }
-
-  static async init(logger: Logger, node: IronfishNode): Promise<IronfishMemoryClient> {
-    const adapter = new MemoryAdapter()
-    await node.rpc.mount(adapter)
-    return new IronfishMemoryClient(logger, node, adapter)
   }
 
   request<TEnd = unknown, TStream = unknown>(
@@ -30,11 +24,11 @@ export class IronfishMemoryClient extends IronfishClient {
     options: {
       timeoutMs?: number | null
     } = {},
-  ): Response<TEnd, TStream> {
+  ): MemoryResponse<TEnd, TStream> {
     if (options.timeoutMs) {
       throw new Error(`MemoryAdapter does not support timeoutMs`)
     }
 
-    return this.adapter.requestStream<TEnd, TStream>(route, data)
+    return MemoryAdapter.requestStream<TEnd, TStream>(this.router, route, data)
   }
 }
