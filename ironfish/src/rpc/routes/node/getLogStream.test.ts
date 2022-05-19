@@ -13,7 +13,7 @@ describe('Route node/getLogStream', () => {
     // Start accepting logs again
     routeTest.node.logger.resume()
 
-    const response = await routeTest.adapter.requestStream('node/getLogStream').waitForRoute()
+    const response = await routeTest.client.request('node/getLogStream').waitForRoute()
 
     routeTest.node.logger.info('Hello', { foo: 2 })
     const { value } = await response.contentStream().next()
@@ -36,7 +36,7 @@ describe('Route node/getLogStream', () => {
     // Start accepting logs again
     routeTest.node.logger.resume()
 
-    const response = await routeTest.adapter.requestStream('node/getLogStream').waitForRoute()
+    const response = await routeTest.client.request('node/getLogStream').waitForRoute()
 
     routeTest.node.logger.info(BigInt(2))
     const { value } = await response.contentStream().next()
