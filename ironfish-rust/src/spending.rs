@@ -25,8 +25,7 @@ use zcash_proofs::circuit::sapling::Spend;
 use ff::PrimeField;
 use std::{io, sync::Arc};
 use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::primitives::{Nullifier, ValueCommitment};
-use zcash_primitives::redjubjub;
+use zcash_primitives::sapling::{redjubjub, Nullifier, ValueCommitment};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
