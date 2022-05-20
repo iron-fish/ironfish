@@ -126,7 +126,7 @@ describe('Accounts', () => {
 
       expect(broadcastSpy).toHaveBeenCalledTimes(1)
       expect(broadcastSpy).toHaveBeenCalledWith(tx)
-    })
+    }, 10000)
 
     it('should not sync and broadcast a transaction rejected by the mempool', async () => {
       const { node } = nodeTest
@@ -159,6 +159,6 @@ describe('Accounts', () => {
       expect(acceptTxSpy).toHaveBeenCalledTimes(1)
       expect(broadcastSpy).not.toHaveBeenCalled()
       expect(syncSpy).not.toHaveBeenCalled()
-    })
+    }, 10000)
   })
 })
