@@ -8,7 +8,6 @@ import net from 'net'
 import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, YupUtils } from '../../utils'
-import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema, OutgoingNodeIpc } from '../adapters'
 import { ConnectionRefusedError } from './errors'
 import { IronfishRpcClient } from './rpcClient'
 
@@ -39,7 +38,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.port = port
     this.client = new net.Socket()
     this.client.on('data', (data) => void this.onData(data).catch((e) => this.onClientError(e)))
-    this.client.on('close', this.onClientClose)
   }
 
   async connect(): Promise<void> {
@@ -55,7 +53,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
       const onError = (error: unknown) => {
         this.client.off('connect', onConnect)
         this.client.off('error', onError)
-
         if (ErrorUtils.isConnectRefusedError(error)) {
           reject(new ConnectionRefusedError())
         } else if (ErrorUtils.isNoEntityError(error)) {
@@ -91,50 +88,12 @@ export class IronfishTcpClient extends IronfishRpcClient {
   protected onData = async (data: Buffer): Promise<void> => {
     const events = data.toString('utf-8').trim().split(NODE_IPC_DELIMITER)
     for (const event of events) {
-      const { type, data }: OutgoingNodeIpc = await this.tryValidateResponse(JSON.parse(event))
+      const { result, error } = await YupUtils.tryValidate(TcpResponseSchema, JSON.parse(event))
+      if(!result) {
+        throw error
+      }
+      const { type, data }: TcpResponse = result
       this.client.emit(type, data)
-    }
-  }
-
-  // Validates the response from the adapter in two steps
-  // Yup does not support validation of union types, so we validate the data in the response based on the type
-  protected async tryValidateResponse(response: string): Promise<OutgoingNodeIpc> {
-    const { result, error } = await YupUtils.tryValidate(TcpResponseSchema, response)
-    if (!result) {
-      throw error
-    }
-    const { type, data }: TcpResponse = result
-    switch (type) {
-      case 'message': {
-        const { result, error } = await YupUtils.tryValidate(IpcResponseSchema, data)
-        if (!result) {
-          throw error
-        }
-        return { type, data } as OutgoingNodeIpc
-      }
-      case 'malformedRequest': {
-        const { result, error } = await YupUtils.tryValidate(IpcErrorSchema, data)
-        if (!result) {
-          throw error
-        }
-        return { type, data } as OutgoingNodeIpc
-      }
-      case 'error': {
-        const { result, error } = await YupUtils.tryValidate(IpcErrorSchema, data)
-        if (!result) {
-          throw error
-        }
-        return { type, data } as OutgoingNodeIpc
-      }
-      case 'stream': {
-        const { result, error } = await YupUtils.tryValidate(IpcStreamSchema, data)
-        if (!result) {
-          throw error
-        }
-        return { type, data } as OutgoingNodeIpc
-      }
-      default:
-        throw yup.ValidationError
     }
   }
 
