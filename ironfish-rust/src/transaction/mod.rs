@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors;
+
 use super::{
     errors::{SaplingProofError, TransactionError},
     keys::{PublicAddress, SaplingKey},
@@ -12,10 +14,12 @@ use super::{
     witness::WitnessTrait,
     Sapling,
 };
+use bellman::{gadgets::multipack, groth16::batch::Verifier};
 use blake2b_simd::Params as Blake2b;
+use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
-use group::GroupEncoding;
+use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
@@ -422,20 +426,75 @@ impl Transaction {
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
 
+        // Batch verify spends
+        let mut verifier = Verifier::<Bls12>::new();
         for spend in self.spends.iter() {
-            spend.verify_proof(&self.sapling)?;
+            // TODO: This block copied from spending.rs::verify_proof
+            if spend.value_commitment.is_small_order().into() {
+                return Err(errors::SaplingProofError::VerificationFailed)?;
+            }
+
+            let mut public_input = [Scalar::zero(); 7];
+            let p = spend.randomized_public_key.0.to_affine();
+            public_input[0] = p.get_u();
+            public_input[1] = p.get_v();
+
+            let p = spend.value_commitment.to_affine();
+            public_input[2] = p.get_u();
+            public_input[3] = p.get_v();
+
+            public_input[4] = spend.root_hash;
+
+            let nullifier = multipack::bytes_to_bits_le(&spend.nullifier.0);
+            let nullifier = multipack::compute_multipacking(&nullifier);
+            public_input[5] = nullifier[0];
+            public_input[6] = nullifier[1];
+            // End copied block
+
+            verifier.queue((&spend.proof, &public_input[..]));
+
             let mut tmp = spend.value_commitment;
             tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
+        match verifier.verify(&mut OsRng, &self.sapling.spend_params.vk) {
+            Ok(()) => {}
+            _ => Err(errors::SaplingProofError::VerificationFailed)?,
+        };
 
+        let mut verifier = Verifier::<Bls12>::new();
         for receipt in self.receipts.iter() {
-            receipt.verify_proof(&self.sapling)?;
+            // TODO: This block is copied from receiving.rs::verify_proof
+            if receipt.merkle_note.value_commitment.is_small_order().into()
+                || ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key)
+                    .is_small_order()
+                    .into()
+            {
+                return Err(errors::SaplingProofError::VerificationFailed)?;
+            }
+            let mut public_input = [Scalar::zero(); 5];
+            let p = receipt.merkle_note.value_commitment.to_affine();
+            public_input[0] = p.get_u();
+            public_input[1] = p.get_v();
+
+            let p = ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key).to_affine();
+            public_input[2] = p.get_u();
+            public_input[3] = p.get_v();
+
+            public_input[4] = receipt.merkle_note.note_commitment;
+            // End copied block
+
+            verifier.queue((&receipt.proof, &public_input[..]));
+
             let mut tmp = receipt.merkle_note.value_commitment;
             tmp = -tmp;
             tmp += binding_verification_key;
             binding_verification_key = tmp;
         }
+        match verifier.verify(&mut OsRng, &self.sapling.receipt_params.vk) {
+            Ok(()) => {}
+            _ => Err(errors::SaplingProofError::VerificationFailed)?,
+        };
 
         let hash_to_verify_signature = self.transaction_signature_hash();
 
