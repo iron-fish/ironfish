@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
+import { ValidationError } from '../rpc/adapters/errors'
 import {
   createNodeTest,
   useAccountFixture,
@@ -97,4 +98,67 @@ describe('Accounts', () => {
     invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
+
+  describe('pay', () => {
+    it('should create and broadcast a transaction', async () => {
+      const { node } = nodeTest
+      const { accounts, chain, memPool } = node
+
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+
+      const block = await useMinerBlockFixture(chain, undefined, accountA, accounts)
+      await expect(chain).toAddBlock(block)
+
+      await node.accounts.updateHead()
+
+      const broadcastSpy = jest.spyOn(accounts, 'broadcastTransaction')
+
+      const receives = [
+        {
+          publicAddress: accountB.publicAddress,
+          amount: BigInt(1),
+          memo: 'test pay',
+        },
+      ]
+
+      const tx = await accounts.pay(memPool, accountA, receives, BigInt(1), 15)
+
+      expect(broadcastSpy).toHaveBeenCalledTimes(1)
+      expect(broadcastSpy).toHaveBeenCalledWith(tx)
+    })
+
+    it('should not sync and broadcast a transaction rejected by the mempool', async () => {
+      const { node } = nodeTest
+      const { accounts, chain, memPool } = node
+
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+
+      const block = await useMinerBlockFixture(chain, undefined, accountA, accounts)
+      await expect(chain).toAddBlock(block)
+
+      await node.accounts.updateHead()
+
+      const broadcastSpy = jest.spyOn(accounts, 'broadcastTransaction')
+      const syncSpy = jest.spyOn(accounts, 'syncTransaction')
+      const acceptTxSpy = jest.spyOn(memPool, 'acceptTransaction').mockResolvedValue(false)
+
+      const receives = [
+        {
+          publicAddress: accountB.publicAddress,
+          amount: BigInt(1),
+          memo: 'test pay',
+        },
+      ]
+
+      await expect(
+        accounts.pay(memPool, accountA, receives, BigInt(1), 15),
+      ).rejects.toThrowError(ValidationError)
+
+      expect(acceptTxSpy).toHaveBeenCalledTimes(1)
+      expect(broadcastSpy).not.toHaveBeenCalled()
+      expect(syncSpy).not.toHaveBeenCalled()
+    })
+  })
 })

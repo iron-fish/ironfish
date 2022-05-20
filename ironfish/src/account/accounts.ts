@@ -682,11 +682,12 @@ export class Accounts {
       expirationSequence,
     )
 
-    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     const accepted = await memPool.acceptTransaction(transaction)
     if (!accepted) {
       throw new ValidationError('Mempool rejected this transaction')
     }
+
+    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     this.broadcastTransaction(transaction)
 
     return transaction
