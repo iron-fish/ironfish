@@ -71,8 +71,7 @@ checksum = "8a32fd6af2b5827bce66c29053ba0e7c42b9dcab01835835058558c10851a46b"
 [[package]]
 name = "bellman"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d96d7f4f3dc9a699bdef1d19648f6f20ef966b51892d224582a4475be669cb5"
+source = "git+https://github.com/iron-fish/bellman?rev=a4b2759b2421bbf47a63b129e7f78e4a61c38e64#a4b2759b2421bbf47a63b129e7f78e4a61c38e64"
 dependencies = [
  "bitvec",
  "blake2s_simd 1.0.0",
