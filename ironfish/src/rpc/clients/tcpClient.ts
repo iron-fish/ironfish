@@ -7,11 +7,12 @@
 import net from 'net'
 import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
-import { ErrorUtils, YupUtils } from '../../utils'
+import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { ConnectionRefusedError } from './errors'
 import { IronfishRpcClient } from './rpcClient'
 
 const NODE_IPC_DELIMITER = '\f'
+const CONNECT_RETRY_MS = 2000
 
 type TcpResponse = {
   type: string
@@ -29,17 +30,42 @@ export class IronfishTcpClient extends IronfishRpcClient {
   readonly host: string
   readonly port: number
   readonly client: net.Socket
+  retryConnect: boolean
+  connectTimeout: SetTimeoutToken | null
   isConnected = false
   connectionMode: string | undefined = 'tcp'
 
-  constructor(host: string, port: number, logger: Logger = createRootLogger()) {
+  constructor(
+    host: string,
+    port: number,
+    logger: Logger = createRootLogger(),
+    retryConnect = false,
+  ) {
     super(logger.withTag('tcpclient'))
     this.host = host
     this.port = port
     this.client = new net.Socket()
+    this.retryConnect = retryConnect
+    this.connectTimeout = null
   }
 
   async connect(): Promise<void> {
+    const connected = await this.connectClient()
+      .then(() => true)
+      .catch(() => false)
+
+    if (!connected && this.retryConnect) {
+      this.logger.warn(
+        `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
+      )
+      this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
+      return
+    }
+
+    this.logger.warn(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
+  }
+
+  async connectClient(): Promise<void> {
     return new Promise((resolve, reject): void => {
       const onConnect = () => {
         this.client.off('connect', onConnect)
@@ -69,6 +95,10 @@ export class IronfishTcpClient extends IronfishRpcClient {
 
   close(): void {
     this.client.end()
+
+    if (this.connectTimeout) {
+      clearTimeout(this.connectTimeout)
+    }
   }
 
   send(messageId: number, route: string, data: unknown): void {

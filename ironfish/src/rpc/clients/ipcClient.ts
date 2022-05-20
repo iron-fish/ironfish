@@ -151,6 +151,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
     this.client.off('malformedRequest', this.onMalformedRequest)
     this.client.off('stream', this.onStream)
     this.client.off('error', this.onClientError)
+    this.client = null
 
     for (const request of this.pending.values()) {
       request.reject(new ConnectionLostError(request.type))
