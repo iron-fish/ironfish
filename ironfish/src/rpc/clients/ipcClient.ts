@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IPC, IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
+import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IpcRequest } from '../adapters'
-import { ConnectionRefusedError } from './errors'
+import { ConnectionLostError, ConnectionRefusedError } from './errors'
 import { IronfishRpcClient } from './rpcClient'
 
 const CONNECT_RETRY_MS = 2000
@@ -31,6 +32,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
   connectionMode: string | undefined
   connection: Partial<IpcClientConnectionInfo>
   retryConnect: boolean
+
+  onError = new Event<[error: unknown]>()
+
   constructor(
     connection: Partial<IpcClientConnectionInfo> = {},
     logger: Logger = createRootLogger(),
@@ -128,5 +132,47 @@ export class IronfishIpcClient extends IronfishRpcClient {
       data: data,
     }
     this.client.emit('message', message)
+  }
+
+  protected onConnect(): void {
+    Assert.isNotNull(this.client)
+    this.client.on('disconnect', this.onDisconnect)
+    this.client.on('message', this.onMessage)
+    this.client.on('malformedRequest', this.onMalformedRequest)
+    this.client.on('stream', this.onStream)
+    this.client.on('error', this.onClientError)
+  }
+
+  protected onDisconnect = (): void => {
+    Assert.isNotNull(this.client)
+    this.isConnected = false
+    this.client.off('disconnect', this.onDisconnect)
+    this.client.off('message', this.onMessage)
+    this.client.off('malformedRequest', this.onMalformedRequest)
+    this.client.off('stream', this.onStream)
+    this.client.off('error', this.onClientError)
+
+    for (const request of this.pending.values()) {
+      request.reject(new ConnectionLostError(request.type))
+    }
+    this.pending.clear()
+
+    this.onClose.emit()
+  }
+
+  protected onClientError = (error: unknown): void => {
+    this.onError.emit(error)
+  }
+
+  protected onMessage = (data: unknown): void => {
+    this.handleEnd(data).catch((e) => this.onError.emit(e))
+  }
+
+  protected onStream = (data: unknown): void => {
+    this.handleStream(data).catch((e) => this.onError.emit(e))
+  }
+
+  protected onMalformedRequest = (error: unknown): void => {
+    this.onError.emit(error)
   }
 }

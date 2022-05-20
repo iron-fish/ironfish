@@ -37,7 +37,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.host = host
     this.port = port
     this.client = new net.Socket()
-    this.client.on('data', (data) => void this.onData(data).catch((e) => this.onClientError(e)))
   }
 
   async connect(): Promise<void> {
@@ -46,7 +45,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
         this.client.off('connect', onConnect)
         this.client.off('error', onError)
         this.onConnect()
-        this.isConnected = true
         resolve()
       }
 
@@ -85,20 +83,57 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.client.write(JSON.stringify(message) + NODE_IPC_DELIMITER)
   }
 
+  protected onConnect(): void {
+    this.isConnected = true
+    this.client.on('data', this.onClientData)
+    this.client.on('close', this.onClientClose)
+  }
+
+  protected onClientData = (data: Buffer): void =>
+    void this.onData(data).catch((e) => this.onError(e))
+
   protected onData = async (data: Buffer): Promise<void> => {
     const events = data.toString('utf-8').trim().split(NODE_IPC_DELIMITER)
     for (const event of events) {
       const { result, error } = await YupUtils.tryValidate(TcpResponseSchema, JSON.parse(event))
-      if(!result) {
+      if (!result) {
         throw error
       }
       const { type, data }: TcpResponse = result
+      switch (type) {
+        case 'message': {
+          this.onMessage(data)
+          break
+        }
+        case 'stream': {
+          this.onStream(data)
+          break
+        }
+        case 'error':
+        case 'malformedRequest': {
+          this.onError(data)
+          break
+        }
+      }
       this.client.emit(type, data)
     }
   }
 
   protected onClientClose = (): void => {
-    this.client.emit('disconnect')
+    this.isConnected = false
+    this.client.off('data', this.onClientData)
     this.client.off('close', this.onClientClose)
+  }
+
+  protected onMessage = (data: unknown): void => {
+    this.handleEnd(data).catch((e) => this.onError(e))
+  }
+
+  protected onStream = (data: unknown): void => {
+    this.handleStream(data).catch((e) => this.onError(e))
+  }
+
+  protected onError(error: unknown): void {
+    this.logger.error(error)
   }
 }

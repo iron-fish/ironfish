@@ -10,12 +10,7 @@ import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
 import { isResponseError, Response } from '../response'
 import { Stream } from '../stream'
 import { IronfishClient } from './client'
-import {
-  ConnectionError,
-  ConnectionLostError,
-  RequestError,
-  RequestTimeoutError,
-} from './errors'
+import { ConnectionError, RequestError, RequestTimeoutError } from './errors'
 
 const REQUEST_TIMEOUT_MS = null
 
@@ -44,7 +39,6 @@ export abstract class IronfishRpcClient extends IronfishClient {
   >()
 
   onClose = new Event<[]>()
-  onError = new Event<[error: unknown]>()
 
   async tryConnect(): Promise<boolean> {
     return this.connect({ retryConnect: false })
@@ -118,49 +112,6 @@ export abstract class IronfishRpcClient extends IronfishClient {
     this.send(messageId, route, data)
 
     return response
-  }
-
-  protected onConnect(): void {
-    Assert.isNotNull(this.client)
-    this.client.on('disconnect', this.onDisconnect)
-    this.client.on('message', this.onMessage)
-    this.client.on('malformedRequest', this.onMalformedRequest)
-    this.client.on('stream', this.onStream)
-    this.client.on('error', this.onClientError)
-  }
-
-  protected onDisconnect = (): void => {
-    Assert.isNotNull(this.client)
-
-    this.isConnected = false
-    this.client.off('disconnect', this.onDisconnect)
-    this.client.off('message', this.onMessage)
-    this.client.off('malformedRequest', this.onMalformedRequest)
-    this.client.off('stream', this.onStream)
-    this.client.off('error', this.onClientError)
-
-    for (const request of this.pending.values()) {
-      request.reject(new ConnectionLostError(request.type))
-    }
-    this.pending.clear()
-
-    this.onClose.emit()
-  }
-
-  protected onClientError = (error: unknown): void => {
-    this.onError.emit(error)
-  }
-
-  protected onMessage = (data: unknown): void => {
-    this.handleEnd(data).catch((e) => this.onError.emit(e))
-  }
-
-  protected onStream = (data: unknown): void => {
-    this.handleStream(data).catch((e) => this.onError.emit(e))
-  }
-
-  protected onMalformedRequest = (error: unknown): void => {
-    this.onError.emit(error)
   }
 
   protected handleStream = async (data: unknown): Promise<void> => {
