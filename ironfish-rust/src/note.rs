@@ -15,7 +15,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::{Nullifier, Rseed};
+use zcash_primitives::sapling::{Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 

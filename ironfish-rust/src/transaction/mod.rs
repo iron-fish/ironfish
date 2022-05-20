@@ -26,7 +26,7 @@ use rand::rngs::OsRng;
 
 use zcash_primitives::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
 use std::{io, slice::Iter, sync::Arc};

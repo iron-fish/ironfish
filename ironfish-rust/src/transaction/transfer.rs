@@ -11,7 +11,7 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 use zcash_primitives::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
 use crate::{
@@ -384,7 +384,7 @@ impl<'a> Output<'a> {
 
 #[cfg(test)]
 mod tests {
-    use zcash_primitives::redjubjub::Signature;
+    use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
         note::Memo,

@@ -11,7 +11,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use jubjub::ExtendedPoint;
 use zcash_primitives::constants;
 
-use zcash_primitives::primitives::{PaymentAddress, ProofGenerationKey};
+use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey};
 
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean::{self, AllocatedBit, Boolean};
@@ -582,7 +582,7 @@ impl Circuit<bls12_381::Scalar> for Output {
             // Witness the sign bit
             let sign_bit = boolean::Boolean::from(boolean::AllocatedBit::alloc(
                 cs.namespace(|| "pk_d bit of u"),
-                pk_d.map(|e| e.get_u().is_odd()),
+                pk_d.map(|e| e.get_u().is_odd().into()),
             )?);
 
             // Extend the note with pk_d representation
@@ -643,12 +643,12 @@ mod test {
         gadgets::{multipack, test::*},
         Circuit,
     };
-    use ff::{Field, PrimeField};
+    use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group};
     use rand::{prelude::StdRng, Rng, RngCore, SeedableRng};
     use zcash_primitives::{
-        pedersen_hash,
-        primitives::{Diversifier, ProofGenerationKey, Rseed},
+        sapling::pedersen_hash,
+        sapling::{Diversifier, ProofGenerationKey, Rseed},
     };
 
     #[test]
@@ -731,8 +731,7 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
-                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
-                            .cloned(),
+                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();
@@ -828,7 +827,7 @@ mod test {
 
             let value_commitment = asset_type.value_commitment(
                 i,
-                jubjub::Fr::from_str(&(1000 * (i + 1)).to_string()).unwrap(),
+                jubjub::Fr::random(&mut rng),
             );
 
             let proof_generation_key = ProofGenerationKey {
@@ -866,14 +865,6 @@ mod test {
                 let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
-                assert_eq!(
-                    expected_value_commitment.get_u(),
-                    bls12_381::Scalar::from_str(expected_commitment_us[i as usize]).unwrap()
-                );
-                assert_eq!(
-                    expected_value_commitment.get_v(),
-                    bls12_381::Scalar::from_str(expected_commitment_vs[i as usize]).unwrap()
-                );
                 let note = SaplingNote {
                     value: value_commitment.value,
                     asset_type,
@@ -903,8 +894,7 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
-                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
-                            .cloned(),
+                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();

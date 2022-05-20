@@ -28,8 +28,8 @@ use rand::{rngs::OsRng, thread_rng, Rng};
 use ff::PrimeField;
 use std::{io, sync::Arc};
 use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::primitives::Nullifier;
-use zcash_primitives::redjubjub;
+use zcash_primitives::sapling::Nullifier;
+use zcash_primitives::sapling::redjubjub;
 
 pub(crate) trait SpendSignature {
     fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()>;
