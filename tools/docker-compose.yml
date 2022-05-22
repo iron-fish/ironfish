@@ -8,6 +8,9 @@ services:
         tty: true
         restart: always
         command: ["start", "--graffiti", "graffitiExample", "--name", "nodeExample"]
+        user: 1000:1000
+        security_opt:
+        - no-new-privileges:true
 
     miner:
         image: ghcr.io/iron-fish/ironfish:latest
@@ -17,6 +20,9 @@ services:
         mem_limit: 8192M
         restart: always
         command: miners:start --threads -1
+        user: 1000:1000
+        security_opt:
+        - no-new-privileges:true
 
 networks:
     default:
