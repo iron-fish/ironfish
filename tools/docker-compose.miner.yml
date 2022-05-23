@@ -1,13 +1,14 @@
 version: "2.4"
 
 services:
-    node:
+    miner:
         image: ghcr.io/iron-fish/ironfish:latest
         volumes:
             - ~/.ironfish:/root/.ironfish
         tty: true
+        mem_limit: 8192M
         restart: always
-        command: ["start", "--graffiti", "$graffiti_name", "--name", "$graffiti_name"]
+        command: miners:start --threads -1
 
 networks:
     default:
