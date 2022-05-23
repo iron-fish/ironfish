@@ -18,11 +18,12 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import { IronfishRpcClient, IronfishTcpClient } from './rpc'
+import { IronfishRpcClient } from './rpc'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
 import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishClient } from './rpc/clients/client'
 import { IronfishIpcClient } from './rpc/clients/ipcClient'
+import { IronfishTcpClient } from './rpc/clients/tcpClient'
 import { IronfishMemoryClient } from './rpc/clients/memoryClient'
 import { ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
@@ -130,7 +131,7 @@ export class IronfishSdk {
     }
 
     let client: IronfishRpcClient
-    if (config.get('enableNativeRpcTcpAdapter')) {
+    if (config.get('enableNativeRpcTcpAdapter') && config.get('enableRpcTcp')) {
       client = new IronfishTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
     } else {
       client = new IronfishIpcClient(

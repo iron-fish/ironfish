@@ -8,47 +8,33 @@ import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IpcRequest } from '../adapters'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
-import { IronfishRpcClient } from './rpcClient'
+import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
 const CONNECT_RETRY_MS = 2000
-
-export type IpcClientConnectionInfo =
-  | {
-      mode: 'ipc'
-      socketPath: string
-    }
-  | {
-      mode: 'tcp'
-      host: string
-      port: number
-    }
 
 export class IronfishIpcClient extends IronfishRpcClient {
   ipc: IPC | null = null
   ipcPath: string | null = null
   client: IpcClient | null = null
-  isConnecting = false
   isConnected = false
-  connectionMode: string | undefined
-  connection: Partial<IpcClientConnectionInfo>
+  connection: Partial<RpcClientConnectionInfo>
   retryConnect: boolean
 
   onError = new Event<[error: unknown]>()
 
   constructor(
-    connection: Partial<IpcClientConnectionInfo> = {},
+    connection: Partial<RpcClientConnectionInfo> = {},
     logger: Logger = createRootLogger(),
     retryConnect = false,
   ) {
     super(logger.withTag('ipcclient'))
     this.connection = connection
     this.retryConnect = retryConnect
-    this.connectionMode = connection.mode
   }
 
   async connect(options?: {
     retryConnect?: boolean
-    connection?: Partial<IpcClientConnectionInfo>
+    connection?: Partial<RpcClientConnectionInfo>
   }): Promise<void> {
     const retryConnect = options?.retryConnect ?? this.retryConnect
     const connection = { ...options?.connection, ...this.connection }
@@ -69,8 +55,6 @@ export class IronfishIpcClient extends IronfishRpcClient {
     this.ipc = ipc
 
     return new Promise<void>((resolve, reject) => {
-      this.isConnecting = true
-
       const onConnectTo = () => {
         const client = ipc.of.server
         this.client = client
@@ -79,7 +63,6 @@ export class IronfishIpcClient extends IronfishRpcClient {
           client.off('error', onError)
           client.off('connect', onConnect)
           this.isConnected = true
-          this.isConnecting = false
           this.onConnect()
           resolve()
         }
@@ -89,7 +72,6 @@ export class IronfishIpcClient extends IronfishRpcClient {
             return
           }
 
-          this.isConnecting = false
           client.off('error', onError)
           client.off('connect', onConnect)
 

@@ -240,7 +240,7 @@ export class MiningSoloMiner {
     if (!connected) {
       if (!this.connectWarned) {
         this.logger.warn(
-          `Failed to connect to node on ${String(this.rpc.connectionMode)}, retrying...`,
+          `Failed to connect to node on ${String(this.rpc.connection.mode)}, retrying...`,
         )
         this.connectWarned = true
       }

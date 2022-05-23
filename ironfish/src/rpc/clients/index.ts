@@ -3,7 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './errors'
 export * from './client'
-export * from './ipcClient'
 export * from './memoryClient'
 export * from './rpcClient'
-export * from './tcpClient'

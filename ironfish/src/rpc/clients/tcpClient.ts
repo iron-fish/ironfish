@@ -9,7 +9,7 @@ import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { ConnectionRefusedError } from './errors'
-import { IronfishRpcClient } from './rpcClient'
+import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
 const NODE_IPC_DELIMITER = '\f'
 const CONNECT_RETRY_MS = 2000
@@ -27,13 +27,13 @@ const TcpResponseSchema: yup.ObjectSchema<TcpResponse> = yup
   .required()
 
 export class IronfishTcpClient extends IronfishRpcClient {
-  readonly host: string
-  readonly port: number
   readonly client: net.Socket
-  retryConnect: boolean
-  connectTimeout: SetTimeoutToken | null
+  private readonly host: string
+  private readonly port: number
+  private retryConnect: boolean
+  private connectTimeout: SetTimeoutToken | null
   isConnected = false
-  connectionMode: string | undefined = 'tcp'
+  connection: RpcClientConnectionInfo
 
   constructor(
     host: string,
@@ -44,6 +44,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
     super(logger.withTag('tcpclient'))
     this.host = host
     this.port = port
+    this.connection = { mode: 'tcp', host: host, port: port }
     this.client = new net.Socket()
     this.retryConnect = retryConnect
     this.connectTimeout = null
@@ -145,7 +146,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
           break
         }
       }
-      this.client.emit(type, data)
     }
   }
 

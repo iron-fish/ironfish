@@ -14,10 +14,21 @@ import { ConnectionError, RequestError, RequestTimeoutError } from './errors'
 
 const REQUEST_TIMEOUT_MS = null
 
+export type RpcClientConnectionInfo =
+  | {
+      mode: 'ipc'
+      socketPath: string
+    }
+  | {
+      mode: 'tcp'
+      host: string
+      port: number
+    }
+
 export abstract class IronfishRpcClient extends IronfishClient {
-  abstract isConnected: boolean
-  abstract connectionMode: string | undefined
   abstract client: IpcClient | net.Socket | null
+  abstract isConnected: boolean
+  abstract connection: Partial<RpcClientConnectionInfo>
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
   abstract close(): void
