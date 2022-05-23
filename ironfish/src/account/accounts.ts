@@ -487,10 +487,14 @@ export class Accounts {
               )
             }
 
-            await this.updateNoteToNullifierMap(noteHash, {
-              ...nullifier,
-              spent: !isRemovingTransaction,
-            })
+            await this.updateNoteToNullifierMap(
+              noteHash,
+              {
+                ...nullifier,
+                spent: !isRemovingTransaction,
+              },
+              tx,
+            )
           }
         }
       })
@@ -533,10 +537,14 @@ export class Accounts {
             )
           }
 
-          await this.updateNoteToNullifierMap(noteHash, {
-            ...nullifier,
-            spent: false,
-          })
+          await this.updateNoteToNullifierMap(
+            noteHash,
+            {
+              ...nullifier,
+              spent: false,
+            },
+            tx,
+          )
         }
       }
     })
