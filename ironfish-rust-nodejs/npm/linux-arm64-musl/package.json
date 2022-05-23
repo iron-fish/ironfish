@@ -1,0 +1,18 @@
+{
+  "name": "@ironfish/rust-nodejs-linux-arm64-musl",
+  "version": "0.1.6",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "ironfish-rust-nodejs.linux-arm64-musl.node",
+  "files": [
+    "ironfish-rust-nodejs.linux-arm64-musl.node"
+  ],
+  "license": "MPL-2.0",
+  "engines": {
+    "node": ">= 16"
+  }
+}

@@ -15,7 +15,6 @@ export type CounterSchema = CounterEntry<'Leaves'> | CounterEntry<'Nodes'>
 export interface LeavesSchema<E, H> extends DatabaseSchema {
   key: LeafIndex
   value: {
-    index: LeafIndex
     element: E
     merkleHash: H
     parentIndex: NodeIndex
@@ -28,7 +27,6 @@ export interface LeavesIndexSchema<H extends DatabaseKey> extends DatabaseSchema
 }
 
 export type NodeValue<H> = {
-  index: NodeIndex
   side: Side
   hashOfSibling: H
   parentIndex?: NodeIndex // left nodes have a parent index

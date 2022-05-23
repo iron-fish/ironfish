@@ -7,13 +7,13 @@ import { JsonSerializable } from '../serde'
 import {
   DatabaseKey,
   IDatabase,
+  IDatabaseEncoding,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
-  NumberEncoding,
   SchemaValue,
+  StringEncoding,
+  U32_ENCODING,
 } from '../storage'
-import { LeafEncoding, NodeEncoding } from './encoding'
 import { MerkleHasher } from './hasher'
 import { CounterSchema, LeavesIndexSchema, LeavesSchema, NodesSchema } from './schema'
 import { depthAtLeafCount, isEmpty, isRight } from './utils'
@@ -38,11 +38,17 @@ export class MerkleTree<
   constructor({
     hasher,
     db,
+    leafEncoding,
+    leafIndexKeyEncoding,
+    nodeEncoding,
     name = '',
     depth = 32,
   }: {
     hasher: MerkleHasher<E, H, SE, SH>
     db: IDatabase
+    leafEncoding: IDatabaseEncoding<LeavesSchema<E, H>['value']>
+    leafIndexKeyEncoding: IDatabaseEncoding<LeavesIndexSchema<H>['key']>
+    nodeEncoding: IDatabaseEncoding<NodesSchema<H>['value']>
     name?: string
     depth?: number
   }) {
@@ -53,26 +59,26 @@ export class MerkleTree<
 
     this.counter = db.addStore({
       name: `${name}c`,
-      keyEncoding: new JsonEncoding<CounterSchema['key']>(),
-      valueEncoding: new JsonEncoding<CounterSchema['value']>(),
+      keyEncoding: new StringEncoding<'Leaves' | 'Nodes'>(),
+      valueEncoding: U32_ENCODING,
     })
 
     this.leaves = db.addStore({
       name: `${name}l`,
-      keyEncoding: new JsonEncoding<LeavesSchema<E, H>['key']>(),
-      valueEncoding: new LeafEncoding<E, H, SE, SH>(hasher),
+      keyEncoding: U32_ENCODING,
+      valueEncoding: leafEncoding,
     })
 
     this.leavesIndex = db.addStore({
       name: `${name}i`,
-      keyEncoding: new JsonEncoding<LeavesIndexSchema<H>['key']>(),
-      valueEncoding: new NumberEncoding(),
+      keyEncoding: leafIndexKeyEncoding,
+      valueEncoding: U32_ENCODING,
     })
 
     this.nodes = db.addStore({
       name: `${name}n`,
-      keyEncoding: new JsonEncoding<NodesSchema<H>['key']>(),
-      valueEncoding: new NodeEncoding(hasher),
+      keyEncoding: U32_ENCODING,
+      valueEncoding: nodeEncoding,
     })
   }
 
@@ -220,7 +226,6 @@ export class MerkleTree<
             side: Side.Left,
             parentIndex: 0,
             hashOfSibling,
-            index: newParentIndex,
           },
           tx,
         )
@@ -231,7 +236,6 @@ export class MerkleTree<
             element: leftLeaf.element,
             merkleHash: leftLeaf.merkleHash,
             parentIndex: newParentIndex,
-            index: leftLeafIndex,
           },
           tx,
         )
@@ -293,7 +297,6 @@ export class MerkleTree<
                   side: Side.Left,
                   hashOfSibling: previousParent.hashOfSibling,
                   parentIndex: nextNodeIndex,
-                  index: previousParentIndex,
                 },
                 tx,
               )
@@ -344,7 +347,6 @@ export class MerkleTree<
           element,
           merkleHash,
           parentIndex: newParentIndex,
-          index: indexOfNewLeaf,
         },
         tx,
       )
@@ -354,14 +356,13 @@ export class MerkleTree<
   }
 
   async addLeaf(
-    index: LeafIndex,
-    value: { index: LeafIndex; element: E; merkleHash: H; parentIndex: NodeIndex },
+    index: LeavesSchema<E, H>['key'],
+    value: LeavesSchema<E, H>['value'],
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.leaves.put(
       index,
       {
-        index: index,
         element: value.element,
         merkleHash: value.merkleHash,
         parentIndex: value.parentIndex,
@@ -406,9 +407,10 @@ export class MerkleTree<
       if (pastSize === 1) {
         await this.counter.put('Nodes', 1, tx)
 
-        const firstLeaf = await this.getLeaf(0, tx)
+        const index = 0
+        const firstLeaf = await this.getLeaf(index, tx)
         firstLeaf.parentIndex = 0
-        await this.addLeaf(firstLeaf.index, firstLeaf, tx)
+        await this.addLeaf(index, firstLeaf, tx)
         return
       }
 
@@ -441,7 +443,7 @@ export class MerkleTree<
       }
 
       parent.parentIndex = 0
-      await this.nodes.put(parent.index, parent, tx)
+      await this.nodes.put(parentIndex, parent, tx)
       await this.counter.put('Nodes', maxParentIndex + 1, tx)
       await this.rehashRightPath(tx)
     })
@@ -643,7 +645,6 @@ export class MerkleTree<
               side: Side.Left,
               hashOfSibling: parentHash,
               parentIndex: node.parentIndex,
-              index: parentIndex,
             },
             tx,
           )
@@ -658,7 +659,7 @@ export class MerkleTree<
           // hash because we set it correctly when we inserted it. But the left
           // node needs to have its hashOfSibling set to our current hash.
           if (node.leftIndex === undefined) {
-            throw new Error(`Expected node ${node.index} to have left node`)
+            throw new Error(`Expected node ${parentIndex} to have left node`)
           }
 
           const leftNode = await this.getNode(node.leftIndex, tx)
@@ -669,7 +670,6 @@ export class MerkleTree<
               side: Side.Left,
               parentIndex: leftNode.parentIndex,
               hashOfSibling: parentHash,
-              index: node.leftIndex,
             },
             tx,
           )

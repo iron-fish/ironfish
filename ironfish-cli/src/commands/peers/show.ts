@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { GetPeerMessagesResponse, GetPeerResponse } from '@ironfish/sdk'
 import colors from 'colors/safe'
-import { GetPeerMessagesResponse, GetPeerResponse } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -62,10 +62,9 @@ export class ShowCommand extends IronfishCommand {
     const type = message.brokeringPeerDisplayName
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
       : message.type
-    const messageType = colors.cyan(message.message.type)
-    const payload = JSON.stringify(
-      'payload' in message.message ? message.message.payload : null,
-    )
+
+    const messageType = colors.cyan(message.message.type.toString())
+    const payload = message.message.payload
 
     return `${time} ${direction} ${type}: ${messageType} ${payload}`
   }

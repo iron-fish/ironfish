@@ -10,7 +10,6 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { Strategy } from '../strategy'
 
 interface MempoolEntry {
   fee: bigint
@@ -19,20 +18,15 @@ interface MempoolEntry {
 
 export class MemPool {
   readonly transactions = new BufferMap<Transaction>()
+  readonly nullifiers = new BufferMap<Buffer>()
   readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
   private readonly chain: Blockchain
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
-  private readonly strategy: Strategy
 
-  constructor(options: {
-    strategy: Strategy
-    chain: Blockchain
-    metrics: MetricsMonitor
-    logger?: Logger
-  }) {
+  constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -46,7 +40,6 @@ export class MemPool {
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
-    this.strategy = options.strategy
 
     this.chain.onConnectBlock.on((block) => {
       this.onConnectBlock(block)
@@ -104,7 +97,25 @@ export class MemPool {
       return false
     }
 
-    await this.addTransaction(transaction)
+    for (const spend of transaction.spends()) {
+      if (this.nullifiers.has(spend.nullifier)) {
+        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
+        Assert.isNotUndefined(existingTransactionHash)
+
+        const existingTransaction = this.transactions.get(existingTransactionHash)
+        if (!existingTransaction) {
+          continue
+        }
+
+        if (transaction.fee() > existingTransaction.fee()) {
+          this.deleteTransaction(existingTransaction)
+        } else {
+          return false
+        }
+      }
+    }
+
+    this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
     return true
@@ -114,8 +125,10 @@ export class MemPool {
     let deletedTransactions = 0
 
     for (const transaction of block.transactions) {
-      this.deleteTransaction(transaction)
-      deletedTransactions++
+      const didDelete = this.deleteTransaction(transaction)
+      if (didDelete) {
+        deletedTransactions++
+      }
     }
 
     for (const transaction of this.transactions.values()) {
@@ -125,11 +138,16 @@ export class MemPool {
       )
 
       if (isExpired) {
-        this.deleteTransaction(transaction)
+        const didDelete = this.deleteTransaction(transaction)
+        if (didDelete) {
+          deletedTransactions++
+        }
       }
     }
 
-    this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    if (deletedTransactions) {
+      this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    }
 
     this.head = block.header
   }
@@ -144,11 +162,11 @@ export class MemPool {
         continue
       }
 
-      if (await transaction.isMinersFee()) {
+      if (transaction.isMinersFee()) {
         continue
       }
 
-      await this.addTransaction(transaction)
+      this.addTransaction(transaction)
       addedTransactions++
     }
 
@@ -157,17 +175,31 @@ export class MemPool {
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
-  private async addTransaction(transaction: Transaction): Promise<void> {
+  private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
-    this.queue.add({ fee: await transaction.fee(), hash })
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.set(spend.nullifier, hash)
+    }
+
+    this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
   }
 
-  private deleteTransaction(transaction: Transaction): void {
+  private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
     this.transactions.delete(hash)
-    this.queue.removeOne((t) => t.hash.equals(hash))
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.delete(spend.nullifier)
+    }
+
+    const entry = this.queue.removeOne((t) => t.hash.equals(hash))
+    if (!entry) {
+      return false
+    }
     this.metrics.memPoolSize.value = this.size()
+    return true
   }
 }

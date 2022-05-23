@@ -9,8 +9,8 @@ describe('accounts:rescan', () => {
   })
 
   beforeAll(() => {
-    jest.mock('ironfish', () => {
-      const originalModule = jest.requireActual('ironfish')
+    jest.mock('@ironfish/sdk', () => {
+      const originalModule = jest.requireActual('@ironfish/sdk')
       const client = {
         connect: jest.fn(),
         rescanAccountStream: jest.fn().mockImplementation(() => ({
@@ -35,7 +35,7 @@ describe('accounts:rescan', () => {
   })
 
   afterAll(() => {
-    jest.unmock('ironfish')
+    jest.unmock('@ironfish/sdk')
   })
 
   describe('with no flags', () => {

@@ -111,26 +111,24 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       head: head,
     })
 
-    const send = async (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
-      const transactions = await Promise.all(
-        block.transactions.map(async (transaction) => {
-          return transaction.withReference(async () => {
-            return {
-              hash: BlockHashSerdeInstance.serialize(transaction.hash()),
-              size: Buffer.from(
-                JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-              ).byteLength,
-              fee: Number(await transaction.fee()),
-              notes: [...transaction.notes()].map((note) => ({
-                commitment: note.merkleHash().toString('hex'),
-              })),
-              spends: [...transaction.spends()].map((spend) => ({
-                nullifier: spend.nullifier.toString('hex'),
-              })),
-            }
-          })
-        }),
-      )
+    const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+      const transactions = block.transactions.map((transaction) => {
+        return transaction.withReference(() => {
+          return {
+            hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+            size: Buffer.from(
+              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
+            ).byteLength,
+            fee: Number(transaction.fee()),
+            notes: [...transaction.notes()].map((note) => ({
+              commitment: note.merkleHash().toString('hex'),
+            })),
+            spends: [...transaction.spends()].map((spend) => ({
+              nullifier: spend.nullifier.toString('hex'),
+            })),
+          }
+        })
+      })
 
       request.stream({
         type: type,
@@ -156,17 +154,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await send(block, 'connected')
+      send(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      await send(block, 'disconnected')
+      send(block, 'disconnected')
     }
 
-    const onFork = async (block: Block) => {
-      await send(block, 'fork')
+    const onFork = (block: Block) => {
+      send(block, 'fork')
     }
 
     processor.onAdd.on(onAdd)

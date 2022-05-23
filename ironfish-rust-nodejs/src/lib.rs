@@ -25,8 +25,7 @@ pub struct Key {
 
 #[napi]
 pub fn generate_key() -> Key {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::generate_key(hasher);
+    let sapling_key = sapling_bls12::Key::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -38,8 +37,7 @@ pub fn generate_key() -> Key {
 
 #[napi]
 pub fn generate_new_public_address(private_key: String) -> Result<Key> {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::from_hex(hasher, &private_key)
+    let sapling_key = sapling_bls12::Key::from_hex(&private_key)
         .map_err(|err| Error::from_reason(err.to_string()))?;
 
     Ok(Key {
@@ -50,32 +48,66 @@ pub fn generate_new_public_address(private_key: String) -> Result<Key> {
     })
 }
 
-#[napi(object)]
-pub struct MineHeaderNapiResult {
-    pub randomness: f64,
-    pub found_match: bool,
+#[napi]
+pub fn initialize_sapling() {
+    let _ = sapling_bls12::SAPLING.clone();
+}
+
+#[napi(constructor)]
+pub struct FoundBlockResult {
+    pub randomness: String,
+    pub mining_request_id: f64,
 }
 
 #[napi]
-pub fn mine_header_batch(
-    mut header_bytes: Buffer,
-    initial_randomness: i64,
-    target_buffer: Buffer,
-    batch_size: i64,
-) -> MineHeaderNapiResult {
-    let mut target_array = [0u8; 32];
-    target_array.copy_from_slice(&target_buffer[..32]);
+struct ThreadPoolHandler {
+    #[allow(dead_code)]
+    threadpool: mining::threadpool::ThreadPool,
+}
+#[napi]
+impl ThreadPoolHandler {
+    #[napi(constructor)]
+    #[allow(dead_code)]
+    pub fn new(thread_count: u32, batch_size: u32) -> Self {
+        ThreadPoolHandler {
+            threadpool: mining::threadpool::ThreadPool::new(thread_count as usize, batch_size),
+        }
+    }
 
-    // Execute batch mine operation
-    let mine_header_result = mining::mine_header_batch(
-        header_bytes.as_mut(),
-        initial_randomness,
-        &target_array,
-        batch_size,
-    );
+    #[napi]
+    #[allow(dead_code)]
+    pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32) {
+        self.threadpool
+            .new_work(&header_bytes, &target, mining_request_id)
+    }
 
-    MineHeaderNapiResult {
-        randomness: mine_header_result.randomness,
-        found_match: mine_header_result.found_match,
+    #[napi]
+    #[allow(dead_code)]
+    pub fn stop(&self) {
+        self.threadpool.stop()
+    }
+
+    #[napi]
+    #[allow(dead_code)]
+    pub fn pause(&self) {
+        self.threadpool.pause()
+    }
+
+    #[napi]
+    #[allow(dead_code)]
+    pub fn get_found_block(&self) -> Option<FoundBlockResult> {
+        if let Some(result) = self.threadpool.get_found_block() {
+            return Some(FoundBlockResult {
+                randomness: format!("{:016x}", result.0),
+                mining_request_id: result.1 as f64,
+            });
+        }
+        None
+    }
+
+    #[napi]
+    #[allow(dead_code)]
+    pub fn get_hash_rate_submission(&self) -> u32 {
+        self.threadpool.get_hash_rate_submission()
     }
 }

@@ -6,19 +6,19 @@ use super::errors;
 use super::serializing::{
     bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes,
 };
-use super::Sapling;
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
+use group::GroupEncoding;
+use jubjub::SubgroupPoint;
 use rand::prelude::*;
 // use rand_core::{OsRng, RngCore};
-use zcash_primitives::constants::CRH_IVK_PERSONALIZATION;
-
-use std::{io, sync::Arc};
-use zcash_primitives::jubjub::{
-    edwards, FixedGenerators, JubjubEngine, JubjubParams, PrimeOrder, ToUniform,
+use zcash_primitives::constants::{
+    CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
 use zcash_primitives::primitives::{ProofGenerationKey, ViewingKey};
+
+use std::io;
 
 mod public_address;
 pub use public_address::*;
@@ -37,9 +37,7 @@ const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
 /// world, inside the API they map to Edwards points or scalar values
 /// on the JubJub curve.
 #[derive(Clone)]
-pub struct SaplingKey<J: JubjubEngine + pairing::MultiMillerLoop> {
-    pub(crate) sapling: Arc<Sapling<J>>,
-
+pub struct SaplingKey {
     /// The private (secret) key from which all the other key parts are derived.
     /// The expanded form of this key is required before a note can be spent.
     spending_key: [u8; 32],
@@ -47,67 +45,57 @@ pub struct SaplingKey<J: JubjubEngine + pairing::MultiMillerLoop> {
     /// Part of the expanded form of the spending key, generally referred to as
     /// `ask` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct authorizing_key.
-    pub(crate) spend_authorizing_key: J::Fs,
+    pub(crate) spend_authorizing_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, generally referred to as
     /// `nsk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct nullifier_deriving_key
-    pub(crate) proof_authorizing_key: J::Fs,
+    pub(crate) proof_authorizing_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
     /// directly in the full viewing key. Generally referred to as
     /// `ovk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. This allows the creator of a note to access
     /// keys needed to decrypt the note's contents.
-    pub(crate) outgoing_viewing_key: OutgoingViewKey<J>,
+    pub(crate) outgoing_viewing_key: OutgoingViewKey,
 
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
     /// multiplication in Sapling. Used to construct incoming viewing key.
-    pub(crate) authorizing_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) authorizing_key: SubgroupPoint,
 
     /// Part of the full viewing key. Generally referred to as
     /// `nk` in the literature. Derived from proof_authorizing_key using scalar
     /// multiplication. Used to construct incoming viewing key.
-    pub(crate) nullifier_deriving_key: edwards::Point<J, PrimeOrder>,
+    pub(crate) nullifier_deriving_key: SubgroupPoint,
 
     /// Part of the payment_address. Generally referred to as
     /// `ivk` in the literature. Derived from authorizing key and
     /// nullifier deriving key. Used to construct payment address and
     /// transmission key. This key allows the receiver of a note to decrypt its
     /// contents.
-    pub(crate) incoming_viewing_key: IncomingViewKey<J>,
+    pub(crate) incoming_viewing_key: IncomingViewKey,
 }
 
-impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
+impl<'a> SaplingKey {
     /// Construct a new key from an array of bytes
-    pub fn new(
-        sapling: Arc<Sapling<J>>,
-        spending_key: [u8; 32],
-    ) -> Result<Self, errors::SaplingKeyError> {
-        let spend_authorizing_key = J::Fs::to_uniform(&Self::convert_key(spending_key, 0));
-        let proof_authorizing_key = J::Fs::to_uniform(&Self::convert_key(spending_key, 1));
+    pub fn new(spending_key: [u8; 32]) -> Result<Self, errors::SaplingKeyError> {
+        let spend_authorizing_key =
+            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
+        let proof_authorizing_key =
+            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
         let mut outgoing_viewing_key = [0; 32];
         outgoing_viewing_key[0..32].clone_from_slice(&Self::convert_key(spending_key, 2)[0..32]);
         let outgoing_viewing_key = OutgoingViewKey {
-            sapling: sapling.clone(),
             view_key: outgoing_viewing_key,
         };
-        let authorizing_key = sapling
-            .jubjub
-            .generator(FixedGenerators::SpendingKeyGenerator)
-            .mul(spend_authorizing_key, &sapling.jubjub);
-        let nullifier_deriving_key = sapling
-            .jubjub
-            .generator(FixedGenerators::ProofGenerationKey)
-            .mul(proof_authorizing_key, &sapling.jubjub);
+        let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
+        let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
         let incoming_viewing_key = IncomingViewKey {
-            sapling: sapling.clone(),
             view_key: Self::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,
         };
 
         Ok(SaplingKey {
-            sapling,
             spending_key,
             spend_authorizing_key,
             proof_authorizing_key,
@@ -119,20 +107,14 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     }
 
     /// Load a new key from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling<J>>,
-        reader: &mut R,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
         let mut spending_key = [0; 32];
         reader.read_exact(&mut spending_key)?;
-        Self::new(sapling, spending_key)
+        Self::new(spending_key)
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(
-        sapling: Arc<Sapling<J>>,
-        value: &str,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPaymentAddress),
             Ok(bytes) => {
@@ -141,18 +123,14 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
                 } else {
                     let mut byte_arr = [0; 32];
                     byte_arr.clone_from_slice(&bytes[0..32]);
-                    Self::new(sapling, byte_arr)
+                    Self::new(byte_arr)
                 }
             }
         }
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(
-        sapling: Arc<Sapling<J>>,
-        language_code: &str,
-        value: String,
-    ) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, errors::SaplingKeyError> {
         let language = Language::from_language_code(language_code)
             .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -160,7 +138,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; 32];
         byte_arr.clone_from_slice(&bytes[0..32]);
-        Self::new(sapling, byte_arr)
+        Self::new(byte_arr)
     }
 
     /// Generate a new random secret key.
@@ -168,11 +146,11 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     /// This would normally be used for a new account coming online for the
     /// first time.
     /// Note that unlike `new`, this function always successfully returns a value.
-    pub fn generate_key(sapling: Arc<Sapling<J>>) -> Self {
+    pub fn generate_key() -> Self {
         let spending_key: [u8; 32] = random();
         // OsRng.fill_bytes(&mut spending_key);
         loop {
-            if let Ok(key) = Self::new(sapling.clone(), spending_key) {
+            if let Ok(key) = Self::new(spending_key) {
                 return key;
             }
         }
@@ -188,7 +166,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     pub fn public_address(
         &self,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress<J>, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, errors::SaplingKeyError> {
         PublicAddress::from_key(self, diversifier)
     }
 
@@ -197,7 +175,7 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     ///
     /// This method always succeeds, retrying with a different diversifier if
     /// one doesn't work
-    pub fn generate_public_address(&self) -> PublicAddress<J> {
+    pub fn generate_public_address(&self) -> PublicAddress {
         self.incoming_viewing_key.generate_public_address()
     }
 
@@ -242,18 +220,18 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     }
 
     /// Retrieve the publicly visible outgoing viewing key
-    pub fn outgoing_view_key(&self) -> &OutgoingViewKey<J> {
+    pub fn outgoing_view_key(&self) -> &OutgoingViewKey {
         &self.outgoing_viewing_key
     }
 
     /// Retrieve the publicly visible incoming viewing key
-    pub fn incoming_view_key(&self) -> &IncomingViewKey<J> {
+    pub fn incoming_view_key(&self) -> &IncomingViewKey {
         &self.incoming_viewing_key
     }
 
     /// Retrieve both the view keys. These would normally used for third-party audits
     /// or for light clients.
-    pub fn view_keys(&self) -> ViewKeys<J> {
+    pub fn view_keys(&self) -> ViewKeys {
         ViewKeys {
             incoming: self.incoming_view_key().clone(),
             outgoing: self.outgoing_view_key().clone(),
@@ -288,18 +266,18 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
 
     /// Adapter to convert this key to a viewing key for use in sapling
     /// functions.
-    pub(crate) fn sapling_viewing_key(&self) -> ViewingKey<J> {
+    pub(crate) fn sapling_viewing_key(&self) -> ViewingKey {
         ViewingKey {
-            ak: self.authorizing_key.clone(),
-            nk: self.nullifier_deriving_key.clone(),
+            ak: self.authorizing_key,
+            nk: self.nullifier_deriving_key,
         }
     }
 
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
-    pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey<J> {
+    pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
         ProofGenerationKey {
-            ak: self.authorizing_key.clone(),
+            ak: self.authorizing_key,
             nsk: self.proof_authorizing_key,
         }
     }
@@ -333,16 +311,12 @@ impl<'a, J: JubjubEngine + pairing::MultiMillerLoop> SaplingKey<J> {
     /// This method is only called once, but it's kind of messy, so I pulled it
     /// out of the constructor for easier maintenance.
     fn hash_viewing_key(
-        authorizing_key: &edwards::Point<J, PrimeOrder>,
-        nullifier_deriving_key: &edwards::Point<J, PrimeOrder>,
-    ) -> Result<J::Fs, errors::SaplingKeyError> {
+        authorizing_key: &SubgroupPoint,
+        nullifier_deriving_key: &SubgroupPoint,
+    ) -> Result<jubjub::Fr, errors::SaplingKeyError> {
         let mut view_key_contents = [0; 64];
-        authorizing_key
-            .write(&mut view_key_contents[0..32])
-            .unwrap();
-        nullifier_deriving_key
-            .write(&mut view_key_contents[32..64])
-            .unwrap();
+        view_key_contents[0..32].copy_from_slice(&authorizing_key.to_bytes());
+        view_key_contents[32..64].copy_from_slice(&nullifier_deriving_key.to_bytes());
         // let mut hasher = Blake2s::with_params(32, &[], &[], CRH_IVK_PERSONALIZATION);
 
         let mut hash_result = [0; 32];

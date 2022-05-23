@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '..'
+import { Assert } from '../assert'
 import {
   createNodeTest,
   useAccountFixture,
@@ -56,13 +56,14 @@ describe('MemPool', () => {
       const { accounts, memPool } = node
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
+      const accountC = await useAccountFixture(accounts, 'accountC')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionC } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionB } = await useBlockWithTx(node, accountB, accountC)
+      const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
-      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(3)))
+      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
+      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
+      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(3))
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -80,8 +81,8 @@ describe('MemPool', () => {
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(1)))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => Promise.resolve(BigInt(4)))
+      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
+      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -128,6 +129,46 @@ describe('MemPool', () => {
       }, 60000)
     })
 
+    describe('with an existing nullifier in a transaction in the mempool', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction: transaction2 } = await useBlockWithTx(node, accountA, accountB)
+
+        expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(await memPool.acceptTransaction(transaction2)).toBe(false)
+      }, 60000)
+
+      it('returns true with a higher fee', async () => {
+        const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction: transaction2 } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          { fee: 2 },
+        )
+
+        expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(await memPool.acceptTransaction(transaction2)).toBe(true)
+      }, 60000)
+    })
+
     describe('with a new hash', () => {
       const nodeTest = createNodeTest()
 
@@ -155,7 +196,7 @@ describe('MemPool', () => {
 
         const hash = transaction.hash()
         expect(add).toHaveBeenCalledTimes(1)
-        expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
+        expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
         expect(set).toHaveBeenCalledTimes(1)
         expect(set).toHaveBeenCalledWith(hash, transaction)
       }, 60000)
@@ -175,8 +216,8 @@ describe('MemPool', () => {
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { block, transaction: transactionB } = await useBlockWithTx(
         node,
-        accountA,
         accountB,
+        accountA,
       )
       const hashA = transactionA.hash()
       const hashB = transactionB.hash()
@@ -212,7 +253,7 @@ describe('MemPool', () => {
       let minersFee
       let transaction
       for (const tx of block.transactions) {
-        if (await tx.isMinersFee()) {
+        if (tx.isMinersFee()) {
           minersFee = tx
         } else {
           transaction = tx
@@ -227,12 +268,12 @@ describe('MemPool', () => {
 
       const hash = transaction.hash()
       expect(transactions.get(hash)).not.toBeUndefined()
-      expect(add).toHaveBeenCalledWith({ fee: await transaction.fee(), hash })
+      expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
 
       const minersHash = minersFee.hash()
       expect(transactions.get(minersHash)).toBeUndefined()
       expect(add).not.toHaveBeenCalledWith({
-        fee: await block.minersFee.fee(),
+        fee: block.minersFee.fee(),
         hash: minersHash,
       })
     }, 60000)

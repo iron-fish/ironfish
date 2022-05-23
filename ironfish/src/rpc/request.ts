@@ -3,33 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Event } from '../event'
-import { IronfishNode } from '../node'
 
 export class Request<TRequest = unknown, TResponse = unknown> {
   data: TRequest
-  node: IronfishNode
   ended = false
   closed = false
-  code: number | null = null
   onEnd: (status: number, data?: TResponse) => void
   onStream: (data?: TResponse) => void
   onClose = new Event<[]>()
 
   constructor(
     data: TRequest,
-    node: IronfishNode,
     onEnd: (status: number, data?: unknown) => void,
     onStream: (data?: unknown) => void,
   ) {
     this.data = data
-    this.node = node
     this.onEnd = onEnd
     this.onStream = onStream
-  }
-
-  status(code: number): Request<TRequest, TResponse> {
-    this.code = code
-    return this
   }
 
   end(data?: TResponse, status?: number): void {
@@ -41,7 +31,7 @@ export class Request<TRequest = unknown, TResponse = unknown> {
       return
     }
     this.onClose.clear()
-    this.onEnd(status || this.code || 200, data)
+    this.onEnd(status || 200, data)
   }
 
   stream(data: TResponse): void {

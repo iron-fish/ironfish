@@ -22,11 +22,7 @@ export interface Key {
 }
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
-export interface MineHeaderNapiResult {
-  randomness: number
-  foundMatch: boolean
-}
-export function mineHeaderBatch(headerBytes: Buffer, initialRandomness: number, targetBuffer: Buffer, batchSize: number): MineHeaderNapiResult
+export function initializeSapling(): void
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)
@@ -43,18 +39,10 @@ export class NoteEncrypted {
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
 }
-export type NativeNoteBuilder = NoteBuilder
-export class NoteBuilder {
-  /**
-   * TODO: This works around a concurrency bug when using #[napi(factory)]
-   * in worker threads. It can be merged into NativeNote once the bug is fixed.
-   */
-  constructor(owner: string, value: bigint, memo: string)
-  serialize(): Buffer
-}
 export type NativeNote = Note
 export class Note {
-  constructor(bytes: Buffer)
+  constructor(owner: string, value: bigint, memo: string)
+  static deserialize(bytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */
   value(): bigint
@@ -117,4 +105,17 @@ export class Transaction {
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpirationSequence(expirationSequence: number): void
+}
+export class FoundBlockResult {
+  randomness: string
+  miningRequestId: number
+  constructor(randomness: string, miningRequestId: number)
+}
+export class ThreadPoolHandler {
+  constructor(threadCount: number, batchSize: number)
+  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
+  stop(): void
+  pause(): void
+  getFoundBlock(): FoundBlockResult | undefined | null
+  getHashRateSubmission(): number
 }

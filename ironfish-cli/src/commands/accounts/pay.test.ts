@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as ironfishmodule from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { expect as expectCli, test } from '@oclif/test'
-import * as ironfishmodule from 'ironfish'
 
 describe('accounts:pay command', () => {
   let sendTransaction = jest.fn()
@@ -71,7 +71,7 @@ describe('accounts:pay command', () => {
       'with every flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
+          `$IRON 2.00000000 ($ORE 200,000,000) plus a transaction fee of $IRON 1.00000000 ($ORE 100,000,000) to ${to} from the account ${from}`,
         )
         expectCli(ctx.stdout).include(`Transaction Hash`)
         expect(sendTransaction).toBeCalledTimes(1)
@@ -87,7 +87,7 @@ describe('accounts:pay command', () => {
       'without memo flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
+          `$IRON 2.00000000 ($ORE 200,000,000) plus a transaction fee of $IRON 1.00000000 ($ORE 100,000,000) to ${to} from the account ${from}`,
         )
         expectCli(ctx.stdout).include(`Transaction Hash`)
         expect(sendTransaction).toBeCalledTimes(1)
@@ -125,10 +125,10 @@ describe('accounts:pay command', () => {
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
     .exit(0)
     .it(
-      'without account flag: show the right confirmation message and call sendTransaction if valid',
+      'without amount flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON 3.00000000 ($ORE 300,000,000) to  ${to} from the account  ${from}`,
+          `$IRON 3.00000000 ($ORE 300,000,000) to ${to} from the account ${from}`,
         )
         expectCli(ctx.stdout).include(`Transaction Hash`)
         expect(sendTransaction).toBeCalledTimes(1)
@@ -140,8 +140,8 @@ describe('accounts:pay command', () => {
     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
-    .exit(0)
-    .it('without account flag: show the right error message', () => {
+    .exit(2)
+    .it('without amount flag: show the right error message', () => {
       expect(sendTransaction).toBeCalledTimes(0)
     })
 
@@ -185,7 +185,7 @@ describe('accounts:pay command', () => {
       .exit(2)
       .it('show the right error message and call sendTransaction', (ctx) => {
         expectCli(ctx.stdout).include(
-          `$IRON  2 ($ORE 200,000,000) plus a transaction fee of $IRON  1 ($ORE 100,000,000) to  ${to} from the account  ${from}`,
+          `$IRON 2.00000000 ($ORE 200,000,000) plus a transaction fee of $IRON 1.00000000 ($ORE 100,000,000) to ${to} from the account ${from}`,
         )
         expect(sendTransaction).toBeCalledTimes(1)
         expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)

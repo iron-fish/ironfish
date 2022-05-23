@@ -6,7 +6,9 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { DisconnectingReason, InternalMessageType, LooseMessage } from '../messages'
+import { DisconnectingReason } from '../messages/disconnecting'
+import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessageType } from '../types'
 import { ConnectionRetry } from './connectionRetry'
 import { WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
@@ -21,15 +23,15 @@ export enum BAN_SCORE {
 /**
  * Message types that should be excluded from loggedMessages (unless overridden).
  */
-const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<string> = [
-  InternalMessageType.peerList,
-  InternalMessageType.signal,
+const UNLOGGED_MESSAGE_TYPES: ReadonlyArray<NetworkMessageType> = [
+  NetworkMessageType.PeerList,
+  NetworkMessageType.Signal,
 ]
 
 type LoggedMessage = {
   brokeringPeerDisplayName?: string
   direction: 'send' | 'receive'
-  message: LooseMessage
+  message: NetworkMessage
   timestamp: number
   type: ConnectionType
 }
@@ -193,7 +195,7 @@ export class Peer {
    * by the application layer. Includes the connection from which the message
    * was received.
    */
-  readonly onMessage: Event<[LooseMessage, Connection]> = new Event()
+  readonly onMessage: Event<[NetworkMessage, Connection]> = new Event()
 
   /**
    * Event fired when the knownPeers map changes.
@@ -423,11 +425,13 @@ export class Peer {
    * Sends a message over the peer's connection if CONNECTED, else drops it.
    * @param message The message to send.
    */
-  send(message: LooseMessage): Connection | null {
+  send(message: NetworkMessage): Connection | null {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
       this.logger.debug(
-        `Attempted to send a ${message.type} message to ${this.displayName} in state ${this.state.type}`,
+        `Attempted to send a ${displayNetworkMessageType(message.type)} message to ${
+          this.displayName
+        } in state ${this.state.type}`,
       )
       return null
     }
@@ -439,7 +443,7 @@ export class Peer {
       if (this.state.connections.webRtc.send(message)) {
         this.pushLoggedMessage({
           direction: 'send',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: ConnectionType.WebRtc,
         })
@@ -456,7 +460,7 @@ export class Peer {
       if (this.state.connections.webSocket.send(message)) {
         this.pushLoggedMessage({
           direction: 'send',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: ConnectionType.WebSocket,
         })
@@ -493,8 +497,10 @@ export class Peer {
     return this.supportedConnections[type]
   }
 
-  private readonly connectionMessageHandlers: Map<Connection, (message: LooseMessage) => void> =
-    new Map<Connection, (message: LooseMessage) => void>()
+  private readonly connectionMessageHandlers: Map<
+    Connection,
+    (message: NetworkMessage) => void
+  > = new Map<Connection, (message: NetworkMessage) => void>()
 
   private readonly connectionStateChangedHandlers: Map<Connection, () => void> = new Map<
     Connection,
@@ -535,10 +541,10 @@ export class Peer {
 
     // onMessage
     if (!this.connectionMessageHandlers.has(connection)) {
-      const messageHandler = (message: LooseMessage) => {
+      const messageHandler = (message: NetworkMessage) => {
         this.pushLoggedMessage({
           direction: 'receive',
-          message: message,
+          message,
           timestamp: Date.now(),
           type: connection.type,
         })
@@ -680,7 +686,8 @@ export class Peer {
       return
     }
 
-    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(loggedMessage.message.type)) {
+    const { message } = loggedMessage
+    if (forceLogMessage || !UNLOGGED_MESSAGE_TYPES.includes(message.type)) {
       this.loggedMessages.push(loggedMessage)
     }
   }

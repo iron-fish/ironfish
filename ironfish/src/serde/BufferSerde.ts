@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Serde } from '.'
+import { Serde } from './Serde'
 import Uint8ArraySerde from './Uint8ArraySerde'
 
 /**

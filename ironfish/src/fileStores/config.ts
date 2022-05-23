@@ -3,19 +3,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
-import { DEFAULT_DATA_DIR } from './fileStore'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATABASE_NAME = 'default'
+export const DEFAULT_DATA_DIR = '~/.ironfish'
 export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
-export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/EkQkEcm8DH'
+export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+
+// Pool defaults
+export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
+export const DEFAULT_POOL_ACCOUNT_NAME = 'default'
+export const DEFAULT_POOL_BALANCE_PERCENT_PAYOUT = 10
+export const DEFAULT_POOL_HOST = '0.0.0.0'
+export const DEFAULT_POOL_PORT = 9034
+export const DEFAULT_POOL_DIFFICULTY = '15000000000'
+export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
+export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
+export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -23,7 +34,6 @@ export type ConfigOptions = {
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
-  enableMiningDirector: boolean
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
@@ -32,6 +42,12 @@ export type ConfigOptions = {
   enableMetrics: boolean
   getFundsApi: string
   ipcPath: string
+  /**
+   * As part of IRO-1759 we are removing 'node-ipc' for RPC. This is
+   * essentially a feature flag for enabling use of the native TCP adapter
+   * without using 'node-ipc'
+   */
+  enableNativeRpcTcpAdapter: boolean
   /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
@@ -123,6 +139,56 @@ export type ConfigOptions = {
    * The number of hashes processed by miner per worker request.
    */
   minerBatchSize: number
+
+  /**
+   * The name that the pool will use in block graffiti and transaction memo.
+   */
+  poolName: string
+
+  /**
+   * The name of the account that the pool will use to payout from.
+   */
+  poolAccountName: string
+
+  /**
+   * The percent of the confirmed balance of the pool's account that it will payout
+   */
+  poolBalancePercentPayout: number
+
+  /**
+   * The host that the pool is listening for miner connections on.
+   */
+  poolHost: string
+
+  /**
+   * The port that the pool is listening for miner connections on.
+   */
+  poolPort: number
+
+  /**
+   * The pool difficulty, which determines how often miners submit shares.
+   */
+  poolDifficulty: string
+
+  /**
+   * The length of time in seconds that the pool will wait between checking if it is time to make a payout.
+   */
+  poolAttemptPayoutInterval: number
+
+  /**
+   * The length of time in seconds that the pool will wait between successful payouts.
+   */
+  poolSuccessfulPayoutInterval: number
+
+  /**
+   * The length of time in seconds that will be used to calculate hashrate for the pool.
+   */
+  poolRecentShareCutoff: number
+
+  /**
+   * The discord webhook URL to post pool critical pool information too
+   */
+  poolDiscordWebhook: ''
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -131,12 +197,12 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
-  constructor(files: FileSystem, dataDir?: string, configName?: string) {
+  constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(
       files,
       configName || DEFAULT_CONFIG_NAME,
-      Config.GetDefaults(files, dataDir || DEFAULT_DATA_DIR),
-      dataDir || DEFAULT_DATA_DIR,
+      Config.GetDefaults(files, dataDir),
+      dataDir,
       ConfigOptionsSchema,
     )
   }
@@ -149,6 +215,10 @@ export class Config extends KeyStore<ConfigOptions> {
     return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
   }
 
+  get indexDatabasePath(): string {
+    return this.files.join(this.storage.dataDir, 'indexes', this.get('databaseName'))
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
@@ -157,15 +227,15 @@ export class Config extends KeyStore<ConfigOptions> {
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,
-      enableMiningDirector: false,
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
+      enableNativeRpcTcpAdapter: false,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
       getFundsApi: DEFAULT_GET_FUNDS_API,
-      ipcPath: files.resolve(files.join(dataDir || DEFAULT_DATA_DIR, 'ironfish.ipc')),
+      ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
       logPrefix: '',
@@ -188,6 +258,16 @@ export class Config extends KeyStore<ConfigOptions> {
       generateNewIdentity: false,
       blocksPerMessage: 20,
       minerBatchSize: 10000,
+      poolName: DEFAULT_POOL_NAME,
+      poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
+      poolHost: DEFAULT_POOL_HOST,
+      poolPort: DEFAULT_POOL_PORT,
+      poolDifficulty: DEFAULT_POOL_DIFFICULTY,
+      poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
+      poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
+      poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
+      poolDiscordWebhook: '',
     }
   }
 }

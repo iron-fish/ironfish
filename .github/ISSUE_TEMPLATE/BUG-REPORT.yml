@@ -28,7 +28,7 @@ body:
     id: debug
     attributes:
       label: Debug output
-      description: Please copy and paste the output of `ironfish debug` / `yarn start:once debug` (same as you run any other `ironfish` commands).  This will be automatically formatted into code, so no need for backticks.
+      description: Please copy and paste the output of `ironfish debug` / `yarn start debug` (same as you run any other `ironfish` commands).  This will be automatically formatted into code, so no need for backticks.
       render: shell
   - type: textarea
     id: logs
@@ -36,3 +36,8 @@ body:
       label: Relevant log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       render: shell
+  - type: input
+    id: graffiti
+    attributes:
+      label: Graffiti
+      description: Please copy and paste your graffiti.

@@ -4,7 +4,7 @@
 
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { GraffitiUtils } from '../utils'
-import { BlockHeader } from './blockheader'
+import { BlockHeader, isBlockHeavier, isBlockLater } from './blockheader'
 import { Target } from './target'
 
 describe('BlockHeaderSerde', () => {
@@ -21,7 +21,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(0),
       Buffer.alloc(32),
@@ -34,7 +34,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(0),
       Buffer.alloc(32),
@@ -79,7 +79,7 @@ describe('BlockHeaderSerde', () => {
     expect(serde.equals(header1, header2)).toBe(true)
 
     // randomness
-    header2.randomness = 19
+    header2.randomness = BigInt(19)
     expect(serde.equals(header1, header2)).toBe(false)
     header2.randomness = header1.randomness
     expect(serde.equals(header1, header2)).toBe(true)
@@ -108,7 +108,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
-      25,
+      BigInt(25),
       new Date(1598467858637),
       BigInt(-1),
       GraffitiUtils.fromString('test'),
@@ -117,5 +117,93 @@ describe('BlockHeaderSerde', () => {
     const serialized = serde.serialize(header)
     const deserialized = serde.deserialize(serialized)
     expect(serde.equals(header, deserialized)).toBe(true)
+  })
+
+  it('checks block is later than', () => {
+    const header1 = new BlockHeader(
+      nodeTest.strategy,
+      5,
+      Buffer.alloc(32),
+      { commitment: Buffer.alloc(32), size: 0 },
+      { commitment: Buffer.alloc(32), size: 0 },
+      new Target(0),
+      BigInt(0),
+      new Date(0),
+      BigInt(0),
+      Buffer.alloc(32),
+    )
+
+    const serialized = nodeTest.strategy.blockHeaderSerde.serialize(header1)
+    const header2 = nodeTest.strategy.blockHeaderSerde.deserialize(serialized)
+    expect(isBlockLater(header1, header2)).toBe(false)
+
+    header1.sequence = 6
+    header2.sequence = 5
+    expect(isBlockLater(header1, header2)).toBe(true)
+
+    header1.sequence = 5
+    header2.sequence = 5
+    header1.hash = Buffer.alloc(32, 1)
+    header2.hash = Buffer.alloc(32, 2)
+    expect(isBlockLater(header1, header2)).toBe(true)
+  })
+
+  it('checks block is heavier than', () => {
+    const header1 = new BlockHeader(
+      nodeTest.strategy,
+      5,
+      Buffer.alloc(32),
+      { commitment: Buffer.alloc(32), size: 0 },
+      { commitment: Buffer.alloc(32), size: 0 },
+      new Target(1),
+      BigInt(0),
+      new Date(0),
+      BigInt(0),
+      Buffer.alloc(32),
+    )
+
+    const serialized = nodeTest.strategy.blockHeaderSerde.serialize(header1)
+    const header2 = nodeTest.strategy.blockHeaderSerde.deserialize(serialized)
+    expect(isBlockHeavier(header1, header2)).toBe(false)
+
+    header1.work = BigInt(1)
+    header2.work = BigInt(0)
+    header1.sequence = 5
+    header2.sequence = 5
+    header1.target = new Target(100)
+    header2.target = new Target(100)
+    header1.hash = Buffer.alloc(32, 0)
+    header1.hash = Buffer.alloc(32, 0)
+    expect(isBlockHeavier(header1, header2)).toBe(true)
+
+    header1.work = BigInt(0)
+    header2.work = BigInt(0)
+    header1.sequence = 6
+    header2.sequence = 5
+    header1.target = new Target(100)
+    header2.target = new Target(100)
+    header1.hash = Buffer.alloc(32, 0)
+    header1.hash = Buffer.alloc(32, 0)
+    expect(isBlockHeavier(header1, header2)).toBe(true)
+
+    header1.work = BigInt(0)
+    header2.work = BigInt(0)
+    header1.sequence = 5
+    header2.sequence = 5
+    header1.target = new Target(100)
+    header2.target = new Target(200)
+    header1.hash = Buffer.alloc(32, 0)
+    header1.hash = Buffer.alloc(32, 0)
+    expect(isBlockHeavier(header1, header2)).toBe(true)
+
+    header1.work = BigInt(0)
+    header2.work = BigInt(0)
+    header1.sequence = 5
+    header2.sequence = 5
+    header1.target = new Target(100)
+    header2.target = new Target(100)
+    header1.hash = Buffer.alloc(32, 0)
+    header2.hash = Buffer.alloc(32, 1)
+    expect(isBlockHeavier(header1, header2)).toBe(true)
   })
 })

@@ -17,7 +17,6 @@ testdbs
 .env.development.local
 .env.test.local
 .env.production.local
-**/*.test.js
 */**/yarn.lock
 .idea
 

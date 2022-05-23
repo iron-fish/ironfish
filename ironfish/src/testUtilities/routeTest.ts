@@ -4,7 +4,7 @@
 import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
-import { MiningDirector } from '../mining/director'
+import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -33,34 +33,20 @@ export class RouteTest extends NodeTest {
     accounts: Accounts
     peerNetwork: PeerNetwork
     syncer: Syncer
-    miningDirector: MiningDirector
     workerPool: WorkerPool
-    adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
     const setup = await super.createSetup()
 
-    const client = new IronfishMemoryClient()
-    await client.connect(setup.node)
-    const adapter = client.adapter
+    const logger = createRootLogger().withTag('memoryclient')
+    const client = new IronfishMemoryClient(logger, setup.node)
 
-    return { ...setup, adapter, client }
+    return { ...setup, client }
   }
 
   async setup(): Promise<void> {
-    const {
-      sdk,
-      node,
-      strategy,
-      chain,
-      accounts,
-      peerNetwork,
-      syncer,
-      miningDirector,
-      workerPool,
-      client,
-      adapter,
-    } = await this.createSetup()
+    const { sdk, node, strategy, chain, accounts, peerNetwork, syncer, workerPool, client } =
+      await this.createSetup()
 
     this.sdk = sdk
     this.node = node
@@ -70,8 +56,6 @@ export class RouteTest extends NodeTest {
     this.syncer = syncer
     this.peerNetwork = peerNetwork
     this.client = client
-    this.adapter = adapter
-    this.miningDirector = miningDirector
     this.workerPool = workerPool
   }
 }
@@ -79,10 +63,18 @@ export class RouteTest extends NodeTest {
 /** Call this to create a {@link RouteTest} and ensure its test lifecycle
  * methods are called properly like beforeEach, beforeAll, etc
  */
-export function createRouteTest(): RouteTest {
+export function createRouteTest(preserveState = false): RouteTest {
   const routeTest = new RouteTest()
-  beforeAll(() => routeTest.setup(), 10000)
-  afterEach(() => routeTest.teardownEach())
-  afterAll(() => routeTest.teardownAll())
+
+  if (preserveState) {
+    beforeAll(() => routeTest.setup(), 10000)
+    afterEach(() => routeTest.teardownEach())
+    afterAll(() => routeTest.teardownAll())
+  } else {
+    beforeEach(() => routeTest.setup(), 10000)
+    afterEach(() => routeTest.teardownEach())
+    afterEach(() => routeTest.teardownAll())
+  }
+
   return routeTest
 }

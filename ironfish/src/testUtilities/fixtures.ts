@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
-import { generateKey } from 'ironfish-rust-nodejs'
 import path from 'path'
 import { Account, Accounts } from '../account'
 import { Assert } from '../assert'
@@ -240,7 +240,7 @@ export async function useTxFixture(
       return tx.serialize()
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx, accounts.workerPool)
+      return new Transaction(tx)
     },
   })
 }
@@ -309,6 +309,7 @@ export async function useBlockWithTx(
   useFee = true,
   options: {
     expiration?: number
+    fee?: number
   } = { expiration: 0 },
 ): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
@@ -343,17 +344,13 @@ export async function useBlockWithTx(
           memo: '',
         },
       ],
-      BigInt(1),
+      BigInt(options.fee ?? 1),
       options.expiration ?? 0,
     )
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(
-        await transaction.fee(),
-        3,
-        generateKey().spending_key,
-      ),
+      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
     )
   })
 

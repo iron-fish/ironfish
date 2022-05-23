@@ -6,20 +6,19 @@ import type { Account } from '../account'
 import {
   generateKey,
   Note as NativeNote,
-  NoteBuilder as NativeNoteBuilder,
   Transaction as NativeTransaction,
-} from 'ironfish-rust-nodejs'
+} from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { GraffitiUtils } from '../utils/graffiti'
-import { WorkerPool } from '../workerPool'
 
 export type GenesisBlockInfo = {
   memo: string
   timestamp: number
+  target: Target
   allocations: {
     publicAddress: string
     amount: number
@@ -35,7 +34,6 @@ export async function makeGenesisBlock(
   chain: Blockchain,
   info: GenesisBlockInfo,
   account: Account,
-  workerPool: WorkerPool,
   logger: Logger,
 ): Promise<{ block: Block }> {
   logger = logger.withTag('makeGenesisBlock')
@@ -53,11 +51,9 @@ export async function makeGenesisBlock(
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
   const genesisNote = new NativeNote(
-    new NativeNoteBuilder(
-      genesisKey.public_address,
-      BigInt(allocationSum),
-      info.memo,
-    ).serialize(),
+    genesisKey.public_address,
+    BigInt(allocationSum),
+    info.memo,
   )
 
   // Create a miner's fee transaction for the block.
@@ -67,15 +63,11 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(
-    new NativeNoteBuilder(account.publicAddress, BigInt(0), '').serialize(),
-  )
+  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+
   const minersFeeTransaction = new NativeTransaction()
   minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new Transaction(
-    minersFeeTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
    *
@@ -90,10 +82,7 @@ export async function makeGenesisBlock(
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new Transaction(
-    initialTransaction.post_miners_fee(),
-    workerPool,
-  )
+  const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
   transactionList.push(postedInitialTransaction)
 
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
@@ -131,16 +120,13 @@ export async function makeGenesisBlock(
     logger.info(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
-    const note = new NativeNote(
-      new NativeNoteBuilder(alloc.publicAddress, BigInt(alloc.amount), info.memo).serialize(),
-    )
+    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
     transaction.receive(genesisKey.spending_key, note)
   }
 
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
     transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
-    workerPool,
   )
   transactionList.push(postedTransaction)
 
@@ -161,7 +147,7 @@ export async function makeGenesisBlock(
   )
 
   // Modify the block with any custom properties.
-  block.header.target = Target.initialTarget()
+  block.header.target = info.target
   block.header.timestamp = new Date(info.timestamp)
 
   logger.info('Block complete.')

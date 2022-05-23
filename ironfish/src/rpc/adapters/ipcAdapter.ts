@@ -7,7 +7,6 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -81,7 +80,6 @@ export type IpcAdapterConnectionInfo =
     }
 
 export class IpcAdapter implements IAdapter {
-  node: IronfishNode | null = null
   router: Router | null = null
   ipc: IPC | null = null
   server: IpcServer | null = null
@@ -189,13 +187,7 @@ export class IpcAdapter implements IAdapter {
   }
 
   attach(server: RpcServer): void {
-    this.node = server.node
     this.router = server.getRouter(this.namespaces)
-  }
-
-  unattach(): void {
-    this.node = null
-    this.router = null
   }
 
   onConnect(socket: IpcSocket): void {
@@ -233,17 +225,14 @@ export class IpcAdapter implements IAdapter {
     }
 
     const message = result.result
-    const node = this.node
     const router = this.router
     const server = this.server
 
-    Assert.isNotNull(node)
     Assert.isNotNull(router)
     Assert.isNotNull(server)
 
     const request = new Request(
       message.data,
-      node,
       (status: number, data?: unknown) => {
         this.emitResponse(socket, message.mid, status, data)
       },
@@ -281,24 +270,13 @@ export class IpcAdapter implements IAdapter {
     this.server.emit(socket, 'stream', { id: messageId, data: data })
   }
 
-  renderError(error: unknown): IpcError {
-    let message = 'An error has occured'
-    let stack = undefined
-    let code: string = ERROR_CODES.ERROR
-
-    if (error instanceof Error) {
-      message = error.message
-      stack = error.stack
-    }
-
-    if (error instanceof ResponseError) {
-      code = error.code
-    }
+  renderError(error: Error): IpcError {
+    const code = error instanceof ResponseError ? error.code : ERROR_CODES.ERROR
 
     return {
       code: code,
-      message: message,
-      stack: stack,
+      message: error.message,
+      stack: error.stack,
     }
   }
 

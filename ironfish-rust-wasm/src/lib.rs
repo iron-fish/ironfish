@@ -47,8 +47,7 @@ impl Key {
 
 #[wasm_bindgen(js_name = "generateKey")]
 pub fn create_key_to_js() -> Key {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key = sapling_bls12::Key::generate_key(hasher);
+    let sapling_key = sapling_bls12::Key::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -60,9 +59,7 @@ pub fn create_key_to_js() -> Key {
 
 #[wasm_bindgen(catch, js_name = "generateNewPublicAddress")]
 pub fn create_new_public_key_to_js(private_key: &str) -> Result<Key, JsValue> {
-    let hasher = sapling_bls12::SAPLING.clone();
-    let sapling_key =
-        sapling_bls12::Key::from_hex(hasher, private_key).map_err(WasmSaplingKeyError)?;
+    let sapling_key = sapling_bls12::Key::from_hex(private_key).map_err(WasmSaplingKeyError)?;
 
     Ok(Key {
         spending_key: sapling_key.hex_spending_key(),

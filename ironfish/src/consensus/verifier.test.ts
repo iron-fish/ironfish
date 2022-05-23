@@ -6,7 +6,7 @@ jest.mock('ws')
 jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
-import { Assert } from '..'
+import { Assert } from '../assert'
 import { BlockHeader } from '../primitives'
 import { Target } from '../primitives/target'
 import {
@@ -88,7 +88,7 @@ describe('Verifier', () => {
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
-      await expect(block.transactions[0].fee()).resolves.toBeGreaterThan(0)
+      expect(block.transactions[0].fee()).toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
@@ -459,9 +459,12 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest
-          .spyOn(transaction['workerPool'], 'verify')
-          .mockImplementationOnce(() => Promise.resolve(false))
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
+          Promise.resolve({
+            valid: false,
+            reason: VerificationResultReason.ERROR,
+          }),
+        )
 
         await expect(
           nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
@@ -477,9 +480,11 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest
-          .spyOn(transaction['workerPool'], 'verify')
-          .mockImplementationOnce(() => Promise.resolve(true))
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
+          Promise.resolve({
+            valid: true,
+          }),
+        )
 
         expect(
           await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
@@ -494,7 +499,7 @@ describe('Verifier', () => {
         const account = await useAccountFixture(nodeTest.accounts)
         const transaction = await useMinersTxFixture(nodeTest.accounts, account)
 
-        jest.spyOn(transaction['workerPool'], 'verify').mockImplementation(() => {
+        jest.spyOn(nodeTest.workerPool, 'verify').mockImplementation(() => {
           throw new Error('Response type must match request type')
         })
 

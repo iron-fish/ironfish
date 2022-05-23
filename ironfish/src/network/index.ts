@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export { PeerNetwork, RoutingStyle } from './peerNetwork'
-
-export type { Gossip, Rpc } from './messageRouters'
-export { CannotSatisfyRequestError, Direction } from './messageRouters'
-export { RPC_TIMEOUT_MILLIS } from './messageRouters/rpcId'
+export { PeerNetwork } from './peerNetwork'
 
 export type { Connection } from './peers/connections'
 export type { Peer } from './peers/peer'
@@ -21,5 +17,4 @@ export {
   privateIdentityToIdentity,
 } from './identity'
 
-export * from './messages'
 export * from './utils'

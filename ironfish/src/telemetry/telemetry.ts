@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block } from '../primitives/block'
-import { renderError, SetIntervalToken } from '../utils'
+import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Field } from './interfaces/field'
 import { Metric } from './interfaces/metric'
@@ -19,6 +20,7 @@ export class Telemetry {
   private readonly METRICS_INTERVAL = 5 * 60 * 1000
 
   private readonly chain: Blockchain
+  private readonly config: Config
   private readonly defaultTags: Tag[]
   private readonly defaultFields: Field[]
   private readonly logger: Logger
@@ -35,6 +37,7 @@ export class Telemetry {
   constructor(options: {
     chain: Blockchain
     workerPool: WorkerPool
+    config: Config
     logger?: Logger
     metrics?: MetricsMonitor
     defaultFields?: Field[]
@@ -42,6 +45,7 @@ export class Telemetry {
   }) {
     this.chain = options.chain
     this.workerPool = options.workerPool
+    this.config = options.config
     this.logger = options.logger ?? createRootLogger()
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
@@ -112,6 +116,7 @@ export class Telemetry {
 
     this.submit({
       measurement: 'node_stats',
+      timestamp: new Date(),
       fields: [
         {
           name: 'heap_used',
@@ -174,7 +179,7 @@ export class Telemetry {
 
     this.points.push({
       ...metric,
-      timestamp: metric.timestamp || new Date(),
+      timestamp: metric.timestamp,
       tags,
       fields,
     })
@@ -189,7 +194,8 @@ export class Telemetry {
     }
 
     try {
-      await this.workerPool.submitTelemetry(points)
+      const graffiti = GraffitiUtils.fromString(this.config.get('blockGraffiti'))
+      await this.workerPool.submitTelemetry(points, graffiti)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0
       this._submitted += points.length
@@ -212,6 +218,7 @@ export class Telemetry {
     this.submit({
       measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
+      timestamp: new Date(),
     })
   }
 
@@ -219,6 +226,7 @@ export class Telemetry {
     this.submit({
       measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: false }],
+      timestamp: new Date(),
     })
   }
 
@@ -237,6 +245,7 @@ export class Telemetry {
           value: Number(block.header.sequence),
         },
       ],
+      timestamp: new Date(),
     })
   }
 

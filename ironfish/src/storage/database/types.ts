@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IJsonSerializable, Serde } from '../../serde'
+import { IJsonSerializable } from '../../serde'
 
 export type DatabaseKey = bigint | number | string | Date | Buffer | Array<IJsonSerializable>
 
@@ -16,4 +16,7 @@ export type SchemaValue<Schema extends DatabaseSchema> = Schema['value']
 
 export type DatabaseOptions = { [key: string]: unknown }
 
-export type IDatabaseEncoding<T> = Serde<T, Buffer>
+export type IDatabaseEncoding<T> = {
+  serialize(value: T): Buffer
+  deserialize(buffer: Buffer): T
+}

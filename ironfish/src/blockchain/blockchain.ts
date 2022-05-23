@@ -16,6 +16,8 @@ import { Event } from '../event'
 import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
+import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
+import { NodeEncoding } from '../merkletree/database/nodes'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
 import { Block, SerializedBlock } from '../primitives/block'
@@ -31,19 +33,20 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import {
-  BUFFER_ARRAY_ENCODING,
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  JsonEncoding,
-  NUMBER_ENCODING,
   StringEncoding,
+  U32_ENCODING,
 } from '../storage'
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
-import { BlockHeaderEncoding, TransactionArrayEncoding } from './encoding'
+import { WorkerPool } from '../workerPool'
+import { HeaderEncoding } from './database/headers'
+import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
+import { TransactionsValueEncoding } from './database/transactions'
 import {
   HashToNextSchema,
   HeadersSchema,
@@ -53,7 +56,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 4
+const DATABASE_VERSION = 6
 
 export class Blockchain {
   db: IDatabase
@@ -139,6 +142,7 @@ export class Blockchain {
   constructor(options: {
     location: string
     strategy: Strategy
+    workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
@@ -149,7 +153,7 @@ export class Blockchain {
     this.strategy = options.strategy
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
-    this.verifier = new Verifier(this)
+    this.verifier = new Verifier(this, options.workerPool)
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
@@ -160,34 +164,34 @@ export class Blockchain {
     this.meta = this.db.addStore({
       name: 'bm',
       keyEncoding: new StringEncoding<'head' | 'latest'>(),
-      valueEncoding: new JsonEncoding<Buffer>(),
+      valueEncoding: BUFFER_ENCODING,
     })
 
     // BlockHash -> BlockHeader
     this.headers = this.db.addStore({
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new BlockHeaderEncoding(this.strategy.blockHeaderSerde),
+      valueEncoding: new HeaderEncoding(this.strategy),
     })
 
     // BlockHash -> Transaction[]
     this.transactions = this.db.addStore({
       name: 'bt',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionArrayEncoding(this.strategy.transactionSerde),
+      valueEncoding: new TransactionsValueEncoding(),
     })
 
-    // BigInt -> BlockHash[]
+    // number -> BlockHash[]
     this.sequenceToHashes = this.db.addStore({
       name: 'bs',
-      keyEncoding: NUMBER_ENCODING,
-      valueEncoding: BUFFER_ARRAY_ENCODING,
+      keyEncoding: U32_ENCODING,
+      valueEncoding: new SequenceToHashesValueEncoding(),
     })
 
-    // BigInt -> BlockHash
+    // number -> BlockHash
     this.sequenceToHash = this.db.addStore({
       name: 'bS',
-      keyEncoding: NUMBER_ENCODING,
+      keyEncoding: U32_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
 
@@ -199,6 +203,9 @@ export class Blockchain {
 
     this.notes = new MerkleTree({
       hasher: this.strategy.noteHasher,
+      leafIndexKeyEncoding: BUFFER_ENCODING,
+      leafEncoding: new NoteLeafEncoding(),
+      nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'n',
       depth: 32,
@@ -206,6 +213,9 @@ export class Blockchain {
 
     this.nullifiers = new MerkleTree({
       hasher: this.strategy.nullifierHasher,
+      leafIndexKeyEncoding: BUFFER_ENCODING,
+      leafEncoding: new NullifierLeafEncoding(),
+      nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'u',
       depth: 32,
@@ -784,7 +794,7 @@ export class Blockchain {
 
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
-        blockHeader || this.headers.get(blockHash, tx),
+        blockHeader || this.headers.get(blockHash, tx).then((result) => result?.header),
         this.transactions.get(blockHash, tx),
       ])
 
@@ -798,7 +808,7 @@ export class Blockchain {
         )
       }
 
-      return new Block(header, transactions)
+      return new Block(header, transactions.transactions)
     })
   }
 
@@ -833,7 +843,7 @@ export class Blockchain {
       return []
     }
 
-    return hashes
+    return hashes.hashes
   }
 
   /**
@@ -866,7 +876,7 @@ export class Blockchain {
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
-        target = Target.initialTarget()
+        target = Target.maxTarget()
       } else {
         const heaviestHead = this.head
         if (
@@ -913,9 +923,9 @@ export class Blockchain {
         noteCommitment,
         nullifierCommitment,
         target,
-        0,
+        BigInt(0),
         timestamp,
-        await minersFee.fee(),
+        minersFee.fee(),
         graffiti,
       )
 
@@ -989,7 +999,7 @@ export class Blockchain {
   }
 
   async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
-    return (await this.headers.get(hash, tx)) || null
+    return (await this.headers.get(hash, tx))?.header || null
   }
 
   async getPrevious(
@@ -1036,7 +1046,7 @@ export class Blockchain {
     }
 
     const headers = await Promise.all(
-      hashes.map(async (h) => {
+      hashes.hashes.map(async (h) => {
         const header = await this.getHeader(h, tx)
         Assert.isNotNull(header)
         return header
@@ -1090,12 +1100,12 @@ export class Blockchain {
         await this.disconnect(block, tx)
       }
 
-      let sequences = await this.sequenceToHashes.get(header.sequence, tx)
-      sequences = (sequences || []).filter((h) => !h.equals(hash))
-      if (sequences.length === 0) {
+      const result = await this.sequenceToHashes.get(header.sequence, tx)
+      const hashes = (result?.hashes || []).filter((h) => !h.equals(hash))
+      if (hashes.length === 0) {
         await this.sequenceToHashes.del(header.sequence, tx)
       } else {
-        await this.sequenceToHashes.put(header.sequence, sequences, tx)
+        await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
       await this.transactions.del(hash, tx)
@@ -1194,19 +1204,17 @@ export class Blockchain {
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    const verify = await block.withTransactionReferences(async () => {
-      for (const note of block.allNotes()) {
-        await this.addNote(notesIndex, note, tx)
-        notesIndex++
-      }
+    for (const note of block.allNotes()) {
+      await this.addNote(notesIndex, note, tx)
+      notesIndex++
+    }
 
-      for (const spend of block.spends()) {
-        await this.addNullifier(nullifierIndex, spend.nullifier, tx)
-        nullifierIndex++
-      }
+    for (const spend of block.spends()) {
+      await this.addNullifier(nullifierIndex, spend.nullifier, tx)
+      nullifierIndex++
+    }
 
-      return await this.verifier.verifyConnectedBlock(block, tx)
-    })
+    const verify = await this.verifier.verifyConnectedBlock(block, tx)
 
     if (!verify.valid) {
       Assert.isNotUndefined(verify.reason)
@@ -1244,14 +1252,14 @@ export class Blockchain {
     const sequence = block.header.sequence
 
     // Update BlockHash -> BlockHeader
-    await this.headers.put(hash, block.header, tx)
+    await this.headers.put(hash, { header: block.header }, tx)
 
     // Update BlockHash -> Transaction
-    await this.transactions.add(hash, block.transactions, tx)
+    await this.transactions.add(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
     const hashes = await this.sequenceToHashes.get(sequence, tx)
-    await this.sequenceToHashes.put(sequence, (hashes || []).concat(hash), tx)
+    await this.sequenceToHashes.put(sequence, { hashes: [...(hashes?.hashes || []), hash] }, tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)

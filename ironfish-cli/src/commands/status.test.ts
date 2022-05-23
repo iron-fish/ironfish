@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { GetStatusResponse } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
-import { GetStatusResponse } from 'ironfish'
 
 describe('status', () => {
   const responseContent: GetStatusResponse = {
@@ -23,9 +23,9 @@ describe('status', () => {
       memFree: 4,
       memTotal: 10,
     },
-    miningDirector: { status: 'stopped', miners: 0, blocks: 0 },
+    miningDirector: { status: 'started', miners: 0, blocks: 0 },
     memPool: { size: 0 },
-    blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0 } },
+    blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0, progress: 0 } },
     telemetry: { status: 'stopped', pending: 0, submitted: 0 },
     workers: {
       started: true,
@@ -39,8 +39,8 @@ describe('status', () => {
   }
 
   beforeAll(() => {
-    jest.doMock('ironfish', () => {
-      const originalModule = jest.requireActual('ironfish')
+    jest.doMock('@ironfish/sdk', () => {
+      const originalModule = jest.requireActual('@ironfish/sdk')
       const client = {
         connect: jest.fn(),
         status: jest.fn().mockImplementation(() => ({
@@ -62,7 +62,7 @@ describe('status', () => {
   })
 
   afterAll(() => {
-    jest.dontMock('ironfish')
+    jest.dontMock('@ironfish/sdk')
   })
 
   describe('it logs out the status of the node', () => {

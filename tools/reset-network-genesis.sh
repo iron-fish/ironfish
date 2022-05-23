@@ -19,7 +19,7 @@ cd "$(dirname "$0")"
 (
     echo "Regenerating genesis block"
     cd ../ironfish-cli
-    yarn start:once chain:genesisblock -a IronFishGenesisAccount
+    yarn start chain:genesisblock -a IronFishGenesisAccount
 
     echo ""
     echo "Copy the above block into genesisBlock.ts"

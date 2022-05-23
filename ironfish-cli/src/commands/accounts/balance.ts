@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { displayIronAmountWithCurrency, oreToIron } from 'ironfish'
+import { displayIronAmountWithCurrency, oreToIron } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -31,13 +31,11 @@ export class BalanceCommand extends IronfishCommand {
       account: account,
     })
 
-    const { confirmed, unconfirmed } = response.content
+    const { account: accountResponse, confirmed, unconfirmed } = response.content
 
+    this.log(`Account - ${String(accountResponse)}\n`)
     this.log(
-      `The account balance is:    ${displayIronAmountWithCurrency(
-        oreToIron(Number(unconfirmed)),
-        true,
-      )}`,
+      `The balance is: ${displayIronAmountWithCurrency(oreToIron(Number(unconfirmed)), true)}`,
     )
     this.log(
       `Amount available to spend: ${displayIronAmountWithCurrency(

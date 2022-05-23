@@ -83,7 +83,6 @@ expect.extend({
         hashOfSibling,
         leftIndex: otherIndex,
         parentIndex: otherIndex,
-        index,
       }
 
       let expected

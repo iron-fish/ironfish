@@ -64,4 +64,25 @@ export class Assert {
       throw new Error(message || `Expected value to be false`)
     }
   }
+
+  static isString(x: unknown, message?: string): asserts x is string {
+    if (typeof x !== 'string') {
+      throw new Error(message || `Expected value to be string`)
+    }
+  }
+
+  static isTruthy<T extends unknown>(
+    x: T,
+    message?: string,
+  ): asserts x is Exclude<T, null | undefined | 0 | false | ''> {
+    const isFalsey = x == null || x === 0 || x === '' || x === false
+
+    if (isFalsey) {
+      throw new Error(message || `Expected value to be truthy`)
+    }
+
+    if (!isFalsey && !x) {
+      throw new Error(`We must have forgotten a falsey value: ${String(x)}`)
+    }
+  }
 }

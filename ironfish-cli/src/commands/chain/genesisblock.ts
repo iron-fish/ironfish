@@ -1,8 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  GENESIS_SUPPLY_IN_IRON,
+  GenesisBlockInfo,
+  IJSON,
+  ironToOre,
+  makeGenesisBlock,
+  Target,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { GenesisBlockInfo, IJSON, makeGenesisBlock } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -17,13 +24,11 @@ export default class GenesisBlockCommand extends IronfishCommand {
       char: 'a',
       required: false,
       default: 'IronFishGenesisAccount',
-      description: 'the name of the account to use for keys to assign the genesis block to',
+      description: 'The name of the account to use for keys to assign the genesis block to',
     }),
-    coins: Flags.integer({
-      char: 'c',
-      required: false,
-      default: 4200000000000000,
-      description: 'The amount of coins to generate',
+    difficulty: Flags.string({
+      default: Target.minDifficulty().toString(),
+      description: 'The initial difficulty to start the chain with',
     }),
     memo: Flags.string({
       char: 'm',
@@ -35,6 +40,13 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(GenesisBlockCommand)
+
+    let target
+    try {
+      target = Target.fromDifficulty(BigInt(flags.difficulty))
+    } catch {
+      this.error(`Invalid value for difficulty: ${flags.difficulty}`, { exit: 1 })
+    }
 
     const node = await this.sdk.node({ autoSeed: false })
     await node.openDB()
@@ -62,22 +74,17 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const info: GenesisBlockInfo = {
       timestamp: Date.now(),
       memo: flags.memo,
+      target,
       allocations: [
         {
           publicAddress: account.publicAddress,
-          amount: flags.coins,
+          amount: ironToOre(GENESIS_SUPPLY_IN_IRON),
         },
       ],
     }
 
     this.log('\nBuilding a genesis block...')
-    const { block } = await makeGenesisBlock(
-      node.chain,
-      info,
-      account,
-      node.workerPool,
-      this.logger,
-    )
+    const { block } = await makeGenesisBlock(node.chain, info, account, this.logger)
 
     this.log(`\nGenesis Block`)
     const serialized = node.strategy.blockSerde.serialize(block)

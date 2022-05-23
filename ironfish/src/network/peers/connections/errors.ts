@@ -30,3 +30,20 @@ export class HandshakeTimeoutError extends TimeoutError {
     this.state = state
   }
 }
+
+export class CannotSatisfyRequestError extends Error {
+  constructor(message: string | undefined) {
+    super(message)
+    this.name = 'CannotSatisfyRequestError'
+  }
+}
+
+export class RequestTimeoutError extends Error {
+  timeoutMs: number
+
+  constructor(timeoutMs: number, message?: string) {
+    super(message || `Request Timed Out after ${timeoutMs}ms`)
+    this.name = 'RequestTimeoutError'
+    this.timeoutMs = timeoutMs
+  }
+}

@@ -53,6 +53,11 @@ export const TARGET_BLOCK_TIME_IN_SECONDS = 60
  */
 export const TARGET_BUCKET_TIME_IN_SECONDS = 10
 
+/**
+ * Graffiti sizes in bytes
+ */
+export const GRAFFITI_SIZE = 32
+
 /*
  * A ratio of blocks per year that represents an approximation of how many blocks are considered a "year".
  * It's generally an approximation based on TARGET_BLOCK_TIME_IN_SECONDS second block times.

@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetWorkersStatusRequest } from '..'
+import { GetWorkersStatusRequest } from './getStatus'
 
 describe('Route worker/getStatus', () => {
   const routeTest = createRouteTest()
 
   it('should get status', async () => {
     const request: GetWorkersStatusRequest = { stream: false }
-    const response = await routeTest.adapter.request('worker/getStatus', { request })
+    const response = await routeTest.client
+      .request('worker/getStatus', { request })
+      .waitForEnd()
 
     expect(response.status).toBe(200)
 

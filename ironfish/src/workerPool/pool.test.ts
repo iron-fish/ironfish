@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../testUtilities/matchers'
-import { JobAbortedError, JobError } from './errors'
 import { WorkerPool } from './pool'
+import { JobAbortedError } from './tasks/jobAbort'
+import { JobError } from './tasks/jobError'
 
 describe('Worker Pool', () => {
   let pool: WorkerPool
@@ -40,7 +41,7 @@ describe('Worker Pool', () => {
     pool.start()
 
     expect(pool.workers.length).toBe(0)
-    await pool.sleep().response()
+    await pool.sleep().result()
     expect(pool.workers.length).toBe(0)
   })
 
@@ -49,7 +50,7 @@ describe('Worker Pool', () => {
     pool.start()
 
     expect(pool.workers.length).toBe(1)
-    await pool.sleep().response()
+    await pool.sleep().result()
     expect(pool.workers.length).toBe(1)
   }, 10000)
 
@@ -69,7 +70,7 @@ describe('Worker Pool', () => {
 
     job.abort()
 
-    await expect(job.response()).toRejectErrorInstance(JobAbortedError)
+    await expect(job.result()).toRejectErrorInstance(JobAbortedError)
 
     expect(job.status).toBe('aborted')
     expect(worker.executing).toBe(false)
@@ -88,8 +89,8 @@ describe('Worker Pool', () => {
     const job2 = pool.sleep(Number.MAX_SAFE_INTEGER)
 
     // jobs will be aborted before it starts
-    job1.response().catch(() => {})
-    job2.response().catch(() => {})
+    job1.result().catch(() => {})
+    job2.result().catch(() => {})
 
     expect(worker.jobs.size).toBe(1)
     expect(pool.queued).toBe(1)
@@ -118,8 +119,8 @@ describe('Worker Pool', () => {
     expect(pool.queued).toBe(0)
     expect(pool.executing).toBe(1)
 
-    await expect(job.response()).rejects.toThrowError('test')
-    await expect(job.response()).toRejectErrorInstance(JobError)
+    await expect(job.result()).rejects.toThrowError('test')
+    await expect(job.result()).toRejectErrorInstance(JobError)
     expect(job.status).toBe('error')
 
     expect(pool.workers.length).toBe(1)
@@ -128,7 +129,7 @@ describe('Worker Pool', () => {
     expect(pool.completed).toBe(1)
 
     job = pool.sleep()
-    await job.response()
+    await job.result()
 
     expect(pool.workers.length).toBe(1)
     expect(pool.executing).toBe(0)

@@ -6,38 +6,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 use ironfish_rust::note::Memo;
-use ironfish_rust::sapling_bls12::{Key, Note, SAPLING};
-
-#[napi(js_name = "NoteBuilder")]
-pub struct NativeNoteBuilder {
-    pub(crate) note: Note,
-}
-
-#[napi]
-impl NativeNoteBuilder {
-    /// TODO: This works around a concurrency bug when using #[napi(factory)]
-    /// in worker threads. It can be merged into NativeNote once the bug is fixed.
-    #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
-        let value_u64 = value.get_u64().1;
-
-        let owner_address = ironfish_rust::PublicAddress::from_hex(SAPLING.clone(), &owner)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-        Ok(NativeNoteBuilder {
-            note: Note::new(SAPLING.clone(), owner_address, value_u64, Memo::from(memo)),
-        })
-    }
-
-    #[napi]
-    pub fn serialize(&self) -> Result<Buffer> {
-        let mut arr: Vec<u8> = vec![];
-        self.note
-            .write(&mut arr)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
-
-        Ok(Buffer::from(arr))
-    }
-}
+use ironfish_rust::sapling_bls12::{Key, Note};
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -47,10 +16,19 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(bytes: Buffer) -> Result<Self> {
-        let hasher = SAPLING.clone();
-        let note = Note::read(bytes.as_ref(), hasher)
+    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
+        let value_u64 = value.get_u64().1;
+
+        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
+        Ok(NativeNote {
+            note: Note::new(owner_address, value_u64, Memo::from(memo)),
+        })
+    }
+
+    #[napi(factory)]
+    pub fn deserialize(bytes: Buffer) -> Result<Self> {
+        let note = Note::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNote { note })
     }
@@ -89,10 +67,10 @@ impl NativeNote {
     pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let private_key = Key::from_hex(SAPLING.clone(), &owner_private_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let private_key =
+            Key::from_hex(&owner_private_key).map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64);
+        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }

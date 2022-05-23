@@ -2,15 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 declare module 'bufio' {
-  type Encoding = 'utf8' | 'ascii'
-  type BufferEncoding = 'hex'
-
   class StaticWriter {
     render(): Buffer
     slice(): Buffer
+    writeDouble(value: number): StaticWriter
+    writeDoubleBE(value: number): StaticWriter
+    writeU8(value: number): StaticWriter
+    writeU16(value: number): StaticWriter
+    writeU32(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
-    writeVarString(value: string, enc?: Encoding | null): StaticWriter
+    writeString(value: string, enc?: BufferEncoding | null): StaticWriter
+    writeVarString(value: string, enc?: BufferEncoding | null): StaticWriter
     writeVarBytes(value: Buffer): StaticWriter
     writeBytes(value: Buffer): StaticWriter
     writeHash(value: Buffer | string): StaticWriter
@@ -20,9 +23,15 @@ declare module 'bufio' {
   class BufferWriter {
     render(): Buffer
     slice(): Buffer
+    writeDouble(value: number): BufferWriter
+    writeDoubleBE(value: number): BufferWriter
+    writeU8(value: number): BufferWriter
+    writeU16(value: number): BufferWriter
+    writeU32(value: number): BufferWriter
     writeU64(value: number): BufferWriter
     writeI64(value: number): BufferWriter
-    writeVarString(value: string, enc?: Encoding | null): BufferWriter
+    writeString(value: string, enc?: BufferEncoding | null): BufferWriter
+    writeVarString(value: string, enc?: BufferEncoding | null): BufferWriter
     writeVarBytes(value: Buffer): BufferWriter
     writeBytes(value: Buffer): BufferWriter
     writeHash(value: Buffer | string): BufferWriter
@@ -30,10 +39,24 @@ declare module 'bufio' {
   }
 
   class BufferReader {
+    offset: number
+
+    seek(offset: number): BufferReader
+    left(): number
+    readU8(): number
+    readU16(): number
+    readU32(): number
     readU64(): number
-    readVarString(enc?: Encoding | null, limit?: number): string
-    readVarBytes(): Buffer
+    readU64BE(): number
+    readI64(): number
+    readFloat(): number
+    readFloatBE(): number
+    readDoubleBE(): number
+    readDouble(): number
+    readString(size: number, enc?: BufferEncoding | null): string
+    readVarString(enc?: BufferEncoding | null, limit?: number): string
     readBytes(size: number, zeroCopy?: boolean): Buffer
+    readVarBytes(): Buffer
 
     readHash(enc: BufferEncoding): string
     readHash(enc?: null): Buffer
@@ -41,4 +64,7 @@ declare module 'bufio' {
 
   export function write(size?: number): StaticWriter | BufferWriter
   export function read(data: Buffer, zeroCopy?: boolean): BufferReader
+
+  export function sizeVarBytes(value: Buffer): number
+  export function sizeVarString(value: string, enc?: BufferEncoding): number
 }

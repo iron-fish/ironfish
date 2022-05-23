@@ -1,0 +1,39 @@
+name: Deploy @ironfish/sdk NPM Package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.13.0'
+          registry-url: 'https://registry.npmjs.org'
+          cache: yarn
+
+      - name: Remove lifecycle scripts
+        run: cat <<< "$(jq 'del(.scripts.postinstall)' < package.json)" > package.json
+
+      - name: Insert Git hash into ironfish/package.json as gitHash
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
+
+      - name: Install dependencies
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+        working-directory: ./ironfish
+
+      - name: Publish
+        run: npm publish --access public
+        working-directory: ./ironfish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

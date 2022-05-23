@@ -106,7 +106,7 @@ impl NativeTransactionPosted {
             .write(&mut root_hash)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let nullifier = Buffer::from(proof.nullifier().as_ref());
+        let nullifier = Buffer::from(proof.nullifier().to_vec());
 
         Ok(NativeSpendProof {
             tree_size: proof.tree_size(),
@@ -167,8 +167,8 @@ impl NativeTransaction {
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
     pub fn receive(&mut self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
-        let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let spender_key =
+            Key::from_hex(&spender_hex_key).map_err(|err| Error::from_reason(err.to_string()))?;
         self.transaction
             .receive(&spender_key, &note.note)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -189,8 +189,8 @@ impl NativeTransaction {
             obj: witness,
         };
 
-        let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let spender_key =
+            Key::from_hex(&spender_hex_key).map_err(|err| Error::from_reason(err.to_string()))?;
         self.transaction
             .spend(spender_key, &note.note, &w)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -236,11 +236,11 @@ impl NativeTransaction {
     ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
-        let spender_key = Key::from_hex(SAPLING.clone(), &spender_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let spender_key =
+            Key::from_hex(&spender_hex_key).map_err(|err| Error::from_reason(err.to_string()))?;
         let change_key = match change_goes_to {
             Some(address) => Some(
-                PublicAddress::from_hex(SAPLING.clone(), &address)
+                PublicAddress::from_hex(&address)
                     .map_err(|err| Error::from_reason(err.to_string()))?,
             ),
             None => None,

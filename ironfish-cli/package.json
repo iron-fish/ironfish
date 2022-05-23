@@ -1,14 +1,29 @@
 {
-  "name": "ironfish-cli",
-  "version": "0.1.25",
-  "description": "Command line Iron Fish node",
+  "name": "ironfish",
+  "version": "0.1.35",
+  "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iron-fish/ironfish.git"
+  },
+  "license": "MPL-2.0",
+  "files": [
+    "/bin",
+    "/build/**/*.js",
+    "/build/**/*.d.ts",
+    "/build/**/*.d.ts.map",
+    "/build/**/*.json",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
   "engines": {
     "node": "16.x"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1",
-    "@oclif/test": "^1",
+    "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
     "@types/node": "16.11.1",
     "@types/ws": "7.4.5",
@@ -16,7 +31,7 @@
     "cross-env": "7.0.3",
     "eslint-config-ironfish": "*",
     "jest": "26.6.3",
-    "oclif": "1.16.1",
+    "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
     "typescript": "4.3.4",
@@ -26,29 +41,25 @@
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
-    "start": "node start",
-    "start:once": "yarn build && yarn start:js",
+    "start:dev": "node start",
+    "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node bin/run",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
-    "pack": "oclif-dev pack",
-    "prepack": "rimraf build && yarn build && oclif-dev manifest && oclif-dev readme",
-    "oclif:posttest": "eslint . --ext .ts --config .eslintrc",
-    "oclif:test": "echo NO TESTS",
-    "oclif:version": "oclif-dev readme && git add README.md"
+    "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
+    "oclif:version": "oclif readme && git add README.md"
   },
-  "license": "MPL-2.0",
   "dependencies": {
-    "@oclif/core": "1.3.1",
-    "@oclif/plugin-help": "3.2.2",
-    "@oclif/plugin-not-found": "1.2.4",
+    "@ironfish/rust-nodejs": "0.1.6",
+    "@ironfish/sdk": "0.0.13",
+    "@oclif/core": "1.6.1",
+    "@oclif/plugin-help": "5.1.12",
+    "@oclif/plugin-not-found": "2.3.1",
     "axios": "0.21.4",
     "blessed": "0.1.81",
-    "ironfish": "*",
-    "ironfish-rust-nodejs": "*",
     "json-colorizer": "2.2.2",
     "segfault-handler": "1.3.0",
     "tweetnacl": "1.0.3",
@@ -92,18 +103,8 @@
   "bin": {
     "ironfish": "./bin/run"
   },
-  "bugs": "https://github.com/iron-fish/ironfish/issues",
-  "files": [
-    "/bin",
-    "/lib",
-    "/npm-shrinkwrap.json",
-    "/oclif.manifest.json"
-  ],
-  "homepage": "https://github.com/iron-fish/ironfish",
-  "keywords": [
-    "oclif"
-  ],
-  "main": "build/src/index.js",
-  "repository": "iron-fish/ironfish",
-  "types": "build/src/index.d.ts"
+  "bugs": {
+    "url": "https://github.com/iron-fish/ironfish/issues"
+  },
+  "homepage": "https://ironfish.network"
 }

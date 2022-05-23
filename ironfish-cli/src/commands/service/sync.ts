@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from 'ironfish'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -70,7 +70,7 @@ export default class Sync extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await api.head()
+      head = await api.headBlocks()
     }
 
     if (head) {

@@ -4,6 +4,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 export function mockEvent(): any {
   return { on: jest.fn() }
@@ -39,6 +41,7 @@ export function mockNode(): any {
     accounts: mockAccounts(),
     memPool: mockMempool(),
     miningDirector: mockDirector(),
+    miningManager: mockMiningManager(),
     syncer: mockSyncer(),
     workerPool: mockWorkerPool(),
     chain: mockChain(),
@@ -50,6 +53,12 @@ export function mockPeerNetwork(): any {
 }
 
 export function mockDirector(): any {
+  return {
+    onNewBlock: mockEvent(),
+  }
+}
+
+export function mockMiningManager(): any {
   return {
     onNewBlock: mockEvent(),
   }
@@ -78,5 +87,11 @@ export function mockWorkerPool(): any {
   return {
     saturated: jest.fn(),
     submitTelemetry: jest.fn(),
+  }
+}
+
+export function mockConfig(values: Record<string, any>): any {
+  return {
+    get: jest.fn((x) => values[x]),
   }
 }

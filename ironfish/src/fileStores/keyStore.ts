@@ -25,7 +25,7 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     files: FileSystem,
     configName: string,
     defaults: TSchema,
-    dataDir?: string,
+    dataDir: string,
     schema?: yup.ObjectSchema<TSchema | Partial<TSchema>>,
   ) {
     this.files = files

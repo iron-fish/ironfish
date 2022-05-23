@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { WebApi } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { WebApi } from 'ironfish'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { ENABLE_TELEMETRY_CONFIG_KEY } from './start'
@@ -37,17 +37,20 @@ export default class Testnet extends IronfishCommand {
       name: 'user',
       required: false,
       description:
-        'the user id or url to a testnet user like https://testnet.ironfish.network/users/1080',
+        'the user graffiti or url to a testnet user like https://testnet.ironfish.network/users/1080',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Testnet)
+
+    const api = new WebApi()
+
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
       userArg = (await CliUx.ux.prompt(
-        'Enter the user id or url to a testnet user like https://testnet.ironfish.network/users/1080\nUser ID or URL',
+        'Enter the user graffiti or url to a testnet user like https://testnet.ironfish.network/users/1080\nUser Graffiti or URL',
         {
           required: true,
         },
@@ -55,35 +58,59 @@ export default class Testnet extends IronfishCommand {
       this.log('')
     }
 
-    let userId: number | null = null
+    let confirmedGraffiti: string | null = null
 
-    const index = userArg.indexOf('users/')
-    if (index !== -1) {
-      userArg = userArg.slice(index + 'users/'.length)
-    }
+    const containsUrl = userArg.indexOf('ironfish.network') !== -1
+    if (containsUrl) {
+      // Fetch by ID
+      const index = userArg.indexOf('users/')
+      if (index !== -1) {
+        userArg = userArg.slice(index + 'users/'.length)
+      }
 
-    if (!isNaN(Number(userArg))) {
-      userId = Number(userArg)
-    }
+      let userId: number | null = null
+      if (!isNaN(Number(userArg))) {
+        userId = Number(userArg)
+      }
 
-    if (userId === null) {
-      this.log(`Could not figure out testnet user id from ${userArg}`)
-      return this.exit(1)
-    }
+      if (userId === null) {
+        this.log(`Could not figure out testnet user id from ${userArg}`)
+        return this.exit(1)
+      }
 
-    // request user from API
-    this.log(`Asking Iron Fish who user ${userId} is...`)
+      // request user from API
+      this.log(`Asking Iron Fish who user ${userId} is...`)
 
-    const api = new WebApi()
-    const user = await api.getUser(userId)
+      const user = await api.getUser(userId)
 
-    if (!user) {
-      this.log(`Could not find a user with id ${userId}`)
-      return this.exit(1)
+      if (!user) {
+        this.log(`Could not find a user with id ${userId}`)
+        return this.exit(1)
+      }
+
+      confirmedGraffiti = user.graffiti
+    } else {
+      // Fetch by graffiti
+      if (!userArg || userArg.length === 0) {
+        this.log(`Could not figure out testnet user, graffiti was not provided`)
+        return this.exit(1)
+      }
+
+      // request user from API
+      this.log(`Asking Iron Fish to confirm user graffiti ${userArg}...`)
+
+      const user = await api.findUser({ graffiti: userArg })
+
+      if (!user) {
+        this.log(`Could not find a user with graffiti ${userArg}`)
+        return this.exit(1)
+      }
+
+      confirmedGraffiti = user.graffiti
     }
 
     this.log('')
-    this.log(`Hello ${user.graffiti}!`)
+    this.log(`Hello ${confirmedGraffiti}!`)
     this.log('')
 
     // Connect to node
@@ -96,8 +123,8 @@ export default class Testnet extends IronfishCommand {
     const telemetryEnabled = (await node.getConfig({ name: ENABLE_TELEMETRY_CONFIG_KEY }))
       .content.enableTelemetry
 
-    const updateNodeName = existingNodeName !== user.graffiti && !flags.skipName
-    const updateGraffiti = existingGraffiti !== user.graffiti && !flags.skipGraffiti
+    const updateNodeName = existingNodeName !== confirmedGraffiti && !flags.skipName
+    const updateGraffiti = existingGraffiti !== confirmedGraffiti && !flags.skipGraffiti
     const needsUpdate = updateNodeName || updateGraffiti
 
     let updateTelemetry = !telemetryEnabled && !flags.skipTelemetry
@@ -110,17 +137,17 @@ export default class Testnet extends IronfishCommand {
     if (!flags.confirm) {
       if (updateNodeName) {
         this.log(
-          `You are about to change your NODE NAME from ${existingNodeName || '{NOT SET}'} to ${
-            user.graffiti
-          }`,
+          `You are about to change your NODE NAME from ${
+            existingNodeName || '{NOT SET}'
+          } to ${confirmedGraffiti}`,
         )
       }
 
       if (updateGraffiti) {
         this.log(
-          `You are about to change your GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${
-            user.graffiti
-          }`,
+          `You are about to change your GRAFFITI from ${
+            existingGraffiti || '{NOT SET}'
+          } to ${confirmedGraffiti}`,
         )
       }
 
@@ -141,16 +168,16 @@ export default class Testnet extends IronfishCommand {
     }
 
     if (updateNodeName) {
-      await node.setConfig({ name: 'nodeName', value: user.graffiti })
+      await node.setConfig({ name: 'nodeName', value: confirmedGraffiti })
       this.log(
-        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${user.graffiti}`,
+        `✅ Updated NODE NAME from ${existingNodeName || '{NOT SET}'} to ${confirmedGraffiti}`,
       )
     }
 
     if (updateGraffiti) {
-      await node.setConfig({ name: 'blockGraffiti', value: user.graffiti })
+      await node.setConfig({ name: 'blockGraffiti', value: confirmedGraffiti })
       this.log(
-        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${user.graffiti}`,
+        `✅ Updated GRAFFITI from ${existingGraffiti || '{NOT SET}'} to ${confirmedGraffiti}`,
       )
     }
 

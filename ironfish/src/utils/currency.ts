@@ -6,10 +6,11 @@ const ORE_TICKER = '$ORE'
 const IRON_TICKER = '$IRON'
 const ORE_TO_IRON = 100000000
 export const MINIMUM_IRON_AMOUNT = 1 / ORE_TO_IRON
+export const MAXIMUM_IRON_AMOUNT = 1.8446744e19
 const FLOAT = ORE_TO_IRON.toString().length - 1
 
 export const isValidAmount = (amount: number): boolean => {
-  return amount >= MINIMUM_IRON_AMOUNT
+  return amount >= MINIMUM_IRON_AMOUNT && amount <= MAXIMUM_IRON_AMOUNT
 }
 
 export const ironToOre = (amount: number): number => {

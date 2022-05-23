@@ -1,15 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx, Flags } from '@oclif/core'
 import {
-  AsyncUtils,
   FileUtils,
-  Miner as IronfishMiner,
-  MineRequest,
-  NewBlocksStreamResponse,
-  PromiseUtils,
-} from 'ironfish'
+  GraffitiUtils,
+  isValidPublicAddress,
+  MiningPoolMiner,
+  MiningSoloMiner,
+  parseUrl,
+  SetIntervalToken,
+} from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
+import dns from 'dns'
 import os from 'os'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -17,13 +19,28 @@ import { RemoteFlags } from '../../flags'
 export class Miner extends IronfishCommand {
   static description = `Start a miner and subscribe to new blocks for the node`
 
+  updateInterval: SetIntervalToken | null = null
+
   static flags = {
     ...RemoteFlags,
     threads: Flags.integer({
       char: 't',
-      default: 1,
+      default: -1,
       description:
         'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+    }),
+    pool: Flags.string({
+      char: 'p',
+      description: 'the host and port of the mining pool to connect to such as 92.191.17.232',
+    }),
+    address: Flags.string({
+      char: 'a',
+      description: 'the public address to receive pool payouts',
+    }),
+    richOutput: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'enable fancy hashpower display',
     }),
   }
 
@@ -38,24 +55,83 @@ export class Miner extends IronfishCommand {
       flags.threads = os.cpus().length
     }
 
-    const client = this.sdk.client
+    const graffiti = this.sdk.config.get('blockGraffiti')
     const batchSize = this.sdk.config.get('minerBatchSize')
-    const miner = new IronfishMiner(flags.threads, batchSize)
 
-    const successfullyMined = (request: MineRequest, randomness: number) => {
-      this.log(
-        `Submitting hash for block ${request.sequence} on request ${request.miningRequestId} (${randomness})`,
-      )
+    if (flags.pool) {
+      if (flags.address == null) {
+        this.error(
+          "Can't mine from a pool without a public address. Use `-a address-goes-here` to provide one.",
+        )
+      }
 
-      const response = client.successfullyMined({
-        randomness,
-        miningRequestId: request.miningRequestId,
+      if (!isValidPublicAddress(flags.address)) {
+        this.error('The given public address is not valid, please provide a valid one.')
+      }
+
+      let host = this.sdk.config.get('poolHost')
+      let port = this.sdk.config.get('poolPort')
+
+      if (flags.pool) {
+        const parsed = parseUrl(flags.pool)
+
+        if (parsed.hostname) {
+          const resolved = await dns.promises.lookup(parsed.hostname)
+          host = resolved.address
+        }
+
+        if (parsed.port) {
+          port = parsed.port
+        }
+      }
+
+      this.log(`Starting to mine with public address: ${flags.address} at pool ${host}:${port}`)
+
+      const miner = new MiningPoolMiner({
+        threadCount: flags.threads,
+        publicAddress: flags.address,
+        batchSize,
+        host: host,
+        port: port,
       })
 
-      response.waitForEnd().catch(() => {
-        this.log('Unable to submit mined block')
-      })
+      miner.start()
+      if (flags.richOutput) {
+        this.displayHashrate(miner)
+      }
+
+      await miner.waitForStop()
+      if (this.updateInterval) {
+        clearInterval(this.updateInterval)
+      }
     }
+
+    if (!flags.pool) {
+      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
+
+      const rpc = this.sdk.client
+
+      const miner = new MiningSoloMiner({
+        threadCount: flags.threads,
+        graffiti: GraffitiUtils.fromString(graffiti),
+        batchSize,
+        rpc,
+      })
+
+      miner.start()
+      if (flags.richOutput) {
+        this.displayHashrate(miner)
+      }
+
+      await miner.waitForStop()
+      if (this.updateInterval) {
+        clearInterval(this.updateInterval)
+      }
+    }
+  }
+
+  displayHashrate(miner: MiningPoolMiner | MiningSoloMiner): void {
+    CliUx.ux.action.start(`Hashrate`)
 
     const updateHashPower = () => {
       const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
@@ -63,62 +139,6 @@ export class Miner extends IronfishCommand {
       CliUx.ux.action.status = formatted
     }
 
-    const onStartMine = (request: MineRequest) => {
-      CliUx.ux.action.start(
-        `Mining block ${request.sequence} on request ${request.miningRequestId}`,
-      )
-      updateHashPower()
-    }
-
-    const onStopMine = () => {
-      CliUx.ux.action.start('Waiting for next block')
-      updateHashPower()
-    }
-
-    async function* nextBlock(blocksStream: AsyncGenerator<MineRequest, void, void>) {
-      for (;;) {
-        const blocksResult = await blocksStream.next()
-
-        if (blocksResult.done) {
-          return
-        }
-
-        yield blocksResult.value
-      }
-    }
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const connected = await client.tryConnect()
-
-      if (!connected) {
-        this.logger.log('Not connected to a node - waiting 5s before retrying')
-        await PromiseUtils.sleep(5000)
-        continue
-      }
-
-      this.logger.log(
-        `Starting to mine with ${flags.threads} thread${flags.threads === 1 ? '' : 's'}`,
-      )
-
-      const blocksStream = client.newBlocksStream().contentStream()
-
-      // We do this to tranform the JSON bytes back to a buffer
-      const transformed = AsyncUtils.transform<NewBlocksStreamResponse, MineRequest>(
-        blocksStream,
-        (value) => ({ ...value, bytes: Buffer.from(value.bytes.data) }),
-      )
-
-      CliUx.ux.action.start('Waiting for director to send work.')
-
-      const hashPowerInterval = setInterval(updateHashPower, 1000)
-
-      miner.onStartMine.on(onStartMine)
-      miner.onStopMine.on(onStopMine)
-
-      await miner.mine(nextBlock(transformed), successfullyMined)
-
-      clearInterval(hashPowerInterval)
-    }
+    this.updateInterval = setInterval(updateHashPower, 1000)
   }
 }

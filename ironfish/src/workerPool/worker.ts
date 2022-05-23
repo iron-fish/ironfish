@@ -1,15 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import type { WorkerRequestMessage, WorkerResponseMessage } from './messages'
-import { generateKey } from 'ironfish-rust-nodejs'
+import { initializeSapling } from '@ironfish/rust-nodejs'
+import bufio from 'bufio'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
-import { JobError } from './errors'
+import { WorkerHeader } from './interfaces/workerHeader'
 import { Job } from './job'
+import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
+import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
+import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
+import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
+import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
+import { JobError, JobErrorMessage } from './tasks/jobError'
+import { SleepRequest, SleepResponse } from './tasks/sleep'
+import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
+import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
+import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
+import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -53,11 +63,11 @@ export class Worker {
     job.execute(this)
   }
 
-  send(message: WorkerRequestMessage | WorkerResponseMessage): void {
+  send(message: WorkerMessage): void {
     if (this.thread) {
-      this.thread.postMessage(message)
+      this.thread.postMessage(message.serializeWithMetadata())
     } else if (this.parent) {
-      this.parent.postMessage(message)
+      this.parent.postMessage(message.serializeWithMetadata())
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -106,66 +116,170 @@ export class Worker {
     this.parent.on('message', this.onMessageFromParent)
 
     // Trigger loading of Sapling parameters if we're in a worker thread
-    generateKey()
+    initializeSapling()
   }
 
-  private onMessageFromParent = (request: WorkerRequestMessage): void => {
-    if (request.body.type === 'jobAbort') {
-      const job = this.jobs.get(request.jobId)
+  private onMessageFromParent = (request: Uint8Array): void => {
+    const message = Buffer.from(request)
 
+    let header: WorkerHeader
+    try {
+      header = this.parseHeader(message)
+    } catch {
+      this.logger.error(`Could not parse header from request: '${message.toString('hex')}'`)
+      return
+    }
+
+    const { body, jobId, type } = header
+
+    let requestBody: WorkerMessage
+    try {
+      requestBody = this.parseRequest(jobId, type, body)
+    } catch {
+      const args = `(jobId: ${jobId}, type: ${WorkerMessageType[type]}, body: '${body.toString(
+        'hex',
+      )}')`
+      this.logger.error(`Could not parse payload from request: ${args}`)
+      return
+    }
+
+    if (type === WorkerMessageType.JobAborted) {
+      const job = this.jobs.get(jobId)
       if (job) {
         this.jobs.delete(job.id)
-        job?.abort()
+        job.abort()
       }
       return
     }
 
-    const job = new Job(request)
+    const job = new Job(requestBody)
     this.jobs.set(job.id, job)
 
     job
       .execute()
-      .response()
-      .then((response: WorkerResponseMessage) => {
+      .result()
+      .then((response: WorkerMessage) => {
         this.send(response)
       })
       .catch((e: unknown) => {
-        this.send({
-          jobId: job.id,
-          body: {
-            type: 'jobError',
-            error: new JobError(e).serialize(),
-          },
-        })
+        this.send(new JobErrorMessage(job.id, e))
       })
       .finally(() => {
         this.jobs.delete(job.id)
       })
   }
 
-  private onMessageFromWorker = (response: WorkerResponseMessage): void => {
-    const job = this.jobs.get(response.jobId)
-    this.jobs.delete(response.jobId)
+  private onMessageFromWorker = (response: Uint8Array): void => {
+    const message = Buffer.from(response)
+
+    let header: WorkerHeader
+    try {
+      header = this.parseHeader(message)
+    } catch {
+      this.logger.error(`Could not parse header from response: '${message.toString('hex')}'`)
+      return
+    }
+
+    const { body, jobId, type } = header
+    const job = this.jobs.get(jobId)
+    this.jobs.delete(jobId)
 
     if (!job) {
       return
     }
 
-    Assert.isNotNull(job.resolve)
-    Assert.isNotNull(job.reject)
+    const prevStatus = job.status
+    job.status = 'success'
+    job.onChange.emit(job, prevStatus)
+    job.onEnded.emit(job)
 
-    if (response.body.type === 'jobError') {
-      const prevStatus = job.status
+    let result: WorkerMessage | JobError | JobAbortedError
+    try {
+      result = this.parseResponse(jobId, type, body)
+    } catch {
+      const args = `(jobId: ${jobId}, type: ${WorkerMessageType[type]}, body: '${body.toString(
+        'hex',
+      )}')`
+      this.logger.error(`Could not parse payload from response: ${args}`)
+      return
+    }
+
+    if (result instanceof JobError) {
       job.status = 'error'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.reject(JobError.deserialize(response.body.error))
-    } else {
-      const prevStatus = job.status
-      job.status = 'success'
-      job.onChange.emit(job, prevStatus)
-      job.onEnded.emit(job)
-      job.resolve(response)
+      job.reject(result)
+      return
+    } else if (result instanceof JobAbortedError) {
+      job.status = 'aborted'
+      job.reject(result)
+      return
+    }
+
+    job.resolve(result)
+    return
+  }
+
+  private parseHeader(data: Buffer): WorkerHeader {
+    const br = bufio.read(data)
+    const jobId = Number(br.readU64())
+    const type = br.readU8()
+    return {
+      jobId,
+      type,
+      body: br.readBytes(br.left()),
+    }
+  }
+
+  private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
+    switch (type) {
+      case WorkerMessageType.BoxMessage:
+        return BoxMessageRequest.deserialize(jobId, request)
+      case WorkerMessageType.CreateMinersFee:
+        return CreateMinersFeeRequest.deserialize(jobId, request)
+      case WorkerMessageType.CreateTransaction:
+        return CreateTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.GetUnspentNotes:
+        return GetUnspentNotesRequest.deserialize(jobId, request)
+      case WorkerMessageType.JobAborted:
+        throw new Error('JobAbort should not be sent as a request')
+      case WorkerMessageType.JobError:
+        throw new Error('JobError should not be sent as a request')
+      case WorkerMessageType.Sleep:
+        return SleepRequest.deserialize(jobId, request)
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryRequest.deserialize(jobId, request)
+      case WorkerMessageType.UnboxMessage:
+        return UnboxMessageRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionRequest.deserialize(jobId, request)
+    }
+  }
+
+  private parseResponse(
+    jobId: number,
+    type: WorkerMessageType,
+    response: Buffer,
+  ): WorkerMessage | JobError | JobAbortedError {
+    switch (type) {
+      case WorkerMessageType.BoxMessage:
+        return BoxMessageResponse.deserialize(jobId, response)
+      case WorkerMessageType.CreateMinersFee:
+        return CreateMinersFeeResponse.deserialize(jobId, response)
+      case WorkerMessageType.CreateTransaction:
+        return CreateTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.GetUnspentNotes:
+        return GetUnspentNotesResponse.deserialize(jobId, response)
+      case WorkerMessageType.JobAborted:
+        return JobAbortedMessage.deserialize()
+      case WorkerMessageType.JobError:
+        return JobErrorMessage.deserialize(jobId, response)
+      case WorkerMessageType.Sleep:
+        return SleepResponse.deserialize(jobId, response)
+      case WorkerMessageType.SubmitTelemetry:
+        return SubmitTelemetryResponse.deserialize(jobId)
+      case WorkerMessageType.UnboxMessage:
+        return UnboxMessageResponse.deserialize(jobId, response)
+      case WorkerMessageType.VerifyTransaction:
+        return VerifyTransactionResponse.deserialize(jobId, response)
     }
   }
 }

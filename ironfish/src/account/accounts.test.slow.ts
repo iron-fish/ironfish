@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from 'ironfish-rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import { ValidationError } from '../rpc/adapters/errors'
 import {
@@ -177,7 +177,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.fee(),
+      transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -249,7 +249,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.fee(),
+      transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -330,7 +330,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.fee(),
+      transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -438,7 +438,7 @@ describe('Accounts', () => {
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
-      await transaction.fee(),
+      transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spending_key,
     )
@@ -499,11 +499,7 @@ describe('Accounts', () => {
       // Create block 2
       return nodeA.chain.newBlock(
         [transaction],
-        await nodeA.strategy.createMinersFee(
-          await transaction.fee(),
-          3,
-          generateKey().spending_key,
-        ),
+        await nodeA.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
       )
     })
 

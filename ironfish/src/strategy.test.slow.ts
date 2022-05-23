@@ -7,16 +7,17 @@ import {
   generateNewPublicAddress,
   Key,
   Note as NativeNote,
-  NoteBuilder as NativeNoteBuilder,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
-} from 'ironfish-rust-nodejs'
+} from '@ironfish/rust-nodejs'
 import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
+import { NoteLeafEncoding } from './merkletree/database/leaves'
+import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
-import { IDatabase } from './storage'
+import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -42,6 +43,9 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafIndexKeyEncoding: BUFFER_ENCODING,
+    leafEncoding: new NoteLeafEncoding(),
+    nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
     depth: depth,
@@ -84,10 +88,11 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Rejects incoming new transactions if fees are negative', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      const verifier = new Verifier(nodeTest.chain)
+      const verifier = new Verifier(nodeTest.chain, workerPool)
 
       expect(await verifier.verifyTransaction(minersFee, nodeTest.chain.head)).toMatchObject({
         valid: false,
@@ -99,7 +104,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(new NativeNoteBuilder(owner, BigInt(42), '').serialize())
+      minerNote = new NativeNote(owner, BigInt(42), '')
 
       const transaction = new NativeTransaction()
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
@@ -139,9 +144,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
-      const receivingNote = new NativeNote(
-        new NativeNoteBuilder(receiverKey.public_address, BigInt(40), '').serialize(),
-      )
+      const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
       const result = transaction.receive(spenderKey.spending_key, receivingNote)
       expect(result).toEqual('')
     })
@@ -174,11 +177,12 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      expect(await minersFee.verify({ verifyFees: false })).toEqual({ valid: true })
+      expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
     }, 60000)
 
@@ -275,15 +279,11 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(
-        new NativeNoteBuilder(spenderKey.public_address, BigInt(10), '').serialize(),
-      )
+      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
       const receiverNoteToSelf = new NativeNote(
-        new NativeNoteBuilder(
-          generateNewPublicAddress(receiverKey.spending_key).public_address,
-          BigInt(29),
-          '',
-        ).serialize(),
+        generateNewPublicAddress(receiverKey.spending_key).public_address,
+        BigInt(29),
+        '',
       )
 
       expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')

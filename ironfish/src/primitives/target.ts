@@ -57,15 +57,6 @@ export class Target {
   }
 
   /**
-   * The initial target on the genesis block.
-   *
-   * This will need to be hand-tuned.
-   */
-  static initialTarget(): Target {
-    return this.maxTarget()
-  }
-
-  /**
    * Calculate the target for the current block given the timestamp in that
    * block's header, the pervious block's timestamp and previous block's target.
    *
@@ -95,7 +86,7 @@ export class Target {
 
   /**
    * Calculate the difficulty for the current block given the timestamp in that
-   * block's header, the pervious block's timestamp and previous block's target.
+   * block's header, the previous block's timestamp and previous block's target.
    *
    * Note that difficulty == 2**256 / target and target == 2**256 / difficulty
    *

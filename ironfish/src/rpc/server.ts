@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IronfishNode } from '../node'
-import { ArrayUtils } from '../utils'
 import { IAdapter } from './adapters'
 import { ApiNamespace, Router, router } from './routes'
 
@@ -73,16 +72,5 @@ export class RpcServer {
 
       this._startPromise = promise
     }
-  }
-
-  async unmount(adapter: IAdapter): Promise<boolean> {
-    const removed = ArrayUtils.remove(this.adapters, adapter)
-
-    if (removed) {
-      await adapter.stop()
-      await adapter.unattach()
-    }
-
-    return removed
   }
 }
