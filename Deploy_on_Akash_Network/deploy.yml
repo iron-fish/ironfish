@@ -1,0 +1,58 @@
+---
+version: "2.0"
+
+services:
+  app:
+    image: dimokus88/ironfish:0.2.9
+    env:
+     - "my_root_password=pass_root_for_ssh" #Enter the root password to connect to the container via ssh. Введите пароль пользователя root для подключения к контейнеру по ssh.
+     #- "LINK_WALLET=https://drive.google.com/uc?export=download&" # Direct link to download your wallet.json .Прямая ссылка на скачивание вашего wallet.json .
+     - "NODE_NAME=" # Имя ноды. Node name.
+     - "Graffiti=" # Graffiti from personal https://testnet.ironfish.network/ . account Граффити из личного кабинета https://testnet.ironfish.network/
+     - "POOL=pool.ironfish.host" # pool ironfish . майнинговый пул ironfish
+     - "THREADS=THREADS" # set max cpu for mining using the formula [number of leased cpu] - [1] = THREADS . установите max cpu для майнинга по формуле [количество арендованных cpu] - [1] = THREADS
+     - "LINK_SNAPSHOT=mc5vlo5kope7f2s229ite41qek.ingress.provider-0.prod.ams1.akash.pub/databases.zip" 
+    
+    expose:
+      - port: 80
+        as: 80
+        to:
+          - global: true
+      - port: 22
+        as: 22
+        to:
+          - global: true
+      - port: 9033
+        as: 9033
+        to:
+          - global: true
+   
+    
+profiles:
+  compute:
+    app:
+      resources:
+        cpu:
+          units: 6.0
+        memory:
+          size: 8Gi
+        storage:
+          size: 15Gi
+        
+        
+  placement:
+    akash: 
+      attributes:
+        host: akash
+      signedBy:
+        anyOf:
+            
+      pricing:
+        app:
+          denom: uakt
+          amount: 10000
+deployment:
+  app:
+    akash:
+      profile: app
+      count: 1 #max 2 count
