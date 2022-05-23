@@ -18,6 +18,7 @@ import { JobError, JobErrorMessage } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
+import { VerifyBlockRequest, VerifyBlockResponse } from './tasks/verifyBlock'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
@@ -251,6 +252,8 @@ export class Worker {
         return UnboxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyBlock:
+        return VerifyBlockRequest.deserialize(jobId, request)
     }
   }
 
@@ -280,6 +283,8 @@ export class Worker {
         return UnboxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.VerifyBlock:
+        return VerifyBlockResponse.deserialize(jobId, response)
     }
   }
 }

@@ -236,10 +236,11 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { NoteEncrypted, Note, TransactionPosted, Transaction, generateKey, generateNewPublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler } = nativeBinding
+const { NoteEncrypted, Note, batchVerify, TransactionPosted, Transaction, generateKey, generateNewPublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler } = nativeBinding
 
 module.exports.NoteEncrypted = NoteEncrypted
 module.exports.Note = Note
+module.exports.batchVerify = batchVerify
 module.exports.TransactionPosted = TransactionPosted
 module.exports.Transaction = Transaction
 module.exports.generateKey = generateKey

@@ -11,10 +11,28 @@ use napi_derive::napi;
 use ironfish_rust::sapling_bls12::{
     Key, MerkleNoteHash, ProposedTransaction, PublicAddress, Transaction, SAPLING,
 };
+use ironfish_rust::transaction::batch_verify as native_batch_verify;
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
+
+#[napi]
+pub fn batch_verify(raw_transactions: Vec<Buffer>) -> bool {
+    let mut transactions: Vec<Transaction> = vec![];
+
+    for tx_bytes in raw_transactions {
+        let mut cursor = std::io::Cursor::new(tx_bytes);
+        let tx_result = Transaction::read(SAPLING.clone(), &mut cursor);
+        if tx_result.is_err() {
+            return false;
+        }
+
+        transactions.push(tx_result.unwrap());
+    }
+
+    native_batch_verify(SAPLING.clone(), transactions).is_ok()
+}
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {

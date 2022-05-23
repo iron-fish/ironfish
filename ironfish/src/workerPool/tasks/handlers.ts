@@ -9,6 +9,7 @@ import { GetUnspentNotesTask } from './getUnspentNotes'
 import { SleepTask } from './sleep'
 import { SubmitTelemetryTask } from './submitTelemetry'
 import { UnboxMessageTask } from './unboxMessage'
+import { VerifyBlockTask } from './verifyBlock'
 import { VerifyTransactionTask } from './verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -24,6 +25,7 @@ export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
   [WorkerMessageType.UnboxMessage]: UnboxMessageTask.getInstance(),
   [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),
+  [WorkerMessageType.VerifyBlock]: VerifyBlockTask.getInstance(),
 }
 
 export async function handleRequest(request: WorkerMessage, job: Job): Promise<WorkerMessage> {

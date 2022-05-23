@@ -21,4 +21,4 @@ features = ["napi6"]
 napi-build = "1.2.1"
 
 [patch.crates-io]
-bellman = { git = "https://github.com/iron-fish/bellman", rev = "368a62fb1821eaae495c60ada82d85faaea8b616" }
+bellman = { git = "https://github.com/iron-fish/bellman", rev = "a4b2759b2421bbf47a63b129e7f78e4a61c38e64" }

@@ -20,6 +20,7 @@ import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnsp
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
+import { VerifyBlockRequest, VerifyBlockResponse } from './tasks/verifyBlock'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -182,6 +183,20 @@ export class WorkerPool {
 
     const response = await this.execute(request).result()
     if (!(response instanceof VerifyTransactionResponse)) {
+      throw new Error('Invalid response')
+    }
+
+    return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
+  }
+
+  async verifyBlock(transactions: Transaction[]): Promise<VerificationResult> {
+    const txs = transactions.map((tx) => tx.serialize())
+    const request: VerifyBlockRequest = new VerifyBlockRequest(txs)
+
+    const response = await this.execute(request).result()
+    if (!(response instanceof VerifyBlockResponse)) {
       throw new Error('Invalid response')
     }
 

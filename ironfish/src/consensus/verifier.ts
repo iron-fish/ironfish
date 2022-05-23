@@ -48,15 +48,25 @@ export class Verifier {
     }
 
     // Verify the transactions
-    const verificationResults = await Promise.all(
-      block.transactions.map((t) =>
-        this.verifyTransaction(t, block.header, { verifyFees: false }),
-      ),
+    // const verificationResults = await Promise.all(
+    //   block.transactions.map((t) =>
+    //     this.verifyTransaction(t, block.header, { verifyFees: false }),
+    //   ),
+    // )
+
+    // const invalidResult = verificationResults.find((f) => !f.valid)
+    // if (invalidResult !== undefined) {
+    //   return invalidResult
+    // }
+
+    // Verify the transactions
+    const verificationResults = await this.verifyBulkTransactions(
+      block.transactions,
+      block.header,
     )
 
-    const invalidResult = verificationResults.find((f) => !f.valid)
-    if (invalidResult !== undefined) {
-      return invalidResult
+    if (!verificationResults.valid) {
+      return verificationResults
     }
 
     // Sum the totalTransactionFees and minersFee
@@ -152,6 +162,27 @@ export class Verifier {
         message += ` Message: ${e.message}`
       }
       throw new Error(message)
+    }
+  }
+
+  async verifyBulkTransactions(
+    transactions: Transaction[],
+    block: BlockHeader,
+  ): Promise<VerificationResult> {
+    for (const transaction of transactions) {
+      if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
+    }
+
+    try {
+      const result = await this.workerPool.verifyBlock(transactions)
+      return result
+    } catch {
+      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
   }
 

@@ -623,3 +623,87 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
 
     Ok(value_balance.into())
 }
+
+pub fn batch_verify(
+    sapling: Arc<Sapling>,
+    transactions: Vec<Transaction>,
+) -> Result<(), TransactionError> {
+    let mut spend_binding_verification_key = ExtendedPoint::identity();
+    let mut receipt_binding_verification_key = ExtendedPoint::identity();
+
+    let mut spend_verifier = Verifier::<Bls12>::new();
+    let mut receipt_verifier = Verifier::<Bls12>::new();
+
+    for transaction in transactions {
+        for spend in transaction.spends.iter() {
+            // TODO: This block copied from spending.rs::verify_proof
+            if spend.value_commitment.is_small_order().into() {
+                return Err(errors::SaplingProofError::VerificationFailed)?;
+            }
+
+            let mut public_input = [Scalar::zero(); 7];
+            let p = spend.randomized_public_key.0.to_affine();
+            public_input[0] = p.get_u();
+            public_input[1] = p.get_v();
+
+            let p = spend.value_commitment.to_affine();
+            public_input[2] = p.get_u();
+            public_input[3] = p.get_v();
+
+            public_input[4] = spend.root_hash;
+
+            let nullifier = multipack::bytes_to_bits_le(&spend.nullifier.0);
+            let nullifier = multipack::compute_multipacking(&nullifier);
+            public_input[5] = nullifier[0];
+            public_input[6] = nullifier[1];
+            // End copied block
+
+            spend_verifier.queue((&spend.proof, &public_input[..]));
+
+            let mut tmp = spend.value_commitment;
+            tmp += spend_binding_verification_key;
+            spend_binding_verification_key = tmp;
+        }
+
+        for receipt in transaction.receipts.iter() {
+            // TODO: This block is copied from receiving.rs::verify_proof
+            if receipt.merkle_note.value_commitment.is_small_order().into()
+                || ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key)
+                    .is_small_order()
+                    .into()
+            {
+                return Err(errors::SaplingProofError::VerificationFailed)?;
+            }
+            let mut public_input = [Scalar::zero(); 5];
+            let p = receipt.merkle_note.value_commitment.to_affine();
+            public_input[0] = p.get_u();
+            public_input[1] = p.get_v();
+
+            let p = ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key).to_affine();
+            public_input[2] = p.get_u();
+            public_input[3] = p.get_v();
+
+            public_input[4] = receipt.merkle_note.note_commitment;
+            // End copied block
+
+            receipt_verifier.queue((&receipt.proof, &public_input[..]));
+
+            let mut tmp = receipt.merkle_note.value_commitment;
+            tmp = -tmp;
+            tmp += receipt_binding_verification_key;
+            receipt_binding_verification_key = tmp;
+        }
+    }
+
+    match spend_verifier.verify(&mut OsRng, &sapling.spend_params.vk) {
+        Ok(()) => {}
+        _ => Err(errors::SaplingProofError::VerificationFailed)?,
+    };
+
+    match receipt_verifier.verify(&mut OsRng, &sapling.receipt_params.vk) {
+        Ok(()) => {}
+        _ => Err(errors::SaplingProofError::VerificationFailed)?,
+    };
+
+    Ok(())
+}
