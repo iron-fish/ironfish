@@ -603,7 +603,7 @@ export class Accounts {
     this.scan = null
   }
 
-  async getTransactionNotes(account: Account): Promise<{
+  getTransactionNotes(account: Account): {
     notes: {
       isSpender: boolean
       txHash: string
@@ -612,7 +612,7 @@ export class Accounts {
       amount: string
       memo: string
     }[]
-  }> {
+  } {
     this.assertHasAccount(account)
 
     const notes = []
@@ -635,13 +635,11 @@ export class Accounts {
           notes.push({
             isSpender,
             txHash: transaction.hash().toString('hex'),
-            txFee: String(await transaction.fee()),
-            isMinerFee: await transaction.isMinersFee(),
+            txFee: String(transaction.fee()),
+            isMinerFee: transaction.isMinersFee(),
             amount: String(decryptedNote.value()),
             memo: decryptedNote.memo().replace(/\x00/g, ''),
           })
-
-          continue
         }
       }
     }

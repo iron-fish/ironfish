@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
-import { GetTransactionsResponse } from 'ironfish'
+import { GetTransactionsResponse } from '@ironfish/sdk'
 
 describe('accounts:transactions', () => {
   const responseContent: GetTransactionsResponse = {
@@ -20,8 +20,8 @@ describe('accounts:transactions', () => {
   }
 
   beforeAll(() => {
-    jest.doMock('ironfish', () => {
-      const originalModule = jest.requireActual('ironfish')
+    jest.doMock('@ironfish/sdk', () => {
+      const originalModule = jest.requireActual('@ironfish/sdk')
       const client = {
         connect: jest.fn(),
         getTransactionNotes: jest.fn().mockImplementation(() => ({
@@ -42,7 +42,7 @@ describe('accounts:transactions', () => {
   })
 
   afterAll(() => {
-    jest.dontMock('ironfish')
+    jest.dontMock('@ironfish/sdk')
   })
 
   describe('fetching the transaction notes for an account', () => {

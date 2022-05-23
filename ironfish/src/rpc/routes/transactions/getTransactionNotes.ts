@@ -48,9 +48,9 @@ export const GetTransactionsResponseSchema: yup.ObjectSchema<GetTransactionsResp
 router.register<typeof GetTransactionsRequestSchema, GetTransactionsResponse>(
   `${ApiNamespace.transaction}/getTransactionNotes`,
   GetTransactionsRequestSchema,
-  async (request, node): Promise<void> => {
+  (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { notes } = await node.accounts.getTransactionNotes(account)
+    const { notes } = node.accounts.getTransactionNotes(account)
     request.end({ account: account.displayName, notes })
   },
 )

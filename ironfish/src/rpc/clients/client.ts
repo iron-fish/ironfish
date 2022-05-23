@@ -32,6 +32,8 @@ import {
   GetPublicKeyResponse,
   GetStatusRequest,
   GetStatusResponse,
+  GetTransactionsRequest,
+  GetTransactionsResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -259,6 +261,15 @@ export abstract class IronfishClient {
 
   onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
+  }
+
+  async getTransactionNotes(
+    params: GetTransactionsRequest = {},
+  ): Promise<ResponseEnded<GetTransactionsResponse>> {
+    return await this.request<GetTransactionsResponse>(
+      `${ApiNamespace.transaction}/getTransactionNotes`,
+      params,
+    ).waitForEnd()
   }
 
   async sendTransaction(
