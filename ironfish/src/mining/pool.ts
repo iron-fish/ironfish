@@ -49,7 +49,7 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: {
+  private constructor(options: {
     rpc: IronfishRpcClient
     shares: MiningPoolShares
     config: Config
