@@ -154,7 +154,7 @@ export class StratumServer {
   }
 
   private onDisconnect(client: StratumServerClient): void {
-    this.logger.debug(`Client ${client.id} disconnected`)
+    this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
     client.socket.removeAllListeners()
     this.clients.delete(client.id)
   }
@@ -197,7 +197,7 @@ export class StratumServer {
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
 
-          this.logger.info(`Miner ${idHex} connected`)
+          this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
