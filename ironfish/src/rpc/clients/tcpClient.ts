@@ -150,6 +150,8 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.isConnected = false
     this.client.off('data', this.onClientData)
     this.client.off('close', this.onClientClose)
+
+    this.onClose.emit()
   }
 
   protected onMessage = (data: unknown): void => {
