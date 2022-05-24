@@ -49,6 +49,7 @@ export class StratumServerClient {
     }
 
     this.connected = false
+    this.socket.removeAllListeners()
     this.socket.destroy(error)
   }
 }
@@ -154,9 +155,9 @@ export class StratumServer {
   }
 
   private onDisconnect(client: StratumServerClient): void {
-    this.logger.debug(`Client ${client.id} disconnected`)
-    client.socket.removeAllListeners()
+    this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
     this.clients.delete(client.id)
+    client.close()
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
@@ -197,7 +198,7 @@ export class StratumServer {
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
 
-          this.logger.info(`Miner ${idHex} connected`)
+          this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
@@ -273,12 +274,30 @@ export class StratumServer {
 
     const serialized = JSON.stringify(message) + '\n'
 
+    this.logger.debug('broadcasting to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+      messageLength: serialized.length,
+    })
+
     for (const client of this.clients.values()) {
       if (this.badClients.has(client.id)) {
         continue
       }
+
+      if (!client.connected) {
+        continue
+      }
+
       client.socket.write(serialized)
     }
+    this.logger.debug('completed broadcast to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+      messageLength: serialized.length,
+    })
   }
   private send(
     client: StratumServerClient,
