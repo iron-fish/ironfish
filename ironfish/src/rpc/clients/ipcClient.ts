@@ -4,7 +4,7 @@
 import { IPC, IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IpcRequest } from '../adapters'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
@@ -24,7 +24,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
 
   constructor(
     connection: Partial<RpcClientConnectionInfo> = {},
-    logger: Logger = createRootLogger(),
+    logger: Logger,
     retryConnect = false,
   ) {
     super(logger.withTag('ipcclient'))

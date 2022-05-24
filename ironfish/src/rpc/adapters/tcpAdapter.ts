@@ -4,7 +4,7 @@
 import net from 'net'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -48,12 +48,7 @@ export class TcpAdapter implements IAdapter {
   namespaces: ApiNamespace[]
   pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
 
-  constructor(
-    host: string,
-    port: number,
-    logger: Logger = createRootLogger(),
-    namespaces: ApiNamespace[],
-  ) {
+  constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
     this.host = host
     this.port = port
     this.logger = logger.withTag('tcpadapter')

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import * as yup from 'yup'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { ConnectionRefusedError } from './errors'
 import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
@@ -32,12 +32,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
   isConnected = false
   connection: RpcClientConnectionInfo
 
-  constructor(
-    host: string,
-    port: number,
-    logger: Logger = createRootLogger(),
-    retryConnect = false,
-  ) {
+  constructor(host: string, port: number, logger: Logger, retryConnect = false) {
     super(logger.withTag('tcpclient'))
     this.host = host
     this.port = port
