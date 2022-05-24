@@ -7,7 +7,7 @@ import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
-import { IronfishRpcClient, IronfishMemoryClient } from './rpc'
+import { IronfishMemoryClient, IronfishRpcClient } from './rpc'
 import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
