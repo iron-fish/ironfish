@@ -6,7 +6,7 @@ import { IPC, IpcServer, IpcSocket, IpcSocketId } from 'node-ipc'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -92,7 +92,7 @@ export class IpcAdapter implements IAdapter {
   constructor(
     namespaces: ApiNamespace[],
     connection: IpcAdapterConnectionInfo,
-    logger: Logger = createRootLogger(),
+    logger: Logger,
   ) {
     this.namespaces = namespaces
     this.connection = connection

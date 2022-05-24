@@ -5,6 +5,7 @@
 /* eslint-disable jest/no-conditional-expect */
 import os from 'os'
 import * as yup from 'yup'
+import { createRootLogger } from '../../logger'
 import { IronfishSdk } from '../../sdk'
 import { IronfishRpcClient, RequestError } from '../clients'
 import { ALL_API_NAMESPACES } from '../routes'
@@ -24,10 +25,14 @@ describe('IpcAdapter', () => {
     sdk.config.setOverride('enableRpcIpc', false)
 
     const node = await sdk.node()
-    ipc = new IpcAdapter(ALL_API_NAMESPACES, {
-      mode: 'ipc',
-      socketPath: sdk.config.get('ipcPath'),
-    })
+    ipc = new IpcAdapter(
+      ALL_API_NAMESPACES,
+      {
+        mode: 'ipc',
+        socketPath: sdk.config.get('ipcPath'),
+      },
+      createRootLogger().withTag('ipcadaptertest'),
+    )
 
     await node.rpc.mount(ipc)
 
