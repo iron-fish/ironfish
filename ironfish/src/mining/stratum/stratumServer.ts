@@ -49,6 +49,7 @@ export class StratumServerClient {
     }
 
     this.connected = false
+    this.socket.removeAllListeners()
     this.socket.destroy(error)
   }
 }
@@ -155,8 +156,8 @@ export class StratumServer {
 
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
-    client.socket.removeAllListeners()
     this.clients.delete(client.id)
+    client.close()
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
@@ -282,14 +283,12 @@ export class StratumServer {
       if (this.badClients.has(client.id)) {
         continue
       }
-      try {
-        client.socket.write(serialized)
-      } catch (e) {
-        this.logger.log('error broadcasting to client', {
-          id: client.id,
-          messsage: e instanceof Error ? e.message : 'undefined error',
-        })
+
+      if (!client.connected) {
+        continue
       }
+
+      client.socket.write(serialized)
     }
     this.logger.log('completed broadcast to clients', {
       method,
