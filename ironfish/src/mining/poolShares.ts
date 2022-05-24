@@ -126,7 +126,10 @@ export class MiningPoolShares {
 
     let payoutAmount: number
     if (this.balancePercentPayoutFlag !== undefined) {
-      payoutAmount = Number((confirmedBalance * BigInt(this.balancePercentPayoutFlag)) / 100n)
+      payoutAmount = BigIntUtils.divide(
+        confirmedBalance * BigInt(this.balancePercentPayoutFlag),
+        100n,
+      )
     } else {
       payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
     }
