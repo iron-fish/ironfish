@@ -25,8 +25,6 @@ sleep 15
 
 service ssh restart
 
-
-echo -e '\n\e[42m Установка nvm. Install nvm \e[0m\n'
 cd ~/
 git clone https://github.com/nvm-sh/nvm.git .nvm
 cd ~/.nvm
