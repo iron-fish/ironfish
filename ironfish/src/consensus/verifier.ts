@@ -60,13 +60,28 @@ export class Verifier {
     // }
 
     // Verify the transactions
-    const verificationResults = await this.verifyBulkTransactions(
-      block.transactions,
-      block.header,
-    )
+    // const verificationResults = await this.verifyBulkTransactions(
+    //   block.transactions,
+    //   block.header,
+    // )
 
-    if (!verificationResults.valid) {
-      return verificationResults
+    // if (!verificationResults.valid) {
+    //   return verificationResults
+    // }
+
+    // TODO: Load this numworkers from config instead of hardcoding 6
+    const size = Math.max(block.transactions.length / 6, 1)
+    const verificationPromises = []
+    for (let i = 0; i < block.transactions.length; i += size) {
+      verificationPromises.push(
+        this.verifyBulkTransactions(block.transactions.slice(i, i + size), block.header),
+      )
+    }
+    const verificationResults = await Promise.all(verificationPromises)
+
+    const invalidResult = verificationResults.find((f) => !f.valid)
+    if (invalidResult !== undefined) {
+      return invalidResult
     }
 
     // Sum the totalTransactionFees and minersFee
