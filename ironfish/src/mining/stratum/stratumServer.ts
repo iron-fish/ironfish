@@ -271,13 +271,15 @@ export class StratumServer {
       method: method,
       body: body,
     }
+
+    const serialized = JSON.stringify(message) + '\n'
+
     this.logger.debug('broadcasting to clients', {
       method,
       id: message.id,
       numClients: this.clients.size,
+      messageLength: serialized.length,
     })
-
-    const serialized = JSON.stringify(message) + '\n'
 
     for (const client of this.clients.values()) {
       if (this.badClients.has(client.id)) {
@@ -294,6 +296,7 @@ export class StratumServer {
       method,
       id: message.id,
       numClients: this.clients.size,
+      messageLength: serialized.length,
     })
   }
   private send(
