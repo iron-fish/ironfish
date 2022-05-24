@@ -3,7 +3,7 @@ version: "2.0"
 
 services:
   app:
-    image: dimokus88/ironfish:0.2.9
+    image: dimokus88/ironfish:0.3.0
     env:
      - "my_root_password=pass_root_for_ssh" #Enter the root password to connect to the container via ssh. Введите пароль пользователя root для подключения к контейнеру по ssh.
      #- "LINK_WALLET=https://drive.google.com/uc?export=download&" # Direct link to download your wallet.json .Прямая ссылка на скачивание вашего wallet.json .
