@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { isValidPublicAddress } from '../account/validator'
 import { Assert } from '../assert'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
