@@ -271,7 +271,7 @@ export class StratumServer {
       method: method,
       body: body,
     }
-    this.logger.log('broadcasting to clients', {
+    this.logger.debug('broadcasting to clients', {
       method,
       id: message.id,
       numClients: this.clients.size,
@@ -290,7 +290,7 @@ export class StratumServer {
 
       client.socket.write(serialized)
     }
-    this.logger.log('completed broadcast to clients', {
+    this.logger.debug('completed broadcast to clients', {
       method,
       id: message.id,
       numClients: this.clients.size,

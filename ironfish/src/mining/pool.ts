@@ -302,7 +302,8 @@ export class MiningPool {
   }
 
   private recalculateTarget() {
-    this.logger.log('recalculating target')
+    this.logger.debug('recalculating target')
+
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
@@ -332,7 +333,8 @@ export class MiningPool {
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
     this.distributeNewBlock(latestBlock)
-    this.logger.log('target recalculated', { prevHash: latestBlock.header.previousBlockHash })
+
+    this.logger.debug('target recalculated', { prevHash: latestBlock.header.previousBlockHash })
   }
 
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
