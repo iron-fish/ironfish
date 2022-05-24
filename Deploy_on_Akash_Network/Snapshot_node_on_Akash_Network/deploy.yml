@@ -6,7 +6,6 @@ services:
     image: dimokus88/ironsnap:0.0.7
     env:
      - "my_root_password=" 
-     - "NODE_NAME=SnapshotNode"
      - "TIME=1h"
      - "LINK_SNAPSHOT=" 
      
