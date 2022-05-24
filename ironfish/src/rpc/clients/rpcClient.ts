@@ -32,7 +32,7 @@ export abstract class IronfishRpcClient extends IronfishClient {
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
   abstract close(): void
-  abstract send(messageId: number, route: string, data: unknown): void
+  protected abstract send(messageId: number, route: string, data: unknown): void
 
   timeoutMs: number | null = REQUEST_TIMEOUT_MS
   messageIds = 0

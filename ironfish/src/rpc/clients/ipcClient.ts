@@ -106,7 +106,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
     }
   }
 
-  send(messageId: number, route: string, data: unknown): void {
+  protected send(messageId: number, route: string, data: unknown): void {
     Assert.isNotNull(this.client)
     const message: IpcRequest = {
       mid: messageId,

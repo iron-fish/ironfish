@@ -99,7 +99,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
     }
   }
 
-  send(messageId: number, route: string, data: unknown): void {
+  protected send(messageId: number, route: string, data: unknown): void {
     const message = {
       type: 'message',
       data: {
