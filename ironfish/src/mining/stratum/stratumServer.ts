@@ -270,6 +270,11 @@ export class StratumServer {
       method: method,
       body: body,
     }
+    this.logger.log('broadcasting to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+    })
 
     const serialized = JSON.stringify(message) + '\n'
 
@@ -277,8 +282,20 @@ export class StratumServer {
       if (this.badClients.has(client.id)) {
         continue
       }
-      client.socket.write(serialized)
+      try {
+        client.socket.write(serialized)
+      } catch (e) {
+        this.logger.log('error broadcasting to client', {
+          id: client.id,
+          messsage: e instanceof Error ? e.message : 'undefined error',
+        })
+      }
     }
+    this.logger.log('completed broadcast to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+    })
   }
   private send(
     client: StratumServerClient,
