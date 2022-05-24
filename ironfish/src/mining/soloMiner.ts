@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import { Assert } from '../assert'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
@@ -46,12 +46,12 @@ export class MiningSoloMiner {
   constructor(options: {
     threadCount: number
     batchSize: number
-    logger?: Logger
+    logger: Logger
     graffiti: Buffer
     rpc: IronfishIpcClient
   }) {
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.graffiti = options.graffiti
 
     const threadCount = options.threadCount ?? 1

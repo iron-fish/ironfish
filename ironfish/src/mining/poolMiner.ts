@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { isValidPublicAddress } from '../account/validator'
 import { Assert } from '../assert'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
@@ -30,12 +30,12 @@ export class MiningPoolMiner {
   constructor(options: {
     threadCount: number
     batchSize: number
-    logger?: Logger
+    logger: Logger
     publicAddress: string
     host: string
     port: number
   }) {
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.graffiti = null
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
@@ -50,6 +50,7 @@ export class MiningPoolMiner {
       publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
+      logger: options.logger,
     })
 
     this.hashRate = new Meter()

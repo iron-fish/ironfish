@@ -87,6 +87,7 @@ export class StartPool extends IronfishCommand {
 
     this.pool = await MiningPool.init({
       config: this.sdk.config,
+      logger: this.logger,
       rpc,
       enablePayouts: flags.payouts,
       discord,

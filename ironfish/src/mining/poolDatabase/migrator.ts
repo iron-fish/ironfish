@@ -4,7 +4,7 @@
 
 /* eslint-disable no-console */
 import { Database } from 'sqlite'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { Migration } from './migration'
 import { MIGRATIONS } from './migrations'
 
@@ -13,9 +13,9 @@ export class Migrator {
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { db: Database; logger?: Logger }) {
+  constructor(options: { db: Database; logger: Logger }) {
     this.db = options.db
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
 
     this.migrations = MIGRATIONS.map((m) => new m().init()).sort((a, b) => a.id - b.id)
   }

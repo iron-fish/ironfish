@@ -5,7 +5,7 @@ import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
 import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Target } from '../primitives/target'
 import { IronfishIpcClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
@@ -53,13 +53,13 @@ export class MiningPool {
     rpc: IronfishIpcClient
     shares: MiningPoolShares
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     host?: string
     port?: number
   }) {
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.discord = options.discord ?? null
     this.stratum = new StratumServer({
       pool: this,
@@ -92,7 +92,7 @@ export class MiningPool {
   static async init(options: {
     rpc: IronfishIpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     enablePayouts?: boolean
     host?: string

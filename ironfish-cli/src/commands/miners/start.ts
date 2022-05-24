@@ -90,6 +90,7 @@ export class Miner extends IronfishCommand {
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.address,
+        logger: this.logger,
         batchSize,
         host: host,
         port: port,
@@ -114,6 +115,7 @@ export class Miner extends IronfishCommand {
       const miner = new MiningSoloMiner({
         threadCount: flags.threads,
         graffiti: GraffitiUtils.fromString(graffiti),
+        logger: this.logger,
         batchSize,
         rpc,
       })

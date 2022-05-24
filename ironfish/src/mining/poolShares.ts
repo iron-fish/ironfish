@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { IronfishIpcClient } from '../rpc/clients/ipcClient'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
@@ -31,7 +31,7 @@ export class MiningPoolShares {
     db: PoolDatabase
     rpc: IronfishIpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
@@ -39,7 +39,7 @@ export class MiningPoolShares {
     this.db = options.db
     this.rpc = options.rpc
     this.config = options.config
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.discord = options.discord ?? null
     this.enablePayouts = options.enablePayouts ?? true
 
@@ -56,13 +56,14 @@ export class MiningPoolShares {
   static async init(options: {
     rpc: IronfishIpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
+      logger: options.logger,
     })
 
     return new MiningPoolShares({
