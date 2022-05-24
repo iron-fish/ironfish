@@ -25,14 +25,16 @@ export class MiningPoolShares {
   private attemptPayoutInterval: number
   private accountName: string
   private balancePercentPayout: bigint
+  private balancePercentPayoutFlag: number | undefined
 
-  constructor(options: {
+  private constructor(options: {
     db: PoolDatabase
     rpc: IronfishIpcClient
     config: Config
     logger?: Logger
     discord?: Discord
     enablePayouts?: boolean
+    balancePercentPayoutFlag?: number
   }) {
     this.db = options.db
     this.rpc = options.rpc
@@ -46,6 +48,7 @@ export class MiningPoolShares {
     this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
     this.accountName = this.config.get('poolAccountName')
     this.balancePercentPayout = BigInt(this.config.get('poolBalancePercentPayout'))
+    this.balancePercentPayoutFlag = options.balancePercentPayoutFlag
 
     this.payoutInterval = null
   }
@@ -56,6 +59,7 @@ export class MiningPoolShares {
     logger?: Logger
     discord?: Discord
     enablePayouts?: boolean
+    balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
@@ -68,6 +72,7 @@ export class MiningPoolShares {
       logger: options.logger,
       discord: options.discord,
       enablePayouts: options.enablePayouts,
+      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
   }
 
@@ -119,7 +124,12 @@ export class MiningPoolShares {
     const balance = await this.rpc.getAccountBalance({ account: this.accountName })
     const confirmedBalance = BigInt(balance.content.confirmed)
 
-    const payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
+    let payoutAmount: number
+    if (this.balancePercentPayoutFlag !== undefined) {
+      payoutAmount = Number((confirmedBalance * BigInt(this.balancePercentPayoutFlag)) / 100n)
+    } else {
+      payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
+    }
 
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.

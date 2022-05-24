@@ -49,7 +49,7 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: {
+  private constructor(options: {
     rpc: IronfishIpcClient
     shares: MiningPoolShares
     config: Config
@@ -97,6 +97,7 @@ export class MiningPool {
     enablePayouts?: boolean
     host?: string
     port?: number
+    balancePercentPayoutFlag?: number
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -104,6 +105,7 @@ export class MiningPool {
       logger: options.logger,
       discord: options.discord,
       enablePayouts: options.enablePayouts,
+      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
 
     return new MiningPool({

@@ -34,6 +34,9 @@ export class StartPool extends IronfishCommand {
       allowNo: true,
       description: 'whether the pool should payout or not. useful for solo miners',
     }),
+    balancePercentPayout: Flags.integer({
+      description: 'whether the pool should payout or not. useful for solo miners',
+    }),
   }
 
   pool: MiningPool | null = null
@@ -89,6 +92,7 @@ export class StartPool extends IronfishCommand {
       discord,
       host: host,
       port: port,
+      balancePercentPayoutFlag: flags.balancePercentPayout,
     })
 
     await this.pool.start()
