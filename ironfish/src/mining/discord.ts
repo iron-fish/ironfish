@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import Axios, { AxiosInstance } from 'axios'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../utils'
 import { FileUtils } from '../utils/file'
 
@@ -12,8 +12,8 @@ export class Discord {
   private readonly client: AxiosInstance | null = null
   private readonly logger: Logger
 
-  constructor(options: { webhook: string | null; logger?: Logger }) {
-    this.logger = options.logger ?? createRootLogger()
+  constructor(options: { webhook: string | null; logger: Logger }) {
+    this.logger = options.logger
 
     if (options.webhook) {
       this.webhook = options.webhook

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { GraffitiUtils } from '../../utils/graffiti'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
@@ -40,13 +40,13 @@ export class StratumClient {
     publicAddress: string
     host: string
     port: number
-    logger?: Logger
+    logger: Logger
   }) {
     this.host = options.host
     this.port = options.port
     this.miner = options.miner
     this.publicAddress = options.publicAddress
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
 
     this.started = false
     this.id = null

@@ -30,12 +30,12 @@ export class MiningPoolMiner {
   constructor(options: {
     threadCount: number
     batchSize: number
-    logger?: Logger
+    logger: Logger
     publicAddress: string
     host: string
     port: number
   }) {
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.graffiti = null
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
@@ -50,6 +50,7 @@ export class MiningPoolMiner {
       publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
+      logger: options.logger,
     })
 
     this.hashRate = new Meter()

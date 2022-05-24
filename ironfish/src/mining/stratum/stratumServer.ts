@@ -6,7 +6,7 @@ import { isValidPublicAddress } from '../../account/validator'
 import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { Config } from '../../fileStores/config'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
@@ -73,13 +73,13 @@ export class StratumServer {
   constructor(options: {
     pool: MiningPool
     config: Config
-    logger?: Logger
+    logger: Logger
     port?: number
     host?: string
   }) {
     this.pool = options.pool
     this.config = options.config
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')

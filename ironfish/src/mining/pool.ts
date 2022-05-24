@@ -49,17 +49,17 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: {
+  private constructor(options: {
     rpc: IronfishIpcClient
     shares: MiningPoolShares
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     host?: string
     port?: number
   }) {
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.discord = options.discord ?? null
     this.stratum = new StratumServer({
       pool: this,
@@ -92,7 +92,7 @@ export class MiningPool {
   static async init(options: {
     rpc: IronfishIpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
     enablePayouts?: boolean
     host?: string
