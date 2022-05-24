@@ -1,0 +1,52 @@
+---
+version: "2.0"
+
+services:
+  app:
+    image: dimokus88/ironsnap:0.0.7
+    env:
+     - "my_root_password=" 
+     - "NODE_NAME=SnapshotNode"
+     - "TIME=1h"
+     - "LINK_SNAPSHOT=" 
+     
+    
+    expose:
+      - port: 80
+        as: 80
+        to:
+          - global: true
+      - port: 22
+        as: 22
+        to:
+          - global: true
+   
+    
+profiles:
+  compute:
+    app:
+      resources:
+        cpu:
+          units: 1.0
+        memory:
+          size: 1Gi
+        storage:
+          size: 20Gi
+        
+        
+  placement:
+    akash: 
+      attributes:
+        host: akash
+      signedBy:
+        anyOf:
+            
+      pricing:
+        app:
+          denom: uakt
+          amount: 1000
+deployment:
+  app:
+    akash:
+      profile: app
+      count: 1 #max 2 count
