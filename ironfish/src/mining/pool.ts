@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
-import { IronfishIpcClient } from '../rpc/clients'
+import { IronfishRpcClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
@@ -22,7 +22,7 @@ const RECALCULATE_TARGET_TIMEOUT = 10000
 
 export class MiningPool {
   readonly stratum: StratumServer
-  readonly rpc: IronfishIpcClient
+  readonly rpc: IronfishRpcClient
   readonly logger: Logger
   readonly shares: MiningPoolShares
   readonly config: Config
@@ -50,7 +50,7 @@ export class MiningPool {
   recalculateTargetInterval: SetTimeoutToken | null
 
   private constructor(options: {
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     shares: MiningPoolShares
     config: Config
     logger: Logger
@@ -90,7 +90,7 @@ export class MiningPool {
   }
 
   static async init(options: {
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     config: Config
     logger: Logger
     discord?: Discord

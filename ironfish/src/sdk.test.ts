@@ -7,7 +7,7 @@ import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
-import { IronfishIpcClient, IronfishMemoryClient } from './rpc'
+import { IronfishMemoryClient, IronfishRpcClient } from './rpc'
 import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
@@ -25,7 +25,7 @@ describe('IronfishSdk', () => {
       })
 
       expect(sdk.config).toBeInstanceOf(Config)
-      expect(sdk.client).toBeInstanceOf(IronfishIpcClient)
+      expect(sdk.client).toBeInstanceOf(IronfishRpcClient)
       expect(sdk.fileSystem).toBe(fileSystem)
 
       expect(sdk.config.storage.dataDir).toBe(dataDir)

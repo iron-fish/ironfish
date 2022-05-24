@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
-import { IronfishIpcClient } from '../rpc/clients/ipcClient'
+import { IronfishRpcClient } from '../rpc/clients/rpcClient'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
@@ -11,7 +11,7 @@ import { Discord } from './discord'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 export class MiningPoolShares {
-  readonly rpc: IronfishIpcClient
+  readonly rpc: IronfishRpcClient
   readonly config: Config
   readonly logger: Logger
   readonly discord: Discord | null
@@ -29,7 +29,7 @@ export class MiningPoolShares {
 
   private constructor(options: {
     db: PoolDatabase
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     config: Config
     logger: Logger
     discord?: Discord
@@ -54,7 +54,7 @@ export class MiningPoolShares {
   }
 
   static async init(options: {
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     config: Config
     logger: Logger
     discord?: Discord
