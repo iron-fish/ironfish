@@ -106,8 +106,9 @@ export class StratumServer {
     this.currentWork = mineableHeaderString(block.header)
 
     this.logger.info(
-      `Setting work for request: ${this.currentMiningRequestId}, 
-      ${this.currentWork.toString('hex').slice(0, 50)}...`,
+      `Setting work for request: ${this.currentMiningRequestId} ${this.currentWork
+        .toString('hex')
+        .slice(0, 50)}...`,
     )
 
     this.broadcast('mining.notify', this.getNotifyMessage())
