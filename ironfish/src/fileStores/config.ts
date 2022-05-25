@@ -191,9 +191,16 @@ export type ConfigOptions = {
   poolDiscordWebhook: ''
 
   /**
+
    * The lark webhook URL to post pool critical pool information too
    */
   poolLarkWebhook: ''
+
+  /**
+   * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
+   * more easily process logs on a remote server using a log service like Datadog
+   */
+  logToConsoleAsJSON: boolean
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -274,6 +281,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
       poolLarkWebhook: '',
+      logToConsoleAsJSON: false,
     }
   }
 }

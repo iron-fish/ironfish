@@ -563,8 +563,9 @@ export class Peer {
 
         if (connection.state.type === 'DISCONNECTED') {
           this.logger.debug(
-            `Connection closing ${connection.type} for ${this.displayName}:`,
-            ErrorUtils.renderError(connection.error) || 'Reason Unknown',
+            `Connection closing ${connection.type} for ${this.displayName}: ${
+              ErrorUtils.renderError(connection.error) || 'Reason Unknown'
+            }`,
           )
 
           if (connection.error !== null) {

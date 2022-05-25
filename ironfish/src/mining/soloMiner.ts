@@ -123,10 +123,9 @@ export class MiningSoloMiner {
 
   newWork(miningRequestId: number, header: Buffer): void {
     this.logger.debug(
-      'new work',
-      this.target.toString('hex'),
-      miningRequestId,
-      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+      `new work ${this.target.toString('hex')}, ${miningRequestId} ${FileUtils.formatHashRate(
+        this.hashRate.rate1s,
+      )}/s`,
     )
 
     const headerBytes = Buffer.concat([header])
@@ -183,10 +182,9 @@ export class MiningSoloMiner {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(
-          'Found block:',
-          randomness,
-          miningRequestId,
-          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+          `Found block: ${randomness} ${miningRequestId} ${FileUtils.formatHashRate(
+            this.hashRate.rate1s,
+          )}/s`,
         )
 
         void this.submitWork(miningRequestId, randomness, this.graffiti)

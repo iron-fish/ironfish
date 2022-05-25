@@ -8,7 +8,13 @@ import { parseLogLevelConfig } from './logLevelParser'
 import { ConsoleReporter } from './reporters/console'
 export * from './reporters/intercept'
 
-export type Logger = Consola
+type Loggable = string | number
+export interface Logger extends Consola {
+  info(message: string, args?: Record<string, Loggable>): void
+  error(message: string, args?: Record<string, Loggable>): void
+  warn(message: string, args?: Record<string, Loggable>): void
+  debug(message: string, args?: Record<string, Loggable>): void
+}
 
 export const ConsoleReporterInstance = new ConsoleReporter()
 
@@ -24,6 +30,13 @@ export const setLogLevelFromConfig = (logLevelConfig: string): void => {
   for (const config of parsedConfig) {
     ConsoleReporterInstance.setLogLevel(config[0], config[1])
   }
+}
+
+/**
+ * @param logToJSON Whether console logs should be in JSON format
+ */
+export const setJSONLoggingFromConfig = (logToJSON: boolean): void => {
+  ConsoleReporterInstance.logToJSON = logToJSON
 }
 
 /**

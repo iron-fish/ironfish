@@ -8,7 +8,7 @@ import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
-import { ArrayUtils, SetIntervalToken } from '../../utils'
+import { ArrayUtils, ErrorUtils, SetIntervalToken } from '../../utils'
 import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
@@ -613,7 +613,7 @@ export class PeerManager {
     if (peer.state.connections.webRtc?.state.type === 'CONNECTED') {
       if (existingPeer.state.type !== 'DISCONNECTED' && existingPeer.state.connections.webRtc) {
         const error = `Replacing duplicate WebRTC connection on ${existingPeer.displayName}`
-        this.logger.debug(new NetworkError(error))
+        this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
         existingPeer
           .removeConnection(existingPeer.state.connections.webRtc)
           .close(new NetworkError(error))
@@ -936,10 +936,7 @@ export class PeerManager {
 
       if (!destinationPeer) {
         this.logger.debug(
-          'not forwarding disconnect from',
-          messageSender.displayName,
-          'due to unknown peer',
-          message.destinationIdentity,
+          `not forwarding disconnect from ${messageSender.displayName} due to unknown peer ${message.destinationIdentity}`,
         )
         return
       }
@@ -1204,11 +1201,7 @@ export class PeerManager {
   ) {
     if (canInitiateWebRTC(message.sourceIdentity, message.destinationIdentity)) {
       this.logger.debug(
-        'not handling signal request from',
-        message.sourceIdentity,
-        'to',
-        message.destinationIdentity,
-        'because source peer should have initiated',
+        `not handling signal request from ${message.sourceIdentity} to ${message.destinationIdentity} because source peer should have initiated`,
       )
       return
     }
@@ -1231,10 +1224,7 @@ export class PeerManager {
 
       if (!destinationPeer) {
         this.logger.debug(
-          'not forwarding signal request from',
-          messageSender.displayName,
-          'due to unknown peer',
-          message.destinationIdentity,
+          `not forwarding signal request from ${messageSender.displayName} due to unknown peer ${message.destinationIdentity}`,
         )
         return
       }
@@ -1321,10 +1311,7 @@ export class PeerManager {
 
       if (!destinationPeer) {
         this.logger.debug(
-          'not forwarding signal from',
-          messageSender.displayName,
-          'due to unknown peer',
-          message.destinationIdentity,
+          `not forwarding signal from ${messageSender.displayName} due to unknown peer ${message.destinationIdentity}`,
         )
         return
       }
@@ -1373,15 +1360,13 @@ export class PeerManager {
       signalingPeer.state.connections.webRtc === undefined
     ) {
       if (signalingPeer.state.identity === null) {
-        this.logger.log('Peer must have an identity to begin signaling')
+        this.logger.info('Peer must have an identity to begin signaling')
         return
       }
 
       if (!canInitiateWebRTC(signalingPeer.state.identity, message.destinationIdentity)) {
         this.logger.debug(
-          'not handling signal message from',
-          signalingPeer.displayName,
-          'because source peer should have requested signaling',
+          `not handling signal message from ${signalingPeer.displayName} because source peer should have requested signaling`,
         )
         return
       }

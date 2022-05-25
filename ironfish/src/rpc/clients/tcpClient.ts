@@ -158,6 +158,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
   }
 
   protected onError(error: unknown): void {
-    this.logger.error(error)
+    this.logger.error(ErrorUtils.renderError(error))
   }
 }
