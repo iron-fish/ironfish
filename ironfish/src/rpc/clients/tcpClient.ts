@@ -52,15 +52,16 @@ export class IronfishTcpClient extends IronfishRpcClient {
       .then(() => true)
       .catch(() => false)
 
-    if (!connected && this.retryConnect) {
-      this.logger.warn(
-        `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
-      )
-      this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
-      return
+    if (!connected) {
+      if (this.retryConnect) {
+        this.logger.warn(
+          `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
+        )
+        this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
+        return
+      }
+      this.logger.warn(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
     }
-
-    this.logger.warn(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
   }
 
   async connectClient(): Promise<void> {
