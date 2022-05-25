@@ -9,7 +9,13 @@ import http from 'http'
 import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
-import { mockChain, mockNode, mockStrategy, mockWorkerPool } from '../testUtilities/mocks'
+import {
+  mockChain,
+  mockNode,
+  mockStrategy,
+  mockTransaction,
+  mockWorkerPool,
+} from '../testUtilities/mocks'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
@@ -191,119 +197,141 @@ describe('PeerNetwork', () => {
       expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
     })
 
-    describe('when the worker pool is saturated', () => {
-      it('does not accept or sync transactions', async () => {
-        const node = mockNode()
-        const peerNetwork = new PeerNetwork({
-          identity: mockPrivateIdentity('local'),
-          agent: 'sdk/1/cli',
-          webSocket: ws,
-          node,
-          chain: {
+    describe('handles new transactions', () => {
+      describe('when the worker pool is saturated', () => {
+        it('does not accept or sync transactions', async () => {
+          const node = mockNode()
+          const peerNetwork = new PeerNetwork({
+            identity: mockPrivateIdentity('local'),
+            agent: 'sdk/1/cli',
+            webSocket: ws,
+            node,
+            chain: {
+              ...mockChain(),
+              verifier: {
+                verifyNewTransaction: jest.fn(),
+              },
+            },
+            strategy: mockStrategy(),
+            hostsStore: mockHostsStore(),
+          })
+
+          const { accounts, memPool, workerPool } = node
+          jest.spyOn(workerPool, 'saturated').mockImplementationOnce(() => false)
+          const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
+          const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
+
+          const gossip = await peerNetwork['onNewTransaction']({
+            peerIdentity: '',
+            message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
+          })
+
+          expect(gossip).toBe(false)
+          expect(acceptTransaction).not.toHaveBeenCalled()
+          expect(syncTransaction).not.toHaveBeenCalled()
+        })
+      })
+
+      describe('when the node is syncing', () => {
+        it('does not accept or sync transactions', async () => {
+          const chain = {
             ...mockChain(),
+            synced: false,
             verifier: {
               verifyNewTransaction: jest.fn(),
             },
-          },
-          strategy: mockStrategy(),
-          hostsStore: mockHostsStore(),
+          }
+          const node = {
+            ...mockNode(),
+            chain,
+          }
+          const peerNetwork = new PeerNetwork({
+            identity: mockPrivateIdentity('local'),
+            agent: 'sdk/1/cli',
+            webSocket: ws,
+            node,
+            chain,
+            strategy: mockStrategy(),
+            hostsStore: mockHostsStore(),
+          })
+
+          const { accounts, memPool } = node
+          const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
+          const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
+
+          const gossip = await peerNetwork['onNewTransaction']({
+            peerIdentity: '',
+            message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
+          })
+
+          expect(gossip).toBe(false)
+          expect(acceptTransaction).not.toHaveBeenCalled()
+          expect(syncTransaction).not.toHaveBeenCalled()
         })
-
-        const { accounts, memPool, workerPool } = node
-        jest.spyOn(workerPool, 'saturated').mockImplementationOnce(() => false)
-        const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
-
-        await peerNetwork['onNewTransaction']({
-          peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
-        })
-
-        expect(acceptTransaction).not.toHaveBeenCalled()
-        expect(syncTransaction).not.toHaveBeenCalled()
       })
-    })
 
-    describe('when the node is syncing', () => {
-      it('does not accept or sync transactions', async () => {
-        const chain = {
-          ...mockChain(),
-          synced: false,
-          verifier: {
-            verifyNewTransaction: jest.fn(),
-          },
-        }
-        const node = {
-          ...mockNode(),
-          chain,
-        }
-        const peerNetwork = new PeerNetwork({
-          identity: mockPrivateIdentity('local'),
-          agent: 'sdk/1/cli',
-          webSocket: ws,
-          node,
-          chain,
-          strategy: mockStrategy(),
-          hostsStore: mockHostsStore(),
+      describe('accepts new transactions', () => {
+        it('verifies transactions', async () => {
+          const chain = {
+            ...mockChain(),
+            verifier: {
+              verifyNewTransaction: jest.fn().mockReturnValue(mockTransaction()),
+            },
+          }
+          const workerPool = {
+            ...mockWorkerPool,
+            saturated: false,
+          }
+          const node = {
+            ...mockNode(),
+            chain,
+            workerPool,
+          }
+
+          const peerNetwork = new PeerNetwork({
+            identity: mockPrivateIdentity('local'),
+            agent: 'sdk/1/cli',
+            webSocket: ws,
+            node,
+            chain,
+            strategy: mockStrategy(),
+            hostsStore: mockHostsStore(),
+          })
+
+          // Spy on new transactions
+          const verifyNewTransactionSpy = jest.spyOn(
+            peerNetwork['chain']['verifier'],
+            'verifyNewTransaction',
+          )
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(node.workerPool.saturated).toEqual(false)
+
+          const message = {
+            peerIdentity: '',
+            message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          node.memPool.exists = jest.fn().mockReturnValue(false)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          node.memPool.acceptTransaction = jest.fn().mockReturnValue(true)
+
+          let gossip = await peerNetwork['onNewTransaction'](message)
+          expect(gossip).toBe(true)
+          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(node.memPool.acceptTransaction).toHaveBeenCalledTimes(1)
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          node.memPool.exists = jest.fn().mockReturnValue(true)
+
+          gossip = await peerNetwork['onNewTransaction'](message)
+          expect(gossip).toBe(true)
+          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(2)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect(node.memPool.acceptTransaction).toHaveBeenCalledTimes(1)
         })
-
-        const { accounts, memPool } = node
-        const acceptTransaction = jest.spyOn(memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
-
-        await peerNetwork['onNewTransaction']({
-          peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
-        })
-
-        expect(acceptTransaction).not.toHaveBeenCalled()
-        expect(syncTransaction).not.toHaveBeenCalled()
-      })
-    })
-
-    describe('when the worker pool is not saturated', () => {
-      it('verifies transactions', async () => {
-        const chain = {
-          ...mockChain(),
-          verifier: {
-            verifyNewTransaction: jest.fn(),
-          },
-        }
-        const workerPool = {
-          ...mockWorkerPool,
-          saturated: false,
-        }
-        const node = {
-          ...mockNode(),
-          chain,
-          workerPool,
-        }
-
-        const peerNetwork = new PeerNetwork({
-          identity: mockPrivateIdentity('local'),
-          agent: 'sdk/1/cli',
-          webSocket: ws,
-          node,
-          chain,
-          strategy: mockStrategy(),
-          hostsStore: mockHostsStore(),
-        })
-
-        // Spy on new transactions
-        const verifyNewTransactionSpy = jest.spyOn(
-          peerNetwork['chain']['verifier'],
-          'verifyNewTransaction',
-        )
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(node.workerPool.saturated).toEqual(false)
-
-        await peerNetwork['onNewTransaction']({
-          peerIdentity: '',
-          message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
-        })
-
-        expect(verifyNewTransactionSpy).toHaveBeenCalled()
       })
     })
   })

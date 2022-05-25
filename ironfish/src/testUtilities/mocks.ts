@@ -7,6 +7,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
+export function mockTransaction(): any {
+  return { hash: jest.fn().mockReturnValue(Buffer.alloc(32, 'test')) }
+}
+
 export function mockEvent(): any {
   return { on: jest.fn() }
 }
@@ -67,6 +71,7 @@ export function mockMiningManager(): any {
 function mockMempool(): unknown {
   return {
     acceptTransaction: jest.fn(),
+    exists: jest.fn().mockReturnValue(false),
   }
 }
 
