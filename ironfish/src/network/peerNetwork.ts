@@ -701,6 +701,10 @@ export class PeerNetwork {
       message.message.transaction,
     )
 
+    if (this.node.memPool.exists(verifiedTransaction.hash())) {
+      return true
+    }
+
     const count = this.badMessageCounter.get(message.peerIdentity)
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
