@@ -49,6 +49,11 @@ export type ConfigOptions = {
    */
   enableNativeRpcTcpAdapter: boolean
   /**
+   * IRO-1498 extends the native TCP adapter (see above) with TLS. This option
+   * will only take effect if the native TCP adapter is enabled.
+   */
+  enableRpcTls: boolean
+  /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
    * otherwise you should not turn this on or you'll create useless
@@ -103,6 +108,8 @@ export type ConfigOptions = {
   rpcTcpPort: number
   rpcTcpSecure: boolean
   rpcRetryConnect: boolean
+  tlsKeyPath: string
+  tlsCertPath: string
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
    * new connections will be rejected.
@@ -236,6 +243,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
       enableNativeRpcTcpAdapter: false,
+      enableRpcTls: false,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
@@ -255,6 +263,8 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpPort: 8020,
       rpcTcpSecure: false,
       rpcRetryConnect: false,
+      tlsKeyPath: files.resolve(files.join(dataDir, 'node-key.pem')),
+      tlsCertPath: files.resolve(files.join(dataDir, 'node-cert.pem')),
       maxPeers: 50,
       minPeers: 1,
       targetPeers: 50,

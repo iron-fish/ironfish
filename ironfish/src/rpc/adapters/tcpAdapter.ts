@@ -46,6 +46,7 @@ export class TcpAdapter implements IAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+
   pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
 
   constructor(
@@ -60,9 +61,13 @@ export class TcpAdapter implements IAdapter {
     this.namespaces = namespaces
   }
 
+  protected createServer(): net.Server {
+    return net.createServer((socket) => this.onClientConnection(socket))
+  }
+
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.server = net.createServer((socket) => this.onClientConnection(socket))
+      this.server = this.createServer()
 
       this.server.on('error', (err) => {
         reject(err)

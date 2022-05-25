@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import * as yup from 'yup'
+import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { ConnectionRefusedError } from './errors'
@@ -24,9 +25,9 @@ const TcpResponseSchema: yup.ObjectSchema<TcpResponse> = yup
   .required()
 
 export class IronfishTcpClient extends IronfishRpcClient {
-  readonly client: net.Socket
-  private readonly host: string
-  private readonly port: number
+  client: net.Socket | null = null
+  protected readonly host: string
+  protected readonly port: number
   private retryConnect: boolean
   private connectTimeout: SetTimeoutToken | null
   isConnected = false
@@ -42,7 +43,6 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.host = host
     this.port = port
     this.connection = { mode: 'tcp', host: host, port: port }
-    this.client = new net.Socket()
     this.retryConnect = retryConnect
     this.connectTimeout = null
   }
@@ -60,6 +60,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
         this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
         return
       }
+
       this.logger.warn(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
     }
   }
@@ -67,15 +68,15 @@ export class IronfishTcpClient extends IronfishRpcClient {
   async connectClient(): Promise<void> {
     return new Promise((resolve, reject): void => {
       const onConnect = () => {
-        this.client.off('connect', onConnect)
-        this.client.off('error', onError)
+        client.off('connect', onConnect)
+        client.off('error', onError)
         this.onConnect()
         resolve()
       }
 
       const onError = (error: unknown) => {
-        this.client.off('connect', onConnect)
-        this.client.off('error', onError)
+        client.off('connect', onConnect)
+        client.off('error', onError)
         if (ErrorUtils.isConnectRefusedError(error)) {
           reject(new ConnectionRefusedError())
         } else if (ErrorUtils.isNoEntityError(error)) {
@@ -85,15 +86,16 @@ export class IronfishTcpClient extends IronfishRpcClient {
         }
       }
 
-      this.client.on('error', onError)
-      this.client.on('connect', onConnect)
       this.logger.debug(`Connecting to ${String(this.host)}:${String(this.port)}`)
-      this.client.connect(this.port, this.host)
+      const client = net.connect(this.port, this.host)
+      client.on('error', onError)
+      client.on('connect', onConnect)
+      this.client = client
     })
   }
 
   close(): void {
-    this.client.end()
+    this.client?.end()
 
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
@@ -101,6 +103,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
   }
 
   protected send(messageId: number, route: string, data: unknown): void {
+    Assert.isNotNull(this.client)
     const message = {
       type: 'message',
       data: {
@@ -113,6 +116,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
   }
 
   protected onConnect(): void {
+    Assert.isNotNull(this.client)
     this.isConnected = true
     this.client.on('data', this.onClientData)
     this.client.on('close', this.onClientClose)
@@ -149,8 +153,8 @@ export class IronfishTcpClient extends IronfishRpcClient {
 
   protected onClientClose = (): void => {
     this.isConnected = false
-    this.client.off('data', this.onClientData)
-    this.client.off('close', this.onClientClose)
+    this.client?.off('data', this.onClientData)
+    this.client?.off('close', this.onClientClose)
 
     this.onClose.emit()
   }
