@@ -540,7 +540,7 @@ export class PeerNetwork {
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else {
-        this.logger.debug('Dropping response to unknown request', rpcId)
+        this.logger.debug(`Dropping response to unknown request ${rpcId}`)
       }
     }
   }

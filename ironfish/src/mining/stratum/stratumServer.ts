@@ -106,9 +106,8 @@ export class StratumServer {
     this.currentWork = mineableHeaderString(block.header)
 
     this.logger.info(
-      'Setting work for request:',
-      this.currentMiningRequestId,
-      `${this.currentWork.toString('hex').slice(0, 50)}...`,
+      `Setting work for request: ${this.currentMiningRequestId}, 
+      ${this.currentWork.toString('hex').slice(0, 50)}...`,
     )
 
     this.broadcast('mining.notify', this.getNotifyMessage())
@@ -138,7 +137,7 @@ export class StratumServer {
 
     socket.on('error', (e) => this.onError(client, e))
 
-    this.logger.debug(`Client ${client.id} connected:`, socket.remoteAddress)
+    this.logger.debug(`Client ${client.id} connected: ${socket.remoteAddress || 'undefined'}`)
     this.clients.set(client.id, client)
   }
 

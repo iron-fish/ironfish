@@ -106,10 +106,9 @@ export class MiningPoolMiner {
     Assert.isNotNull(this.graffiti)
 
     this.logger.debug(
-      'new work',
-      this.target.toString('hex'),
-      miningRequestId,
-      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+      `new work ${this.target.toString('hex')} ${miningRequestId} ${FileUtils.formatHashRate(
+        this.hashRate.rate1s,
+      )}/s`,
     )
 
     const headerBytes = Buffer.concat([header])
@@ -143,10 +142,9 @@ export class MiningPoolMiner {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(
-          'Found share:',
-          randomness,
-          miningRequestId,
-          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+          `Found share: ${randomness} ${miningRequestId} ${FileUtils.formatHashRate(
+            this.hashRate.rate1s,
+          )}/s`,
         )
 
         this.stratum.submit(miningRequestId, randomness)

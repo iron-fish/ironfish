@@ -759,10 +759,9 @@ export class Accounts {
 
         // Otherwise, push the note into the list of notes to spend
         this.logger.debug(
-          'Accounts: spending note',
-          unspentNote.index,
-          unspentNote.hash,
-          unspentNote.note.value(),
+          `Accounts: spending note ${unspentNote.index} ${
+            unspentNote.hash
+          } ${unspentNote.note.value()}`,
         )
         notesToSpend.push({ note: unspentNote.note, witness: witness })
         amountNeeded -= unspentNote.note.value()

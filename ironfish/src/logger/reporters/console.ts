@@ -28,14 +28,13 @@ export const loggers: Record<logType, typeof console.log> = {
   silent: silentLogger,
 }
 
-export class ConsoleReporter extends TextReporter {
-  getConsoleLogger(logType: logType): typeof console.log {
-    const logger = loggers[logType]
-    Assert.isNotUndefined(logger)
-    return logger
-  }
+export const getConsoleLogger = (logType: logType): typeof console.log => {
+  const logger = loggers[logType]
+  return logger
+}
 
+export class ConsoleReporter extends TextReporter {
   logText(logObj: ConsolaReporterLogObject, args: unknown[]): void {
-    this.getConsoleLogger(logObj.type)(...args)
+    getConsoleLogger(logObj.type)(...args)
   }
 }

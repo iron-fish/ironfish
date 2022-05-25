@@ -109,7 +109,7 @@ export class TcpAdapter implements IAdapter {
     const reqMap = new Map<string, Request>()
     this.pending.set(connId, { sock: socket, reqs: reqMap })
     socket.on('data', (data) => {
-      this.onClientData(socket, data, reqMap).catch((err) => this.logger.log(err))
+      this.onClientData(socket, data, reqMap).catch((err) => this.logger.error(err))
     })
     socket.on('close', () => {
       // When the socket is closed, close all open requests and delete the connection

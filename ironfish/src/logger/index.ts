@@ -2,13 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Consola } from 'consola'
+import type { Consola, ConsolaReporter } from 'consola'
 import consola, { LogLevel } from 'consola'
 import { parseLogLevelConfig } from './logLevelParser'
 import { ConsoleReporter } from './reporters/console'
 export * from './reporters/intercept'
 
-export type Logger = Consola
+export interface Logger {
+  info(message: string, ...args: Record<string, unknown>[]): void
+  error(message: string, ...args: Record<string, unknown>[]): void
+  warn(message: string, ...args: Record<string, unknown>[]): void
+  debug(message: string, ...args: Record<string, unknown>[]): void
+  withTag(tag: string): Logger
+  pauseLogs(): void
+  addReporter(reporter: ConsolaReporter): Logger
+  removeReporter(reporter: ConsolaReporter): Logger
+}
 
 export const ConsoleReporterInstance = new ConsoleReporter()
 
