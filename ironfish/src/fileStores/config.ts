@@ -189,6 +189,11 @@ export type ConfigOptions = {
    * The discord webhook URL to post pool critical pool information too
    */
   poolDiscordWebhook: ''
+
+  /**
+   * The lark webhook URL to post pool critical pool information too
+   */
+  poolLarkWebhook: ''
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -268,6 +273,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
+      poolLarkWebhook: '',
     }
   }
 }

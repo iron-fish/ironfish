@@ -5,6 +5,7 @@ import {
   DEFAULT_POOL_HOST,
   DEFAULT_POOL_PORT,
   Discord,
+  Lark,
   MiningPool,
   parseUrl,
   StringUtils,
@@ -22,6 +23,10 @@ export class StartPool extends IronfishCommand {
     discord: Flags.string({
       char: 'd',
       description: 'a discord webhook URL to send critical information to',
+    }),
+    lark: Flags.string({
+      char: 'l',
+      description: 'a lark webhook URL to send critical information to',
     }),
     host: Flags.string({
       char: 'h',
@@ -69,6 +74,18 @@ export class StartPool extends IronfishCommand {
       this.log(`Discord enabled: ${discordWebhook}`)
     }
 
+    let lark: Lark | undefined = undefined
+
+    const larkWebhook = flags.lark ?? this.sdk.config.get('poolLarkWebhook')
+    if (larkWebhook) {
+      lark = new Lark({
+        webhook: larkWebhook,
+        logger: this.logger,
+      })
+
+      this.log(`Lark enabled: ${larkWebhook}`)
+    }
+
     let host = undefined
     let port = undefined
 
@@ -91,6 +108,7 @@ export class StartPool extends IronfishCommand {
       rpc,
       enablePayouts: flags.payouts,
       discord,
+      lark,
       host: host,
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,
