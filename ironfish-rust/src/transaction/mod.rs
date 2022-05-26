@@ -628,13 +628,16 @@ pub fn batch_verify(
     sapling: Arc<Sapling>,
     transactions: Vec<Transaction>,
 ) -> Result<(), TransactionError> {
-    let mut spend_binding_verification_key = ExtendedPoint::identity();
-    let mut receipt_binding_verification_key = ExtendedPoint::identity();
-
     let mut spend_verifier = Verifier::<Bls12>::new();
     let mut receipt_verifier = Verifier::<Bls12>::new();
 
     for transaction in transactions {
+        // Context to accumulate a signature of all the spends and outputs and
+        // guarantee they are part of this transaction, unmodified.
+        let mut binding_verification_key = ExtendedPoint::identity();
+
+        let hash_to_verify_signature = transaction.transaction_signature_hash();
+
         for spend in transaction.spends.iter() {
             // TODO: This block copied from spending.rs::verify_proof
             if spend.value_commitment.is_small_order().into() {
@@ -661,8 +664,10 @@ pub fn batch_verify(
             spend_verifier.queue((&spend.proof, &public_input[..]));
 
             let mut tmp = spend.value_commitment;
-            tmp += spend_binding_verification_key;
-            spend_binding_verification_key = tmp;
+            tmp += binding_verification_key;
+            binding_verification_key = tmp;
+
+            spend.verify_signature(&hash_to_verify_signature)?;
         }
 
         for receipt in transaction.receipts.iter() {
@@ -690,9 +695,11 @@ pub fn batch_verify(
 
             let mut tmp = receipt.merkle_note.value_commitment;
             tmp = -tmp;
-            tmp += receipt_binding_verification_key;
-            receipt_binding_verification_key = tmp;
+            tmp += binding_verification_key;
+            binding_verification_key = tmp;
         }
+
+        transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
     match spend_verifier.verify(&mut OsRng, &sapling.spend_params.vk) {
