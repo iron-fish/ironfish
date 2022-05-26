@@ -429,29 +429,11 @@ impl Transaction {
         // Batch verify spends
         let mut verifier = Verifier::<Bls12>::new();
         for spend in self.spends.iter() {
-            // TODO: This block copied from spending.rs::verify_proof
-            if spend.value_commitment.is_small_order().into() {
-                return Err(errors::SaplingProofError::VerificationFailed)?;
-            }
+            spend.verify_value_commitment()?;
 
-            let mut public_input = [Scalar::zero(); 7];
-            let p = spend.randomized_public_key.0.to_affine();
-            public_input[0] = p.get_u();
-            public_input[1] = p.get_v();
+            let public_inputs = spend.public_inputs();
 
-            let p = spend.value_commitment.to_affine();
-            public_input[2] = p.get_u();
-            public_input[3] = p.get_v();
-
-            public_input[4] = spend.root_hash;
-
-            let nullifier = multipack::bytes_to_bits_le(&spend.nullifier.0);
-            let nullifier = multipack::compute_multipacking(&nullifier);
-            public_input[5] = nullifier[0];
-            public_input[6] = nullifier[1];
-            // End copied block
-
-            verifier.queue((&spend.proof, &public_input[..]));
+            verifier.queue((&spend.proof, &public_inputs[..]));
 
             let mut tmp = spend.value_commitment;
             tmp += binding_verification_key;
@@ -464,27 +446,11 @@ impl Transaction {
 
         let mut verifier = Verifier::<Bls12>::new();
         for receipt in self.receipts.iter() {
-            // TODO: This block is copied from receiving.rs::verify_proof
-            if receipt.merkle_note.value_commitment.is_small_order().into()
-                || ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key)
-                    .is_small_order()
-                    .into()
-            {
-                return Err(errors::SaplingProofError::VerificationFailed)?;
-            }
-            let mut public_input = [Scalar::zero(); 5];
-            let p = receipt.merkle_note.value_commitment.to_affine();
-            public_input[0] = p.get_u();
-            public_input[1] = p.get_v();
+            receipt.verify_value_commitment()?;
 
-            let p = ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key).to_affine();
-            public_input[2] = p.get_u();
-            public_input[3] = p.get_v();
+            let public_inputs = receipt.public_inputs();
 
-            public_input[4] = receipt.merkle_note.note_commitment;
-            // End copied block
-
-            verifier.queue((&receipt.proof, &public_input[..]));
+            verifier.queue((&receipt.proof, &public_inputs[..]));
 
             let mut tmp = receipt.merkle_note.value_commitment;
             tmp = -tmp;
@@ -639,29 +605,11 @@ pub fn batch_verify(
         let hash_to_verify_signature = transaction.transaction_signature_hash();
 
         for spend in transaction.spends.iter() {
-            // TODO: This block copied from spending.rs::verify_proof
-            if spend.value_commitment.is_small_order().into() {
-                return Err(errors::SaplingProofError::VerificationFailed)?;
-            }
+            spend.verify_value_commitment()?;
 
-            let mut public_input = [Scalar::zero(); 7];
-            let p = spend.randomized_public_key.0.to_affine();
-            public_input[0] = p.get_u();
-            public_input[1] = p.get_v();
+            let public_inputs = spend.public_inputs();
 
-            let p = spend.value_commitment.to_affine();
-            public_input[2] = p.get_u();
-            public_input[3] = p.get_v();
-
-            public_input[4] = spend.root_hash;
-
-            let nullifier = multipack::bytes_to_bits_le(&spend.nullifier.0);
-            let nullifier = multipack::compute_multipacking(&nullifier);
-            public_input[5] = nullifier[0];
-            public_input[6] = nullifier[1];
-            // End copied block
-
-            spend_verifier.queue((&spend.proof, &public_input[..]));
+            spend_verifier.queue((&spend.proof, &public_inputs[..]));
 
             let mut tmp = spend.value_commitment;
             tmp += binding_verification_key;
@@ -671,27 +619,11 @@ pub fn batch_verify(
         }
 
         for receipt in transaction.receipts.iter() {
-            // TODO: This block is copied from receiving.rs::verify_proof
-            if receipt.merkle_note.value_commitment.is_small_order().into()
-                || ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key)
-                    .is_small_order()
-                    .into()
-            {
-                return Err(errors::SaplingProofError::VerificationFailed)?;
-            }
-            let mut public_input = [Scalar::zero(); 5];
-            let p = receipt.merkle_note.value_commitment.to_affine();
-            public_input[0] = p.get_u();
-            public_input[1] = p.get_v();
+            receipt.verify_value_commitment()?;
 
-            let p = ExtendedPoint::from(receipt.merkle_note.ephemeral_public_key).to_affine();
-            public_input[2] = p.get_u();
-            public_input[3] = p.get_v();
+            let public_inputs = receipt.public_inputs();
 
-            public_input[4] = receipt.merkle_note.note_commitment;
-            // End copied block
-
-            receipt_verifier.queue((&receipt.proof, &public_input[..]));
+            receipt_verifier.queue((&receipt.proof, &public_inputs[..]));
 
             let mut tmp = receipt.merkle_note.value_commitment;
             tmp = -tmp;
