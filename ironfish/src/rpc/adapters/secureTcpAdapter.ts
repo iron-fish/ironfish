@@ -31,7 +31,6 @@ export class SecureTcpAdapter extends TcpAdapter {
       port: this.port,
       key: fs.readFileSync(this.nodeKeyPath),
       cert: fs.readFileSync(this.nodeCertPath),
-      rejectUnauthorized: false,
     }
 
     return tls.createServer(options, (socket) => this.onClientConnection(socket))
