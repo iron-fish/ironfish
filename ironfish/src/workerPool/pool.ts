@@ -13,6 +13,10 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
+import {
+  BatchVerifyTransactionRequest,
+  BatchVerifyTransactionResponse,
+} from './tasks/batchVerifyTransaction'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -20,7 +24,6 @@ import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnsp
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
-import { VerifyBlockRequest, VerifyBlockResponse } from './tasks/verifyBlock'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -57,6 +60,7 @@ export class WorkerPool {
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.BatchVerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -191,12 +195,12 @@ export class WorkerPool {
       : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
-  async verifyBlock(transactions: Transaction[]): Promise<VerificationResult> {
+  async batchVerifyTransaction(transactions: Transaction[]): Promise<VerificationResult> {
     const txs = transactions.map((tx) => tx.serialize())
-    const request: VerifyBlockRequest = new VerifyBlockRequest(txs)
+    const request: BatchVerifyTransactionRequest = new BatchVerifyTransactionRequest(txs)
 
     const response = await this.execute(request).result()
-    if (!(response instanceof VerifyBlockResponse)) {
+    if (!(response instanceof BatchVerifyTransactionResponse)) {
       throw new Error('Invalid response')
     }
 

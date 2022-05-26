@@ -14,12 +14,12 @@ use super::{
     witness::WitnessTrait,
     Sapling,
 };
-use bellman::{gadgets::multipack, groth16::batch::Verifier};
+use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
-use bls12_381::{Bls12, Scalar};
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
-use group::{Curve, GroupEncoding};
+use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
@@ -441,7 +441,7 @@ impl Transaction {
         }
         match verifier.verify(&mut OsRng, &self.sapling.spend_params.vk) {
             Ok(()) => {}
-            _ => Err(errors::SaplingProofError::VerificationFailed)?,
+            _ => return Err(errors::SaplingProofError::VerificationFailed.into()),
         };
 
         let mut verifier = Verifier::<Bls12>::new();
@@ -459,7 +459,7 @@ impl Transaction {
         }
         match verifier.verify(&mut OsRng, &self.sapling.receipt_params.vk) {
             Ok(()) => {}
-            _ => Err(errors::SaplingProofError::VerificationFailed)?,
+            _ => return Err(errors::SaplingProofError::VerificationFailed.into()),
         };
 
         let hash_to_verify_signature = self.transaction_signature_hash();
@@ -636,12 +636,12 @@ pub fn batch_verify(
 
     match spend_verifier.verify(&mut OsRng, &sapling.spend_params.vk) {
         Ok(()) => {}
-        _ => Err(errors::SaplingProofError::VerificationFailed)?,
+        _ => return Err(errors::SaplingProofError::VerificationFailed.into()),
     };
 
     match receipt_verifier.verify(&mut OsRng, &sapling.receipt_params.vk) {
         Ok(()) => {}
-        _ => Err(errors::SaplingProofError::VerificationFailed)?,
+        _ => return Err(errors::SaplingProofError::VerificationFailed.into()),
     };
 
     Ok(())

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Job } from '../job'
+import { BatchVerifyTransactionTask } from './batchVerifyTransaction'
 import { BoxMessageTask } from './boxMessage'
 import { CreateMinersFeeTask } from './createMinersFee'
 import { CreateTransactionTask } from './createTransaction'
@@ -9,7 +10,6 @@ import { GetUnspentNotesTask } from './getUnspentNotes'
 import { SleepTask } from './sleep'
 import { SubmitTelemetryTask } from './submitTelemetry'
 import { UnboxMessageTask } from './unboxMessage'
-import { VerifyBlockTask } from './verifyBlock'
 import { VerifyTransactionTask } from './verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -25,7 +25,7 @@ export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
   [WorkerMessageType.UnboxMessage]: UnboxMessageTask.getInstance(),
   [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),
-  [WorkerMessageType.VerifyBlock]: VerifyBlockTask.getInstance(),
+  [WorkerMessageType.BatchVerifyTransaction]: BatchVerifyTransactionTask.getInstance(),
 }
 
 export async function handleRequest(request: WorkerMessage, job: Job): Promise<WorkerMessage> {

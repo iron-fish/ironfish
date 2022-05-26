@@ -48,33 +48,12 @@ export class Verifier {
     }
 
     // Verify the transactions
-    // const verificationResults = await Promise.all(
-    //   block.transactions.map((t) =>
-    //     this.verifyTransaction(t, block.header, { verifyFees: false }),
-    //   ),
-    // )
-
-    // const invalidResult = verificationResults.find((f) => !f.valid)
-    // if (invalidResult !== undefined) {
-    //   return invalidResult
-    // }
-
-    // Verify the transactions
-    // const verificationResults = await this.verifyBulkTransactions(
-    //   block.transactions,
-    //   block.header,
-    // )
-
-    // if (!verificationResults.valid) {
-    //   return verificationResults
-    // }
-
     // TODO: Load this numworkers from config instead of hardcoding 6
     const size = Math.max(block.transactions.length / 6, 1)
     const verificationPromises = []
     for (let i = 0; i < block.transactions.length; i += size) {
       verificationPromises.push(
-        this.verifyBulkTransactions(block.transactions.slice(i, i + size), block.header),
+        this.batchVerifyTransaction(block.transactions.slice(i, i + size), block.header),
       )
     }
     const verificationResults = await Promise.all(verificationPromises)
@@ -180,27 +159,6 @@ export class Verifier {
     }
   }
 
-  async verifyBulkTransactions(
-    transactions: Transaction[],
-    block: BlockHeader,
-  ): Promise<VerificationResult> {
-    for (const transaction of transactions) {
-      if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.TRANSACTION_EXPIRED,
-        }
-      }
-    }
-
-    try {
-      const result = await this.workerPool.verifyBlock(transactions)
-      return result
-    } catch {
-      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
-    }
-  }
-
   async verifyTransaction(
     transaction: Transaction,
     block: BlockHeader,
@@ -215,6 +173,27 @@ export class Verifier {
 
     try {
       return await this.workerPool.verify(transaction, options)
+    } catch {
+      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
+    }
+  }
+
+  async batchVerifyTransaction(
+    transactions: Transaction[],
+    block: BlockHeader,
+  ): Promise<VerificationResult> {
+    for (const transaction of transactions) {
+      if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
+    }
+
+    try {
+      const result = await this.workerPool.batchVerifyTransaction(transactions)
+      return result
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }

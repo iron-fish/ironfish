@@ -1,30 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { batchVerify, TransactionPosted } from '@ironfish/rust-nodejs'
+import { batchVerify } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
-export interface VerifyBlockOptions {
-  verifyFees?: boolean
-}
-
-export class VerifyBlockRequest extends WorkerMessage {
+export class BatchVerifyTransactionRequest extends WorkerMessage {
   readonly transactionsPosted: Buffer[]
-  // readonly verifyFees: boolean
 
-  // constructor(transactionsPosted: Buffer[], options?: VerifyBlockOptions, jobId?: number) {
   constructor(transactionsPosted: Buffer[], jobId?: number) {
-    super(WorkerMessageType.VerifyBlock, jobId)
+    super(WorkerMessageType.BatchVerifyTransaction, jobId)
     this.transactionsPosted = transactionsPosted
-    // this.verifyFees = options?.verifyFees ?? true
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    // bw.writeVarBytes(this.transactionsPosted)
-    // bw.writeU8(Number(this.verifyFees))
     bw.writeU64(this.transactionsPosted.length)
     for (const tx of this.transactionsPosted) {
       bw.writeU64(tx.length)
@@ -33,10 +24,8 @@ export class VerifyBlockRequest extends WorkerMessage {
     return bw.render()
   }
 
-  static deserialize(jobId: number, buffer: Buffer): VerifyBlockRequest {
+  static deserialize(jobId: number, buffer: Buffer): BatchVerifyTransactionRequest {
     const reader = bufio.read(buffer, true)
-    // const transactionPosted = reader.readVarBytes()
-    // const verifyFees = Boolean(reader.readU8())
 
     const txLength = reader.readU64()
     const transactionsPosted = []
@@ -45,7 +34,7 @@ export class VerifyBlockRequest extends WorkerMessage {
       const tx = reader.readBytes(l)
       transactionsPosted.push(tx)
     }
-    return new VerifyBlockRequest(transactionsPosted, jobId)
+    return new BatchVerifyTransactionRequest(transactionsPosted, jobId)
   }
 
   getSize(): number {
@@ -58,11 +47,11 @@ export class VerifyBlockRequest extends WorkerMessage {
   }
 }
 
-export class VerifyBlockResponse extends WorkerMessage {
+export class BatchVerifyTransactionResponse extends WorkerMessage {
   readonly verified: boolean
 
   constructor(verified: boolean, jobId: number) {
-    super(WorkerMessageType.VerifyBlock, jobId)
+    super(WorkerMessageType.BatchVerifyTransaction, jobId)
     this.verified = verified
   }
 
@@ -72,10 +61,10 @@ export class VerifyBlockResponse extends WorkerMessage {
     return bw.render()
   }
 
-  static deserialize(jobId: number, buffer: Buffer): VerifyBlockResponse {
+  static deserialize(jobId: number, buffer: Buffer): BatchVerifyTransactionResponse {
     const reader = bufio.read(buffer, true)
     const verified = Boolean(reader.readU8())
-    return new VerifyBlockResponse(verified, jobId)
+    return new BatchVerifyTransactionResponse(verified, jobId)
   }
 
   getSize(): number {
@@ -83,17 +72,20 @@ export class VerifyBlockResponse extends WorkerMessage {
   }
 }
 
-export class VerifyBlockTask extends WorkerTask {
-  private static instance: VerifyBlockTask | undefined
+export class BatchVerifyTransactionTask extends WorkerTask {
+  private static instance: BatchVerifyTransactionTask | undefined
 
-  static getInstance(): VerifyBlockTask {
-    if (!VerifyBlockTask.instance) {
-      VerifyBlockTask.instance = new VerifyBlockTask()
+  static getInstance(): BatchVerifyTransactionTask {
+    if (!BatchVerifyTransactionTask.instance) {
+      BatchVerifyTransactionTask.instance = new BatchVerifyTransactionTask()
     }
-    return VerifyBlockTask.instance
+    return BatchVerifyTransactionTask.instance
   }
 
-  execute({ jobId, transactionsPosted }: VerifyBlockRequest): VerifyBlockResponse {
+  execute({
+    jobId,
+    transactionsPosted,
+  }: BatchVerifyTransactionRequest): BatchVerifyTransactionResponse {
     let verified = false
 
     try {
@@ -102,6 +94,6 @@ export class VerifyBlockTask extends WorkerTask {
       verified = false
     }
 
-    return new VerifyBlockResponse(verified, jobId)
+    return new BatchVerifyTransactionResponse(verified, jobId)
   }
 }
