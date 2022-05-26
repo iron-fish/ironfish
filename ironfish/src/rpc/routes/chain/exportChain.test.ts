@@ -37,7 +37,14 @@ describe('Route chain/exportChainStream', () => {
 
     //Test contents of second block. Hash seems to be regenerated differently each run.
     expect(value).toMatchObject({
-      value: { block: { head: true, prev: genesis.header.hash.toString('hex'), seq: 2 } },
+      value: {
+        block: {
+          head: true,
+          hash: blockA1.header.hash.toString('hex'),
+          prev: genesis.header.hash.toString('hex'),
+          seq: 2,
+        },
+      },
     })
   })
 })
