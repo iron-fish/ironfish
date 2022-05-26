@@ -27,7 +27,7 @@ export class Lark {
     }
 
     this.client.post(this.webhook, { msg_type: 'text', content: { text: text } }).catch((e) => {
-      this.logger.error('Error sending lark message', e)
+      this.logger.error(`Error sending lark message: ${ErrorUtils.renderError(e)}`)
     })
   }
 
