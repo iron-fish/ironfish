@@ -12,7 +12,6 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import readline from 'readline'
-import supportsHyperlinks from 'supports-hyperlinks'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -124,10 +123,10 @@ export class MinedCommand extends IronfishCommand {
 
     const amount = MathUtils.round(oreToIron(block.minersFee), 2)
 
-    const explorerLink = `https://explorer.ironfish.network/blocks/${block.hash}`
-    const link = supportsHyperlinks.stdout
-      ? linkText(explorerLink, 'view in web')
-      : explorerLink
+    const link = linkText(
+      `https://explorer.ironfish.network/blocks/${block.hash}`,
+      'view in web',
+    )
 
     this.log(
       `${block.hash} ${block.account} ${amount} ${block.main ? 'MAIN' : 'FORK'} ${
