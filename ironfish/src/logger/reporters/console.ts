@@ -7,6 +7,7 @@
 
 import { ConsolaReporterLogObject, logType } from 'consola'
 import { Assert } from '../../assert'
+import { IJSON } from '../../serde'
 import { TextReporter } from './text'
 
 const silentLogger = (): void => {
@@ -48,7 +49,7 @@ export const logObjToJSON = (logObj: ConsolaReporterLogObject): string => {
     message: otherArgs.join(' '),
   }
 
-  return JSON.stringify(toLog)
+  return IJSON.stringify(toLog)
 }
 
 export class ConsoleReporter extends TextReporter {

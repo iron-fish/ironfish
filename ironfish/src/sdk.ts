@@ -119,7 +119,7 @@ export class IronfishSdk {
 
     setLogColorEnabledFromConfig(true)
 
-    setJSONLoggingFromConfig(config.get('logToConsoleAsJSON'))
+    setJSONLoggingFromConfig(config.get('jsonLogs'))
 
     const logFile = config.get('enableLogFile')
 
