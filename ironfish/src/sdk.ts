@@ -137,6 +137,7 @@ export class IronfishSdk {
         client = new IronfishSecureTcpClient(
           config.get('rpcTcpHost'),
           config.get('rpcTcpPort'),
+          config.get('tlsCertPath'),
           logger,
         )
       } else {
