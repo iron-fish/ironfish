@@ -19,8 +19,8 @@ describe('Route chain/exportChainStream', () => {
     const blockA1 = await makeBlockAfter(chain, genesis)
     await expect(chain).toAddBlock(blockA1)
 
-    const response = await routeTest.adapter
-      .requestStream('chain/exportChainStream', { start: 1, stop: 2 })
+    const response = await routeTest.client
+      .request('chain/exportChainStream', { start: 1, stop: 2 })
       .waitForRoute()
 
     //Receive and discard the first response (from getBlockRange)
