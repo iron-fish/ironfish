@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import fs from 'fs'
 import tls from 'tls'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
@@ -9,17 +8,17 @@ import { ConnectionRefusedError } from './errors'
 import { IronfishTcpClient } from './tcpClient'
 
 export class IronfishSecureTcpClient extends IronfishTcpClient {
-  private readonly nodeCertPath: string
+  private readonly nodeCert: string
 
   constructor(
     host: string,
     port: number,
-    nodeCertPath: string,
+    nodeCert: string,
     logger: Logger = createRootLogger(),
     retryConnect = false,
   ) {
     super(host, port, logger, retryConnect)
-    this.nodeCertPath = nodeCertPath
+    this.nodeCert = nodeCert
   }
 
   async connectClient(): Promise<void> {
@@ -45,7 +44,7 @@ export class IronfishSecureTcpClient extends IronfishTcpClient {
 
       const options = {
         // allows self-signed cert from the server
-        ca: [fs.readFileSync(this.nodeCertPath)],
+        ca: [this.nodeCert],
 
         // allows cert for remote non-'localhost' server
         checkServerIdentity: () => {

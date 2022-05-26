@@ -134,10 +134,11 @@ export class IronfishSdk {
     let client: IronfishRpcClient
     if (config.get('enableRpcTcp') && config.get('enableNativeRpcTcpAdapter')) {
       if (config.get('enableRpcTls')) {
+        const nodeCert: string = await fileSystem.readFile(config.get('tlsCertPath'))
         client = new IronfishSecureTcpClient(
           config.get('rpcTcpHost'),
           config.get('rpcTcpPort'),
-          config.get('tlsCertPath'),
+          nodeCert,
           logger,
         )
       } else {
@@ -249,12 +250,14 @@ export class IronfishSdk {
 
       if (this.config.get('enableNativeRpcTcpAdapter')) {
         if (this.config.get('enableRpcTls')) {
+          const nodeKey: string = await this.fileSystem.readFile(this.config.get('tlsKeyPath'))
+          const nodeCert: string = await this.fileSystem.readFile(this.config.get('tlsCertPath'))
           await node.rpc.mount(
             new SecureTcpAdapter(
               this.config.get('rpcTcpHost'),
               this.config.get('rpcTcpPort'),
-              this.config.get('tlsKeyPath'),
-              this.config.get('tlsCertPath'),
+              nodeKey,
+              nodeCert,
               this.logger,
               namespaces,
             ),
