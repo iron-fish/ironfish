@@ -616,12 +616,18 @@ export class Accounts {
   ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
     const unspentNotes = []
 
+    const notePromises = []
     for (const transactionMapValue of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(
-        transactionMapValue.transaction.serialize(),
-        [account.incomingViewKey],
+      notePromises.push(
+        this.workerPool.getUnspentNotes(transactionMapValue.transaction.serialize(), [
+          account.incomingViewKey,
+        ]),
       )
+    }
 
+    const results = await Promise.all(notePromises)
+
+    for (const result of results) {
       for (const note of result.notes) {
         const map = this.noteToNullifier.get(note.hash)
 
