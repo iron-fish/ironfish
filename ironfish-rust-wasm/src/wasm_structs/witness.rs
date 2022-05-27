@@ -11,7 +11,7 @@ use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 use super::panic_hook;
 
 #[wasm_bindgen(typescript_custom_section)]
-const IWITNESS: &'static str = r#"
+const IWITNESS: &str = r#"
 interface IWitness {
     verify(myHash: Uint8Array): bool;
     authPath(): IWitnessNode[];
@@ -42,7 +42,7 @@ extern "C" {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const IWITNESSNODE: &'static str = r#"
+const IWITNESSNODE: &str = r#"
 interface IWitnessNode {
     side(): 'Left' | 'Right';
     hashOfSibling(): Uint8Array;
