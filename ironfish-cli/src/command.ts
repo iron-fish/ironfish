@@ -5,6 +5,7 @@ import {
   ConfigOptions,
   ConnectionError,
   createRootLogger,
+  ErrorUtils,
   IronfishSdk,
   Logger,
 } from '@ironfish/sdk'
@@ -157,7 +158,7 @@ export abstract class IronfishCommand extends Command {
 
         this.closing = true
         const promise = this.closeFromSignal(signal).catch((err) => {
-          this.logger.error('Failed to close', err)
+          this.logger.error(`Failed to close ${ErrorUtils.renderError(err)}`)
         })
 
         void promise.then(() => {

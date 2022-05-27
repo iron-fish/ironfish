@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import { GraffitiUtils } from '../../utils/graffiti'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
@@ -155,7 +156,7 @@ export class StratumClient {
   }
 
   private onError = (error: unknown): void => {
-    this.logger.error('Stratum Error', error)
+    this.logger.error(`Stratum Error ${ErrorUtils.renderError(error)}`)
   }
 
   private async onData(data: Buffer): Promise<void> {

@@ -38,7 +38,7 @@ describe('Route node/getLogStream', () => {
 
     const response = await routeTest.client.request('node/getLogStream').waitForRoute()
 
-    routeTest.node.logger.info(BigInt(2))
+    routeTest.node.logger.info(`${BigInt(2)}`)
     const { value } = await response.contentStream().next()
 
     response.end()
@@ -48,7 +48,7 @@ describe('Route node/getLogStream', () => {
       level: LogLevel.Info.toString(),
       tag: expect.stringContaining('ironfishnode'),
       type: 'info',
-      args: '["2n"]',
+      args: '["2"]',
       date: expect.anything(),
     })
   })

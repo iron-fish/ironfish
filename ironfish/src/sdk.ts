@@ -7,6 +7,7 @@ import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
   Logger,
+  setJSONLoggingFromConfig,
   setLogColorEnabledFromConfig,
   setLogLevelFromConfig,
   setLogPrefixFromConfig,
@@ -117,6 +118,8 @@ export class IronfishSdk {
     }
 
     setLogColorEnabledFromConfig(true)
+
+    setJSONLoggingFromConfig(config.get('jsonLogs'))
 
     const logFile = config.get('enableLogFile')
 

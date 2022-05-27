@@ -7,7 +7,7 @@
 
 import { LogLevel, logType } from 'consola'
 import { format } from 'date-fns'
-import { ConsoleReporter, loggers } from './console'
+import { ConsoleReporter, getConsoleLogger, loggers } from './console'
 
 describe('setLogLevel', () => {
   it('sets defaultMinimumLogLevel when tag is *', () => {
@@ -147,12 +147,10 @@ describe('getConsoleLogger', () => {
     ['ready', console.info],
     ['start', console.info],
   ])('returns the right console logger for %s', (type, expected) => {
-    const reporter = new ConsoleReporter()
-    expect(reporter['getConsoleLogger'](type as unknown as logType)).toEqual(expected)
+    expect(getConsoleLogger(type as unknown as logType)).toEqual(expected)
   })
 
   it('should throw an error when passing an invalid logType', () => {
-    const reporter = new ConsoleReporter()
-    expect(() => reporter['getConsoleLogger']('test' as unknown as logType)).toThrowError()
+    expect(() => getConsoleLogger('test' as unknown as logType)).toThrowError()
   })
 })
