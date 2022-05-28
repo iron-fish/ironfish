@@ -27,11 +27,7 @@ switch (platform) {
       case 'arm64':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.android-arm64.node'))
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.android-arm64.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-android-arm64')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.android-arm64.node') : require('@ironfish/rust-nodejs-android-arm64');
         } catch (e) {
           loadError = e
         }
@@ -39,11 +35,7 @@ switch (platform) {
       case 'arm':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.android-arm-eabi.node'))
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.android-arm-eabi.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-android-arm-eabi')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.android-arm-eabi.node') : require('@ironfish/rust-nodejs-android-arm-eabi');
         } catch (e) {
           loadError = e
         }
@@ -59,11 +51,7 @@ switch (platform) {
           join(__dirname, 'ironfish-rust-nodejs.win32-x64-msvc.node')
         )
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.win32-x64-msvc.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-win32-x64-msvc')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.win32-x64-msvc.node') : require('@ironfish/rust-nodejs-win32-x64-msvc');
         } catch (e) {
           loadError = e
         }
@@ -73,11 +61,7 @@ switch (platform) {
           join(__dirname, 'ironfish-rust-nodejs.win32-ia32-msvc.node')
         )
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.win32-ia32-msvc.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-win32-ia32-msvc')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.win32-ia32-msvc.node') : require('@ironfish/rust-nodejs-win32-ia32-msvc');
         } catch (e) {
           loadError = e
         }
@@ -87,11 +71,7 @@ switch (platform) {
           join(__dirname, 'ironfish-rust-nodejs.win32-arm64-msvc.node')
         )
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.win32-arm64-msvc.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-win32-arm64-msvc')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.win32-arm64-msvc.node') : require('@ironfish/rust-nodejs-win32-arm64-msvc');
         } catch (e) {
           loadError = e
         }
@@ -105,11 +85,7 @@ switch (platform) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-x64.node'))
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.darwin-x64.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-darwin-x64')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.darwin-x64.node') : require('@ironfish/rust-nodejs-darwin-x64');
         } catch (e) {
           loadError = e
         }
@@ -119,11 +95,7 @@ switch (platform) {
           join(__dirname, 'ironfish-rust-nodejs.darwin-arm64.node')
         )
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.darwin-arm64.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-darwin-arm64')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.darwin-arm64.node') : require('@ironfish/rust-nodejs-darwin-arm64');
         } catch (e) {
           loadError = e
         }
@@ -138,11 +110,7 @@ switch (platform) {
     }
     localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.freebsd-x64.node'))
     try {
-      if (localFileExisted) {
-        nativeBinding = require('./ironfish-rust-nodejs.freebsd-x64.node')
-      } else {
-        nativeBinding = require('@ironfish/rust-nodejs-freebsd-x64')
-      }
+      nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.freebsd-x64.node') : require('@ironfish/rust-nodejs-freebsd-x64');
     } catch (e) {
       loadError = e
     }
@@ -155,11 +123,7 @@ switch (platform) {
             join(__dirname, 'ironfish-rust-nodejs.linux-x64-musl.node')
           )
           try {
-            if (localFileExisted) {
-              nativeBinding = require('./ironfish-rust-nodejs.linux-x64-musl.node')
-            } else {
-              nativeBinding = require('@ironfish/rust-nodejs-linux-x64-musl')
-            }
+            nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.linux-x64-musl.node') : require('@ironfish/rust-nodejs-linux-x64-musl');
           } catch (e) {
             loadError = e
           }
@@ -168,11 +132,7 @@ switch (platform) {
             join(__dirname, 'ironfish-rust-nodejs.linux-x64-gnu.node')
           )
           try {
-            if (localFileExisted) {
-              nativeBinding = require('./ironfish-rust-nodejs.linux-x64-gnu.node')
-            } else {
-              nativeBinding = require('@ironfish/rust-nodejs-linux-x64-gnu')
-            }
+            nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.linux-x64-gnu.node') : require('@ironfish/rust-nodejs-linux-x64-gnu');
           } catch (e) {
             loadError = e
           }
@@ -184,11 +144,7 @@ switch (platform) {
             join(__dirname, 'ironfish-rust-nodejs.linux-arm64-musl.node')
           )
           try {
-            if (localFileExisted) {
-              nativeBinding = require('./ironfish-rust-nodejs.linux-arm64-musl.node')
-            } else {
-              nativeBinding = require('@ironfish/rust-nodejs-linux-arm64-musl')
-            }
+            nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.linux-arm64-musl.node') : require('@ironfish/rust-nodejs-linux-arm64-musl');
           } catch (e) {
             loadError = e
           }
@@ -197,11 +153,7 @@ switch (platform) {
             join(__dirname, 'ironfish-rust-nodejs.linux-arm64-gnu.node')
           )
           try {
-            if (localFileExisted) {
-              nativeBinding = require('./ironfish-rust-nodejs.linux-arm64-gnu.node')
-            } else {
-              nativeBinding = require('@ironfish/rust-nodejs-linux-arm64-gnu')
-            }
+            nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.linux-arm64-gnu.node') : require('@ironfish/rust-nodejs-linux-arm64-gnu');
           } catch (e) {
             loadError = e
           }
@@ -212,11 +164,7 @@ switch (platform) {
           join(__dirname, 'ironfish-rust-nodejs.linux-arm-gnueabihf.node')
         )
         try {
-          if (localFileExisted) {
-            nativeBinding = require('./ironfish-rust-nodejs.linux-arm-gnueabihf.node')
-          } else {
-            nativeBinding = require('@ironfish/rust-nodejs-linux-arm-gnueabihf')
-          }
+          nativeBinding = localFileExisted ? require('./ironfish-rust-nodejs.linux-arm-gnueabihf.node') : require('@ironfish/rust-nodejs-linux-arm-gnueabihf');
         } catch (e) {
           loadError = e
         }
