@@ -34,8 +34,11 @@ export class StratumServer {
   readonly port: number
   readonly host: string
 
+  readonly maxOpenConnections: number
+
   clients: Map<number, StratumServerClient>
   badClients: Set<number>
+  openConnections: Map<string, number>
   nextMinerId: number
   nextMessageId: number
 
@@ -55,11 +58,13 @@ export class StratumServer {
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
+    this.maxOpenConnections = this.config.get('poolMaxConnectionsPerIp')
 
     this.clients = new Map()
     this.badClients = new Set()
     this.nextMinerId = 1
     this.nextMessageId = 1
+    this.openConnections = new Map()
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -98,6 +103,14 @@ export class StratumServer {
     this.send(client, 'mining.wait_for_work')
   }
 
+  addToConnectionCount(remoteAddress: string, addition: number): number {
+    this.openConnections.set(
+      remoteAddress,
+      (this.openConnections.get(remoteAddress) ?? 0) + addition,
+    )
+    return this.openConnections.get(remoteAddress) ?? 0
+  }
+
   private onConnection(socket: net.Socket): void {
     if (!socket.remoteAddress) {
       socket.destroy()
@@ -105,6 +118,16 @@ export class StratumServer {
     }
 
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
+
+    if ((this.openConnections.get(client.remoteAddress) ?? 0) + 1 > this.maxOpenConnections) {
+      //Set timeout for disconnect in order to prevent spamming, then close the connection
+      setTimeout(() => {
+        client.close()
+      }, 10000)
+      return
+    }
+
+    this.addToConnectionCount(client.remoteAddress, 1)
 
     socket.on('data', (data: Buffer) => {
       this.onData(client, data).catch((e) => this.onError(client, e))
@@ -134,6 +157,7 @@ export class StratumServer {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
     this.clients.delete(client.id)
     client.close()
+    this.addToConnectionCount(client.socket.remoteAddress ?? '', -1)
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
@@ -224,6 +248,7 @@ export class StratumServer {
     client.socket.removeAllListeners()
     client.close()
     this.clients.delete(client.id)
+    this.addToConnectionCount(client.socket.remoteAddress ?? '', -1)
   }
 
   private getNotifyMessage(): MiningNotifyMessage {
