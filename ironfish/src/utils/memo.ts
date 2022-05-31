@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 function toHuman(memo: string): string {
-  return memo.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim()
+  return memo.replace(/[\u0000-\u001F\u007F-\u009F]/gu, '').trim()
 }
 
 export const MemoUtils = {
