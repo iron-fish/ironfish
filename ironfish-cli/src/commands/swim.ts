@@ -42,9 +42,6 @@ export default class SwimCommand extends IronfishCommand {
       this.log('The hex fish are coming...')
       await CliUx.ux.wait(32)
     }
-
-    // eslint-disable-next-line no-console
-    console.clear()
   }
 
   getPixels(image: string): Array<Array<string>> {
