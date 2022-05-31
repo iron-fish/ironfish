@@ -119,7 +119,7 @@ export class StratumServer {
   }
 
   hasWork(): boolean {
-    return this.currentWork != null
+    return this.currentWork !== null
   }
 
   addBadClient(client: StratumServerClient): void {

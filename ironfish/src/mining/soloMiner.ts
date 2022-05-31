@@ -178,7 +178,7 @@ export class MiningSoloMiner {
     while (this.started) {
       const blockResult = this.threadPool.getFoundBlock()
 
-      if (blockResult != null) {
+      if (blockResult !== null) {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(

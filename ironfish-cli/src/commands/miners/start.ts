@@ -59,7 +59,7 @@ export class Miner extends IronfishCommand {
     const batchSize = this.sdk.config.get('minerBatchSize')
 
     if (flags.pool) {
-      if (flags.address == null) {
+      if (flags.address === null) {
         this.error(
           "Can't mine from a pool without a public address. Use `-a address-goes-here` to provide one.",
         )

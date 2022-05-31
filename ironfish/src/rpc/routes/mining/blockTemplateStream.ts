@@ -102,7 +102,7 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
 
     // Send an initial block template to the requester so they can begin working immediately
     const currentHeadBlock = await node.chain.getBlock(node.chain.head)
-    if (currentHeadBlock != null) {
+    if (currentHeadBlock !== null) {
       await streamNewBlockTemplate(currentHeadBlock)
     }
 

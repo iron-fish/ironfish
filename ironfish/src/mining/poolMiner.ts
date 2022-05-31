@@ -130,7 +130,7 @@ export class MiningPoolMiner {
         continue
       }
 
-      if (this.graffiti == null) {
+      if (this.graffiti === null) {
         this.logger.info('Waiting for graffiti from pool...')
         await PromiseUtils.sleep(500)
         continue
@@ -138,7 +138,7 @@ export class MiningPoolMiner {
 
       const blockResult = this.threadPool.getFoundBlock()
 
-      if (blockResult != null) {
+      if (blockResult !== null) {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(

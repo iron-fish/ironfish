@@ -75,7 +75,7 @@ export class Assert {
     x: T,
     message?: string,
   ): asserts x is Exclude<T, null | undefined | 0 | false | ''> {
-    const isFalsey = x == null || x === 0 || x === '' || x === false
+    const isFalsey = x === null || x === 0 || x === '' || x === false
 
     if (isFalsey) {
       throw new Error(message || `Expected value to be truthy`)

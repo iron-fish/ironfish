@@ -71,5 +71,5 @@ export function validateAccount(toImport: Partial<AccountsValue>): void {
 
 function haveAllowedCharacters(text: string): boolean {
   const validInputRegex = /^[0-9a-f]+$/
-  return validInputRegex.exec(text.toLowerCase()) != null
+  return validInputRegex.exec(text.toLowerCase()) !== null
 }

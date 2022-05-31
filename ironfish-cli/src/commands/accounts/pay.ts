@@ -77,7 +77,7 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
-    if (amount == null || Number.isNaN(amount)) {
+    if (amount === null || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 
       const input = Number(
@@ -99,7 +99,7 @@ export class Pay extends IronfishCommand {
       amount = input
     }
 
-    if (fee == null || Number.isNaN(fee)) {
+    if (fee === null || Number.isNaN(fee)) {
       const input = Number(
         await CliUx.ux.prompt('Enter the fee amount in $IRON', {
           required: true,

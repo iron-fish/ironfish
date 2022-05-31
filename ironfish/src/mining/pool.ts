@@ -370,7 +370,7 @@ export class MiningPool {
 
   private isDuplicateSubmission(clientId: number, randomness: string): boolean {
     const submissions = this.recentSubmissions.get(clientId)
-    if (submissions == null) {
+    if (submissions === null) {
       return false
     }
     return submissions.includes(randomness)
@@ -378,7 +378,7 @@ export class MiningPool {
 
   private addWorkSubmission(clientId: number, randomness: string): void {
     const submissions = this.recentSubmissions.get(clientId)
-    if (submissions == null) {
+    if (submissions === null) {
       this.recentSubmissions.set(clientId, [randomness])
     } else {
       submissions.push(randomness)

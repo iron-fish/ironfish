@@ -76,7 +76,7 @@ export class PoolDatabase {
      `
 
     const result = await this.db.run(query, successfulPayoutCutoff, attemptPayoutCutoff)
-    if (result.changes !== 0 && result.lastID != null) {
+    if (result.changes !== 0 && result.lastID !== null) {
       return result.lastID
     }
 
@@ -97,7 +97,7 @@ export class PoolDatabase {
       "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')",
       timestamp,
     )
-    if (result == null) {
+    if (result === null) {
       return 0
     }
     return result.count

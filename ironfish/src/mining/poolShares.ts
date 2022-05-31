@@ -113,7 +113,7 @@ export class MiningPoolShares {
 
     // Create a payout in the DB as a form of a lock
     const payoutId = await this.db.newPayout(timestamp)
-    if (payoutId == null) {
+    if (payoutId === null) {
       this.logger.info(
         'Another payout may be in progress or a payout was made too recently, skipping.',
       )
@@ -199,7 +199,7 @@ export class MiningPoolShares {
       const address = share.publicAddress
       const shareCount = shareMap.get(address)
 
-      if (shareCount != null) {
+      if (shareCount !== null) {
         shareMap.set(address, shareCount + 1)
       } else {
         shareMap.set(address, 1)
