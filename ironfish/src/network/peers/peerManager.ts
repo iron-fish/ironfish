@@ -533,10 +533,8 @@ export class PeerManager {
    * than the target and max amount of peers
    */
   canCreateNewConnections(): boolean {
-    return (
-      this.getPeersWithConnection().length < this.targetPeers &&
-      this.getPeersWithConnection().length < this.maxPeers
-    )
+    const currentPeers = this.getPeersWithConnection().length
+    return currentPeers < this.targetPeers && currentPeers < this.maxPeers
   }
 
   /**
