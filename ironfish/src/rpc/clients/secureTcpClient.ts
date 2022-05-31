@@ -8,18 +8,6 @@ import { ConnectionRefusedError } from './errors'
 import { IronfishTcpClient } from './tcpClient'
 
 export class IronfishSecureTcpClient extends IronfishTcpClient {
-  private readonly nodeCert: string
-
-  constructor(
-    host: string,
-    port: number,
-    nodeCert: string,
-    logger: Logger = createRootLogger(),
-    retryConnect = false,
-  ) {
-    super(host, port, logger, retryConnect)
-    this.nodeCert = nodeCert
-  }
 
   async connectClient(): Promise<void> {
     return new Promise((resolve, reject): void => {
@@ -43,13 +31,7 @@ export class IronfishSecureTcpClient extends IronfishTcpClient {
       }
 
       const options = {
-        // allows self-signed cert from the server
-        ca: [this.nodeCert],
-
-        // allows cert for remote non-'localhost' server
-        checkServerIdentity: () => {
-          return undefined
-        },
+        rejectUnauthorized: false,
       }
 
       this.logger.debug(`Connecting to ${String(this.host)}:${String(this.port)}`)
