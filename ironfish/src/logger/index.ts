@@ -6,7 +6,7 @@ import type { Consola } from 'consola'
 import consola, { LogLevel } from 'consola'
 import { parseLogLevelConfig } from './logLevelParser'
 import { ConsoleReporter } from './reporters/console'
-export * from './reporters/intercept'
+export * from './reporters'
 
 /**
  * This interface tries to enforce more structured logs while still
@@ -14,13 +14,14 @@ export * from './reporters/intercept'
  * logs has a lot of benefits so going outside this interface. Update this
  * interface if something with a different structure needs to be logged.
  */
-type Loggable = string | number | boolean
+export type Loggable = string | number | boolean
+export type LogArgs = Record<string, Loggable>
 export interface Logger extends Consola {
-  info(message: string, args?: Record<string, Loggable>): void
-  log(message: string, args?: Record<string, Loggable>): void
-  error(message: string, args?: Record<string, Loggable>): void
-  warn(message: string, args?: Record<string, Loggable>): void
-  debug(message: string, args?: Record<string, Loggable>): void
+  info(message: string, args?: LogArgs): void
+  log(message: string, args?: LogArgs): void
+  error(message: string, args?: LogArgs): void
+  warn(message: string, args?: LogArgs): void
+  debug(message: string, args?: LogArgs): void
   withTag(tag: string): Logger
 }
 

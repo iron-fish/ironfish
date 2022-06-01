@@ -5,7 +5,7 @@
 // The reporter intentionally logs to the console, so disable the lint
 /* eslint-disable no-console */
 
-import { ConsolaReporterLogObject, logType } from 'consola'
+import { ConsolaReporterLogObject, LogLevel, logType } from 'consola'
 import { Assert } from '../../assert'
 import { IJSON } from '../../serde'
 import { TextReporter } from './text'
@@ -35,7 +35,9 @@ export const getConsoleLogger = (logType: logType): typeof console.log => {
   return logger
 }
 
-export const logObjToJSON = (logObj: ConsolaReporterLogObject): string => {
+export const logObjToJSON = (
+  logObj: ConsolaReporterLogObject,
+): Record<string, unknown> & { message: string; level: LogLevel; tag: string; date: Date } => {
   const objectArgs: Record<string, unknown>[] = logObj.args.filter(
     (a) => typeof a === 'object',
   ) as Record<string, unknown>[]
@@ -49,7 +51,7 @@ export const logObjToJSON = (logObj: ConsolaReporterLogObject): string => {
     message: otherArgs.join(' '),
   }
 
-  return IJSON.stringify(toLog)
+  return toLog
 }
 
 export class ConsoleReporter extends TextReporter {
@@ -57,6 +59,6 @@ export class ConsoleReporter extends TextReporter {
 
   logText(logObj: ConsolaReporterLogObject, args: unknown[]): void {
     const logger = getConsoleLogger(logObj.type)
-    this.logToJSON ? logger(logObjToJSON(logObj)) : logger(...args)
+    this.logToJSON ? logger(IJSON.stringify(logObjToJSON(logObj))) : logger(...args)
   }
 }

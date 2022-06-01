@@ -5,3 +5,4 @@
 export * from './console'
 export * from './file'
 export * from './intercept'
+export * from './logsDBReporter'
