@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
-const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 100 : RAW_MAX_UPLOAD
+const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 20 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class Sync extends IronfishCommand {
