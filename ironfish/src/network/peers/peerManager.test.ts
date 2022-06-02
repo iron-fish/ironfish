@@ -1357,10 +1357,10 @@ describe('PeerManager', () => {
         },
       ])
 
-      const sendToSpy = jest.spyOn(pm, 'sendTo')
+      const sendSpy = jest.spyOn(peer, 'send')
       peer.onMessage.emit(peerListRequest, connection)
-      expect(sendToSpy).toBeCalledTimes(1)
-      expect(sendToSpy).toHaveBeenCalledWith(peer, peerList)
+      expect(sendSpy).toBeCalledTimes(1)
+      expect(sendSpy).toHaveBeenCalledWith(peerList)
     })
   })
 
