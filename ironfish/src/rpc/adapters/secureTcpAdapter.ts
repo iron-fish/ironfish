@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { pki } from 'node-forge'
 import tls from 'tls'
 import { createRootLogger, Logger } from '../../logger'
 import { ApiNamespace } from '../routes'
@@ -14,14 +15,13 @@ export class SecureTcpAdapter extends TcpAdapter {
   constructor(
     host: string,
     port: number,
-    nodeKey: string,
-    nodeCert: string,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
     super(host, port, logger, namespaces)
-    this.nodeKey = nodeKey
-    this.nodeCert = nodeCert
+    const keyPair = pki.rsa.generateKeyPair(2048)
+    this.nodeKey = pki.privateKeyToPem(keyPair.privateKey)
+    this.nodeCert = this.generateCertificatePem(keyPair)
   }
 
   protected createServer(): net.Server {
@@ -33,5 +33,12 @@ export class SecureTcpAdapter extends TcpAdapter {
     }
 
     return tls.createServer(options, (socket) => this.onClientConnection(socket))
+  }
+
+  protected generateCertificatePem(keyPair: pki.KeyPair): string {
+    const cert = pki.createCertificate()
+    cert.publicKey = keyPair.publicKey
+    cert.sign(keyPair.privateKey)
+    return pki.certificateToPem(cert)
   }
 }
