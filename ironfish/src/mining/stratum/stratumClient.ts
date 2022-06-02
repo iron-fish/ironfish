@@ -33,6 +33,7 @@ export class StratumClient {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
+  private messageBuffer = ''
 
   private readonly publicAddress: string
 
@@ -146,6 +147,7 @@ export class StratumClient {
 
   private onDisconnect = (): void => {
     this.connected = false
+    this.messageBuffer = ''
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
 
@@ -160,7 +162,10 @@ export class StratumClient {
   }
 
   private async onData(data: Buffer): Promise<void> {
-    const splits = data.toString('utf-8').trim().split('\n')
+    this.messageBuffer += data.toString('utf-8')
+    const lastDelimiterIndex = this.messageBuffer.lastIndexOf('\n')
+    const splits = this.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
+    this.messageBuffer = this.messageBuffer.substring(lastDelimiterIndex + 1)
 
     for (const split of splits) {
       const payload: unknown = JSON.parse(split)
