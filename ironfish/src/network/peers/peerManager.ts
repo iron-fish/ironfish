@@ -750,15 +750,6 @@ export class PeerManager {
   }
 
   /**
-   * Send a message to a peer, dropping the message if unable.
-   * @param peer The peer identity to send a message to.
-   * @param message The message to send.
-   */
-  sendTo(peer: Peer, message: NetworkMessage): Connection | null {
-    return peer.send(message)
-  }
-
-  /**
    * Send a message to all connected peers.
    */
   broadcast(message: NetworkMessage): void {
@@ -941,7 +932,7 @@ export class PeerManager {
         return
       }
 
-      this.sendTo(destinationPeer, message)
+      destinationPeer.send(message)
       return
     }
 
@@ -1229,7 +1220,7 @@ export class PeerManager {
         return
       }
 
-      this.sendTo(destinationPeer, message)
+      destinationPeer.send(message)
       return
     }
 
@@ -1316,7 +1307,7 @@ export class PeerManager {
         return
       }
 
-      const sendResult = this.sendTo(destinationPeer, message)
+      const sendResult = destinationPeer.send(message)
       if (sendResult) {
         destinationPeer.pushLoggedMessage(
           {
@@ -1440,7 +1431,7 @@ export class PeerManager {
     }
 
     const peerList = new PeerListMessage(connectedPeers)
-    this.sendTo(peer, peerList)
+    peer.send(peerList)
   }
 
   private handlePeerListMessage(peerList: PeerListMessage, peer: Peer) {
