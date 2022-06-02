@@ -62,6 +62,10 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import {
+  SnapshotChainStreamRequest,
+  SnapshotChainStreamResponse,
+} from '../routes/chain/snapshotChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   ExportMinedStreamRequest,
@@ -329,6 +333,15 @@ export abstract class IronfishClient {
   ): Response<void, FollowChainStreamResponse> {
     return this.request<void, FollowChainStreamResponse>(
       `${ApiNamespace.chain}/followChainStream`,
+      params,
+    )
+  }
+
+  snapshotChainStream(
+    params: SnapshotChainStreamRequest = undefined,
+  ): Response<void, SnapshotChainStreamResponse> {
+    return this.request<void, SnapshotChainStreamResponse>(
+      `${ApiNamespace.chain}/snapshotChainStream`,
       params,
     )
   }
