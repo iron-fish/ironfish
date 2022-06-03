@@ -97,4 +97,21 @@ describe('Accounts', () => {
     invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
+
+  describe('getBalance', () => {
+    it('returns balances for unspent notes with minimum confirmations', async () => {
+      const { node } = await nodeTest.createSetup({ config: { minimumBlockConfirmations: 2 } })
+      const account = await useAccountFixture(node.accounts, 'test')
+
+      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 2, account))
+      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 3, account))
+      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 4, account))
+      await node.accounts.updateHead()
+
+      expect(await node.accounts.getBalance(account)).toEqual({
+        confirmed: BigInt(2000000000),
+        unconfirmed: BigInt(6000000000),
+      })
+    })
+  })
 })
