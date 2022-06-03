@@ -19,12 +19,13 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import { IronfishRpcClient } from './rpc'
+import { IronfishRpcClient, SecureTcpAdapter } from './rpc'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
 import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishClient } from './rpc/clients/client'
 import { IronfishIpcClient } from './rpc/clients/ipcClient'
 import { IronfishMemoryClient } from './rpc/clients/memoryClient'
+import { IronfishSecureTcpClient } from './rpc/clients/secureTcpClient'
 import { IronfishTcpClient } from './rpc/clients/tcpClient'
 import { ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
@@ -134,8 +135,20 @@ export class IronfishSdk {
     }
 
     let client: IronfishRpcClient
-    if (config.get('enableNativeRpcTcpAdapter') && config.get('enableRpcTcp')) {
-      client = new IronfishTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+    if (config.get('enableRpcTcp') && config.get('enableNativeRpcTcpAdapter')) {
+      if (config.get('enableRpcTls')) {
+        client = new IronfishSecureTcpClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          logger,
+        )
+      } else {
+        client = new IronfishTcpClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          logger,
+        )
+      }
     } else {
       client = new IronfishIpcClient(
         config.get('enableRpcTcp')
@@ -237,14 +250,31 @@ export class IronfishSdk {
       }
 
       if (this.config.get('enableNativeRpcTcpAdapter')) {
-        await node.rpc.mount(
-          new TcpAdapter(
-            this.config.get('rpcTcpHost'),
-            this.config.get('rpcTcpPort'),
-            this.logger,
-            namespaces,
-          ),
-        )
+        if (this.config.get('enableRpcTls')) {
+          const nodeKey: string = await this.fileSystem.readFile(this.config.get('tlsKeyPath'))
+          const nodeCert: string = await this.fileSystem.readFile(
+            this.config.get('tlsCertPath'),
+          )
+          await node.rpc.mount(
+            new SecureTcpAdapter(
+              this.config.get('rpcTcpHost'),
+              this.config.get('rpcTcpPort'),
+              nodeKey,
+              nodeCert,
+              this.logger,
+              namespaces,
+            ),
+          )
+        } else {
+          await node.rpc.mount(
+            new TcpAdapter(
+              this.config.get('rpcTcpHost'),
+              this.config.get('rpcTcpPort'),
+              this.logger,
+              namespaces,
+            ),
+          )
+        }
       } else {
         await node.rpc.mount(
           new IpcAdapter(
