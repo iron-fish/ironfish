@@ -148,6 +148,12 @@ export type ConfigOptions = {
   minerBatchSize: number
 
   /**
+   * The minimum number of block confirmations needed when computing account
+   * balance.
+   */
+  minimumBlockConfirmations: number
+
+  /**
    * The name that the pool will use in block graffiti and transaction memo.
    */
   poolName: string
@@ -273,6 +279,7 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsKeyPath: files.resolve(files.join(dataDir, 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'node-cert.pem')),
       maxPeers: 50,
+      minimumBlockConfirmations: 12,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
