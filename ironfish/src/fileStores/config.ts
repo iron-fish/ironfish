@@ -269,7 +269,7 @@ export class Config extends KeyStore<ConfigOptions> {
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
       blocksPerMessage: 20,
-      minerBatchSize: 10000,
+      minerBatchSize: 25000,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
