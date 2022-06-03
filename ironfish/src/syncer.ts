@@ -23,9 +23,6 @@ const REQUEST_BLOCKS_PER_MESSAGE = 20
 
 class AbortSyncingError extends Error {}
 
-// Whitelist of node names to sync from
-const whitelist = new Set<string>([])
-
 export class Syncer {
   readonly peerNetwork: PeerNetwork
   readonly chain: Blockchain
@@ -127,7 +124,6 @@ export class Syncer {
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
       .filter((peer) => peer.work && peer.work > head.work)
-      .filter((peer) => (whitelist.size ? whitelist.has(peer.name || '') : true))
 
     // Get a random peer with higher work. We do this to encourage
     // peer diversity so the highest work peer isn't overwhelmed
@@ -478,10 +474,6 @@ export class Syncer {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
     if (!this.chain.synced && this.loader) {
-      return false
-    }
-
-    if (whitelist.size && !whitelist.has(peer.name || '')) {
       return false
     }
 

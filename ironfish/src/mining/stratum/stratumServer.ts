@@ -87,8 +87,8 @@ export class StratumServer {
 
     this.clients = new Map()
     this.badClients = new Set()
-    this.nextMinerId = 0
-    this.nextMessageId = 0
+    this.nextMinerId = 1
+    this.nextMessageId = 1
 
     this.server = net.createServer((s) => this.onConnection(s))
   }

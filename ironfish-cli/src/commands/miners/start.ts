@@ -108,7 +108,7 @@ export class Miner extends IronfishCommand {
     }
 
     if (!flags.pool) {
-      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
+      this.log(`Starting to mine with graffiti: ${graffiti}`)
 
       const rpc = this.sdk.client
 
