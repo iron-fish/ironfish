@@ -622,7 +622,7 @@ export class Accounts {
       hash: string
       note: Note
       index: number | null
-      confirmedMinimumBlocks: boolean
+      confirmed: boolean
     }>
   > {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
@@ -642,21 +642,21 @@ export class Accounts {
         }
 
         if (!map.spent) {
-          let confirmedMinimumBlocks = false
+          let confirmed = false
 
           const { blockHash } = transactionMapValue
           if (blockHash) {
-            const block = await this.chain.getBlock(Buffer.from(blockHash, 'hex'))
-            Assert.isNotNull(block)
-            const confirmations = this.chain.head.sequence - block.header.sequence
-            confirmedMinimumBlocks = confirmations >= minimumBlockConfirmations
+            const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+            Assert.isNotNull(header)
+            const confirmations = this.chain.head.sequence - header.sequence
+            confirmed = confirmations >= minimumBlockConfirmations
           }
 
           unspentNotes.push({
             hash: note.hash,
             note: new Note(note.note),
             index: map.noteIndex,
-            confirmedMinimumBlocks,
+            confirmed,
           })
         }
       }
@@ -678,7 +678,7 @@ export class Accounts {
 
       unconfirmed += value
 
-      if (note.index !== null && note.confirmedMinimumBlocks) {
+      if (note.index !== null && note.confirmed) {
         confirmed += value
       }
     }
@@ -738,7 +738,7 @@ export class Accounts {
 
     for (const unspentNote of unspentNotes) {
       // Skip unconfirmed notes
-      if (unspentNote.index === null || !unspentNote.confirmedMinimumBlocks) {
+      if (unspentNote.index === null || !unspentNote.confirmed) {
         continue
       }
 
