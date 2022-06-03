@@ -251,14 +251,12 @@ export class IronfishSdk {
 
       if (this.config.get('enableNativeRpcTcpAdapter')) {
         if (this.config.get('enableRpcTls')) {
-          const nodeKeyPath: string = this.config.get('tlsKeyPath')
-          const nodeCertPath: string = this.config.get('tlsCertPath')
           await node.rpc.mount(
             new SecureTcpAdapter(
               this.config.get('rpcTcpHost'),
               this.config.get('rpcTcpPort'),
-              nodeKeyPath,
-              nodeCertPath,
+              this.config.get('tlsKeyPath'),
+              this.config.get('tlsCertPath'),
               this.logger,
               namespaces,
             ),
