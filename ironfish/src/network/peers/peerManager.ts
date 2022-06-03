@@ -115,11 +115,6 @@ export class PeerManager {
   readonly onMessage: Event<[Peer, IncomingPeerMessage<NetworkMessage>]> = new Event()
 
   /**
-   * Event fired when a peer's knownPeers list changes.
-   */
-  readonly onKnownPeersChanged: Event<[Peer]> = new Event()
-
-  /**
    * Event fired when a peer enters or leaves the CONNECTED state.
    */
   readonly onConnectedPeersChanged: Event<[]> = new Event()
@@ -706,10 +701,6 @@ export class PeerManager {
     // Bind Peer events to PeerManager events
     peer.onMessage.on(async (message, connection) => {
       await this.handleMessage(peer, connection, message)
-    })
-
-    peer.onKnownPeersChanged.on(() => {
-      this.onKnownPeersChanged.emit(peer)
     })
 
     peer.onStateChanged.on(({ prevState }) => {
@@ -1440,8 +1431,6 @@ export class PeerManager {
       return
     }
 
-    let changed = false
-
     const newPeerSet = peerList.connectedPeers.reduce(
       (memo, peer) => {
         const newPeer = {
@@ -1475,7 +1464,6 @@ export class PeerManager {
         // See if removing edges from either peer caused it to be disposable
         this.tryDisposePeer(peer)
         this.tryDisposePeer(otherPeer)
-        changed = true
       }
     }
 
@@ -1485,24 +1473,18 @@ export class PeerManager {
         const knownPeer = this.getOrCreatePeer(newPeer.identity)
         knownPeer.setWebSocketAddress(newPeer.address, newPeer.port)
         knownPeer.name = newPeer.name || null
-        this.addKnownPeerTo(knownPeer, peer, false)
-        changed = true
+        this.addKnownPeerTo(knownPeer, peer)
       }
-    }
-
-    if (changed) {
-      peer.onKnownPeersChanged.emit()
     }
   }
 
   /**
    * This is used for adding a peer to a peers known list. It also handles adding it bi-directionally
-   * and emits peer.onKnownPeersChanged by default.
    * @param peer The peer to put into `addTo's` knownPeers
    * @param addTo The peer to add `peer` to
    * @param emitKnownPeersChanged Set this to false if you are adding known peers in bulk and you know you want to emit this yourself
    */
-  addKnownPeerTo(peer: Peer, addTo: Peer, emitKnownPeersChanged = true): void {
+  addKnownPeerTo(peer: Peer, addTo: Peer): void {
     if (!peer.state.identity || !addTo.state.identity) {
       return
     }
@@ -1512,10 +1494,6 @@ export class PeerManager {
 
     if (!addTo.knownPeers.has(peer.state.identity)) {
       addTo.knownPeers.set(peer.state.identity, peer)
-
-      if (emitKnownPeersChanged) {
-        addTo.onKnownPeersChanged.emit()
-      }
     }
 
     // Optimistically update the edges. This could result in pinging back and forth if peers don't agree whether they're connected

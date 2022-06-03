@@ -198,11 +198,6 @@ export class Peer {
   readonly onMessage: Event<[NetworkMessage, Connection]> = new Event()
 
   /**
-   * Event fired when the knownPeers map changes.
-   */
-  readonly onKnownPeersChanged: Event<[]> = new Event()
-
-  /**
    * Fired when the peer should be banned
    */
   readonly onBanned: Event<[]> = new Event()
@@ -664,7 +659,6 @@ export class Peer {
    */
   dispose(): void {
     this.onStateChanged.clear()
-    this.onKnownPeersChanged.clear()
     this.onMessage.clear()
     this.onBanned.clear()
   }
