@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import fs from 'fs'
 import net from 'net'
 import { pki } from 'node-forge'
 import tls from 'tls'
@@ -9,36 +10,54 @@ import { ApiNamespace } from '../routes'
 import { TcpAdapter } from './tcpAdapter'
 
 export class SecureTcpAdapter extends TcpAdapter {
-  readonly nodeKey: string
-  readonly nodeCert: string
+  readonly nodeKeyPath: string
+  readonly nodeCertPath: string
 
   constructor(
     host: string,
     port: number,
+    nodeKeyPath: string,
+    nodeCertPath: string,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
     super(host, port, logger, namespaces)
-    const keyPair = pki.rsa.generateKeyPair(2048)
-    this.nodeKey = pki.privateKeyToPem(keyPair.privateKey)
-    this.nodeCert = this.generateCertificatePem(keyPair)
+    this.nodeKeyPath = nodeKeyPath
+    this.nodeCertPath = nodeCertPath
   }
 
   protected createServer(): net.Server {
-    const options = {
-      host: this.host,
-      port: this.port,
-      key: this.nodeKey,
-      cert: this.nodeCert,
-    }
-
-    return tls.createServer(options, (socket) => this.onClientConnection(socket))
+    return tls.createServer(this.getTlsOptions(), (socket) => this.onClientConnection(socket))
   }
 
-  protected generateCertificatePem(keyPair: pki.KeyPair): string {
+  protected getTlsOptions(): tls.TlsOptions {
+    try {
+      const nodeKey = fs.readFileSync(this.nodeKeyPath)
+      const nodeCert = fs.readFileSync(this.nodeCertPath)
+      return {
+        key: nodeKey,
+        cert: nodeCert,
+      }
+    } catch (e) {
+      this.logger.error(
+        `Failed to read TLS cert ${this.nodeCertPath}. Automatically generating self-signed cert`,
+      )
+      return this.generateTlsOptions()
+    }
+  }
+
+  protected generateTlsOptions(): tls.TlsOptions {
+    const keyPair = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
     cert.publicKey = keyPair.publicKey
     cert.sign(keyPair.privateKey)
-    return pki.certificateToPem(cert)
+    const nodeKeyPem = pki.privateKeyToPem(keyPair.privateKey)
+    const nodeCertPem = pki.certificateToPem(cert)
+    fs.writeFileSync(this.nodeKeyPath, nodeKeyPem)
+    fs.writeFileSync(this.nodeCertPath, nodeCertPem)
+    return {
+      key: nodeKeyPem,
+      cert: nodeCertPem,
+    }
   }
 }
