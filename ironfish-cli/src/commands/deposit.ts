@@ -76,16 +76,16 @@ export default class Bank extends IronfishCommand {
       this.exit(1)
     }
 
-    const { canSend, errorReason } = await this.verifyCanSend(flags)
+    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
+      .blockGraffiti
+    Assert.isNotUndefined(graffiti)
+
+    const { canSend, errorReason } = await this.verifyCanSend(flags, graffiti)
     if (!canSend) {
       Assert.isNotNull(errorReason)
       this.log(errorReason)
       this.exit(1)
     }
-
-    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
-      .blockGraffiti
-    Assert.isNotUndefined(graffiti)
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = Number(balanceResp.content.confirmed)
@@ -181,6 +181,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
 
   private async verifyCanSend(
     flags: Record<string, unknown>,
+    graffiti: string,
   ): Promise<{ canSend: boolean; errorReason: string | null }> {
     Assert.isNotNull(this.client)
     Assert.isNotNull(this.api)
@@ -190,15 +191,6 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       return {
         canSend: false,
         errorReason: `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      }
-    }
-
-    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
-      .blockGraffiti
-    if (!graffiti) {
-      return {
-        canSend: false,
-        errorReason: `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
       }
     }
 
