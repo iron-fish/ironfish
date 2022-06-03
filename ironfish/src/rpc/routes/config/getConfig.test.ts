@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { DEFAULT_MINER_BATCH_SIZE } from '../../../fileStores/config'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route config/getConfig', () => {
@@ -13,7 +14,7 @@ describe('Route config/getConfig', () => {
   })
 
   it('returns value of the requested ConfigOptions', async () => {
-    const target = { minerBatchSize: 10000 }
+    const target = { minerBatchSize: DEFAULT_MINER_BATCH_SIZE }
     const response = await routeTest.client
       .request('config/getConfig', {
         name: 'minerBatchSize',

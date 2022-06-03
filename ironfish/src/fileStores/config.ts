@@ -16,6 +16,7 @@ export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+export const DEFAULT_MINER_BATCH_SIZE = 25000
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -286,7 +287,7 @@ export class Config extends KeyStore<ConfigOptions> {
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
       blocksPerMessage: 20,
-      minerBatchSize: 10000,
+      minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
