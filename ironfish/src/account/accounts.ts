@@ -734,10 +734,10 @@ export class Accounts {
           )
 
           // Update our map so this doesn't happen again
-          const noteMapValue = this.noteToNullifier.get(nullifier.toString('hex'))
+          const noteMapValue = this.noteToNullifier.get(unspentNote.hash)
           if (noteMapValue) {
             this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
-            await this.updateNoteToNullifierMap(nullifier.toString('hex'), {
+            await this.updateNoteToNullifierMap(unspentNote.hash, {
               ...noteMapValue,
               spent: true,
             })
