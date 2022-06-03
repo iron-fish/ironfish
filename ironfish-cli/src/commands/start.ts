@@ -23,6 +23,8 @@ import {
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
   RpcUseTcpFlagKey,
+  RpcUseTlsFlag,
+  RpcUseTlsFlagKey,
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
@@ -41,6 +43,7 @@ export default class Start extends IronfishCommand {
     [DatabaseFlagKey]: DatabaseFlag,
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true },
     [RpcUseTcpFlagKey]: { ...RpcUseTcpFlag, allowNo: true },
+    [RpcUseTlsFlagKey]: RpcUseTlsFlag,
     [RpcTcpHostFlagKey]: RpcTcpHostFlag,
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
     [RpcTcpSecureFlagKey]: RpcTcpSecureFlag,
