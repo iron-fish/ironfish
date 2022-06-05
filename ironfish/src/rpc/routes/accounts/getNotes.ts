@@ -2,42 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { getAccount } from '../accounts/utils'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
-export type GetTransactionsRequest = { account?: string }
+export type GetAccountNotesRequest = { account?: string }
 
-export type GetTransactionsResponse = {
+export type GetAccountNotesResponse = {
   account: string
   notes: {
-    isSpender: boolean
-    txHash: string
-    txFee: string
-    isMinerFee: boolean
+    spender: boolean
     amount: string
     memo: string
+    noteTxHash: string
   }[]
 }
 
-export const GetTransactionsRequestSchema: yup.ObjectSchema<GetTransactionsRequest> = yup
+export const GetAccountNotesRequestSchema: yup.ObjectSchema<GetAccountNotesRequest> = yup
   .object({
     account: yup.string().strip(true),
   })
   .defined()
 
-export const GetTransactionsResponseSchema: yup.ObjectSchema<GetTransactionsResponse> = yup
+export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResponse> = yup
   .object({
     account: yup.string().defined(),
     notes: yup
       .array(
         yup
           .object({
-            isSpender: yup.boolean().defined(),
-            txHash: yup.string().defined(),
-            txFee: yup.string().defined(),
-            isMinerFee: yup.boolean().defined(),
+            spender: yup.boolean().defined(),
             amount: yup.string().defined(),
             memo: yup.string().trim().defined(),
+            noteTxHash: yup.string().defined(),
           })
           .defined(),
       )
@@ -45,12 +41,12 @@ export const GetTransactionsResponseSchema: yup.ObjectSchema<GetTransactionsResp
   })
   .defined()
 
-router.register<typeof GetTransactionsRequestSchema, GetTransactionsResponse>(
-  `${ApiNamespace.transaction}/getTransactionNotes`,
-  GetTransactionsRequestSchema,
+router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
+  `${ApiNamespace.account}/getAccountNotes`,
+  GetAccountNotesRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { notes } = node.accounts.getTransactionNotes(account)
+    const { notes } = node.accounts.getNotesFor(account)
     request.end({ account: account.displayName, notes })
   },
 )

@@ -9,6 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  GetAccountNotesRequest,
+  GetAccountNotesResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetBalanceRequest,
@@ -32,8 +34,6 @@ import {
   GetPublicKeyResponse,
   GetStatusRequest,
   GetStatusResponse,
-  GetTransactionsRequest,
-  GetTransactionsResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -199,6 +199,15 @@ export abstract class IronfishClient {
     ).waitForEnd()
   }
 
+  async getAccountNotes(
+    params: GetAccountNotesRequest = {},
+  ): Promise<ResponseEnded<GetAccountNotesResponse>> {
+    return await this.request<GetAccountNotesResponse>(
+      `${ApiNamespace.account}/getAccountNotes`,
+      params,
+    ).waitForEnd()
+  }
+
   async getPeers(
     params: GetPeersRequest = undefined,
   ): Promise<ResponseEnded<GetPeersResponse>> {
@@ -261,15 +270,6 @@ export abstract class IronfishClient {
 
   onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
-  }
-
-  async getTransactionNotes(
-    params: GetTransactionsRequest = {},
-  ): Promise<ResponseEnded<GetTransactionsResponse>> {
-    return await this.request<GetTransactionsResponse>(
-      `${ApiNamespace.transaction}/getTransactionNotes`,
-      params,
-    ).waitForEnd()
   }
 
   async sendTransaction(
