@@ -147,7 +147,7 @@ export class PeerManager {
     this.metrics = metrics || new MetricsMonitor({ logger: this.logger })
     this.localPeer = localPeer
     this.maxPeers = maxPeers
-    this.targetPeers = targetPeers
+    this.targetPeers = maxPeers < targetPeers ? maxPeers : targetPeers
     this.logPeerMessages = logPeerMessages
     this.addressManager = new AddressManager(hostsStore)
   }
@@ -530,11 +530,10 @@ export class PeerManager {
 
   /**
    * Returns true if the total number of connected peers is less
-   * than the target and max amount of peers
+   * than the target amount of peers
    */
   canCreateNewConnections(): boolean {
-    const currentPeers = this.getPeersWithConnection().length
-    return currentPeers < this.targetPeers && currentPeers < this.maxPeers
+    return this.getPeersWithConnection().length < this.targetPeers
   }
 
   /**
