@@ -69,10 +69,6 @@ export class TcpAdapter implements IAdapter {
     this.namespaces = namespaces
   }
 
-  protected createServer(): net.Server {
-    return net.createServer((socket) => this.onClientConnection(socket))
-  }
-
   start(): Promise<void> {
     if (this.started) {
       return Promise.resolve()
@@ -80,7 +76,7 @@ export class TcpAdapter implements IAdapter {
     this.started = true
 
     return new Promise((resolve, reject) => {
-      this.server = this.createServer()
+      this.server = net.createServer((socket) => this.onClientConnection(socket))
 
       this.server.on('error', (err) => {
         reject(err)
