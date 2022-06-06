@@ -9,9 +9,7 @@ describe('Route worker/getStatus', () => {
 
   it('should get status', async () => {
     const request: GetWorkersStatusRequest = { stream: false }
-    const response = await routeTest.client
-      .request('worker/getStatus', { request })
-      .waitForEnd()
+    const response = await routeTest.adapter.request('worker/getStatus', { request })
 
     expect(response.status).toBe(200)
 

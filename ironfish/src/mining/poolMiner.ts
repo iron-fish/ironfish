@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { isValidPublicAddress } from '../account/validator'
 import { Assert } from '../assert'
-import { Logger } from '../logger'
+import { createRootLogger, Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
@@ -30,12 +30,12 @@ export class MiningPoolMiner {
   constructor(options: {
     threadCount: number
     batchSize: number
-    logger: Logger
+    logger?: Logger
     publicAddress: string
     host: string
     port: number
   }) {
-    this.logger = options.logger
+    this.logger = options.logger ?? createRootLogger()
     this.graffiti = null
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
@@ -50,7 +50,6 @@ export class MiningPoolMiner {
       publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
-      logger: options.logger,
     })
 
     this.hashRate = new Meter()
@@ -106,9 +105,10 @@ export class MiningPoolMiner {
     Assert.isNotNull(this.graffiti)
 
     this.logger.debug(
-      `new work ${this.target.toString('hex')} ${miningRequestId} ${FileUtils.formatHashRate(
-        this.hashRate.rate1s,
-      )}/s`,
+      'new work',
+      this.target.toString('hex'),
+      miningRequestId,
+      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
     )
 
     const headerBytes = Buffer.concat([header])
@@ -142,9 +142,10 @@ export class MiningPoolMiner {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(
-          `Found share: ${randomness} ${miningRequestId} ${FileUtils.formatHashRate(
-            this.hashRate.rate1s,
-          )}/s`,
+          'Found share:',
+          randomness,
+          miningRequestId,
+          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
         )
 
         this.stratum.submit(miningRequestId, randomness)

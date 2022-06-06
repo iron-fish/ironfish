@@ -4,7 +4,6 @@
 
 export { MiningManager } from './manager'
 export { Discord } from './discord'
-export { Lark } from './lark'
 export { MiningPool } from './pool'
 export { MiningPoolMiner } from './poolMiner'
 export { MiningSoloMiner } from './soloMiner'

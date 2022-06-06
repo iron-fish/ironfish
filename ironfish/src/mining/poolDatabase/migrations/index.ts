@@ -3,6 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import Migration001 from './001-initial'
-import Migration002 from './002-add-shares-index'
 
-export const MIGRATIONS = [Migration001, Migration002]
+export const MIGRATIONS = [Migration001]

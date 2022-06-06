@@ -7,7 +7,6 @@
 
 import { ConsolaReporterLogObject, logType } from 'consola'
 import { Assert } from '../../assert'
-import { IJSON } from '../../serde'
 import { TextReporter } from './text'
 
 const silentLogger = (): void => {
@@ -29,34 +28,14 @@ export const loggers: Record<logType, typeof console.log> = {
   silent: silentLogger,
 }
 
-export const getConsoleLogger = (logType: logType): typeof console.log => {
-  const logger = loggers[logType]
-  Assert.isNotUndefined(logger)
-  return logger
-}
-
-export const logObjToJSON = (logObj: ConsolaReporterLogObject): string => {
-  const objectArgs: Record<string, unknown>[] = logObj.args.filter(
-    (a) => typeof a === 'object',
-  ) as Record<string, unknown>[]
-  const otherArgs = logObj.args.filter((a) => typeof a != 'object')
-
-  const toLog = {
-    ...objectArgs[0],
-    level: logObj.level,
-    tag: logObj.tag,
-    date: logObj.date,
-    message: otherArgs.join(' '),
+export class ConsoleReporter extends TextReporter {
+  getConsoleLogger(logType: logType): typeof console.log {
+    const logger = loggers[logType]
+    Assert.isNotUndefined(logger)
+    return logger
   }
 
-  return IJSON.stringify(toLog)
-}
-
-export class ConsoleReporter extends TextReporter {
-  logToJSON = false
-
   logText(logObj: ConsolaReporterLogObject, args: unknown[]): void {
-    const logger = getConsoleLogger(logObj.type)
-    this.logToJSON ? logger(logObjToJSON(logObj)) : logger(...args)
+    this.getConsoleLogger(logObj.type)(...args)
   }
 }

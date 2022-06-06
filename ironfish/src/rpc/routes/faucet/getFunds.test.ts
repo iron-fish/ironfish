@@ -13,9 +13,7 @@ describe('Route faucet.getFunds', () => {
   describe('if the account does not exist in the DB', () => {
     it('should fail', async () => {
       await expect(
-        routeTest.client
-          .request('faucet/getFunds', { accountName: 'test-notfound' })
-          .waitForEnd(),
+        routeTest.adapter.request('faucet/getFunds', { accountName: 'test-notfound' }),
       ).rejects.toThrow('Account test-notfound could not be found')
     }, 10000)
   })
@@ -39,12 +37,10 @@ describe('Route faucet.getFunds', () => {
           .fn()
           .mockImplementationOnce(() => Promise.resolve({ data: { id: 5 } }))
 
-        const response = await routeTest.client
-          .request('faucet/getFunds', {
-            accountName,
-            email,
-          })
-          .waitForEnd()
+        const response = await routeTest.adapter.request('faucet/getFunds', {
+          accountName,
+          email,
+        })
 
         // Response gives back string for ID
         expect(response).toMatchObject({ status: 200, content: { id: '5' } })
@@ -73,7 +69,7 @@ describe('Route faucet.getFunds', () => {
           }
         })
         await expect(
-          routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
+          routeTest.adapter.request('faucet/getFunds', { accountName, email }),
         ).rejects.toThrow(RequestError)
       })
     })
@@ -83,7 +79,7 @@ describe('Route faucet.getFunds', () => {
         const apiResponse = new Error('API failure') as AxiosError
         axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
         await expect(
-          routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
+          routeTest.adapter.request('faucet/getFunds', { accountName, email }),
         ).rejects.toThrow('API failure')
       }, 10000)
     })

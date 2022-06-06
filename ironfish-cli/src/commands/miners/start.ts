@@ -90,7 +90,6 @@ export class Miner extends IronfishCommand {
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.address,
-        logger: this.logger,
         batchSize,
         host: host,
         port: port,
@@ -108,14 +107,13 @@ export class Miner extends IronfishCommand {
     }
 
     if (!flags.pool) {
-      this.log(`Starting to mine with graffiti: ${graffiti}`)
+      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
 
       const rpc = this.sdk.client
 
       const miner = new MiningSoloMiner({
         threadCount: flags.threads,
         graffiti: GraffitiUtils.fromString(graffiti),
-        logger: this.logger,
         batchSize,
         rpc,
       })

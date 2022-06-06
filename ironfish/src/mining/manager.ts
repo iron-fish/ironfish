@@ -166,9 +166,7 @@ export class MiningManager {
     const validation = await this.node.chain.verifier.verifyBlock(block)
 
     if (!validation.valid) {
-      this.node.logger.info(
-        `Discarding invalid mined block ${blockDisplay} ${validation.reason || 'undefined'}`,
-      )
+      this.node.logger.info(`Discarding invalid mined block ${blockDisplay}`, validation.reason)
       return MINED_RESULT.INVALID_BLOCK
     }
 
