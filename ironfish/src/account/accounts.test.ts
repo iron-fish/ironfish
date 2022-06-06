@@ -99,18 +99,58 @@ describe('Accounts', () => {
   }, 120000)
 
   describe('getBalance', () => {
-    it('returns balances for unspent notes with minimum confirmations', async () => {
-      const { node } = await nodeTest.createSetup({ config: { minimumBlockConfirmations: 2 } })
-      const account = await useAccountFixture(node.accounts, 'test')
+    it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {
+      const { node: nodeA } = await nodeTest.createSetup({
+        config: { minimumBlockConfirmations: 2 },
+      })
+      const { node: nodeB } = await nodeTest.createSetup()
+      const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
+      const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
 
-      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 2, account))
-      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 3, account))
-      await node.chain.addBlock(await useMinerBlockFixture(node.chain, 4, account))
-      await node.accounts.updateHead()
+      // G -> A1 -> A2 -> A3 -> A4 -> A5
+      //   -> B1 -> B2 -> B3 -> B4
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      await nodeA.chain.addBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
+      await nodeA.chain.addBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(nodeA.chain, 4, accountA)
+      await nodeA.chain.addBlock(blockA3)
+      const blockA4 = await useMinerBlockFixture(nodeA.chain, 5, accountA)
+      await nodeA.chain.addBlock(blockA4)
+      const blockA5 = await useMinerBlockFixture(nodeA.chain, 6, accountA)
+      await nodeA.chain.addBlock(blockA5)
 
-      expect(await node.accounts.getBalance(account)).toEqual({
-        confirmed: BigInt(2000000000),
-        unconfirmed: BigInt(6000000000),
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+      await nodeB.chain.addBlock(blockB1)
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+      await nodeB.chain.addBlock(blockB2)
+      const blockB3 = await useMinerBlockFixture(nodeB.chain, 4, accountB)
+      await nodeB.chain.addBlock(blockB3)
+      const blockB4 = await useMinerBlockFixture(nodeB.chain, 5, accountB)
+      await nodeB.chain.addBlock(blockB4)
+
+      expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+      expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
+
+      await nodeB.chain.addBlock(blockA1)
+      await nodeB.chain.addBlock(blockA2)
+      await nodeB.chain.addBlock(blockA3)
+      await nodeB.chain.addBlock(blockA4)
+      await nodeB.chain.addBlock(blockA5)
+
+      await nodeA.accounts.updateHead()
+      await nodeB.accounts.updateHead()
+
+      expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+      expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+
+      expect(await nodeA.accounts.getBalance(accountA)).toEqual({
+        confirmed: BigInt(6000000000),
+        unconfirmed: BigInt(10000000000),
+      })
+      expect(await nodeB.accounts.getBalance(accountB)).toEqual({
+        confirmed: BigInt(0),
+        unconfirmed: BigInt(0),
       })
     })
   })

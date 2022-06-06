@@ -628,11 +628,10 @@ export class Accounts {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for (const transactionMapValue of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(
-        transactionMapValue.transaction.serialize(),
-        [account.incomingViewKey],
-      )
+    for (const { blockHash, transaction } of this.transactionMap.values()) {
+      const result = await this.workerPool.getUnspentNotes(transaction.serialize(), [
+        account.incomingViewKey,
+      ])
 
       for (const note of result.notes) {
         const map = this.noteToNullifier.get(note.hash)
@@ -644,12 +643,14 @@ export class Accounts {
         if (!map.spent) {
           let confirmed = false
 
-          const { blockHash } = transactionMapValue
           if (blockHash) {
             const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
             Assert.isNotNull(header)
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
+            const main = await this.chain.isHeadChain(header)
+            if (main) {
+              const confirmations = this.chain.head.sequence - header.sequence
+              confirmed = confirmations >= minimumBlockConfirmations
+            }
           }
 
           unspentNotes.push({
