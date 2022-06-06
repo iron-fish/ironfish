@@ -47,6 +47,7 @@ export class TcpAdapter implements IAdapter {
   router: Router | null = null
   namespaces: ApiNamespace[]
 
+  started = false
   pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
 
   constructor(
@@ -66,6 +67,11 @@ export class TcpAdapter implements IAdapter {
   }
 
   start(): Promise<void> {
+    if (this.started) {
+      return Promise.resolve()
+    }
+    this.started = true
+
     return new Promise((resolve, reject) => {
       this.server = this.createServer()
 
@@ -87,13 +93,19 @@ export class TcpAdapter implements IAdapter {
   }
 
   stop(): Promise<void> {
+    if (!this.started) {
+      return Promise.resolve()
+    }
+
     this.logger.debug(`tcpAdapter stopped: ${this.host}:${this.port}`)
+
     this.pending.forEach(({ sock, reqs }) => {
       reqs.forEach((req) => {
         req.close()
       })
       sock.destroy()
     })
+
     return new Promise((resolve, reject) => {
       this.server?.close((error) => {
         if (error) {
