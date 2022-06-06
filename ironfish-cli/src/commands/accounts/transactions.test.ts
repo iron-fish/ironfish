@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- import { GetAccountTransactionResponse, GetAccountTransactionsResponse } from '@ironfish/sdk'
- import { expect as expectCli, test } from '@oclif/test'
- 
+import { GetAccountTransactionResponse, GetAccountTransactionsResponse } from '@ironfish/sdk'
+import { expect as expectCli, test } from '@oclif/test'
+
 describe('accounts:transactions', () => {
   const account = 'default'
   const transactionHash = '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1'
@@ -17,9 +17,9 @@ describe('accounts:transactions', () => {
         isMinersFee: false,
         fee: 0.1,
         notes: 1,
-        spends: 1
-      }
-    ]
+        spends: 1,
+      },
+    ],
   }
 
   const responseContentTransaction: GetAccountTransactionResponse = {
@@ -30,15 +30,15 @@ describe('accounts:transactions', () => {
       isMinersFee: false,
       fee: 0.1,
       notes: 1,
-      spends: 1
+      spends: 1,
     },
     transactionNotes: [
       {
         spender: true,
         amount: 1,
-        memo: 'foo'
-      }
-    ]
+        memo: 'foo',
+      },
+    ],
   }
 
   beforeAll(() => {
@@ -79,11 +79,13 @@ describe('accounts:transactions', () => {
         expectCli(ctx.stdout).include(responseContentTransactions.account)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].status)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].hash)
-        expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].isMinersFee ? `✔` : `x`)
+        expectCli(ctx.stdout).include(
+          responseContentTransactions.transactions[0].isMinersFee ? `✔` : `x`,
+        )
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].fee)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].notes)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].spends)
-    })
+      })
   })
 
   describe('fetching details of specific transaction', () => {
@@ -97,16 +99,19 @@ describe('accounts:transactions', () => {
 
         // transaction details
         expectCli(ctx.stdout).include(responseContentTransaction.transactionInfo?.status)
-        expectCli(ctx.stdout).include(responseContentTransaction.transactionInfo?.isMinersFee ? `✔` : `x`)
+        expectCli(ctx.stdout).include(
+          responseContentTransaction.transactionInfo?.isMinersFee ? `✔` : `x`,
+        )
         expectCli(ctx.stdout).include(responseContentTransaction.transactionInfo?.fee)
         expectCli(ctx.stdout).include(responseContentTransaction.transactionInfo?.notes)
         expectCli(ctx.stdout).include(responseContentTransaction.transactionInfo?.spends)
 
         // transaction notes
-        expectCli(ctx.stdout).include(responseContentTransaction.transactionNotes[0].spender ? `✔` : `x`)
+        expectCli(ctx.stdout).include(
+          responseContentTransaction.transactionNotes[0].spender ? `✔` : `x`,
+        )
         expectCli(ctx.stdout).include(responseContentTransaction.transactionNotes[0].amount)
         expectCli(ctx.stdout).include(responseContentTransaction.transactionNotes[0].memo)
-    })
+      })
   })
 })
- 
