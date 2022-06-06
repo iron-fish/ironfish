@@ -961,6 +961,125 @@ export class Accounts {
     await this.scanTransactions()
   }
 
+  getTransactionsFor(account: Account): {
+    transactions: {
+      status: string
+      hash: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    const transactions = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      // check if transaction creator
+      let transactionCreator = false
+      for (const note of transaction.notes()) {
+        if (note.decryptNoteForSpender(account.outgoingViewKey)) {
+          transactionCreator = true
+          break
+        }
+      }
+
+      if (transactionCreator) {
+        transactions.push({
+          status:
+            transactionMapValue.blockHash && transactionMapValue.submittedSequence
+              ? 'completed'
+              : 'pending',
+          hash: transaction.hash().toString('hex'),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+        })
+      }
+    }
+
+    return { transactions }
+  }
+
+  getTransaction(
+    account: Account,
+    hash: string,
+  ): {
+    transactionInfo: {
+      status: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+    } | null
+    transactionNotes: {
+      spender: boolean
+      amount: number
+      memo: string
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    let transactionInfo = null
+    const transactionNotes = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      if (transaction.hash().toString('hex') === hash) {
+        // check if transaction creator
+        let transactionCreator = false
+        for (const note of transaction.notes()) {
+          if (note.decryptNoteForSpender(account.outgoingViewKey)) {
+            transactionCreator = true
+            break
+          }
+        }
+
+        if (transactionCreator) {
+          for (const note of transaction.notes()) {
+            // Try decrypting the note as the owner
+            let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+            let spender = false
+
+            if (!decryptedNote) {
+              // Try decrypting the note as the spender
+              decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+              spender = true
+            }
+
+            if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+              transactionNotes.push({
+                spender,
+                amount: Number(decryptedNote.value()),
+                memo: decryptedNote.memo().replace(/\x00/g, ''),
+              })
+            }
+          }
+
+          transactionInfo = {
+            status:
+              transactionMapValue.blockHash && transactionMapValue.submittedSequence
+                ? 'completed'
+                : 'pending',
+            isMinersFee: transaction.isMinersFee(),
+            fee: Number(transaction.fee()),
+            notes: transaction.notesLength(),
+            spends: transaction.spendsLength(),
+          }
+        }
+
+        break
+      }
+    }
+
+    return { transactionInfo, transactionNotes }
+  }
+
   async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
     validateAccount(toImport)
 

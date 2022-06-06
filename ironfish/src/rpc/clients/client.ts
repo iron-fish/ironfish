@@ -13,6 +13,10 @@ import {
   GetAccountNotesResponse,
   GetAccountsRequest,
   GetAccountsResponse,
+  GetAccountTransactionRequest,
+  GetAccountTransactionResponse,
+  GetAccountTransactionsRequest,
+  GetAccountTransactionsResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -204,6 +208,24 @@ export abstract class IronfishClient {
   ): Promise<ResponseEnded<GetAccountNotesResponse>> {
     return await this.request<GetAccountNotesResponse>(
       `${ApiNamespace.account}/getAccountNotes`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransaction(
+    params: GetAccountTransactionRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionResponse>> {
+    return await this.request<GetAccountTransactionResponse>(
+      `${ApiNamespace.account}/getAccountTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransactions(
+    params: GetAccountTransactionsRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionsResponse>> {
+    return await this.request<GetAccountTransactionsResponse>(
+      `${ApiNamespace.account}/getAccountTransactions`,
       params,
     ).waitForEnd()
   }
