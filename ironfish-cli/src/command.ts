@@ -19,12 +19,12 @@ import {
   RpcTcpPortFlagKey,
   RpcTcpSecureFlag,
   RpcTcpSecureFlagKey,
+  RpcTcpTlsFlag,
+  RpcTcpTlsFlagKey,
   RpcUseIpcFlag,
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
   RpcUseTcpFlagKey,
-  RpcUseTlsFlag,
-  RpcUseTlsFlagKey,
   VerboseFlag,
   VerboseFlagKey,
 } from './flags'
@@ -42,7 +42,7 @@ export type FLAGS =
   | typeof RpcTcpHostFlagKey
   | typeof RpcTcpPortFlagKey
   | typeof RpcTcpSecureFlagKey
-  | typeof RpcUseTlsFlagKey
+  | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
 
 export abstract class IronfishCommand extends Command {
@@ -130,9 +130,9 @@ export abstract class IronfishCommand extends Command {
       configOverrides.rpcTcpSecure = rpcTcpSecureFlag
     }
 
-    const rpcConnectTlsFlag = getFlag(flags, RpcUseTlsFlagKey)
-    if (typeof rpcConnectTlsFlag === 'boolean' && rpcConnectTlsFlag !== RpcUseTlsFlag.default) {
-      configOverrides.enableRpcTls = rpcConnectTlsFlag
+    const rpcTcpTlsFlag = getFlag(flags, RpcTcpTlsFlagKey)
+    if (typeof rpcTcpTlsFlag === 'boolean' && rpcTcpTlsFlag !== RpcTcpTlsFlag.default) {
+      configOverrides.enableRpcTls = rpcTcpTlsFlag
     }
 
     const verboseFlag = getFlag(flags, VerboseFlagKey)

@@ -23,7 +23,7 @@ export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
 export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
-export const RpcUseTlsFlagKey = 'rpc.tcp.tls'
+export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
 
 export const VerboseFlag = Flags.boolean({
   char: 'v',
@@ -76,7 +76,7 @@ export const RpcTcpSecureFlag = Flags.boolean({
   description: 'allow sensitive config to be changed over TCP',
 })
 
-export const RpcUseTlsFlag = Flags.boolean({
+export const RpcTcpTlsFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TLS,
   description: 'encrypt TCP connection to the RPC over TLS',
   allowNo: true,
@@ -103,7 +103,7 @@ remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFla
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcUseTlsFlagKey] = RpcUseTlsFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that uses an
