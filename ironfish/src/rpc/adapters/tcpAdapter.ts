@@ -119,11 +119,26 @@ export class TcpAdapter implements IAdapter {
       })
     })
 
+    await this.waitForAllToDisconnect()
+
     this.logger.debug(`tcpAdapter stopped: ${this.host}:${this.port}`)
   }
 
   attach(server: RpcServer): void {
     this.router = server.getRouter(this.namespaces)
+  }
+
+  async waitForAllToDisconnect(): Promise<void> {
+    const clients = Array.from(this.clients.values())
+    await Promise.all(clients.map((c) => this.waitForClientToDisconnect(c)))
+  }
+
+  waitForClientToDisconnect(client: TcpAdapterClient): Promise<void> {
+    return new Promise<void>((resolve) => {
+      client.socket.once('close', () => {
+        resolve()
+      })
+    })
   }
 
   onClientConnection(socket: net.Socket): void {
