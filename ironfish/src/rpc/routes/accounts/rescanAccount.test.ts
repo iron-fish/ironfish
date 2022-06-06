@@ -30,9 +30,11 @@ describe('account/rescanAccount', () => {
       routeTest.node.accounts.scan = scan
 
       try {
-        await routeTest.adapter.request<RescanAccountResponse>('account/rescanAccount', {
-          follow: false,
-        })
+        await routeTest.client
+          .request<RescanAccountResponse>('account/rescanAccount', {
+            follow: false,
+          })
+          .waitForEnd()
       } catch (error) {
         expect(error.status).toBe(400)
       }
@@ -45,10 +47,12 @@ describe('account/rescanAccount', () => {
         const { node } = routeTest
         const reset = jest.spyOn(node.accounts, 'reset')
 
-        await routeTest.adapter.request<RescanAccountResponse>('account/rescanAccount', {
-          follow: false,
-          reset: true,
-        })
+        await routeTest.client
+          .request<RescanAccountResponse>('account/rescanAccount', {
+            follow: false,
+            reset: true,
+          })
+          .waitForEnd()
 
         expect(reset).toHaveBeenCalledTimes(1)
       })
@@ -58,20 +62,21 @@ describe('account/rescanAccount', () => {
       const { node } = routeTest
       const scanTransactions = jest.spyOn(node.accounts, 'scanTransactions')
 
-      await routeTest.adapter.request<RescanAccountResponse>('account/rescanAccount', {
-        follow: false,
-      })
+      await routeTest.client
+        .request<RescanAccountResponse>('account/rescanAccount', {
+          follow: false,
+        })
+        .waitForEnd()
 
       expect(scanTransactions).toHaveBeenCalledTimes(1)
     })
 
     it('returns a 200 status code', async () => {
-      const response = await routeTest.adapter.request<RescanAccountResponse>(
-        'account/rescanAccount',
-        {
+      const response = await routeTest.client
+        .request<RescanAccountResponse>('account/rescanAccount', {
           follow: false,
-        },
-      )
+        })
+        .waitForEnd()
 
       expect(response.status).toBe(200)
     })
@@ -84,9 +89,11 @@ describe('account/rescanAccount', () => {
       node.accounts.scan = scan
       const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
-      await routeTest.adapter.request<RescanAccountResponse>('account/rescanAccount', {
-        follow: true,
-      })
+      await routeTest.client
+        .request<RescanAccountResponse>('account/rescanAccount', {
+          follow: true,
+        })
+        .waitForEnd()
 
       expect(wait).toHaveBeenCalledTimes(1)
     })
@@ -97,12 +104,11 @@ describe('account/rescanAccount', () => {
       node.accounts.scan = scan
       jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
-      const response = await routeTest.adapter.request<RescanAccountResponse>(
-        'account/rescanAccount',
-        {
+      const response = await routeTest.client
+        .request<RescanAccountResponse>('account/rescanAccount', {
           follow: true,
-        },
-      )
+        })
+        .waitForEnd()
 
       expect(response.status).toBe(200)
     })

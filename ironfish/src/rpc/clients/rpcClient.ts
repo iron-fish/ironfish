@@ -1,390 +1,180 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger } from '../../logger'
-import { Response, ResponseEnded } from '../response'
-import {
-  ApiNamespace,
-  BlockTemplateStreamRequest,
-  BlockTemplateStreamResponse,
-  CreateAccountRequest,
-  CreateAccountResponse,
-  GetAccountsRequest,
-  GetAccountsResponse,
-  GetBalanceRequest,
-  GetBalanceResponse,
-  GetBlockInfoRequest,
-  GetBlockInfoResponse,
-  GetBlockRequest,
-  GetBlockResponse,
-  GetChainInfoRequest,
-  GetChainInfoResponse,
-  GetConfigRequest,
-  GetConfigResponse,
-  GetDefaultAccountRequest,
-  GetDefaultAccountResponse,
-  GetFundsRequest,
-  GetFundsResponse,
-  GetLogStreamResponse,
-  GetPeersRequest,
-  GetPeersResponse,
-  GetPublicKeyRequest,
-  GetPublicKeyResponse,
-  GetStatusRequest,
-  GetStatusResponse,
-  GetTransactionStreamRequest,
-  GetTransactionStreamResponse,
-  GetWorkersStatusRequest,
-  GetWorkersStatusResponse,
-  SendTransactionRequest,
-  SendTransactionResponse,
-  SetConfigRequest,
-  SetConfigResponse,
-  ShowChainRequest,
-  ShowChainResponse,
-  StopNodeResponse,
-  SubmitBlockRequest,
-  SubmitBlockResponse,
-  UploadConfigRequest,
-  UploadConfigResponse,
-  UseAccountRequest,
-  UseAccountResponse,
-} from '../routes'
-import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
-import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
-import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
-import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
-import {
-  ExportChainStreamRequest,
-  ExportChainStreamResponse,
-} from '../routes/chain/exportChain'
-import {
-  FollowChainStreamRequest,
-  FollowChainStreamResponse,
-} from '../routes/chain/followChain'
-import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  ExportMinedStreamRequest,
-  ExportMinedStreamResponse,
-} from '../routes/mining/exportMined'
-import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
-import {
-  GetPeerMessagesRequest,
-  GetPeerMessagesResponse,
-} from '../routes/peers/getPeerMessages'
+import net from 'net'
+import { IpcClient } from 'node-ipc'
+import { Assert } from '../../assert'
+import { Event } from '../../event'
+import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
+import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
+import { isResponseError, Response } from '../response'
+import { Stream } from '../stream'
+import { IronfishClient } from './client'
+import { ConnectionError, RequestError, RequestTimeoutError } from './errors'
 
-export abstract class IronfishRpcClient {
-  readonly logger: Logger
+const REQUEST_TIMEOUT_MS = null
 
-  constructor(logger: Logger) {
-    this.logger = logger
+export type RpcClientConnectionInfo =
+  | {
+      mode: 'ipc'
+      socketPath: string
+    }
+  | {
+      mode: 'tcp'
+      host: string
+      port: number
+    }
+
+export abstract class IronfishRpcClient extends IronfishClient {
+  abstract client: IpcClient | net.Socket | null
+  abstract isConnected: boolean
+  abstract connection: Partial<RpcClientConnectionInfo>
+
+  abstract connect(options?: Record<string, unknown>): Promise<void>
+  abstract close(): void
+  protected abstract send(messageId: number, route: string, data: unknown): void
+
+  timeoutMs: number | null = REQUEST_TIMEOUT_MS
+  messageIds = 0
+
+  pending = new Map<
+    number,
+    {
+      response: Response<unknown>
+      stream: Stream<unknown>
+      timeout: SetTimeoutToken | null
+      resolve: (message: unknown) => void
+      reject: (error?: unknown) => void
+      type: string
+    }
+  >()
+
+  onClose = new Event<[]>()
+
+  async tryConnect(): Promise<boolean> {
+    return this.connect({ retryConnect: false })
+      .then(() => true)
+      .catch((e: unknown) => {
+        if (e instanceof ConnectionError) {
+          return false
+        }
+        throw e
+      })
   }
 
-  abstract connect(options?: Record<string, unknown>): Promise<void> | void
-  abstract close(): void
-
-  abstract request<TEnd = unknown, TStream = unknown>(
+  request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,
-    options?: { timeoutMs?: number | null },
-  ): Response<TEnd, TStream>
+    options: {
+      timeoutMs?: number | null
+    } = {},
+  ): Response<TEnd, TStream> {
+    Assert.isNotNull(this.client, 'Connect first using connect()')
 
-  async status(
-    params: GetStatusRequest = undefined,
-  ): Promise<ResponseEnded<GetStatusResponse>> {
-    return this.request<GetStatusResponse>(
-      `${ApiNamespace.node}/getStatus`,
-      params,
-    ).waitForEnd()
+    const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
+    const messageId = ++this.messageIds
+    const stream = new Stream<TStream>()
+    const timeoutMs = options.timeoutMs === undefined ? this.timeoutMs : options.timeoutMs
+
+    let timeout: SetTimeoutToken | null = null
+    let response: Response<TEnd, TStream> | null = null
+
+    if (timeoutMs !== null) {
+      timeout = setTimeout(() => {
+        const message = this.pending.get(messageId)
+
+        if (message && response) {
+          message.reject(new RequestTimeoutError(response, timeoutMs, route))
+        }
+      }, timeoutMs)
+    }
+
+    const resolveRequest = (...args: Parameters<typeof resolve>): void => {
+      this.pending.delete(messageId)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
+      stream.close()
+      resolve(...args)
+    }
+
+    const rejectRequest = (...args: Parameters<typeof reject>): void => {
+      this.pending.delete(messageId)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
+      stream.close()
+      reject(...args)
+    }
+
+    response = new Response<TEnd, TStream>(promise, stream, timeout)
+
+    const pending = {
+      resolve: resolveRequest as (value: unknown) => void,
+      reject: rejectRequest,
+      timeout: timeout,
+      response: response as Response<unknown>,
+      stream: stream as Stream<unknown>,
+      type: route,
+    }
+
+    this.pending.set(messageId, pending)
+
+    this.send(messageId, route, data)
+
+    return response
   }
 
-  statusStream(): Response<void, GetStatusResponse> {
-    return this.request<void, GetStatusResponse>(`${ApiNamespace.node}/getStatus`, {
-      stream: true,
-    })
+  protected handleStream = async (data: unknown): Promise<void> => {
+    const { result, error } = await YupUtils.tryValidate(IpcStreamSchema, data)
+    if (!result) {
+      throw error
+    }
+
+    const pending = this.pending.get(result.id)
+    if (!pending) {
+      return
+    }
+
+    pending.stream.write(result.data)
   }
 
-  async stopNode(): Promise<ResponseEnded<StopNodeResponse>> {
-    return this.request<StopNodeResponse>(`${ApiNamespace.node}/stopNode`).waitForEnd()
-  }
+  protected handleEnd = async (data: unknown): Promise<void> => {
+    const { result, error } = await YupUtils.tryValidate(IpcResponseSchema, data)
+    if (!result) {
+      throw error
+    }
 
-  getLogStream(): Response<void, GetLogStreamResponse> {
-    return this.request<void, GetLogStreamResponse>(`${ApiNamespace.node}/getLogStream`)
-  }
+    const pending = this.pending.get(result.id)
+    if (!pending) {
+      return
+    }
 
-  async getAccounts(
-    params: GetAccountsRequest = undefined,
-  ): Promise<ResponseEnded<GetAccountsResponse>> {
-    return await this.request<GetAccountsResponse>(
-      `${ApiNamespace.account}/getAccounts`,
-      params,
-    ).waitForEnd()
-  }
+    pending.response.status = result.status
 
-  async getDefaultAccount(
-    params: GetDefaultAccountRequest = undefined,
-  ): Promise<ResponseEnded<GetDefaultAccountResponse>> {
-    return await this.request<GetDefaultAccountResponse>(
-      `${ApiNamespace.account}/getDefaultAccount`,
-      params,
-    ).waitForEnd()
-  }
+    if (isResponseError(pending.response)) {
+      const { result: errorBody, error: errorError } = await YupUtils.tryValidate(
+        IpcErrorSchema,
+        result.data,
+      )
 
-  async createAccount(
-    params: CreateAccountRequest,
-  ): Promise<ResponseEnded<CreateAccountResponse>> {
-    return await this.request<CreateAccountResponse>(
-      `${ApiNamespace.account}/create`,
-      params,
-    ).waitForEnd()
-  }
+      if (errorBody) {
+        pending.reject(
+          new RequestError(
+            pending.response,
+            errorBody.code,
+            errorBody.message,
+            errorBody.stack,
+          ),
+        )
+      } else if (errorError) {
+        pending.reject(errorError)
+      } else {
+        pending.reject(data)
+      }
+      return
+    }
 
-  async useAccount(params: UseAccountRequest): Promise<ResponseEnded<UseAccountResponse>> {
-    return await this.request<UseAccountResponse>(
-      `${ApiNamespace.account}/use`,
-      params,
-    ).waitForEnd()
-  }
-
-  async removeAccount(
-    params: RemoveAccountRequest,
-  ): Promise<ResponseEnded<RemoveAccountResponse>> {
-    return await this.request<RemoveAccountResponse>(
-      `${ApiNamespace.account}/remove`,
-      params,
-    ).waitForEnd()
-  }
-
-  async getAccountBalance(
-    params: GetBalanceRequest = {},
-  ): Promise<ResponseEnded<GetBalanceResponse>> {
-    return this.request<GetBalanceResponse>(
-      `${ApiNamespace.account}/getBalance`,
-      params,
-    ).waitForEnd()
-  }
-
-  rescanAccountStream(
-    params: RescanAccountRequest = {},
-  ): Response<void, RescanAccountResponse> {
-    return this.request<void, RescanAccountResponse>(
-      `${ApiNamespace.account}/rescanAccount`,
-      params,
-    )
-  }
-
-  async exportAccount(
-    params: ExportAccountRequest = {},
-  ): Promise<ResponseEnded<ExportAccountResponse>> {
-    return this.request<ExportAccountResponse>(
-      `${ApiNamespace.account}/exportAccount`,
-      params,
-    ).waitForEnd()
-  }
-
-  async importAccount(
-    params: ImportAccountRequest,
-  ): Promise<ResponseEnded<ImportAccountResponse>> {
-    return this.request<ImportAccountResponse>(
-      `${ApiNamespace.account}/importAccount`,
-      params,
-    ).waitForEnd()
-  }
-
-  async getAccountPublicKey(
-    params: GetPublicKeyRequest,
-  ): Promise<ResponseEnded<GetPublicKeyResponse>> {
-    return this.request<GetPublicKeyResponse>(
-      `${ApiNamespace.account}/getPublicKey`,
-      params,
-    ).waitForEnd()
-  }
-
-  async getPeers(
-    params: GetPeersRequest = undefined,
-  ): Promise<ResponseEnded<GetPeersResponse>> {
-    return this.request<GetPeersResponse>(`${ApiNamespace.peer}/getPeers`, params).waitForEnd()
-  }
-
-  getPeersStream(params: GetPeersRequest = undefined): Response<void, GetPeersResponse> {
-    return this.request<void, GetPeersResponse>(`${ApiNamespace.peer}/getPeers`, {
-      ...params,
-      stream: true,
-    })
-  }
-
-  async getPeer(params: GetPeerRequest): Promise<ResponseEnded<GetPeerResponse>> {
-    return this.request<GetPeerResponse>(`${ApiNamespace.peer}/getPeer`, params).waitForEnd()
-  }
-
-  getPeerStream(params: GetPeerRequest): Response<void, GetPeerResponse> {
-    return this.request<void, GetPeerResponse>(`${ApiNamespace.peer}/getPeer`, {
-      ...params,
-      stream: true,
-    })
-  }
-
-  async getPeerMessages(
-    params: GetPeerMessagesRequest,
-  ): Promise<ResponseEnded<GetPeerMessagesResponse>> {
-    return this.request<GetPeerMessagesResponse>(
-      `${ApiNamespace.peer}/getPeerMessages`,
-      params,
-    ).waitForEnd()
-  }
-
-  getPeerMessagesStream(
-    params: GetPeerMessagesRequest,
-  ): Response<void, GetPeerMessagesResponse> {
-    return this.request<void, GetPeerMessagesResponse>(`${ApiNamespace.peer}/getPeerMessages`, {
-      ...params,
-      stream: true,
-    })
-  }
-
-  async getWorkersStatus(
-    params: GetWorkersStatusRequest = undefined,
-  ): Promise<ResponseEnded<GetWorkersStatusResponse>> {
-    return this.request<GetWorkersStatusResponse>(
-      `${ApiNamespace.worker}/getStatus`,
-      params,
-    ).waitForEnd()
-  }
-
-  getWorkersStatusStream(
-    params: GetWorkersStatusRequest = undefined,
-  ): Response<void, GetWorkersStatusResponse> {
-    return this.request<void, GetWorkersStatusResponse>(`${ApiNamespace.worker}/getStatus`, {
-      ...params,
-      stream: true,
-    })
-  }
-
-  onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
-    return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
-  }
-
-  async sendTransaction(
-    params: SendTransactionRequest,
-  ): Promise<ResponseEnded<SendTransactionResponse>> {
-    return this.request<SendTransactionResponse>(
-      `${ApiNamespace.transaction}/sendTransaction`,
-      params,
-    ).waitForEnd()
-  }
-
-  blockTemplateStream(
-    params: BlockTemplateStreamRequest = undefined,
-  ): Response<void, BlockTemplateStreamResponse> {
-    return this.request<void, BlockTemplateStreamResponse>(
-      `${ApiNamespace.miner}/blockTemplateStream`,
-      params,
-    )
-  }
-
-  submitBlock(params: SubmitBlockRequest): Promise<ResponseEnded<SubmitBlockResponse>> {
-    return this.request<SubmitBlockResponse>(
-      `${ApiNamespace.miner}/submitBlock`,
-      params,
-    ).waitForEnd()
-  }
-
-  exportMinedStream(
-    params: ExportMinedStreamRequest = undefined,
-  ): Response<void, ExportMinedStreamResponse> {
-    return this.request<void, ExportMinedStreamResponse>(
-      `${ApiNamespace.miner}/exportMinedStream`,
-      params,
-    )
-  }
-
-  async getFunds(params: GetFundsRequest): Promise<ResponseEnded<GetFundsResponse>> {
-    return this.request<GetFundsResponse>(
-      `${ApiNamespace.faucet}/getFunds`,
-      params,
-    ).waitForEnd()
-  }
-
-  async getBlock(params: GetBlockRequest): Promise<ResponseEnded<GetBlockResponse>> {
-    return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
-  }
-
-  async getChainInfo(
-    params: GetChainInfoRequest = undefined,
-  ): Promise<ResponseEnded<GetChainInfoResponse>> {
-    return this.request<GetChainInfoResponse>(
-      `${ApiNamespace.chain}/getChainInfo`,
-      params,
-    ).waitForEnd()
-  }
-
-  exportChainStream(
-    params: ExportChainStreamRequest = undefined,
-  ): Response<void, ExportChainStreamResponse> {
-    return this.request<void, ExportChainStreamResponse>(
-      `${ApiNamespace.chain}/exportChainStream`,
-      params,
-    )
-  }
-
-  followChainStream(
-    params: FollowChainStreamRequest = undefined,
-  ): Response<void, FollowChainStreamResponse> {
-    return this.request<void, FollowChainStreamResponse>(
-      `${ApiNamespace.chain}/followChainStream`,
-      params,
-    )
-  }
-
-  async getBlockInfo(
-    params: GetBlockInfoRequest,
-  ): Promise<ResponseEnded<GetBlockInfoResponse>> {
-    return this.request<GetBlockInfoResponse>(
-      `${ApiNamespace.chain}/getBlockInfo`,
-      params,
-    ).waitForEnd()
-  }
-
-  async showChain(
-    params: ShowChainRequest = undefined,
-  ): Promise<ResponseEnded<ShowChainResponse>> {
-    return this.request<ShowChainResponse>(
-      `${ApiNamespace.chain}/showChain`,
-      params,
-    ).waitForEnd()
-  }
-
-  getTransactionStream(
-    params: GetTransactionStreamRequest,
-  ): Response<void, GetTransactionStreamResponse> {
-    return this.request<void, GetTransactionStreamResponse>(
-      `${ApiNamespace.chain}/getTransactionStream`,
-      params,
-    )
-  }
-
-  async getConfig(
-    params: GetConfigRequest = undefined,
-  ): Promise<ResponseEnded<GetConfigResponse>> {
-    return this.request<GetConfigResponse>(
-      `${ApiNamespace.config}/getConfig`,
-      params,
-    ).waitForEnd()
-  }
-
-  async setConfig(params: SetConfigRequest): Promise<ResponseEnded<SetConfigResponse>> {
-    return this.request<SetConfigResponse>(
-      `${ApiNamespace.config}/setConfig`,
-      params,
-    ).waitForEnd()
-  }
-
-  async uploadConfig(
-    params: UploadConfigRequest,
-  ): Promise<ResponseEnded<UploadConfigResponse>> {
-    return this.request<UploadConfigResponse>(
-      `${ApiNamespace.config}/uploadConfig`,
-      params,
-    ).waitForEnd()
+    pending.resolve(result.data)
   }
 }

@@ -18,7 +18,9 @@ describe('Route account/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.adapter.request<any>('account/create', { name })
+    const response = await routeTest.client
+      .request<any>('account/create', { name })
+      .waitForEnd()
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,
@@ -38,7 +40,9 @@ describe('Route account/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.adapter.request<any>('account/create', { name })
+    const response = await routeTest.client
+      .request<any>('account/create', { name })
+      .waitForEnd()
     expect(response.content).toMatchObject({
       name: name,
       publicAddress: expect.any(String),
@@ -50,7 +54,7 @@ describe('Route account/create', () => {
   it('should validate request', async () => {
     try {
       expect.assertions(3)
-      await routeTest.adapter.request('account/create')
+      await routeTest.client.request('account/create').waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RequestError)) {
         throw e
@@ -68,7 +72,7 @@ describe('Route account/create', () => {
 
     try {
       expect.assertions(2)
-      await routeTest.adapter.request('account/create', { name: name })
+      await routeTest.client.request('account/create', { name: name }).waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RequestError)) {
         throw e

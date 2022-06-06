@@ -55,5 +55,12 @@ describe('BigIntUtils', () => {
 
     result = BigIntUtils.divide(max, BigInt(2))
     expect(result).toBe(Number(max) / 2)
+
+    const withPrecision = BigIntUtils.divide(10000n, 37n)
+    const withoutPrecision = Number(10000n / 37n)
+    const withPrecision2 = 10000 / 37
+
+    expect(withPrecision).toBeGreaterThan(withoutPrecision)
+    expect(withPrecision).toBe(withPrecision2)
   })
 })

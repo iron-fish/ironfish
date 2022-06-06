@@ -5,59 +5,27 @@ import { Assert } from '../../assert'
 import { PromiseUtils, SetTimeoutToken } from '../../utils'
 import { RequestError } from '../clients/errors'
 import { Request } from '../request'
-import { Response, ResponseEnded } from '../response'
-import { ALL_API_NAMESPACES, Router } from '../routes'
-import { RpcServer } from '../server'
+import { Response } from '../response'
+import { Router } from '../routes'
 import { Stream } from '../stream'
-import { IAdapter } from './adapter'
 import { ResponseError } from './errors'
 
 /**
  * This class provides a way to route requests directly against the routing layer
- * return a response from the route The two methods are `request` and `requestStream`
+ * return a response from the route
  *
  * This is useful any time you want to make requests without hitting an IO layer.
  */
-export class MemoryAdapter implements IAdapter {
-  router: Router | null = null
-
-  start(): Promise<void> {
-    return Promise.resolve()
-  }
-
-  stop(): Promise<void> {
-    return Promise.resolve()
-  }
-
-  attach(server: RpcServer): void {
-    this.router = server.getRouter(ALL_API_NAMESPACES)
-  }
-
-  unattach(): void {
-    this.router = null
-  }
-
-  /**
-   * Makes a request against the routing layer with a given route, and data and waits
-   * for the response to end. This is used if you want to make a request against a route
-   * that starts and ends and doesn't stream forever
-   */
-  async request<TEnd = unknown>(route: string, data?: unknown): Promise<ResponseEnded<TEnd>> {
-    return this.requestStream<TEnd, unknown>(route, data).waitForEnd()
-  }
-
+export class MemoryAdapter {
   /**
    * Makes a request against the routing layer with a given route, and data and returns
    * a response for you to accumulate the streaming results, or wait for a response
    */
-  requestStream<TEnd = unknown, TStream = unknown>(
+  static requestStream<TEnd = unknown, TStream = unknown>(
+    router: Router,
     route: string,
     data?: unknown,
   ): MemoryResponse<TEnd, TStream> {
-    const router = this.router
-
-    Assert.isNotNull(router)
-
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
     const stream = new Stream<TStream>()
     const response = new MemoryResponse(promise, stream, null)

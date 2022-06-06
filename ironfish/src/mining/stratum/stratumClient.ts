@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import { GraffitiUtils } from '../../utils/graffiti'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
@@ -32,6 +33,7 @@ export class StratumClient {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
+  private messageBuffer = ''
 
   private readonly publicAddress: string
 
@@ -40,13 +42,13 @@ export class StratumClient {
     publicAddress: string
     host: string
     port: number
-    logger?: Logger
+    logger: Logger
   }) {
     this.host = options.host
     this.port = options.port
     this.miner = options.miner
     this.publicAddress = options.publicAddress
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
 
     this.started = false
     this.id = null
@@ -145,6 +147,7 @@ export class StratumClient {
 
   private onDisconnect = (): void => {
     this.connected = false
+    this.messageBuffer = ''
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
 
@@ -155,11 +158,14 @@ export class StratumClient {
   }
 
   private onError = (error: unknown): void => {
-    this.logger.error('Stratum Error', error)
+    this.logger.error(`Stratum Error ${ErrorUtils.renderError(error)}`)
   }
 
   private async onData(data: Buffer): Promise<void> {
-    const splits = data.toString('utf-8').trim().split('\n')
+    this.messageBuffer += data.toString('utf-8')
+    const lastDelimiterIndex = this.messageBuffer.lastIndexOf('\n')
+    const splits = this.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
+    this.messageBuffer = this.messageBuffer.substring(lastDelimiterIndex + 1)
 
     for (const split of splits) {
       const payload: unknown = JSON.parse(split)

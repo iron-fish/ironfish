@@ -14,7 +14,7 @@ describe('MinedBlockIndexer', () => {
     Assert.isNotNull(genesis)
 
     await node.minedBlocksIndexer.open()
-    node.minedBlocksIndexer.start()
+    await node.minedBlocksIndexer.start()
 
     const putSpy = jest.spyOn(node.minedBlocksIndexer['minedBlocks'], 'put')
 
@@ -49,7 +49,7 @@ describe('MinedBlockIndexer', () => {
     Assert.isNotNull(genesis)
 
     await nodeA.minedBlocksIndexer.open()
-    nodeA.minedBlocksIndexer.start()
+    await nodeA.minedBlocksIndexer.start()
 
     const putSpy = jest.spyOn(nodeA.minedBlocksIndexer['minedBlocks'], 'put')
 
@@ -102,7 +102,7 @@ describe('MinedBlockIndexer', () => {
     Assert.isNotNull(genesis)
 
     await node.minedBlocksIndexer.open()
-    node.minedBlocksIndexer.start()
+    await node.minedBlocksIndexer.start()
 
     const accountA = await useAccountFixture(node.accounts, 'a')
     const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA)
@@ -130,7 +130,7 @@ describe('MinedBlockIndexer', () => {
       Assert.isNotNull(genesis)
 
       await node.minedBlocksIndexer.open()
-      node.minedBlocksIndexer.start()
+      await node.minedBlocksIndexer.start()
 
       const accountA = await useAccountFixture(node.accounts, 'a')
       const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
@@ -171,7 +171,7 @@ describe('MinedBlockIndexer', () => {
       Assert.isNotNull(genesis)
 
       await nodeA.minedBlocksIndexer.open()
-      nodeA.minedBlocksIndexer.start()
+      await nodeA.minedBlocksIndexer.start()
 
       const accountA = await useAccountFixture(nodeA.accounts, 'a')
       const accountB = await useAccountFixture(nodeA.accounts, 'b')
@@ -213,7 +213,7 @@ describe('MinedBlockIndexer', () => {
       Assert.isNotNull(genesis)
 
       await node.minedBlocksIndexer.open()
-      node.minedBlocksIndexer.start()
+      await node.minedBlocksIndexer.start()
 
       const accountA = await useAccountFixture(node.accounts, 'a')
       const accountB = await useAccountFixture(node.accounts, 'b')
@@ -247,7 +247,7 @@ describe('MinedBlockIndexer', () => {
       Assert.isNotNull(genesis)
 
       await nodeA.minedBlocksIndexer.open()
-      nodeA.minedBlocksIndexer.start()
+      await nodeA.minedBlocksIndexer.start()
 
       const accountA = await useAccountFixture(nodeA.accounts, 'a')
       const accountB = await useAccountFixture(nodeB.accounts, 'b')

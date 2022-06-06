@@ -198,11 +198,6 @@ export class Peer {
   readonly onMessage: Event<[NetworkMessage, Connection]> = new Event()
 
   /**
-   * Event fired when the knownPeers map changes.
-   */
-  readonly onKnownPeersChanged: Event<[]> = new Event()
-
-  /**
    * Fired when the peer should be banned
    */
   readonly onBanned: Event<[]> = new Event()
@@ -563,8 +558,9 @@ export class Peer {
 
         if (connection.state.type === 'DISCONNECTED') {
           this.logger.debug(
-            `Connection closing ${connection.type} for ${this.displayName}:`,
-            ErrorUtils.renderError(connection.error) || 'Reason Unknown',
+            `Connection closing ${connection.type} for ${this.displayName}: ${
+              ErrorUtils.renderError(connection.error) || 'Reason Unknown'
+            }`,
           )
 
           if (connection.error !== null) {
@@ -663,7 +659,6 @@ export class Peer {
    */
   dispose(): void {
     this.onStateChanged.clear()
-    this.onKnownPeersChanged.clear()
     this.onMessage.clear()
     this.onBanned.clear()
   }
