@@ -135,7 +135,7 @@ export class IronfishSdk {
     }
 
     let client: IronfishRpcClient
-    if (config.get('enableRpcTcp') && config.get('enableNativeRpcTcpAdapter')) {
+    if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
         client = new IronfishSecureTcpClient(
           config.get('rpcTcpHost'),
@@ -151,16 +151,10 @@ export class IronfishSdk {
       }
     } else {
       client = new IronfishIpcClient(
-        config.get('enableRpcTcp')
-          ? {
-              mode: 'tcp',
-              host: config.get('rpcTcpHost'),
-              port: config.get('rpcTcpPort'),
-            }
-          : {
-              mode: 'ipc',
-              socketPath: config.get('ipcPath'),
-            },
+        {
+          mode: 'ipc',
+          socketPath: config.get('ipcPath'),
+        },
         logger,
         config.get('rpcRetryConnect'),
       )
@@ -249,39 +243,25 @@ export class IronfishSdk {
         namespaces.push(ApiNamespace.account, ApiNamespace.config)
       }
 
-      if (this.config.get('enableNativeRpcTcpAdapter')) {
-        if (this.config.get('enableRpcTls')) {
-          await node.rpc.mount(
-            new SecureTcpAdapter(
-              this.config.get('rpcTcpHost'),
-              this.config.get('rpcTcpPort'),
-              this.fileSystem,
-              this.config.get('tlsKeyPath'),
-              this.config.get('tlsCertPath'),
-              this.logger,
-              namespaces,
-            ),
-          )
-        } else {
-          await node.rpc.mount(
-            new TcpAdapter(
-              this.config.get('rpcTcpHost'),
-              this.config.get('rpcTcpPort'),
-              this.logger,
-              namespaces,
-            ),
-          )
-        }
+      if (this.config.get('enableRpcTls')) {
+        await node.rpc.mount(
+          new SecureTcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
+            this.fileSystem,
+            this.config.get('tlsKeyPath'),
+            this.config.get('tlsCertPath'),
+            this.logger,
+            namespaces,
+          ),
+        )
       } else {
         await node.rpc.mount(
-          new IpcAdapter(
-            namespaces,
-            {
-              mode: 'tcp',
-              host: this.config.get('rpcTcpHost'),
-              port: this.config.get('rpcTcpPort'),
-            },
+          new TcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
             this.logger,
+            namespaces,
           ),
         )
       }

@@ -16,6 +16,7 @@ export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_MINER_BATCH_SIZE = 25000
 
 // Pool defaults
@@ -38,22 +39,12 @@ export type ConfigOptions = {
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
+  enableRpcTls: boolean
   enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
   getFundsApi: string
   ipcPath: string
-  /**
-   * As part of IRO-1759 we are removing 'node-ipc' for RPC. This is
-   * essentially a feature flag for enabling use of the native TCP adapter
-   * without using 'node-ipc'
-   */
-  enableNativeRpcTcpAdapter: boolean
-  /**
-   * IRO-1498 extends the native TCP adapter (see above) with TLS. This option
-   * will only take effect if the native TCP adapter is enabled.
-   */
-  enableRpcTls: boolean
   /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
@@ -256,8 +247,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
-      enableNativeRpcTcpAdapter: false,
-      enableRpcTls: false,
+      enableRpcTls: DEFAULT_USE_RPC_TLS,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
