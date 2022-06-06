@@ -7,7 +7,7 @@ import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
-import { IronfishIpcClient } from './rpc'
+import { IronfishMemoryClient, IronfishRpcClient } from './rpc'
 import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
@@ -25,7 +25,7 @@ describe('IronfishSdk', () => {
       })
 
       expect(sdk.config).toBeInstanceOf(Config)
-      expect(sdk.client).toBeInstanceOf(IronfishIpcClient)
+      expect(sdk.client).toBeInstanceOf(IronfishRpcClient)
       expect(sdk.fileSystem).toBe(fileSystem)
 
       expect(sdk.config.storage.dataDir).toBe(dataDir)
@@ -82,16 +82,14 @@ describe('IronfishSdk', () => {
       it('returns and connects `clientMemory` to a node', async () => {
         const sdk = await IronfishSdk.init()
         const node = await sdk.node()
-        const connect = jest.spyOn(sdk.clientMemory, 'connect')
         const openDb = jest.spyOn(node, 'openDB').mockImplementationOnce(async () => {})
         jest.spyOn(sdk, 'node').mockResolvedValueOnce(node)
 
         const client = await sdk.connectRpc(true)
 
-        expect(connect).toHaveBeenCalledTimes(1)
-        expect(connect).toBeCalledWith({ node })
         expect(openDb).toHaveBeenCalledTimes(1)
-        expect(client).toMatchObject(sdk.clientMemory)
+        expect(client).toBeInstanceOf(IronfishMemoryClient)
+        expect((client as IronfishMemoryClient).node).toBe(node)
       })
     })
 

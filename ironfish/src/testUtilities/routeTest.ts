@@ -4,6 +4,7 @@
 import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
+import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
 import { MemoryAdapter } from '../rpc/adapters'
@@ -33,31 +34,19 @@ export class RouteTest extends NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
     workerPool: WorkerPool
-    adapter: MemoryAdapter
     client: IronfishMemoryClient
   }> {
     const setup = await super.createSetup()
 
-    const client = new IronfishMemoryClient({ node: setup.node })
-    await client.connect()
-    const adapter = client.adapter
+    const logger = createRootLogger().withTag('memoryclient')
+    const client = new IronfishMemoryClient(logger, setup.node)
 
-    return { ...setup, adapter, client }
+    return { ...setup, client }
   }
 
   async setup(): Promise<void> {
-    const {
-      sdk,
-      node,
-      strategy,
-      chain,
-      accounts,
-      peerNetwork,
-      syncer,
-      workerPool,
-      client,
-      adapter,
-    } = await this.createSetup()
+    const { sdk, node, strategy, chain, accounts, peerNetwork, syncer, workerPool, client } =
+      await this.createSetup()
 
     this.sdk = sdk
     this.node = node
@@ -67,7 +56,6 @@ export class RouteTest extends NodeTest {
     this.syncer = syncer
     this.peerNetwork = peerNetwork
     this.client = client
-    this.adapter = adapter
     this.workerPool = workerPool
   }
 }

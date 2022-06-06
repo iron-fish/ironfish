@@ -225,11 +225,25 @@ export class MinedBlocksIndexer {
     return meta
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
+
+    if (this.chainProcessor.hash) {
+      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+
+      if (!hasHeadBlock) {
+        this.logger.error(
+          `Resetting mined blocks index database because index head was not found in chain: ${this.chainProcessor.hash.toString(
+            'hex',
+          )}`,
+        )
+
+        await this.reset()
+      }
+    }
 
     void this.eventLoop()
   }
@@ -281,6 +295,11 @@ export class MinedBlocksIndexer {
         `Updated MinedBlocksIndexer Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
       )
     }
+  }
+
+  async reset(): Promise<void> {
+    this.chainProcessor.hash = null
+    await this.updateHeadHash(null)
   }
 
   async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<Buffer[]> {

@@ -9,7 +9,7 @@ describe('Route node.getStatus', () => {
   it('should get status', async () => {
     routeTest.node.shutdown = jest.fn()
 
-    const response = await routeTest.adapter.request('node/stopNode')
+    const response = await routeTest.client.request('node/stopNode').waitForEnd()
     expect(response.status).toBe(200)
     expect(response.content).toBe(undefined)
     expect(routeTest.node.shutdown).toHaveBeenCalled()

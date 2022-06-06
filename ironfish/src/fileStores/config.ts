@@ -16,6 +16,7 @@ export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+export const DEFAULT_MINER_BATCH_SIZE = 25000
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -48,6 +49,11 @@ export type ConfigOptions = {
    * without using 'node-ipc'
    */
   enableNativeRpcTcpAdapter: boolean
+  /**
+   * IRO-1498 extends the native TCP adapter (see above) with TLS. This option
+   * will only take effect if the native TCP adapter is enabled.
+   */
+  enableRpcTls: boolean
   /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
@@ -103,6 +109,8 @@ export type ConfigOptions = {
   rpcTcpPort: number
   rpcTcpSecure: boolean
   rpcRetryConnect: boolean
+  tlsKeyPath: string
+  tlsCertPath: string
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
    * new connections will be rejected.
@@ -139,6 +147,12 @@ export type ConfigOptions = {
    * The number of hashes processed by miner per worker request.
    */
   minerBatchSize: number
+
+  /**
+   * The minimum number of block confirmations needed when computing account
+   * balance.
+   */
+  minimumBlockConfirmations: number
 
   /**
    * The name that the pool will use in block graffiti and transaction memo.
@@ -189,6 +203,18 @@ export type ConfigOptions = {
    * The discord webhook URL to post pool critical pool information too
    */
   poolDiscordWebhook: ''
+
+  /**
+
+   * The lark webhook URL to post pool critical pool information too
+   */
+  poolLarkWebhook: ''
+
+  /**
+   * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
+   * more easily process logs on a remote server using a log service like Datadog
+   */
+  jsonLogs: boolean
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -231,6 +257,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
       enableNativeRpcTcpAdapter: false,
+      enableRpcTls: false,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
@@ -250,14 +277,17 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpPort: 8020,
       rpcTcpSecure: false,
       rpcRetryConnect: false,
+      tlsKeyPath: files.resolve(files.join(dataDir, 'node-key.pem')),
+      tlsCertPath: files.resolve(files.join(dataDir, 'node-cert.pem')),
       maxPeers: 50,
+      minimumBlockConfirmations: 12,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
       blocksPerMessage: 20,
-      minerBatchSize: 10000,
+      minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
@@ -268,6 +298,8 @@ export class Config extends KeyStore<ConfigOptions> {
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
+      poolLarkWebhook: '',
+      jsonLogs: false,
     }
   }
 }

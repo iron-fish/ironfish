@@ -9,6 +9,7 @@ import { Assert } from '../../../assert'
 import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
+import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
 import { NetworkMessageType } from '../../types'
@@ -146,7 +147,7 @@ export class WebRtcConnection extends Connection {
       try {
         message = parseNetworkMessage(bufferData)
       } catch (error) {
-        this.logger.warn('Unable to parse webrtc message', data)
+        this.logger.warn(`Unable to parse webrtc message ${data.toString()}`)
         this.close(error)
         return
       }
@@ -190,9 +191,9 @@ export class WebRtcConnection extends Connection {
         }
       }
     } catch (error) {
-      const message = 'An error occurred when loading signaling data:'
-      this.logger.debug(message, error)
-      this.close(new NetworkError(message, error))
+      const err = new NetworkError('An error occurred when loading signaling data', error)
+      this.logger.debug(ErrorUtils.renderError(err))
+      this.close(err)
     }
   }
 
@@ -229,8 +230,7 @@ export class WebRtcConnection extends Connection {
       this.logger.debug(
         `Error occurred while sending ${displayNetworkMessageType(
           message.type,
-        )} message in state ${this.state.type}`,
-        e,
+        )} message in state ${this.state.type} ${ErrorUtils.renderError(e)}`,
       )
       this.close(e)
       return false

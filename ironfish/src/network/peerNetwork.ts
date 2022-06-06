@@ -19,7 +19,7 @@ import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
-import { Identity, PrivateIdentity } from './identity'
+import { PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
@@ -60,7 +60,6 @@ import { WebSocketServer } from './webSocketServer'
  */
 const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
-const BAD_TRANSACTION_MAX = 100
 
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
@@ -93,7 +92,6 @@ export class PeerNetwork {
   private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
-  private badMessageCounter: Map<Identity, number>
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -125,7 +123,6 @@ export class PeerNetwork {
     hostsStore: HostsStore
   }) {
     const identity = options.identity || tweetnacl.box.keyPair()
-    this.badMessageCounter = new Map<Identity, number>()
 
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
@@ -540,7 +537,7 @@ export class PeerNetwork {
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else {
-        this.logger.debug('Dropping response to unknown request', rpcId)
+        this.logger.debug(`Dropping response to unknown request ${rpcId}`)
       }
     }
   }
@@ -701,34 +698,13 @@ export class PeerNetwork {
       message.message.transaction,
     )
 
-    const count = this.badMessageCounter.get(message.peerIdentity)
+    if (this.node.memPool.exists(verifiedTransaction.hash())) {
+      return true
+    }
+
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
       await this.node.accounts.syncTransaction(verifiedTransaction, {})
-      if (count && count > 0) {
-        this.badMessageCounter.set(message.peerIdentity, count - 1)
-      }
       return true
-    } else {
-      if (!count) {
-        this.badMessageCounter.set(message.peerIdentity, 1)
-      } else if (count > BAD_TRANSACTION_MAX) {
-        const badPeer = this.peerManager.getPeerOrThrow(message.peerIdentity)
-        this.logger.debug(
-          `Disconnecting peer ${message.peerIdentity} with version ${<string>badPeer.agent}`,
-        )
-        this.peerManager.disconnect(
-          badPeer,
-          DisconnectingReason.BadMessages,
-          Date.now() + 60 * 10 * 1000,
-        )
-      } else {
-        this.badMessageCounter.set(message.peerIdentity, count + 1)
-      }
-      this.logger.debug(
-        `Bad tx from ${message.peerIdentity}. Count is ${<number>(
-          this.badMessageCounter.get(message.peerIdentity)
-        )}.`,
-      )
     }
 
     return false

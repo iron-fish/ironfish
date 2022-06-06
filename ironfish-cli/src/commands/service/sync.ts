@@ -6,8 +6,6 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
-const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 100 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class Sync extends IronfishCommand {
@@ -26,10 +24,16 @@ export default class Sync extends IronfishCommand {
       description: 'API host to sync to',
     }),
     token: Flags.string({
-      char: 'e',
+      char: 't',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'API host token to authenticate with',
+    }),
+    maxUpload: Flags.integer({
+      char: 'm',
+      required: false,
+      default: isNaN(Number(process.env.MAX_UPLOAD)) ? 20 : Number(process.env.MAX_UPLOAD),
+      description: 'The max number of blocks to sync in once batch',
     }),
   }
 
@@ -100,7 +104,7 @@ export default class Sync extends IronfishCommand {
         Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
 
       // Should we commit the current batch?
-      const committing = buffer.length === MAX_UPLOAD || finishing
+      const committing = buffer.length === flags.maxUpload || finishing
 
       this.log(
         `${content.type}: ${content.block.hash} - ${content.block.sequence}${

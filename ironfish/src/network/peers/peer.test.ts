@@ -473,11 +473,9 @@ it('Does not clear knownPeers when transitioning to DISCONNECTED', () => {
   })
   peer1.knownPeers.set(peer2Identity, peer2)
   peer2.knownPeers.set(peer1Identity, peer1)
-  const onKnownPeersChangedSpy = jest.spyOn(peer1.onKnownPeersChanged, 'emit')
 
   connection.close()
 
-  expect(onKnownPeersChangedSpy).not.toBeCalled()
   expect(peer1.knownPeers.size).toBe(1)
   expect(peer1.knownPeers.has(peer2Identity)).toBeTruthy()
   expect(peer2.knownPeers.size).toBe(1)

@@ -8,7 +8,21 @@ import { parseLogLevelConfig } from './logLevelParser'
 import { ConsoleReporter } from './reporters/console'
 export * from './reporters/intercept'
 
-export type Logger = Consola
+/**
+ * This interface tries to enforce more structured logs while still
+ * allowing us to use Consola. Knowing the structure of all our
+ * logs has a lot of benefits so going outside this interface. Update this
+ * interface if something with a different structure needs to be logged.
+ */
+type Loggable = string | number | boolean
+export interface Logger extends Consola {
+  info(message: string, args?: Record<string, Loggable>): void
+  log(message: string, args?: Record<string, Loggable>): void
+  error(message: string, args?: Record<string, Loggable>): void
+  warn(message: string, args?: Record<string, Loggable>): void
+  debug(message: string, args?: Record<string, Loggable>): void
+  withTag(tag: string): Logger
+}
 
 export const ConsoleReporterInstance = new ConsoleReporter()
 
@@ -24,6 +38,13 @@ export const setLogLevelFromConfig = (logLevelConfig: string): void => {
   for (const config of parsedConfig) {
     ConsoleReporterInstance.setLogLevel(config[0], config[1])
   }
+}
+
+/**
+ * @param logToJSON Whether console logs should be in JSON format
+ */
+export const setJSONLoggingFromConfig = (logToJSON: boolean): void => {
+  ConsoleReporterInstance.logToJSON = logToJSON
 }
 
 /**

@@ -2,19 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
-import { createRootLogger, Logger } from '../logger'
-import { IronfishIpcClient } from '../rpc/clients/ipcClient'
+import { Logger } from '../logger'
+import { IronfishRpcClient } from '../rpc/clients/rpcClient'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
 import { Discord } from './discord'
+import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 export class MiningPoolShares {
-  readonly rpc: IronfishIpcClient
+  readonly rpc: IronfishRpcClient
   readonly config: Config
   readonly logger: Logger
   readonly discord: Discord | null
+  readonly lark: Lark | null
 
   private readonly db: PoolDatabase
   private enablePayouts: boolean
@@ -25,20 +27,24 @@ export class MiningPoolShares {
   private attemptPayoutInterval: number
   private accountName: string
   private balancePercentPayout: bigint
+  private balancePercentPayoutFlag: number | undefined
 
-  constructor(options: {
+  private constructor(options: {
     db: PoolDatabase
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
+    lark?: Lark
     enablePayouts?: boolean
+    balancePercentPayoutFlag?: number
   }) {
     this.db = options.db
     this.rpc = options.rpc
     this.config = options.config
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.discord = options.discord ?? null
+    this.lark = options.lark ?? null
     this.enablePayouts = options.enablePayouts ?? true
 
     this.poolName = this.config.get('poolName')
@@ -46,19 +52,23 @@ export class MiningPoolShares {
     this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
     this.accountName = this.config.get('poolAccountName')
     this.balancePercentPayout = BigInt(this.config.get('poolBalancePercentPayout'))
+    this.balancePercentPayoutFlag = options.balancePercentPayoutFlag
 
     this.payoutInterval = null
   }
 
   static async init(options: {
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
     config: Config
-    logger?: Logger
+    logger: Logger
     discord?: Discord
+    lark?: Lark
     enablePayouts?: boolean
+    balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
+      logger: options.logger,
     })
 
     return new MiningPoolShares({
@@ -67,7 +77,9 @@ export class MiningPoolShares {
       config: options.config,
       logger: options.logger,
       discord: options.discord,
+      lark: options.lark,
       enablePayouts: options.enablePayouts,
+      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
   }
 
@@ -119,7 +131,15 @@ export class MiningPoolShares {
     const balance = await this.rpc.getAccountBalance({ account: this.accountName })
     const confirmedBalance = BigInt(balance.content.confirmed)
 
-    const payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
+    let payoutAmount: number
+    if (this.balancePercentPayoutFlag !== undefined) {
+      payoutAmount = BigIntUtils.divide(
+        confirmedBalance * BigInt(this.balancePercentPayoutFlag),
+        100n,
+      )
+    } else {
+      payoutAmount = BigIntUtils.divide(confirmedBalance, this.balancePercentPayout)
+    }
 
     if (payoutAmount <= shareCounts.totalShares + shareCounts.shares.size) {
       // If the pool cannot pay out at least 1 ORE per share and pay transaction fees, no payout can be made.
@@ -157,9 +177,17 @@ export class MiningPoolShares {
         transactionReceives,
         shareCounts.totalShares,
       )
+
+      this.lark?.poolPayoutSuccess(
+        payoutId,
+        transaction.content.hash,
+        transactionReceives,
+        shareCounts.totalShares,
+      )
     } catch (e) {
       this.logger.error('There was an error with the transaction', e)
       this.discord?.poolPayoutError(e)
+      this.lark?.poolPayoutError(e)
     }
   }
 

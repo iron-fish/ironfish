@@ -5,6 +5,7 @@ import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
 import { Config } from '../../fileStores/config'
 import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
+import { Logger } from '../../logger'
 import { Migrator } from './migrator'
 
 export class PoolDatabase {
@@ -14,15 +15,15 @@ export class PoolDatabase {
   private readonly attemptPayoutInterval: number
   private readonly successfulPayoutInterval: number
 
-  constructor(options: { db: Database; config: Config }) {
+  constructor(options: { db: Database; config: Config; logger: Logger }) {
     this.db = options.db
     this.config = options.config
-    this.migrations = new Migrator({ db: options.db })
+    this.migrations = new Migrator({ db: options.db, logger: options.logger })
     this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
     this.successfulPayoutInterval = this.config.get('poolSuccessfulPayoutInterval')
   }
 
-  static async init(options: { config: Config }): Promise<PoolDatabase> {
+  static async init(options: { config: Config; logger: Logger }): Promise<PoolDatabase> {
     const fs = new NodeFileProvider()
     await fs.init()
 
@@ -36,6 +37,7 @@ export class PoolDatabase {
 
     return new PoolDatabase({
       db,
+      logger: options.logger,
       config: options.config,
     })
   }

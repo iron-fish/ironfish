@@ -4,10 +4,10 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import { Assert } from '../assert'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
-import { IronfishIpcClient } from '../rpc/clients/ipcClient'
+import { IronfishRpcClient } from '../rpc/clients/rpcClient'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
@@ -22,7 +22,7 @@ export class MiningSoloMiner {
   readonly hashRate: Meter
   readonly threadPool: ThreadPoolHandler
   readonly logger: Logger
-  readonly rpc: IronfishIpcClient
+  readonly rpc: IronfishRpcClient
 
   private started: boolean
   private stopPromise: Promise<void> | null
@@ -46,12 +46,12 @@ export class MiningSoloMiner {
   constructor(options: {
     threadCount: number
     batchSize: number
-    logger?: Logger
+    logger: Logger
     graffiti: Buffer
-    rpc: IronfishIpcClient
+    rpc: IronfishRpcClient
   }) {
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
     this.graffiti = options.graffiti
 
     const threadCount = options.threadCount ?? 1
@@ -123,10 +123,9 @@ export class MiningSoloMiner {
 
   newWork(miningRequestId: number, header: Buffer): void {
     this.logger.debug(
-      'new work',
-      this.target.toString('hex'),
-      miningRequestId,
-      `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+      `new work ${this.target.toString('hex')}, ${miningRequestId} ${FileUtils.formatHashRate(
+        this.hashRate.rate1s,
+      )}/s`,
     )
 
     const headerBytes = Buffer.concat([header])
@@ -183,10 +182,9 @@ export class MiningSoloMiner {
         const { miningRequestId, randomness } = blockResult
 
         this.logger.info(
-          'Found block:',
-          randomness,
-          miningRequestId,
-          `${FileUtils.formatHashRate(this.hashRate.rate1s)}/s`,
+          `Found block: ${randomness} ${miningRequestId} ${FileUtils.formatHashRate(
+            this.hashRate.rate1s,
+          )}/s`,
         )
 
         void this.submitWork(miningRequestId, randomness, this.graffiti)

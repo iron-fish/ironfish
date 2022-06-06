@@ -46,6 +46,7 @@ export class TcpAdapter implements IAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+
   pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
 
   constructor(
@@ -60,9 +61,13 @@ export class TcpAdapter implements IAdapter {
     this.namespaces = namespaces
   }
 
+  protected createServer(): net.Server {
+    return net.createServer((socket) => this.onClientConnection(socket))
+  }
+
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.server = net.createServer((socket) => this.onClientConnection(socket))
+      this.server = this.createServer()
 
       this.server.on('error', (err) => {
         reject(err)
@@ -104,16 +109,12 @@ export class TcpAdapter implements IAdapter {
     this.router = server.getRouter(this.namespaces)
   }
 
-  unattach(): void {
-    this.router = null
-  }
-
   onClientConnection(socket: net.Socket): void {
     const connId = uuid()
     const reqMap = new Map<string, Request>()
     this.pending.set(connId, { sock: socket, reqs: reqMap })
     socket.on('data', (data) => {
-      this.onClientData(socket, data, reqMap).catch((err) => this.logger.log(err))
+      this.onClientData(socket, data, reqMap).catch((err) => this.logger.error(err))
     })
     socket.on('close', () => {
       // When the socket is closed, close all open requests and delete the connection
