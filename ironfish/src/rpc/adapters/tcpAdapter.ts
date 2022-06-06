@@ -5,6 +5,7 @@ import net from 'net'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { createRootLogger, Logger } from '../../logger'
+import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -39,6 +40,12 @@ export const IncomingNodeIpcSchema: yup.ObjectSchema<IncomingNodeIpc> = yup
   })
   .required()
 
+type TcpAdapterClient = {
+  id: string
+  socket: net.Socket
+  requests: Map<string, Request>
+}
+
 export class TcpAdapter implements IAdapter {
   logger: Logger
   host: string
@@ -48,7 +55,7 @@ export class TcpAdapter implements IAdapter {
   namespaces: ApiNamespace[]
 
   started = false
-  pending = new Map<string, { sock: net.Socket; reqs: Map<string, Request> }>()
+  clients = new Map<string, TcpAdapterClient>()
 
   constructor(
     host: string,
@@ -92,21 +99,17 @@ export class TcpAdapter implements IAdapter {
     })
   }
 
-  stop(): Promise<void> {
+  async stop(): Promise<void> {
     if (!this.started) {
-      return Promise.resolve()
+      return
     }
 
-    this.logger.debug(`tcpAdapter stopped: ${this.host}:${this.port}`)
-
-    this.pending.forEach(({ sock, reqs }) => {
-      reqs.forEach((req) => {
-        req.close()
-      })
-      sock.destroy()
+    this.clients.forEach((client) => {
+      client.requests.forEach((r) => r.close())
+      client.socket.destroy()
     })
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       this.server?.close((error) => {
         if (error) {
           reject(error)
@@ -115,6 +118,8 @@ export class TcpAdapter implements IAdapter {
         }
       })
     })
+
+    this.logger.debug(`tcpAdapter stopped: ${this.host}:${this.port}`)
   }
 
   attach(server: RpcServer): void {
@@ -122,57 +127,60 @@ export class TcpAdapter implements IAdapter {
   }
 
   onClientConnection(socket: net.Socket): void {
-    const connId = uuid()
-    const reqMap = new Map<string, Request>()
-    this.pending.set(connId, { sock: socket, reqs: reqMap })
+    const requests = new Map<string, Request>()
+    const client = { socket, requests, id: uuid() }
+    this.clients.set(client.id, client)
+
     socket.on('data', (data) => {
-      this.onClientData(socket, data, reqMap).catch((err) => this.logger.error(err))
+      this.onClientData(client, data).catch((e) => {
+        this.onClientError(client, e)
+      })
     })
+
     socket.on('close', () => {
-      // When the socket is closed, close all open requests and delete the connection
-      reqMap.forEach((req) => req.close())
-      this.pending.delete(connId)
-      this.logger.debug(`client connection closed: ${this.host}:${this.port}`)
+      this.onClientDisconnection(client)
     })
+
     socket.on('error', (error: Error) => {
-      this.logger.debug(`${this.host}:${this.port} has error : ${error.message}`)
+      this.onClientError(client, error)
     })
   }
 
-  async onClientData(
-    socket: net.Socket,
-    data: Buffer,
-    reqMap: Map<string, Request>,
-  ): Promise<void> {
+  onClientDisconnection(client: TcpAdapterClient): void {
+    client.requests.forEach((req) => req.close())
+    this.clients.delete(client.id)
+    this.logger.debug(`client connection closed: ${this.host}:${this.port}`)
+  }
+
+  onClientError(client: TcpAdapterClient, error: unknown): void {
+    this.logger.debug(`${this.host}:${this.port} has error: ${ErrorUtils.renderError(error)}`)
+  }
+
+  async onClientData(client: TcpAdapterClient, data: Buffer): Promise<void> {
     const dataString = data.toString('utf8').trim()
     const result = await YupUtils.tryValidate(IncomingNodeIpcSchema, dataString)
 
     if (result.error) {
-      this.emitResponse(socket, this.constructUnmountedAdapter(), reqMap)
+      this.emitResponse(client, this.constructUnmountedAdapter())
       return
     }
 
     const message = result.result.data
 
-    const reqId = uuid()
+    const requestId = uuid()
     const request = new Request(
       message.data,
       (status: number, data?: unknown) => {
-        this.emitResponse(
-          socket,
-          this.constructMessage(message.mid, status, data),
-          reqMap,
-          reqId,
-        )
+        this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
       },
       (data: unknown) => {
-        this.emitStream(socket, this.constructStream(message.mid, data))
+        this.emitStream(client, this.constructStream(message.mid, data))
       },
     )
-    reqMap.set(reqId, request)
+    client.requests.set(requestId, request)
 
     if (this.router == null) {
-      this.emitResponse(socket, this.constructMalformedRequest(data), reqMap)
+      this.emitResponse(client, this.constructMalformedRequest(data))
       return
     }
 
@@ -180,12 +188,13 @@ export class TcpAdapter implements IAdapter {
       await this.router.route(message.type, request)
     } catch (error: unknown) {
       if (error instanceof ResponseError) {
-        const res = this.constructMessage(message.mid, error.status, {
+        const response = this.constructMessage(message.mid, error.status, {
           code: error.code,
           message: error.message,
           stack: error.stack,
         })
-        this.emitResponse(socket, res, reqMap, reqId)
+
+        this.emitResponse(client, response, requestId)
         return
       }
 
@@ -193,23 +202,19 @@ export class TcpAdapter implements IAdapter {
     }
   }
 
-  emitResponse(
-    socket: net.Socket,
-    data: OutgoingNodeIpc,
-    connMap: Map<string, Request>,
-    reqId?: string,
-  ): void {
-    const res = this.encodeNodeIpc(data)
-    socket.write(res)
-    if (reqId) {
-      connMap.get(reqId)?.close()
-      connMap.delete(reqId)
+  emitResponse(client: TcpAdapterClient, data: OutgoingNodeIpc, requestId?: string): void {
+    const message = this.encodeNodeIpc(data)
+    client.socket.write(message)
+
+    if (requestId) {
+      client.requests.get(requestId)?.close()
+      client.requests.delete(requestId)
     }
   }
 
-  emitStream(socket: net.Socket, data: OutgoingNodeIpc): void {
-    const res = this.encodeNodeIpc(data)
-    socket.write(res)
+  emitStream(client: TcpAdapterClient, data: OutgoingNodeIpc): void {
+    const message = this.encodeNodeIpc(data)
+    client.socket.write(message)
   }
 
   // `constructResponse`,  `constructStream` and `constructMalformedRequest` construct messages to return
