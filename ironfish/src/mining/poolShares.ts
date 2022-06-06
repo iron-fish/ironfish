@@ -4,6 +4,7 @@
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { IronfishRpcClient } from '../rpc/clients/rpcClient'
+import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
@@ -169,7 +170,7 @@ export class MiningPoolShares {
         expirationSequenceDelta: 20,
       })
 
-      await this.db.markPayoutSuccess(payoutId, timestamp)
+      await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)
 
       this.discord?.poolPayoutSuccess(
         payoutId,
@@ -185,7 +186,7 @@ export class MiningPoolShares {
         shareCounts.totalShares,
       )
     } catch (e) {
-      this.logger.error('There was an error with the transaction', e)
+      this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
       this.discord?.poolPayoutError(e)
       this.lark?.poolPayoutError(e)
     }
