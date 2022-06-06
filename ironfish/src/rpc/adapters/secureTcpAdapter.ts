@@ -56,11 +56,9 @@ export class SecureTcpAdapter extends TcpAdapter {
     const nodeKeyExists = await this.fileSystem.exists(this.nodeKeyPath)
     const nodeCertExists = await this.fileSystem.exists(this.nodeCertPath)
     if (nodeKeyExists && nodeCertExists) {
-      const nodeKey = await this.fileSystem.readFile(this.nodeKeyPath)
-      const nodeCert = await this.fileSystem.readFile(this.nodeCertPath)
       return {
-        key: nodeKey,
-        cert: nodeCert,
+        key: await this.fileSystem.readFile(this.nodeKeyPath),
+        cert: await this.fileSystem.readFile(this.nodeCertPath),
       }
     } else {
       this.logger.error(
