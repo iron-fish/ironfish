@@ -5,7 +5,7 @@
 import {
   Assert,
   displayIronAmountWithCurrency,
-  IronfishClient,
+  IronfishRpcClient,
   ironToOre,
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
@@ -23,7 +23,7 @@ const IRON_TO_SEND = 0.1
 export default class Bank extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
-  client: IronfishClient | null = null
+  client: IronfishRpcClient | null = null
   api: WebApi | null = new WebApi()
 
   static flags = {

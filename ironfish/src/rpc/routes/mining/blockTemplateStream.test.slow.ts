@@ -19,7 +19,9 @@ describe('Block template stream', () => {
 
     const createNewBlockTemplateSpy = jest.spyOn(miningManager, 'createNewBlockTemplate')
 
-    const response = await routeTest.client.request('miner/blockTemplateStream').waitForRoute()
+    const response = await routeTest.adapter
+      .requestStream('miner/blockTemplateStream')
+      .waitForRoute()
 
     // onConnectBlock can trigger while generating fixtures or if this test is run in isolation,
     // which would call createNewBlockTemplate twice, so we can clear the listener to ensure it
@@ -88,7 +90,7 @@ describe('Block template stream', () => {
     const newBlockSpy = jest.spyOn(node.chain, 'newBlock')
 
     // Start the request
-    const response = routeTest.client.request('miner/blockTemplateStream')
+    const response = routeTest.adapter.requestStream('miner/blockTemplateStream')
 
     // Add the transaction to the route mempool
     await routeTest.node.memPool.acceptTransaction(tx)

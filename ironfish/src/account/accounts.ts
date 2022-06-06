@@ -487,14 +487,10 @@ export class Accounts {
               )
             }
 
-            await this.updateNoteToNullifierMap(
-              noteHash,
-              {
-                ...nullifier,
-                spent: !isRemovingTransaction,
-              },
-              tx,
-            )
+            await this.updateNoteToNullifierMap(noteHash, {
+              ...nullifier,
+              spent: !isRemovingTransaction,
+            })
           }
         }
       })
@@ -537,14 +533,10 @@ export class Accounts {
             )
           }
 
-          await this.updateNoteToNullifierMap(
-            noteHash,
-            {
-              ...nullifier,
-              spent: false,
-            },
-            tx,
-          )
+          await this.updateNoteToNullifierMap(noteHash, {
+            ...nullifier,
+            spent: false,
+          })
         }
       }
     })
@@ -734,10 +726,10 @@ export class Accounts {
           )
 
           // Update our map so this doesn't happen again
-          const noteMapValue = this.noteToNullifier.get(unspentNote.hash)
+          const noteMapValue = this.noteToNullifier.get(nullifier.toString('hex'))
           if (noteMapValue) {
             this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
-            await this.updateNoteToNullifierMap(unspentNote.hash, {
+            await this.updateNoteToNullifierMap(nullifier.toString('hex'), {
               ...noteMapValue,
               spent: true,
             })
@@ -759,9 +751,10 @@ export class Accounts {
 
         // Otherwise, push the note into the list of notes to spend
         this.logger.debug(
-          `Accounts: spending note ${unspentNote.index} ${
-            unspentNote.hash
-          } ${unspentNote.note.value()}`,
+          'Accounts: spending note',
+          unspentNote.index,
+          unspentNote.hash,
+          unspentNote.note.value(),
         )
         notesToSpend.push({ note: unspentNote.note, witness: witness })
         amountNeeded -= unspentNote.note.value()

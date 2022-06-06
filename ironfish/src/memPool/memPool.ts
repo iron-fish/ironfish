@@ -82,7 +82,7 @@ export class MemPool {
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
     const hash = transaction.hash()
 
-    if (this.exists(hash)) {
+    if (this.transactions.has(hash)) {
       return false
     }
 

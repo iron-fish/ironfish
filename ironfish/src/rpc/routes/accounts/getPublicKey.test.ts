@@ -33,12 +33,10 @@ describe('Route account/getPublicKey', () => {
   })
 
   it('should return the account data', async () => {
-    const response = await routeTest.client
-      .request<any>('account/getPublicKey', {
-        account: account.name,
-        generate: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.adapter.request<any>('account/getPublicKey', {
+      account: account.name,
+      generate: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -48,12 +46,10 @@ describe('Route account/getPublicKey', () => {
   })
 
   it('should regenerate the account key', async () => {
-    const response = await routeTest.client
-      .request<any>('account/getPublicKey', {
-        account: account.name,
-        generate: true,
-      })
-      .waitForEnd()
+    const response = await routeTest.adapter.request<any>('account/getPublicKey', {
+      account: account.name,
+      generate: true,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(account.name)

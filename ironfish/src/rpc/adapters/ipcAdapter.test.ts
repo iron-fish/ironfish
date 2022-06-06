@@ -6,7 +6,7 @@
 import os from 'os'
 import * as yup from 'yup'
 import { IronfishSdk } from '../../sdk'
-import { IronfishRpcClient, RequestError } from '../clients'
+import { IronfishIpcClient, RequestError } from '../clients'
 import { ALL_API_NAMESPACES } from '../routes'
 import { ERROR_CODES, ValidationError } from './errors'
 import { IpcAdapter } from './ipcAdapter'
@@ -14,7 +14,7 @@ import { IpcAdapter } from './ipcAdapter'
 describe('IpcAdapter', () => {
   let ipc: IpcAdapter
   let sdk: IronfishSdk
-  let client: IronfishRpcClient
+  let client: IronfishIpcClient
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
