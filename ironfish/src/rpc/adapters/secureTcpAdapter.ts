@@ -6,6 +6,7 @@ import net from 'net'
 import { pki } from 'node-forge'
 import tls from 'tls'
 import { createRootLogger, Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import { ApiNamespace } from '../routes'
 import { TcpAdapter } from './tcpAdapter'
 
@@ -39,10 +40,14 @@ export class SecureTcpAdapter extends TcpAdapter {
         cert: nodeCert,
       }
     } catch (e) {
-      this.logger.error(
-        `Failed to read TLS cert ${this.nodeCertPath}. Automatically generating self-signed cert`,
-      )
-      return this.generateTlsOptions()
+      if (ErrorUtils.isNoEntityError(e)) {
+        this.logger.error(
+          `No such TLS cert file ${this.nodeCertPath}. Automatically generating self-signed cert`,
+        )
+        return this.generateTlsOptions()
+      } else {
+        throw e
+      }
     }
   }
 
