@@ -255,6 +255,7 @@ export class IronfishSdk {
             new SecureTcpAdapter(
               this.config.get('rpcTcpHost'),
               this.config.get('rpcTcpPort'),
+              this.fileSystem,
               this.config.get('tlsKeyPath'),
               this.config.get('tlsCertPath'),
               this.logger,

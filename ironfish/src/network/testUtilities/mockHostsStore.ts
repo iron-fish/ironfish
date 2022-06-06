@@ -47,6 +47,11 @@ class MockFileSystem extends FileSystem {
   resolve(): string {
     return ''
   }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async exists(): Promise<boolean> {
+    return false
+  }
 }
 
 class MockHostsStore extends HostsStore {
