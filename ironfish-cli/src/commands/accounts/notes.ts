@@ -32,7 +32,7 @@ export class NotesCommand extends IronfishCommand {
 
     const { account: accountResponse, notes } = response.content
 
-    this.log(`\n ${String(accountResponse)} - Account notes\n`)
+    this.log(`\n ${accountResponse} - Account notes\n`)
 
     CliUx.ux.table(notes, {
       isSpender: {
@@ -41,13 +41,13 @@ export class NotesCommand extends IronfishCommand {
       },
       amount: {
         header: 'Amount ($IRON)',
-        get: (row) => oreToIron(Number(row.amount)),
+        get: (row) => oreToIron(row.amount),
       },
       memo: {
         header: 'Memo',
       },
       noteTxHash: {
-        header: 'In Transaction',
+        header: 'From Transaction',
       },
     })
 

@@ -11,7 +11,7 @@ export type GetAccountNotesResponse = {
   account: string
   notes: {
     spender: boolean
-    amount: string
+    amount: number
     memo: string
     noteTxHash: string
   }[]
@@ -31,7 +31,7 @@ export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResp
         yup
           .object({
             spender: yup.boolean().defined(),
-            amount: yup.string().defined(),
+            amount: yup.number().defined(),
             memo: yup.string().trim().defined(),
             noteTxHash: yup.string().defined(),
           })

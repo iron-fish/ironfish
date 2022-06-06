@@ -8,12 +8,12 @@
    const responseContent: GetAccountNotesResponse = {
      account: 'default',
      notes: [
-       {
-         spender: true,
-         amount: '1',
-         memo: 'foo',
-         noteTxHash: '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1',
-        },
+      {
+        spender: true,
+        amount: 1,
+        memo: 'foo',
+        noteTxHash: '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1',
+      },
      ],
    }
  
