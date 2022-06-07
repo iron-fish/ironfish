@@ -12,7 +12,7 @@ import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
 import { IAdapter } from '../adapter'
 import { ERROR_CODES, ResponseError } from '../errors'
-import { ClientSocketRpcSchema, ServerSocketRpc } from './protocol'
+import { ClientSocketRpcSchema, ServerSocketRpc, SocketRpcError } from './protocol'
 
 type SocketClient = {
   id: string
@@ -240,34 +240,35 @@ export abstract class SocketAdapter implements IAdapter {
     }
   }
 
-  constructMalformedRequest(data: unknown): ServerSocketRpc {
+  constructMalformedRequest(request: unknown): ServerSocketRpc {
     const error = new Error(`Malformed request rejected`)
-    const ipcError = {
+
+    const data: SocketRpcError = {
       code: ERROR_CODES.ERROR,
       message: error.message,
       stack: error.stack,
     }
 
     if (
-      typeof data === 'object' &&
-      data !== null &&
-      'id' in data &&
-      typeof (data as { id: unknown })['id'] === 'number'
+      typeof request === 'object' &&
+      request !== null &&
+      'id' in request &&
+      typeof (request as { id: unknown })['id'] === 'number'
     ) {
-      const id = (data as { id: unknown })['id'] as number
-      return this.constructMessage(id, 500, ipcError)
+      const id = (request as { id: unknown })['id'] as number
+      return this.constructMessage(id, 500, data)
     }
 
     return {
       type: 'malformedRequest',
-      data: ipcError,
+      data: data,
     }
   }
 
   constructUnmountedAdapter(): ServerSocketRpc {
     const error = new Error(`Tried to connect to unmounted adapter`)
 
-    const ipcError = {
+    const data: SocketRpcError = {
       code: ERROR_CODES.ERROR,
       message: error.message,
       stack: error.stack,
@@ -275,7 +276,7 @@ export abstract class SocketAdapter implements IAdapter {
 
     return {
       type: 'error',
-      data: ipcError,
+      data: data,
     }
   }
 }
