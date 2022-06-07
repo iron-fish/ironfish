@@ -36,21 +36,24 @@ export class IronfishTcpClient extends IronfishRpcClient {
   }
 
   async connect(): Promise<void> {
-    let connected = false
-    await this.connectClient()
-      .then(() => (connected = true))
+    let connectionError: unknown
+    const connected = await this.connectClient()
+      .then(() => true)
       .catch((error) => {
-        if (!this.retryConnect) {
-          this.logger.error(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
-          throw error
-        }
+        connectionError = error
+        return false
       })
 
     if (!connected) {
-      this.logger.warn(
-        `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
-      )
-      this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
+      if (this.retryConnect) {
+        this.logger.warn(
+          `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
+        )
+        this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
+        return
+      }
+      this.logger.error(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
+      throw connectionError
     }
   }
 
