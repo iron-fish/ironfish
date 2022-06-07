@@ -2,27 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
+import { ServerSocketRpc, ServerSocketRpcSchema } from '../adapters/socketAdapter/protocol'
 import { ConnectionRefusedError } from './errors'
 import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
 const NODE_IPC_DELIMITER = '\f'
 const CONNECT_RETRY_MS = 2000
-
-type TcpResponse = {
-  type: string
-  data: unknown
-}
-
-const TcpResponseSchema: yup.ObjectSchema<TcpResponse> = yup
-  .object({
-    type: yup.string().oneOf(['message', 'malformedRequest', 'error', 'stream']).required(),
-    data: yup.mixed().required(),
-  })
-  .required()
 
 export class IronfishTcpClient extends IronfishRpcClient {
   client: net.Socket | null = null
@@ -128,11 +116,14 @@ export class IronfishTcpClient extends IronfishRpcClient {
   protected onData = async (data: Buffer): Promise<void> => {
     const events = data.toString('utf-8').trim().split(NODE_IPC_DELIMITER)
     for (const event of events) {
-      const { result, error } = await YupUtils.tryValidate(TcpResponseSchema, JSON.parse(event))
+      const { result, error } = await YupUtils.tryValidate(
+        ServerSocketRpcSchema,
+        JSON.parse(event),
+      )
       if (!result) {
         throw error
       }
-      const { type, data }: TcpResponse = result
+      const { type, data }: ServerSocketRpc = result
       switch (type) {
         case 'message': {
           this.onMessage(data)

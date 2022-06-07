@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import net from 'net'
 import { pki } from 'node-forge'
 import tls from 'tls'
 import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
 import { ApiNamespace } from '../routes'
-import { TcpAdapter } from './tcpAdapter'
+import { SocketAdapter } from './socketAdapter/socketAdapter'
 
-export class SecureTcpAdapter extends TcpAdapter {
+export class TlsAdapter extends SocketAdapter {
   readonly fileSystem: FileSystem
   readonly nodeKeyPath: string
   readonly nodeCertPath: string
@@ -28,58 +29,47 @@ export class SecureTcpAdapter extends TcpAdapter {
     this.nodeCertPath = nodeCertPath
   }
 
-  async start(): Promise<void> {
-    const server = tls.createServer(await this.getTlsOptions(), (socket) =>
-      this.onClientConnection(socket),
-    )
-    this.server = server
-
-    return new Promise((resolve, reject) => {
-      server.on('error', (err) => {
-        reject(err)
-      })
-
-      server.listen(
-        {
-          host: this.host,
-          port: this.port,
-          exclusive: true,
-        },
-        () => {
-          resolve()
-        },
-      )
-    })
+  protected async createServer(): Promise<net.Server> {
+    const options = await this.getTlsOptions()
+    return tls.createServer(options, (socket) => this.onClientConnection(socket))
   }
 
   protected async getTlsOptions(): Promise<tls.TlsOptions> {
     const nodeKeyExists = await this.fileSystem.exists(this.nodeKeyPath)
     const nodeCertExists = await this.fileSystem.exists(this.nodeCertPath)
-    if (nodeKeyExists && nodeCertExists) {
-      return {
-        key: await this.fileSystem.readFile(this.nodeKeyPath),
-        cert: await this.fileSystem.readFile(this.nodeCertPath),
-      }
-    } else {
-      this.logger.error(
+
+    if (!nodeKeyExists || !nodeCertExists) {
+      this.logger.debug(
         `Missing TLS key and/or cert files at ${this.nodeKeyPath} and ${this.nodeCertPath}. Automatically generating key and self-signed cert`,
       )
-      return this.generateTlsOptions()
+
+      return await this.generateTlsCerts()
+    }
+
+    return {
+      key: await this.fileSystem.readFile(this.nodeKeyPath),
+      cert: await this.fileSystem.readFile(this.nodeCertPath),
     }
   }
 
-  protected generateTlsOptions(): tls.TlsOptions {
+  protected async generateTlsCerts(): Promise<tls.TlsOptions> {
     const keyPair = pki.rsa.generateKeyPair(2048)
     const cert = pki.createCertificate()
     cert.publicKey = keyPair.publicKey
     cert.sign(keyPair.privateKey)
+
     const nodeKeyPem = pki.privateKeyToPem(keyPair.privateKey)
     const nodeCertPem = pki.certificateToPem(cert)
-    void this.fileSystem.writeFile(this.nodeKeyPath, nodeKeyPem)
-    void this.fileSystem.writeFile(this.nodeCertPath, nodeCertPem)
-    return {
-      key: nodeKeyPem,
-      cert: nodeCertPem,
-    }
+
+    const nodeKeyDir = this.fileSystem.dirname(this.nodeKeyPath)
+    const nodeCertPath = this.fileSystem.dirname(this.nodeCertPath)
+
+    await this.fileSystem.mkdir(nodeKeyDir, { recursive: true })
+    await this.fileSystem.mkdir(nodeCertPath, { recursive: true })
+
+    await this.fileSystem.writeFile(this.nodeKeyPath, nodeKeyPem)
+    await this.fileSystem.writeFile(this.nodeCertPath, nodeCertPem)
+
+    return { key: nodeKeyPem, cert: nodeCertPem }
   }
 }

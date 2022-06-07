@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { YupUtils } from '../../utils'
-import { IncomingNodeIpcSchema } from '../adapters'
+import { ClientSocketRpcSchema } from '../adapters/socketAdapter/protocol'
 import { IronfishTcpClient } from './tcpClient'
 
 jest.mock('net')
@@ -38,7 +38,7 @@ describe('IronfishTcpClient', () => {
         },
       }) + '\f'
 
-    const result = await YupUtils.tryValidate(IncomingNodeIpcSchema, expectedMessage.trim())
+    const result = await YupUtils.tryValidate(ClientSocketRpcSchema, expectedMessage.trim())
     expect(result.error).toBe(null)
 
     client.client = new net.Socket()

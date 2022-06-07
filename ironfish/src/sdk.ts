@@ -19,7 +19,7 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import { IronfishRpcClient, SecureTcpAdapter } from './rpc'
+import { IronfishRpcClient, TlsAdapter } from './rpc'
 import { IpcAdapter } from './rpc/adapters/ipcAdapter'
 import { TcpAdapter } from './rpc/adapters/tcpAdapter'
 import { IronfishClient } from './rpc/clients/client'
@@ -245,7 +245,7 @@ export class IronfishSdk {
 
       if (this.config.get('enableRpcTls')) {
         await node.rpc.mount(
-          new SecureTcpAdapter(
+          new TlsAdapter(
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
             this.fileSystem,
