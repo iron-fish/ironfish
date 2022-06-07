@@ -147,7 +147,7 @@ export abstract class SocketAdapter implements IAdapter {
   async onClientData(client: SocketClient, data: Buffer): Promise<void> {
     const [parsed, error] = JSONUtils.tryParse(data.toString('utf8').trim())
     if (error) {
-      this.emitResponse(client, this.constructUnmountedAdapter())
+      this.emitResponse(client, this.constructMalformedRequest(data))
       return
     }
 
@@ -173,7 +173,7 @@ export abstract class SocketAdapter implements IAdapter {
     client.requests.set(requestId, request)
 
     if (this.router == null) {
-      this.emitResponse(client, this.constructMalformedRequest(data))
+      this.emitResponse(client, this.constructUnmountedAdapter())
       return
     }
 
