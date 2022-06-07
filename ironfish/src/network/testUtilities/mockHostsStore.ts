@@ -44,6 +44,10 @@ class MockFileSystem extends FileSystem {
     return ''
   }
 
+  dirname(): string {
+    return ''
+  }
+
   resolve(): string {
     return ''
   }
