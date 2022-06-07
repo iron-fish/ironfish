@@ -29,6 +29,7 @@ export class MiningPoolShares {
   private accountName: string
   private balancePercentPayout: bigint
   private balancePercentPayoutFlag: number | undefined
+  private payoutExpirationSequenceDelta: number
 
   private constructor(options: {
     db: PoolDatabase
@@ -54,6 +55,7 @@ export class MiningPoolShares {
     this.accountName = this.config.get('poolAccountName')
     this.balancePercentPayout = BigInt(this.config.get('poolBalancePercentPayout'))
     this.balancePercentPayoutFlag = options.balancePercentPayoutFlag
+    this.payoutExpirationSequenceDelta = this.config.get('poolPayoutExpirationSequenceDelta')
 
     this.payoutInterval = null
   }
@@ -167,7 +169,7 @@ export class MiningPoolShares {
         fromAccountName: this.accountName,
         receives: transactionReceives,
         fee: transactionReceives.length.toString(),
-        expirationSequenceDelta: 20,
+        expirationSequenceDelta: this.payoutExpirationSequenceDelta,
       })
 
       await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)

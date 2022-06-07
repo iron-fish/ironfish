@@ -29,6 +29,7 @@ export const DEFAULT_POOL_DIFFICULTY = '15000000000'
 export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
 export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
+export const DEFAULT_POOL_PAYOUT_EXPIRATION_SEQUENCE_DELTA = 60
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -202,6 +203,11 @@ export type ConfigOptions = {
   poolLarkWebhook: ''
 
   /**
+   * The number of blocks after which an unconfirmed pool payout transaction expires.
+   */
+  poolPayoutExpirationSequenceDelta: number
+
+  /**
    * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
    * more easily process logs on a remote server using a log service like Datadog
    */
@@ -289,6 +295,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
       poolLarkWebhook: '',
+      poolPayoutExpirationSequenceDelta: DEFAULT_POOL_PAYOUT_EXPIRATION_SEQUENCE_DELTA,
       jsonLogs: false,
     }
   }
