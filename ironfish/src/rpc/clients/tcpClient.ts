@@ -6,7 +6,7 @@ import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { ServerSocketRpc, ServerSocketRpcSchema } from '../adapters/socketAdapter/protocol'
-import { ConnectionRefusedError } from './errors'
+import { ConnectionLostError, ConnectionRefusedError } from './errors'
 import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
 const NODE_IPC_DELIMITER = '\f'
@@ -150,6 +150,11 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.isConnected = false
     this.client?.off('data', this.onClientData)
     this.client?.off('close', this.onClientClose)
+
+    for (const request of this.pending.values()) {
+      request.reject(new ConnectionLostError(request.type))
+    }
+    this.pending.clear()
 
     this.onClose.emit()
   }
