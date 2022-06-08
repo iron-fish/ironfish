@@ -18,8 +18,10 @@ export type SnapshotChainStreamRequest =
 export type SnapshotChainStreamResponse = {
   start: number
   stop: number
-  seq?: number
-  blockBuffer?: Buffer
+  block?: {
+    seq: number
+    buffer: Buffer
+  }
 }
 
 export const SnapshotChainStreamRequestSchema: yup.ObjectSchema<SnapshotChainStreamRequest> =
@@ -35,8 +37,12 @@ export const SnapshotChainStreamResponseSchema: yup.ObjectSchema<SnapshotChainSt
     .object({
       start: yup.number().defined(),
       stop: yup.number().defined(),
-      seq: yup.number().optional(),
-      blockBuffer: yup.mixed<Buffer>().optional(),
+      block: yup
+        .object({
+          seq: yup.number().defined(),
+          buffer: yup.mixed<Buffer>().defined(),
+        })
+        .optional(),
     })
     .defined()
 
@@ -61,8 +67,8 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
         if (block) {
           const serializedBlock = node.chain.strategy.blockSerde.serialize(block)
           const bw = bufio.write(getBlockSize(serializedBlock))
-          const blockBuffer = writeBlock(bw, serializedBlock).render()
-          request.stream({ start, stop, seq: i, blockBuffer })
+          const buffer = writeBlock(bw, serializedBlock).render()
+          request.stream({ start, stop, block: { seq: i, buffer } })
         }
       }
     }
