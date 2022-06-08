@@ -13,18 +13,6 @@ describe('IronfishTcpClient', () => {
   const testPort = 1234
   const client: IronfishTcpClient = new IronfishTcpClient(testHost, testPort)
 
-  it('should connect and disconnect', () => {
-    void client.connect()
-    expect(net.connect).toHaveBeenCalledWith(testPort, testHost)
-
-    // client.client will be null since since the mocked net.connect doesn't
-    // make a connection, so replace it with a socket
-    client.client = new net.Socket()
-
-    client.close()
-    expect(client.client?.end).toHaveBeenCalled()
-  })
-
   it('should send messages in the node-ipc encoding', async () => {
     const messageId = 1
     const route = 'foo/bar'
