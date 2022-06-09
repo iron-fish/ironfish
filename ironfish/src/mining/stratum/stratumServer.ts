@@ -31,12 +31,14 @@ export class StratumServerClient {
   subscribed: boolean
   publicAddress: string | null = null
   graffiti: Buffer | null = null
+  messageBuffer: string
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
     this.socket = options.socket
     this.connected = true
     this.subscribed = false
+    this.messageBuffer = ''
   }
 
   static accept(socket: net.Socket, id: number): StratumServerClient {
@@ -48,6 +50,7 @@ export class StratumServerClient {
       return
     }
 
+    this.messageBuffer = ''
     this.connected = false
     this.socket.removeAllListeners()
     this.socket.destroy(error)
@@ -161,7 +164,10 @@ export class StratumServer {
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
-    const splits = data.toString('utf-8').trim().split('\n')
+    client.messageBuffer += data.toString('utf-8')
+    const lastDelimiterIndex = client.messageBuffer.lastIndexOf('\n')
+    const splits = client.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
+    client.messageBuffer = client.messageBuffer.substring(lastDelimiterIndex + 1)
 
     for (const split of splits) {
       const payload: unknown = JSON.parse(split)
