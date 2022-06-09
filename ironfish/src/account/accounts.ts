@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
@@ -58,6 +60,7 @@ export class Accounts {
   protected readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
+  private readonly config: Config
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -68,18 +71,21 @@ export class Accounts {
 
   constructor({
     chain,
-    workerPool,
+    config,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
+    workerPool,
   }: {
     chain: Blockchain
-    workerPool: WorkerPool
+    config: Config
     database: AccountsDB
     logger?: Logger
     rebroadcastAfter?: number
+    workerPool: WorkerPool
   }) {
     this.chain = chain
+    this.config = config
     this.logger = logger.withTag('accounts')
     this.db = database
     this.workerPool = workerPool
@@ -611,16 +617,21 @@ export class Accounts {
     this.scan = null
   }
 
-  private async getUnspentNotes(
-    account: Account,
-  ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
+  private async getUnspentNotes(account: Account): Promise<
+    ReadonlyArray<{
+      hash: string
+      note: Note
+      index: number | null
+      confirmed: boolean
+    }>
+  > {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for (const transactionMapValue of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(
-        transactionMapValue.transaction.serialize(),
-        [account.incomingViewKey],
-      )
+    for (const { blockHash, transaction } of this.transactionMap.values()) {
+      const result = await this.workerPool.getUnspentNotes(transaction.serialize(), [
+        account.incomingViewKey,
+      ])
 
       for (const note of result.notes) {
         const map = this.noteToNullifier.get(note.hash)
@@ -630,10 +641,23 @@ export class Accounts {
         }
 
         if (!map.spent) {
+          let confirmed = false
+
+          if (blockHash) {
+            const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+            Assert.isNotNull(header)
+            const main = await this.chain.isHeadChain(header)
+            if (main) {
+              const confirmations = this.chain.head.sequence - header.sequence
+              confirmed = confirmations >= minimumBlockConfirmations
+            }
+          }
+
           unspentNotes.push({
             hash: note.hash,
             note: new Note(note.note),
             index: map.noteIndex,
+            confirmed,
           })
         }
       }
@@ -655,7 +679,7 @@ export class Accounts {
 
       unconfirmed += value
 
-      if (note.index !== null) {
+      if (note.index !== null && note.confirmed) {
         confirmed += value
       }
     }
@@ -715,7 +739,7 @@ export class Accounts {
 
     for (const unspentNote of unspentNotes) {
       // Skip unconfirmed notes
-      if (unspentNote.index === null) {
+      if (unspentNote.index === null || !unspentNote.confirmed) {
         continue
       }
 
