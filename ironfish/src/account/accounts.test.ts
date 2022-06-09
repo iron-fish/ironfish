@@ -152,6 +152,6 @@ describe('Accounts', () => {
         confirmed: BigInt(0),
         unconfirmed: BigInt(0),
       })
-    }, 60000)
+    })
   })
 })
