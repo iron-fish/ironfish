@@ -15,6 +15,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
@@ -616,30 +617,55 @@ export class Accounts {
   ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
     const unspentNotes = []
 
-    for (const transactionMapValue of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(
-        transactionMapValue.transaction.serialize(),
-        [account.incomingViewKey],
-      )
+    for await (const note of this.unspentNotesGenerator(account)) {
+      const map = this.noteToNullifier.get(note.hash)
 
-      for (const note of result.notes) {
-        const map = this.noteToNullifier.get(note.hash)
+      if (!map) {
+        throw new Error('All decryptable notes should be in the noteToNullifier map')
+      }
 
-        if (!map) {
-          throw new Error('All decryptable notes should be in the noteToNullifier map')
-        }
-
-        if (!map.spent) {
-          unspentNotes.push({
-            hash: note.hash,
-            note: new Note(note.note),
-            index: map.noteIndex,
-          })
-        }
+      if (!map.spent) {
+        unspentNotes.push({
+          hash: note.hash,
+          note: new Note(note.note),
+          index: map.noteIndex,
+        })
       }
     }
 
     return unspentNotes
+  }
+
+  private async *unspentNotesGenerator(account: Account): AsyncGenerator<UnspentNote> {
+    const batchSize = 20
+    const incomingViewKeys = [account.incomingViewKey]
+    let jobs = []
+
+    for (const { transaction } of this.transactionMap.values()) {
+      jobs.push(this.workerPool.getUnspentNotes(transaction.serialize(), incomingViewKeys))
+
+      if (jobs.length >= batchSize) {
+        const responses = await Promise.all(jobs)
+
+        for (const { notes } of responses) {
+          for (const note of notes) {
+            yield note
+          }
+        }
+
+        jobs = []
+      }
+    }
+
+    if (jobs.length) {
+      const responses = await Promise.all(jobs)
+
+      for (const { notes } of responses) {
+        for (const note of notes) {
+          yield note
+        }
+      }
+    }
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
