@@ -44,8 +44,6 @@ export class WorkerPool {
   change: Meter | null
   speed: Meter | null
 
-  private lastJobId = 0
-
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
