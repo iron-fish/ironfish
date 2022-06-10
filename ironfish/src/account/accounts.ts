@@ -690,14 +690,14 @@ export class Accounts {
           jobs = []
         }
       }
+    }
 
-      if (jobs.length) {
-        const responses = await Promise.all(jobs)
+    if (jobs.length) {
+      const responses = await Promise.all(jobs)
 
-        for (const { blockHash, notes } of responses) {
-          for (const note of notes) {
-            yield { blockHash, note }
-          }
+      for (const { blockHash, notes } of responses) {
+        for (const note of notes) {
+          yield { blockHash, note }
         }
       }
     }
