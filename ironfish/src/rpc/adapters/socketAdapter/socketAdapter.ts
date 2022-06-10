@@ -7,17 +7,24 @@ import { createRootLogger, Logger } from '../../../logger'
 import { JSONUtils } from '../../../utils'
 import { ErrorUtils } from '../../../utils/error'
 import { YupUtils } from '../../../utils/yup'
+import { MessageBuffer } from '../../messageBuffer'
 import { Request } from '../../request'
 import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
 import { IAdapter } from '../adapter'
 import { ERROR_CODES, ResponseError } from '../errors'
-import { ClientSocketRpcSchema, ServerSocketRpc, SocketRpcError } from './protocol'
+import {
+  ClientSocketRpcSchema,
+  MESSAGE_DELIMITER,
+  ServerSocketRpc,
+  SocketRpcError,
+} from './protocol'
 
 type SocketClient = {
   id: string
   socket: net.Socket
   requests: Map<string, Request>
+  messageBuffer: MessageBuffer
 }
 
 export abstract class SocketAdapter implements IAdapter {
@@ -80,6 +87,7 @@ export abstract class SocketAdapter implements IAdapter {
     this.clients.forEach((client) => {
       client.requests.forEach((r) => r.close())
       client.socket.destroy()
+      client.messageBuffer.clear()
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -116,7 +124,7 @@ export abstract class SocketAdapter implements IAdapter {
 
   onClientConnection(socket: net.Socket): void {
     const requests = new Map<string, Request>()
-    const client = { socket, requests, id: uuid() }
+    const client = { socket, requests, id: uuid(), messageBuffer: new MessageBuffer() }
     this.clients.set(client.id, client)
 
     socket.on('data', (data) => {
@@ -145,53 +153,56 @@ export abstract class SocketAdapter implements IAdapter {
   }
 
   async onClientData(client: SocketClient, data: Buffer): Promise<void> {
-    const [parsed, error] = JSONUtils.tryParse(data.toString('utf8').trim())
-    if (error) {
-      this.emitResponse(client, this.constructMalformedRequest(data))
-      return
-    }
-
-    const result = await YupUtils.tryValidate(ClientSocketRpcSchema, parsed)
-
-    if (result.error) {
-      this.emitResponse(client, this.constructMalformedRequest(parsed))
-      return
-    }
-
-    const message = result.result.data
-
-    const requestId = uuid()
-    const request = new Request(
-      message.data,
-      (status: number, data?: unknown) => {
-        this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
-      },
-      (data: unknown) => {
-        this.emitStream(client, this.constructStream(message.mid, data))
-      },
-    )
-    client.requests.set(requestId, request)
-
-    if (this.router == null) {
-      this.emitResponse(client, this.constructUnmountedAdapter())
-      return
-    }
-
-    try {
-      await this.router.route(message.type, request)
-    } catch (error: unknown) {
-      if (error instanceof ResponseError) {
-        const response = this.constructMessage(message.mid, error.status, {
-          code: error.code,
-          message: error.message,
-          stack: error.stack,
-        })
-
-        this.emitResponse(client, response, requestId)
+    client.messageBuffer.write(data)
+    for (const rpcMessage of client.messageBuffer.readMessages()) {
+      const [parsed, error] = JSONUtils.tryParse(rpcMessage)
+      if (error) {
+        this.emitResponse(client, this.constructMalformedRequest(data))
         return
       }
 
-      throw error
+      const result = await YupUtils.tryValidate(ClientSocketRpcSchema, parsed)
+
+      if (result.error) {
+        this.emitResponse(client, this.constructMalformedRequest(parsed))
+        return
+      }
+
+      const message = result.result.data
+
+      const requestId = uuid()
+      const request = new Request(
+        message.data,
+        (status: number, data?: unknown) => {
+          this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
+        },
+        (data: unknown) => {
+          this.emitStream(client, this.constructStream(message.mid, data))
+        },
+      )
+      client.requests.set(requestId, request)
+
+      if (this.router == null) {
+        this.emitResponse(client, this.constructUnmountedAdapter())
+        return
+      }
+
+      try {
+        await this.router.route(message.type, request)
+      } catch (error: unknown) {
+        if (error instanceof ResponseError) {
+          const response = this.constructMessage(message.mid, error.status, {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+          })
+
+          this.emitResponse(client, response, requestId)
+          return
+        }
+
+        throw error
+      }
     }
   }
 
@@ -216,7 +227,7 @@ export abstract class SocketAdapter implements IAdapter {
   // messages it received. See 'node-ipc' parsing/formatting logic here:
   // https://github.com/RIAEvangelist/node-ipc/blob/master/entities/EventParser.js
   encodeNodeIpc(ipcResponse: ServerSocketRpc): string {
-    return JSON.stringify(ipcResponse) + '\f'
+    return JSON.stringify(ipcResponse) + MESSAGE_DELIMITER
   }
 
   constructMessage(messageId: number, status: number, data: unknown): ServerSocketRpc {

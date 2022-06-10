@@ -5,11 +5,15 @@ import net from 'net'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils, SetTimeoutToken, YupUtils } from '../../utils'
-import { ServerSocketRpc, ServerSocketRpcSchema } from '../adapters/socketAdapter/protocol'
+import {
+  MESSAGE_DELIMITER,
+  ServerSocketRpc,
+  ServerSocketRpcSchema,
+} from '../adapters/socketAdapter/protocol'
+import { MessageBuffer } from '../messageBuffer'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
 import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
-const NODE_IPC_DELIMITER = '\f'
 const CONNECT_RETRY_MS = 2000
 
 export class IronfishTcpClient extends IronfishRpcClient {
@@ -20,6 +24,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
   private connectTimeout: SetTimeoutToken | null
   isConnected = false
   connection: RpcClientConnectionInfo
+  private messageBuffer: MessageBuffer
 
   constructor(
     host: string,
@@ -33,6 +38,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
     this.connection = { mode: 'tcp', host: host, port: port }
     this.retryConnect = retryConnect
     this.connectTimeout = null
+    this.messageBuffer = new MessageBuffer()
   }
 
   async connect(): Promise<void> {
@@ -89,6 +95,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
   close(): void {
     this.client?.end()
 
+    this.messageBuffer.clear()
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
     }
@@ -104,7 +111,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
         data: data,
       },
     }
-    this.client.write(JSON.stringify(message) + NODE_IPC_DELIMITER)
+    this.client.write(JSON.stringify(message) + MESSAGE_DELIMITER)
   }
 
   protected onConnect(): void {
@@ -118,11 +125,12 @@ export class IronfishTcpClient extends IronfishRpcClient {
     void this.onData(data).catch((e) => this.onError(e))
 
   protected onData = async (data: Buffer): Promise<void> => {
-    const events = data.toString('utf-8').trim().split(NODE_IPC_DELIMITER)
-    for (const event of events) {
+    this.messageBuffer.write(data)
+
+    for (const message of this.messageBuffer.readMessages()) {
       const { result, error } = await YupUtils.tryValidate(
         ServerSocketRpcSchema,
-        JSON.parse(event),
+        JSON.parse(message),
       )
       if (!result) {
         throw error
@@ -148,6 +156,7 @@ export class IronfishTcpClient extends IronfishRpcClient {
 
   protected onClientClose = (): void => {
     this.isConnected = false
+    this.messageBuffer.clear()
     this.client?.off('data', this.onClientData)
     this.client?.off('close', this.onClientClose)
 
