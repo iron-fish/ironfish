@@ -13,6 +13,7 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
+import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -37,7 +38,7 @@ export class WorkerPool {
   readonly numWorkers: number
   readonly logger: Logger
 
-  queue: Array<Job> = []
+  queue = new RoundRobinQueue()
   workers: Array<Worker> = []
   started = false
   completed = 0
@@ -115,9 +116,9 @@ export class WorkerPool {
     const queue = this.queue
 
     this.workers = []
-    this.queue = []
 
-    queue.forEach((j) => j.abort())
+    queue.abortAll()
+
     await Promise.all(workers.map((w) => w.stop()))
   }
 
@@ -284,14 +285,14 @@ export class WorkerPool {
 
     // If we already have queue, put it at the end of the queue
     if (this.queue.length > 0) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
     const worker = this.workers.find((w) => w.canTakeJobs)
 
     if (!worker) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
@@ -309,7 +310,7 @@ export class WorkerPool {
       return
     }
 
-    const job = this.queue.shift()
+    const job = this.queue.nextJob()
     if (!job) {
       return
     }
