@@ -48,7 +48,7 @@ router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
   async (request, node): Promise<void> => {
     const account = await node.accounts.importAccount(request.data.account)
 
-    if (request.data.rescan !== false) {
+    if (request.data.rescan) {
       void node.accounts.startScanTransactionsFor(account)
     }
 
