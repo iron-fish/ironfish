@@ -78,7 +78,7 @@ describe('accounts:transactions', () => {
       .exit(0)
       .it('logs the transactions for the given account', (ctx) => {
         expectCli(ctx.stdout).include(responseContentTransactions.account)
-        expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].creator)
+        expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].creator ? `✔` : `x`)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].status)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].hash)
         expectCli(ctx.stdout).include(
