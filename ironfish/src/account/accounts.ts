@@ -17,6 +17,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
@@ -628,42 +629,78 @@ export class Accounts {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for (const { blockHash, transaction } of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(transaction.serialize(), [
-        account.incomingViewKey,
-      ])
+    for await (const { blockHash, note } of this.unspentNotesGenerator(account)) {
+      const map = this.noteToNullifier.get(note.hash)
 
-      for (const note of result.notes) {
-        const map = this.noteToNullifier.get(note.hash)
+      if (!map) {
+        throw new Error('All decryptable notes should be in the noteToNullifier map')
+      }
 
-        if (!map) {
-          throw new Error('All decryptable notes should be in the noteToNullifier map')
-        }
+      if (!map.spent) {
+        let confirmed = false
 
-        if (!map.spent) {
-          let confirmed = false
-
-          if (blockHash) {
-            const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-            Assert.isNotNull(header)
-            const main = await this.chain.isHeadChain(header)
-            if (main) {
-              const confirmations = this.chain.head.sequence - header.sequence
-              confirmed = confirmations >= minimumBlockConfirmations
-            }
+        if (blockHash) {
+          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+          Assert.isNotNull(header)
+          const main = await this.chain.isHeadChain(header)
+          if (main) {
+            const confirmations = this.chain.head.sequence - header.sequence
+            confirmed = confirmations >= minimumBlockConfirmations
           }
-
-          unspentNotes.push({
-            hash: note.hash,
-            note: new Note(note.note),
-            index: map.noteIndex,
-            confirmed,
-          })
         }
+
+        unspentNotes.push({
+          hash: note.hash,
+          note: new Note(note.note),
+          index: map.noteIndex,
+          confirmed,
+        })
       }
     }
 
     return unspentNotes
+  }
+
+  private async *unspentNotesGenerator(account: Account): AsyncGenerator<{
+    blockHash: string | null
+    note: UnspentNote
+  }> {
+    const batchSize = 20
+    const incomingViewKeys = [account.incomingViewKey]
+    let jobs = []
+
+    const getUnspentNotes = async (transaction: Transaction, blockHash: string | null) => {
+      return {
+        ...(await this.workerPool.getUnspentNotes(transaction.serialize(), incomingViewKeys)),
+        blockHash,
+      }
+    }
+
+    for (const { transaction, blockHash } of this.transactionMap.values()) {
+      jobs.push(getUnspentNotes(transaction, blockHash))
+
+      if (jobs.length >= batchSize) {
+        const responses = await Promise.all(jobs)
+
+        for (const { blockHash, notes } of responses) {
+          for (const note of notes) {
+            yield { blockHash, note }
+          }
+
+          jobs = []
+        }
+      }
+    }
+
+    if (jobs.length) {
+      const responses = await Promise.all(jobs)
+
+      for (const { blockHash, notes } of responses) {
+        for (const note of notes) {
+          yield { blockHash, note }
+        }
+      }
+    }
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
