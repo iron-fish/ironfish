@@ -119,9 +119,7 @@ export class WorkerPool {
 
     this.workers = []
 
-    queue.forEach((j) => j.abort())
-
-    queue.clearAll()
+    queue.abortAll()
 
     await Promise.all(workers.map((w) => w.stop()))
   }

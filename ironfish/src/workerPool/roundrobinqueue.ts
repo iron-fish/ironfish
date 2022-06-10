@@ -87,9 +87,16 @@ export class RoundRobinQueue {
     }
   }
 
-  clearAll(): void {
-    for (const key of this.queueMap.keys()) {
-      this.queueMap.set(key, [])
+  /**
+   * Abort all existing jobs that have been queued, and empty the queues.
+   */
+  abortAll(): void {
+    for (const [type, queue] of this.queueMap.entries()) {
+      for (const job of queue) {
+        job.abort()
+      }
+
+      this.queueMap.set(type, [])
     }
   }
 }
