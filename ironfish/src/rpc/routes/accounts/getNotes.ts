@@ -46,7 +46,7 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   GetAccountNotesRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { notes } = node.accounts.getNotesFor(account)
+    const { notes } = node.accounts.getNotes(account)
     request.end({ account: account.displayName, notes })
   },
 )

@@ -29,7 +29,7 @@ export class TransactionsCommand extends IronfishCommand {
     if (hash) {
       await this.getTransaction(account, hash)
     } else {
-      await this.getTransactionsFor(account)
+      await this.getTransactions(account)
     }
   }
 
@@ -49,9 +49,9 @@ export class TransactionsCommand extends IronfishCommand {
 
     if (transactionInfo !== null) {
       this.log(
-        `Transaction: ${transactionHash}, Status: ${transactionInfo.status}, Miner Fee: ${
+        `Transaction: ${transactionHash}\nStatus: ${transactionInfo.status}\nMiner Fee: ${
           transactionInfo.isMinersFee ? `✔` : `x`
-        }, Fee ($ORE): ${transactionInfo.fee}, Spends: ${transactionInfo.spends}\n`,
+        }\nFee ($ORE): ${transactionInfo.fee}\nSpends: ${transactionInfo.spends}\n`,
       )
     }
 
@@ -76,7 +76,7 @@ export class TransactionsCommand extends IronfishCommand {
     this.log(`\n`)
   }
 
-  async getTransactionsFor(account: string | undefined): Promise<void> {
+  async getTransactions(account: string | undefined): Promise<void> {
     const client = await this.sdk.connectRpc()
 
     const response = await client.getAccountTransactions({ account })
@@ -88,6 +88,10 @@ export class TransactionsCommand extends IronfishCommand {
     CliUx.ux.table(transactions, {
       status: {
         header: 'Status',
+      },
+      creator: {
+        header: 'Creator',
+        get: (row) => (row.creator ? `✔` : `x`),
       },
       hash: {
         header: 'Hash',

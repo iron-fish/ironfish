@@ -12,6 +12,7 @@ describe('accounts:transactions', () => {
     account,
     transactions: [
       {
+        creator: true,
         status: 'completed',
         hash: '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1',
         isMinersFee: false,
@@ -77,6 +78,7 @@ describe('accounts:transactions', () => {
       .exit(0)
       .it('logs the transactions for the given account', (ctx) => {
         expectCli(ctx.stdout).include(responseContentTransactions.account)
+        expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].creator)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].status)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].hash)
         expectCli(ctx.stdout).include(

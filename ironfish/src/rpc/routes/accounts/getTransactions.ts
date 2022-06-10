@@ -10,6 +10,7 @@ export type GetAccountTransactionsRequest = { account?: string }
 export type GetAccountTransactionsResponse = {
   account: string
   transactions: {
+    creator: boolean
     status: string
     hash: string
     isMinersFee: boolean
@@ -34,6 +35,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
         .array(
           yup
             .object({
+              creator: yup.boolean().defined(),
               status: yup.string().defined(),
               hash: yup.string().defined(),
               isMinersFee: yup.boolean().defined(),
@@ -52,7 +54,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { transactions } = node.accounts.getTransactionsFor(account)
+    const { transactions } = node.accounts.getTransactions(account)
     request.end({ account: account.displayName, transactions })
   },
 )
