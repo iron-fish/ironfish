@@ -231,9 +231,10 @@ export class IronfishNode {
     })
 
     const accounts = new Accounts({
+      chain,
+      config,
       database: accountDB,
-      workerPool: workerPool,
-      chain: chain,
+      workerPool,
     })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({
@@ -313,7 +314,7 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    this.minedBlocksIndexer.start()
+    await this.minedBlocksIndexer.start()
     this.telemetry.submitNodeStarted()
   }
 

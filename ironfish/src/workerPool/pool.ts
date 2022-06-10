@@ -44,8 +44,6 @@ export class WorkerPool {
   change: Meter | null
   speed: Meter | null
 
-  private lastJobId = 0
-
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -83,7 +81,7 @@ export class WorkerPool {
   }) {
     this.numWorkers = options?.numWorkers ?? 1
     this.maxJobs = options?.maxJobs ?? 1
-    this.maxQueue = options?.maxQueue ?? 200
+    this.maxQueue = options?.maxQueue ?? 500
     this.change = options?.metrics?.addMeter() ?? null
     this.speed = options?.metrics?.addMeter() ?? null
     this.logger = options?.logger ?? createRootLogger()

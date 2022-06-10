@@ -19,10 +19,7 @@ export class FileStore<T extends Record<string, unknown>> {
   }
 
   async load(): Promise<PartialRecursive<T> | null> {
-    const configExists = await this.files
-      .access(this.configPath)
-      .then(() => true)
-      .catch(() => false)
+    const configExists = await this.files.exists(this.configPath)
 
     let config = null
 

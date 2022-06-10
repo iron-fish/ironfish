@@ -5,6 +5,7 @@ import {
   ConfigOptions,
   ConnectionError,
   createRootLogger,
+  ErrorUtils,
   IronfishSdk,
   Logger,
 } from '@ironfish/sdk'
@@ -18,6 +19,8 @@ import {
   RpcTcpPortFlagKey,
   RpcTcpSecureFlag,
   RpcTcpSecureFlagKey,
+  RpcTcpTlsFlag,
+  RpcTcpTlsFlagKey,
   RpcUseIpcFlag,
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
@@ -39,6 +42,7 @@ export type FLAGS =
   | typeof RpcTcpHostFlagKey
   | typeof RpcTcpPortFlagKey
   | typeof RpcTcpSecureFlagKey
+  | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
 
 export abstract class IronfishCommand extends Command {
@@ -126,6 +130,11 @@ export abstract class IronfishCommand extends Command {
       configOverrides.rpcTcpSecure = rpcTcpSecureFlag
     }
 
+    const rpcTcpTlsFlag = getFlag(flags, RpcTcpTlsFlagKey)
+    if (typeof rpcTcpTlsFlag === 'boolean' && rpcTcpTlsFlag !== RpcTcpTlsFlag.default) {
+      configOverrides.enableRpcTls = rpcTcpTlsFlag
+    }
+
     const verboseFlag = getFlag(flags, VerboseFlagKey)
     if (typeof verboseFlag === 'boolean' && verboseFlag !== VerboseFlag.default) {
       configOverrides.logLevel = '*:verbose'
@@ -157,7 +166,7 @@ export abstract class IronfishCommand extends Command {
 
         this.closing = true
         const promise = this.closeFromSignal(signal).catch((err) => {
-          this.logger.error('Failed to close', err)
+          this.logger.error(`Failed to close ${ErrorUtils.renderError(err)}`)
         })
 
         void promise.then(() => {

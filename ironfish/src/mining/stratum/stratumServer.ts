@@ -6,7 +6,7 @@ import { isValidPublicAddress } from '../../account/validator'
 import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { Config } from '../../fileStores/config'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
@@ -31,12 +31,14 @@ export class StratumServerClient {
   subscribed: boolean
   publicAddress: string | null = null
   graffiti: Buffer | null = null
+  messageBuffer: string
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
     this.socket = options.socket
     this.connected = true
     this.subscribed = false
+    this.messageBuffer = ''
   }
 
   static accept(socket: net.Socket, id: number): StratumServerClient {
@@ -48,7 +50,9 @@ export class StratumServerClient {
       return
     }
 
+    this.messageBuffer = ''
     this.connected = false
+    this.socket.removeAllListeners()
     this.socket.destroy(error)
   }
 }
@@ -73,21 +77,21 @@ export class StratumServer {
   constructor(options: {
     pool: MiningPool
     config: Config
-    logger?: Logger
+    logger: Logger
     port?: number
     host?: string
   }) {
     this.pool = options.pool
     this.config = options.config
-    this.logger = options.logger ?? createRootLogger()
+    this.logger = options.logger
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
 
     this.clients = new Map()
     this.badClients = new Set()
-    this.nextMinerId = 0
-    this.nextMessageId = 0
+    this.nextMinerId = 1
+    this.nextMessageId = 1
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -105,9 +109,9 @@ export class StratumServer {
     this.currentWork = mineableHeaderString(block.header)
 
     this.logger.info(
-      'Setting work for request:',
-      this.currentMiningRequestId,
-      `${this.currentWork.toString('hex').slice(0, 50)}...`,
+      `Setting work for request: ${this.currentMiningRequestId} ${this.currentWork
+        .toString('hex')
+        .slice(0, 50)}...`,
     )
 
     this.broadcast('mining.notify', this.getNotifyMessage())
@@ -137,7 +141,7 @@ export class StratumServer {
 
     socket.on('error', (e) => this.onError(client, e))
 
-    this.logger.debug(`Client ${client.id} connected:`, socket.remoteAddress)
+    this.logger.debug(`Client ${client.id} connected: ${socket.remoteAddress || 'undefined'}`)
     this.clients.set(client.id, client)
   }
 
@@ -154,13 +158,16 @@ export class StratumServer {
   }
 
   private onDisconnect(client: StratumServerClient): void {
-    this.logger.debug(`Client ${client.id} disconnected`)
-    client.socket.removeAllListeners()
+    this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
     this.clients.delete(client.id)
+    client.close()
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
-    const splits = data.toString('utf-8').trim().split('\n')
+    client.messageBuffer += data.toString('utf-8')
+    const lastDelimiterIndex = client.messageBuffer.lastIndexOf('\n')
+    const splits = client.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
+    client.messageBuffer = client.messageBuffer.substring(lastDelimiterIndex + 1)
 
     for (const split of splits) {
       const payload: unknown = JSON.parse(split)
@@ -197,7 +204,7 @@ export class StratumServer {
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
 
-          this.logger.info(`Miner ${idHex} connected`)
+          this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
 
           this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
           this.send(client, 'mining.set_target', this.getSetTargetMessage())
@@ -273,12 +280,30 @@ export class StratumServer {
 
     const serialized = JSON.stringify(message) + '\n'
 
+    this.logger.debug('broadcasting to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+      messageLength: serialized.length,
+    })
+
     for (const client of this.clients.values()) {
       if (this.badClients.has(client.id)) {
         continue
       }
+
+      if (!client.connected) {
+        continue
+      }
+
       client.socket.write(serialized)
     }
+    this.logger.debug('completed broadcast to clients', {
+      method,
+      id: message.id,
+      numClients: this.clients.size,
+      messageLength: serialized.length,
+    })
   }
   private send(
     client: StratumServerClient,

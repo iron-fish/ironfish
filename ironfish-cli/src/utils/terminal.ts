@@ -2,7 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export function linkText(url: string, text: string): string {
+import supportsHyperlinks from 'supports-hyperlinks'
+
+export function linkText(url: string, text: string, stdout = true): string {
+  const supported = stdout ? supportsHyperlinks.stdout : supportsHyperlinks.stderr
+
+  if (!supported) {
+    return url
+  }
+
   const OSC = '\u001B]'
   const BEL = '\u0007'
   const SEP = ';'

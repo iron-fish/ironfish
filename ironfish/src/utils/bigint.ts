@@ -103,6 +103,10 @@ function toBytesBE(value: bigint, size?: number): Buffer {
   return bytes
 }
 
+/**
+ * Divides two BigInt types and returns a number. That has floating
+ * point precision. Regular BigInt division will not have decimals
+ */
 function divide(a: bigint, b: bigint): number {
   const div = a / b
   return Number(div) + Number(a - div * b) / Number(b)

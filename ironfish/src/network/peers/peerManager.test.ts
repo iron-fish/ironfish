@@ -1357,10 +1357,10 @@ describe('PeerManager', () => {
         },
       ])
 
-      const sendToSpy = jest.spyOn(pm, 'sendTo')
+      const sendSpy = jest.spyOn(peer, 'send')
       peer.onMessage.emit(peerListRequest, connection)
-      expect(sendToSpy).toBeCalledTimes(1)
-      expect(sendToSpy).toHaveBeenCalledWith(peer, peerList)
+      expect(sendSpy).toBeCalledTimes(1)
+      expect(sendSpy).toHaveBeenCalledWith(peerList)
     })
   })
 
@@ -1386,32 +1386,6 @@ describe('PeerManager', () => {
       expect(peer.knownPeers.size).toBe(0)
     })
 
-    it('Does not emit onKnownPeersChanged when peer list stays the same', () => {
-      const peerIdentity = mockIdentity('peer')
-      const newPeerIdentity = mockIdentity('new')
-
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-
-      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
-
-      expect(pm.peers.length).toBe(1)
-      expect(pm.identifiedPeers.size).toBe(1)
-      expect(peer.knownPeers.size).toBe(0)
-
-      const peerList = new PeerListMessage([
-        {
-          identity: Buffer.from(newPeerIdentity),
-          address: peer.address,
-          port: peer.port,
-        },
-      ])
-      const onKnownPeersChangedSpy = jest.spyOn(peer.onKnownPeersChanged, 'emit')
-      peer.onMessage.emit(peerList, connection)
-      peer.onMessage.emit(peerList, connection)
-
-      expect(onKnownPeersChangedSpy).toBeCalledTimes(1)
-    })
-
     it('Links peers when adding a new known peer', () => {
       const peerIdentity = mockIdentity('peer')
       const newPeerIdentity = mockIdentity('new')
@@ -1423,9 +1397,6 @@ describe('PeerManager', () => {
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
       expect(peer.knownPeers.size).toBe(0)
-
-      // Clear onKnownPeersChanged handlers to avoid any side effects
-      pm.onKnownPeersChanged.clear()
 
       const peerList = new PeerListMessage([
         {
@@ -1468,9 +1439,6 @@ describe('PeerManager', () => {
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
       expect(peer.knownPeers.size).toBe(0)
-
-      // Clear onKnownPeersChanged handlers to avoid any side effects
-      pm.onKnownPeersChanged.clear()
 
       const peerList = new PeerListMessage([
         {

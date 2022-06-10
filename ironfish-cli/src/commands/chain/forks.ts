@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
+import { GraffitiUtils, PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
 import { RpcBlock } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
@@ -75,10 +75,14 @@ export default class ForksCommand extends IronfishCommand {
           continue
         }
 
-        const renderedAge = (age / 1000).toFixed(0).padStart(2, ' ')
+        const renderedAge = (age / 1000).toFixed(0).padStart(3)
         const renderdDiff = (highest - block.sequence).toString().padStart(6)
+        const renderedMined = mined.toString().padStart(3)
+        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(block.graffiti, 'hex'))
 
-        list.pushLine(`${block.hash} | ${renderdDiff} | ${renderedAge}s | ${mined}`)
+        list.pushLine(
+          `${block.hash} | ${renderdDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
+        )
         count++
       }
 
