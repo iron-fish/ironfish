@@ -9,6 +9,10 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { WorkerHeader } from './interfaces/workerHeader'
 import { Job } from './job'
+import {
+  BatchVerifyTransactionRequest,
+  BatchVerifyTransactionResponse,
+} from './tasks/batchVerifyTransaction'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -251,6 +255,8 @@ export class Worker {
         return UnboxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.BatchVerifyTransaction:
+        return BatchVerifyTransactionRequest.deserialize(jobId, request)
     }
   }
 
@@ -280,6 +286,8 @@ export class Worker {
         return UnboxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.BatchVerifyTransaction:
+        return BatchVerifyTransactionResponse.deserialize(jobId, response)
     }
   }
 }

@@ -13,6 +13,10 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
+import {
+  BatchVerifyTransactionRequest,
+  BatchVerifyTransactionResponse,
+} from './tasks/batchVerifyTransaction'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -54,6 +58,7 @@ export class WorkerPool {
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.BatchVerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -180,6 +185,20 @@ export class WorkerPool {
 
     const response = await this.execute(request).result()
     if (!(response instanceof VerifyTransactionResponse)) {
+      throw new Error('Invalid response')
+    }
+
+    return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
+  }
+
+  async batchVerifyTransaction(transactions: Transaction[]): Promise<VerificationResult> {
+    const txs = transactions.map((tx) => tx.serialize())
+    const request: BatchVerifyTransactionRequest = new BatchVerifyTransactionRequest(txs)
+
+    const response = await this.execute(request).result()
+    if (!(response instanceof BatchVerifyTransactionResponse)) {
       throw new Error('Invalid response')
     }
 
