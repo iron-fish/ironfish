@@ -60,17 +60,12 @@ export class RoundRobinQueue {
    * starting from the type after the last executed job's type.
    */
   nextJob(): Job | undefined {
-    // Increment the key index, wrapping around when reaching the end.
-    const nextIndex = (this.lastMapIndex + 1) % this.queueMap.size
-
     const queueEntries = Array.from(this.queueMap.values())
 
-    // Create a shallow array beginning from the next type
-    // after the last executed type, wrapping around to the
-    // last executed type.
-    const nextInLine = queueEntries.slice(nextIndex).concat(queueEntries.slice(0, nextIndex))
+    for (let i = 1; i <= queueEntries.length; i++) {
+      const index = (this.lastMapIndex + i) % queueEntries.length
 
-    for (const [index, queue] of nextInLine.entries()) {
+      const queue = queueEntries[index]
       if (!queue.length) {
         continue
       }
