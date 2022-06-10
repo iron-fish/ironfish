@@ -5,15 +5,13 @@
 import { Job } from './job'
 import { WorkerMessageType } from './tasks/workerMessage'
 
-// Simple queue that will iterate over each type of job sequentially so that each job type
-// will be guaranteed not to be backed up by one type queueing many jobs. This does not
-// solve the issue of long-running jobs, however. Luckily, this is not something we
-// have had to worry about yet.
 export class RoundRobinQueue {
   private queueMap: Map<WorkerMessageType, Array<Job>>
   private lastMapIndex = 0
 
-  // Returns the total length of all queues
+  /**
+   * Returns the total length of all queues.
+   */
   get length(): number {
     let length = 0
 
@@ -24,7 +22,12 @@ export class RoundRobinQueue {
     return length
   }
 
-  // Instantiates the queue with a map of each key with an empty array value
+  /**
+   * Simple queue that will iterate over each type of job sequentially so that each job type
+   * will be guaranteed not to be backed up by one type queueing many jobs. This does not
+   * solve the issue of long-running jobs, however. Luckily, this is not something we
+   * have had to worry about yet.
+   */
   constructor() {
     this.queueMap = new Map()
 
@@ -39,16 +42,9 @@ export class RoundRobinQueue {
     }
   }
 
-  // Executes a function with every job across all queues
-  forEach(fn: (j: Job) => void): void {
-    for (const queue of this.queueMap.values()) {
-      for (const job of queue) {
-        fn(job)
-      }
-    }
-  }
-
-  // Add a job to that type's queue
+  /**
+   * Add a job to that type's queue
+   */
   enqueue(type: WorkerMessageType, job: Job): void {
     const typeQueue = this.queueMap.get(type)
 
@@ -59,8 +55,10 @@ export class RoundRobinQueue {
     typeQueue.push(job)
   }
 
-  // Get the next job across all queues. Will iterate over each type
-  // starting from the type after the last executed job's type.
+  /**
+   * Get the next job across all queues. Will iterate over each type
+   * starting from the type after the last executed job's type.
+   */
   nextJob(): Job | undefined {
     // Increment the key index, wrapping around when reaching the end.
     const nextIndex = (this.lastMapIndex + 1) % this.queueMap.size
