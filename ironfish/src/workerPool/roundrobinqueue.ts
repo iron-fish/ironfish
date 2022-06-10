@@ -49,7 +49,7 @@ export class RoundRobinQueue {
     const typeQueue = this.queueMap.get(type)
 
     if (!typeQueue) {
-      return
+      throw new Error(`Unknown job type given when trying to queue job: ${type}`)
     }
 
     typeQueue.push(job)
