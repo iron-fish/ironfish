@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 
+export const MESSAGE_DELIMITER = '\f'
+
 export type ClientSocketRpc = {
   type: 'message'
   data: SocketRpcRequest
