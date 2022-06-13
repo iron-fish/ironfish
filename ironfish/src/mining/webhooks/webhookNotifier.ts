@@ -7,6 +7,8 @@ import { createRootLogger, Logger } from '../../logger'
 import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
 import { FileUtils } from '../../utils/file'
 
+const BLOCK_EXPLORER_URL = 'https://explorer.ironfish.network'
+
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
   protected readonly client: AxiosInstance | null = null
@@ -31,9 +33,12 @@ export abstract class WebhookNotifier {
     this.sendText('Disconnected from node unexpectedly. Reconnecting.')
   }
 
-  poolSubmittedBlock(hash: Buffer, hashRate: number, clients: number): void {
+  poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
+    const blockUrl = [BLOCK_EXPLORER_URL, 'blocks', hashedHeaderHex].join('/')
+    const blockLink = `[${hashedHeaderHex}](${blockUrl})`
+
     this.sendText(
-      `Block \`${hash.toString('hex')}\` submitted successfully! ${FileUtils.formatHashRate(
+      `Block ${blockLink} submitted successfully! ${FileUtils.formatHashRate(
         hashRate,
       )}/s with ${clients} miners`,
     )
@@ -47,13 +52,16 @@ export abstract class WebhookNotifier {
   ): void {
     const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
+    const transactionUrl = [BLOCK_EXPLORER_URL, 'transaction', transactionHashHex].join('/')
+    const transactionLink = `[${transactionHashHex}](${transactionUrl})`
+
     this.sendText(
-      `Successfully paid out ${totalShareCount} shares to ${
+      `Successfully created payout of ${totalShareCount} shares to ${
         receives.length
       } users for ${displayIronAmountWithCurrency(
         Number(oreToIron(Number(total.toString()))),
         false,
-      )} in transaction \`${transactionHashHex}\` (${payoutId})`,
+      )} in transaction ${transactionLink}. Transaction pending (${payoutId})`,
     )
   }
 
