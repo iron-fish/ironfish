@@ -12,9 +12,9 @@ import {
 } from '../adapters/socketAdapter/protocol'
 import { MessageBuffer } from '../messageBuffer'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
-import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
+import { RpcClientConnectionInfo, RpcSocketClient } from './socketClient'
 
-export class IronfishTcpClient extends IronfishRpcClient {
+export class RpcTcpClient extends RpcSocketClient {
   client: net.Socket | null = null
   protected readonly host: string
   protected readonly port: number

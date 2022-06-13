@@ -4,14 +4,14 @@
 import net from 'net'
 import { YupUtils } from '../../utils'
 import { ClientSocketRpcSchema, MESSAGE_DELIMITER } from '../adapters/socketAdapter/protocol'
-import { IronfishTcpClient } from './tcpClient'
+import { RpcTcpClient } from './tcpClient'
 
 jest.mock('net')
 
 describe('IronfishTcpClient', () => {
   const testHost = 'testhost'
   const testPort = 1234
-  const client: IronfishTcpClient = new IronfishTcpClient(testHost, testPort)
+  const client: RpcTcpClient = new RpcTcpClient(testHost, testPort)
 
   it('should send messages in the node-ipc encoding', async () => {
     const messageId = 1

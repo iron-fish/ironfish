@@ -4,9 +4,9 @@
 import net from 'net'
 import { createRootLogger, Logger } from '../../logger'
 import { ApiNamespace } from '../routes'
-import { SocketAdapter } from './socketAdapter/socketAdapter'
+import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
 
-export class TcpAdapter extends SocketAdapter {
+export class RpcTcpAdapter extends RpcSocketAdapter {
   constructor(
     host: string,
     port: number,

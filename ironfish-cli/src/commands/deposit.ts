@@ -5,11 +5,11 @@
 import {
   Assert,
   displayIronAmountWithCurrency,
-  IronfishClient,
   ironToOre,
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
+  RpcClient,
   WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -23,7 +23,7 @@ const IRON_TO_SEND = 0.1
 export default class Bank extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
-  client: IronfishClient | null = null
+  client: RpcClient | null = null
   api: WebApi | null = new WebApi()
 
   static flags = {

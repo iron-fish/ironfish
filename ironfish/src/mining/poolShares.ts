@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
-import { IronfishRpcClient } from '../rpc/clients/rpcClient'
+import { RpcSocketClient } from '../rpc/clients/socketClient'
 import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
@@ -13,7 +13,7 @@ import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 
 export class MiningPoolShares {
-  readonly rpc: IronfishRpcClient
+  readonly rpc: RpcSocketClient
   readonly config: Config
   readonly logger: Logger
   readonly discord: Discord | null
@@ -32,7 +32,7 @@ export class MiningPoolShares {
 
   private constructor(options: {
     db: PoolDatabase
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     config: Config
     logger: Logger
     discord?: Discord
@@ -59,7 +59,7 @@ export class MiningPoolShares {
   }
 
   static async init(options: {
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     config: Config
     logger: Logger
     discord?: Discord

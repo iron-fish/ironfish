@@ -9,7 +9,7 @@ import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
 import { isResponseError, Response } from '../response'
 import { Stream } from '../stream'
-import { IronfishClient } from './client'
+import { RpcClient } from './client'
 import { ConnectionError, RequestError, RequestTimeoutError } from './errors'
 
 const REQUEST_TIMEOUT_MS = null
@@ -25,7 +25,7 @@ export type RpcClientConnectionInfo =
       port: number
     }
 
-export abstract class IronfishRpcClient extends IronfishClient {
+export abstract class RpcSocketClient extends RpcClient {
   abstract client: IpcClient | net.Socket | null
   abstract isConnected: boolean
   abstract connection: Partial<RpcClientConnectionInfo>

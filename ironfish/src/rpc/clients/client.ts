@@ -73,7 +73,7 @@ import {
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
 
-export abstract class IronfishClient {
+export abstract class RpcClient {
   readonly logger: Logger
 
   constructor(logger: Logger) {
