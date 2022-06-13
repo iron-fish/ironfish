@@ -156,7 +156,6 @@ export class IronfishSdk {
           socketPath: config.get('ipcPath'),
         },
         logger,
-        config.get('rpcRetryConnect'),
       )
     }
 
