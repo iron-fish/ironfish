@@ -11,7 +11,7 @@ import { MessageBuffer } from '../../messageBuffer'
 import { Request } from '../../request'
 import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
-import { IAdapter } from '../adapter'
+import { IRpcAdapter } from '../adapter'
 import { ERROR_CODES, ResponseError } from '../errors'
 import {
   ClientSocketRpcSchema,
@@ -27,7 +27,7 @@ type SocketClient = {
   messageBuffer: MessageBuffer
 }
 
-export abstract class SocketAdapter implements IAdapter {
+export abstract class RpcSocketAdapter implements IRpcAdapter {
   logger: Logger
   host: string
   port: number

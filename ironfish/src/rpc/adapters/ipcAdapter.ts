@@ -11,7 +11,7 @@ import { YupUtils } from '../../utils/yup'
 import { Request } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
-import { IAdapter } from './adapter'
+import { IRpcAdapter } from './adapter'
 import { ERROR_CODES, ResponseError } from './errors'
 
 export type IpcRequest = {
@@ -79,7 +79,7 @@ export type IpcAdapterConnectionInfo =
       port: number
     }
 
-export class IpcAdapter implements IAdapter {
+export class RpcIpcAdapter implements IRpcAdapter {
   router: Router | null = null
   ipc: IPC | null = null
   server: IpcServer | null = null

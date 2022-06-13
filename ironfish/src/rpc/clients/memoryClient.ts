@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
-import { MemoryAdapter, MemoryResponse } from '../adapters'
+import { MemoryResponse, RpcMemoryAdapter } from '../adapters'
 import { ALL_API_NAMESPACES, Router } from '../routes'
-import { IronfishClient } from './client'
+import { RpcClient } from './client'
 
-export class IronfishMemoryClient extends IronfishClient {
+export class RpcMemoryClient extends RpcClient {
   node: IronfishNode
   router: Router
 
@@ -29,6 +29,6 @@ export class IronfishMemoryClient extends IronfishClient {
       throw new Error(`MemoryAdapter does not support timeoutMs`)
     }
 
-    return MemoryAdapter.requestStream<TEnd, TStream>(this.router, route, data)
+    return RpcMemoryAdapter.requestStream<TEnd, TStream>(this.router, route, data)
   }
 }

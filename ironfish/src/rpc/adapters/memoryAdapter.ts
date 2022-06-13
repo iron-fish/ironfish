@@ -16,7 +16,7 @@ import { ResponseError } from './errors'
  *
  * This is useful any time you want to make requests without hitting an IO layer.
  */
-export class MemoryAdapter {
+export class RpcMemoryAdapter {
   /**
    * Makes a request against the routing layer with a given route, and data and returns
    * a response for you to accumulate the streaming results, or wait for a response

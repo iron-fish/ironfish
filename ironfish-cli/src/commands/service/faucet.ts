@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ConnectionError, IronfishRpcClient, Meter, PromiseUtils, WebApi } from '@ironfish/sdk'
+import { ConnectionError, Meter, PromiseUtils, RpcSocketClient, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -77,7 +77,7 @@ export default class Faucet extends IronfishCommand {
     }
   }
 
-  async startSyncing(client: IronfishRpcClient, api: WebApi, speed: Meter): Promise<void> {
+  async startSyncing(client: RpcSocketClient, api: WebApi, speed: Meter): Promise<void> {
     const connected = await client.tryConnect()
 
     if (!connected) {
@@ -106,7 +106,7 @@ export default class Faucet extends IronfishCommand {
   }
 
   async processNextTransaction(
-    client: IronfishRpcClient,
+    client: RpcSocketClient,
     account: string,
     speed: Meter,
     api: WebApi,

@@ -7,9 +7,9 @@ import tls from 'tls'
 import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
 import { ApiNamespace } from '../routes'
-import { SocketAdapter } from './socketAdapter/socketAdapter'
+import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
 
-export class TlsAdapter extends SocketAdapter {
+export class RpcTlsAdapter extends RpcSocketAdapter {
   readonly fileSystem: FileSystem
   readonly nodeKeyPath: string
   readonly nodeCertPath: string
