@@ -10,6 +10,7 @@ import {
   parseUrl,
   StringUtils,
 } from '@ironfish/sdk'
+import { WebhookNotifier } from '@ironfish/sdk/src/mining/webhooks'
 import { Flags } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
@@ -62,26 +63,28 @@ export class StartPool extends IronfishCommand {
 
     this.log(`Starting pool with name ${poolName}`)
 
-    let discord: Discord | undefined = undefined
+    const webhooks: WebhookNotifier[] = []
 
     const discordWebhook = flags.discord ?? this.sdk.config.get('poolDiscordWebhook')
     if (discordWebhook) {
-      discord = new Discord({
-        webhook: discordWebhook,
-        logger: this.logger,
-      })
+      webhooks.push(
+        new Discord({
+          webhook: discordWebhook,
+          logger: this.logger,
+        }),
+      )
 
       this.log(`Discord enabled: ${discordWebhook}`)
     }
 
-    let lark: Lark | undefined = undefined
-
     const larkWebhook = flags.lark ?? this.sdk.config.get('poolLarkWebhook')
     if (larkWebhook) {
-      lark = new Lark({
-        webhook: larkWebhook,
-        logger: this.logger,
-      })
+      webhooks.push(
+        new Lark({
+          webhook: larkWebhook,
+          logger: this.logger,
+        }),
+      )
 
       this.log(`Lark enabled: ${larkWebhook}`)
     }
@@ -107,8 +110,7 @@ export class StartPool extends IronfishCommand {
       logger: this.logger,
       rpc,
       enablePayouts: flags.payouts,
-      discord,
-      lark,
+      webhooks: webhooks,
       host: host,
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,

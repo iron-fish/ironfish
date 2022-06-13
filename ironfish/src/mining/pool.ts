@@ -16,8 +16,7 @@ import { SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
-import { Discord } from './webhooks'
-import { Lark } from './webhooks'
+import { WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
@@ -27,8 +26,7 @@ export class MiningPool {
   readonly logger: Logger
   readonly shares: MiningPoolShares
   readonly config: Config
-  readonly discord: Discord | null
-  readonly lark: Lark | null
+  readonly webhooks: WebhookNotifier[]
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -56,15 +54,13 @@ export class MiningPool {
     shares: MiningPoolShares
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     host?: string
     port?: number
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
-    this.discord = options.discord ?? null
-    this.lark = options.lark ?? null
+    this.webhooks = options.webhooks ?? []
     this.stratum = new StratumServer({
       pool: this,
       config: options.config,
@@ -97,8 +93,7 @@ export class MiningPool {
     rpc: IronfishRpcClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     host?: string
     port?: number
@@ -108,8 +103,7 @@ export class MiningPool {
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
@@ -118,8 +112,7 @@ export class MiningPool {
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       host: options.host,
       port: options.port,
       shares,
@@ -241,8 +234,9 @@ export class MiningPool {
             'hex',
           )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
         )
-        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
-        this.lark?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
+        this.webhooks.map((w) =>
+          w.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size),
+        )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
@@ -273,9 +267,8 @@ export class MiningPool {
       return
     }
 
-    if (this.connectWarned) {
-      this.discord?.poolConnected()
-      this.lark?.poolConnected()
+    if (connected) {
+      this.webhooks.map((w) => w.poolConnected())
     }
 
     this.connectWarned = false
@@ -293,8 +286,8 @@ export class MiningPool {
     this.stratum.waitForWork()
 
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
-    this.discord?.poolDisconnected()
-    this.lark?.poolDisconnected()
+
+    this.webhooks.map((w) => w.poolDisconnected())
     void this.startConnectingRpc()
   }
 
