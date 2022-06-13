@@ -702,8 +702,9 @@ export class PeerNetwork {
       return true
     }
 
+    await this.node.accounts.syncTransaction(verifiedTransaction, {})
+
     if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
-      await this.node.accounts.syncTransaction(verifiedTransaction, {})
       return true
     }
 

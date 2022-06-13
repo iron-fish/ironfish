@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 jest.mock('ws')
 
 import type WSWebSocket from 'ws'
@@ -271,7 +272,7 @@ describe('PeerNetwork', () => {
       })
 
       describe('accepts new transactions', () => {
-        it('verifies transactions', async () => {
+        it('verifies and syncs transactions', async () => {
           const chain = {
             ...mockChain(),
             verifier: {
@@ -304,7 +305,6 @@ describe('PeerNetwork', () => {
             'verifyNewTransaction',
           )
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           expect(node.workerPool.saturated).toEqual(false)
 
           const message = {
@@ -312,25 +312,33 @@ describe('PeerNetwork', () => {
             message: new NewTransactionMessage(Buffer.from(''), Buffer.alloc(16, 'nonce')),
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          node.memPool.exists = jest.fn().mockReturnValue(false)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          node.memPool.acceptTransaction = jest.fn().mockReturnValue(true)
+          const exists = jest.spyOn(node.memPool, 'exists').mockReturnValue(false)
+          const acceptTransaction = jest
+            .spyOn(node.memPool, 'acceptTransaction')
+            .mockReturnValueOnce(true)
+          const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
 
           let gossip = await peerNetwork['onNewTransaction'](message)
           expect(gossip).toBe(true)
           expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(node.memPool.acceptTransaction).toHaveBeenCalledTimes(1)
+          expect(acceptTransaction).toHaveBeenCalledTimes(1)
+          expect(syncTransaction).toHaveBeenCalledTimes(1)
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          node.memPool.exists = jest.fn().mockReturnValue(true)
+          acceptTransaction.mockReturnValueOnce(false)
+
+          gossip = await peerNetwork['onNewTransaction'](message)
+          expect(gossip).toBe(false)
+          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(2)
+          expect(acceptTransaction).toHaveBeenCalledTimes(2)
+          expect(syncTransaction).toHaveBeenCalledTimes(2)
+
+          exists.mockReturnValueOnce(true)
 
           gossip = await peerNetwork['onNewTransaction'](message)
           expect(gossip).toBe(true)
-          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(2)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          expect(node.memPool.acceptTransaction).toHaveBeenCalledTimes(1)
+          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(3)
+          expect(acceptTransaction).toHaveBeenCalledTimes(2)
+          expect(syncTransaction).toHaveBeenCalledTimes(2)
         })
       })
     })
