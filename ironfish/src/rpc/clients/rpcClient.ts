@@ -52,7 +52,7 @@ export abstract class IronfishRpcClient extends IronfishClient {
   onClose = new Event<[]>()
 
   async tryConnect(): Promise<boolean> {
-    return this.connect({ retryConnect: false })
+    return this.connect()
       .then(() => true)
       .catch((e: unknown) => {
         if (e instanceof ConnectionError) {

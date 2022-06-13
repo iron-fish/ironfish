@@ -14,56 +14,25 @@ import { MessageBuffer } from '../messageBuffer'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
 import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
 
-const CONNECT_RETRY_MS = 2000
-
 export class IronfishTcpClient extends IronfishRpcClient {
   client: net.Socket | null = null
   protected readonly host: string
   protected readonly port: number
-  private retryConnect: boolean
   private connectTimeout: SetTimeoutToken | null
   isConnected = false
   connection: RpcClientConnectionInfo
   private messageBuffer: MessageBuffer
 
-  constructor(
-    host: string,
-    port: number,
-    logger: Logger = createRootLogger(),
-    retryConnect = false,
-  ) {
+  constructor(host: string, port: number, logger: Logger = createRootLogger()) {
     super(logger.withTag('tcpclient'))
     this.host = host
     this.port = port
     this.connection = { mode: 'tcp', host: host, port: port }
-    this.retryConnect = retryConnect
     this.connectTimeout = null
     this.messageBuffer = new MessageBuffer()
   }
 
   async connect(): Promise<void> {
-    let connectionError: unknown
-    const connected = await this.connectClient()
-      .then(() => true)
-      .catch((error) => {
-        connectionError = error
-        return false
-      })
-
-    if (!connected) {
-      if (this.retryConnect) {
-        this.logger.warn(
-          `Failed to connect to ${String(this.host)}:${String(this.port)}, retrying`,
-        )
-        this.connectTimeout = setTimeout(() => void this.connect(), CONNECT_RETRY_MS)
-        return
-      }
-      this.logger.error(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
-      throw connectionError
-    }
-  }
-
-  async connectClient(): Promise<void> {
     return new Promise((resolve, reject): void => {
       const onConnect = () => {
         client.off('connect', onConnect)

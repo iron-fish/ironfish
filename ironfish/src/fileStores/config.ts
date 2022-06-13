@@ -99,7 +99,6 @@ export type ConfigOptions = {
   rpcTcpHost: string
   rpcTcpPort: number
   rpcTcpSecure: boolean
-  rpcRetryConnect: boolean
   tlsKeyPath: string
   tlsCertPath: string
   /**
@@ -266,7 +265,6 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
       rpcTcpSecure: false,
-      rpcRetryConnect: false,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
