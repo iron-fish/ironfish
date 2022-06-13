@@ -13,11 +13,11 @@ import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
-import { Lark } from './lark'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
+import { Discord } from './webhooks'
+import { Lark } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 

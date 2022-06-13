@@ -8,9 +8,9 @@ import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
-import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
+import { Discord } from './webhooks'
+import { Lark } from './webhooks'
 
 export class MiningPoolShares {
   readonly rpc: IronfishRpcClient

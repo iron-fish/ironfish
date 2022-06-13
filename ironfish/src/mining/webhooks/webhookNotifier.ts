@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import Axios, { AxiosInstance } from 'axios'
-import { Logger } from '../logger'
-import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../utils'
-import { FileUtils } from '../utils/file'
+import { createRootLogger, Logger } from '../../logger'
+import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
+import { FileUtils } from '../../utils/file'
 
-export class Discord {
-  private readonly webhook: string | null = null
-  private readonly client: AxiosInstance | null = null
-  private readonly logger: Logger
+export abstract class WebhookNotifier {
+  protected readonly webhook: string | null = null
+  protected readonly client: AxiosInstance | null = null
+  protected readonly logger: Logger
 
-  constructor(options: { webhook: string | null; logger: Logger }) {
-    this.logger = options.logger
+  constructor(options: { webhook: string | null; logger?: Logger }) {
+    this.logger = options.logger ?? createRootLogger()
 
     if (options.webhook) {
       this.webhook = options.webhook
@@ -21,15 +21,7 @@ export class Discord {
     }
   }
 
-  sendText(text: string): void {
-    if (!this.client || !this.webhook) {
-      return
-    }
-
-    this.client.post(this.webhook, { content: text }).catch((e) => {
-      this.logger.error('Error sending discord message', e)
-    })
-  }
+  abstract sendText(text: string): void
 
   poolConnected(): void {
     this.sendText('Successfully connected to node')
