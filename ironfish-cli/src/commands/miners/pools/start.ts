@@ -9,8 +9,8 @@ import {
   MiningPool,
   parseUrl,
   StringUtils,
+  WebhookNotifier,
 } from '@ironfish/sdk'
-import { WebhookNotifier } from '@ironfish/sdk/src/mining/webhooks'
 import { Flags } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
