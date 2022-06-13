@@ -8,8 +8,8 @@ import { ApiNamespace, Router, router } from './routes'
 
 export class RpcServer {
   readonly node: IronfishNode
+  readonly adapters: IRpcAdapter[] = []
 
-  private readonly adapters: IRpcAdapter[] = []
   private readonly router: Router
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null

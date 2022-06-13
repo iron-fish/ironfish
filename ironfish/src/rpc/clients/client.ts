@@ -72,6 +72,7 @@ import {
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
+import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 
 export abstract class RpcClient {
   readonly logger: Logger
@@ -252,6 +253,24 @@ export abstract class RpcClient {
     params: GetWorkersStatusRequest = undefined,
   ): Response<void, GetWorkersStatusResponse> {
     return this.request<void, GetWorkersStatusResponse>(`${ApiNamespace.worker}/getStatus`, {
+      ...params,
+      stream: true,
+    })
+  }
+
+  async getRpcStatus(
+    params: GetRpcStatusRequest = undefined,
+  ): Promise<ResponseEnded<GetRpcStatusResponse>> {
+    return this.request<GetRpcStatusResponse>(
+      `${ApiNamespace.rpc}/getStatus`,
+      params,
+    ).waitForEnd()
+  }
+
+  getRpcStatusStream(
+    params: GetRpcStatusRequest = undefined,
+  ): Response<void, GetRpcStatusResponse> {
+    return this.request<void, GetRpcStatusResponse>(`${ApiNamespace.rpc}/getStatus`, {
       ...params,
       stream: true,
     })
