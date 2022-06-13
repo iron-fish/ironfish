@@ -61,14 +61,14 @@ export class IronfishTcpClient extends IronfishRpcClient {
       this.logger.error(`Failed to connect to ${String(this.host)}:${String(this.port)}`)
       throw connectionError
     }
+    this.onConnect()
   }
 
-  async connectClient(): Promise<void> {
+  protected async connectClient(): Promise<void> {
     return new Promise((resolve, reject): void => {
       const onConnect = () => {
         client.off('connect', onConnect)
         client.off('error', onError)
-        this.onConnect()
         resolve()
       }
 
@@ -85,11 +85,16 @@ export class IronfishTcpClient extends IronfishRpcClient {
       }
 
       this.logger.debug(`Connecting to ${String(this.host)}:${String(this.port)}`)
-      const client = net.connect(this.port, this.host)
+      const client = new net.Socket()
+      this.client = client
       client.on('error', onError)
       client.on('connect', onConnect)
-      this.client = client
+      client.connect(this.port, this.host)
     })
+  }
+
+  protected setClient(client: net.Socket): void {
+    this.client = client
   }
 
   close(): void {
