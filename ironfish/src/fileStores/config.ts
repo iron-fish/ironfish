@@ -14,6 +14,7 @@ export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transa
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
 export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
+export const DEFAULT_SNAPSHOT_BUCKET = ''
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
