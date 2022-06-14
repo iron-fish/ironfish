@@ -5,6 +5,7 @@ import { Assert, AsyncUtils, FileUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish
 import { CliUx, Flags } from '@oclif/core'
 import { spawn } from 'child_process'
 import fsAsync from 'fs/promises'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { parseNumber } from '../../args'
@@ -13,8 +14,6 @@ import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
 export default class CreateSnapshot extends IronfishCommand {
-  static hidden = true
-
   static description = `Upload chain snapshot to a public bucket`
 
   static flags = {
@@ -52,77 +51,46 @@ export default class CreateSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(CreateSnapshot)
 
-    const bucket = (flags.bucket || process.env.IRONFISH_SNAPSHOT_BUCKET || '').trim()
-    if (!bucket) {
-      this.log(
-        `Cannot upload snapshot without bucket URL. You must set IRONFISH_SNAPSHOT_BUCKET or pass --bucket flag.`,
-      )
-      this.exit(1)
-    }
+    const exportDir = flags.path
+      ? this.sdk.fileSystem.resolve(flags.path)
+      : this.sdk.config.dataDir
 
-    let exportDir
-
-    if (flags.path) {
-      exportDir = this.sdk.fileSystem.resolve(flags.path)
-    } else {
-      try {
-        exportDir = await fsAsync.mkdtemp(`${os.tmpdir()}${path.sep}`)
-      } catch (err) {
-        this.log(`Could not create temp folder for snapshot generation`)
-        this.exit(1)
-      }
-    }
-    Assert.isNotUndefined(exportDir)
-
-    const blockExportPath = this.sdk.fileSystem.join(exportDir, 'blocks')
-    await this.sdk.fileSystem.mkdir(blockExportPath, { recursive: true })
-
-    this.log('Connecting to node...')
+    const exportPath = this.sdk.fileSystem.join(exportDir, 'data.json')
 
     const client = await this.sdk.connectRpc()
 
-    const response = client.snapshotChainStream({
+    const stream = client.snapshotChainStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
     })
 
-    const { start, stop } = await AsyncUtils.first(response.contentStream())
-    this.log(`Retrieving blocks from ${start} -> ${stop} for snapshot generation`)
+    const { start, stop } = await AsyncUtils.first(stream.contentStream())
+    this.log(`Exporting chain from ${start} -> ${stop} to ${exportPath}`)
 
     const progress = CliUx.ux.progress({
-      format: 'Retrieving blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
+      format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
     }) as ProgressBar
 
     progress.start(stop - start + 1, 0)
 
-    for await (const result of response.contentStream()) {
-      if (result.block) {
-        const blockFilePath = this.sdk.fileSystem.join(
-          blockExportPath,
-          `${result.block.seq}.bin`,
-        )
-        await fsAsync.writeFile(blockFilePath, Buffer.from(result.block.buffer))
-        progress.update(result.block.seq || 0)
-      }
+    const results: unknown[] = []
+
+    for await (const result of stream.contentStream()) {
+      results.push(result.block)
+      progress.update(result.block?.seq || 0)
     }
 
     progress.stop()
 
-    const snapshotPath = this.sdk.fileSystem.join(
-      exportDir,
-      `ironfish_snapshot_${Date.now()}.tar.gz`,
-    )
+    await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
 
-    this.log(`Zipping\n    SRC ${blockExportPath}\n    DST ${snapshotPath}\n`)
-    CliUx.ux.action.start(`Zipping ${blockExportPath}`)
-    await this.zipDir(blockExportPath, snapshotPath)
-
-    const stat = await fsAsync.stat(snapshotPath)
-    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
-
-    // CliUx.ux.action.start(`Uploading to ${bucket}`)
-    // await this.uploadToS3(snapshotPath, bucket)
-    // CliUx.ux.action.stop(`done`)
+    // await fs.promises.writeFile(exportPath, JSON.stringify(results, undefined, '  '))
+    await fs.promises.writeFile(exportPath, JSON.stringify(results, (key, value) =>
+            typeof value === 'bigint'
+                ? value.toString()
+                : value // return everything else unchanged
+        , '  '));
+    this.log('Export complete')
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {

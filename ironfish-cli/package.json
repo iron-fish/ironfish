@@ -84,20 +84,26 @@
       "accounts": {
         "description": "Create and delete accounts"
       },
+      "blocks": {
+        "description": "Block information"
+      },
       "chain": {
         "description": "Manage the blockchain"
       },
       "config": {
         "description": "Show and edit the node configuration"
       },
-      "faucet": {
-        "description": "Get coins to start using Iron Fish"
-      },
       "miners": {
         "description": "Manage an Iron Fish miner"
       },
       "peers": {
         "description": "Manage the peers connected to this node"
+      },
+      "service": {
+        "description": "Node upkeep services"
+      },
+      "workers": {
+        "description": "Worker pool information"
       }
     }
   },

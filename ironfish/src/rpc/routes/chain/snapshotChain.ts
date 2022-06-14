@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import bufio from 'bufio'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getBlockSize, writeBlock } from '../../../network/utils/block'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { ApiNamespace, router } from '../router'
+import { BlockSerde } from '../../../primitives/block'
+import { Transaction } from '../../../primitives/transaction'
+import bufio from 'bufio'
 
 export type SnapshotChainStreamRequest =
   | {
@@ -19,32 +20,49 @@ export type SnapshotChainStreamResponse = {
   start: number
   stop: number
   block?: {
+    hash: string
     seq: number
-    buffer: Buffer
+    prev: string
+    main: boolean
+    graffiti: string
+    timestamp: number
+    work: string
+    difficulty: string
+    head: boolean
+    latest: boolean
   }
 }
 
-export const SnapshotChainStreamRequestSchema: yup.ObjectSchema<SnapshotChainStreamRequest> =
-  yup
-    .object({
-      start: yup.number().nullable().optional(),
-      stop: yup.number().nullable().optional(),
-    })
-    .optional()
+const TransactionSchema = yup.object().required()
 
-export const SnapshotChainStreamResponseSchema: yup.ObjectSchema<SnapshotChainStreamResponse> =
-  yup
-    .object({
-      start: yup.number().defined(),
-      stop: yup.number().defined(),
-      block: yup
-        .object({
-          seq: yup.number().defined(),
-          buffer: yup.mixed<Buffer>().defined(),
-        })
-        .optional(),
-    })
-    .defined()
+export const SnapshotChainStreamRequestSchema: yup.ObjectSchema<SnapshotChainStreamRequest> = yup
+  .object({
+    start: yup.number().nullable().optional(),
+    stop: yup.number().nullable().optional(),
+  })
+  .optional()
+
+export const SnapshotChainStreamResponseSchema: yup.ObjectSchema<SnapshotChainStreamResponse> = yup
+  .object({
+    start: yup.number().defined(),
+    stop: yup.number().defined(),
+    block: yup
+      .object({
+        hash: yup.string().defined(),
+        seq: yup.number().defined(),
+        prev: yup.string().defined(),
+        main: yup.boolean().defined(),
+        graffiti: yup.string().defined(),
+        timestamp: yup.number().defined(),
+        work: yup.string().defined(),
+        difficulty: yup.string().defined(),
+        head: yup.boolean().defined(),
+        latest: yup.boolean().defined(),
+      })
+      .optional(),
+    transactions: yup.array().of(TransactionSchema).required(),
+  })
+  .defined()
 
 router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResponse>(
   `${ApiNamespace.chain}/snapshotChainStream`,
@@ -61,15 +79,36 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
     request.stream({ start, stop })
 
     for (let i = start; i <= stop; ++i) {
-      const blockHeader = await node.chain.getHeaderAtSequence(i)
-      if (blockHeader) {
+      const blockHeaders = await node.chain.getHeadersAtSequence(i)
+
+      for (const blockHeader of blockHeaders) {
+        const isMain = await node.chain.isHeadChain(blockHeader)
         const block = await node.chain.getBlock(blockHeader)
-        if (block) {
-          const serializedBlock = node.chain.strategy.blockSerde.serialize(block)
-          const bw = bufio.write(getBlockSize(serializedBlock))
-          const buffer = writeBlock(bw, serializedBlock).render()
-          request.stream({ start, stop, block: { seq: i, buffer } })
+        let serializedBlock
+        let transactions:Transaction[]
+        if(block) {
+          serializedBlock = node.chain.strategy.blockSerde.serialize(block)
+          // console.log(serializedBlock)
+          transactions = block.transactions
+        } else {
+          transactions = []
         }
+
+        const dummyResult = {
+          main: isMain,
+          hash: blockHeader.hash.toString('hex'),
+          seq: blockHeader.sequence,
+          prev: blockHeader.previousBlockHash.toString('hex'),
+          graffiti: blockHeader.graffiti.toString('ascii'),
+          timestamp: blockHeader.timestamp.getTime(),
+          work: blockHeader.work.toString(),
+          difficulty: blockHeader.target.toDifficulty().toString(),
+          head: blockHeader.hash.equals(node.chain.head.hash),
+          latest: blockHeader.hash.equals(node.chain.latest.hash),
+          transactions: transactions
+        }
+
+        request.stream({ start, stop, block: dummyResult })
       }
     }
 

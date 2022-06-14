@@ -9,11 +9,7 @@ import { RemoteFlags } from '../../flags'
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class Sync extends IronfishCommand {
-  static hidden = true
-
-  static description = `
-    Upload blocks to an HTTP API using IronfishApi
-  `
+  static description = `Upload blocks to an HTTP API using IronfishApi`
 
   static flags = {
     ...RemoteFlags,
