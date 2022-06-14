@@ -4,6 +4,7 @@
 import { Assert, AsyncUtils, FileUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { spawn } from 'child_process'
+import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
@@ -105,21 +106,46 @@ export default class CreateSnapshot extends IronfishCommand {
 
     progress.stop()
 
-    const snapshotPath = this.sdk.fileSystem.join(
-      exportDir,
-      `ironfish_snapshot_${Date.now()}.tar.gz`,
-    )
+    const snapshotFileName = `ironfish_snapshot_${Date.now()}.tar.gz`
+    const snapshotPath = this.sdk.fileSystem.join(exportDir, snapshotFileName)
 
     this.log(`Zipping\n    SRC ${blockExportPath}\n    DST ${snapshotPath}\n`)
     CliUx.ux.action.start(`Zipping ${blockExportPath}`)
     await this.zipDir(blockExportPath, snapshotPath)
 
+    const hasher = crypto.createHash('sha256')
+    const fileHandle = await fsAsync.open(snapshotPath, 'r')
+    const reader = fileHandle.createReadStream()
+
+    reader.on('data', (data) => {
+      hasher.update(data)
+    })
+
     const stat = await fsAsync.stat(snapshotPath)
-    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
+
+    const checksum = hasher.digest().toString('hex')
+    const fileSize = stat.size
+    const timestamp = stat.birthtimeMs
+    const blockHeight = stop
+    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
-    await this.uploadToS3(snapshotPath, bucket)
+    await this.uploadToS3(snapshotPath, bucket, 'application/x-compressed-tar')
     CliUx.ux.action.stop(`done`)
+
+    await fsAsync.writeFile(
+      path.join(exportDir, 'manifest.json'),
+      JSON.stringify({
+        block_height: blockHeight,
+        checksum: checksum,
+        file_name: snapshotFileName,
+        file_size: fileSize,
+        timestamp: timestamp,
+      }),
+    )
+
+    CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
+    await this.uploadToS3(path.join(exportDir, 'manifest.json'), bucket, 'application/json')
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
@@ -141,12 +167,11 @@ export default class CreateSnapshot extends IronfishCommand {
     })
   }
 
-  uploadToS3(dest: string, bucket: string): Promise<number | null> {
+  uploadToS3(dest: string, bucket: string, contentType: string): Promise<number | null> {
     return new Promise<number | null>((resolve, reject) => {
       const date = new Date().toISOString()
       const host = `${bucket}.s3.amazonaws.com`
       const file = path.basename(dest)
-      const contentType = 'application/x-compressed-tar'
       const acl = 'bucket-owner-full-control'
 
       const process = spawn(
