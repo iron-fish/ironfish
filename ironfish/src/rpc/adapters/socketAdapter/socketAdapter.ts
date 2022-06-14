@@ -4,6 +4,7 @@
 import net from 'net'
 import { v4 as uuid } from 'uuid'
 import { createRootLogger, Logger } from '../../../logger'
+import { Meter } from '../../../metrics/meter'
 import { JSONUtils } from '../../../utils'
 import { ErrorUtils } from '../../../utils/error'
 import { YupUtils } from '../../../utils/yup'
@@ -38,6 +39,9 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   started = false
   clients = new Map<string, SocketClient>()
 
+  inboundTraffic = new Meter()
+  outboundTraffic = new Meter()
+
   constructor(
     host: string,
     port: number,
@@ -61,6 +65,9 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     const server = await this.createServer()
     this.server = server
 
+    this.inboundTraffic.start()
+    this.outboundTraffic.start()
+
     return new Promise((resolve, reject) => {
       server.on('error', (err) => {
         reject(err)
@@ -83,6 +90,9 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     if (!this.started) {
       return
     }
+
+    this.inboundTraffic.stop()
+    this.outboundTraffic.stop()
 
     this.clients.forEach((client) => {
       client.requests.forEach((r) => r.close())
@@ -153,7 +163,9 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   async onClientData(client: SocketClient, data: Buffer): Promise<void> {
+    this.inboundTraffic.add(data.byteLength)
     client.messageBuffer.write(data)
+
     for (const rpcMessage of client.messageBuffer.readMessages()) {
       const [parsed, error] = JSONUtils.tryParse(rpcMessage)
       if (error) {
@@ -209,6 +221,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   emitResponse(client: SocketClient, data: ServerSocketRpc, requestId?: string): void {
     const message = this.encodeNodeIpc(data)
     client.socket.write(message)
+    this.outboundTraffic.add(message.byteLength)
 
     if (requestId) {
       client.requests.get(requestId)?.close()
@@ -219,6 +232,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   emitStream(client: SocketClient, data: ServerSocketRpc): void {
     const message = this.encodeNodeIpc(data)
     client.socket.write(message)
+    this.outboundTraffic.add(message.byteLength)
   }
 
   // `constructResponse`,  `constructStream` and `constructMalformedRequest` construct messages to return
@@ -226,8 +240,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   // The '\f' is for handling the delimeter that 'node-ipc' expects when parsing
   // messages it received. See 'node-ipc' parsing/formatting logic here:
   // https://github.com/RIAEvangelist/node-ipc/blob/master/entities/EventParser.js
-  encodeNodeIpc(ipcResponse: ServerSocketRpc): string {
-    return JSON.stringify(ipcResponse) + MESSAGE_DELIMITER
+  encodeNodeIpc(ipcResponse: ServerSocketRpc): Buffer {
+    return Buffer.from(JSON.stringify(ipcResponse) + MESSAGE_DELIMITER)
   }
 
   constructMessage(messageId: number, status: number, data: unknown): ServerSocketRpc {

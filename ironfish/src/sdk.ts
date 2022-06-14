@@ -203,6 +203,7 @@ export class IronfishSdk {
         ApiNamespace.transaction,
         ApiNamespace.telemetry,
         ApiNamespace.worker,
+        ApiNamespace.rpc,
       ]
 
       await node.rpc.mount(
@@ -228,6 +229,7 @@ export class IronfishSdk {
         ApiNamespace.transaction,
         ApiNamespace.telemetry,
         ApiNamespace.worker,
+        ApiNamespace.rpc,
       ]
 
       if (this.config.get('rpcTcpSecure')) {
