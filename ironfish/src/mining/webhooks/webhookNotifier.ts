@@ -7,15 +7,22 @@ import { createRootLogger, Logger } from '../../logger'
 import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
 import { FileUtils } from '../../utils/file'
 
-const BLOCK_EXPLORER_URL = 'https://explorer.ironfish.network'
-
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
   protected readonly client: AxiosInstance | null = null
   protected readonly logger: Logger
+  protected readonly explorerBlocksUrl: string | null = null
+  protected readonly explorerTransactionsUrl: string | null = null
 
-  constructor(options: { webhook: string | null; logger?: Logger }) {
+  constructor(options: {
+    webhook: string | null
+    logger?: Logger
+    explorerBlocksUrl?: string | null
+    explorerTransactionsUrl?: string | null
+  }) {
     this.logger = options.logger ?? createRootLogger()
+    this.explorerBlocksUrl = options.explorerBlocksUrl ?? null
+    this.explorerTransactionsUrl = options.explorerTransactionsUrl ?? null
 
     if (options.webhook) {
       this.webhook = options.webhook
@@ -34,11 +41,11 @@ export abstract class WebhookNotifier {
   }
 
   poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
-    const blockUrl = [BLOCK_EXPLORER_URL, 'blocks', hashedHeaderHex].join('/')
-    const blockLink = `[${hashedHeaderHex}](${blockUrl})`
-
     this.sendText(
-      `Block ${blockLink} submitted successfully! ${FileUtils.formatHashRate(
+      `Block ${this.renderHashHex(
+        hashedHeaderHex,
+        this.explorerBlocksUrl,
+      )} submitted successfully! ${FileUtils.formatHashRate(
         hashRate,
       )}/s with ${clients} miners`,
     )
@@ -52,16 +59,16 @@ export abstract class WebhookNotifier {
   ): void {
     const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
-    const transactionUrl = [BLOCK_EXPLORER_URL, 'transaction', transactionHashHex].join('/')
-    const transactionLink = `[${transactionHashHex}](${transactionUrl})`
-
     this.sendText(
       `Successfully created payout of ${totalShareCount} shares to ${
         receives.length
       } users for ${displayIronAmountWithCurrency(
         Number(oreToIron(Number(total.toString()))),
         false,
-      )} in transaction ${transactionLink}. Transaction pending (${payoutId})`,
+      )} in transaction ${this.renderHashHex(
+        transactionHashHex,
+        this.explorerTransactionsUrl,
+      )}. Transaction pending (${payoutId})`,
     )
   }
 
@@ -69,5 +76,14 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Error while sending payout transaction: ${ErrorUtils.renderError(error, true)}`,
     )
+  }
+
+  private renderHashHex(hashHex: string, explorerUrl: string | null): string {
+    if (explorerUrl == null) {
+      return `\`${hashHex}\``
+    }
+
+    const hashHexUrl = explorerUrl + hashHex
+    return `[${hashHex}](${hashHexUrl})`
   }
 }
