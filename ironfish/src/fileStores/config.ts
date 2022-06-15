@@ -291,7 +291,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
-      poolMaxConnectionsPerIp: 20,
+      poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
     }

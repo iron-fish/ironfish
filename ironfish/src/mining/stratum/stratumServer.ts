@@ -334,7 +334,7 @@ export class StratumServer {
     }
 
     const connectionsByIp = this.openConnections.get(socket.remoteAddress) ?? 0
-    if (connectionsByIp >= this.maxOpenConnections) {
+    if (this.maxOpenConnections > 0 && connectionsByIp >= this.maxOpenConnections) {
       return false
     }
 
