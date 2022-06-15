@@ -103,38 +103,21 @@ export class StratumServer {
     this.send(client, 'mining.wait_for_work')
   }
 
-  addToConnectionCount(remoteAddress: string, addition: number): number {
-    this.openConnections.set(
-      remoteAddress,
-      (this.openConnections.get(remoteAddress) ?? 0) + addition,
-    )
-    return this.openConnections.get(remoteAddress) ?? 0
-  }
-
   private onConnection(socket: net.Socket): void {
-    if (!socket.remoteAddress) {
+    if (!this.isSocketAllowed(socket)) {
       socket.destroy()
       return
     }
 
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
 
-    if ((this.openConnections.get(client.remoteAddress) ?? 0) + 1 > this.maxOpenConnections) {
-      //Set timeout for disconnect in order to prevent spamming, then close the connection
-      setTimeout(() => {
-        client.close()
-      }, 10000)
-      return
-    }
-
-    this.addToConnectionCount(client.remoteAddress, 1)
+    this.addConnectionCount(client)
 
     socket.on('data', (data: Buffer) => {
       this.onData(client, data).catch((e) => this.onError(client, e))
     })
 
     socket.on('close', () => this.onDisconnect(client))
-
     socket.on('error', (e) => this.onError(client, e))
 
     this.logger.debug(`Client ${client.id} connected: ${client.remoteAddress}`)
@@ -155,9 +138,10 @@ export class StratumServer {
 
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
+
     this.clients.delete(client.id)
+    this.removeConnectionCount(client)
     client.close()
-    this.addToConnectionCount(client.socket.remoteAddress ?? '', -1)
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
@@ -248,7 +232,7 @@ export class StratumServer {
     client.socket.removeAllListeners()
     client.close()
     this.clients.delete(client.id)
-    this.addToConnectionCount(client.socket.remoteAddress ?? '', -1)
+    this.removeConnectionCount(client)
   }
 
   private getNotifyMessage(): MiningNotifyMessage {
@@ -328,5 +312,32 @@ export class StratumServer {
 
     const serialized = JSON.stringify(message) + '\n'
     client.socket.write(serialized)
+  }
+
+  protected addConnectionCount(client: StratumServerClient): void {
+    const count = this.openConnections.get(client.remoteAddress) ?? 0
+    this.openConnections.set(client.remoteAddress, count + 1)
+  }
+
+  protected removeConnectionCount(client: StratumServerClient): void {
+    const count = this.openConnections.get(client.remoteAddress) ?? 0
+    this.openConnections.set(client.remoteAddress, count - 1)
+
+    if (count - 1 <= 0) {
+      this.openConnections.delete(client.remoteAddress)
+    }
+  }
+
+  protected isSocketAllowed(socket: net.Socket): boolean {
+    if (!socket.remoteAddress) {
+      return false
+    }
+
+    const connectionsByIp = this.openConnections.get(socket.remoteAddress) ?? 0
+    if (connectionsByIp >= this.maxOpenConnections) {
+      return false
+    }
+
+    return true
   }
 }
