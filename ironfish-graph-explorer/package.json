@@ -19,6 +19,6 @@
     "webpack-dev-server": "4.6.0"
   },
   "dependencies": {
-    "fuse.js": "6.6.0"
+    "fuse.js": "6.6.2"
   }
 }
