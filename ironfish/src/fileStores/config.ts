@@ -18,6 +18,9 @@ export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_MINER_BATCH_SIZE = 25000
+export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
+export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
+  'https://explorer.ironfish.network/transaction/'
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -211,6 +214,16 @@ export type ConfigOptions = {
    * more easily process logs on a remote server using a log service like Datadog
    */
   jsonLogs: boolean
+
+  /**
+   * URL for viewing block information in a block explorer
+   */
+  explorerBlocksUrl: string
+
+  /**
+   * URL for viewing transaction information in a block explorer
+   */
+  explorerTransactionsUrl: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -295,6 +308,8 @@ export class Config extends KeyStore<ConfigOptions> {
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
+      explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
+      explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
     }
   }
 }
