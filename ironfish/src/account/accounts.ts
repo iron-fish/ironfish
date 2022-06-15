@@ -618,6 +618,46 @@ export class Accounts {
     this.scan = null
   }
 
+  getNotes(account: Account): {
+    notes: {
+      spender: boolean
+      amount: number
+      memo: string
+      noteTxHash: string
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    const notes = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      for (const note of transaction.notes()) {
+        // Try decrypting the note as the owner
+        let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+        let spender = false
+
+        if (!decryptedNote) {
+          // Try decrypting the note as the spender
+          decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+          spender = true
+        }
+
+        if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+          notes.push({
+            spender,
+            amount: Number(decryptedNote.value()),
+            memo: decryptedNote.memo().replace(/\x00/g, ''),
+            noteTxHash: transaction.hash().toString('hex'),
+          })
+        }
+      }
+    }
+
+    return { notes }
+  }
+
   private async getUnspentNotes(account: Account): Promise<
     ReadonlyArray<{
       hash: string
@@ -987,6 +1027,122 @@ export class Accounts {
     account.rescan = Date.now()
     await this.db.setAccount(account)
     await this.scanTransactions()
+  }
+
+  getTransactions(account: Account): {
+    transactions: {
+      creator: boolean
+      status: string
+      hash: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    const transactions = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      // check if account created transaction
+      let transactionCreator = false
+      let transactionRecipient = false
+
+      for (const note of transaction.notes()) {
+        if (note.decryptNoteForSpender(account.outgoingViewKey)) {
+          transactionCreator = true
+          break
+        } else if (note.decryptNoteForOwner(account.incomingViewKey)) {
+          transactionRecipient = true
+        }
+      }
+
+      if (transactionCreator || transactionRecipient) {
+        transactions.push({
+          creator: transactionCreator,
+          status:
+            transactionMapValue.blockHash && transactionMapValue.submittedSequence
+              ? 'completed'
+              : 'pending',
+          hash: transaction.hash().toString('hex'),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+        })
+      }
+    }
+
+    return { transactions }
+  }
+
+  getTransaction(
+    account: Account,
+    hash: string,
+  ): {
+    transactionInfo: {
+      status: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+    } | null
+    transactionNotes: {
+      spender: boolean
+      amount: number
+      memo: string
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    let transactionInfo = null
+    const transactionNotes = []
+
+    const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
+
+    if (transactionMapValue) {
+      const transaction = transactionMapValue.transaction
+
+      if (transaction.hash().toString('hex') === hash) {
+        for (const note of transaction.notes()) {
+          // Try decrypting the note as the owner
+          let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+          let spender = false
+
+          if (!decryptedNote) {
+            // Try decrypting the note as the spender
+            decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+            spender = true
+          }
+
+          if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+            transactionNotes.push({
+              spender,
+              amount: Number(decryptedNote.value()),
+              memo: decryptedNote.memo().replace(/\x00/g, ''),
+            })
+          }
+        }
+
+        if (transactionNotes.length > 0) {
+          transactionInfo = {
+            status:
+              transactionMapValue.blockHash && transactionMapValue.submittedSequence
+                ? 'completed'
+                : 'pending',
+            isMinersFee: transaction.isMinersFee(),
+            fee: Number(transaction.fee()),
+            notes: transaction.notesLength(),
+            spends: transaction.spendsLength(),
+          }
+        }
+      }
+    }
+
+    return { transactionInfo, transactionNotes }
   }
 
   async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {

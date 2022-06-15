@@ -9,8 +9,14 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  GetAccountNotesRequest,
+  GetAccountNotesResponse,
   GetAccountsRequest,
   GetAccountsResponse,
+  GetAccountTransactionRequest,
+  GetAccountTransactionResponse,
+  GetAccountTransactionsRequest,
+  GetAccountTransactionsResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -194,6 +200,33 @@ export abstract class RpcClient {
   ): Promise<ResponseEnded<GetPublicKeyResponse>> {
     return this.request<GetPublicKeyResponse>(
       `${ApiNamespace.account}/getPublicKey`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountNotes(
+    params: GetAccountNotesRequest = {},
+  ): Promise<ResponseEnded<GetAccountNotesResponse>> {
+    return await this.request<GetAccountNotesResponse>(
+      `${ApiNamespace.account}/getAccountNotes`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransaction(
+    params: GetAccountTransactionRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionResponse>> {
+    return await this.request<GetAccountTransactionResponse>(
+      `${ApiNamespace.account}/getAccountTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransactions(
+    params: GetAccountTransactionsRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionsResponse>> {
+    return await this.request<GetAccountTransactionsResponse>(
+      `${ApiNamespace.account}/getAccountTransactions`,
       params,
     ).waitForEnd()
   }
