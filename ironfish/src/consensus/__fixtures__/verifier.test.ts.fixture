@@ -1151,5 +1151,65 @@
       "type": "Buffer",
       "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIDCvU7/6L+knmQ8TW3eyFSlKI2d1l3xxL5Il6Vy8T7roZXGBhPSOi5dnD56B2C3+6JkjGFkhvta8UjAYp9LYKvFIBBxg8s9qMtP3l0FvJrQt/DclLAry5sYBuXttWFXkhEPm6g0Im9MHXNJBCW5zHZqsxNVnQRop6sjFt8zV76BcaFFoA/eJhTUnE8JqzJ7upRM/i/HhcUXbKQ1bF0gPkrKJCJilwXzSqgje6gfdnKPPbce6Zo0gzMAjjKVqDpg0tUelVD6bDKh/3EYrLaiGFJuZtsm+urwwYycxA4W+wimdvfhwst+4e2B2ff0cVgUsVUV7TE9et75F/qcAXXf1WShstc7sqGIyCZs9yYR+1boHlRM9TAl+/wCG0g0nlfT6W1Uy6rap91Y4zNwtirqrPzlYYwapdJjGQ98gOcBmhG0L/UBjqGihxlokw33SWJsR07nGWWSrX2QhnsFyVVcVlHJbrbhDsUCIeLPsP8yr6FBuGiOKI+VZal8Pvvq2T67h5eTbUJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwhdKeaznWKBiDRlHYXpfy5qa7kKd5jHHUAJWUsl2mSN8QxbvFtIeNf0Qsw/x7U2/myo/ZBG392hUnXuoTNNnvDA=="
     }
+  ],
+  "Verifier verifyTransactionContextual with an invalid expiration sequence returns TRANSACTION_EXPIRED": [
+    {
+      "name": "test",
+      "spendingKey": "8cc190b28aed5fe338fe773323860d62bcead0940d488b1bda606e1fc9641fe5",
+      "incomingViewKey": "7d84af7ed37ff2a1f367ab4ffcae8b381c7bcb4116a480610cab57ff3bdee705",
+      "outgoingViewKey": "f868a64c792f53b201c73c82255d4933ad7fc77e8a6e39774dc1da9fc8629043",
+      "publicAddress": "eac618729830d0b171c135923500d2f7c6c7d394a035b2a3067c53bd0408bc4b396531ef6a8c6c524ed6da",
+      "rescan": null,
+      "displayName": "test (a7407d7)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAKJJxi62eZiP9gVCSfP16Cp9II4teSNADPZsrvvBMF9w/QCEPC0mUhOcVG3tJfutbJOY6b52agTZENhJHCKt00xYsdafvfECY+wM/VcLLCKqsEl2dxuiUY4FBTbvL6HMjhmlhDpgDVJmGtp9VoQEs6tHzF+C5HYp2SThhqHMRq4e3CoevdKFGQCQZKw0DT6EiZmjrH43Nplv0r44rmj7DZUCuSoIEaDPaYMosB18dllYQ5oui94Rbt+VL08rIGUA7BO9BuzwCmnQ9DZu+9SWeKjoZZ6h1aawu5/rr5ZOV/GYM5NiivHG6HcNKyaZkLBvHfabAaBKzrdvdNMtOQZWHBaOyBuPm6vbgJjn5Kjq2QEzQV42LtkJIukEvnXs9IySSH8ow8LnITy4BZ5XJwhV2ImHtPGSc7uf8BariOJK/aXQ0ZgmsoEur5rUxPJoMmc629OIJtYPizrJihXO7hsk+As5yj3ljls1onur22DKtAr+YZJb5a5OGg/rDvOZQeVjv+IZ3UJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwTc/GTLNFCONapxrACOynsCpsMJ8NYpKMtnfw1GaorskF3U+SrtxwntoUOGhBDDSiRa6OBEAEpegnSLJYgZeHBg=="
+    }
+  ],
+  "Verifier verifyTransactionContextual when the worker pool returns false returns ERROR": [
+    {
+      "name": "test",
+      "spendingKey": "1f8123823f5c2ffc7899ee61b05cd322169af757c3240d16171c2dac87ade440",
+      "incomingViewKey": "4aad8e002d475e39d40b1c4c8239969cab2293b5143df4e90884181bbde89604",
+      "outgoingViewKey": "098206ee61fb8929b074362dbc065a714b5edf20b2f3d1a60606504ca6be2cc8",
+      "publicAddress": "ec9dc07f121278e0cb358e9e7fbd53cbe3eddabb3af13b03dfd17b3f3631571a643945810bd0dfe3d68970",
+      "rescan": null,
+      "displayName": "test (b456be9)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIRIlbx/GwSLyTg9nJv6LHfwNk56T6rpULFvR6PBMj4UXIEW71QIgAb7ezypUkZT06pJhFSDOG/x72+BGEBIJTNO09q1kTa3qTY0ugVsNDRjJeXTnOv6qCAXoSrpw3dg8AgfaZ5EexsbpsCLiSj+NuKRbaKDgLBd4Ll2Bo/jjjT0Pf1YHTUF31wm7j/anB33EYPAfG1fz9IM288jFX1POIlCWQRkYbKC3M1kCk1srEVrMj/D4GlQgSCwdZwOQQBuIxVSaO8aG2jJY4jTopxf4l6eCXPa2Ykng41G+v9PoI+Y2s7LzLq/Iwc0uaL/SB/oE4znD4f5GufBa60bMsyxdDm7KxOm1tIFcHEDYhMmA6EH1nT6NQ0gV0lnpXwGlwvzs93bG+NvTliTKrvgNkTLNZsZwd2fmUUu0HPYuiUSIkVgLAPYvoPeZWu/Qge+lZzr4KDASB0dv8NOL7Z5WUndiSWlxfEG9S/EapcEYtNRjc+us18rrfDj0ppoXekebwhc928u1EJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwYwz8Mxy8bM5SO9RPS0S4/5bSSOGJbNY3A2cK0XsUBuxZ5027UAyZRlTaGUiWHcUsEsVyMk/nCwmEH1FZkSacCg=="
+    }
+  ],
+  "Verifier verifyTransactionContextual when the worker pool returns true returns valid": [
+    {
+      "name": "test",
+      "spendingKey": "b3bd922d7025ab103b73807c885749e30441ab621dbd39a74729ba581bee8468",
+      "incomingViewKey": "6c4088431ada4d6f61fbd8fa910aa1f2c32f18eb694133994ff63a87fea5ea00",
+      "outgoingViewKey": "ab81a86afaa70df132a4ab1b0d6fa129aa7af8be34e9ea0aa9eae9251c2324c4",
+      "publicAddress": "237a08bba65fa8c9e29aa6bb64e482e83f1a56c693b1521b6e4c2b6f9ff0beb5cfc9c3f112417f79d4af20",
+      "rescan": null,
+      "displayName": "test (c5b19f6)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAKvaFOuIARHz7fAONeJuilHdvxVYwV7q/WxiwjOdWPmZTmeuwgSxOwhWdKBrOwGvrKqnp2l26C1XzHN16auRd9ndG0F9IsW+ZEdic7Ps2g683pR+Pu/YiN+o4N+uSujLcQvK/UoX0x8JnY7LLDGBjRmQO2BXrlycH4+z1aM0rs+b5hVpdlvdWxDtqGRodgWwu5CZLOlic6c736pDromhwqMyYhrhvZulhL4wzhOk4D6CmcyV+Uj6bsDg1eqUT36IwrxpyF4Jq28vWdjYKkkhRtrui5izVI3Gjq76H4/TO1luLH3Mr5jkD19Xbon8po80n2QQYObPUQAlNstEYUIlMhrG3rbShThoe2XORcL213VCIv7duUXy/D4qmxFrZKmPkdHvU/qHl21M7DlTXwLR9n3U7Ok0Froui5vH8L4GAv2u881XrLV0bYmCcPKh2W6h1T5KZi6ui99gAn2UMNxPoABvsnVyECmhc4rO3r55l67LwwlQt8klz0D3Ksa63oLx5hSNx0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwBcwYjJOUjMtpekIofH5K36rHgS5J60YvsydtNC1DDSg4OsRbnd9SYjtJh5JTIIMqoeR/sFnLna+csq/Skm61Bw=="
+    }
+  ],
+  "Verifier verifyTransactionContextual when verify() throws an error returns VERIFY_TRANSACTION": [
+    {
+      "name": "test",
+      "spendingKey": "2dce129c6100092fc3037b9b74f4dd732f736e405b17f32512c29e183a1b256b",
+      "incomingViewKey": "7bd03958584da3005678729ea5203d509382b4b9a205591534863df7f8d40902",
+      "outgoingViewKey": "e3265c2bc8bb533f116daa439d8598442c4069ad86ec51992fbd32eabb9f0c37",
+      "publicAddress": "2d7cfd163e86c75cdb1611e54b3068b8ee65787a8a274bf93919ec4715c16bec2b8ae69551aaa582efd61b",
+      "rescan": null,
+      "displayName": "test (789759f)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAI5qhPR2tOmJR0ifom9Wulv7fNp22p++CdYvBxLqlyAffir/0dSFPg9IZNc5gbSLzoNAKP8ka/54GCCo8FSDEmai0GfzD6aQCf0O1fvO3tB2ENC/08ru694eZULhIRcKDgBRGi6Ysq+MXCnI5N5K+aFt+gG2TDjlhxU3lHz/ocCa7hS8JloyKOOKWXyefuW1xZY07P2OKen7t6f2dw1TnBwE/2Y7eRhJthQZTCv7zPuqb6O2hIZV6WYz+FLLGl5qTw/imv6/de/70jP7qK41CE2/RhUoF7xbuF1BlLLnSkHxSVmrIIr4KAaPUbyYXgm79qkPohhIdcY+32VWv+SjMVV+ygaJPZFvwT3KWPlch4VPVgvYF1yKgoNDwiPgbzxkDEABEzCKADk66WjVTrj2KVgK73LK+R25qu7VepHFGYjZJkg4iookaXhJJGxInwVnk4TlxBEaCnqjICwWZ3HrwF4EzmLFFeiUimNCxdI9fUZziz1YTZn5B/ItlDJvzt0Q514/ZEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwqTJxVlST/QJcbvKVZZ7vyDH4XaZtmdvrSOJzq9FAmtwiVSpAG+eF0BKCAfOm8iJsGzO7YXQWLKCbiu/FY87hAw=="
+    }
   ]
 }
