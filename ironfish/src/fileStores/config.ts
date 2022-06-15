@@ -19,7 +19,8 @@ export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_MINER_BATCH_SIZE = 25000
 export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
-export const DEFAULT_EXPLORER_TRANSACTIONS_URL = 'https://explorer.ironfish.network/transaction/'
+export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
+  'https://explorer.ironfish.network/transaction/'
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
