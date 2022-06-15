@@ -694,17 +694,34 @@ export class PeerNetwork {
       return false
     }
 
-    const verifiedTransaction = this.chain.verifier.verifyNewTransaction(
-      message.message.transaction,
-    )
+    // Force lazy deserialization of the transaction as a first sanity check
+    const transaction = this.chain.verifier.verifyNewTransaction(message.message.transaction)
 
-    if (this.node.memPool.exists(verifiedTransaction.hash())) {
+    // Validate the transaction, so that the account and mempool do not receive
+    // an invalid transaction, and we do not gossip.
+    const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
+      transaction,
+    )
+    if (!valid) {
+      Assert.isNotUndefined(reason)
+      this.logger.debug(
+        `Invalid transaction '${transaction.hash().toString('hex')}': ${reason}`,
+      )
+      return false
+    }
+
+    // The accounts need to know about the transaction since it could be
+    // relevant to the accounts, despite coming from a different node.
+    await this.node.accounts.syncTransaction(transaction, {})
+
+    // If we know the mempool already has this transaction, we know that
+    // the mempool won't accept it, but it is still a valid transaction
+    // so we want to gossip it.
+    if (this.node.memPool.exists(transaction.hash())) {
       return true
     }
 
-    await this.node.accounts.syncTransaction(verifiedTransaction, {})
-
-    if (await this.node.memPool.acceptTransaction(verifiedTransaction)) {
+    if (await this.node.memPool.acceptTransaction(transaction, false)) {
       return true
     }
 

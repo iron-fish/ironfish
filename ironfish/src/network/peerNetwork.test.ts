@@ -273,12 +273,7 @@ describe('PeerNetwork', () => {
 
       describe('accepts new transactions', () => {
         it('verifies and syncs transactions', async () => {
-          const chain = {
-            ...mockChain(),
-            verifier: {
-              verifyNewTransaction: jest.fn().mockReturnValue(mockTransaction()),
-            },
-          }
+          const chain = mockChain()
           const workerPool = {
             ...mockWorkerPool,
             saturated: false,
@@ -300,10 +295,13 @@ describe('PeerNetwork', () => {
           })
 
           // Spy on new transactions
-          const verifyNewTransactionSpy = jest.spyOn(
-            peerNetwork['chain']['verifier'],
-            'verifyNewTransaction',
-          )
+          const verifyNewTransactionSpy = jest
+            .spyOn(node.chain.verifier, 'verifyNewTransaction')
+            .mockReturnValue(mockTransaction())
+
+          const verifyTransactionContextual = jest
+            .spyOn(node.chain.verifier, 'verifyTransactionNoncontextual')
+            .mockReturnValue({ valid: true })
 
           expect(node.workerPool.saturated).toEqual(false)
 
@@ -321,6 +319,7 @@ describe('PeerNetwork', () => {
           let gossip = await peerNetwork['onNewTransaction'](message)
           expect(gossip).toBe(true)
           expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
+          expect(verifyTransactionContextual).toHaveBeenCalledTimes(1)
           expect(acceptTransaction).toHaveBeenCalledTimes(1)
           expect(syncTransaction).toHaveBeenCalledTimes(1)
 
@@ -329,6 +328,7 @@ describe('PeerNetwork', () => {
           gossip = await peerNetwork['onNewTransaction'](message)
           expect(gossip).toBe(false)
           expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(2)
+          expect(verifyTransactionContextual).toHaveBeenCalledTimes(2)
           expect(acceptTransaction).toHaveBeenCalledTimes(2)
           expect(syncTransaction).toHaveBeenCalledTimes(2)
 
@@ -337,8 +337,18 @@ describe('PeerNetwork', () => {
           gossip = await peerNetwork['onNewTransaction'](message)
           expect(gossip).toBe(true)
           expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(3)
+          expect(verifyTransactionContextual).toHaveBeenCalledTimes(3)
           expect(acceptTransaction).toHaveBeenCalledTimes(2)
-          expect(syncTransaction).toHaveBeenCalledTimes(2)
+          expect(syncTransaction).toHaveBeenCalledTimes(3)
+
+          verifyTransactionContextual.mockReturnValue({ valid: false, reason: 'foo' })
+
+          gossip = await peerNetwork['onNewTransaction'](message)
+          expect(gossip).toBe(false)
+          expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(4)
+          expect(verifyTransactionContextual).toHaveBeenCalledTimes(4)
+          expect(acceptTransaction).toHaveBeenCalledTimes(2)
+          expect(syncTransaction).toHaveBeenCalledTimes(3)
         })
       })
     })

@@ -25,6 +25,7 @@ export function mockAccounts(): any {
 export function mockVerifier(): any {
   return {
     verifyNewTransaction: jest.fn().mockResolvedValue({}),
+    verifyTransactionNoncontextual: jest.fn().mockResolvedValue({}),
   }
 }
 
