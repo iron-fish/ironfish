@@ -11,21 +11,24 @@ import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
+import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
   strategy: Strategy
   chain: Blockchain
+  private readonly workerPool: WorkerPool
 
   /**
    * Used to disable verifying the target on the Verifier for testing purposes
    */
   enableVerifyTarget = true
 
-  constructor(chain: Blockchain) {
+  constructor(chain: Blockchain, workerPool: WorkerPool) {
     this.strategy = chain.strategy
     this.chain = chain
+    this.workerPool = workerPool
   }
 
   /**
@@ -165,7 +168,7 @@ export class Verifier {
     }
 
     try {
-      return await transaction.verify(options)
+      return await this.workerPool.verify(transaction, options)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -200,7 +203,7 @@ export class Verifier {
       return validity
     }
 
-    validity = await transaction.verify()
+    validity = await this.workerPool.verify(transaction)
     return validity
   }
 

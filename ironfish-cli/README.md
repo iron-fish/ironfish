@@ -7,13 +7,8 @@ The main entry point for an Iron Fish CLI that is capable of mining blocks and s
 If you're still in the `ironfish` directory in your terminal window, run `cd ironfish-cli`.
    * Otherwise, you'll get a "Command not found" error.
 
-Next, start the CLI with one of these commands:
-
-* Build, run, and restart when the code changes:
+Next, start the CLI with this command:
    - `yarn start`
-
-* Build, then run the CLI without watching for changes:
-   - `yarn start:once`
 
 
 ## Usage Scenarios
@@ -32,6 +27,8 @@ Interact with the node in a new terminal window:
    - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
    - Send $IRON to another account
+- `yarn start accounts:transactions [account]`
+   - Display transactions from and to your account
 
 ### Start a node and start mining
 Run these commands in two different terminals:
@@ -79,17 +76,17 @@ You should see connection messages indicating that the two nodes are talking to 
 **Node 1**
 ```bash
 # in tab 1
-yarn start:once start
+yarn start start
 
 # in tab 2
-yarn start:once miners:start
+yarn start miners:start
 ```
 
 **Node 2**
 ```bash
 # in tab 3
-yarn start:once start --datadir ~/.ironfish2 --port 9034 --bootstrap ws://localhost:9033
+yarn start start --datadir ~/.ironfish2 --port 9034 --bootstrap ws://localhost:9033
 
 # in tab 4
-yarn start:once miners:start --datadir ~/.ironfish2
+yarn start miners:start --datadir ~/.ironfish2
 ```

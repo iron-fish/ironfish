@@ -7,6 +7,7 @@ import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
   Logger,
+  setJSONLoggingFromConfig,
   setLogColorEnabledFromConfig,
   setLogLevelFromConfig,
   setLogPrefixFromConfig,
@@ -18,19 +19,21 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import { IpcAdapter } from './rpc/adapters/ipcAdapter'
-import { TcpAdapter } from './rpc/adapters/tcpAdapter'
-import { IronfishIpcClient } from './rpc/clients/ipcClient'
-import { IronfishMemoryClient } from './rpc/clients/memoryClient'
-import { IronfishRpcClient } from './rpc/clients/rpcClient'
+import { RpcSocketClient, RpcTlsAdapter } from './rpc'
+import { RpcIpcAdapter } from './rpc/adapters/ipcAdapter'
+import { RpcTcpAdapter } from './rpc/adapters/tcpAdapter'
+import { RpcClient } from './rpc/clients/client'
+import { RpcIpcClient } from './rpc/clients/ipcClient'
+import { RpcMemoryClient } from './rpc/clients/memoryClient'
+import { RpcTcpClient } from './rpc/clients/tcpClient'
+import { RpcTlsClient } from './rpc/clients/tlsClient'
 import { ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
 export class IronfishSdk {
   pkg: Package
-  client: IronfishIpcClient
-  clientMemory: IronfishMemoryClient
+  client: RpcSocketClient
   config: Config
   fileSystem: FileSystem
   logger: Logger
@@ -42,8 +45,7 @@ export class IronfishSdk {
 
   private constructor(
     pkg: Package,
-    client: IronfishIpcClient,
-    clientMemory: IronfishMemoryClient,
+    client: RpcSocketClient,
     config: Config,
     internal: InternalStore,
     fileSystem: FileSystem,
@@ -54,7 +56,6 @@ export class IronfishSdk {
   ) {
     this.pkg = pkg
     this.client = client
-    this.clientMemory = clientMemory
     this.config = config
     this.internal = internal
     this.fileSystem = fileSystem
@@ -119,6 +120,8 @@ export class IronfishSdk {
 
     setLogColorEnabledFromConfig(true)
 
+    setJSONLoggingFromConfig(config.get('jsonLogs'))
+
     const logFile = config.get('enableLogFile')
 
     if (logFile && fileSystem instanceof NodeFileProvider && fileSystem.path) {
@@ -131,27 +134,26 @@ export class IronfishSdk {
       metrics = metrics || new MetricsMonitor({ logger })
     }
 
-    const client = new IronfishIpcClient(
-      config.get('enableRpcTcp')
-        ? {
-            mode: 'tcp',
-            host: config.get('rpcTcpHost'),
-            port: config.get('rpcTcpPort'),
-          }
-        : {
-            mode: 'ipc',
-            socketPath: config.get('ipcPath'),
-          },
-      logger,
-      config.get('rpcRetryConnect'),
-    )
-
-    const clientMemory = new IronfishMemoryClient({ logger })
+    let client: RpcSocketClient
+    if (config.get('enableRpcTcp')) {
+      if (config.get('enableRpcTls')) {
+        client = new RpcTlsClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+      } else {
+        client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+      }
+    } else {
+      client = new RpcIpcClient(
+        {
+          mode: 'ipc',
+          socketPath: config.get('ipcPath'),
+        },
+        logger,
+      )
+    }
 
     return new IronfishSdk(
       pkg || IronfishPKG,
       client,
-      clientMemory,
       config,
       internal,
       fileSystem,
@@ -201,10 +203,11 @@ export class IronfishSdk {
         ApiNamespace.transaction,
         ApiNamespace.telemetry,
         ApiNamespace.worker,
+        ApiNamespace.rpc,
       ]
 
       await node.rpc.mount(
-        new IpcAdapter(
+        new RpcIpcAdapter(
           namespaces,
           {
             mode: 'ipc',
@@ -226,31 +229,32 @@ export class IronfishSdk {
         ApiNamespace.transaction,
         ApiNamespace.telemetry,
         ApiNamespace.worker,
+        ApiNamespace.rpc,
       ]
 
       if (this.config.get('rpcTcpSecure')) {
         namespaces.push(ApiNamespace.account, ApiNamespace.config)
       }
 
-      if (this.config.get('enableNativeRpcTcpAdapter')) {
+      if (this.config.get('enableRpcTls')) {
         await node.rpc.mount(
-          new TcpAdapter(
+          new RpcTlsAdapter(
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
+            this.fileSystem,
+            this.config.get('tlsKeyPath'),
+            this.config.get('tlsCertPath'),
             this.logger,
             namespaces,
           ),
         )
       } else {
         await node.rpc.mount(
-          new IpcAdapter(
-            namespaces,
-            {
-              mode: 'tcp',
-              host: this.config.get('rpcTcpHost'),
-              port: this.config.get('rpcTcpPort'),
-            },
+          new RpcTcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
             this.logger,
+            namespaces,
           ),
         )
       }
@@ -259,7 +263,7 @@ export class IronfishSdk {
     return node
   }
 
-  async connectRpc(forceLocal = false, forceRemote = false): Promise<IronfishRpcClient> {
+  async connectRpc(forceLocal = false, forceRemote = false): Promise<RpcClient> {
     forceRemote = forceRemote || this.config.get('enableRpcTcp')
 
     if (!forceLocal) {
@@ -275,8 +279,8 @@ export class IronfishSdk {
     }
 
     const node = await this.node()
-    await this.clientMemory.connect({ node })
+    const clientMemory = new RpcMemoryClient(this.logger, node)
     await NodeUtils.waitForOpen(node)
-    return this.clientMemory
+    return clientMemory
   }
 }

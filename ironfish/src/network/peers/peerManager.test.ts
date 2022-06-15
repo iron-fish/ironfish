@@ -31,16 +31,12 @@ import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
-import {
-  DisconnectingMessage,
-  DisconnectingReason,
-  Identify,
-  InternalMessageType,
-  PeerList,
-  PeerListRequest,
-  Signal,
-  SignalRequest,
-} from '../messages'
+import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
+import { IdentifyMessage } from '../messages/identify'
+import { PeerListMessage } from '../messages/peerList'
+import { PeerListRequestMessage } from '../messages/peerListRequest'
+import { SignalMessage } from '../messages/signal'
+import { SignalRequestMessage } from '../messages/signalRequest'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -54,6 +50,7 @@ import {
   webRtcCannotInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { NetworkMessageType } from '../types'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
   ConnectionDirection,
@@ -139,19 +136,15 @@ describe('PeerManager', () => {
 
     // Create identity and message for all peers
     const identity = webRtcCannotInitiateIdentity()
-    const message: Identify = {
-      type: InternalMessageType.identity,
-      payload: {
-        identity: identity,
-        version: VERSION_PROTOCOL,
-        agent: '',
-
-        head: '',
-        sequence: 1,
-        work: BigInt(0).toString(),
-        port: null,
-      },
-    }
+    const message = new IdentifyMessage({
+      agent: '',
+      head: Buffer.alloc(32, 0),
+      identity: identity,
+      port: null,
+      sequence: 1,
+      version: VERSION_PROTOCOL,
+      work: BigInt(0),
+    })
 
     // Identify peerOut
     peerOut.onMessage.emit(message, connectionOut)
@@ -252,17 +245,13 @@ describe('PeerManager', () => {
 
     Assert.isNotNull(pm.localPeer.chain.head)
 
-    expect(sendSpy).toBeCalledWith({
-      type: InternalMessageType.identity,
-      payload: {
-        identity: privateIdentityToIdentity(localIdentity),
-        version: VERSION_PROTOCOL,
-        port: null,
-        agent: pm.localPeer.agent,
-        head: pm.localPeer.chain.head.hash,
-        sequence: Number(pm.localPeer.chain.head.sequence),
-        work: pm.localPeer.chain.head.work.toString(),
-      },
+    expect(sendSpy.mock.calls[0][0]).toMatchObject({
+      identity: privateIdentityToIdentity(localIdentity),
+      version: VERSION_PROTOCOL,
+      agent: pm.localPeer.agent,
+      head: pm.localPeer.chain.head.hash,
+      sequence: Number(pm.localPeer.chain.head.sequence),
+      work: pm.localPeer.chain.head.work,
     })
   })
 
@@ -285,12 +274,12 @@ describe('PeerManager', () => {
     expect(sendSpyPeer1).not.toHaveBeenCalled()
     expect(sendSpyPeer2).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: InternalMessageType.disconnecting,
+        type: NetworkMessageType.Disconnecting,
       }),
     )
     expect(sendSpyPeer3).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: InternalMessageType.disconnecting,
+        type: NetworkMessageType.Disconnecting,
       }),
     )
 
@@ -347,15 +336,14 @@ describe('PeerManager', () => {
       })
 
       expect(sendSpy).toBeCalledTimes(1)
-      expect(sendSpy).toBeCalledWith({
-        type: InternalMessageType.signal,
-        payload: {
+      expect(sendSpy).toBeCalledWith(
+        new SignalMessage({
           sourceIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
           destinationIdentity: webRtcCanInitiateIdentity(),
           nonce: 'boxMessageNonce',
           signal: 'boxMessageMessage',
-        },
-      })
+        }),
+      )
     })
 
     it('Attempts to establish a WebSocket connection to a peer with a webSocketAddress', () => {
@@ -453,15 +441,14 @@ describe('PeerManager', () => {
         },
       })
 
-      expect(sendSpy).toBeCalledWith({
-        type: 'signal',
-        payload: {
+      expect(sendSpy).toBeCalledWith(
+        new SignalMessage({
           sourceIdentity: 'bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=',
           destinationIdentity: 'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=',
           nonce: 'boxMessageNonce',
           signal: 'boxMessageMessage',
-        },
-      })
+        }),
+      )
     })
 
     it('Attempts to request WebRTC signaling through brokering peer', () => {
@@ -494,13 +481,12 @@ describe('PeerManager', () => {
           },
         },
       })
-      expect(brokerPeerSendMock).toBeCalledWith({
-        type: InternalMessageType.signalRequest,
-        payload: {
+      expect(brokerPeerSendMock).toBeCalledWith(
+        new SignalRequestMessage({
           sourceIdentity: peers.localPeer.publicIdentity,
           destinationIdentity: targetPeer.getIdentityOrThrow(),
-        },
-      })
+        }),
+      )
     })
 
     it('Does not create a connection if Peer has disconnectUntil set', () => {
@@ -732,19 +718,15 @@ describe('PeerManager', () => {
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: other,
-          port: peer.port,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: other,
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       peer.onMessage.emit(identify, connection)
 
       expect(pm.identifiedPeers.size).toBe(1)
@@ -777,18 +759,15 @@ describe('PeerManager', () => {
       }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(other),
-          version: VERSION_PROTOCOL_MIN - 1,
-          agent: '',
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: peer.port,
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN - 1,
+        work: BigInt(0),
+      })
       peer.onMessage.emit(identify, connection)
 
       expect(closeSpy).toBeCalled()
@@ -813,19 +792,15 @@ describe('PeerManager', () => {
       }
       const failSpy = jest.spyOn(retry, 'failedConnection')
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: 'test',
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: peer.port,
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: 'test',
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toBeCalled()
       expect(failSpy).toBeCalledTimes(1)
@@ -842,19 +817,15 @@ describe('PeerManager', () => {
 
       const { connection } = getWaitingForIdentityPeer(pm)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(localIdentity),
-          port: 9033,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(localIdentity),
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       connection.onMessage.emit(identify)
 
       expect(connection.state).toEqual({
@@ -891,19 +862,15 @@ describe('PeerManager', () => {
         throw new Error('Retry must exist')
       }
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: privateIdentityToIdentity(localIdentity),
-          port: 9033,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(localIdentity),
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       connection.onMessage.emit(identify)
 
       // Peer 1 should be disconnected and WS connection info removed
@@ -940,19 +907,15 @@ describe('PeerManager', () => {
       connection.setState({ type: 'WAITING_FOR_IDENTITY' })
       peer1.setWebSocketConnection(connection)
 
-      const identify: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: peer2Identity,
-          port: peer1.port,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-        },
-      }
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: peer2Identity,
+        port: peer1.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       connection.onMessage.emit(identify)
 
       // Should have 2 verified peers
@@ -994,30 +957,23 @@ describe('PeerManager', () => {
       const { connection } = getWaitingForIdentityPeer(pm)
 
       const sendSpy = jest.spyOn(connection, 'send')
-      const id: Identify = {
-        type: InternalMessageType.identity,
-        payload: {
-          identity: peerIdentity,
-          version: VERSION_PROTOCOL,
-          agent: '',
-
-          head: '',
-          sequence: 1,
-          work: BigInt(0).toString(),
-          port: 9033,
-        },
-      }
+      const id = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: peerIdentity,
+        port: 9033,
+        sequence: 1,
+        version: VERSION_PROTOCOL,
+        work: BigInt(0),
+      })
       connection.onMessage.emit(id)
 
-      const response: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: privateIdentityToIdentity(localIdentity),
-          destinationIdentity: peerIdentity,
-          reason: DisconnectingReason.Congested,
-          disconnectUntil: peer.localRequestedDisconnectUntil,
-        },
-      }
+      const response = new DisconnectingMessage({
+        sourceIdentity: privateIdentityToIdentity(localIdentity),
+        destinationIdentity: peerIdentity,
+        reason: DisconnectingReason.Congested,
+        disconnectUntil: peer.localRequestedDisconnectUntil,
+      })
       expect(sendSpy).toBeCalledWith(response)
 
       expect(connection.state).toEqual({
@@ -1043,13 +999,10 @@ describe('PeerManager', () => {
         ),
       ).toBe(false)
 
-      const signal: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: sourcePeer.getIdentityOrThrow(),
-          destinationIdentity: destinationPeer.getIdentityOrThrow(),
-        },
-      }
+      const signal = new SignalRequestMessage({
+        sourceIdentity: sourcePeer.getIdentityOrThrow(),
+        destinationIdentity: destinationPeer.getIdentityOrThrow(),
+      })
 
       const sendSpy = jest.spyOn(destinationPeer, 'send')
       sourcePeer.onMessage.emit(signal, sourcePeerConnection)
@@ -1063,13 +1016,10 @@ describe('PeerManager', () => {
       const { peer: peer2 } = getConnectedPeer(pm)
       const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm)
 
-      const signal: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: peer1.getIdentityOrThrow(),
-          destinationIdentity: peer2.getIdentityOrThrow(),
-        },
-      }
+      const signal = new SignalRequestMessage({
+        sourceIdentity: peer1.getIdentityOrThrow(),
+        destinationIdentity: peer2.getIdentityOrThrow(),
+      })
 
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
@@ -1094,13 +1044,10 @@ describe('PeerManager', () => {
       )
 
       // Emit the signaling message
-      const message: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: peer.getIdentityOrThrow(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-        },
-      }
+      const message = new SignalRequestMessage({
+        sourceIdentity: peer.getIdentityOrThrow(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+      })
 
       peer.onMessage.emit(message, connection)
       expect(initWebRtcConnectionMock).toBeCalledTimes(0)
@@ -1121,13 +1068,10 @@ describe('PeerManager', () => {
       )
 
       // Emit the signaling message
-      const message: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: peer.getIdentityOrThrow(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-        },
-      }
+      const message = new SignalRequestMessage({
+        sourceIdentity: peer.getIdentityOrThrow(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+      })
 
       peer.onMessage.emit(message, connection)
       expect(initWebRtcConnectionMock).toBeCalledTimes(1)
@@ -1146,27 +1090,21 @@ describe('PeerManager', () => {
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
 
-      const message: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-        },
-      }
+      const message = new SignalRequestMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      const reply: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          disconnectUntil: expect.any(Number),
-          reason: DisconnectingReason.Congested,
-          sourceIdentity: pm.localPeer.publicIdentity,
-          destinationIdentity: webRtcCanInitiateIdentity(),
-        },
-      }
+      const reply = new DisconnectingMessage({
+        disconnectUntil: expect.any(Number),
+        reason: DisconnectingReason.Congested,
+        sourceIdentity: pm.localPeer.publicIdentity,
+        destinationIdentity: webRtcCanInitiateIdentity(),
+      })
 
       expect(sendSpy).toBeCalledWith(reply)
     })
@@ -1177,19 +1115,16 @@ describe('PeerManager', () => {
         mockHostsStore(),
         undefined,
         undefined,
-        1,
+        2,
       )
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
       getConnectedPeer(pm, webRtcCanInitiateIdentity())
 
-      const message: SignalRequest = {
-        type: InternalMessageType.signalRequest,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-        },
-      }
+      const message = new SignalRequestMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
@@ -1208,15 +1143,12 @@ describe('PeerManager', () => {
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, peer1Identity)
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
 
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer2, 'send')
       peer1.onMessage.emit(signal, peer1Connection)
@@ -1233,15 +1165,12 @@ describe('PeerManager', () => {
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
       const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm, peer3Identity)
 
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
@@ -1261,29 +1190,23 @@ describe('PeerManager', () => {
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
 
-      const message: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCannotInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const message = new SignalMessage({
+        sourceIdentity: webRtcCannotInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      const reply: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          disconnectUntil: expect.any(Number),
-          reason: DisconnectingReason.Congested,
-          sourceIdentity: pm.localPeer.publicIdentity,
-          destinationIdentity: webRtcCannotInitiateIdentity(),
-        },
-      }
+      const reply = new DisconnectingMessage({
+        disconnectUntil: expect.any(Number),
+        reason: DisconnectingReason.Congested,
+        sourceIdentity: pm.localPeer.publicIdentity,
+        destinationIdentity: webRtcCannotInitiateIdentity(),
+      })
 
       expect(sendSpy).toBeCalledWith(reply)
     })
@@ -1294,21 +1217,18 @@ describe('PeerManager', () => {
         mockHostsStore(),
         undefined,
         undefined,
-        1,
+        2,
       )
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
       getConnectedPeer(pm, webRtcCannotInitiateIdentity())
 
-      const message: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCannotInitiateIdentity(),
-          destinationIdentity: pm.localPeer.publicIdentity,
-          nonce: '',
-          signal: '',
-        },
-      }
+      const message = new SignalMessage({
+        sourceIdentity: webRtcCannotInitiateIdentity(),
+        destinationIdentity: pm.localPeer.publicIdentity,
+        nonce: '',
+        signal: '',
+      })
 
       const sendSpy = jest.spyOn(peer1, 'send')
 
@@ -1334,15 +1254,12 @@ describe('PeerManager', () => {
       const signalSpy = jest.spyOn(connection, 'signal')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).toBeCalledTimes(1)
@@ -1376,15 +1293,12 @@ describe('PeerManager', () => {
       const closeSpy = jest.spyOn(connection, 'close')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
@@ -1411,15 +1325,12 @@ describe('PeerManager', () => {
       const closeSpy = jest.spyOn(connection, 'close')
 
       // Emit the signaling message
-      const signal: Signal = {
-        type: InternalMessageType.signal,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
-          nonce: 'boxMessageNonce',
-          signal: 'boxMessageMessage',
-        },
-      }
+      const signal = new SignalMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
+        nonce: 'boxMessageNonce',
+        signal: 'boxMessageMessage',
+      })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
       expect(signalSpy).not.toBeCalled()
@@ -1437,27 +1348,19 @@ describe('PeerManager', () => {
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
 
-      const peerListRequest: PeerListRequest = {
-        type: InternalMessageType.peerListRequest,
-      }
-
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: peer.getIdentityOrThrow(),
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerListRequest = new PeerListRequestMessage()
+      const peerList = new PeerListMessage([
+        {
+          identity: Buffer.from(peer.getIdentityOrThrow(), 'base64'),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
 
-      const sendToSpy = jest.spyOn(pm, 'sendTo')
+      const sendSpy = jest.spyOn(peer, 'send')
       peer.onMessage.emit(peerListRequest, connection)
-      expect(sendToSpy).toBeCalledTimes(1)
-      expect(sendToSpy).toHaveBeenCalledWith(peer, peerList)
+      expect(sendSpy).toBeCalledTimes(1)
+      expect(sendSpy).toHaveBeenCalledWith(peerList)
     })
   })
 
@@ -1472,51 +1375,15 @@ describe('PeerManager', () => {
 
       expect(peer.knownPeers.size).toBe(0)
 
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: privateIdentityToIdentity(localIdentity),
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: Buffer.from(privateIdentityToIdentity(localIdentity), 'base64'),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
       expect(peer.knownPeers.size).toBe(0)
-    })
-
-    it('Does not emit onKnownPeersChanged when peer list stays the same', () => {
-      const peerIdentity = mockIdentity('peer')
-      const newPeerIdentity = mockIdentity('new')
-
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-
-      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
-
-      expect(pm.peers.length).toBe(1)
-      expect(pm.identifiedPeers.size).toBe(1)
-      expect(peer.knownPeers.size).toBe(0)
-
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
-        },
-      }
-      const onKnownPeersChangedSpy = jest.spyOn(peer.onKnownPeersChanged, 'emit')
-      peer.onMessage.emit(peerList, connection)
-      peer.onMessage.emit(peerList, connection)
-
-      expect(onKnownPeersChangedSpy).toBeCalledTimes(1)
     })
 
     it('Links peers when adding a new known peer', () => {
@@ -1531,21 +1398,13 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(peer.knownPeers.size).toBe(0)
 
-      // Clear onKnownPeersChanged handlers to avoid any side effects
-      pm.onKnownPeersChanged.clear()
-
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: Buffer.from(newPeerIdentity, 'base64'),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
 
       expect(peer.knownPeers.size).toBe(1)
@@ -1581,21 +1440,13 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(peer.knownPeers.size).toBe(0)
 
-      // Clear onKnownPeersChanged handlers to avoid any side effects
-      pm.onKnownPeersChanged.clear()
-
-      const peerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [
-            {
-              identity: newPeerIdentity,
-              address: peer.address,
-              port: peer.port,
-            },
-          ],
+      const peerList = new PeerListMessage([
+        {
+          identity: Buffer.from(newPeerIdentity, 'base64'),
+          address: peer.address,
+          port: peer.port,
         },
-      }
+      ])
       peer.onMessage.emit(peerList, connection)
 
       expect(peer.knownPeers.size).toBe(1)
@@ -1609,12 +1460,7 @@ describe('PeerManager', () => {
         ?.neverRetryConnecting()
 
       // Send another peer list without that peer
-      const newPeerList: PeerList = {
-        type: InternalMessageType.peerList,
-        payload: {
-          connectedPeers: [],
-        },
-      }
+      const newPeerList = new PeerListMessage([])
       peer.onMessage.emit(newPeerList, connection)
 
       // newPeer should be disposed
@@ -1636,15 +1482,12 @@ describe('PeerManager', () => {
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
       const { connection: peer3Connection, peer: peer3 } = getConnectedPeer(pm, peer3Identity)
 
-      const signal: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peer1Identity,
-          destinationIdentity: peer2Identity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const signal = new DisconnectingMessage({
+        sourceIdentity: peer1Identity,
+        destinationIdentity: peer2Identity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
@@ -1660,15 +1503,12 @@ describe('PeerManager', () => {
       const { peer, connection } = getConnectingPeer(pm)
       expect(peer.peerRequestedDisconnectUntil).toBeNull()
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peerIdentity,
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: peerIdentity,
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       connection.onMessage.emit(disconnectMessage)
 
@@ -1690,15 +1530,12 @@ describe('PeerManager', () => {
         webRtcCanInitiateIdentity(),
       )
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: webRtcCanInitiateIdentity(),
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: webRtcCanInitiateIdentity(),
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       expect(peer.state.type).toEqual('CONNECTING')
       expect(brokeringPeer.state.type).toEqual('CONNECTED')
@@ -1718,15 +1555,12 @@ describe('PeerManager', () => {
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
       expect(peer.peerRequestedDisconnectUntil).toBeNull()
 
-      const disconnectMessage: DisconnectingMessage = {
-        type: InternalMessageType.disconnecting,
-        payload: {
-          sourceIdentity: peerIdentity,
-          destinationIdentity: localPeer.publicIdentity,
-          disconnectUntil: Number.MAX_SAFE_INTEGER,
-          reason: DisconnectingReason.ShuttingDown,
-        },
-      }
+      const disconnectMessage = new DisconnectingMessage({
+        sourceIdentity: peerIdentity,
+        destinationIdentity: localPeer.publicIdentity,
+        disconnectUntil: Number.MAX_SAFE_INTEGER,
+        reason: DisconnectingReason.ShuttingDown,
+      })
 
       connection.onMessage.emit(disconnectMessage)
 

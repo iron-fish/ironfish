@@ -366,35 +366,6 @@ describe('Blockchain', () => {
     expect(isLinear6).toBe(false)
   })
 
-  it('should update synced', () => {
-    const nowSpy = jest.spyOn(Date, 'now')
-    const syncedSpy = jest.spyOn(nodeTest.node.chain.onSynced, 'emit')
-
-    // Empty chain should not be synced
-    expect(nodeTest.node.chain.synced).toEqual(false)
-    expect(syncedSpy).not.toHaveBeenCalled()
-
-    // Genesis block is a too far back to be synced
-    nowSpy.mockReturnValue(Number.MAX_SAFE_INTEGER)
-    expect(nodeTest.node.chain.head).toEqual(nodeTest.chain.genesis)
-    expect(nodeTest.node.chain.synced).toEqual(false)
-    expect(syncedSpy).not.toHaveBeenCalled()
-
-    // Set now to genesis block creation time to consider it synced
-    nowSpy.mockReturnValue(nodeTest.chain.genesis.timestamp.valueOf())
-    nodeTest.node.chain['updateSynced']()
-    expect(nodeTest.node.chain.synced).toEqual(true)
-    expect(syncedSpy).toHaveBeenCalledTimes(1)
-
-    // Once it's true, it stays true
-    nowSpy.mockReturnValue(Number.MAX_SAFE_INTEGER)
-    nodeTest.node.chain['updateSynced']()
-    expect(nodeTest.node.chain.synced).toEqual(true)
-    expect(syncedSpy).toHaveBeenCalledTimes(1)
-
-    nowSpy.mockRestore()
-  })
-
   it('abort reorg after verify error', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()

@@ -7,20 +7,20 @@ use super::thread::Thread;
 
 pub struct ThreadPool {
     threads: Vec<Thread>,
-    block_found_receiver: Receiver<(usize, u32)>,
+    block_found_receiver: Receiver<(u64, u32)>,
     hash_rate_receiver: Receiver<u32>,
     mining_request_id: u32,
 }
 impl ThreadPool {
     pub fn new(thread_count: usize, batch_size: u32) -> Self {
-        let (block_found_channel, block_found_receiver) = mpsc::channel::<(usize, u32)>();
+        let (block_found_channel, block_found_receiver) = mpsc::channel::<(u64, u32)>();
 
         let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
 
         let mut threads = Vec::with_capacity(thread_count);
         for id in 0..thread_count {
             threads.push(Thread::new(
-                id,
+                id as u64,
                 block_found_channel.clone(),
                 hash_rate_channel.clone(),
                 thread_count,
@@ -58,13 +58,13 @@ impl ThreadPool {
         }
     }
 
-    pub fn get_found_block(&self) -> Option<(usize, usize)> {
+    pub fn get_found_block(&self) -> Option<(u64, u32)> {
         if let Ok((randomness, mining_request_id)) = self.block_found_receiver.try_recv() {
             // Stale work
             if mining_request_id != self.mining_request_id {
                 return None;
             }
-            return Some((randomness, mining_request_id as usize));
+            return Some((randomness, mining_request_id));
         }
         None
     }

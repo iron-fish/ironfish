@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
+import { NoteLeafEncoding } from '../../merkletree/database/leaves'
+import { NodeEncoding } from '../../merkletree/database/nodes'
 import { NoteHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
 import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted'
-import { IDatabase } from '../../storage'
+import { BUFFER_ENCODING, IDatabase } from '../../storage'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { makeDb, makeDbName } from '../../testUtilities/helpers/storage'
 import {
@@ -35,6 +38,9 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafIndexKeyEncoding: BUFFER_ENCODING,
+    leafEncoding: new NoteLeafEncoding(),
+    nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
     depth: depth,
@@ -49,25 +55,6 @@ async function makeStrategyTree({
 }
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
-
-const mockSerializedTransactionPosted = Buffer.from('foobar')
-const postTransaction = jest.fn(() => mockSerializedTransactionPosted)
-const receiveTransaction = jest.fn()
-const spendTransaction = jest.fn()
-
-jest.mock('@ironfish/rust-nodejs', () => {
-  const module =
-    jest.requireActual<typeof import('@ironfish/rust-nodejs')>('@ironfish/rust-nodejs')
-  return {
-    ...module,
-    Transaction: jest.fn().mockImplementation(() => ({
-      setExpirationSequence: jest.fn(),
-      post: postTransaction,
-      receive: receiveTransaction,
-      spend: spendTransaction,
-    })),
-  }
-})
 
 describe('CreateTransactionRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
@@ -92,7 +79,7 @@ describe('CreateTransactionRequest', () => {
         {
           publicAddress: '',
           amount: BigInt(5),
-          memo: '',
+          memo: '👁️🏃🐟',
         },
       ],
     )
@@ -152,12 +139,17 @@ describe('CreateTransactionTask', () => {
       )
 
       const response = task.execute(request)
-      expect(postTransaction).toHaveBeenCalled()
-      expect(receiveTransaction).toHaveBeenCalled()
-      expect(spendTransaction).toHaveBeenCalled()
-      expect(response).toEqual(
-        new CreateTransactionResponse(mockSerializedTransactionPosted, response.jobId),
+
+      // Verify that the transaction is valid
+      const transactionPosted = new TransactionPosted(
+        Buffer.from(response.serializedTransactionPosted),
       )
+      expect(transactionPosted.verify()).toBe(true)
+      expect(transactionPosted.notesLength()).toBe(2)
+      const decryptedNote = new NoteEncrypted(transactionPosted.getNote(0)).decryptNoteForOwner(
+        account.incomingViewKey,
+      )
+      expect(decryptedNote).toBeDefined()
     })
   })
 })

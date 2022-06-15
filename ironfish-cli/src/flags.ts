@@ -7,6 +7,7 @@ import {
   DEFAULT_DATABASE_NAME,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
+  DEFAULT_USE_RPC_TLS,
 } from '@ironfish/sdk'
 import { Flags, Interfaces } from '@oclif/core'
 
@@ -22,6 +23,7 @@ export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
 export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
+export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
 
 export const VerboseFlag = Flags.boolean({
   char: 'v',
@@ -74,6 +76,12 @@ export const RpcTcpSecureFlag = Flags.boolean({
   description: 'allow sensitive config to be changed over TCP',
 })
 
+export const RpcTcpTlsFlag = Flags.boolean({
+  default: DEFAULT_USE_RPC_TLS,
+  description: 'encrypt TCP connection to the RPC over TLS',
+  allowNo: true,
+})
+
 const localFlags: Record<string, CompletableOptionFlag> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
@@ -95,6 +103,7 @@ remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFla
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that uses an

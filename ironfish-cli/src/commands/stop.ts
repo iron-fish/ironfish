@@ -17,7 +17,7 @@ export default class StopCommand extends IronfishCommand {
   async start(): Promise<void> {
     await this.parse(StopCommand)
 
-    await this.sdk.client.connect({ retryConnect: false }).catch((e) => {
+    await this.sdk.client.connect().catch((e) => {
       if (e instanceof ConnectionError) {
         this.exit(0)
       }

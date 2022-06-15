@@ -5,9 +5,11 @@ import {
   DEFAULT_POOL_HOST,
   DEFAULT_POOL_PORT,
   Discord,
+  Lark,
   MiningPool,
   parseUrl,
   StringUtils,
+  WebhookNotifier,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import dns from 'dns'
@@ -23,6 +25,10 @@ export class StartPool extends IronfishCommand {
       char: 'd',
       description: 'a discord webhook URL to send critical information to',
     }),
+    lark: Flags.string({
+      char: 'l',
+      description: 'a lark webhook URL to send critical information to',
+    }),
     host: Flags.string({
       char: 'h',
       description: `a host:port listen for stratum connections: ${DEFAULT_POOL_HOST}:${String(
@@ -32,6 +38,9 @@ export class StartPool extends IronfishCommand {
     payouts: Flags.boolean({
       default: true,
       allowNo: true,
+      description: 'whether the pool should payout or not. useful for solo miners',
+    }),
+    balancePercentPayout: Flags.integer({
       description: 'whether the pool should payout or not. useful for solo miners',
     }),
   }
@@ -54,16 +63,30 @@ export class StartPool extends IronfishCommand {
 
     this.log(`Starting pool with name ${poolName}`)
 
-    let discord: Discord | undefined = undefined
+    const webhooks: WebhookNotifier[] = []
 
     const discordWebhook = flags.discord ?? this.sdk.config.get('poolDiscordWebhook')
     if (discordWebhook) {
-      discord = new Discord({
-        webhook: discordWebhook,
-        logger: this.logger,
-      })
+      webhooks.push(
+        new Discord({
+          webhook: discordWebhook,
+          logger: this.logger,
+        }),
+      )
 
       this.log(`Discord enabled: ${discordWebhook}`)
+    }
+
+    const larkWebhook = flags.lark ?? this.sdk.config.get('poolLarkWebhook')
+    if (larkWebhook) {
+      webhooks.push(
+        new Lark({
+          webhook: larkWebhook,
+          logger: this.logger,
+        }),
+      )
+
+      this.log(`Lark enabled: ${larkWebhook}`)
     }
 
     let host = undefined
@@ -84,11 +107,13 @@ export class StartPool extends IronfishCommand {
 
     this.pool = await MiningPool.init({
       config: this.sdk.config,
+      logger: this.logger,
       rpc,
       enablePayouts: flags.payouts,
-      discord,
+      webhooks: webhooks,
       host: host,
       port: port,
+      balancePercentPayoutFlag: flags.balancePercentPayout,
     })
 
     await this.pool.start()

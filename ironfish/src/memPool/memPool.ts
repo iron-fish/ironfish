@@ -18,6 +18,7 @@ interface MempoolEntry {
 
 export class MemPool {
   readonly transactions = new BufferMap<Transaction>()
+  readonly nullifiers = new BufferMap<Buffer>()
   readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
@@ -81,7 +82,7 @@ export class MemPool {
   async acceptTransaction(transaction: Transaction): Promise<boolean> {
     const hash = transaction.hash()
 
-    if (this.transactions.has(hash)) {
+    if (this.exists(hash)) {
       return false
     }
 
@@ -96,6 +97,24 @@ export class MemPool {
       return false
     }
 
+    for (const spend of transaction.spends()) {
+      if (this.nullifiers.has(spend.nullifier)) {
+        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
+        Assert.isNotUndefined(existingTransactionHash)
+
+        const existingTransaction = this.transactions.get(existingTransactionHash)
+        if (!existingTransaction) {
+          continue
+        }
+
+        if (transaction.fee() > existingTransaction.fee()) {
+          this.deleteTransaction(existingTransaction)
+        } else {
+          return false
+        }
+      }
+    }
+
     this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
@@ -106,8 +125,10 @@ export class MemPool {
     let deletedTransactions = 0
 
     for (const transaction of block.transactions) {
-      this.deleteTransaction(transaction)
-      deletedTransactions++
+      const didDelete = this.deleteTransaction(transaction)
+      if (didDelete) {
+        deletedTransactions++
+      }
     }
 
     for (const transaction of this.transactions.values()) {
@@ -117,11 +138,16 @@ export class MemPool {
       )
 
       if (isExpired) {
-        this.deleteTransaction(transaction)
+        const didDelete = this.deleteTransaction(transaction)
+        if (didDelete) {
+          deletedTransactions++
+        }
       }
     }
 
-    this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    if (deletedTransactions) {
+      this.logger.debug(`Deleted ${deletedTransactions} transactions`)
+    }
 
     this.head = block.header
   }
@@ -152,14 +178,28 @@ export class MemPool {
   private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
     this.transactions.set(hash, transaction)
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.set(spend.nullifier, hash)
+    }
+
     this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
   }
 
-  private deleteTransaction(transaction: Transaction): void {
+  private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
     this.transactions.delete(hash)
-    this.queue.removeOne((t) => t.hash.equals(hash))
+
+    for (const spend of transaction.spends()) {
+      this.nullifiers.delete(spend.nullifier)
+    }
+
+    const entry = this.queue.removeOne((t) => t.hash.equals(hash))
+    if (!entry) {
+      return false
+    }
     this.metrics.memPoolSize.value = this.size()
+    return true
   }
 }

@@ -47,7 +47,10 @@ router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
     const account = await node.accounts.importAccount(request.data.account)
-    void node.accounts.startScanTransactionsFor(account)
+
+    if (request.data.rescan) {
+      void node.accounts.startScanTransactionsFor(account)
+    }
 
     let isDefaultAccount = false
     if (!node.accounts.hasDefaultAccount) {

@@ -8,7 +8,7 @@ import { RpcServer } from '../server'
  * An adapter represents a network transport that accepts incoming requests
  * and routes them into the router.
  */
-export interface IAdapter {
+export interface IRpcAdapter {
   /**
    * Called when the adapter has been added to an RpcServer.
    * This lets you get access to both the RpcServer, and the
@@ -16,12 +16,6 @@ export interface IAdapter {
    * configuration.
    */
   attach(server: RpcServer): Promise<void> | void
-
-  /**
-   * Called when the adapter has been removed from an RpcServer.
-   * This lets you clean up state you stored in attach()
-   */
-  unattach(): Promise<void> | void
 
   /**
    * Called when the adapter should start serving requests to the router

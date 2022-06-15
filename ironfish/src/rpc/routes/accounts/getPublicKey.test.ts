@@ -14,12 +14,15 @@ jest.mock('@ironfish/rust-nodejs', () => {
   const moduleMock = jest.requireActual<typeof native>('@ironfish/rust-nodejs')
   return {
     ...moduleMock,
-    generateNewPublicAddress: jest.fn().mockReturnValue({ publicAddress: 'newkey' }),
+    generateNewPublicAddress: jest.fn().mockReturnValue({
+      public_address:
+        'f0486664761c625bad7024f11724b42968244a4bb05446b17719bcc48d5fb65899da4fb204358a3b9d6d05',
+    }),
   }
 })
 
 describe('Route account/getPublicKey', () => {
-  const routeTest = createRouteTest()
+  const routeTest = createRouteTest(true)
   let account = {} as Account
   let publicAddress = ''
 
@@ -30,10 +33,12 @@ describe('Route account/getPublicKey', () => {
   })
 
   it('should return the account data', async () => {
-    const response = await routeTest.adapter.request<any>('account/getPublicKey', {
-      account: account.name,
-      generate: false,
-    })
+    const response = await routeTest.client
+      .request<any>('account/getPublicKey', {
+        account: account.name,
+        generate: false,
+      })
+      .waitForEnd()
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -43,10 +48,12 @@ describe('Route account/getPublicKey', () => {
   })
 
   it('should regenerate the account key', async () => {
-    const response = await routeTest.adapter.request<any>('account/getPublicKey', {
-      account: account.name,
-      generate: true,
-    })
+    const response = await routeTest.client
+      .request<any>('account/getPublicKey', {
+        account: account.name,
+        generate: true,
+      })
+      .waitForEnd()
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(account.name)

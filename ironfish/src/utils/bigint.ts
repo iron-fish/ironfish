@@ -46,6 +46,17 @@ function fromBytes(bytes: Buffer): bigint {
   return BigInt('0x' + hex.join(''))
 }
 
+function fromBytesLE(bytes: Buffer): bigint {
+  return fromBytes(bytes.reverse())
+}
+
+/**
+ * Writes a bigint to a Buffer, in big endian format.
+ *
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
+ */
 function toBytes(value: bigint): Buffer {
   let hex = value.toString(16)
   if (hex.length % 2) {
@@ -66,6 +77,20 @@ function toBytes(value: bigint): Buffer {
   return u8
 }
 
+/**
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
+ */
+function toBytesLE(value: bigint, size?: number): Buffer {
+  return toBytesBE(value, size).reverse()
+}
+
+/**
+ * TODO: Handle negative numbers, or add an assertion that the
+ * incoming bigint is non-negative, and fix the places where we're calling
+ * it with a negative number (at least one place is miners fee serialization)
+ */
 function toBytesBE(value: bigint, size?: number): Buffer {
   const bytes = toBytes(value)
 
@@ -78,6 +103,10 @@ function toBytesBE(value: bigint, size?: number): Buffer {
   return bytes
 }
 
+/**
+ * Divides two BigInt types and returns a number. That has floating
+ * point precision. Regular BigInt division will not have decimals
+ */
 function divide(a: bigint, b: bigint): number {
   const div = a / b
   return Number(div) + Number(a - div * b) / Number(b)
@@ -86,7 +115,9 @@ function divide(a: bigint, b: bigint): number {
 export const BigIntUtils = {
   toBytes,
   fromBytes,
+  fromBytesLE,
   toBytesBE,
+  toBytesLE,
   max,
   divide,
 }

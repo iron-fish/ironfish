@@ -12,10 +12,12 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
+import { NoteLeafEncoding } from './merkletree/database/leaves'
+import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
-import { IDatabase } from './storage'
+import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -41,6 +43,9 @@ async function makeStrategyTree({
 
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
+    leafIndexKeyEncoding: BUFFER_ENCODING,
+    leafEncoding: new NoteLeafEncoding(),
+    nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
     depth: depth,
@@ -83,10 +88,11 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Rejects incoming new transactions if fees are negative', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      const verifier = new Verifier(nodeTest.chain)
+      const verifier = new Verifier(nodeTest.chain, workerPool)
 
       expect(await verifier.verifyTransaction(minersFee, nodeTest.chain.head)).toMatchObject({
         valid: false,
@@ -171,11 +177,12 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const workerPool = new WorkerPool()
+      const strategy = new Strategy(workerPool)
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      expect(await minersFee.verify({ verifyFees: false })).toEqual({ valid: true })
+      expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
     }, 60000)
 

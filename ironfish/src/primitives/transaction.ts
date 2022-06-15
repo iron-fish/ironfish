@@ -4,10 +4,7 @@
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { VerificationResult, VerificationResultReason } from '../consensus/verifier'
 import { Serde } from '../serde'
-import { WorkerPool } from '../workerPool'
-import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -17,7 +14,6 @@ export type SerializedTransaction = Buffer
 
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
-  private readonly workerPool: WorkerPool
 
   private readonly _fee: bigint
   private readonly _expirationSequence: number
@@ -28,41 +24,47 @@ export class Transaction {
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(transactionPostedSerialized: Buffer, workerPool: WorkerPool) {
+  constructor(transactionPostedSerialized: Buffer) {
     this.transactionPostedSerialized = transactionPostedSerialized
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
-    const _spendsLength = reader.readU64()
-    const _notesLength = reader.readU64()
-    this._fee = BigInt(reader.readI64())
-    this._expirationSequence = reader.readU32()
+
+    const _spendsLength = reader.readU64() // 8
+    const _notesLength = reader.readU64() // 8
+    this._fee = BigInt(reader.readI64()) // 8
+    this._expirationSequence = reader.readU32() // 4
+
     this._spends = Array.from({ length: _spendsLength }, () => {
-      // skip proof, value commitment, randomized public key
-      reader.seek(256)
+      // proof
+      reader.seek(192)
+      // value commitment
+      reader.seek(32)
+      // randomized public key
+      reader.seek(32)
 
-      const rootHash = reader.readHash()
-      const treeSize = reader.readU32()
-      const nullifier = reader.readHash()
+      const rootHash = reader.readHash() // 32
+      const treeSize = reader.readU32() // 4
+      const nullifier = reader.readHash() // 32
 
-      // skip signature
+      // signature
       reader.seek(64)
 
+      // total serialized size: 192 + 32 + 32 + 32 + 4 + 32 + 64 = 388 bytes
       return {
         size: treeSize,
         commitment: rootHash,
         nullifier,
       }
     })
+
     this._notes = Array.from({ length: _notesLength }, () => {
-      // skip proof
+      // proof
       reader.seek(192)
 
       return new NoteEncrypted(reader.readBytes(275, true))
     })
 
     this._signature = reader.readBytes(64, true)
-
-    this.workerPool = workerPool
   }
 
   serialize(): Buffer {
@@ -104,17 +106,6 @@ export class Transaction {
     })
 
     return result
-  }
-
-  /**
-   * Verify whether the transaction has valid proofs.
-   */
-  async verify(options?: VerifyTransactionOptions): Promise<VerificationResult> {
-    const result = await this.workerPool.verify(this, options)
-
-    return result === true
-      ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   /**
@@ -204,8 +195,6 @@ export class Transaction {
  * Serializer and equality checker for Transaction wrappers.
  */
 export class TransactionSerde implements Serde<Transaction, SerializedTransaction> {
-  constructor(private readonly workerPool: WorkerPool) {}
-
   equals(tx1: Transaction, tx2: Transaction): boolean {
     return tx1.equals(tx2)
   }
@@ -215,6 +204,6 @@ export class TransactionSerde implements Serde<Transaction, SerializedTransactio
   }
 
   deserialize(data: SerializedTransaction): Transaction {
-    return new Transaction(data, this.workerPool)
+    return new Transaction(data)
   }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import axios, { AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
 import { Metric } from './telemetry'
 import { UnwrapPromise } from './utils/types'
@@ -13,6 +13,22 @@ type FaucetTransaction = {
   public_key: string
   started_at: string | null
   completed_at: string | null
+}
+
+export type ApiDepositUpload = {
+  type: 'connected' | 'disconnected' | 'fork'
+  block: {
+    hash: string
+    timestamp: number
+    sequence: number
+  }
+  transactions: {
+    hash: string
+    notes: {
+      memo: string
+      amount: number
+    }[]
+  }[]
 }
 
 type ApiUser = {
@@ -45,12 +61,27 @@ export class WebApi {
     this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
-  async head(): Promise<string | null> {
+  async headDeposits(): Promise<string | null> {
+    const response = await axios
+      .get<{ block_hash: string }>(`${this.host}/deposits/head`)
+      .catch(() => null)
+
+    return response?.data.block_hash || null
+  }
+
+  async headBlocks(): Promise<string | null> {
     const response = await axios
       .get<{ hash: string }>(`${this.host}/blocks/head`)
       .catch(() => null)
 
     return response?.data.hash || null
+  }
+
+  async uploadDeposits(deposits: ApiDepositUpload[]): Promise<void> {
+    this.requireToken()
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+    await axios.post(`${this.host}/deposits`, { operations: deposits }, options)
   }
 
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
@@ -72,6 +103,11 @@ export class WebApi {
     const options = this.options({ 'Content-Type': 'application/json' })
 
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
+  }
+
+  async getDepositAddress(): Promise<string> {
+    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
+    return response.data.address
   }
 
   async getFunds(data: { email?: string; public_key: string }): Promise<{
@@ -122,7 +158,18 @@ export class WebApi {
     return await axios
       .get<ApiUser>(`${this.host}/users/find`, options)
       .then((r) => r.data)
-      .catch(() => null)
+      .catch((error: AxiosError<{ code: string; message?: string }>) => {
+        if (error.response) {
+          const { status } = error.response
+          if (status >= 500 && status <= 599) {
+            throw new Error(
+              `API request to fetch user '${params.graffiti}' failed with status code: ${status}`,
+            )
+          }
+        }
+
+        return null
+      })
   }
 
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {

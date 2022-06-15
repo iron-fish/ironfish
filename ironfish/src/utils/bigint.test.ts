@@ -23,6 +23,20 @@ describe('BigIntUtils', () => {
     }
   })
 
+  it('can convert to a little-endian representation', () => {
+    const bigint = BigInt(258)
+
+    const bigintBuffer = BigIntUtils.toBytesLE(bigint, 2)
+
+    const buffer = Buffer.alloc(2)
+    buffer.writeUInt16LE(Number(bigint))
+
+    expect(bigintBuffer).toEqual(buffer)
+
+    const back = BigIntUtils.fromBytesLE(bigintBuffer)
+    expect(back).toEqual(bigint)
+  })
+
   it('converts empty array to 0', () => {
     expect(BigIntUtils.fromBytes(Buffer.from([]))).toEqual(BigInt(0))
   })
@@ -41,5 +55,12 @@ describe('BigIntUtils', () => {
 
     result = BigIntUtils.divide(max, BigInt(2))
     expect(result).toBe(Number(max) / 2)
+
+    const withPrecision = BigIntUtils.divide(10000n, 37n)
+    const withoutPrecision = Number(10000n / 37n)
+    const withPrecision2 = 10000 / 37
+
+    expect(withPrecision).toBeGreaterThan(withoutPrecision)
+    expect(withPrecision).toBe(withPrecision2)
   })
 })

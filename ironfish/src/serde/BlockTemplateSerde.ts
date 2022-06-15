@@ -23,7 +23,7 @@ export type SerializedBlockTemplate = {
       size: number
     }
     target: string
-    randomness: number
+    randomness: string
     timestamp: number
     minersFee: string
     graffiti: string
@@ -49,7 +49,7 @@ export class BlockTemplateSerde {
         size: block.header.nullifierCommitment.size,
       },
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
-      randomness: 0,
+      randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
       minersFee: BigIntUtils.toBytesBE(block.header.minersFee, 8).toString('hex'),
       graffiti: block.header.graffiti.toString('hex'),
@@ -86,7 +86,7 @@ export class BlockTemplateSerde {
         size: blockTemplate.header.nullifierCommitment.size,
       },
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
-      blockTemplate.header.randomness,
+      BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
       new Date(blockTemplate.header.timestamp),
       BigInt(-1) * BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.minersFee, 'hex')),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),

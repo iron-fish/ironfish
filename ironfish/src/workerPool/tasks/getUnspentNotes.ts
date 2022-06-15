@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
-interface Note {
+export interface UnspentNote {
   account: string
   hash: string
   note: Buffer
@@ -65,9 +65,9 @@ export class GetUnspentNotesRequest extends WorkerMessage {
 }
 
 export class GetUnspentNotesResponse extends WorkerMessage {
-  readonly notes: Note[]
+  readonly notes: UnspentNote[]
 
-  constructor(notes: Note[], jobId: number) {
+  constructor(notes: UnspentNote[], jobId: number) {
     super(WorkerMessageType.GetUnspentNotes, jobId)
     this.notes = notes
   }
@@ -76,7 +76,7 @@ export class GetUnspentNotesResponse extends WorkerMessage {
     const bw = bufio.write(this.getSize())
     bw.writeU64(this.notes.length)
     for (const note of this.notes) {
-      bw.writeVarString(note.account)
+      bw.writeVarString(note.account, 'utf8')
       bw.writeVarString(note.hash)
       bw.writeVarBytes(note.note)
     }
@@ -89,7 +89,7 @@ export class GetUnspentNotesResponse extends WorkerMessage {
 
     const notesLength = reader.readU64()
     for (let i = 0; i < notesLength; i++) {
-      const account = reader.readVarString()
+      const account = reader.readVarString('utf8')
       const hash = reader.readVarString()
       const note = reader.readVarBytes()
       notes.push({ account, hash, note })
@@ -101,7 +101,7 @@ export class GetUnspentNotesResponse extends WorkerMessage {
   getSize(): number {
     let size = 8
     for (const note of this.notes) {
-      size += bufio.sizeVarString(note.account)
+      size += bufio.sizeVarString(note.account, 'utf8')
       size += bufio.sizeVarString(note.hash)
       size += bufio.sizeVarBytes(note.note)
     }

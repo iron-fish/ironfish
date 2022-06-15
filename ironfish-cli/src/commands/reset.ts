@@ -1,11 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode, NodeUtils, PeerNetwork } from '@ironfish/sdk'
+import { HOST_FILE_NAME, IronfishNode } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import fs from 'fs'
 import fsAsync from 'fs/promises'
-import path from 'path'
 import { IronfishCommand } from '../command'
 import {
   ConfigFlag,
@@ -19,7 +17,7 @@ import {
 } from '../flags'
 
 export default class Reset extends IronfishCommand {
-  static description = 'Reset the node to a fresh state but preserve accounts'
+  static description = 'Reset the node to its initial state'
 
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
@@ -34,66 +32,54 @@ export default class Reset extends IronfishCommand {
 
   node: IronfishNode | null = null
 
-  peerNetwork: PeerNetwork | null = null
-
   async start(): Promise<void> {
     const { flags } = await this.parse(Reset)
 
-    let node = await this.sdk.node({ autoSeed: false })
-    await NodeUtils.waitForOpen(node, null, { upgrade: false, load: false })
+    let confirmed = flags.confirm
 
-    const backupPath = path.join(this.sdk.config.dataDir, 'accounts.backup.json')
+    const warningMessage =
+      `\n/!\\ WARNING: This will permanently delete your accounts. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
+      '\nHave you read the warning? (Y)es / (N)o'
 
-    if (fs.existsSync(backupPath)) {
-      this.log(`There is already an account backup at ${backupPath}`)
-
-      const confirmed = await CliUx.ux.confirm(
-        `\nThis means this failed to run. Delete the accounts backup?\nAre you sure? (Y)es / (N)o`,
-      )
-
-      if (!confirmed) {
-        this.exit(1)
-      }
-
-      fs.rmSync(backupPath)
-    }
-
-    const confirmed =
-      flags.confirm ||
-      (await CliUx.ux.confirm(
-        `\nYou are about to destroy your node data at ${node.config.dataDir}\nAre you sure? (Y)es / (N)o`,
-      ))
+    confirmed = flags.confirm || (await CliUx.ux.confirm(warningMessage))
 
     if (!confirmed) {
-      return
+      this.log('Reset aborted.')
+      this.exit(0)
     }
 
-    const accounts = node.accounts.listAccounts()
-    this.log(`Backing up ${accounts.length} accounts to ${backupPath}`)
-    const backup = JSON.stringify(accounts, undefined, '  ')
-    await fsAsync.writeFile(backupPath, backup)
-    await node.closeDB()
+    const accountDatabasePath = this.sdk.config.accountDatabasePath
+    const chainDatabasePath = this.sdk.config.chainDatabasePath
+    const hostFilePath: string = this.sdk.config.files.join(
+      this.sdk.config.dataDir,
+      HOST_FILE_NAME,
+    )
+    const indexDatabasePath = this.sdk.config.indexDatabasePath
 
-    CliUx.ux.action.start('Deleting databases')
+    const message =
+      '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
+      `\nAccounts: ${accountDatabasePath}` +
+      `\nBlockchain: ${chainDatabasePath}` +
+      `\nHosts: ${hostFilePath}` +
+      `\nIndexes: ${indexDatabasePath}` +
+      `\n\nAre you sure? (Y)es / (N)o`
+
+    confirmed = flags.confirm || (await CliUx.ux.confirm(message))
+
+    if (!confirmed) {
+      this.log('Reset aborted.')
+      this.exit(0)
+    }
+
+    CliUx.ux.action.start('Deleting databases...')
 
     await Promise.all([
-      fsAsync.rm(node.config.accountDatabasePath, { recursive: true }),
-      fsAsync.rm(node.config.chainDatabasePath, { recursive: true }),
+      fsAsync.rm(accountDatabasePath, { recursive: true, force: true }),
+      fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
+      fsAsync.rm(hostFilePath, { recursive: true, force: true }),
+      fsAsync.rm(indexDatabasePath, { recursive: true, force: true }),
     ])
 
-    CliUx.ux.action.status = `Importing ${accounts.length} accounts`
-
-    // We create a new node because the old node has cached account data
-    node = await this.sdk.node()
-    await node.openDB()
-    await Promise.all(accounts.map((a) => node.accounts.importAccount(a)))
-    await node.closeDB()
-
-    node.internal.set('isFirstRun', true)
-    await node.internal.save()
-
-    await fsAsync.rm(backupPath)
-
-    CliUx.ux.action.stop('Reset the node successfully.')
+    CliUx.ux.action.stop('Databases deleted successfully')
   }
 }

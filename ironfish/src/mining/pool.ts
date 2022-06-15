@@ -5,28 +5,28 @@ import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
 import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
-import { createRootLogger, Logger } from '../logger'
+import { Logger } from '../logger'
 import { Target } from '../primitives/target'
-import { IronfishIpcClient } from '../rpc/clients'
+import { RpcSocketClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer, StratumServerClient } from './stratum/stratumServer'
 import { mineableHeaderString } from './utils'
+import { WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
 export class MiningPool {
   readonly stratum: StratumServer
-  readonly rpc: IronfishIpcClient
+  readonly rpc: RpcSocketClient
   readonly logger: Logger
   readonly shares: MiningPoolShares
   readonly config: Config
-  readonly discord: Discord | null
+  readonly webhooks: WebhookNotifier[]
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -39,7 +39,7 @@ export class MiningPool {
 
   nextMiningRequestId: number
   miningRequestBlocks: LeastRecentlyUsed<number, SerializedBlockTemplate>
-  recentSubmissions: Map<number, number[]>
+  recentSubmissions: Map<number, string[]>
 
   difficulty: bigint
   target: Buffer
@@ -49,18 +49,18 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  constructor(options: {
-    rpc: IronfishIpcClient
+  private constructor(options: {
+    rpc: RpcSocketClient
     shares: MiningPoolShares
     config: Config
-    logger?: Logger
-    discord?: Discord
+    logger: Logger
+    webhooks?: WebhookNotifier[]
     host?: string
     port?: number
   }) {
     this.rpc = options.rpc
-    this.logger = options.logger ?? createRootLogger()
-    this.discord = options.discord ?? null
+    this.logger = options.logger
+    this.webhooks = options.webhooks ?? []
     this.stratum = new StratumServer({
       pool: this,
       config: options.config,
@@ -90,27 +90,29 @@ export class MiningPool {
   }
 
   static async init(options: {
-    rpc: IronfishIpcClient
+    rpc: RpcSocketClient
     config: Config
-    logger?: Logger
-    discord?: Discord
+    logger: Logger
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     host?: string
     port?: number
+    balancePercentPayoutFlag?: number
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
-      discord: options.discord,
+      webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
+      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
 
     return new MiningPool({
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
-      discord: options.discord,
+      webhooks: options.webhooks,
       host: options.host,
       port: options.port,
       shares,
@@ -172,7 +174,7 @@ export class MiningPool {
   async submitWork(
     client: StratumServerClient,
     miningRequestId: number,
-    randomness: number,
+    randomness: string,
   ): Promise<void> {
     Assert.isNotNull(client.publicAddress)
     Assert.isNotNull(client.graffiti)
@@ -183,14 +185,17 @@ export class MiningPool {
       return
     }
 
-    const blockTemplate = this.miningRequestBlocks.get(miningRequestId)
+    const originalBlockTemplate = this.miningRequestBlocks.get(miningRequestId)
 
-    if (!blockTemplate) {
+    if (!originalBlockTemplate) {
       this.logger.warn(
         `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
       )
       return
     }
+
+    const blockTemplate = Object.assign({}, originalBlockTemplate)
+    blockTemplate.header = Object.assign({}, originalBlockTemplate.header)
 
     const isDuplicate = this.isDuplicateSubmission(client.id, randomness)
 
@@ -206,7 +211,14 @@ export class MiningPool {
     blockTemplate.header.graffiti = client.graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
-    const headerBytes = mineableHeaderString(blockTemplate.header)
+    let headerBytes
+    try {
+      headerBytes = mineableHeaderString(blockTemplate.header)
+    } catch (error) {
+      this.logger.debug(`${client.id} sent malformed work. No longer sending work.`)
+      this.stratum.addBadClient(client)
+      return
+    }
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -222,7 +234,9 @@ export class MiningPool {
             'hex',
           )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
         )
-        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
+        this.webhooks.map((w) =>
+          w.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size),
+        )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
@@ -253,8 +267,8 @@ export class MiningPool {
       return
     }
 
-    if (this.connectWarned) {
-      this.discord?.poolConnected()
+    if (connected) {
+      this.webhooks.map((w) => w.poolConnected())
     }
 
     this.connectWarned = false
@@ -272,7 +286,8 @@ export class MiningPool {
     this.stratum.waitForWork()
 
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
-    this.discord?.poolDisconnected()
+
+    this.webhooks.map((w) => w.poolDisconnected())
     void this.startConnectingRpc()
   }
 
@@ -290,6 +305,8 @@ export class MiningPool {
   }
 
   private recalculateTarget() {
+    this.logger.debug('recalculating target')
+
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
@@ -319,6 +336,8 @@ export class MiningPool {
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
     this.distributeNewBlock(latestBlock)
+
+    this.logger.debug('target recalculated', { prevHash: latestBlock.header.previousBlockHash })
   }
 
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
@@ -342,7 +361,7 @@ export class MiningPool {
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 
-  private isDuplicateSubmission(clientId: number, randomness: number): boolean {
+  private isDuplicateSubmission(clientId: number, randomness: string): boolean {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       return false
@@ -350,7 +369,7 @@ export class MiningPool {
     return submissions.includes(randomness)
   }
 
-  private addWorkSubmission(clientId: number, randomness: number): void {
+  private addWorkSubmission(clientId: number, randomness: string): void {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       this.recentSubmissions.set(clientId, [randomness])

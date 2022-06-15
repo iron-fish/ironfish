@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  FileUtils,
   GraffitiUtils,
   isValidPublicAddress,
   MiningPoolMiner,
   MiningSoloMiner,
   parseUrl,
+  SetIntervalToken,
 } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import dns from 'dns'
 import os from 'os'
 import { IronfishCommand } from '../../command'
@@ -16,6 +18,8 @@ import { RemoteFlags } from '../../flags'
 
 export class Miner extends IronfishCommand {
   static description = `Start a miner and subscribe to new blocks for the node`
+
+  updateInterval: SetIntervalToken | null = null
 
   static flags = {
     ...RemoteFlags,
@@ -32,6 +36,11 @@ export class Miner extends IronfishCommand {
     address: Flags.string({
       char: 'a',
       description: 'the public address to receive pool payouts',
+    }),
+    richOutput: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'enable fancy hashpower display',
     }),
   }
 
@@ -76,34 +85,62 @@ export class Miner extends IronfishCommand {
         }
       }
 
-      this.log(`Staring to mine with public address: ${flags.address} at pool ${host}:${port}`)
+      this.log(`Starting to mine with public address: ${flags.address} at pool ${host}:${port}`)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress: flags.address,
+        logger: this.logger,
         batchSize,
         host: host,
         port: port,
       })
 
       miner.start()
+      if (flags.richOutput) {
+        this.displayHashrate(miner)
+      }
+
       await miner.waitForStop()
+      if (this.updateInterval) {
+        clearInterval(this.updateInterval)
+      }
     }
 
     if (!flags.pool) {
-      this.log(`Starting to mine with graffiti: ${graffiti} connecting to node`)
+      this.log(`Starting to mine with graffiti: ${graffiti}`)
 
       const rpc = this.sdk.client
 
       const miner = new MiningSoloMiner({
         threadCount: flags.threads,
         graffiti: GraffitiUtils.fromString(graffiti),
+        logger: this.logger,
         batchSize,
         rpc,
       })
 
       miner.start()
+      if (flags.richOutput) {
+        this.displayHashrate(miner)
+      }
+
       await miner.waitForStop()
+      if (this.updateInterval) {
+        clearInterval(this.updateInterval)
+      }
     }
+  }
+
+  displayHashrate(miner: MiningPoolMiner | MiningSoloMiner): void {
+    CliUx.ux.action.start(`Hashrate`)
+
+    const updateHashPower = () => {
+      const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
+      const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
+      CliUx.ux.action.status = formatted
+    }
+
+    this.updateInterval = setInterval(updateHashPower, 1000)
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "0.1.29",
+  "version": "0.1.36",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -41,8 +41,8 @@
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
-    "start": "node start",
-    "start:once": "yarn build && yarn start:js",
+    "start:dev": "node start",
+    "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node bin/run",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
@@ -53,8 +53,8 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "0.1.3",
-    "@ironfish/sdk": "0.0.7",
+    "@ironfish/rust-nodejs": "0.1.6",
+    "@ironfish/sdk": "0.0.14",
     "@oclif/core": "1.6.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
@@ -62,6 +62,7 @@
     "blessed": "0.1.81",
     "json-colorizer": "2.2.2",
     "segfault-handler": "1.3.0",
+    "supports-hyperlinks": "2.2.0",
     "tweetnacl": "1.0.3",
     "uuid": "8.3.2",
     "ws": "7.5.1"

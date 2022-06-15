@@ -30,7 +30,7 @@ describe('Read genesis block', () => {
   it('Can start a chain with the existing genesis block', async () => {
     const workerPool = new WorkerPool()
     const strategy = new Strategy(workerPool)
-    const chain = new Blockchain({ location: makeDbPath(), strategy })
+    const chain = new Blockchain({ location: makeDbPath(), strategy, workerPool })
     await chain.open()
 
     // We should also be able to create new blocks after the genesis block
@@ -74,6 +74,7 @@ describe('Create genesis block', () => {
     const info = {
       timestamp: Date.now(),
       memo: 'test',
+      target: Target.maxTarget(),
       allocations: [
         {
           amount: amountNumber,
@@ -83,11 +84,11 @@ describe('Create genesis block', () => {
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(chain, info, account, node.workerPool, node.logger)
+    const { block } = await makeGenesisBlock(chain, info, account, node.logger)
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)
-    expect(block.header.target.asBigInt()).toEqual(Target.initialTarget().asBigInt())
+    expect(block.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
@@ -134,9 +135,7 @@ describe('Create genesis block', () => {
 
     // Validate parameters again to make sure they're what's expected
     expect(deserializedBlock.header.timestamp.valueOf()).toEqual(info.timestamp)
-    expect(deserializedBlock.header.target.asBigInt()).toEqual(
-      Target.initialTarget().asBigInt(),
-    )
+    expect(deserializedBlock.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
     await newNode.accounts.importAccount(account)
     await newNode.accounts.updateHead()

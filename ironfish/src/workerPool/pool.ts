@@ -4,6 +4,7 @@
 
 import type { Side } from '../merkletree/merkletree'
 import _ from 'lodash'
+import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
@@ -12,13 +13,13 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
+import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
-import { TransactionFeeRequest, TransactionFeeResponse } from './tasks/transactionFee'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
@@ -37,14 +38,12 @@ export class WorkerPool {
   readonly numWorkers: number
   readonly logger: Logger
 
-  queue: Array<Job> = []
+  queue = new RoundRobinQueue()
   workers: Array<Worker> = []
   started = false
   completed = 0
   change: Meter | null
   speed: Meter | null
-
-  private lastJobId = 0
 
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -54,7 +53,6 @@ export class WorkerPool {
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.TransactionFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
@@ -84,7 +82,7 @@ export class WorkerPool {
   }) {
     this.numWorkers = options?.numWorkers ?? 1
     this.maxJobs = options?.maxJobs ?? 1
-    this.maxQueue = options?.maxQueue ?? 200
+    this.maxQueue = options?.maxQueue ?? 500
     this.change = options?.metrics?.addMeter() ?? null
     this.speed = options?.metrics?.addMeter() ?? null
     this.logger = options?.logger ?? createRootLogger()
@@ -118,9 +116,9 @@ export class WorkerPool {
     const queue = this.queue
 
     this.workers = []
-    this.queue = []
 
-    queue.forEach((j) => j.abort())
+    queue.abortAll()
+
     await Promise.all(workers.map((w) => w.stop()))
   }
 
@@ -133,7 +131,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async createTransaction(
@@ -169,21 +167,13 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted), this)
+    return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
-  async transactionFee(transaction: Transaction): Promise<bigint> {
-    const request = new TransactionFeeRequest(transaction.serialize())
-
-    const response = await this.execute(request).result()
-    if (!(response instanceof TransactionFeeResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return response.fee
-  }
-
-  async verify(transaction: Transaction, options?: VerifyTransactionOptions): Promise<boolean> {
+  async verify(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     const request: VerifyTransactionRequest = new VerifyTransactionRequest(
       transaction.serialize(),
       options,
@@ -195,6 +185,8 @@ export class WorkerPool {
     }
 
     return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   async boxMessage(
@@ -293,14 +285,14 @@ export class WorkerPool {
 
     // If we already have queue, put it at the end of the queue
     if (this.queue.length > 0) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
     const worker = this.workers.find((w) => w.canTakeJobs)
 
     if (!worker) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
@@ -318,7 +310,7 @@ export class WorkerPool {
       return
     }
 
-    const job = this.queue.shift()
+    const job = this.queue.nextJob()
     if (!job) {
       return
     }
