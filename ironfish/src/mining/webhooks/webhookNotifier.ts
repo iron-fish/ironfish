@@ -83,6 +83,6 @@ export abstract class WebhookNotifier {
       return `\`${hashHex}\``
     }
 
-    return `[${hashHex}](${explorerUrl + hashHex})`
+    return `${explorerUrl + hashHex}`
   }
 }
