@@ -23,39 +23,7 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from './messages'
-
-export class StratumServerClient {
-  id: number
-  socket: net.Socket
-  connected: boolean
-  subscribed: boolean
-  publicAddress: string | null = null
-  graffiti: Buffer | null = null
-  messageBuffer: string
-
-  private constructor(options: { socket: net.Socket; id: number }) {
-    this.id = options.id
-    this.socket = options.socket
-    this.connected = true
-    this.subscribed = false
-    this.messageBuffer = ''
-  }
-
-  static accept(socket: net.Socket, id: number): StratumServerClient {
-    return new StratumServerClient({ socket, id })
-  }
-
-  close(error?: Error): void {
-    if (!this.connected) {
-      return
-    }
-
-    this.messageBuffer = ''
-    this.connected = false
-    this.socket.removeAllListeners()
-    this.socket.destroy(error)
-  }
-}
+import { StratumServerClient } from './stratumServerClient'
 
 export class StratumServer {
   readonly server: net.Server
