@@ -36,11 +36,36 @@ export class Verifier {
    *  *  All transaction proofs are valid
    *  *  Header is valid
    *  *  Miner's fee is transaction list fees + miner's reward
+   *  *  New blocks added need to verify previous block (verifyPrev)
    */
   async verifyBlock(
     block: Block,
-    options: { verifyTarget?: boolean } = { verifyTarget: true },
+    prev: BlockHeader | null = null,
+    options: { verifyTarget?: boolean; verifyPrev?: boolean } = {
+      verifyTarget: true,
+      verifyPrev: false,
+    },
   ): Promise<VerificationResult> {
+    // Verify previous block
+    if (options.verifyPrev) {
+      if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+        return { valid: true }
+      }
+
+      if (!prev) {
+        return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
+      }
+
+      if (!block.header.previousBlockHash.equals(prev.hash)) {
+        return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
+      }
+
+      const verification = this.isValidAgainstPrevious(block, prev)
+      if (!verification.valid) {
+        return verification
+      }
+    }
+
     // Verify the block header
     const blockHeaderValid = this.verifyBlockHeader(block.header, options)
     if (!blockHeaderValid.valid) {
@@ -270,33 +295,6 @@ export class Verifier {
     )
 
     return header.target.targetValue === expectedTarget.targetValue
-  }
-
-  // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      return { valid: true }
-    }
-
-    if (!prev) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
-    }
-
-    if (!block.header.previousBlockHash.equals(prev.hash)) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
-    }
-
-    let verification = this.isValidAgainstPrevious(block, prev)
-    if (!verification.valid) {
-      return verification
-    }
-
-    verification = await this.verifyBlock(block)
-    if (!verification.valid) {
-      return verification
-    }
-
-    return { valid: true }
   }
 
   /**
