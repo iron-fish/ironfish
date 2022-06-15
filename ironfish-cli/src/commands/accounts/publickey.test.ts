@@ -7,7 +7,8 @@ import { expect as expectCli, test } from '@oclif/test'
 describe('accounts:publickey', () => {
   const publicKeyResponse: GetPublicKeyResponse = {
     account: 'default',
-    publicKey: '000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+    publicKey:
+      '000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
   }
 
   beforeAll(() => {
