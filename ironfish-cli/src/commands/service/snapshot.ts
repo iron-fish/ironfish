@@ -27,10 +27,18 @@ export default class CreateSnapshot extends IronfishCommand {
       description: 'Bucket URL to upload snapshot to',
     }),
     path: Flags.string({
-      char: 'e',
+      char: 'p',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'a path to export the chain to',
+      description: 'The path where the snapshot should be saved',
+    }),
+    maxBlocksPerChunk: Flags.integer({
+      char: 'm',
+      required: false,
+      default: isNaN(Number(process.env.MAX_BLOCKS_PER_SNAPSHOT_CHUNK))
+        ? 1000
+        : Number(process.env.MAX_BLOCKS_PER_SNAPSHOT_CHUNK),
+      description: 'The max number of blocks per file in the zipped snapshot',
     }),
   }
 
@@ -85,6 +93,7 @@ export default class CreateSnapshot extends IronfishCommand {
     const response = client.snapshotChainStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
+      maxBlocksPerChunk: flags.maxBlocksPerChunk,
     })
 
     const { start, stop } = await AsyncUtils.first(response.contentStream())
@@ -106,7 +115,9 @@ export default class CreateSnapshot extends IronfishCommand {
 
     progress.stop()
 
-    const snapshotFileName = `ironfish_snapshot_${Date.now()}.tar.gz`
+    const timestamp = Date.now()
+
+    const snapshotFileName = `ironfish_snapshot_${timestamp}.tar.gz`
     const snapshotPath = this.sdk.fileSystem.join(exportDir, snapshotFileName)
 
     this.log(`Zipping\n    SRC ${blockExportPath}\n    DST ${snapshotPath}\n`)
@@ -115,37 +126,36 @@ export default class CreateSnapshot extends IronfishCommand {
 
     const hasher = crypto.createHash('sha256')
     const fileHandle = await fsAsync.open(snapshotPath, 'r')
-    const reader = fileHandle.createReadStream()
-
-    reader.on('data', (data) => {
+    const stream = fileHandle.createReadStream()
+    for await (const data of stream) {
       hasher.update(data)
-    })
+    }
 
     const stat = await fsAsync.stat(snapshotPath)
 
     const checksum = hasher.digest().toString('hex')
     const fileSize = stat.size
-    const timestamp = stat.birthtimeMs
     const blockHeight = stop
+
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
-    await this.uploadToS3(snapshotPath, bucket, 'application/x-compressed-tar')
+    await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
     CliUx.ux.action.stop(`done`)
 
     await fsAsync.writeFile(
       path.join(exportDir, 'manifest.json'),
       JSON.stringify({
         block_height: blockHeight,
-        checksum: checksum,
+        checksum,
         file_name: snapshotFileName,
         file_size: fileSize,
-        timestamp: timestamp,
+        timestamp,
       }),
     )
 
     CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
-    await this.uploadToS3(path.join(exportDir, 'manifest.json'), bucket, 'application/json')
+    await this.uploadToBucket(path.join(exportDir, 'manifest.json'), bucket, 'application/json')
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
@@ -167,10 +177,9 @@ export default class CreateSnapshot extends IronfishCommand {
     })
   }
 
-  uploadToS3(dest: string, bucket: string, contentType: string): Promise<number | null> {
+  uploadToBucket(dest: string, host: string, contentType: string): Promise<number | null> {
     return new Promise<number | null>((resolve, reject) => {
       const date = new Date().toISOString()
-      const host = `${bucket}.s3.amazonaws.com`
       const file = path.basename(dest)
       const acl = 'bucket-owner-full-control'
 

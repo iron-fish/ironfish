@@ -8,10 +8,13 @@ import { getBlockSize, writeBlock } from '../../../network/utils/block'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { ApiNamespace, router } from '../router'
 
+const MAX_BLOCKS_PER_SNAPSHOT_CHUNK = 1000
+
 export type SnapshotChainStreamRequest =
   | {
       start?: number | null
       stop?: number | null
+      maxBlocksPerChunk?: number | null
     }
   | undefined
 
@@ -27,6 +30,7 @@ export const SnapshotChainStreamRequestSchema: yup.ObjectSchema<SnapshotChainStr
     .object({
       start: yup.number().nullable().optional(),
       stop: yup.number().nullable().optional(),
+      maxBlocksPerChunk: yup.number().nullable().optional(),
     })
     .optional()
 
@@ -51,8 +55,11 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
       start: request.data?.start,
       stop: request.data?.stop,
     })
+    const maxBlocksPerChunk = request.data?.maxBlocksPerChunk ?? MAX_BLOCKS_PER_SNAPSHOT_CHUNK
 
     request.stream({ start, stop })
+
+    let blocks: Buffer[] = []
 
     for (let i = start; i <= stop; ++i) {
       const blockHeader = await node.chain.getHeaderAtSequence(i)
@@ -61,12 +68,40 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
         if (block) {
           const serializedBlock = node.chain.strategy.blockSerde.serialize(block)
           const bw = bufio.write(getBlockSize(serializedBlock))
-          const buffer = writeBlock(bw, serializedBlock).render()
-          request.stream({ start, stop, seq: i, buffer })
+          const blockBuffer = writeBlock(bw, serializedBlock).render()
+          blocks.push(blockBuffer)
+
+          if (blocks.length >= maxBlocksPerChunk) {
+            const buffer = serializeChunk(blocks)
+            blocks = []
+            request.stream({ start, stop, seq: i, buffer })
+          }
         }
       }
     }
 
-    request.end()
+    if (blocks.length) {
+      const buffer = serializeChunk(blocks)
+      request.stream({ start, stop, seq: stop, buffer })
+    }
+
+    request.end({ start, stop, seq: stop })
   },
 )
+
+function serializeChunk(blocks: Buffer[]): Buffer {
+  let sizeOfBuffers = 0
+  for (const block of blocks) {
+    sizeOfBuffers += bufio.sizeVarBytes(block)
+  }
+  const totalSize = 8 + sizeOfBuffers
+
+  const bw = bufio.write(totalSize)
+  bw.writeU64(blocks.length)
+
+  for (const block of blocks) {
+    bw.writeVarBytes(block)
+  }
+
+  return bw.render()
+}
