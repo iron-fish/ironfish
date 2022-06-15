@@ -154,7 +154,7 @@ export class StratumClient {
     this.miner.waitForWork()
 
     this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
-    void this.startConnecting()
+    this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
   }
 
   private onError = (error: unknown): void => {
