@@ -99,6 +99,11 @@ export class StratumServer {
   }
 
   private onConnection(socket: net.Socket): void {
+    if (!socket.remoteAddress) {
+      socket.destroy()
+      return
+    }
+
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
 
     socket.on('data', (data: Buffer) => {
@@ -109,7 +114,7 @@ export class StratumServer {
 
     socket.on('error', (e) => this.onError(client, e))
 
-    this.logger.debug(`Client ${client.id} connected: ${socket.remoteAddress || 'undefined'}`)
+    this.logger.debug(`Client ${client.id} connected: ${client.remoteAddress}`)
     this.clients.set(client.id, client)
   }
 
