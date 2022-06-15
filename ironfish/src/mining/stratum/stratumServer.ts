@@ -34,11 +34,11 @@ export class StratumServer {
   readonly port: number
   readonly host: string
 
-  readonly maxOpenConnections: number
+  readonly maxConnectionsByIp: number
 
   clients: Map<number, StratumServerClient>
   badClients: Set<number>
-  openConnections: Map<string, number>
+  connectionsByIp: Map<string, number>
   nextMinerId: number
   nextMessageId: number
 
@@ -58,13 +58,13 @@ export class StratumServer {
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
-    this.maxOpenConnections = this.config.get('poolMaxConnectionsPerIp')
+    this.maxConnectionsByIp = this.config.get('poolMaxConnectionsPerIp')
 
     this.clients = new Map()
     this.badClients = new Set()
     this.nextMinerId = 1
     this.nextMessageId = 1
-    this.openConnections = new Map()
+    this.connectionsByIp = new Map()
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -315,16 +315,16 @@ export class StratumServer {
   }
 
   protected addConnectionCount(client: StratumServerClient): void {
-    const count = this.openConnections.get(client.remoteAddress) ?? 0
-    this.openConnections.set(client.remoteAddress, count + 1)
+    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
+    this.connectionsByIp.set(client.remoteAddress, count + 1)
   }
 
   protected removeConnectionCount(client: StratumServerClient): void {
-    const count = this.openConnections.get(client.remoteAddress) ?? 0
-    this.openConnections.set(client.remoteAddress, count - 1)
+    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
+    this.connectionsByIp.set(client.remoteAddress, count - 1)
 
     if (count - 1 <= 0) {
-      this.openConnections.delete(client.remoteAddress)
+      this.connectionsByIp.delete(client.remoteAddress)
     }
   }
 
@@ -333,8 +333,8 @@ export class StratumServer {
       return false
     }
 
-    const connectionsByIp = this.openConnections.get(socket.remoteAddress) ?? 0
-    if (this.maxOpenConnections > 0 && connectionsByIp >= this.maxOpenConnections) {
+    const connections = this.connectionsByIp.get(socket.remoteAddress) ?? 0
+    if (this.maxConnectionsByIp > 0 && connections >= this.maxConnectionsByIp) {
       return false
     }
 

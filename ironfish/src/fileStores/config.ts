@@ -195,7 +195,8 @@ export type ConfigOptions = {
   poolDiscordWebhook: ''
 
   /**
-   * The maximum number of concurrent open connections per remote address
+   * The maximum number of concurrent open connections per remote address.
+   * Setting this to 0 disabled the limit
    */
   poolMaxConnectionsPerIp: number
 
