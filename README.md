@@ -59,9 +59,9 @@ Once your environment is setup - you can run the CLI by following [these directi
 - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
 - [ironfish-rust-nodejs](./ironfish-rust-nodejs/README.md): Wrapper for `ironfish-rust` as a native NodeJS addon.
 - [ironfish-rust-wasm](./ironfish-rust-wasm/README.md): Wrapper for `ironfish-rust` in WASM.
-- [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the block chain and all of its forks.
 
 ## Other Repositories
 
 - [iron-fish/homebrew-brew](https://github.com/iron-fish/homebrew-brew): Contains brew formula for installing via the [Brew](https://brew.sh) package manager
 - [iron-fish/website](https://github.com/iron-fish/website): The repo that powers [ironfish.network](https://ironfish.network)
+- [iron-fish/chain-explorer](https://github.com/iron-fish/chain-explorer): A visual tool to explore the block chain and all of its forks.
