@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { Assert } from '../../assert'
 
 export class StratumServerClient {
   id: number
@@ -9,6 +10,7 @@ export class StratumServerClient {
   connected: boolean
   subscribed: boolean
   publicAddress: string | null = null
+  remoteAddress: string
   graffiti: Buffer | null = null
   messageBuffer: string
 
@@ -18,6 +20,9 @@ export class StratumServerClient {
     this.connected = true
     this.subscribed = false
     this.messageBuffer = ''
+
+    Assert.isNotUndefined(this.socket.remoteAddress)
+    this.remoteAddress = this.socket.remoteAddress
   }
 
   static accept(socket: net.Socket, id: number): StratumServerClient {
