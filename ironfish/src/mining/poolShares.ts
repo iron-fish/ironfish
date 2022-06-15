@@ -8,16 +8,14 @@ import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
-import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
+import { WebhookNotifier } from './webhooks'
 
 export class MiningPoolShares {
   readonly rpc: RpcSocketClient
   readonly config: Config
   readonly logger: Logger
-  readonly discord: Discord | null
-  readonly lark: Lark | null
+  readonly webhooks: WebhookNotifier[]
 
   private readonly db: PoolDatabase
   private enablePayouts: boolean
@@ -35,8 +33,7 @@ export class MiningPoolShares {
     rpc: RpcSocketClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }) {
@@ -44,8 +41,7 @@ export class MiningPoolShares {
     this.rpc = options.rpc
     this.config = options.config
     this.logger = options.logger
-    this.discord = options.discord ?? null
-    this.lark = options.lark ?? null
+    this.webhooks = options.webhooks ?? []
     this.enablePayouts = options.enablePayouts ?? true
 
     this.poolName = this.config.get('poolName')
@@ -62,8 +58,7 @@ export class MiningPoolShares {
     rpc: RpcSocketClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
@@ -77,8 +72,7 @@ export class MiningPoolShares {
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
@@ -171,23 +165,17 @@ export class MiningPoolShares {
 
       await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)
 
-      this.discord?.poolPayoutSuccess(
-        payoutId,
-        transaction.content.hash,
-        transactionReceives,
-        shareCounts.totalShares,
-      )
-
-      this.lark?.poolPayoutSuccess(
-        payoutId,
-        transaction.content.hash,
-        transactionReceives,
-        shareCounts.totalShares,
+      this.webhooks.map((w) =>
+        w.poolPayoutSuccess(
+          payoutId,
+          transaction.content.hash,
+          transactionReceives,
+          shareCounts.totalShares,
+        ),
       )
     } catch (e) {
       this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
-      this.discord?.poolPayoutError(e)
-      this.lark?.poolPayoutError(e)
+      this.webhooks.map((w) => w.poolPayoutError(e))
     }
   }
 
