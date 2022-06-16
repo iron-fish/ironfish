@@ -157,6 +157,10 @@ export class MiningPoolShares {
     )
 
     try {
+      this.webhooks.map((w) =>
+        w.poolPayoutStarted(payoutId, transactionReceives, shareCounts.totalShares),
+      )
+
       const transaction = await this.rpc.sendTransaction({
         fromAccountName: this.accountName,
         receives: transactionReceives,
@@ -208,6 +212,7 @@ export class MiningPoolShares {
 
   private async recentShareCount(): Promise<number> {
     const timestamp = Math.floor(new Date().getTime() / 1000) - this.recentShareCutoff
+
     return await this.db.shareCountSince(timestamp)
   }
 
@@ -221,5 +226,9 @@ export class MiningPoolShares {
     if (this.payoutInterval) {
       clearInterval(this.payoutInterval)
     }
+  }
+
+  async sharesPendingPayout(): Promise<number> {
+    return await this.db.getSharesCountForPayout()
   }
 }
