@@ -47,12 +47,11 @@ export class MiningPoolMiner {
     this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
 
     this.stratum = new StratumClient({
-      publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
       logger: options.logger,
     })
-    this.stratum.onConnected.on(() => this.stratum.subscribe())
+    this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress))
     this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
     this.stratum.onNotify.on((m) =>

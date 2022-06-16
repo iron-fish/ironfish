@@ -14,6 +14,7 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
+import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
 import { mineableHeaderString } from './utils'
@@ -405,9 +406,9 @@ export class MiningPool {
     }
   }
 
-  async estimateHashRate(): Promise<number> {
+  async estimateHashRate(publicAddress?: string): Promise<number> {
     // BigInt can't contain decimals, so multiply then divide to give decimal precision
-    const shareRate = await this.shares.shareRate()
+    const shareRate = await this.shares.shareRate(publicAddress)
     const decimalPrecision = 1000000
     return (
       Number(BigInt(Math.floor(shareRate * decimalPrecision)) * this.difficulty) /
@@ -421,26 +422,45 @@ export class MiningPool {
     this.webhooks.map((w) => w.poolStatus(status))
   }
 
-  async getStatus(): Promise<MiningPoolStatus> {
+  async getStatus(publicAddress?: string): Promise<MiningStatusMessage> {
     const [hashRate, sharesPending] = await Promise.all([
       this.estimateHashRate(),
       this.shares.sharesPendingPayout(),
     ])
 
-    return {
+    let minerCount = 0
+    this.stratum.clients.forEach((client) => {
+      if (client.subscribed) {
+        minerCount++
+      }
+    })
+
+    const status = {
       name: this.name,
       hashRate: hashRate,
-      miners: this.stratum.clients.size,
+      miners: minerCount,
       sharesPending: sharesPending,
       banCount: this.stratum.peers.banCount,
     }
-  }
-}
 
-export type MiningPoolStatus = {
-  name: string
-  hashRate: number
-  miners: number
-  sharesPending: number
-  banCount: number
+    if (publicAddress) {
+      let addressMiners = 0
+      this.stratum.clients.forEach((client) => {
+        if (client.publicAddress === publicAddress) {
+          addressMiners += 1
+        }
+      })
+
+      return {
+        ...status,
+        addressStatus: {
+          publicAddress: publicAddress,
+          hashRate: await this.estimateHashRate(publicAddress),
+          miners: addressMiners,
+          sharesPending: await this.shares.sharesPendingPayout(publicAddress),
+        },
+      }
+    }
+    return status
+  }
 }

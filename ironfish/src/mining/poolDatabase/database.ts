@@ -71,6 +71,17 @@ export class PoolDatabase {
     return result.count
   }
 
+  async getAddressSharesCountForPayout(publicAddress: string): Promise<number> {
+    const result = await this.db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL and publicAddress = ?',
+      publicAddress,
+    )
+    if (result == null) {
+      return 0
+    }
+    return result.count
+  }
+
   async newPayout(timestamp: number): Promise<number | null> {
     // Create a payout row if the most recent succesful payout was greater than the payout interval
     // and the most recent payout was greater than the attempt interval, in case of failed or long
@@ -113,6 +124,18 @@ export class PoolDatabase {
   async shareCountSince(timestamp: number): Promise<number> {
     const result = await this.db.get<{ count: number }>(
       "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')",
+      timestamp,
+    )
+    if (result == null) {
+      return 0
+    }
+    return result.count
+  }
+
+  async addressShareCountSince(publicAddress: string, timestamp: number): Promise<number> {
+    const result = await this.db.get<{ count: number }>(
+      "SELECT COUNT(id) AS count FROM share WHERE publicAddress = ? AND createdAt > datetime(?, 'unixepoch')",
+      publicAddress,
       timestamp,
     )
     if (result == null) {

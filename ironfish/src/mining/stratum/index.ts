@@ -4,3 +4,4 @@
 
 export { StratumClient } from './stratumClient'
 export { StratumServer } from './stratumServer'
+export { MiningStatusMessage } from './messages'
