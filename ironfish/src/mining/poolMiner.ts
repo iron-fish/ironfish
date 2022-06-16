@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
+import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
 import { StratumClient } from './stratum/stratumClient'
 
@@ -46,12 +47,17 @@ export class MiningPoolMiner {
     this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
 
     this.stratum = new StratumClient({
-      miner: this,
       publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
       logger: options.logger,
     })
+    this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
+    this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
+    this.stratum.onNotify.on((m) =>
+      this.newWork(m.miningRequestId, Buffer.from(m.header, 'hex')),
+    )
+    this.stratum.onWaitForWork.on(() => this.waitForWork())
 
     this.hashRate = new Meter()
     this.miningRequestId = 0
@@ -62,16 +68,17 @@ export class MiningPoolMiner {
     this.waiting = false
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.started) {
       return
     }
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
-    this.stratum.start()
+    await this.stratum.start()
     this.hashRate.start()
 
+    this.stratum.subscribe()
     void this.mine()
   }
 
