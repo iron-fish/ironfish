@@ -1,0 +1,15 @@
+name: Fish Improvement Proposal
+description: Used to propose an improvement you would like to make
+title: "FIP: "
+labels: ["FIP"]
+assignees:
+  - iron-fish/engineering
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What change do you want to make?
+      placeholder:
+    validations:
+      required: true
