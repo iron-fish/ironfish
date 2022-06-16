@@ -11,9 +11,18 @@ export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
   protected readonly client: AxiosInstance | null = null
   protected readonly logger: Logger
+  protected readonly explorerBlocksUrl: string | null = null
+  protected readonly explorerTransactionsUrl: string | null = null
 
-  constructor(options: { webhook: string | null; logger?: Logger }) {
+  constructor(options: {
+    webhook: string | null
+    logger?: Logger
+    explorerBlocksUrl?: string | null
+    explorerTransactionsUrl?: string | null
+  }) {
     this.logger = options.logger ?? createRootLogger()
+    this.explorerBlocksUrl = options.explorerBlocksUrl ?? null
+    this.explorerTransactionsUrl = options.explorerTransactionsUrl ?? null
 
     if (options.webhook) {
       this.webhook = options.webhook
@@ -31,9 +40,12 @@ export abstract class WebhookNotifier {
     this.sendText('Disconnected from node unexpectedly. Reconnecting.')
   }
 
-  poolSubmittedBlock(hash: Buffer, hashRate: number, clients: number): void {
+  poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
     this.sendText(
-      `Block \`${hash.toString('hex')}\` submitted successfully! ${FileUtils.formatHashRate(
+      `Block ${this.renderHashHex(
+        hashedHeaderHex,
+        this.explorerBlocksUrl,
+      )} submitted successfully! ${FileUtils.formatHashRate(
         hashRate,
       )}/s with ${clients} miners`,
     )
@@ -48,12 +60,15 @@ export abstract class WebhookNotifier {
     const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
     this.sendText(
-      `Successfully paid out ${totalShareCount} shares to ${
+      `Successfully created payout of ${totalShareCount} shares to ${
         receives.length
       } users for ${displayIronAmountWithCurrency(
         Number(oreToIron(Number(total.toString()))),
         false,
-      )} in transaction \`${transactionHashHex}\` (${payoutId})`,
+      )} in transaction ${this.renderHashHex(
+        transactionHashHex,
+        this.explorerTransactionsUrl,
+      )}. Transaction pending (${payoutId})`,
     )
   }
 
@@ -61,5 +76,13 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Error while sending payout transaction: ${ErrorUtils.renderError(error, true)}`,
     )
+  }
+
+  private renderHashHex(hashHex: string, explorerUrl: string | null): string {
+    if (explorerUrl == null) {
+      return `\`${hashHex}\``
+    }
+
+    return `${explorerUrl + hashHex}`
   }
 }

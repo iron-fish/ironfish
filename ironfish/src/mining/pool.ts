@@ -14,7 +14,8 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
-import { StratumServer, StratumServerClient } from './stratum/stratumServer'
+import { StratumServer } from './stratum/stratumServer'
+import { StratumServerClient } from './stratum/stratumServerClient'
 import { mineableHeaderString } from './utils'
 import { WebhookNotifier } from './webhooks'
 
@@ -228,14 +229,15 @@ export class MiningPool {
 
       if (result.content.added) {
         const hashRate = await this.estimateHashRate()
+        const hashedHeaderHex = hashedHeader.toString('hex')
 
         this.logger.info(
-          `Block ${hashedHeader.toString(
-            'hex',
-          )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
+          `Block ${hashedHeaderHex} submitted successfully! ${FileUtils.formatHashRate(
+            hashRate,
+          )}/s`,
         )
         this.webhooks.map((w) =>
-          w.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size),
+          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)

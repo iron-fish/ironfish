@@ -18,6 +18,9 @@ export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_MINER_BATCH_SIZE = 25000
+export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
+export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
+  'https://explorer.ironfish.network/transaction/'
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -195,6 +198,12 @@ export type ConfigOptions = {
   poolDiscordWebhook: ''
 
   /**
+   * The maximum number of concurrent open connections per remote address.
+   * Setting this to 0 disabled the limit
+   */
+  poolMaxConnectionsPerIp: number
+
+  /**
 
    * The lark webhook URL to post pool critical pool information too
    */
@@ -205,6 +214,16 @@ export type ConfigOptions = {
    * more easily process logs on a remote server using a log service like Datadog
    */
   jsonLogs: boolean
+
+  /**
+   * URL for viewing block information in a block explorer
+   */
+  explorerBlocksUrl: string
+
+  /**
+   * URL for viewing transaction information in a block explorer
+   */
+  explorerTransactionsUrl: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -286,8 +305,11 @@ export class Config extends KeyStore<ConfigOptions> {
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
+      poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
+      explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
+      explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
     }
   }
 }

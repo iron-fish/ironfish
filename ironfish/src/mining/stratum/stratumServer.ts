@@ -23,39 +23,7 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from './messages'
-
-export class StratumServerClient {
-  id: number
-  socket: net.Socket
-  connected: boolean
-  subscribed: boolean
-  publicAddress: string | null = null
-  graffiti: Buffer | null = null
-  messageBuffer: string
-
-  private constructor(options: { socket: net.Socket; id: number }) {
-    this.id = options.id
-    this.socket = options.socket
-    this.connected = true
-    this.subscribed = false
-    this.messageBuffer = ''
-  }
-
-  static accept(socket: net.Socket, id: number): StratumServerClient {
-    return new StratumServerClient({ socket, id })
-  }
-
-  close(error?: Error): void {
-    if (!this.connected) {
-      return
-    }
-
-    this.messageBuffer = ''
-    this.connected = false
-    this.socket.removeAllListeners()
-    this.socket.destroy(error)
-  }
-}
+import { StratumServerClient } from './stratumServerClient'
 
 export class StratumServer {
   readonly server: net.Server
@@ -66,8 +34,11 @@ export class StratumServer {
   readonly port: number
   readonly host: string
 
+  readonly maxConnectionsByIp: number
+
   clients: Map<number, StratumServerClient>
   badClients: Set<number>
+  connectionsByIp: Map<string, number>
   nextMinerId: number
   nextMessageId: number
 
@@ -87,11 +58,13 @@ export class StratumServer {
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
+    this.maxConnectionsByIp = this.config.get('poolMaxConnectionsPerIp')
 
     this.clients = new Map()
     this.badClients = new Set()
     this.nextMinerId = 1
     this.nextMessageId = 1
+    this.connectionsByIp = new Map()
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -131,17 +104,23 @@ export class StratumServer {
   }
 
   private onConnection(socket: net.Socket): void {
+    if (!this.isSocketAllowed(socket)) {
+      socket.destroy()
+      return
+    }
+
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
+
+    this.addConnectionCount(client)
 
     socket.on('data', (data: Buffer) => {
       this.onData(client, data).catch((e) => this.onError(client, e))
     })
 
     socket.on('close', () => this.onDisconnect(client))
-
     socket.on('error', (e) => this.onError(client, e))
 
-    this.logger.debug(`Client ${client.id} connected: ${socket.remoteAddress || 'undefined'}`)
+    this.logger.debug(`Client ${client.id} connected: ${client.remoteAddress}`)
     this.clients.set(client.id, client)
   }
 
@@ -159,7 +138,9 @@ export class StratumServer {
 
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
+
     this.clients.delete(client.id)
+    this.removeConnectionCount(client)
     client.close()
   }
 
@@ -251,6 +232,7 @@ export class StratumServer {
     client.socket.removeAllListeners()
     client.close()
     this.clients.delete(client.id)
+    this.removeConnectionCount(client)
   }
 
   private getNotifyMessage(): MiningNotifyMessage {
@@ -330,5 +312,32 @@ export class StratumServer {
 
     const serialized = JSON.stringify(message) + '\n'
     client.socket.write(serialized)
+  }
+
+  protected addConnectionCount(client: StratumServerClient): void {
+    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
+    this.connectionsByIp.set(client.remoteAddress, count + 1)
+  }
+
+  protected removeConnectionCount(client: StratumServerClient): void {
+    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
+    this.connectionsByIp.set(client.remoteAddress, count - 1)
+
+    if (count - 1 <= 0) {
+      this.connectionsByIp.delete(client.remoteAddress)
+    }
+  }
+
+  protected isSocketAllowed(socket: net.Socket): boolean {
+    if (!socket.remoteAddress) {
+      return false
+    }
+
+    const connections = this.connectionsByIp.get(socket.remoteAddress) ?? 0
+    if (this.maxConnectionsByIp > 0 && connections >= this.maxConnectionsByIp) {
+      return false
+    }
+
+    return true
   }
 }

@@ -71,6 +71,8 @@ export class StartPool extends IronfishCommand {
         new Discord({
           webhook: discordWebhook,
           logger: this.logger,
+          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
+          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
         }),
       )
 
@@ -83,6 +85,8 @@ export class StartPool extends IronfishCommand {
         new Lark({
           webhook: larkWebhook,
           logger: this.logger,
+          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
+          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
         }),
       )
 
