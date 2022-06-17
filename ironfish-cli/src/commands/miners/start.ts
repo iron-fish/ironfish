@@ -96,7 +96,7 @@ export class Miner extends IronfishCommand {
         port: port,
       })
 
-      await miner.start()
+      miner.start()
       if (flags.richOutput) {
         this.displayHashrate(miner)
       }
