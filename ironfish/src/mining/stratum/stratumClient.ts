@@ -39,6 +39,11 @@ export class StratumClient {
 
   private readonly publicAddress: string
 
+  readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
+  readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
+  readonly onNotify = new Event<[MiningNotifyMessage]>()
+  readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
+
   constructor(options: { publicAddress: string; host: string; port: number; logger: Logger }) {
     this.host = options.host
     this.port = options.port
@@ -154,11 +159,6 @@ export class StratumClient {
   private onError = (error: unknown): void => {
     this.logger.error(`Stratum Error ${ErrorUtils.renderError(error)}`)
   }
-
-  readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
-  readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
-  readonly onNotify = new Event<[MiningNotifyMessage]>()
-  readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
 
   private async onData(data: Buffer): Promise<void> {
     this.messageBuffer += data.toString('utf-8')
