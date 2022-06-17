@@ -16,7 +16,7 @@ Pull requests are the best way to propose a new change to the codebase.
 
 Once the PR is created, one of the maintainers will review it and merge it. Add the right labels to your pull request. Reference any bugs you're fixing with single lines of the form `Fix #123`
 
-**NOTE:** Read [We will close your PR if](we-will-close-your-pr-if), if you are thinking of working on a complex change.
+**NOTE:** Read [You should open a FIP if](you-should-open-a-fip-if), if you are thinking of working on a complex change.
 
 # Where to start
 
@@ -29,7 +29,13 @@ If you don't know what contribution you can work on, here are a few suggestions:
 * Write documentation or fix the existing documentation
 * If you still don't know what could be a good task for you, do not hesitate to contact us.
 
-# You should open a FIP if
+# Fish Improvement Proposal (FIP)
+
+The purpose of a FIP is to explain an improvement you would like to make to Iron Fish, and get consensus from the core development team of Iron Fish. The reason is that we want to make sure your change fits inside of the product vision, and that you don't try to fix a bug in a piece of code already being refactored.
+
+You can submit a FIP by filing an issue here: https://github.com/iron-fish/ironfish/issues/new/choose
+
+## You should open a FIP if
 
 If you are working on something in one of these categories, we will not accept your PR if you don't open a Fish Improvement Proposal (FIP).
 
@@ -43,13 +49,6 @@ If you are working on something in one of these categories, we will not accept y
    - This one is more complicated. If our products works one way, and you open a PR to change the core product principles to work in another way, then we are going to close your PR as it does not fit into our vision. Try to match existing precedent as much as possible in your code.
  - Tests for CLI commands
    - They are not useful in their current form. Most of these tests are mocking out the entire node and sending back hand crafted values which are merely asserted and make changes these commands more annoying. We are accepting a FIP for refactoring command tests to be more valuable and not use mocking.
-
-
-# Fish Improvement Proposal (FIP)
-
-The purpose of a FIP is to explain an improvement you would like to make to Iron Fish, and get consensus from the core development team of Iron Fish. The reason is that we want to make sure your change fits inside of the product vision, and that you don't try to fix a bug in a piece of code already being refactored.
-
-You can submit a FIP by filing an issue here, https://github.com/iron-fish/ironfish/issues/new/choose
 
 
 # Contact Us
