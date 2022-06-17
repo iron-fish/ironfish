@@ -50,7 +50,7 @@ export class MiningPool {
 
   recalculateTargetInterval: SetTimeoutToken | null
 
-  private notifyStatusInterval: SetTimeoutToken | null
+  private notifyStatusInterval: SetIntervalToken | null
 
   private constructor(options: {
     rpc: RpcSocketClient
