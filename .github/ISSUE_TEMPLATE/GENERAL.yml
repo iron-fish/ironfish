@@ -2,7 +2,7 @@ name: Report a general issue
 description: In need of help or not sure which other template to pick? Use this!
 title: "[issue name]"
 assignees:
-  - iron-fish/code-review
+  - iron-fish/engineering
 body:
   - type: markdown
     attributes:
