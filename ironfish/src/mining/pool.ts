@@ -414,11 +414,16 @@ export class MiningPool {
   }
 
   async getStatus(): Promise<MiningPoolStatus> {
+    const [hashRate, sharesPending] = await Promise.all([
+        this.estimateHashRate(),
+        this.shares.sharesPendingPayout(),
+    ])
+
     return {
       name: this.name,
-      hashRate: await this.estimateHashRate(),
+      hashRate: hashRate,
       miners: this.stratum.clients.size,
-      sharesPending: await this.shares.sharesPendingPayout(),
+      sharesPending: sharesPending,
     }
   }
 }
