@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import { Event } from '../../event'
 import { Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
-import { GraffitiUtils } from '../../utils/graffiti'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
-import { MiningPoolMiner } from '../poolMiner'
 import { ServerMessageMalformedError } from './errors'
 import {
+  MiningNotifyMessage,
   MiningNotifySchema,
+  MiningSetTargetMessage,
   MiningSetTargetSchema,
   MiningSubmitMessage,
+  MiningSubscribedMessage,
   MiningSubscribedMessageSchema,
   MiningSubscribeMessage,
+  MiningWaitForWorkMessage,
   MiningWaitForWorkSchema,
   StratumMessage,
   StratumMessageSchema,
@@ -24,7 +27,6 @@ export class StratumClient {
   readonly socket: net.Socket
   readonly host: string
   readonly port: number
-  readonly miner: MiningPoolMiner
   readonly logger: Logger
 
   private started: boolean
@@ -37,16 +39,15 @@ export class StratumClient {
 
   private readonly publicAddress: string
 
-  constructor(options: {
-    miner: MiningPoolMiner
-    publicAddress: string
-    host: string
-    port: number
-    logger: Logger
-  }) {
+  readonly onConnected = new Event<[]>()
+  readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
+  readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
+  readonly onNotify = new Event<[MiningNotifyMessage]>()
+  readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
+
+  constructor(options: { publicAddress: string; host: string; port: number; logger: Logger }) {
     this.host = options.host
     this.port = options.port
-    this.miner = options.miner
     this.publicAddress = options.publicAddress
     this.logger = options.logger
 
@@ -92,6 +93,7 @@ export class StratumClient {
 
     this.connectWarned = false
     this.onConnect()
+    this.onConnected.emit()
   }
 
   stop(): void {
@@ -106,6 +108,7 @@ export class StratumClient {
     this.send('mining.subscribe', {
       publicAddress: this.publicAddress,
     })
+    this.logger.info('Listening to pool for new work')
   }
 
   submit(miningRequestId: number, randomness: string): void {
@@ -141,8 +144,6 @@ export class StratumClient {
     this.socket.on('close', this.onDisconnect)
 
     this.logger.info('Successfully connected to pool')
-    this.logger.info('Listening to pool for new work')
-    this.subscribe()
   }
 
   private onDisconnect = (): void => {
@@ -151,7 +152,7 @@ export class StratumClient {
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
 
-    this.miner.waitForWork()
+    this.onWaitForWork.emit(undefined)
 
     this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
@@ -188,10 +189,9 @@ export class StratumClient {
           if (body.error) {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
-
           this.id = body.result.clientId
-          this.miner.setGraffiti(GraffitiUtils.fromString(body.result.graffiti))
           this.logger.debug(`Server has identified us as client ${this.id}`)
+          this.onSubscribed.emit(body.result)
           break
         }
 
@@ -201,9 +201,7 @@ export class StratumClient {
           if (body.error) {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
-
-          const target = body.result.target
-          this.miner.setTarget(target)
+          this.onSetTarget.emit(body.result)
           break
         }
 
@@ -213,10 +211,7 @@ export class StratumClient {
           if (body.error) {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
-
-          const miningRequestId = body.result.miningRequestId
-          const headerBytes = Buffer.from(body.result.header, 'hex')
-          this.miner.newWork(miningRequestId, headerBytes)
+          this.onNotify.emit(body.result)
           break
         }
 
@@ -226,8 +221,7 @@ export class StratumClient {
           if (body.error) {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
-
-          this.miner.waitForWork()
+          this.onWaitForWork.emit(body.result)
           break
         }
 
