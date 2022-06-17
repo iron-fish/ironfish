@@ -61,6 +61,16 @@ export class PoolDatabase {
     )
   }
 
+  async getSharesCountForPayout(): Promise<number> {
+    const result = await this.db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL',
+    )
+    if (result == null) {
+      return 0
+    }
+    return result.count
+  }
+
   async newPayout(timestamp: number): Promise<number | null> {
     // Create a payout row if the most recent succesful payout was greater than the payout interval
     // and the most recent payout was greater than the attempt interval, in case of failed or long

@@ -12,7 +12,7 @@ import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
-import { SetTimeoutToken } from '../utils/types'
+import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
@@ -48,7 +48,9 @@ export class MiningPool {
   currentHeadTimestamp: number | null
   currentHeadDifficulty: bigint | null
 
-  recalculateTargetInterval: SetTimeoutToken | null
+  recalculateTargetInterval: SetIntervalToken | null
+
+  private notifyStatusInterval: SetIntervalToken | null
 
   private constructor(options: {
     rpc: RpcSocketClient
@@ -88,6 +90,7 @@ export class MiningPool {
     this.started = false
 
     this.recalculateTargetInterval = null
+    this.notifyStatusInterval = null
   }
 
   static async init(options: {
@@ -134,6 +137,15 @@ export class MiningPool {
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
+
+    const statusInterval = this.config.get('poolStatusNotificationInterval')
+    if (statusInterval > 0) {
+      this.notifyStatusInterval = setInterval(
+        () => void this.notifyStatus(),
+        statusInterval * 1000,
+      )
+    }
+
     void this.startConnectingRpc()
   }
 
@@ -161,6 +173,10 @@ export class MiningPool {
 
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
+    }
+
+    if (this.notifyStatusInterval) {
+      clearInterval(this.notifyStatusInterval)
     }
   }
 
@@ -390,4 +406,31 @@ export class MiningPool {
       decimalPrecision
     )
   }
+
+  async notifyStatus(): Promise<void> {
+    const status = await this.getStatus()
+    this.logger.debug(`Mining pool status: ${JSON.stringify(status)}`)
+    this.webhooks.map((w) => w.poolStatus(status))
+  }
+
+  async getStatus(): Promise<MiningPoolStatus> {
+    const [hashRate, sharesPending] = await Promise.all([
+      this.estimateHashRate(),
+      this.shares.sharesPendingPayout(),
+    ])
+
+    return {
+      name: this.name,
+      hashRate: hashRate,
+      miners: this.stratum.clients.size,
+      sharesPending: sharesPending,
+    }
+  }
+}
+
+export type MiningPoolStatus = {
+  name: string
+  hashRate: number
+  miners: number
+  sharesPending: number
 }
