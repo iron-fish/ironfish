@@ -39,6 +39,12 @@ export class Assert {
     }
   }
 
+  static isGreaterThan(a: number, b: number, message?: string): void {
+    if (a <= b) {
+      throw new Error(message || `Expected ${String(a)} to be greater than ${String(b)}`)
+    }
+  }
+
   static isNever(x: never, message?: string): never {
     throw new Error(message || `Expected value to be never: ${String(x)}`)
   }
