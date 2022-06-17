@@ -12,7 +12,7 @@ import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
-import { SetTimeoutToken } from '../utils/types'
+import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
@@ -48,7 +48,7 @@ export class MiningPool {
   currentHeadTimestamp: number | null
   currentHeadDifficulty: bigint | null
 
-  recalculateTargetInterval: SetTimeoutToken | null
+  recalculateTargetInterval: SetIntervalToken | null
 
   private notifyStatusInterval: SetIntervalToken | null
 
@@ -138,7 +138,7 @@ export class MiningPool {
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
 
-    const statusInterval = this.config.get('poolStatusNotificationInterval') ?? 0
+    const statusInterval = this.config.get('poolStatusNotificationInterval')
     if (statusInterval > 0) {
       this.notifyStatusInterval = setInterval(
         () => void this.notifyStatus(),
@@ -415,8 +415,8 @@ export class MiningPool {
 
   async getStatus(): Promise<MiningPoolStatus> {
     const [hashRate, sharesPending] = await Promise.all([
-        this.estimateHashRate(),
-        this.shares.sharesPendingPayout(),
+      this.estimateHashRate(),
+      this.shares.sharesPendingPayout(),
     ])
 
     return {
