@@ -437,11 +437,14 @@ export class Syncer {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
           block.header,
-        )} (${block.header.sequence}), syncing orphan chain.`,
+        )} (${block.header.sequence})`,
       )
 
       if (!this.loader) {
+        this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
         this.startSync(peer)
+      } else {
+        this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
       }
 
       return { added: false, block, reason: VerificationResultReason.ORPHAN }
