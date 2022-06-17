@@ -39,6 +39,7 @@ export class StratumClient {
 
   private readonly publicAddress: string
 
+  readonly onConnected = new Event<[]>()
   readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
   readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
   readonly onNotify = new Event<[MiningNotifyMessage]>()
@@ -61,14 +62,14 @@ export class StratumClient {
     this.socket.on('data', (data) => void this.onData(data).catch((e) => this.onError(e)))
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.started) {
       return
     }
 
     this.started = true
     this.logger.info('Connecting to pool...')
-    await this.startConnecting()
+    void this.startConnecting()
   }
 
   private async startConnecting(): Promise<void> {
@@ -92,6 +93,7 @@ export class StratumClient {
 
     this.connectWarned = false
     this.onConnect()
+    this.onConnected.emit()
   }
 
   stop(): void {

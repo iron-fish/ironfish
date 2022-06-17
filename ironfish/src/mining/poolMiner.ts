@@ -52,6 +52,7 @@ export class MiningPoolMiner {
       port: options.port,
       logger: options.logger,
     })
+    this.stratum.onConnected.on(() => this.stratum.subscribe())
     this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
     this.stratum.onNotify.on((m) =>
@@ -68,17 +69,16 @@ export class MiningPoolMiner {
     this.waiting = false
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.started) {
       return
     }
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
-    await this.stratum.start()
+    this.stratum.start()
     this.hashRate.start()
 
-    this.stratum.subscribe()
     void this.mine()
   }
 
@@ -132,6 +132,11 @@ export class MiningPoolMiner {
 
   async mine(): Promise<void> {
     while (this.started) {
+      if (!this.stratum.isConnected()) {
+        await PromiseUtils.sleep(500)
+        continue
+      }
+
       if (this.graffiti == null) {
         this.logger.info('Waiting for graffiti from pool...')
         await PromiseUtils.sleep(500)
