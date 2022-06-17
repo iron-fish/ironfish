@@ -132,11 +132,6 @@ export class MiningPoolMiner {
 
   async mine(): Promise<void> {
     while (this.started) {
-      if (!this.stratum.isConnected()) {
-        await PromiseUtils.sleep(500)
-        continue
-      }
-
       if (this.graffiti == null) {
         this.logger.info('Waiting for graffiti from pool...')
         await PromiseUtils.sleep(500)
