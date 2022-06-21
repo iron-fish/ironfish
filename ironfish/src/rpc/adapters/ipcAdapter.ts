@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import http from 'http';
 import net from 'net'
+import ws from 'ws';
 import { IPC, IpcServer, IpcSocket, IpcSocketId } from 'node-ipc'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
@@ -70,19 +72,21 @@ export const IpcStreamSchema: yup.ObjectSchema<IpcStream> = yup
 
 export type IpcAdapterConnectionInfo =
   | {
-      mode: 'ipc'
-      socketPath: string
-    }
+    mode: 'ipc'
+    socketPath: string
+  }
   | {
-      mode: 'tcp'
-      host: string
-      port: number
-    }
+    mode: 'tcp'
+    host: string
+    port: number
+  }
 
 export class IpcAdapter implements IAdapter {
   router: Router | null = null
   ipc: IPC | null = null
   server: IpcServer | null = null
+  httpServer: http.Server | null = null
+  wsServer: ws.Server | null = null
   namespaces: ApiNamespace[]
   logger: Logger
   pending = new Map<IpcSocketId, Request[]>()
@@ -144,6 +148,102 @@ export class IpcAdapter implements IAdapter {
       } else if (this.connection.mode === 'tcp') {
         this.logger.debug(`Serving RPC on TCP ${this.connection.host}:${this.connection.port}`)
         ipc.serveNet(this.connection.host, this.connection.port, onServed)
+
+        // http
+        this.logger.debug(`Serving RPC on HTTP ${this.connection.host}:${this.connection.port + 1}`)
+        this.httpServer = http.createServer(async (request: http.IncomingMessage, response: http.ServerResponse) => {
+          this.logger.trace(`Call HTTP RPC: ${request.method} ${request.url}`)
+
+          const headers = { "Content-Type": "application/json" }
+
+          const requestUrl = new URL('http://localhost' + request.url || '')
+          const route = requestUrl.pathname.substring(1)
+
+          // params
+          let params: any
+          if (requestUrl.search != "") {
+            params = {}
+            for (const [key, value] of requestUrl.searchParams) {
+              params[key] = value
+            }
+          } else {
+            params = undefined
+          }
+          if (request.method === 'POST' || request.method === 'PUT') {
+            // parse body
+            const body = [];
+            for await (const chunk of request) {
+              body.push(chunk)
+            }
+            params = Object.assign(params || {}, JSON.parse(Buffer.concat(body).toString()))
+          }
+
+          const ipcRequest = new Request(
+            params,
+            (status: number, data?: unknown) => {
+              response.writeHead(status, headers)
+              response.write(JSON.stringify({ status: status, data: data }))
+            },
+            (data: unknown) => {
+              response.writeHead(200, headers)
+              response.write(JSON.stringify({ status: 200, data: data }))
+            },
+          )
+          try {
+            await this.router?.route(route, ipcRequest)
+          } catch (error: unknown) {
+            if (error instanceof ResponseError) {
+              response.writeHead(error.status, headers);
+              response.write(JSON.stringify({ status: error.status, data: this.renderError(error) }))
+            } else {
+              throw error
+            }
+          } finally {
+            response.end()
+            ipcRequest.close()
+          }
+        })
+        this.wsServer = new ws.Server({ server: this.httpServer })
+        this.wsServer.on('connection', async (wsClient: ws, request: http.IncomingMessage) => {
+          const requestUrl = new URL('http://localhost' + request.url || '')
+          const route = requestUrl.pathname.substring(1)
+          if (!route.endsWith("Stream")) {
+            wsClient.close()
+            return
+          }
+
+          // params
+          let params: any
+          if (requestUrl.search != "") {
+            params = {}
+            for (const [key, value] of requestUrl.searchParams) {
+              params[key] = value
+            }
+          } else {
+            params = undefined
+          }
+
+          const ipcRequest = new Request(
+            params,
+            (status: number, data?: unknown) => void wsClient.send(JSON.stringify({ status, data })),
+            (data: unknown) => void wsClient.send(JSON.stringify(data)),
+          )
+          wsClient.on('close', () => void ipcRequest.close())
+          try {
+            await this.router?.route(route, ipcRequest)
+          } catch (error: unknown) {
+            if (error instanceof ResponseError) {
+              ipcRequest.end(this.renderError(error), error.status)
+              wsClient.close()
+            } else {
+              wsClient.close()
+              throw error
+            }
+          }
+        })
+
+        this.httpServer.on('error', onError)
+        this.httpServer.listen(this.connection.port + 1, this.connection.host)
       }
 
       ipc.server.on('error', onError)
@@ -154,6 +254,8 @@ export class IpcAdapter implements IAdapter {
   async stop(): Promise<void> {
     if (this.started && this.ipc) {
       this.ipc.server.stop()
+      this.httpServer?.close()
+      this.wsServer?.close()
 
       for (const socket of this.ipc.server.sockets) {
         Assert.isInstanceOf(socket, net.Socket)
