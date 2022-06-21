@@ -24,6 +24,7 @@ import {
   StratumMessageSchema,
 } from './messages'
 import { StratumServerClient } from './stratumServerClient'
+import { STRATUM_VERSION_PROTOCOL_MIN } from './version'
 
 export class StratumServer {
   readonly server: net.Server
@@ -145,6 +146,10 @@ export class StratumServer {
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
+    if (this.badClients.has(client.id)) {
+      return
+    }
+
     client.messageBuffer += data.toString('utf-8')
     const lastDelimiterIndex = client.messageBuffer.lastIndexOf('\n')
     const splits = client.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
@@ -166,7 +171,19 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
           if (body.error) {
-            throw new ClientMessageMalformedError(client, body.error, header.result.method)
+            this.addBadClient(client)
+            continue
+            // throw new ClientMessageMalformedError(client, body.error, header.result.method)
+          }
+
+          if (body.result.version < STRATUM_VERSION_PROTOCOL_MIN) {
+            this.addBadClient(client)
+            continue
+            // throw new ClientMessageMalformedError(
+            //   client,
+            //   `Client version ${body.result.version} does not meet minimum version ${STRATUM_VERSION_PROTOCOL_MIN}`,
+            //   header.result.method,
+            // )
           }
 
           client.publicAddress = body.result.publicAddress
