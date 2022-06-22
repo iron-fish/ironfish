@@ -34,7 +34,7 @@ export class Syncer {
 
   state: 'stopped' | 'idle' | 'stopping' | 'syncing'
   stopping: Promise<void> | null
-  cancelLoop: SetTimeoutToken | null
+  eventLoopTimeout: SetTimeoutToken | null
   loader: Peer | null = null
   blocksPerMessage: number
 
@@ -62,7 +62,7 @@ export class Syncer {
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
     this.stopping = null
-    this.cancelLoop = null
+    this.eventLoopTimeout = null
 
     this.blocksPerMessage = options.blocksPerMessage ?? REQUEST_BLOCKS_PER_MESSAGE
   }
@@ -89,8 +89,8 @@ export class Syncer {
 
     this.state = 'stopping'
 
-    if (this.cancelLoop) {
-      clearTimeout(this.cancelLoop)
+    if (this.eventLoopTimeout) {
+      clearTimeout(this.eventLoopTimeout)
     }
 
     if (this.loader) {
@@ -110,7 +110,7 @@ export class Syncer {
       this.findPeer()
     }
 
-    setTimeout(() => this.eventLoop(), SYNCER_TICK_MS)
+    this.eventLoopTimeout = setTimeout(() => this.eventLoop(), SYNCER_TICK_MS)
   }
 
   findPeer(): void {
