@@ -16,7 +16,7 @@ Pull requests are the best way to propose a new change to the codebase.
 
 Once the PR is created, one of the maintainers will review it and merge it. Add the right labels to your pull request. Reference any bugs you're fixing with single lines of the form `Fix #123`
 
-**NOTE:** Read [You should open a FIP if](you-should-open-a-fip-if), if you are thinking of working on a complex change.
+**NOTE:** Read [You should open a FIP if](#you-should-open-a-fip-if), if you are thinking of working on a complex change.
 
 # Where to start
 
