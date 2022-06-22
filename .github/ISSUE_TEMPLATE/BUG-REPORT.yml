@@ -3,7 +3,7 @@ description: File a bug report
 title: "[issue name]"
 labels: ["bug", "triage"]
 assignees:
-  - iron-fish/code-review
+  - iron-fish/engineering
 body:
   - type: markdown
     attributes:
