@@ -39,7 +39,7 @@ describe('SubmitTelemetryRequest', () => {
           value: unsafeInteger,
         },
       ],
-      timestamp: new Date(),
+      timestamp: Date.now(),
     }
 
     const request = new SubmitTelemetryRequest([mockMetric], GraffitiUtils.fromString(''))
@@ -72,7 +72,7 @@ describe('SubmitTelemetryTask', () => {
             value: 0,
           },
         ],
-        timestamp: new Date(),
+        timestamp: Date.now(),
       }
       const points = [mockMetric]
       const graffitiBuffer = GraffitiUtils.fromString('testgraffiti')

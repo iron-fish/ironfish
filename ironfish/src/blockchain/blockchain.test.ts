@@ -708,7 +708,7 @@ describe('Blockchain', () => {
       valid: true,
     })
 
-    block.header.timestamp = new Date(0)
+    block.header.timestamp = new Date(0).getTime()
 
     result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
     expect(result).toMatchObject({

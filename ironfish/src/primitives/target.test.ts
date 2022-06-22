@@ -66,7 +66,7 @@ describe('Target', () => {
 
 describe('Calculate target', () => {
   it('increases difficulty if a new block is coming in before the target range time', () => {
-    const now = new Date()
+    const now = Date.now()
     /**
      * if new block comes in at these time ranges after the previous parent block, then difficulty is adjust as:
      * 0  - 5  seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 6
@@ -77,7 +77,7 @@ describe('Calculate target', () => {
      * 45 - 55 seconds: difficulty = parentDifficulty + parentDifficulty / 2048 * 1
      **/
     for (let i = 0; i < 55; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+      const time = now + i * 1000
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
@@ -99,9 +99,9 @@ describe('Calculate target', () => {
   })
 
   it('keeps difficulty/target of parent block header if time differnece is between 55 and 65 seconds', () => {
-    const now = new Date()
+    const now = Date.now()
     for (let i = 55; i < 65; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+      const time = now + i * 1000
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
@@ -117,7 +117,7 @@ describe('Calculate target', () => {
   })
 
   it('decreases difficulty if a new block is coming in after the target range time', () => {
-    const now = new Date()
+    const now = Date.now()
 
     /**
      * if new block comes after target block mining time + half bucket time, then difficulty is adjust as:
@@ -127,7 +127,7 @@ describe('Calculate target', () => {
      * ...
      */
     for (let i = 65; i < 100; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+      const time = now + i * 1000
 
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
@@ -149,12 +149,12 @@ describe('Calculate target', () => {
   })
 
   it('no matter how late blocks come in, we clamp difficulty change by 99 buckets (steps) away from previous block difficulty', () => {
-    const now = new Date()
+    const now = Date.now()
     const difficulty = BigInt(231072)
     const previousBlockTarget = Target.fromDifficulty(difficulty)
     // 99 buckets away from previous block target
     const maximallyDifferentTarget = Target.calculateTarget(
-      new Date(now.getTime() + 1065 * 1000),
+      now + 1065 * 1000,
       now,
       previousBlockTarget,
     )
@@ -162,7 +162,7 @@ describe('Calculate target', () => {
     // check that we don't change difficulty by more than 99 buckets (steps)
     // away from previous block difficulty
     for (let i = 1065; i < 1070; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+      const time = now + i * 1000
 
       const newTarget = Target.calculateTarget(time, now, previousBlockTarget)
 

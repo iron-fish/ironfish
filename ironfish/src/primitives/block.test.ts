@@ -68,7 +68,7 @@ describe('Block', () => {
     expect(block1.equals(block2)).toBe(false)
     block2.header.sequence = block1.header.sequence
     expect(block1.equals(block2)).toBe(true)
-    block2.header.timestamp = new Date(block2.header.timestamp.valueOf() + 1)
+    block2.header.timestamp = block2.header.timestamp.valueOf() + 1
     expect(block1.equals(block2)).toBe(false)
 
     // Transactions length

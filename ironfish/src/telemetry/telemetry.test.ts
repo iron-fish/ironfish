@@ -21,7 +21,7 @@ describe('Telemetry', () => {
         value: 0,
       },
     ],
-    timestamp: new Date(),
+    timestamp: Date.now(),
   }
   const mockGraffiti = 'testgraffiti'
 
@@ -68,7 +68,7 @@ describe('Telemetry', () => {
         const metric: Metric = {
           measurement: 'node',
           fields: [],
-          timestamp: new Date(),
+          timestamp: Date.now(),
         }
 
         expect(() => telemetry.submit(metric)).toThrowError()

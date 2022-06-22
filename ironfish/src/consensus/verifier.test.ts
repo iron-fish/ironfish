@@ -146,7 +146,7 @@ describe('Verifier', () => {
 
     it('fails validation when timestamp is in future', () => {
       jest.spyOn(global.Date, 'now').mockImplementationOnce(() => 1598467858637)
-      header.timestamp = new Date(1598467898637)
+      header.timestamp = new Date(1598467898637).getTime()
 
       expect(nodeTest.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
@@ -319,7 +319,7 @@ describe('Verifier', () => {
 
     it('Is invalid when the timestamp is in past', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.timestamp = new Date(0)
+      block.header.timestamp = new Date(0).getTime()
 
       expect(
         nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),

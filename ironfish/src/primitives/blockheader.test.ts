@@ -22,7 +22,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
       BigInt(25),
-      new Date(1598467858637),
+      new Date(1598467858637).getTime(),
       BigInt(0),
       Buffer.alloc(32),
     )
@@ -35,7 +35,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
       BigInt(25),
-      new Date(1598467858637),
+      new Date(1598467858637).getTime(),
       BigInt(0),
       Buffer.alloc(32),
     )
@@ -85,7 +85,7 @@ describe('BlockHeaderSerde', () => {
     expect(serde.equals(header1, header2)).toBe(true)
 
     // timestamp
-    header2.timestamp = new Date(1000)
+    header2.timestamp = new Date(1000).getTime()
     expect(serde.equals(header1, header2)).toBe(false)
     header2.timestamp = header1.timestamp
     expect(serde.equals(header1, header2)).toBe(true)
@@ -109,7 +109,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 3 },
       new Target(17),
       BigInt(25),
-      new Date(1598467858637),
+      new Date(1598467858637).getTime(),
       BigInt(-1),
       GraffitiUtils.fromString('test'),
     )
@@ -128,7 +128,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 0 },
       new Target(0),
       BigInt(0),
-      new Date(0),
+      new Date(0).getTime(),
       BigInt(0),
       Buffer.alloc(32),
     )
@@ -157,7 +157,7 @@ describe('BlockHeaderSerde', () => {
       { commitment: Buffer.alloc(32), size: 0 },
       new Target(1),
       BigInt(0),
-      new Date(0),
+      new Date(0).getTime(),
       BigInt(0),
       Buffer.alloc(32),
     )
