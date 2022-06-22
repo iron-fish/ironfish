@@ -480,7 +480,7 @@ export class Syncer {
       return false
     }
 
-    const seenAt = new Date()
+    const seenAt = Date.now()
 
     const { added, block } = await this.addBlock(peer, newBlock)
 

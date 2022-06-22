@@ -50,13 +50,13 @@ export class BlockTemplateSerde {
       },
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
       randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
-      timestamp: block.header.timestamp.getTime(),
+      timestamp: block.header.timestamp,
       minersFee: BigIntUtils.toBytesBE(block.header.minersFee, 8).toString('hex'),
       graffiti: block.header.graffiti.toString('hex'),
     }
     const previousBlockInfo = {
       target: BigIntUtils.toBytesBE(previousBlock.header.target.asBigInt(), 32).toString('hex'),
-      timestamp: previousBlock.header.timestamp.getTime(),
+      timestamp: previousBlock.header.timestamp,
     }
 
     const transactions = block.transactions.map((t) => t.serialize().toString('hex'))
@@ -87,7 +87,7 @@ export class BlockTemplateSerde {
       },
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
       BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
-      new Date(blockTemplate.header.timestamp),
+      blockTemplate.header.timestamp,
       BigInt(-1) * BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.minersFee, 'hex')),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )

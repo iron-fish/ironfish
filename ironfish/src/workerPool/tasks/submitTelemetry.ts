@@ -26,7 +26,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
 
     for (const point of this.points) {
       bw.writeVarString(point.measurement)
-      bw.writeVarString(point.timestamp.toISOString())
+      bw.writeU64(point.timestamp)
 
       const { fields } = point
       bw.writeU64(fields.length)
@@ -68,7 +68,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
     const points = []
     for (let i = 0; i < pointsLength; i++) {
       const measurement = reader.readVarString()
-      const timestamp = new Date(reader.readVarString())
+      const timestamp = reader.readU64()
 
       const fieldsLength = reader.readU64()
       const fields = []
@@ -121,7 +121,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
     let size = 8 + bufio.sizeVarBytes(this.graffiti)
     for (const point of this.points) {
       size += bufio.sizeVarString(point.measurement)
-      size += bufio.sizeVarString(point.timestamp.toISOString())
+      size += 8 // u64 point.timestamp
 
       size += 8
       for (const field of point.fields) {

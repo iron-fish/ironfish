@@ -148,7 +148,7 @@ export async function makeGenesisBlock(
 
   // Modify the block with any custom properties.
   block.header.target = info.target
-  block.header.timestamp = new Date(info.timestamp)
+  block.header.timestamp = info.timestamp
 
   logger.info('Block complete.')
   return { block }

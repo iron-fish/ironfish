@@ -64,19 +64,19 @@ export class Target {
    * its previous block's timestamp, and its previous block's target
    * and compare the resulting target to what is specified on the current block header
    *
-   * @param time the block's timestamp for which the target is calculated for
+   * @param timestamp the block's timestamp for which the target is calculated for
    * @param previousBlockTimestamp the block's previous block header's timestamp
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateTarget(
-    time: Date,
-    previousBlockTimestamp: Date,
+    timestamp: number,
+    previousBlockTimestamp: number,
     previousBlockTarget: Target,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
     const difficulty = Target.calculateDifficulty(
-      time,
+      timestamp,
       previousBlockTimestamp,
       parentDifficulty,
     )
@@ -101,16 +101,16 @@ export class Target {
    * .. and so on
    *
    * Returns the difficulty for a block given it timestamp for that block and its parent.
-   * @param time the block's timestamp for which the target is calcualted for
+   * @param timestamp the block's timestamp for which the target is calcualted for
    * @param previousBlockTimestamp the block's previous block header's timestamp
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateDifficulty(
-    time: Date,
-    previousBlockTimestamp: Date,
+    timestamp: number,
+    previousBlockTimestamp: number,
     previousBlockDifficulty: bigint,
   ): bigint {
-    const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
+    const diffInSeconds = (timestamp - previousBlockTimestamp) / 1000
 
     let bucket = Math.floor(
       (diffInSeconds -

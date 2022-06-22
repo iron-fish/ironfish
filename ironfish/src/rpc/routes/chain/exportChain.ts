@@ -84,7 +84,7 @@ router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
           seq: block.sequence,
           prev: block.previousBlockHash.toString('hex'),
           graffiti: block.graffiti.toString('ascii'),
-          timestamp: block.timestamp.getTime(),
+          timestamp: block.timestamp,
           work: block.work.toString(),
           difficulty: block.target.toDifficulty().toString(),
           head: block.hash.equals(node.chain.head.hash),

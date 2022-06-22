@@ -199,7 +199,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         index: parentBlock.header.sequence.toString(),
         hash: BlockHashSerdeInstance.serialize(parentBlock.header.hash),
       },
-      timestamp: block.header.timestamp.getTime(),
+      timestamp: block.header.timestamp,
       transactions,
       metadata: {
         size: blockBuffer.byteLength,

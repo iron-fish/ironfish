@@ -265,17 +265,17 @@ export class MiningSoloMiner {
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotUndefined(latestBlock)
 
-    const newTime = new Date()
+    const newTime = Date.now()
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
         newTime,
-        new Date(this.currentHeadTimestamp),
+        this.currentHeadTimestamp,
         this.currentHeadDifficulty,
       ),
     )
 
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
-    latestBlock.header.timestamp = newTime.getTime()
+    latestBlock.header.timestamp = newTime
 
     this.startNewWork(latestBlock)
   }

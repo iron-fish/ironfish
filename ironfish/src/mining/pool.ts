@@ -331,11 +331,11 @@ export class MiningPool {
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotNull(latestBlock)
 
-    const newTime = new Date()
+    const newTime = Date.now()
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
         newTime,
-        new Date(this.currentHeadTimestamp),
+        this.currentHeadTimestamp,
         this.currentHeadDifficulty,
       ),
     )
@@ -352,7 +352,7 @@ export class MiningPool {
     }
 
     latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
-    latestBlock.header.timestamp = newTime.getTime()
+    latestBlock.header.timestamp = newTime
     this.distributeNewBlock(latestBlock)
 
     this.logger.debug('target recalculated', { prevHash: latestBlock.header.previousBlockHash })

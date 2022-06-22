@@ -28,7 +28,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeU32(value.header.nullifierCommitment.size)
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.target.asBigInt(), 32))
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
-    bw.writeU64(value.header.timestamp.getTime())
+    bw.writeU64(value.header.timestamp)
 
     Assert.isTrue(value.header.minersFee <= 0)
     bw.writeBytes(BigIntUtils.toBytesLE(-value.header.minersFee, 8))
@@ -71,7 +71,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       },
       target,
       randomness,
-      new Date(timestamp),
+      timestamp,
       minersFee,
       graffiti,
       work,

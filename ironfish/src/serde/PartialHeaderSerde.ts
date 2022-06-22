@@ -26,7 +26,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
     bw.writeU64(header.nullifierCommitment.size)
     // TODO: Change to little-endian for consistency, since other non-bigint numbers are serialized as little-endian.
     bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
-    bw.writeU64(header.timestamp.getTime())
+    bw.writeU64(header.timestamp)
     // TODO: Change to little-endian for consistency, since other non-bigint numbers are serialized as little-endian.
     bw.writeBytes(BigIntUtils.toBytesBE(header.minersFee, 8))
     bw.writeBytes(header.graffiti)
@@ -50,7 +50,7 @@ export default class PartialBlockHeaderSerde implements Serde<PartialBlockHeader
       sequence: sequence,
       previousBlockHash: previousBlockHash,
       target: new Target(target),
-      timestamp: new Date(timestamp),
+      timestamp: timestamp,
       minersFee: BigIntUtils.fromBytes(minersFee),
       graffiti: graffiti,
       noteCommitment: {
@@ -81,7 +81,7 @@ export type PartialBlockHeader = {
     size: number
   }
   target: Target
-  timestamp: Date
+  timestamp: number
   minersFee: bigint
   graffiti: Buffer
 }

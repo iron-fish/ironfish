@@ -25,7 +25,7 @@ export async function makeBlockAfter(
     throw new Error(`Must have mining reward disabled but was ${miningReward}`)
   }
 
-  const timestamp = new Date()
+  const timestamp = Date.now()
   const target = Target.calculateTarget(timestamp, after.timestamp, after.target)
   const randomness = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
   const graffiti = GraffitiUtils.fromString('fake block')

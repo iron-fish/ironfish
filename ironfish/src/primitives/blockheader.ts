@@ -89,11 +89,8 @@ export class BlockHeader {
    * Unix timestamp according to the miner who mined the block. This value
    * must be taken with a grain of salt, but miners must verify that it is an
    * appropriate distance to the previous blocks timestamp.
-   *
-   * TODO: this is called timestamp but it's not a timestamp, it's a date.
-   * Fix this to be a timestamp or rename it
    */
-  public timestamp: Date
+  public timestamp: number
 
   /**
    * A single transaction representing the miner's fee, awarded to the successful
@@ -126,7 +123,7 @@ export class BlockHeader {
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
     randomness = BigInt(0),
-    timestamp: Date | undefined = undefined,
+    timestamp: number | undefined = undefined,
     minersFee: bigint,
     graffiti: Buffer,
     work = BigInt(0),
@@ -139,7 +136,7 @@ export class BlockHeader {
     this.nullifierCommitment = nullifierCommitment
     this.target = target
     this.randomness = randomness
-    this.timestamp = timestamp || new Date()
+    this.timestamp = timestamp || new Date().getTime()
     this.minersFee = minersFee
     this.work = work
     this.graffiti = graffiti
@@ -233,7 +230,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
       element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
-      element1.timestamp.getTime() === element2.timestamp.getTime() &&
+      element1.timestamp === element2.timestamp &&
       element1.minersFee === element2.minersFee &&
       element1.graffiti.equals(element2.graffiti)
     )
@@ -257,7 +254,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
       },
       target: header.target.targetValue.toString(),
       randomness: header.randomness.toString(),
-      timestamp: header.timestamp.getTime(),
+      timestamp: header.timestamp,
       minersFee: header.minersFee.toString(),
       work: header.work.toString(),
       hash: BlockHashSerdeInstance.serialize(header.hash),
@@ -293,7 +290,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
       },
       new Target(data.target),
       BigInt(data.randomness),
-      new Date(data.timestamp),
+      data.timestamp,
       BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
       data.work ? BigInt(data.work) : BigInt(0),

@@ -116,7 +116,7 @@ export class Telemetry {
 
     this.submit({
       measurement: 'node_stats',
-      timestamp: new Date(),
+      timestamp: Date.now(),
       fields: [
         {
           name: 'heap_used',
@@ -218,7 +218,7 @@ export class Telemetry {
     this.submit({
       measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: true }],
-      timestamp: new Date(),
+      timestamp: Date.now(),
     })
   }
 
@@ -226,7 +226,7 @@ export class Telemetry {
     this.submit({
       measurement: 'node_started',
       fields: [{ name: 'online', type: 'boolean', value: false }],
-      timestamp: new Date(),
+      timestamp: Date.now(),
     })
   }
 
@@ -245,11 +245,11 @@ export class Telemetry {
           value: Number(block.header.sequence),
         },
       ],
-      timestamp: new Date(),
+      timestamp: Date.now(),
     })
   }
 
-  submitNewBlockSeen(block: Block, seenAt: Date): void {
+  submitNewBlockSeen(block: Block, seenAt: number): void {
     this.submit({
       measurement: 'block_propagation',
       timestamp: seenAt,

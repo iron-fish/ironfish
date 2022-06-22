@@ -122,7 +122,7 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.HASH_NOT_MEET_TARGET }
     }
 
-    if (blockHeader.timestamp.getTime() > Date.now() + ALLOWED_BLOCK_FUTURE_SECONDS * 1000) {
+    if (blockHeader.timestamp > Date.now() + ALLOWED_BLOCK_FUTURE_SECONDS * 1000) {
       return { valid: false, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
     }
 
@@ -245,8 +245,8 @@ export class Verifier {
     }
 
     if (
-      current.header.timestamp.getTime() <
-      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
+      current.header.timestamp <
+      previousHeader.timestamp - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
     ) {
       return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
