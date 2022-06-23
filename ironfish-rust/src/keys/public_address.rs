@@ -95,6 +95,7 @@ impl PublicAddress {
                     Self::new(&byte_arr)
                 } else {
                     Err(errors::SaplingKeyError::InvalidPublicAddress)
+                }
             }
         }
     }

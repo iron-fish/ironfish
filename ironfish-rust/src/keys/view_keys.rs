@@ -49,6 +49,7 @@ impl IncomingViewKey {
                     Self::read(&mut bytes[..].as_ref())
                 } else {
                     Err(errors::SaplingKeyError::InvalidViewingKey)
+                }
             }
         }
     }
@@ -140,6 +141,7 @@ impl OutgoingViewKey {
                     Ok(Self { view_key })
                 } else {
                     Err(errors::SaplingKeyError::InvalidViewingKey)
+                }
             }
         }
     }

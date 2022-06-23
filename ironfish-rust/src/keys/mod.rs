@@ -124,6 +124,7 @@ impl<'a> SaplingKey {
                     Self::new(byte_arr)
                 } else {
                     Err(errors::SaplingKeyError::InvalidPaymentAddress)
+                }
             }
         }
     }
