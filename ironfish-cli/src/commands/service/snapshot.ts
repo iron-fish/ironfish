@@ -45,12 +45,6 @@ export default class CreateSnapshot extends IronfishCommand {
     const { flags } = await this.parse(CreateSnapshot)
 
     const bucket = (flags.bucket || process.env.IRONFISH_SNAPSHOT_BUCKET || '').trim()
-    if (!bucket) {
-      this.log(
-        `Cannot upload snapshot without bucket URL. You must set IRONFISH_SNAPSHOT_BUCKET or pass --bucket flag.`,
-      )
-      this.exit(1)
-    }
 
     let exportDir
 
@@ -117,32 +111,34 @@ export default class CreateSnapshot extends IronfishCommand {
       hasher.update(data)
     }
     const checksum = hasher.digest().toString('hex')
-    CliUx.ux.action.stop(`done`)
+    CliUx.ux.action.stop(`done (${checksum})`)
 
-    const blockHeight = stop
+    if (bucket) {
+      const blockHeight = stop
 
-    CliUx.ux.action.start(`Uploading to ${bucket}`)
-    await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
-    CliUx.ux.action.stop(`done`)
+      CliUx.ux.action.start(`Uploading to ${bucket}`)
+      await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
+      CliUx.ux.action.stop(`done`)
 
-    const manifestPath = path.join(exportDir, 'manifest.json')
+      const manifestPath = path.join(exportDir, 'manifest.json')
 
-    await fsAsync
-      .writeFile(
-        manifestPath,
-        JSON.stringify({
-          block_height: blockHeight,
-          checksum,
-          file_name: snapshotFileName,
-          file_size: fileSize,
-          timestamp,
-        }),
-      )
-      .then(async () => {
-        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
-        await this.uploadToBucket(manifestPath, bucket, 'application/json')
-        CliUx.ux.action.stop(`done`)
-      })
+      await fsAsync
+        .writeFile(
+          manifestPath,
+          JSON.stringify({
+            block_height: blockHeight,
+            checksum,
+            file_name: snapshotFileName,
+            file_size: fileSize,
+            timestamp,
+          }),
+        )
+        .then(async () => {
+          CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
+          await this.uploadToBucket(manifestPath, bucket, 'application/json')
+          CliUx.ux.action.stop(`done`)
+        })
+    }
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
