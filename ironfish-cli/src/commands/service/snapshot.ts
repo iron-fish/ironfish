@@ -144,20 +144,24 @@ export default class CreateSnapshot extends IronfishCommand {
     await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
     CliUx.ux.action.stop(`done`)
 
-    await fsAsync.writeFile(
-      path.join(exportDir, 'manifest.json'),
-      JSON.stringify({
-        block_height: blockHeight,
-        checksum,
-        file_name: snapshotFileName,
-        file_size: fileSize,
-        timestamp,
-      }),
-    )
+    const manifestPath = path.join(exportDir, 'manifest.json')
 
-    CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
-    await this.uploadToBucket(path.join(exportDir, 'manifest.json'), bucket, 'application/json')
-    CliUx.ux.action.stop(`done`)
+    await fsAsync
+      .writeFile(
+        manifestPath,
+        JSON.stringify({
+          block_height: blockHeight,
+          checksum,
+          file_name: snapshotFileName,
+          file_size: fileSize,
+          timestamp,
+        }),
+      )
+      .then(async () => {
+        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
+        await this.uploadToBucket(manifestPath, bucket, 'application/json')
+        CliUx.ux.action.stop(`done`)
+      })
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {

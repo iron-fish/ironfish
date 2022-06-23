@@ -67,8 +67,8 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
         const block = await node.chain.getBlock(blockHeader)
         if (block) {
           const serializedBlock = node.chain.strategy.blockSerde.serialize(block)
-          const bw = bufio.write(getBlockSize(serializedBlock))
-          const blockBuffer = writeBlock(bw, serializedBlock).render()
+          const blockWriter = bufio.write(getBlockSize(serializedBlock))
+          const blockBuffer = writeBlock(blockWriter, serializedBlock).render()
           blocks.push(blockBuffer)
 
           if (blocks.length >= maxBlocksPerChunk) {
@@ -80,7 +80,7 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
       }
     }
 
-    if (blocks.length) {
+    if (blocks.length > 0) {
       const buffer = serializeChunk(blocks)
       request.stream({ start, stop, seq: stop, buffer })
     }
@@ -96,12 +96,12 @@ function serializeChunk(blocks: Buffer[]): Buffer {
   }
   const totalSize = 8 + sizeOfBuffers
 
-  const bw = bufio.write(totalSize)
-  bw.writeU64(blocks.length)
+  const chunkWriter = bufio.write(totalSize)
+  chunkWriter.writeU64(blocks.length)
 
   for (const block of blocks) {
-    bw.writeVarBytes(block)
+    chunkWriter.writeVarBytes(block)
   }
 
-  return bw.render()
+  return chunkWriter.render()
 }
