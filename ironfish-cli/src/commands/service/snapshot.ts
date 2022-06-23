@@ -65,7 +65,11 @@ export default class CreateSnapshot extends IronfishCommand {
 
     this.log('Connecting to node...')
 
-    const client = await this.sdk.connectRpc()
+    // TODO: There's a significant slowdown in the export process when running a
+    // full node. This may be due to CPU starvation or message formatting calls
+    // due to the use of node-ipc. We should revisit this in the future to allow
+    // for export without shutting down the node. -- deekerno
+    const client = await this.sdk.connectRpc(true)
 
     const response = client.snapshotChainStream({
       maxBlocksPerChunk: flags.maxBlocksPerChunk,
