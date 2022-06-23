@@ -27,7 +27,7 @@ import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
 import { STRATUM_VERSION_PROTOCOL, STRATUM_VERSION_PROTOCOL_MIN } from './version'
 
-const FIFTEEN_MINUTES = 15 * 60 * 1000
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 
 export class StratumServer {
   readonly server: net.Server
@@ -125,7 +125,7 @@ export class StratumServer {
     this.clients.set(client.id, client)
   }
 
-  // Returns the count of connected clients excluding those marked as bad clients
+  // Returns the count of connected clients
   getClientCount(): number {
     return this.clients.size
   }
@@ -176,7 +176,7 @@ export class StratumServer {
             this.peers.ban(
               client,
               `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
-              FIFTEEN_MINUTES,
+              FIFTEEN_MINUTES_MS,
             )
             return
           }
