@@ -22,6 +22,7 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from './messages'
+import { STRATUM_VERSION_PROTOCOL } from './version'
 
 export class StratumClient {
   readonly socket: net.Socket
@@ -106,8 +107,10 @@ export class StratumClient {
 
   subscribe(): void {
     this.send('mining.subscribe', {
+      version: STRATUM_VERSION_PROTOCOL,
       publicAddress: this.publicAddress,
     })
+
     this.logger.info('Listening to pool for new work')
   }
 
