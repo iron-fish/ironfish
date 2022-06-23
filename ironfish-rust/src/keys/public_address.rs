@@ -89,13 +89,12 @@ impl PublicAddress {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
             Ok(bytes) => {
-                if bytes.len() != 43 {
-                    Err(errors::SaplingKeyError::InvalidPublicAddress)
-                } else {
+                if bytes.len() == 43 {
                     let mut byte_arr = [0; 43];
                     byte_arr.clone_from_slice(&bytes[0..43]);
                     Self::new(&byte_arr)
-                }
+                } else {
+                    Err(errors::SaplingKeyError::InvalidPublicAddress)
             }
         }
     }

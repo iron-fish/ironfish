@@ -321,14 +321,14 @@ impl SpendProof {
         data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
 
-        if !self.randomized_public_key.verify(
+        if self.randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
         ) {
-            Err(errors::SaplingProofError::VerificationFailed)
-        } else {
             Ok(())
+        } else {
+            Err(errors::SaplingProofError::VerificationFailed)
         }
     }
 

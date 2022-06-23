@@ -45,11 +45,10 @@ impl IncomingViewKey {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(errors::SaplingKeyError::InvalidViewingKey)
-                } else {
+                if bytes.len() == 32 {
                     Self::read(&mut bytes[..].as_ref())
-                }
+                } else {
+                    Err(errors::SaplingKeyError::InvalidViewingKey)
             }
         }
     }
@@ -135,13 +134,12 @@ impl OutgoingViewKey {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
             Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(errors::SaplingKeyError::InvalidViewingKey)
-                } else {
+                if bytes.len() == 32 {
                     let mut view_key = [0; 32];
                     view_key.clone_from_slice(&bytes[0..32]);
                     Ok(Self { view_key })
-                }
+                } else {
+                    Err(errors::SaplingKeyError::InvalidViewingKey)
             }
         }
     }

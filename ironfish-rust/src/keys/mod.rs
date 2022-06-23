@@ -118,13 +118,12 @@ impl<'a> SaplingKey {
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPaymentAddress),
             Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(errors::SaplingKeyError::InvalidPaymentAddress)
-                } else {
+                if bytes.len() == 32 {
                     let mut byte_arr = [0; 32];
                     byte_arr.clone_from_slice(&bytes[0..32]);
                     Self::new(byte_arr)
-                }
+                } else {
+                    Err(errors::SaplingKeyError::InvalidPaymentAddress)
             }
         }
     }
@@ -182,13 +181,13 @@ impl<'a> SaplingKey {
     // Write a bytes representation of this key to the provided stream
     pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         let num_bytes_written = writer.write(&self.spending_key)?;
-        if num_bytes_written != 32 {
+        if num_bytes_written == 32 {
+            Ok(())
+        } else {
             Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Couldn't write entire key",
             ))
-        } else {
-            Ok(())
         }
     }
 

@@ -280,10 +280,10 @@ impl ProposedTransaction {
         let mut calculated_public_key = self.binding_verification_key;
         calculated_public_key += value_balance_point;
 
-        if calculated_public_key != public_key.0 {
-            Err(TransactionError::InvalidBalanceError)
-        } else {
+        if calculated_public_key == public_key.0 {
             Ok(())
+        } else {
+            Err(TransactionError::InvalidBalanceError)
         }
     }
 
@@ -533,14 +533,14 @@ impl Transaction {
         data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
         (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
 
-        if !public_key.verify(
+        if public_key.verify(
             &data_to_verify_signature,
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            Err(TransactionError::VerificationFailed)
-        } else {
             Ok(())
+        } else {
+            Err(TransactionError::VerificationFailed)
         }
     }
 }
