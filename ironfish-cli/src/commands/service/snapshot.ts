@@ -107,7 +107,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     for await (const result of response.contentStream()) {
       if (result.buffer && result.seq) {
-        const blockFilePath = this.sdk.fileSystem.join(blockExportPath, `${result.seq}.bin`)
+        const blockFilePath = this.sdk.fileSystem.join(blockExportPath, `${result.seq}`)
         await fsAsync.writeFile(blockFilePath, Buffer.from(result.buffer))
         progress.update(result.seq || 0)
       }
@@ -123,21 +123,22 @@ export default class CreateSnapshot extends IronfishCommand {
     this.log(`Zipping\n    SRC ${blockExportPath}\n    DST ${snapshotPath}\n`)
     CliUx.ux.action.start(`Zipping ${blockExportPath}`)
     await this.zipDir(blockExportPath, snapshotPath)
+    const stat = await fsAsync.stat(snapshotPath)
+    const fileSize = stat.size
+    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
 
     const hasher = crypto.createHash('sha256')
     const fileHandle = await fsAsync.open(snapshotPath, 'r')
     const stream = fileHandle.createReadStream()
+
+    CliUx.ux.action.start(`Creating checksum for ${snapshotPath}`)
     for await (const data of stream) {
       hasher.update(data)
     }
-
-    const stat = await fsAsync.stat(snapshotPath)
-
     const checksum = hasher.digest().toString('hex')
-    const fileSize = stat.size
-    const blockHeight = stop
+    CliUx.ux.action.stop(`done`)
 
-    CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
+    const blockHeight = stop
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
     await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
@@ -156,6 +157,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
     await this.uploadToBucket(path.join(exportDir, 'manifest.json'), bucket, 'application/json')
+    CliUx.ux.action.stop(`done`)
   }
 
   zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
