@@ -169,6 +169,12 @@ export class StratumServer {
             return
           }
 
+          // TODO: Remove when making version required
+          if (body.result.version === undefined) {
+            this.peers.shadowBan(client)
+            return
+          }
+
           // TODO: This undefined check makes version optional, we should require it by
           // removing this undefined check in a future update once we have given enough
           // notice after this deploy.
