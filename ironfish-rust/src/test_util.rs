@@ -20,9 +20,10 @@ pub(crate) fn make_fake_witness(note: &Note) -> Witness {
 
     let mut witness_auth_path = vec![];
     for _ in 0..TREE_DEPTH {
-        witness_auth_path.push(match rng.gen() {
-            false => WitnessNode::Left(Scalar::from(rng.gen::<u64>())),
-            true => WitnessNode::Right(Scalar::from(rng.gen::<u64>())),
+        witness_auth_path.push(if rng.gen() {
+            WitnessNode::Right(Scalar::from(rng.gen::<u64>()))
+        } else {
+            WitnessNode::Left(Scalar::from(rng.gen::<u64>()))
         })
     }
     let root_hash = auth_path_to_root_hash(&witness_auth_path, note.commitment_point());
