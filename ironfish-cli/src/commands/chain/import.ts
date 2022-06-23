@@ -4,6 +4,7 @@
 import { DEFAULT_SNAPSHOT_BUCKET, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
+import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
@@ -20,13 +21,13 @@ export default class ImportSnapshot extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     bucket: Flags.string({
-      char: 'e',
+      char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Bucket URL to download snapshot from',
     }),
     path: Flags.string({
-      char: 'e',
+      char: 'p',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to snapshot file',
@@ -40,77 +41,118 @@ export default class ImportSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(ImportSnapshot)
 
-    const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET || '').trim()
-    if (!bucket) {
-      this.log(`Cannot download snapshot without bucket URL`)
-    }
+    let snapshotPath
+    const tempDir = await fsAsync.mkdtemp(`${os.tmpdir()}${path.sep}`)
 
-    const manifest = await axios.get<{
-      checksum: string
-      file_name: string
-      file_size: number
-      timestamp: number
-      block_height: number
-    }>(`${DEFAULT_SNAPSHOT_BUCKET}/manifest.json`)
+    if (flags.path) {
+      snapshotPath = flags.path
+    } else {
+      const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET || '').trim()
+      if (!bucket) {
+        this.log(`Cannot download snapshot without bucket URL`)
+      }
 
-    if (!flags.confirm) {
-      this.log(
-        `This snapshot (${
-          manifest.data.file_name
-        }) contains the Iron Fish blockchain up to block ${
-          manifest.data.block_height
-        }. The size of the latest snapshot file is ${FileUtils.formatFileSize(
-          manifest.data.file_size,
-        )}`,
-      )
+      const manifest = await axios
+        .get<{
+          checksum: string
+          file_name: string
+          file_size: number
+          timestamp: number
+          block_height: number
+        }>(`${bucket}/manifest.json`)
+        .then((r) => r.data)
 
-      const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
-      if (!confirm) {
-        this.log('Snapshot download aborted.')
+      if (!flags.confirm) {
+        this.log(
+          `This snapshot (${
+            manifest.file_name
+          }) contains the Iron Fish blockchain up to block ${
+            manifest.block_height
+          }. The size of the latest snapshot file is ${FileUtils.formatFileSize(
+            manifest.file_size,
+          )}`,
+        )
+
+        const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
+        if (!confirm) {
+          this.log('Snapshot download aborted.')
+          this.exit(0)
+        }
+      }
+
+      snapshotPath = path.join(tempDir, manifest.file_name)
+      const snapshotFile = await fsAsync.open(snapshotPath, 'w')
+      const bar = CliUx.ux.progress({
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        format: 'Downloading snapshot: [{bar}] {value}% | ETA: {eta}s',
+      }) as ProgressBar
+
+      bar.start()
+
+      const hasher = crypto.createHash('sha256')
+      const writer = snapshotFile.createWriteStream()
+
+      await axios({
+        method: 'GET',
+        responseType: 'stream',
+        url: `${bucket}/${manifest.file_name}`,
+        onDownloadProgress: (progressEvent: {
+          lengthComputable: number
+          loaded: number
+          total: number
+        }) => {
+          const percentage = Math.floor((progressEvent.loaded / progressEvent.total) * 100)
+          bar.update(percentage)
+        },
+      }).then((response) => {
+        console.log(response.data)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        response.data.pipe(writer)
+        hasher.update(response.data)
+      })
+
+      const checksum = hasher.digest().toString('hex')
+      if (checksum !== manifest.checksum) {
+        this.log('Snapshot checksum does not match.')
         this.exit(0)
       }
     }
 
-    const bar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format: 'Downloading snapshot: [{bar}] {value}% | ETA: {eta}s',
-    }) as ProgressBar
+    CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
+    await this.unzip(snapshotPath, tempDir)
+    const blockExportPath = this.sdk.fileSystem.join(tempDir, 'blocks')
 
-    bar.start()
+    const files = await fsAsync.readdir(blockExportPath)
+    files.sort((a, b) => Number(a) - Number(b))
 
-    const tempDir = await fsAsync.mkdtemp(`${os.tmpdir()}${path.sep}`)
-    const snapshotPath = await fsAsync.open(path.join(tempDir, manifest.data.file_name), 'w')
-    const hasher = crypto.createHash('sha256')
-    const writer = snapshotPath.createWriteStream()
+    const client = await this.sdk.connectRpc()
+    let { headSeq } = (await client.importSnapshot()).content
 
-    await axios({
-      method: 'GET',
-      responseType: 'stream',
-      url: `${DEFAULT_SNAPSHOT_BUCKET}/${manifest.data.file_name}`,
-      onDownloadProgress: (progressEvent: {
-        lengthComputable: number
-        loaded: number
-        total: number
-      }) => {
-        const percentage = Math.floor((progressEvent.loaded / progressEvent.total) * 100)
-        bar.update(percentage)
-      },
-    }).then((response) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      response.data.pipe(writer)
-      hasher.update(response.data)
-    })
+    for (const file of files) {
+      if (headSeq >= Number(file)) {
+        continue
+      }
 
-    const checksum = hasher.digest().toString('hex')
-    if (checksum !== manifest.data.checksum) {
-      this.log('Snapshot checksum does not match.')
-      this.exit(0)
+      const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
+      const response = await client.importSnapshot({ blocks })
+      headSeq = response.content.headSeq
     }
+  }
 
-    // TODO: Make final choice as to how snapshot is structured
+  async unzip(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
+    return new Promise<number | null>((resolve, reject) => {
+      const args = ['-xvzf', source, '-C', dest]
 
-    // TODO: If we just zip the database folder, we can de-compress to
-    // the temp dir, rename the old folder, and copy the new folder over.
+      for (const exclude of excludes) {
+        args.unshift(exclude)
+        args.unshift('--exclude')
+      }
+
+      const process = spawn('tar', args)
+      process.on('exit', (code) => resolve(code))
+      process.on('close', (code) => resolve(code))
+      process.on('error', (error) => reject(error))
+    })
   }
 }
