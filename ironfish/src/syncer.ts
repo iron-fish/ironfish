@@ -484,6 +484,11 @@ export class Syncer {
 
     const { added, block } = await this.addBlock(peer, newBlock)
 
+    peer.knownBlockHashes.set(block.header.hash, true)
+    for (const knownPeer of peer.knownPeers.values()) {
+      knownPeer.knownBlockHashes.set(block.header.hash, true)
+    }
+
     if (!peer.sequence || block.header.sequence > peer.sequence) {
       peer.sequence = block.header.sequence
     }

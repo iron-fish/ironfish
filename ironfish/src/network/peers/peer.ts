@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import LRU from 'blru'
+import { BufferMap } from 'buffer-map'
 import colors from 'colors/safe'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
@@ -189,6 +191,16 @@ export class Peer {
   shouldLogMessages = false
 
   loggedMessages: Array<LoggedMessage> = []
+
+  /**
+   * Blocks that have been sent or received from this peer. Value is set to true if the block was received
+   * from the peer, and false if the block was sent to the peer.
+   */
+  readonly knownBlockHashes: LRU<Buffer, boolean> = new LRU<Buffer, boolean>(
+    1024,
+    null,
+    BufferMap,
+  )
 
   /**
    * Event fired for every new incoming message that needs to be processed

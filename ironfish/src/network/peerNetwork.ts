@@ -181,7 +181,7 @@ export class PeerNetwork {
     this.node.miningManager.onNewBlock.on((block) => {
       const serializedBlock = this.strategy.blockSerde.serialize(block)
 
-      this.gossip(new NewBlockMessage(serializedBlock))
+      this.broadcastBlock(new NewBlockMessage(serializedBlock))
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
@@ -309,6 +309,27 @@ export class PeerNetwork {
   private gossip(message: GossipNetworkMessage): void {
     this.seenGossipFilter.add(message.nonce)
     this.peerManager.broadcast(message)
+  }
+
+  /**
+   * Send a block to all connected peers who haven't yet received the block.
+   */
+  private broadcastBlock(message: NewBlockMessage): void {
+    this.seenGossipFilter.add(message.nonce)
+
+    // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
+    const block = this.strategy.blockSerde.deserialize(message.block)
+
+    for (const peer of this.peerManager.getConnectedPeers()) {
+      // Don't send the block to peers who already know about it
+      if (peer.knownBlockHashes.has(block.header.hash)) {
+        continue
+      }
+
+      if (peer.send(message)) {
+        peer.knownBlockHashes.set(block.header.hash, false)
+      }
+    }
   }
 
   /**
@@ -458,6 +479,12 @@ export class PeerNetwork {
     let gossip
     if (gossipMessage instanceof NewBlockMessage) {
       gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
+
+      if (gossip) {
+        this.broadcastBlock(gossipMessage)
+      }
+
+      return
     } else if (gossipMessage instanceof NewTransactionMessage) {
       gossip = await this.onNewTransaction({ peerIdentity, message: gossipMessage })
     } else {
