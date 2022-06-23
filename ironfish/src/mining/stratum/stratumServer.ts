@@ -176,7 +176,13 @@ export class StratumServer {
             // throw new ClientMessageMalformedError(client, body.error, header.result.method)
           }
 
-          if (body.result.version < STRATUM_VERSION_PROTOCOL_MIN) {
+          // TODO: This undefined check makes version optional, we should require it by
+          // removing this undefined check in a future update once we have given enough
+          // notice after this deploy.
+          if (
+            body.result.version !== undefined &&
+            body.result.version < STRATUM_VERSION_PROTOCOL_MIN
+          ) {
             this.addBadClient(client)
             continue
             // throw new ClientMessageMalformedError(

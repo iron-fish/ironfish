@@ -10,7 +10,7 @@ export type StratumMessage = {
 }
 
 export type MiningSubscribeMessage = {
-  version: number
+  version?: number
   publicAddress: string
 }
 
@@ -69,7 +69,7 @@ export const MiningWaitForWorkSchema: yup.MixedSchema<MiningWaitForWorkMessage> 
 
 export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = yup
   .object({
-    version: yup.number().required(),
+    version: yup.number().optional(),
     publicAddress: yup.string().required(),
   })
   .required()
