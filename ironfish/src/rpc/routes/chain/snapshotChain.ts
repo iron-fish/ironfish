@@ -12,8 +12,6 @@ const MAX_BLOCKS_PER_SNAPSHOT_CHUNK = 1000
 
 export type SnapshotChainStreamRequest =
   | {
-      start?: number | null
-      stop?: number | null
       maxBlocksPerChunk?: number | null
     }
   | undefined
@@ -51,10 +49,7 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
-    const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
-      start: request.data?.start,
-      stop: request.data?.stop,
-    })
+    const { start, stop } = BlockchainUtils.getBlockRange(node.chain)
     const maxBlocksPerChunk = request.data?.maxBlocksPerChunk ?? MAX_BLOCKS_PER_SNAPSHOT_CHUNK
 
     request.stream({ start, stop })

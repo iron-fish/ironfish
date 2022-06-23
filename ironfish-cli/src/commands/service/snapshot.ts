@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, AsyncUtils, FileUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
+import { Assert, AsyncUtils, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
-import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -42,24 +41,8 @@ export default class CreateSnapshot extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'start',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
-      default: Number(GENESIS_BLOCK_SEQUENCE),
-      required: false,
-      description: 'the sequence to start snapshot at (inclusive, genesis block is 1)',
-    },
-    {
-      name: 'stop',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
-      required: false,
-      description: 'the sequence to snapshot end at (inclusive)',
-    },
-  ]
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(CreateSnapshot)
+    const { flags } = await this.parse(CreateSnapshot)
 
     const bucket = (flags.bucket || process.env.IRONFISH_SNAPSHOT_BUCKET || '').trim()
     if (!bucket) {
@@ -91,8 +74,6 @@ export default class CreateSnapshot extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const response = client.snapshotChainStream({
-      start: args.start as number | null,
-      stop: args.stop as number | null,
       maxBlocksPerChunk: flags.maxBlocksPerChunk,
     })
 
