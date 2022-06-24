@@ -100,7 +100,9 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Status for mining pool '${status.name}':\n\tHashrate: ${FileUtils.formatHashRate(
         status.hashRate,
-      )}/s\n\tMiners: ${status.miners}\n\tShares pending: ${status.sharesPending}`,
+      )}/s\n\tMiners: ${status.miners}\n\tShares pending: ${
+        status.sharesPending
+      }\n\tBan Count: ${status.banCount}`,
     )
   }
 

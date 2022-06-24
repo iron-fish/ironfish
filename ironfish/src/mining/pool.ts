@@ -132,7 +132,11 @@ export class MiningPool {
     this.started = true
     await this.shares.start()
 
-    this.logger.info(`Starting stratum server on ${this.stratum.host}:${this.stratum.port}`)
+    this.logger.info(
+      `Starting stratum server v${String(this.stratum.version)} on ${this.stratum.host}:${
+        this.stratum.port
+      }`,
+    )
     this.stratum.start()
 
     this.logger.info('Connecting to node...')
@@ -232,10 +236,10 @@ export class MiningPool {
     try {
       headerBytes = mineableHeaderString(blockTemplate.header)
     } catch (error) {
-      this.logger.debug(`${client.id} sent malformed work. No longer sending work.`)
-      this.stratum.addBadClient(client)
+      this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
       return
     }
+
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -424,6 +428,7 @@ export class MiningPool {
       hashRate: hashRate,
       miners: this.stratum.clients.size,
       sharesPending: sharesPending,
+      banCount: this.stratum.peers.banCount,
     }
   }
 }
@@ -433,4 +438,5 @@ export type MiningPoolStatus = {
   hashRate: number
   miners: number
   sharesPending: number
+  banCount: number
 }
