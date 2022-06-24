@@ -14,6 +14,7 @@ const DATABASE_VERSION = 1
 
 const getWalletDBMetaDefaults = (): WalletDBMetaValue => ({
   defaultAccountId: 0,
+  headHashes: new Map(),
 })
 
 export class WalletDB {
