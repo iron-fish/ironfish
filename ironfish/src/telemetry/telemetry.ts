@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { NetworkMessageType, NetworkMessageTypeList } from '../network/types'
 import { Block } from '../primitives/block'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -114,6 +115,32 @@ export class Telemetry {
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
 
+    const inboundTrafficFields: Field[] = NetworkMessageTypeList.flatMap((messageType) => {
+      const value = this.metrics?.p2p_InboundTrafficByMessage.get(messageType)?.rate5m
+      return value
+        ? [
+            {
+              name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+              type: 'float',
+              value: value,
+            },
+          ]
+        : []
+    })
+
+    const outboundTrafficFields: Field[] = NetworkMessageTypeList.flatMap((messageType) => {
+      const value = this.metrics?.p2p_OutboundTrafficByMessage.get(messageType)?.rate5m
+      return value
+        ? [
+            {
+              name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+              type: 'float',
+              value: value,
+            },
+          ]
+        : []
+    })
+
     this.submit({
       measurement: 'node_stats',
       timestamp: new Date(),
@@ -131,12 +158,12 @@ export class Telemetry {
         {
           name: 'inbound_traffic',
           type: 'float',
-          value: this.metrics.p2p_InboundTraffic.rate1s,
+          value: this.metrics.p2p_InboundTraffic.rate5m,
         },
         {
           name: 'outbound_traffic',
           type: 'float',
-          value: this.metrics.p2p_OutboundTraffic.rate1s,
+          value: this.metrics.p2p_OutboundTraffic.rate5m,
         },
         {
           name: 'peers_count',
@@ -153,6 +180,8 @@ export class Telemetry {
           type: 'integer',
           value: this.chain.head.sequence,
         },
+        ...inboundTrafficFields,
+        ...outboundTrafficFields,
       ],
     })
 

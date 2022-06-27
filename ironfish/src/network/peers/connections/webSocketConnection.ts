@@ -87,9 +87,9 @@ export class WebSocketConnection extends Connection {
       }
 
       let message
+      const byteCount = event.data.byteLength
       try {
         message = parseNetworkMessage(event.data)
-        const byteCount = event.data.byteLength
         this.metrics?.p2p_InboundTraffic.add(byteCount)
         this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
       } catch (error) {
@@ -101,6 +101,8 @@ export class WebSocketConnection extends Connection {
         this.close(new NetworkError(message))
         return
       }
+
+      this.metrics?.p2p_InboundTrafficByMessage.get(message.type)?.add(byteCount)
 
       if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(
@@ -136,6 +138,7 @@ export class WebSocketConnection extends Connection {
     const byteCount = data.byteLength
     this.metrics?.p2p_OutboundTraffic.add(byteCount)
     this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
+    this.metrics?.p2p_OutboundTrafficByMessage.get(message.type)?.add(byteCount)
 
     return true
   }

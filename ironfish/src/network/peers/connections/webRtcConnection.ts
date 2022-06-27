@@ -151,6 +151,7 @@ export class WebRtcConnection extends Connection {
         this.close(error)
         return
       }
+      this.metrics?.p2p_InboundTrafficByMessage.get(message.type)?.add(byteCount)
 
       if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(
@@ -239,6 +240,7 @@ export class WebRtcConnection extends Connection {
     const byteCount = data.byteLength
     this.metrics?.p2p_OutboundTraffic.add(byteCount)
     this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
+    this.metrics?.p2p_OutboundTrafficByMessage.get(message.type)?.add(byteCount)
 
     return true
   }
