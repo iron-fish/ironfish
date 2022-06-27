@@ -58,7 +58,6 @@ export class Accounts {
   protected readonly nullifierToNote = new Map<string, string>()
 
   protected readonly accounts = new Map<string, Account>()
-  private readonly accountIdByName: Map<string, string>
   readonly db: AccountsDB
   protected readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -126,8 +125,6 @@ export class Accounts {
 
       await this.updateHeadHash(header.previousBlockHash)
     })
-
-    this.accountIdByName = new Map<string, string>()
   }
 
   async updateHead(): Promise<void> {
@@ -185,7 +182,6 @@ export class Accounts {
   async load(): Promise<void> {
     for await (const account of this.db.loadAccounts()) {
       this.accounts.set(account.id, account)
-      this.accountIdByName.set(account.name, account.id)
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -1019,7 +1015,6 @@ export class Accounts {
     const account = new Account(uuid(), serializedAccount)
 
     this.accounts.set(account.id, account)
-    this.accountIdByName.set(account.name, account.id)
     await this.db.setAccount(account)
 
     if (setDefault) {
@@ -1174,7 +1169,6 @@ export class Accounts {
     const account = new Account(uuid(), serializedAccount)
 
     this.accounts.set(account.id, account)
-    this.accountIdByName.set(account.name, account.id)
     await this.db.setAccount(account)
 
     this.onAccountImported.emit(account)
@@ -1187,7 +1181,7 @@ export class Accounts {
   }
 
   accountExists(name: string): boolean {
-    return this.accountIdByName.has(name)
+    return this.getAccountByName(name) !== null
   }
 
   async removeAccount(name: string): Promise<void> {
@@ -1204,7 +1198,6 @@ export class Accounts {
     }
 
     this.accounts.delete(account.id)
-    this.accountIdByName.delete(account.name)
     await this.db.removeAccount(account.id)
     this.onAccountRemoved.emit(account)
   }
@@ -1237,11 +1230,12 @@ export class Accounts {
   }
 
   getAccountByName(name: string): Account | null {
-    const id = this.accountIdByName.get(name)
-    if (!id) {
-      return null
+    for (const account of this.accounts.values()) {
+      if (name === account.name) {
+        return account
+      }
     }
-    return this.accounts.get(id) || null
+    return null
   }
 
   getDefaultAccount(): Account | null {
