@@ -26,15 +26,6 @@ import { TransactionsValue, TransactionsValueEncoding } from './database/transac
 
 const DATABASE_VERSION = 5
 
-export const AccountDefaults: AccountsValue = {
-  name: '',
-  spendingKey: '',
-  incomingViewKey: '',
-  outgoingViewKey: '',
-  publicAddress: '',
-  rescan: null,
-}
-
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountName: null,
   headHash: null,
@@ -135,11 +126,11 @@ export class AccountsDB {
   }
 
   async setAccount(account: Account): Promise<void> {
-    await this.accounts.put(account.name, account.serialize())
+    await this.accounts.put(account.id, account.serialize())
   }
 
-  async removeAccount(name: string): Promise<void> {
-    await this.accounts.del(name)
+  async removeAccount(id: string): Promise<void> {
+    await this.accounts.del(id)
   }
 
   async setDefaultAccount(name: AccountsDBMeta['defaultAccountName']): Promise<void> {
@@ -161,8 +152,8 @@ export class AccountsDB {
   }
 
   async *loadAccounts(): AsyncGenerator<Account, void, unknown> {
-    for await (const account of this.accounts.getAllValuesIter()) {
-      yield new Account(account)
+    for await (const [id, account] of this.accounts.getAllIter()) {
+      yield new Account(id, account)
     }
   }
 

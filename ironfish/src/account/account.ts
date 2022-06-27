@@ -6,6 +6,7 @@ import MurmurHash3 from 'imurmurhash'
 import { AccountsValue } from './database/accounts'
 
 export class Account {
+  readonly id: string
   readonly displayName: string
   name: string
   readonly spendingKey: string
@@ -14,7 +15,8 @@ export class Account {
   publicAddress: string
   rescan: number | null
 
-  constructor(serializedAccount: AccountsValue) {
+  constructor(id: string, serializedAccount: AccountsValue) {
+    this.id = id
     this.name = serializedAccount.name
     this.spendingKey = serializedAccount.spendingKey
     this.incomingViewKey = serializedAccount.incomingViewKey
