@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, AsyncUtils, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import AWS from 'aws-sdk'
+import { AWSError, S3 } from 'aws-sdk'
 import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -170,7 +170,7 @@ export default class CreateSnapshot extends IronfishCommand {
   async uploadToBucket(filePath: string, bucket: string, contentType: string): Promise<void> {
     const baseName = path.basename(filePath)
 
-    const s3 = new AWS.S3({
+    const s3 = new S3({
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     })
@@ -185,7 +185,7 @@ export default class CreateSnapshot extends IronfishCommand {
       .createMultipartUpload(params)
       .promise()
       .then((result) => result.UploadId)
-      .catch((err: AWS.AWSError) => {
+      .catch((err: AWSError) => {
         this.logger.error(`Could not create multipart upload to S3: ${err.message}`)
         throw new Error(err.message)
       })
@@ -234,7 +234,7 @@ export default class CreateSnapshot extends IronfishCommand {
               acc = null
               contentStream.resume()
             })
-            .catch((err: AWS.AWSError) => {
+            .catch((err: AWSError) => {
               this.logger.error(`Could not upload part to S3 bucket: ${err.message}`)
               reject(err)
             })
@@ -262,7 +262,7 @@ export default class CreateSnapshot extends IronfishCommand {
               acc = null
               resolve(partMap)
             })
-            .catch((err: AWS.AWSError) => {
+            .catch((err: AWSError) => {
               this.logger.error(`Could not upload last part to S3 bucket: ${err.message}`)
               reject(err)
             })
@@ -294,7 +294,7 @@ export default class CreateSnapshot extends IronfishCommand {
       .then(() => {
         this.logger.info(`Multipart upload complete.`)
       })
-      .catch((err: AWS.AWSError) => {
+      .catch((err: AWSError) => {
         throw new Error(`Could not complete multipart S3 upload: ${err.message}`)
       })
   }

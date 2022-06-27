@@ -40,7 +40,7 @@ describe('Route chain/snapshotChainStream', () => {
     const expected = bw.render()
 
     const response = await routeTest.client
-      .request<SnapshotChainStreamResponse>('chain/snapshotChainStream', { start: 1, stop: 2 })
+      .request<SnapshotChainStreamResponse>('chain/snapshotChainStream')
       .waitForRoute()
 
     let value = await response.contentStream().next()
