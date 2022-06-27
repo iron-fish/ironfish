@@ -1409,10 +1409,6 @@ export class PeerManager {
         continue
       }
 
-      if (peer.knownPeers.has(p.state.identity)) {
-        continue
-      }
-
       connectedPeers.push({
         identity: Buffer.from(p.state.identity, 'base64'),
         name: p.name || undefined,
