@@ -18,6 +18,7 @@ export class StratumPeers {
   readonly logger: Logger
   readonly maxConnectionsByIp: number
   readonly server: StratumServer
+  readonly banning: boolean
 
   readonly onBanned = new Event<[StratumServerClient]>()
 
@@ -47,6 +48,8 @@ export class StratumPeers {
   }) {
     this.logger = options.logger ?? createRootLogger()
     this.server = options.server
+
+    this.banning = options.banning ?? options.config.get('poolBanning')
 
     this.maxConnectionsByIp =
       options.maxConnectionsPerIp ?? options.config.get('poolMaxConnectionsPerIp')
@@ -92,6 +95,11 @@ export class StratumPeers {
       versionExpected?: number
     },
   ): void {
+    if (!this.banning) {
+      this.shadowBan(client)
+      return
+    }
+
     const until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
 
     let existing = this.bannedByIp.get(client.remoteAddress)

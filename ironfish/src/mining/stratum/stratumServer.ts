@@ -56,6 +56,7 @@ export class StratumServer {
     logger: Logger
     port?: number
     host?: string
+    banning?: boolean
   }) {
     this.pool = options.pool
     this.config = options.config
@@ -74,6 +75,7 @@ export class StratumServer {
     this.peers = new StratumPeers({
       config: this.config,
       server: this,
+      banning: options.banning,
     })
 
     this.server = net.createServer((s) => this.onConnection(s))
