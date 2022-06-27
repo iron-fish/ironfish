@@ -20,6 +20,7 @@
     "@ironfish/bfilter": "0.0.1",
     "@ironfish/rust-nodejs": "0.1.6",
     "@napi-rs/blake-hash": "1.3.1",
+    "aws-sdk": "2.1163.0",
     "axios": "0.21.4",
     "blru": "0.1.6",
     "buffer": "6.0.3",
