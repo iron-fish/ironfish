@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
+import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
@@ -19,7 +20,7 @@ import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
-import { AccountDefaults, AccountsDB } from './accountsdb'
+import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
 import { validateAccount } from './validator'
 
@@ -180,7 +181,7 @@ export class Accounts {
 
   async load(): Promise<void> {
     for await (const account of this.db.loadAccounts()) {
-      this.accounts.set(account.name, account)
+      this.accounts.set(account.id, account)
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -996,24 +997,24 @@ export class Accounts {
   }
 
   async createAccount(name: string, setDefault = false): Promise<Account> {
-    if (this.accounts.has(name)) {
+    if (this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${name}`)
     }
 
     const key = generateKey()
 
     const serializedAccount: AccountsValue = {
-      ...AccountDefaults,
-      name: name,
+      name,
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
+      rescan: null,
     }
 
-    const account = new Account(serializedAccount)
+    const account = new Account(uuid(), serializedAccount)
 
-    this.accounts.set(account.name, account)
+    this.accounts.set(account.id, account)
     await this.db.setAccount(account)
 
     if (setDefault) {
@@ -1148,18 +1149,26 @@ export class Accounts {
   async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
     validateAccount(toImport)
 
-    if (toImport.name && this.accounts.has(toImport.name)) {
+    if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
+    const accountDefaults = {
+      name: '',
+      spendingKey: '',
+      incomingViewKey: '',
+      outgoingViewKey: '',
+      publicAddress: '',
+      rescan: null,
+    }
     const serializedAccount: AccountsValue = {
-      ...AccountDefaults,
+      ...accountDefaults,
       ...toImport,
     }
 
-    const account = new Account(serializedAccount)
+    const account = new Account(uuid(), serializedAccount)
 
-    this.accounts.set(account.name, account)
+    this.accounts.set(account.id, account)
     await this.db.setAccount(account)
 
     this.onAccountImported.emit(account)
@@ -1172,7 +1181,7 @@ export class Accounts {
   }
 
   accountExists(name: string): boolean {
-    return this.accounts.has(name)
+    return this.getAccountByName(name) !== null
   }
 
   async removeAccount(name: string): Promise<void> {
@@ -1188,8 +1197,8 @@ export class Accounts {
       this.onDefaultAccountChange.emit(null, account)
     }
 
-    this.accounts.delete(name)
-    await this.db.removeAccount(name)
+    this.accounts.delete(account.id)
+    await this.db.removeAccount(account.id)
     this.onAccountRemoved.emit(account)
   }
 
@@ -1207,7 +1216,7 @@ export class Accounts {
     let next = null
 
     if (name !== null) {
-      next = this.accounts.get(name)
+      next = this.getAccountByName(name)
 
       if (!next) {
         throw new Error(`No account found with name ${name}`)
@@ -1221,7 +1230,12 @@ export class Accounts {
   }
 
   getAccountByName(name: string): Account | null {
-    return this.accounts.get(name) || null
+    for (const account of this.accounts.values()) {
+      if (name === account.name) {
+        return account
+      }
+    }
+    return null
   }
 
   getDefaultAccount(): Account | null {
@@ -1240,13 +1254,13 @@ export class Accounts {
   }
 
   protected assertHasAccount(account: Account): void {
-    if (!this.accounts.has(account.name)) {
+    if (!this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
 
   protected assertNotHasAccount(account: Account): void {
-    if (this.accounts.has(account.name)) {
+    if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
