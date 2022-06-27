@@ -1260,13 +1260,13 @@ export class Accounts {
   }
 
   protected assertHasAccount(account: Account): void {
-    if (!this.accounts.has(account.id)) {
+    if (!this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
 
   protected assertNotHasAccount(account: Account): void {
-    if (this.accounts.has(account.id)) {
+    if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
