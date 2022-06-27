@@ -7,14 +7,17 @@ import { Event } from '../../event'
 import { Config } from '../../fileStores/config'
 import { createRootLogger, Logger } from '../../logger'
 import { SetTimeoutToken } from '../../utils'
+import { DisconnectReason } from './constants'
+import { StratumServer } from './stratumServer'
 import { StratumServerClient } from './stratumServerClient'
 
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 const PEERS_TICK_MS = 10000
 
 export class StratumPeers {
   readonly logger: Logger
   readonly maxConnectionsByIp: number
+  readonly server: StratumServer
 
   readonly onBanned = new Event<[StratumServerClient]>()
 
@@ -26,8 +29,15 @@ export class StratumPeers {
   protected readonly shadowBans: Set<number> = new Set()
   protected eventLoopTimeout: SetTimeoutToken | null = null
 
-  constructor(options: { maxConnectionsPerIp?: number; config: Config; logger?: Logger }) {
+  constructor(options: {
+    maxConnectionsPerIp?: number
+    config: Config
+    logger?: Logger
+    banning?: boolean
+    server: StratumServer
+  }) {
     this.logger = options.logger ?? createRootLogger()
+    this.server = options.server
 
     this.maxConnectionsByIp =
       options.maxConnectionsPerIp ?? options.config.get('poolMaxConnectionsPerIp')
@@ -43,7 +53,7 @@ export class StratumPeers {
     }
   }
 
-  punish(client: StratumServerClient, reason?: string, amount = 1): void {
+  punish(client: StratumServerClient, message?: string, amount = 1): void {
     if (this.isBanned(client.socket)) {
       return
     }
@@ -56,7 +66,7 @@ export class StratumPeers {
       return
     }
 
-    this.ban(client, reason)
+    this.ban(client, { message })
     this.scoreByIp.delete(client.remoteAddress)
   }
 
@@ -64,21 +74,39 @@ export class StratumPeers {
     this.shadowBans.add(client.id)
   }
 
-  ban(client: StratumServerClient, reason = 'unknown', until?: number): void {
+  ban(
+    client: StratumServerClient,
+    options?: {
+      reason?: DisconnectReason
+      message?: string
+      until?: number
+      versionExpected?: number
+    },
+  ): void {
+    let until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
+
+    // Prefer an existing longer bank
     const existing = this.bannedByIp.get(client.remoteAddress) ?? 0
-    until = Math.max(existing, until ?? Date.now() + TWO_HOURS_MS)
+    until = Math.max(existing, until)
 
     this.bannedByIp.set(client.remoteAddress, until)
     this.scoreByIp.delete(client.remoteAddress)
     this.banCount++
 
+    this.server.send(client, 'mining.disconnect', {
+      reason: options?.reason ?? DisconnectReason.UNKNOWN,
+      versionExpected: options?.versionExpected,
+      bannedUntil: until,
+      message: options?.message,
+    })
+
     client.close()
     this.onBanned.emit(client)
 
     this.logger.info(
-      `Banned ${client.remoteAddress}: ${reason} until: ${new Date(until).toUTCString()} (${
-        this.banCount
-      } bans)`,
+      `Banned ${client.remoteAddress}: ${
+        options?.message ?? options?.reason ?? 'unknown'
+      } until: ${new Date(until).toUTCString()} (${this.banCount} bans)`,
     )
   }
 

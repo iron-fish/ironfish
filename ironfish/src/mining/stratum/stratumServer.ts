@@ -13,8 +13,10 @@ import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
+import { DisconnectReason } from './constants'
 import { ClientMessageMalformedError } from './errors'
 import {
+  MiningDisconnectMessage,
   MiningNotifyMessage,
   MiningSetTargetMessage,
   MiningSubmitSchema,
@@ -69,7 +71,11 @@ export class StratumServer {
     this.nextMinerId = 1
     this.nextMessageId = 1
 
-    this.peers = new StratumPeers({ config: this.config })
+    this.peers = new StratumPeers({
+      config: this.config,
+      server: this,
+    })
+
     this.server = net.createServer((s) => this.onConnection(s))
   }
 
@@ -125,11 +131,6 @@ export class StratumServer {
     this.clients.set(client.id, client)
   }
 
-  // Returns the count of connected clients
-  getClientCount(): number {
-    return this.clients.size
-  }
-
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
 
@@ -154,7 +155,9 @@ export class StratumServer {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        this.peers.ban(client, header.error.message)
+        this.peers.ban(client, {
+          message: header.error.message,
+        })
         return
       }
 
@@ -165,7 +168,9 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
           if (body.error) {
-            this.peers.ban(client)
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
             return
           }
 
@@ -179,11 +184,12 @@ export class StratumServer {
           // removing this undefined check in a future update once we have given enough
           // notice after this deploy.
           if (body.result.version !== undefined && body.result.version < this.versionMin) {
-            this.peers.ban(
-              client,
-              `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
-              FIFTEEN_MINUTES_MS,
-            )
+            this.peers.ban(client, {
+              message: `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
+              reason: DisconnectReason.BAD_VERSION,
+              until: Date.now() + FIFTEEN_MINUTES_MS,
+              versionExpected: this.version,
+            })
             return
           }
 
@@ -191,7 +197,9 @@ export class StratumServer {
           client.subscribed = true
 
           if (!isValidPublicAddress(client.publicAddress)) {
-            this.peers.ban(client, `Invalid public address: ${client.publicAddress}`)
+            this.peers.ban(client, {
+              message: `Invalid public address: ${client.publicAddress}`,
+            })
             return
           }
 
@@ -216,7 +224,9 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubmitSchema, header.result.body)
 
           if (body.error) {
-            this.peers.ban(client, body.error.message)
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
             return
           }
 
@@ -307,23 +317,25 @@ export class StratumServer {
       messageLength: serialized.length,
     })
   }
-  private send(
+
+  send(client: StratumServerClient, method: 'mining.notify', body: MiningNotifyMessage): void
+  send(
     client: StratumServerClient,
-    method: 'mining.notify',
-    body: MiningNotifyMessage,
+    method: 'mining.disconnect',
+    body: MiningDisconnectMessage,
   ): void
-  private send(
+  send(
     client: StratumServerClient,
     method: 'mining.set_target',
     body: MiningSetTargetMessage,
   ): void
-  private send(
+  send(
     client: StratumServerClient,
     method: 'mining.subscribed',
     body: MiningSubscribedMessage,
   ): void
-  private send(client: StratumServerClient, method: 'mining.wait_for_work'): void
-  private send(client: StratumServerClient, method: string, body?: unknown): void {
+  send(client: StratumServerClient, method: 'mining.wait_for_work'): void
+  send(client: StratumServerClient, method: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
       method: method,
