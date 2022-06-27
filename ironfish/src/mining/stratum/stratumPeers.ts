@@ -23,8 +23,17 @@ export class StratumPeers {
 
   banCount = 0
 
+  protected readonly bannedByIp: Map<
+    string,
+    {
+      until: number
+      reason: DisconnectReason
+      versionExpected?: number
+      message?: string
+    }
+  > = new Map()
+
   protected readonly connectionsByIp: Map<string, number> = new Map()
-  protected readonly bannedByIp: Map<string, number> = new Map()
   protected readonly scoreByIp: Map<string, number> = new Map()
   protected readonly shadowBans: Set<number> = new Set()
   protected eventLoopTimeout: SetTimeoutToken | null = null
@@ -83,23 +92,24 @@ export class StratumPeers {
       versionExpected?: number
     },
   ): void {
-    let until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
+    const until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
 
-    // Prefer an existing longer ban
-    const existing = this.bannedByIp.get(client.remoteAddress) ?? 0
-    until = Math.max(existing, until)
+    let existing = this.bannedByIp.get(client.remoteAddress)
 
-    this.bannedByIp.set(client.remoteAddress, until)
+    if (!existing || existing.until < until) {
+      existing = {
+        until: until,
+        reason: options?.reason ?? DisconnectReason.UNKNOWN,
+        message: options?.message,
+        versionExpected: options?.versionExpected,
+      }
+    }
+
+    this.bannedByIp.set(client.remoteAddress, existing)
     this.scoreByIp.delete(client.remoteAddress)
     this.banCount++
 
-    this.server.send(client, 'mining.disconnect', {
-      reason: options?.reason ?? DisconnectReason.UNKNOWN,
-      versionExpected: options?.versionExpected,
-      bannedUntil: until,
-      message: options?.message,
-    })
-
+    this.sendBanMessage(client.socket)
     client.close()
     this.onBanned.emit(client)
 
@@ -108,6 +118,25 @@ export class StratumPeers {
         options?.message ?? options?.reason ?? 'unknown'
       } until: ${new Date(until).toUTCString()} (${this.banCount} bans)`,
     )
+  }
+
+  sendBanMessage(socket: net.Socket): void {
+    if (!socket.remoteAddress) {
+      return
+    }
+
+    const ban = this.bannedByIp.get(socket.remoteAddress)
+
+    if (!ban) {
+      return
+    }
+
+    this.server.send(socket, 'mining.disconnect', {
+      reason: ban.reason,
+      versionExpected: ban.versionExpected,
+      bannedUntil: ban.until,
+      message: ban.message,
+    })
   }
 
   isShadowBanned(client: StratumServerClient): boolean {
@@ -119,12 +148,13 @@ export class StratumPeers {
       return false
     }
 
-    const bannedUntil = this.bannedByIp.get(socket.remoteAddress)
-    if (!bannedUntil) {
+    const ban = this.bannedByIp.get(socket.remoteAddress)
+
+    if (!ban?.until) {
       return false
     }
 
-    return bannedUntil > Date.now()
+    return ban.until > Date.now()
   }
 
   isAllowed(socket: net.Socket): boolean {
