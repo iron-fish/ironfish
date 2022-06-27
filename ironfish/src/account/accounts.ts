@@ -712,18 +712,24 @@ export class Accounts {
       }
     }
 
-    for (const { transaction, blockHash } of this.transactionMap.values()) {
-      jobs.push(getUnspentNotes(transaction, blockHash))
+    for (const { accountId, transactionHash } of this.decryptableNotes.values()) {
+      if (accountId === account.id && transactionHash) {
+        const transactionValue = this.transactionMap.get(transactionHash)
+        Assert.isNotUndefined(transactionValue)
+        // TODO: This can fetch unspent notes for the same transaction. This
+        // will be fixed in a subsequent PR.
+        jobs.push(getUnspentNotes(transactionValue.transaction, transactionValue.blockHash))
 
-      if (jobs.length >= batchSize) {
-        const responses = await Promise.all(jobs)
+        if (jobs.length >= batchSize) {
+          const responses = await Promise.all(jobs)
 
-        for (const { blockHash, notes } of responses) {
-          for (const note of notes) {
-            yield { blockHash, note }
+          for (const { blockHash, notes } of responses) {
+            for (const note of notes) {
+              yield { blockHash, note }
+            }
+
+            jobs = []
           }
-
-          jobs = []
         }
       }
     }
