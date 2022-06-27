@@ -175,10 +175,10 @@ export class StratumClient {
           this.version
         } and the pool is running version ${String(this.disconnectVersion)}.`,
       )
-    } else if (this.disconnectReason === DisconnectReason.BANNED) {
+    } else if (this.disconnectUntil) {
       this.logger.info(
         `Disconnected: You have been banned from the pool until ${new Date(
-          this.disconnectUntil ?? 0,
+          this.disconnectUntil,
         ).toUTCString()}`,
       )
     } else {
@@ -216,24 +216,10 @@ export class StratumClient {
             header.result.body,
           )
 
-          if (body.error) {
-            this.disconnectUntil = Number.MAX_SAFE_INTEGER
-          } else if (body.result?.reason === undefined) {
-            this.disconnectUntil = Number.MAX_SAFE_INTEGER
-          } else if (body.result.reason === DisconnectReason.BAD_VERSION) {
-            this.disconnectUntil = Number.MAX_SAFE_INTEGER
-            this.disconnectVersion = body.result.versionExpected ?? null
-          } else if (body.result.reason === DisconnectReason.BANNED) {
-            if (body.result.bannedUntil === undefined) {
-              // We don't know, try again in 15 minutes
-              body.result.bannedUntil = Date.now() + 15 * 60 * 1000
-            }
-            this.disconnectUntil = body.result.bannedUntil
-          } else {
-            this.disconnectUntil = null
-          }
-
           this.disconnectReason = body.result?.reason ?? null
+          this.disconnectVersion = body.result?.versionExpected ?? null
+          this.disconnectUntil = body.result?.bannedUntil ?? null
+
           this.socket.destroy()
           break
         }
