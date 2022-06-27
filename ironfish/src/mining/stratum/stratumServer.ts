@@ -210,11 +210,15 @@ export class StratumServer {
 
           this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
 
-          this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
-          this.send(client, 'mining.set_target', this.getSetTargetMessage())
+          this.send(client.socket, 'mining.subscribed', {
+            clientId: client.id,
+            graffiti: graffiti,
+          })
+
+          this.send(client.socket, 'mining.set_target', this.getSetTargetMessage())
 
           if (this.hasWork()) {
-            this.send(client, 'mining.notify', this.getNotifyMessage())
+            this.send(client.socket, 'mining.notify', this.getNotifyMessage())
           }
 
           break
@@ -318,24 +322,12 @@ export class StratumServer {
     })
   }
 
-  send(client: StratumServerClient, method: 'mining.notify', body: MiningNotifyMessage): void
-  send(
-    client: StratumServerClient,
-    method: 'mining.disconnect',
-    body: MiningDisconnectMessage,
-  ): void
-  send(
-    client: StratumServerClient,
-    method: 'mining.set_target',
-    body: MiningSetTargetMessage,
-  ): void
-  send(
-    client: StratumServerClient,
-    method: 'mining.subscribed',
-    body: MiningSubscribedMessage,
-  ): void
-  send(client: StratumServerClient, method: 'mining.wait_for_work'): void
-  send(client: StratumServerClient, method: string, body?: unknown): void {
+  send(socket: net.Socket, method: 'mining.notify', body: MiningNotifyMessage): void
+  send(socket: net.Socket, method: 'mining.disconnect', body: MiningDisconnectMessage): void
+  send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
+  send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessage): void
+  send(socket: net.Socket, method: 'mining.wait_for_work'): void
+  send(socket: net.Socket, method: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
       method: method,
@@ -343,6 +335,6 @@ export class StratumServer {
     }
 
     const serialized = JSON.stringify(message) + '\n'
-    client.socket.write(serialized)
+    socket.write(serialized)
   }
 }

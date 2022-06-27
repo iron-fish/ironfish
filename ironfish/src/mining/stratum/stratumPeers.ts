@@ -93,7 +93,7 @@ export class StratumPeers {
     this.scoreByIp.delete(client.remoteAddress)
     this.banCount++
 
-    this.server.send(client, 'mining.disconnect', {
+    this.server.send(client.socket, 'mining.disconnect', {
       reason: options?.reason ?? DisconnectReason.UNKNOWN,
       versionExpected: options?.versionExpected,
       bannedUntil: until,
