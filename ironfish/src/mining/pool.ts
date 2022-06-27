@@ -60,6 +60,7 @@ export class MiningPool {
     webhooks?: WebhookNotifier[]
     host?: string
     port?: number
+    banning?: boolean
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -70,6 +71,7 @@ export class MiningPool {
       logger: this.logger,
       host: options.host,
       port: options.port,
+      banning: options.banning,
     })
     this.config = options.config
     this.shares = options.shares
@@ -102,6 +104,7 @@ export class MiningPool {
     host?: string
     port?: number
     balancePercentPayoutFlag?: number
+    banning?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -120,6 +123,7 @@ export class MiningPool {
       host: options.host,
       port: options.port,
       shares,
+      banning: options.banning,
     })
   }
 
