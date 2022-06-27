@@ -112,6 +112,10 @@ export class StratumServer {
 
   private onConnection(socket: net.Socket): void {
     if (!this.peers.isAllowed(socket)) {
+      if (this.peers.isBanned(socket)) {
+        this.peers.sendBanMessage(socket)
+      }
+
       socket.destroy()
       return
     }
