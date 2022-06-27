@@ -39,15 +39,15 @@ You can submit a FIP by filing an issue here: https://github.com/iron-fish/ironf
 
 If you are working on something in one of these categories, we will not accept your PR if you don't open a Fish Improvement Proposal (FIP).
 
- - Upgrading Package Versions
+ - #### Upgrading Package Versions
    - This is a common attack vector by malicious agents. We lock down our packages for this very reason, and only allow the core team to upgrade packages unless you submit a FIP first explaining why you want to upgrade the package.
- - Upgrading Node Versions
+ - #### Upgrading Node Versions
    - There is a large impact in upgrading node versions. Iron Fish takes advantage of many experimental node features, some of which are not fully fleshed out. We use workers, and native code boundaries. Node is also known to introduce bugs in newer versions, even LTS. Because of this, there is production testing we do on our side when upgrading node to ensure it's compatible. Because of this, we don't allow users to upgrade our node versions unless a FIP is filed.
- - Refactor a core system
+ - #### Refactor a core system
    - Often engineers have visions for core systems, and may be in the process of changing them. FIP's help avoid overlap and having your changes over-written. Some core systems include, MerkleTree, Blockchain, PeerNetwork, Verifier, Consensus.
- - Making new product design decisions that has no precedent
+ - #### Making new product design decisions that has no precedent
    - This one is more complicated. If our products works one way, and you open a PR to change the core product principles to work in another way, then we are going to close your PR as it does not fit into our vision. Try to match existing precedent as much as possible in your code.
- - Tests for CLI commands
+ - #### Tests for CLI commands
    - They are not useful in their current form. Most of these tests are mocking out the entire node and sending back hand crafted values which are merely asserted and make changes these commands more annoying. We are accepting a FIP for refactoring command tests to be more valuable and not use mocking.
 
 
