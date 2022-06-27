@@ -5,11 +5,11 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
 export interface DecryptableNotesValue {
-  accountId: number
+  accountId: string
   noteIndex: number | null
   nullifierHash: string | null
   spent: boolean
-  transactionHash: string | null
+  transactionHash: Buffer | null
 }
 
 export class DecryptableNotesValueEncoding implements IDatabaseEncoding<DecryptableNotesValue> {
@@ -24,7 +24,7 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
     flags |= Number(spent) << 3
     bw.writeU8(flags)
 
-    bw.writeU8(accountId)
+    bw.writeVarString(accountId)
     if (noteIndex) {
       bw.writeU32(noteIndex)
     }
@@ -47,7 +47,7 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
     const hasTransactionHash = flags & (1 << 2)
     const spent = Boolean(flags & (1 << 3))
 
-    const accountId = reader.readU8()
+    const accountId = reader.readVarString()
 
     let noteIndex = null
     if (hasNoteIndex) {
@@ -61,14 +61,14 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
 
     let transactionHash = null
     if (hasTransactionHash) {
-      transactionHash = reader.readHash('hex')
+      transactionHash = reader.readHash()
     }
 
     return { accountId, noteIndex, nullifierHash, spent, transactionHash }
   }
 
   getSize(value: DecryptableNotesValue): number {
-    let size = 2
+    let size = 1 + bufio.sizeVarString(value.accountId)
     if (value.noteIndex) {
       size += 4
     }

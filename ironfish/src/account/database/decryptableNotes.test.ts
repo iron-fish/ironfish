@@ -9,7 +9,7 @@ describe('DecryptableNotesValueEncoding', () => {
       const encoder = new DecryptableNotesValueEncoding()
 
       const value: DecryptableNotesValue = {
-        accountId: 0,
+        accountId: 'uuid',
         noteIndex: null,
         nullifierHash: null,
         spent: false,
@@ -26,11 +26,11 @@ describe('DecryptableNotesValueEncoding', () => {
       const encoder = new DecryptableNotesValueEncoding()
 
       const value: DecryptableNotesValue = {
-        accountId: 0,
+        accountId: 'uuid',
         spent: true,
         noteIndex: 40,
         nullifierHash: Buffer.alloc(32, 1).toString('hex'),
-        transactionHash: Buffer.alloc(32, 1).toString('hex'),
+        transactionHash: Buffer.alloc(32, 1),
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)

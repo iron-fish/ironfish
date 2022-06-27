@@ -17,11 +17,11 @@ import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
 import { AccountsValue, AccountsValueEncoding } from './database/accounts'
-import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import {
-  NoteToNullifiersValue,
-  NoteToNullifiersValueEncoding,
-} from './database/noteToNullifiers'
+  DecryptableNotesValue,
+  DecryptableNotesValueEncoding,
+} from './database/decryptableNotes'
+import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
 const DATABASE_VERSION = 5
@@ -44,10 +44,9 @@ export class AccountsDB {
     value: MetaValue
   }>
 
-  // Transaction-related database stores
-  noteToNullifier: IDatabaseStore<{
+  decryptableNotes: IDatabaseStore<{
     key: string
-    value: NoteToNullifiersValue
+    value: DecryptableNotesValue
   }>
 
   nullifierToNote: IDatabaseStore<{ key: string; value: string }>
@@ -86,13 +85,13 @@ export class AccountsDB {
       valueEncoding: new AccountsValueEncoding(),
     })
 
-    this.noteToNullifier = this.database.addStore<{
+    this.decryptableNotes = this.database.addStore<{
       key: string
-      value: NoteToNullifiersValue
+      value: DecryptableNotesValue
     }>({
-      name: 'noteToNullifier',
+      name: 'decryptableNotes',
       keyEncoding: new StringHashEncoding(),
-      valueEncoding: new NoteToNullifiersValueEncoding(),
+      valueEncoding: new DecryptableNotesValueEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
@@ -248,52 +247,43 @@ export class AccountsDB {
     }
   }
 
-  async saveNoteToNullifier(
+  async saveDecryptableNotes(
     noteHash: string,
-    note: Readonly<{
-      nullifierHash: string | null
-      noteIndex: number | null
-      spent: boolean
-    }>,
+    note: Readonly<DecryptableNotesValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.noteToNullifier.put(noteHash, note, tx)
+    await this.decryptableNotes.put(noteHash, note, tx)
   }
 
-  async removeNoteToNullifier(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.noteToNullifier.del(noteHash, tx)
+  async removeDecryptableNotes(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.decryptableNotes.del(noteHash, tx)
   }
 
-  async replaceNoteToNullifierMap(
-    map: Map<
-      string,
-      { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
-    >,
-  ): Promise<void> {
-    await this.noteToNullifier.clear()
+  async replaceDecryptableNotesMap(map: Map<string, DecryptableNotesValue>): Promise<void> {
+    await this.decryptableNotes.clear()
 
     await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
-        await this.noteToNullifier.put(key, value, tx)
+        await this.decryptableNotes.put(key, value, tx)
       }
     })
   }
 
-  async loadNoteToNullifierMap(
+  async loadDecryptableNotesMap(
     map: Map<
       string,
       { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
     >,
   ): Promise<void> {
     await this.database.transaction(async (tx) => {
-      for await (const noteToNullifierKey of this.noteToNullifier.getAllKeysIter(tx)) {
-        const value = await this.noteToNullifier.get(noteToNullifierKey)
+      for await (const noteHash of this.decryptableNotes.getAllKeysIter(tx)) {
+        const value = await this.decryptableNotes.get(noteHash)
 
         if (!value) {
           throw new Error('Value must exist if key exists')
         }
 
-        map.set(noteToNullifierKey, value)
+        map.set(noteHash, value)
       }
     })
   }
