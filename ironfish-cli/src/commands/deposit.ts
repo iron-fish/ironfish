@@ -78,6 +78,13 @@ export default class Bank extends IronfishCommand {
 
     const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
+
+    if (!graffiti) {
+      this.log(
+        `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
+      )
+      this.exit(1)
+    }
     Assert.isNotUndefined(graffiti)
 
     const { canSend, errorReason } = await this.verifyCanSend(flags, graffiti)
