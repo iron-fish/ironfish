@@ -7,8 +7,10 @@ import { Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
+import { DisconnectReason } from './constants'
 import { ServerMessageMalformedError } from './errors'
 import {
+  MiningDisconnectMessageSchema,
   MiningNotifyMessage,
   MiningNotifySchema,
   MiningSetTargetMessage,
@@ -29,6 +31,7 @@ export class StratumClient {
   readonly host: string
   readonly port: number
   readonly logger: Logger
+  readonly version: number
 
   private started: boolean
   private id: number | null
@@ -37,6 +40,11 @@ export class StratumClient {
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
   private messageBuffer = ''
+
+  private disconnectReason: string | null = null
+  private disconnectUntil: number | null = null
+  private disconnectVersion: number | null = null
+  private disconnectMessage: string | null = null
 
   private readonly publicAddress: string
 
@@ -51,6 +59,7 @@ export class StratumClient {
     this.port = options.port
     this.publicAddress = options.publicAddress
     this.logger = options.logger
+    this.version = STRATUM_VERSION_PROTOCOL
 
     this.started = false
     this.id = null
@@ -74,6 +83,11 @@ export class StratumClient {
   }
 
   private async startConnecting(): Promise<void> {
+    if (this.disconnectUntil && this.disconnectUntil > Date.now()) {
+      this.connectTimeout = setTimeout(() => void this.startConnecting(), 60 * 1000)
+      return
+    }
+
     const connected = await connectSocket(this.socket, this.host, this.port)
       .then(() => true)
       .catch(() => false)
@@ -107,11 +121,11 @@ export class StratumClient {
 
   subscribe(): void {
     this.send('mining.subscribe', {
-      version: STRATUM_VERSION_PROTOCOL,
+      version: this.version,
       publicAddress: this.publicAddress,
     })
 
-    this.logger.info('Listening to pool for new work')
+    this.logger.info('Subscribing to pool to receive work')
   }
 
   submit(miningRequestId: number, randomness: string): void {
@@ -157,7 +171,26 @@ export class StratumClient {
 
     this.onWaitForWork.emit(undefined)
 
-    this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
+    if (this.disconnectReason === DisconnectReason.BAD_VERSION) {
+      this.logger.info(
+        `Disconnected: You are running stratum version ${
+          this.version
+        } and the pool is running version ${String(this.disconnectVersion)}.`,
+      )
+    } else if (this.disconnectUntil) {
+      let message = `Disconnected: You have been banned from the pool until ${new Date(
+        this.disconnectUntil,
+      ).toUTCString()}`
+
+      if (this.disconnectMessage) {
+        message += ': ' + this.disconnectMessage
+      }
+
+      this.logger.info(message)
+    } else {
+      this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
+    }
+
     this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
   }
 
@@ -183,6 +216,21 @@ export class StratumClient {
       this.logger.debug(`Server sent ${header.result.method} message`)
 
       switch (header.result.method) {
+        case 'mining.disconnect': {
+          const body = await YupUtils.tryValidate(
+            MiningDisconnectMessageSchema,
+            header.result.body,
+          )
+
+          this.disconnectReason = body.result?.reason ?? null
+          this.disconnectVersion = body.result?.versionExpected ?? null
+          this.disconnectUntil = body.result?.bannedUntil ?? null
+          this.disconnectMessage = body.result?.message ?? null
+
+          this.socket.destroy()
+          break
+        }
+
         case 'mining.subscribed': {
           const body = await YupUtils.tryValidate(
             MiningSubscribedMessageSchema,
@@ -192,6 +240,7 @@ export class StratumClient {
           if (body.error) {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
+
           this.id = body.result.clientId
           this.logger.debug(`Server has identified us as client ${this.id}`)
           this.onSubscribed.emit(body.result)

@@ -9,6 +9,15 @@ export type StratumMessage = {
   body?: unknown
 }
 
+export type MiningDisconnectMessage =
+  | {
+      reason?: string
+      versionExpected?: number
+      bannedUntil?: number
+      message?: string
+    }
+  | undefined
+
 export type MiningSubscribeMessage = {
   version?: number
   publicAddress: string
@@ -42,6 +51,15 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
     body: yup.mixed().notRequired(),
   })
   .required()
+
+export const MiningDisconnectMessageSchema: yup.ObjectSchema<MiningDisconnectMessage> = yup
+  .object({
+    reason: yup.string().optional(),
+    versionExpected: yup.number().optional(),
+    bannedUntil: yup.number().optional(),
+    message: yup.string().optional(),
+  })
+  .optional()
 
 export const MiningSubscribedMessageSchema: yup.ObjectSchema<MiningSubscribedMessage> = yup
   .object({
