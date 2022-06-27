@@ -40,9 +40,11 @@ export class StratumClient {
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
   private messageBuffer = ''
+
   private disconnectReason: string | null = null
   private disconnectUntil: number | null = null
   private disconnectVersion: number | null = null
+  private disconnectMessage: string | null = null
 
   private readonly publicAddress: string
 
@@ -176,11 +178,15 @@ export class StratumClient {
         } and the pool is running version ${String(this.disconnectVersion)}.`,
       )
     } else if (this.disconnectUntil) {
-      this.logger.info(
-        `Disconnected: You have been banned from the pool until ${new Date(
-          this.disconnectUntil,
-        ).toUTCString()}`,
-      )
+      let message = `Disconnected: You have been banned from the pool until ${new Date(
+        this.disconnectUntil,
+      ).toUTCString()}`
+
+      if (this.disconnectMessage) {
+        message += ': ' + this.disconnectMessage
+      }
+
+      this.logger.info(message)
     } else {
       this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     }
@@ -219,6 +225,7 @@ export class StratumClient {
           this.disconnectReason = body.result?.reason ?? null
           this.disconnectVersion = body.result?.versionExpected ?? null
           this.disconnectUntil = body.result?.bannedUntil ?? null
+          this.disconnectMessage = body.result?.message ?? null
 
           this.socket.destroy()
           break

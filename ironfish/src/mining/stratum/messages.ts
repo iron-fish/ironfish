@@ -57,6 +57,7 @@ export const MiningDisconnectMessageSchema: yup.ObjectSchema<MiningDisconnectMes
     reason: yup.string().optional(),
     versionExpected: yup.number().optional(),
     bannedUntil: yup.number().optional(),
+    message: yup.string().optional(),
   })
   .optional()
 
