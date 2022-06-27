@@ -5,12 +5,12 @@
 import {
   Assert,
   displayIronAmountWithCurrency,
-  IronfishClient,
   ironToOre,
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
   PromiseUtils,
+  RpcClient,
   SendTransactionResponse,
   WebApi,
 } from '@ironfish/sdk'
@@ -25,7 +25,7 @@ const IRON_TO_SEND = 0.1
 export default class DepositAll extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
-  client: IronfishClient | null = null
+  client: RpcClient | null = null
   api: WebApi | null = new WebApi()
 
   static flags = {
