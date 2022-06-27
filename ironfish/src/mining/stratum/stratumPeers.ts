@@ -85,7 +85,7 @@ export class StratumPeers {
   ): void {
     let until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
 
-    // Prefer an existing longer bank
+    // Prefer an existing longer ban
     const existing = this.bannedByIp.get(client.remoteAddress) ?? 0
     until = Math.max(existing, until)
 
