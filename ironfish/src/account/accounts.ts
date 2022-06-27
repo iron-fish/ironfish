@@ -34,10 +34,6 @@ type SyncTransactionParams =
   | Record<string, never>
 
 export class Accounts {
-  readonly onDefaultAccountChange = new Event<
-    [account: Account | null, oldAccount: Account | null]
-  >()
-
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
@@ -183,7 +179,7 @@ export class Accounts {
     }
 
     const meta = await this.db.loadAccountsMeta()
-    this.defaultAccount = meta.defaultAccountName
+    this.defaultAccount = meta.defaultAccountId
     this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
 
     await this.loadTransactionsFromDb()
@@ -1185,11 +1181,10 @@ export class Accounts {
       return
     }
 
-    if (name === this.defaultAccount) {
+    if (account.id === this.defaultAccount) {
       await this.db.setDefaultAccount(null)
 
       this.defaultAccount = null
-      this.onDefaultAccountChange.emit(null, account)
     }
 
     this.accounts.delete(account.id)
@@ -1203,25 +1198,23 @@ export class Accounts {
 
   /** Set or clear the default account */
   async setDefaultAccount(name: string | null): Promise<void> {
-    if (this.defaultAccount === name) {
-      return
-    }
-
-    const prev = this.getDefaultAccount()
     let next = null
 
-    if (name !== null) {
+    if (name) {
       next = this.getAccountByName(name)
 
       if (!next) {
         throw new Error(`No account found with name ${name}`)
       }
+
+      if (this.defaultAccount === next.id) {
+        return
+      }
     }
 
-    const nextName = next ? next.name : null
-    await this.db.setDefaultAccount(nextName)
-    this.defaultAccount = nextName
-    this.onDefaultAccountChange.emit(next, prev)
+    const nextId = next ? next.id : null
+    await this.db.setDefaultAccount(nextId)
+    this.defaultAccount = nextId
   }
 
   getAccountByName(name: string): Account | null {
@@ -1233,12 +1226,22 @@ export class Accounts {
     return null
   }
 
+  getAccount(id: string): Account | null {
+    const account = this.accounts.get(id)
+
+    if (account) {
+      return account
+    }
+
+    return null
+  }
+
   getDefaultAccount(): Account | null {
     if (!this.defaultAccount) {
       return null
     }
 
-    return this.getAccountByName(this.defaultAccount)
+    return this.getAccount(this.defaultAccount)
   }
 
   async generateNewPublicAddress(account: Account): Promise<void> {

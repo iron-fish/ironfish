@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
 export type AccountsDBMeta = {
-  defaultAccountName: string | null
+  defaultAccountId: string | null
   headHash: string | null
 }
 
