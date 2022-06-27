@@ -28,7 +28,6 @@ const DATABASE_VERSION = 5
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
-  headHash: null,
 })
 
 export class AccountsDB {
@@ -42,6 +41,11 @@ export class AccountsDB {
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
     value: MetaValue
+  }>
+
+  headHashes: IDatabaseStore<{
+    key: string
+    value: string
   }>
 
   decryptableNotes: IDatabaseStore<{
@@ -77,6 +81,15 @@ export class AccountsDB {
       name: 'meta',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
       valueEncoding: new MetaValueEncoding(),
+    })
+
+    this.headHashes = this.database.addStore<{
+      key: string
+      value: string
+    }>({
+      name: 'headHashes',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new StringEncoding(),
     })
 
     this.accounts = this.database.addStore<{ key: string; value: AccountsValue }>({
@@ -136,10 +149,6 @@ export class AccountsDB {
     await this.meta.put('defaultAccountId', id)
   }
 
-  async setHeadHash(hash: AccountsDBMeta['headHash']): Promise<void> {
-    await this.meta.put('headHash', hash)
-  }
-
   async loadAccountsMeta(): Promise<AccountsDBMeta> {
     const meta = { ...getAccountsDBMetaDefaults() }
 
@@ -153,6 +162,34 @@ export class AccountsDB {
   async *loadAccounts(): AsyncGenerator<Account, void, unknown> {
     for await (const [id, account] of this.accounts.getAllIter()) {
       yield new Account(id, account)
+    }
+  }
+
+  async saveHeadHash(account: Account, headHash: string): Promise<void> {
+    await this.headHashes.put(account.id, headHash)
+  }
+
+  async removeHeadHash(account: Account): Promise<void> {
+    await this.headHashes.del(account.id)
+  }
+
+  async removeHeadHashes(): Promise<void> {
+    await this.headHashes.clear()
+  }
+
+  async replaceHeadHashes(map: Map<string, string>): Promise<void> {
+    await this.headHashes.clear()
+
+    await this.database.transaction(async (tx) => {
+      for (const [key, value] of map) {
+        await this.headHashes.put(key, value, tx)
+      }
+    })
+  }
+
+  async loadHeadHashesMap(map: Map<string, string>): Promise<void> {
+    for await (const [accountId, headHash] of this.headHashes.getAllIter()) {
+      map.set(accountId, headHash)
     }
   }
 

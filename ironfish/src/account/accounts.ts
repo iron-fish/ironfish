@@ -49,6 +49,7 @@ export class Accounts {
   >()
   protected readonly decryptableNotes = new Map<string, Readonly<DecryptableNotesValue>>()
   protected readonly nullifierToNote = new Map<string, string>()
+  protected readonly headHashes = new Map<string, string>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -179,7 +180,34 @@ export class Accounts {
 
     const meta = await this.db.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
-    this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
+
+    await this.db.loadHeadHashesMap(this.headHashes)
+
+    // Find earliest head hash
+    let earliestHeader = null
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
+      if (!headHash) {
+        continue
+      }
+
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+
+      if (!header) {
+        // If no header is returned, the hash is likely invalid and we should remove it
+        await this.db.removeHeadHash(account)
+        continue
+      }
+
+      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
+        earliestHeader = header
+      }
+
+      // TODO: Check if any hashes are on known-forks
+    }
+
+    this.chainProcessor.hash = earliestHeader ? earliestHeader.hash : null
 
     await this.loadTransactionsFromDb()
   }
@@ -318,8 +346,13 @@ export class Accounts {
   }
 
   async updateHeadHash(headHash: Buffer | null): Promise<void> {
-    const hashString = headHash && headHash.toString('hex')
-    await this.db.setHeadHash(hashString)
+    for (const account of this.accounts.values()) {
+      if (headHash) {
+        await this.db.saveHeadHash(account, headHash.toString('hex'))
+      } else {
+        await this.db.removeHeadHash(account)
+      }
+    }
   }
 
   async reset(): Promise<void> {
@@ -328,7 +361,7 @@ export class Accounts {
     this.nullifierToNote.clear()
     this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
-    await this.updateHeadHash(null)
+    await this.db.removeHeadHashes()
   }
 
   private decryptNotes(
