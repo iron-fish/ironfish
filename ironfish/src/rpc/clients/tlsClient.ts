@@ -4,10 +4,10 @@
 import tls from 'tls'
 import { ErrorUtils } from '../../utils'
 import { ConnectionRefusedError } from './errors'
-import { IronfishTcpClient } from './tcpClient'
+import { RpcTcpClient } from './tcpClient'
 
-export class IronfishSecureTcpClient extends IronfishTcpClient {
-  async connectClient(): Promise<void> {
+export class RpcTlsClient extends RpcTcpClient {
+  async connect(): Promise<void> {
     return new Promise((resolve, reject): void => {
       const onSecureConnect = () => {
         client.off('secureConnection', onSecureConnect)

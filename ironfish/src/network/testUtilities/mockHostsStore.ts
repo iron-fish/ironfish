@@ -44,8 +44,17 @@ class MockFileSystem extends FileSystem {
     return ''
   }
 
+  dirname(): string {
+    return ''
+  }
+
   resolve(): string {
     return ''
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async exists(): Promise<boolean> {
+    return false
   }
 }
 

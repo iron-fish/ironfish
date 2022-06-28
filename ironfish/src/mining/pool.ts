@@ -7,28 +7,27 @@ import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
-import { IronfishRpcClient } from '../rpc/clients'
+import { RpcSocketClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
-import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
-import { Lark } from './lark'
+import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
-import { StratumServer, StratumServerClient } from './stratum/stratumServer'
+import { StratumServer } from './stratum/stratumServer'
+import { StratumServerClient } from './stratum/stratumServerClient'
 import { mineableHeaderString } from './utils'
+import { WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
 export class MiningPool {
   readonly stratum: StratumServer
-  readonly rpc: IronfishRpcClient
+  readonly rpc: RpcSocketClient
   readonly logger: Logger
   readonly shares: MiningPoolShares
   readonly config: Config
-  readonly discord: Discord | null
-  readonly lark: Lark | null
+  readonly webhooks: WebhookNotifier[]
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -49,28 +48,30 @@ export class MiningPool {
   currentHeadTimestamp: number | null
   currentHeadDifficulty: bigint | null
 
-  recalculateTargetInterval: SetTimeoutToken | null
+  recalculateTargetInterval: SetIntervalToken | null
+
+  private notifyStatusInterval: SetIntervalToken | null
 
   private constructor(options: {
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     shares: MiningPoolShares
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     host?: string
     port?: number
+    banning?: boolean
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
-    this.discord = options.discord ?? null
-    this.lark = options.lark ?? null
+    this.webhooks = options.webhooks ?? []
     this.stratum = new StratumServer({
       pool: this,
       config: options.config,
       logger: this.logger,
       host: options.host,
       port: options.port,
+      banning: options.banning,
     })
     this.config = options.config
     this.shares = options.shares
@@ -91,25 +92,25 @@ export class MiningPool {
     this.started = false
 
     this.recalculateTargetInterval = null
+    this.notifyStatusInterval = null
   }
 
   static async init(options: {
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     host?: string
     port?: number
     balancePercentPayoutFlag?: number
+    banning?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
@@ -118,11 +119,11 @@ export class MiningPool {
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       host: options.host,
       port: options.port,
       shares,
+      banning: options.banning,
     })
   }
 
@@ -135,11 +136,24 @@ export class MiningPool {
     this.started = true
     await this.shares.start()
 
-    this.logger.info(`Starting stratum server on ${this.stratum.host}:${this.stratum.port}`)
+    this.logger.info(
+      `Starting stratum server v${String(this.stratum.version)} on ${this.stratum.host}:${
+        this.stratum.port
+      }`,
+    )
     this.stratum.start()
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
+
+    const statusInterval = this.config.get('poolStatusNotificationInterval')
+    if (statusInterval > 0) {
+      this.notifyStatusInterval = setInterval(
+        () => void this.notifyStatus(),
+        statusInterval * 1000,
+      )
+    }
+
     void this.startConnectingRpc()
   }
 
@@ -167,6 +181,10 @@ export class MiningPool {
 
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
+    }
+
+    if (this.notifyStatusInterval) {
+      clearInterval(this.notifyStatusInterval)
     }
   }
 
@@ -222,10 +240,10 @@ export class MiningPool {
     try {
       headerBytes = mineableHeaderString(blockTemplate.header)
     } catch (error) {
-      this.logger.debug(`${client.id} sent malformed work. No longer sending work.`)
-      this.stratum.addBadClient(client)
+      this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
       return
     }
+
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -235,14 +253,16 @@ export class MiningPool {
 
       if (result.content.added) {
         const hashRate = await this.estimateHashRate()
+        const hashedHeaderHex = hashedHeader.toString('hex')
 
         this.logger.info(
-          `Block ${hashedHeader.toString(
-            'hex',
-          )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
+          `Block ${hashedHeaderHex} submitted successfully! ${FileUtils.formatHashRate(
+            hashRate,
+          )}/s`,
         )
-        this.discord?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
-        this.lark?.poolSubmittedBlock(hashedHeader, hashRate, this.stratum.clients.size)
+        this.webhooks.map((w) =>
+          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
+        )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
@@ -273,9 +293,8 @@ export class MiningPool {
       return
     }
 
-    if (this.connectWarned) {
-      this.discord?.poolConnected()
-      this.lark?.poolConnected()
+    if (connected) {
+      this.webhooks.map((w) => w.poolConnected())
     }
 
     this.connectWarned = false
@@ -293,8 +312,8 @@ export class MiningPool {
     this.stratum.waitForWork()
 
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
-    this.discord?.poolDisconnected()
-    this.lark?.poolDisconnected()
+
+    this.webhooks.map((w) => w.poolDisconnected())
     void this.startConnectingRpc()
   }
 
@@ -395,4 +414,33 @@ export class MiningPool {
       decimalPrecision
     )
   }
+
+  async notifyStatus(): Promise<void> {
+    const status = await this.getStatus()
+    this.logger.debug(`Mining pool status: ${JSON.stringify(status)}`)
+    this.webhooks.map((w) => w.poolStatus(status))
+  }
+
+  async getStatus(): Promise<MiningPoolStatus> {
+    const [hashRate, sharesPending] = await Promise.all([
+      this.estimateHashRate(),
+      this.shares.sharesPendingPayout(),
+    ])
+
+    return {
+      name: this.name,
+      hashRate: hashRate,
+      miners: this.stratum.clients.size,
+      sharesPending: sharesPending,
+      banCount: this.stratum.peers.banCount,
+    }
+  }
+}
+
+export type MiningPoolStatus = {
+  name: string
+  hashRate: number
+  miners: number
+  sharesPending: number
+  banCount: number
 }

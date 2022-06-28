@@ -1115,7 +1115,7 @@ describe('PeerManager', () => {
         mockHostsStore(),
         undefined,
         undefined,
-        1,
+        2,
       )
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')
@@ -1217,7 +1217,7 @@ describe('PeerManager', () => {
         mockHostsStore(),
         undefined,
         undefined,
-        1,
+        2,
       )
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, 'peer')

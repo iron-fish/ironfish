@@ -8,11 +8,11 @@ import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IpcRequest } from '../adapters'
 import { ConnectionLostError, ConnectionRefusedError } from './errors'
-import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
+import { RpcClientConnectionInfo, RpcSocketClient } from './socketClient'
 
 const CONNECT_RETRY_MS = 2000
 
-export class IronfishIpcClient extends IronfishRpcClient {
+export class RpcIpcClient extends RpcSocketClient {
   ipc: IPC | null = null
   ipcPath: string | null = null
   client: IpcClient | null = null

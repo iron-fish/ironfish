@@ -147,7 +147,7 @@ export class PeerManager {
     this.metrics = metrics || new MetricsMonitor({ logger: this.logger })
     this.localPeer = localPeer
     this.maxPeers = maxPeers
-    this.targetPeers = targetPeers
+    this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
     this.addressManager = new AddressManager(hostsStore)
   }
@@ -1406,10 +1406,6 @@ export class PeerManager {
 
     for (const p of this.identifiedPeers.values()) {
       if (p.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      if (peer.knownPeers.has(p.state.identity)) {
         continue
       }
 

@@ -16,7 +16,11 @@ export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
+export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_MINER_BATCH_SIZE = 25000
+export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
+export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
+  'https://explorer.ironfish.network/transaction/'
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -27,6 +31,7 @@ export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_POOL_DIFFICULTY = '15000000000'
 export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
+export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
 export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
@@ -38,22 +43,12 @@ export type ConfigOptions = {
   enableRpc: boolean
   enableRpcIpc: boolean
   enableRpcTcp: boolean
+  enableRpcTls: boolean
   enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
   getFundsApi: string
   ipcPath: string
-  /**
-   * As part of IRO-1759 we are removing 'node-ipc' for RPC. This is
-   * essentially a feature flag for enabling use of the native TCP adapter
-   * without using 'node-ipc'
-   */
-  enableNativeRpcTcpAdapter: boolean
-  /**
-   * IRO-1498 extends the native TCP adapter (see above) with TLS. This option
-   * will only take effect if the native TCP adapter is enabled.
-   */
-  enableRpcTls: boolean
   /**
    * Should the mining director mine, even if we are not synced?
    * Only useful if no miner has been on the network in a long time
@@ -108,7 +103,6 @@ export type ConfigOptions = {
   rpcTcpHost: string
   rpcTcpPort: number
   rpcTcpSecure: boolean
-  rpcRetryConnect: boolean
   tlsKeyPath: string
   tlsCertPath: string
   /**
@@ -165,6 +159,11 @@ export type ConfigOptions = {
   poolAccountName: string
 
   /**
+   * Should pool clients be banned for perceived bad behavior
+   */
+  poolBanning: boolean
+
+  /**
    * The percent of the confirmed balance of the pool's account that it will payout
    */
   poolBalancePercentPayout: number
@@ -195,18 +194,30 @@ export type ConfigOptions = {
   poolSuccessfulPayoutInterval: number
 
   /**
+   * The length of time in seconds that the pool will wait between status
+   * messages. Setting to 0 disables status messages.
+   */
+  poolStatusNotificationInterval: number
+
+  /**
    * The length of time in seconds that will be used to calculate hashrate for the pool.
    */
   poolRecentShareCutoff: number
 
   /**
-   * The discord webhook URL to post pool critical pool information too
+   * The discord webhook URL to post pool critical pool information to
    */
   poolDiscordWebhook: ''
 
   /**
+   * The maximum number of concurrent open connections per remote address.
+   * Setting this to 0 disabled the limit
+   */
+  poolMaxConnectionsPerIp: number
 
-   * The lark webhook URL to post pool critical pool information too
+  /**
+
+   * The lark webhook URL to post pool critical pool information to
    */
   poolLarkWebhook: ''
 
@@ -215,6 +226,16 @@ export type ConfigOptions = {
    * more easily process logs on a remote server using a log service like Datadog
    */
   jsonLogs: boolean
+
+  /**
+   * URL for viewing block information in a block explorer
+   */
+  explorerBlocksUrl: string
+
+  /**
+   * URL for viewing transaction information in a block explorer
+   */
+  explorerTransactionsUrl: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -256,8 +277,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpc: true,
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
-      enableNativeRpcTcpAdapter: false,
-      enableRpcTls: false,
+      enableRpcTls: DEFAULT_USE_RPC_TLS,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
@@ -276,9 +296,8 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
       rpcTcpSecure: false,
-      rpcRetryConnect: false,
-      tlsKeyPath: files.resolve(files.join(dataDir, 'node-key.pem')),
-      tlsCertPath: files.resolve(files.join(dataDir, 'node-cert.pem')),
+      tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
+      tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
       minimumBlockConfirmations: 12,
       minPeers: 1,
@@ -290,16 +309,21 @@ export class Config extends KeyStore<ConfigOptions> {
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      poolBanning: false,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
       poolDifficulty: DEFAULT_POOL_DIFFICULTY,
       poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
+      poolStatusNotificationInterval: DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
+      poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
+      explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
+      explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
     }
   }
 }

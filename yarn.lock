@@ -342,6 +342,16 @@
   resolved "https://registry.yarnpkg.com/@hutson/parse-repository-url/-/parse-repository-url-3.0.2.tgz#98c23c950a3d9b6c8f0daed06da6c3af06981340"
   integrity sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==
 
+"@ironfish/bfilter@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@ironfish/bfilter/-/bfilter-0.0.1.tgz#ff6b91b3b6160313f64db9d526175af1a4fc4565"
+  integrity sha512-xvzbP5gmDwd88+3Hp7xM39TjrC6I09y1vkRh52ku70HcnUMVtw61cgCVxPdkU/DZSdXxWcjkG3DIMYpR38kPkA==
+  dependencies:
+    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
+    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
+    imurmurhash "0.1.4"
+    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
+
 "@isaacs/string-locale-compare@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@isaacs/string-locale-compare/-/string-locale-compare-1.1.0.tgz#291c227e93fd407a96ecd59879a35809120e432b"
@@ -1901,6 +1911,13 @@
   resolved "https://registry.yarnpkg.com/@types/minimist/-/minimist-1.2.2.tgz#ee771e2ba4b3dc5b372935d549fd9617bf345b8c"
   integrity sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==
 
+"@types/node-forge@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-1.0.2.tgz#454299d3eaa846a38f8d88872a895b40a02e86dd"
+  integrity sha512-J1OkeZGaW0y9Y7xD49Ja8O82B9l5nZDeoYuGWqIOYPAf9LR+xF23k9ILdzv8dH+2H033fx3D5oiA0GlmicI+sg==
+  dependencies:
+    "@types/node" "*"
+
 "@types/node@*":
   version "16.11.7"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.7.tgz#36820945061326978c42a01e56b61cd223dfdc42"
@@ -1915,11 +1932,6 @@
   version "15.14.9"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-15.14.9.tgz#bc43c990c3c9be7281868bbc7b8fdd6e2b57adfa"
   integrity sha512-qjd88DrCxupx/kJD5yQgZdcYKZKSIGBVDIBE1/LTGcNm3d2Np/jxojkdePDdfnBHJc5W7vSMpbJ1aB7p/Py69A==
-
-"@types/node@^17.0.21":
-  version "17.0.23"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.23.tgz#3b41a6e643589ac6442bdbd7a4a3ded62f33f7da"
-  integrity sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.1"
@@ -2620,26 +2632,10 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-"bcrypto@git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0":
-  version "5.5.0"
-  resolved "git+https://github.com/bcoin-org/bcrypto.git#34738cf15033e3bce91a4f6f41ec1ebee3c2fdc8"
-  dependencies:
-    bufio "~1.0.7"
-    loady "~0.0.5"
-
 before-after-hook@^2.2.0:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.2.tgz#a6e8ca41028d90ee2c24222f201c90956091613e"
   integrity sha512-3pZEU3NT5BFUo/AD5ERPWOgQOCZITni6iavr5AUw5AUwQjMlI0kzu5btnyD39AF0gUEsDPwJT+oY1ORBJijPjQ==
-
-"bfilter@https://github.com/bcoin-org/bfilter/archive/70e42125f877191d340e8838a1a90fabb750e680.tar.gz":
-  version "2.3.0"
-  resolved "https://github.com/bcoin-org/bfilter/archive/70e42125f877191d340e8838a1a90fabb750e680.tar.gz#02ae17bedf0daf5b826f36e94cf05f684857aa80"
-  dependencies:
-    bcrypto "git+https://github.com/bcoin-org/bcrypto.git#semver:~5.5.0"
-    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
-    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
-    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
 
 bin-links@^3.0.0:
   version "3.0.0"
@@ -2798,7 +2794,7 @@ buffer@^5.5.0:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
 
-bufio@1.0.7, bufio@~1.0.7:
+bufio@1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/bufio/-/bufio-1.0.7.tgz#b7f63a1369a0829ed64cc14edf0573b3e382a33e"
   integrity sha512-bd1dDQhiC+bEbEfg56IdBv7faWa6OipMs/AFFFvtFnB3wAYjlwQpQRZ0pm6ZkgtfL0pILRXhKxOiQj6UzoMR7A==
@@ -4910,7 +4906,7 @@ growly@^1.3.0:
   resolved "https://registry.yarnpkg.com/growly/-/growly-1.3.0.tgz#f10748cbe76af964b7c96c93c6bcc28af120c081"
   integrity sha1-8QdIy+dq+WS3yWyTxrzCivEgwIE=
 
-handlebars@^4.7.6:
+handlebars@4.7.7, handlebars@^4.7.6:
   version "4.7.7"
   resolved "https://registry.yarnpkg.com/handlebars/-/handlebars-4.7.7.tgz#9ce33416aad02dbd6c8fafa8240d5d98004945a1"
   integrity sha512-aAcXm5OAfE/8IXkcZvCepKU3VzW1/39Fb5ZuqMtgI/hT8X2YgoMvBY5dLhq/cpOvw7Lk1nK/UF71aLG/ZnVYRA==
@@ -6438,7 +6434,7 @@ load-yaml-file@^0.2.0:
     pify "^4.0.1"
     strip-bom "^3.0.0"
 
-"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1", loady@~0.0.5:
+"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1":
   version "0.0.5"
   resolved "git+https://github.com/chjj/loady.git#b94958b7ee061518f4b85ea6da380e7ee93222d5"
 
@@ -7059,12 +7055,11 @@ node-cleanup@^2.1.2:
   resolved "https://registry.yarnpkg.com/node-cleanup/-/node-cleanup-2.1.2.tgz#7ac19abd297e09a7f72a71545d951b517e4dde2c"
   integrity sha1-esGavSl+Caf3KnFUXZUbUX5N3iw=
 
-node-datachannel@0.2.4:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.2.4.tgz#d2c07718d4d70068dc0b37ba8ca640c2f208895e"
-  integrity sha512-EucGuvV8FpzcuZukOB5qHLQm35cUrY2VTUKIB7fvGXgHk3M0PFi190qsq2317ir1Nn3bjT3IQV+cOpPyqEny4g==
+node-datachannel@0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.3.4.tgz#526fd245c3fdf9bcdcabb0c78ede3aa89531d67a"
+  integrity sha512-iIEUQNVmJ+N3KTpOoe3I+hhdl8lwdPjIT9019tipJ3YP6R0/rDlqh7yLtI5547aomANXV86XUUun/spv4FuHQQ==
   dependencies:
-    "@types/node" "^17.0.21"
     prebuild-install "^7.0.1"
 
 node-fetch@^2.6.1:
@@ -7080,6 +7075,11 @@ node-fetch@^2.6.5:
   integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
   dependencies:
     whatwg-url "^5.0.0"
+
+node-forge@1.3.1:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-1.3.1.tgz#be8da2af243b2417d5f646a770663a92b7e9ded3"
+  integrity sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==
 
 node-gyp-build@~4.1.0:
   version "4.1.1"
@@ -7154,7 +7154,7 @@ node-modules-regexp@^1.0.0:
   resolved "https://registry.yarnpkg.com/node-modules-regexp/-/node-modules-regexp-1.0.0.tgz#8d9dbe28964a4ac5712e9131642107c71e90ec40"
   integrity sha1-jZ2+KJZKSsVxLpExZCEHxx6Q7EA=
 
-node-notifier@^8.0.0:
+node-notifier@8.0.1, node-notifier@^8.0.0:
   version "8.0.1"
   resolved "https://registry.yarnpkg.com/node-notifier/-/node-notifier-8.0.1.tgz#f86e89bbc925f2b068784b31f382afdc6ca56be1"
   integrity sha512-BvEXF+UmsnAfYfoapKM9nGxnP+Wn7P91YfXmrKnfcYCx6VBeoN5Ez5Ogck6I8Bi5k4RlpqRYaw75pAwzX9OphA==
@@ -8638,6 +8638,13 @@ set-blocking@^2.0.0, set-blocking@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/set-blocking/-/set-blocking-2.0.0.tgz#045f9782d011ae9a6803ddd382b24392b3d890f7"
   integrity sha1-BF+XgtARrppoA93TgrJDkrPYkPc=
+
+set-getter@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/set-getter/-/set-getter-0.1.1.tgz#a3110e1b461d31a9cfc8c5c9ee2e9737ad447102"
+  integrity sha512-9sVWOy+gthr+0G9DzqqLaYNA7+5OKkSmcqjL9cBpDEaZrr3ShQlyX2cZ/O/ozE41oxn/Tt0LGEM/w4Rub3A3gw==
+  dependencies:
+    to-object-path "^0.3.0"
 
 set-value@^2.0.0, set-value@^2.0.1:
   version "2.0.1"

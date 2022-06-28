@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { IronfishNode } from '../node'
-import { IAdapter } from './adapters'
+import { IRpcAdapter } from './adapters'
 import { ApiNamespace, Router, router } from './routes'
 
 export class RpcServer {
   readonly node: IronfishNode
+  readonly adapters: IRpcAdapter[] = []
 
-  private readonly adapters: IAdapter[] = []
   private readonly router: Router
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
@@ -57,7 +57,7 @@ export class RpcServer {
   }
 
   /** Adds an adapter to the RPC server and starts it if the server has already been started */
-  async mount(adapter: IAdapter): Promise<void> {
+  async mount(adapter: IRpcAdapter): Promise<void> {
     this.adapters.push(adapter)
     await adapter.attach(this)
 

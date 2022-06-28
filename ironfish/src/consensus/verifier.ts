@@ -50,7 +50,7 @@ export class Verifier {
     // Verify the transactions
     const verificationResults = await Promise.all(
       block.transactions.map((t) =>
-        this.verifyTransaction(t, block.header, { verifyFees: false }),
+        this.verifyTransactionContextual(t, block.header, { verifyFees: false }),
       ),
     )
 
@@ -155,7 +155,7 @@ export class Verifier {
     }
   }
 
-  async verifyTransaction(
+  async verifyTransactionContextual(
     transaction: Transaction,
     block: BlockHeader,
     options?: VerifyTransactionOptions,
@@ -167,6 +167,13 @@ export class Verifier {
       }
     }
 
+    return await this.verifyTransactionNoncontextual(transaction, options)
+  }
+
+  async verifyTransactionNoncontextual(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     try {
       return await this.workerPool.verify(transaction, options)
     } catch {

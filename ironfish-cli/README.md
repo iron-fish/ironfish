@@ -27,6 +27,8 @@ Interact with the node in a new terminal window:
    - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
    - Send $IRON to another account
+- `yarn start accounts:transactions [account]`
+   - Display transactions from and to your account
 
 ### Start a node and start mining
 Run these commands in two different terminals:

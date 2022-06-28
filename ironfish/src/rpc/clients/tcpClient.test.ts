@@ -3,27 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { YupUtils } from '../../utils'
-import { IncomingNodeIpcSchema } from '../adapters'
-import { IronfishTcpClient } from './tcpClient'
+import { ClientSocketRpcSchema, MESSAGE_DELIMITER } from '../adapters/socketAdapter/protocol'
+import { RpcTcpClient } from './tcpClient'
 
 jest.mock('net')
 
 describe('IronfishTcpClient', () => {
   const testHost = 'testhost'
   const testPort = 1234
-  const client: IronfishTcpClient = new IronfishTcpClient(testHost, testPort)
-
-  it('should connect and disconnect', () => {
-    void client.connect()
-    expect(net.connect).toHaveBeenCalledWith(testPort, testHost)
-
-    // client.client will be null since since the mocked net.connect doesn't
-    // make a connection, so replace it with a socket
-    client.client = new net.Socket()
-
-    client.close()
-    expect(client.client?.end).toHaveBeenCalled()
-  })
+  const client: RpcTcpClient = new RpcTcpClient(testHost, testPort)
 
   it('should send messages in the node-ipc encoding', async () => {
     const messageId = 1
@@ -36,9 +24,9 @@ describe('IronfishTcpClient', () => {
           mid: messageId,
           type: route,
         },
-      }) + '\f'
+      }) + MESSAGE_DELIMITER
 
-    const result = await YupUtils.tryValidate(IncomingNodeIpcSchema, expectedMessage.trim())
+    const result = await YupUtils.tryValidate(ClientSocketRpcSchema, expectedMessage.trim())
     expect(result.error).toBe(null)
 
     client.client = new net.Socket()

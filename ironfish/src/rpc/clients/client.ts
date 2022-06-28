@@ -9,8 +9,14 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  GetAccountNotesRequest,
+  GetAccountNotesResponse,
   GetAccountsRequest,
   GetAccountsResponse,
+  GetAccountTransactionRequest,
+  GetAccountTransactionResponse,
+  GetAccountTransactionsRequest,
+  GetAccountTransactionsResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -72,8 +78,9 @@ import {
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
+import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 
-export abstract class IronfishClient {
+export abstract class RpcClient {
   readonly logger: Logger
 
   constructor(logger: Logger) {
@@ -197,6 +204,33 @@ export abstract class IronfishClient {
     ).waitForEnd()
   }
 
+  async getAccountNotes(
+    params: GetAccountNotesRequest = {},
+  ): Promise<ResponseEnded<GetAccountNotesResponse>> {
+    return await this.request<GetAccountNotesResponse>(
+      `${ApiNamespace.account}/getAccountNotes`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransaction(
+    params: GetAccountTransactionRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionResponse>> {
+    return await this.request<GetAccountTransactionResponse>(
+      `${ApiNamespace.account}/getAccountTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountTransactions(
+    params: GetAccountTransactionsRequest,
+  ): Promise<ResponseEnded<GetAccountTransactionsResponse>> {
+    return await this.request<GetAccountTransactionsResponse>(
+      `${ApiNamespace.account}/getAccountTransactions`,
+      params,
+    ).waitForEnd()
+  }
+
   async getPeers(
     params: GetPeersRequest = undefined,
   ): Promise<ResponseEnded<GetPeersResponse>> {
@@ -252,6 +286,24 @@ export abstract class IronfishClient {
     params: GetWorkersStatusRequest = undefined,
   ): Response<void, GetWorkersStatusResponse> {
     return this.request<void, GetWorkersStatusResponse>(`${ApiNamespace.worker}/getStatus`, {
+      ...params,
+      stream: true,
+    })
+  }
+
+  async getRpcStatus(
+    params: GetRpcStatusRequest = undefined,
+  ): Promise<ResponseEnded<GetRpcStatusResponse>> {
+    return this.request<GetRpcStatusResponse>(
+      `${ApiNamespace.rpc}/getStatus`,
+      params,
+    ).waitForEnd()
+  }
+
+  getRpcStatusStream(
+    params: GetRpcStatusRequest = undefined,
+  ): Response<void, GetRpcStatusResponse> {
+    return this.request<void, GetRpcStatusResponse>(`${ApiNamespace.rpc}/getStatus`, {
       ...params,
       stream: true,
     })

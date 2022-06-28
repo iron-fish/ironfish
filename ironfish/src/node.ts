@@ -231,9 +231,10 @@ export class IronfishNode {
     })
 
     const accounts = new Accounts({
+      chain,
+      config,
       database: accountDB,
-      workerPool: workerPool,
-      chain: chain,
+      workerPool,
     })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({

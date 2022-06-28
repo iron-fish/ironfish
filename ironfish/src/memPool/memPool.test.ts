@@ -129,6 +129,26 @@ describe('MemPool', () => {
       }, 60000)
     })
 
+    describe('with an expired sequence', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { accounts, chain, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        const isExpiredSequenceSpy = jest
+          .spyOn(chain.verifier, 'isExpiredSequence')
+          .mockReturnValue(true)
+
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+        expect(isExpiredSequenceSpy).toHaveBeenCalledTimes(1)
+        expect(isExpiredSequenceSpy).lastReturnedWith(true)
+      })
+    })
+
     describe('with an existing nullifier in a transaction in the mempool', () => {
       const nodeTest = createNodeTest()
 
@@ -201,6 +221,58 @@ describe('MemPool', () => {
         expect(set).toHaveBeenCalledWith(hash, transaction)
       }, 60000)
     })
+
+    describe('verification', () => {
+      const nodeTest = createNodeTest()
+
+      it('should default to verify the transaction', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should verify when explicitly passed the parameter', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction, true)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should be skippable', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction, false)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(0)
+      })
+    })
   })
 
   describe('when a block is connected with a transaction in the mempool', () => {
@@ -246,19 +318,9 @@ describe('MemPool', () => {
       const add = jest.spyOn(queue, 'add')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { block } = await useBlockWithTx(node, accountA, accountB)
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+      const minersFee = block.transactions[0]
 
-      // TODO: Remove this and use return value of useBlockWithTx when miners
-      // miners fee is always first on the block
-      let minersFee
-      let transaction
-      for (const tx of block.transactions) {
-        if (tx.isMinersFee()) {
-          minersFee = tx
-        } else {
-          transaction = tx
-        }
-      }
       Assert.isNotUndefined(minersFee)
       Assert.isNotUndefined(transaction)
 

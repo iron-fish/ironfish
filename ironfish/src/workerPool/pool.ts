@@ -13,6 +13,7 @@ import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
+import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
@@ -37,14 +38,12 @@ export class WorkerPool {
   readonly numWorkers: number
   readonly logger: Logger
 
-  queue: Array<Job> = []
+  queue = new RoundRobinQueue()
   workers: Array<Worker> = []
   started = false
   completed = 0
   change: Meter | null
   speed: Meter | null
-
-  private lastJobId = 0
 
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -83,7 +82,7 @@ export class WorkerPool {
   }) {
     this.numWorkers = options?.numWorkers ?? 1
     this.maxJobs = options?.maxJobs ?? 1
-    this.maxQueue = options?.maxQueue ?? 200
+    this.maxQueue = options?.maxQueue ?? 500
     this.change = options?.metrics?.addMeter() ?? null
     this.speed = options?.metrics?.addMeter() ?? null
     this.logger = options?.logger ?? createRootLogger()
@@ -117,9 +116,9 @@ export class WorkerPool {
     const queue = this.queue
 
     this.workers = []
-    this.queue = []
 
-    queue.forEach((j) => j.abort())
+    queue.abortAll()
+
     await Promise.all(workers.map((w) => w.stop()))
   }
 
@@ -286,14 +285,14 @@ export class WorkerPool {
 
     // If we already have queue, put it at the end of the queue
     if (this.queue.length > 0) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
     const worker = this.workers.find((w) => w.canTakeJobs)
 
     if (!worker) {
-      this.queue.push(job)
+      this.queue.enqueue(request.type, job)
       return job
     }
 
@@ -311,7 +310,7 @@ export class WorkerPool {
       return
     }
 
-    const job = this.queue.shift()
+    const job = this.queue.nextJob()
     if (!job) {
       return
     }

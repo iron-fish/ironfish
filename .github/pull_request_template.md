@@ -9,5 +9,4 @@ what additional work is required, if any.
 
 ```
 [ ] Yes
-[ ] No
 ```

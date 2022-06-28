@@ -101,7 +101,6 @@ describe('Create genesis block', () => {
     const addBlock = await chain.addBlock(block)
     expect(addBlock.isAdded).toBeTruthy()
 
-    // TODO: this should happen automatically in addBlock
     await node.accounts.updateHead()
 
     // Check that the balance is what's expected
