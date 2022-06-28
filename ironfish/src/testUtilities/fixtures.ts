@@ -131,7 +131,7 @@ export async function useAccountFixture(
     },
 
     deserialize: async (accountData: AccountsValue): Promise<Account> => {
-      return await accounts.importAccount(accountData)
+      return accounts.importAccount(accountData)
     },
   })
 }

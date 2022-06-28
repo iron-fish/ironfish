@@ -6,7 +6,7 @@ import MurmurHash3 from 'imurmurhash'
 import { AccountsValue } from './database/accounts'
 
 export class Account {
-  id: string
+  readonly id: string
   readonly displayName: string
   name: string
   readonly spendingKey: string
