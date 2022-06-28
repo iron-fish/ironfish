@@ -4,12 +4,7 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import { ValidationError } from '../rpc/adapters/errors'
-import {
-  createNodeTest,
-  useAccountFixture,
-  useBlockFixture,
-  useMinerBlockFixture,
-} from '../testUtilities'
+import { createNodeTest, useBlockFixture, useMinerBlockFixture } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 
 describe('Accounts', () => {
@@ -459,15 +454,9 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
 
     // Create an account A
-    const accountA = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testA'),
-    )
-    const accountB = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testB'),
-    )
-    const accountC = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testC'),
-    )
+    const accountA = await nodeA.accounts.createAccount('testA')
+    const accountB = await nodeA.accounts.createAccount('testB')
+    const accountC = await nodeA.accounts.createAccount('testC')
 
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
@@ -533,10 +522,10 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
-    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
+    const accountA = await nodeA.accounts.createAccount('testA')
+    const accountB = await nodeB.accounts.createAccount('testB')
 
-    await nodeA.accounts.importAccount(accountB)
+    const accountBNodeA = await nodeA.accounts.importAccount(accountB)
 
     // Create and add A1
     const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
@@ -560,7 +549,7 @@ describe('Accounts', () => {
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -580,7 +569,7 @@ describe('Accounts', () => {
       confirmed: BigInt(0),
       unconfirmed: BigInt(2000000000),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(4000000000),
       unconfirmed: BigInt(4000000000),
     })
@@ -596,10 +585,10 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
-    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
-    await nodeA.accounts.importAccount(accountB)
-    await nodeB.accounts.importAccount(accountA)
+    const accountA = await nodeA.accounts.createAccount('testA')
+    const accountB = await nodeB.accounts.createAccount('testB')
+    const accountBNodeA = await nodeA.accounts.importAccount(accountB)
+    const accountANodeB = await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block 1
     const block1 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
@@ -658,11 +647,11 @@ describe('Accounts', () => {
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(2),
       unconfirmed: BigInt(2),
     })
-    await expect(nodeB.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toEqual({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -678,7 +667,7 @@ describe('Accounts', () => {
       confirmed: BigInt(0),
       unconfirmed: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(0),
       unconfirmed: BigInt(2),
     })
@@ -694,10 +683,10 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
-    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
-    await nodeA.accounts.importAccount(accountB)
-    await nodeB.accounts.importAccount(accountA)
+    const accountA = await nodeA.accounts.createAccount('testA')
+    const accountB = await nodeB.accounts.createAccount('testB')
+    const accountBNodeA = await nodeA.accounts.importAccount(accountB)
+    const accountANodeB = await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block A1
     const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.accounts)
@@ -717,7 +706,7 @@ describe('Accounts', () => {
       async () => {
         // Generate a transaction from account A to account B
         const transaction = await nodeB.accounts.createTransaction(
-          accountA,
+          accountANodeB,
           [
             {
               publicAddress: accountB.publicAddress,
@@ -769,11 +758,11 @@ describe('Accounts', () => {
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(2),
       unconfirmed: BigInt(2),
     })
-    await expect(nodeB.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toEqual({
       confirmed: BigInt(0),
       unconfirmed: BigInt(1999999998),
     })
@@ -789,7 +778,7 @@ describe('Accounts', () => {
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(3999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
       confirmed: BigInt(0),
       unconfirmed: BigInt(2),
     })
