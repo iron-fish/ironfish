@@ -3,7 +3,7 @@
 module.exports = {
   root: true,
 
-  ignorePatterns: ['openapi.d.ts'],
+  ignorePatterns: [],
 
   env: {
     es6: true,
