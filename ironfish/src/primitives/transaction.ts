@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TransactionPosted } from '@ironfish/rust-nodejs'
+import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { NoteEncrypted } from './noteEncrypted'
@@ -180,6 +181,14 @@ export class Transaction {
    */
   hash(): TransactionHash {
     return this.withReference((t) => t.hash())
+  }
+
+  /**
+   * Genereate the hash of a transaction that includes the witness (signature) data.
+   * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
+   */
+  witnessHash(): TransactionHash {
+    return blake3(this.transactionPostedSerialized)
   }
 
   equals(other: Transaction): boolean {
