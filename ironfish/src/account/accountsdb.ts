@@ -27,7 +27,7 @@ import { TransactionsValue, TransactionsValueEncoding } from './database/transac
 const DATABASE_VERSION = 5
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
-  defaultAccountName: null,
+  defaultAccountId: null,
   headHash: null,
 })
 
@@ -132,8 +132,8 @@ export class AccountsDB {
     await this.accounts.del(id)
   }
 
-  async setDefaultAccount(name: AccountsDBMeta['defaultAccountName']): Promise<void> {
-    await this.meta.put('defaultAccountName', name)
+  async setDefaultAccount(id: AccountsDBMeta['defaultAccountId']): Promise<void> {
+    await this.meta.put('defaultAccountId', id)
   }
 
   async setHeadHash(hash: AccountsDBMeta['headHash']): Promise<void> {
