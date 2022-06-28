@@ -177,9 +177,10 @@ export class Transaction {
   }
 
   /**
-   * Get the transaction hash.
+   * Get the transaction hash that does not include the signature. This is the hash that
+   * that is signed by transaction creator
    */
-  hash(): TransactionHash {
+  unsignedHash(): TransactionHash {
     return this.withReference((t) => t.hash())
   }
 
@@ -187,7 +188,7 @@ export class Transaction {
    * Genereate the hash of a transaction that includes the witness (signature) data.
    * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
    */
-  witnessHash(): TransactionHash {
+  hash(): TransactionHash {
     return blake3(this.transactionPostedSerialized)
   }
 
