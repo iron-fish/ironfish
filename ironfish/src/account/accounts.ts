@@ -345,15 +345,10 @@ export class Accounts {
     merkleHash: string
     forSpender: boolean
     account: Account
+    serializedNote: Buffer
   }> {
     const accounts = this.listAccounts()
-    const notes = new Array<{
-      noteIndex: number | null
-      nullifier: string | null
-      merkleHash: string
-      forSpender: boolean
-      account: Account
-    }>()
+    const notes = []
 
     // Decrement the note index before starting so we can
     // pre-increment it in the loop rather than post-incrementing it
@@ -384,6 +379,7 @@ export class Accounts {
                     ).toString('hex')
                   : null,
               account: account,
+              serializedNote: receivedNote.serialize(),
             })
           }
           continue
@@ -394,11 +390,12 @@ export class Accounts {
         if (spentNote) {
           if (spentNote.value() !== BigInt(0)) {
             notes.push({
+              account,
               noteIndex: currentNoteIndex,
               forSpender: true,
               merkleHash: note.merkleHash().toString('hex'),
               nullifier: null,
-              account: account,
+              serializedNote: spentNote.serialize(),
             })
           }
           continue
@@ -451,7 +448,14 @@ export class Accounts {
           )
         }
 
-        for (const { noteIndex, nullifier, forSpender, merkleHash, account } of notes) {
+        for (const {
+          noteIndex,
+          nullifier,
+          forSpender,
+          merkleHash,
+          account,
+          serializedNote,
+        } of notes) {
           // The transaction is useful if we want to display transaction history,
           // but since we spent the note, we don't need to put it in the nullifierToNote mappings
           if (!forSpender) {
@@ -465,6 +469,7 @@ export class Accounts {
                 accountId: account.id,
                 nullifierHash: nullifier,
                 noteIndex: noteIndex,
+                serializedNote,
                 spent: false,
                 transactionHash,
               },
@@ -665,7 +670,7 @@ export class Accounts {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for await (const { blockHash, note } of this.unspentNotesGenerator(account)) {
+    for (const { blockHash, note } of this.getDecryptableNotes(account)) {
       const map = this.decryptableNotes.get(note.hash)
 
       if (!map) {
@@ -697,52 +702,33 @@ export class Accounts {
     return unspentNotes
   }
 
-  private async *unspentNotesGenerator(account: Account): AsyncGenerator<{
+  private getDecryptableNotes(account: Account): Array<{
     blockHash: string | null
     note: UnspentNote
   }> {
-    const batchSize = 20
-    const incomingViewKeys = [account.incomingViewKey]
-    let jobs = []
+    const decryptableNotes = []
+    const incomingViewKey = account.incomingViewKey
 
-    const getUnspentNotes = async (transaction: Transaction, blockHash: string | null) => {
-      return {
-        ...(await this.workerPool.getUnspentNotes(transaction.serialize(), incomingViewKeys)),
-        blockHash,
-      }
-    }
-
-    for (const { accountId, transactionHash } of this.decryptableNotes.values()) {
+    for (const [
+      noteHash,
+      { accountId, serializedNote, transactionHash },
+    ] of this.decryptableNotes.entries()) {
       if (accountId === account.id && transactionHash) {
         const transactionValue = this.transactionMap.get(transactionHash)
         Assert.isNotUndefined(transactionValue)
-        // TODO: This can fetch unspent notes for the same transaction. This
-        // will be fixed in a subsequent PR.
-        jobs.push(getUnspentNotes(transactionValue.transaction, transactionValue.blockHash))
 
-        if (jobs.length >= batchSize) {
-          const responses = await Promise.all(jobs)
-
-          for (const { blockHash, notes } of responses) {
-            for (const note of notes) {
-              yield { blockHash, note }
-            }
-
-            jobs = []
-          }
-        }
+        decryptableNotes.push({
+          blockHash: transactionValue.blockHash,
+          note: {
+            account: incomingViewKey,
+            hash: noteHash,
+            note: serializedNote,
+          },
+        })
       }
     }
 
-    if (jobs.length) {
-      const responses = await Promise.all(jobs)
-
-      for (const { blockHash, notes } of responses) {
-        for (const note of notes) {
-          yield { blockHash, note }
-        }
-      }
-    }
+    return decryptableNotes
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
