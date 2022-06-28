@@ -144,6 +144,12 @@ export class Telemetry {
     this.submit({
       measurement: 'node_stats',
       timestamp: new Date(),
+      tags: [
+        {
+          name: 'synced',
+          value: this.chain.synced.toString(),
+        },
+      ],
       fields: [
         {
           name: 'heap_used',
