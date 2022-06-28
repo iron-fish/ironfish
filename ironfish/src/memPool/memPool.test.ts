@@ -214,7 +214,7 @@ describe('MemPool', () => {
 
         await memPool.acceptTransaction(transaction)
 
-        const hash = transaction.hash()
+        const hash = transaction.unsignedHash()
         expect(add).toHaveBeenCalledTimes(1)
         expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
         expect(set).toHaveBeenCalledTimes(1)
@@ -291,8 +291,8 @@ describe('MemPool', () => {
         accountB,
         accountA,
       )
-      const hashA = transactionA.hash()
-      const hashB = transactionB.hash()
+      const hashA = transactionA.unsignedHash()
+      const hashB = transactionB.unsignedHash()
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
@@ -328,11 +328,11 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      const hash = transaction.hash()
+      const hash = transaction.unsignedHash()
       expect(transactions.get(hash)).not.toBeUndefined()
       expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
 
-      const minersHash = minersFee.hash()
+      const minersHash = minersFee.unsignedHash()
       expect(transactions.get(minersHash)).toBeUndefined()
       expect(add).not.toHaveBeenCalledWith({
         fee: block.minersFee.fee(),

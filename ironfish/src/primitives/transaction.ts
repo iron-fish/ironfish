@@ -178,7 +178,7 @@ export class Transaction {
 
   /**
    * Get the transaction hash that does not include the signature. This is the hash that
-   * that is signed by transaction creator
+   * is signed when the transaction is created
    */
   unsignedHash(): TransactionHash {
     return this.withReference((t) => t.hash())
