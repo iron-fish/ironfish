@@ -136,11 +136,11 @@ describe('Create genesis block', () => {
     expect(deserializedBlock.header.timestamp.valueOf()).toEqual(info.timestamp)
     expect(deserializedBlock.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
-    await newNode.accounts.importAccount(account)
+    const accountNewNode = await newNode.accounts.importAccount(account)
     await newNode.accounts.updateHead()
     await newNode.accounts.scanTransactions()
 
-    await expect(newNode.accounts.getBalance(account)).resolves.toEqual({
+    await expect(newNode.accounts.getBalance(accountNewNode)).resolves.toEqual({
       confirmed: amountBigint,
       unconfirmed: amountBigint,
     })

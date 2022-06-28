@@ -4,7 +4,12 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import { ValidationError } from '../rpc/adapters/errors'
-import { createNodeTest, useBlockFixture, useMinerBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockFixture,
+  useMinerBlockFixture,
+} from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 
 describe('Accounts', () => {
@@ -453,10 +458,10 @@ describe('Accounts', () => {
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
 
-    // Create an account A
-    const accountA = await nodeA.accounts.createAccount('testA')
-    const accountB = await nodeA.accounts.createAccount('testB')
-    const accountC = await nodeA.accounts.createAccount('testC')
+    // Create accounts
+    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
+    const accountB = await useAccountFixture(nodeA.accounts, 'testB')
+    const accountC = await useAccountFixture(nodeA.accounts, 'testC')
 
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
@@ -522,8 +527,8 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await nodeA.accounts.createAccount('testA')
-    const accountB = await nodeB.accounts.createAccount('testB')
+    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
+    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
 
     const accountBNodeA = await nodeA.accounts.importAccount(accountB)
 
@@ -585,8 +590,8 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await nodeA.accounts.createAccount('testA')
-    const accountB = await nodeB.accounts.createAccount('testB')
+    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
+    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
     const accountBNodeA = await nodeA.accounts.importAccount(accountB)
     const accountANodeB = await nodeB.accounts.importAccount(accountA)
 
@@ -683,8 +688,8 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await nodeA.accounts.createAccount('testA')
-    const accountB = await nodeB.accounts.createAccount('testB')
+    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
+    const accountB = await useAccountFixture(nodeB.accounts, 'testB')
     const accountBNodeA = await nodeA.accounts.importAccount(accountB)
     const accountANodeB = await nodeB.accounts.importAccount(accountA)
 

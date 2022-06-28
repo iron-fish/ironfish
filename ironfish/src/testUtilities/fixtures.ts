@@ -4,7 +4,7 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
-import { Account, Accounts } from '../account'
+import { Account, Accounts, AccountsValue } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
@@ -126,8 +126,12 @@ export async function useAccountFixture(
   }
 
   return useFixture(generate, {
-    restore: async (account: Account): Promise<void> => {
-      await accounts.importAccount(account)
+    serialize: (account: Account): AccountsValue => {
+      return account.serialize()
+    },
+
+    deserialize: async (accountData: AccountsValue): Promise<Account> => {
+      return await accounts.importAccount(accountData)
     },
   })
 }
