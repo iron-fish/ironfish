@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DecryptableNotesValue, DecryptableNotesValueEncoding } from './decryptableNotes'
+import {
+  DecryptableNotesValue,
+  DecryptableNotesValueEncoding,
+  NOTE_SIZE,
+} from './decryptableNotes'
 
 describe('DecryptableNotesValueEncoding', () => {
   describe('with a null note index, nullifier hash, and transaction hash', () => {
@@ -13,6 +17,7 @@ describe('DecryptableNotesValueEncoding', () => {
         noteIndex: null,
         nullifierHash: null,
         spent: false,
+        serializedNote: Buffer.alloc(NOTE_SIZE, 1),
         transactionHash: null,
       }
       const buffer = encoder.serialize(value)
@@ -30,6 +35,7 @@ describe('DecryptableNotesValueEncoding', () => {
         spent: true,
         noteIndex: 40,
         nullifierHash: Buffer.alloc(32, 1).toString('hex'),
+        serializedNote: Buffer.alloc(NOTE_SIZE, 1),
         transactionHash: Buffer.alloc(32, 1),
       }
       const buffer = encoder.serialize(value)

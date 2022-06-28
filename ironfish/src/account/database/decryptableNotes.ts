@@ -4,17 +4,21 @@
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
+export const NOTE_SIZE = 43 + 8 + 32 + 32
+
 export interface DecryptableNotesValue {
   accountId: string
   noteIndex: number | null
   nullifierHash: string | null
+  serializedNote: Buffer
   spent: boolean
   transactionHash: Buffer | null
 }
 
 export class DecryptableNotesValueEncoding implements IDatabaseEncoding<DecryptableNotesValue> {
   serialize(value: DecryptableNotesValue): Buffer {
-    const { accountId, nullifierHash, noteIndex, spent, transactionHash } = value
+    const { accountId, nullifierHash, noteIndex, serializedNote, spent, transactionHash } =
+      value
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
@@ -25,6 +29,7 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
     bw.writeU8(flags)
 
     bw.writeVarString(accountId)
+    bw.writeBytes(serializedNote)
     if (noteIndex) {
       bw.writeU32(noteIndex)
     }
@@ -48,6 +53,7 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
     const spent = Boolean(flags & (1 << 3))
 
     const accountId = reader.readVarString()
+    const serializedNote = reader.readBytes(NOTE_SIZE)
 
     let noteIndex = null
     if (hasNoteIndex) {
@@ -64,11 +70,11 @@ export class DecryptableNotesValueEncoding implements IDatabaseEncoding<Decrypta
       transactionHash = reader.readHash()
     }
 
-    return { accountId, noteIndex, nullifierHash, spent, transactionHash }
+    return { accountId, noteIndex, nullifierHash, serializedNote, spent, transactionHash }
   }
 
   getSize(value: DecryptableNotesValue): number {
-    let size = 1 + bufio.sizeVarString(value.accountId)
+    let size = 1 + bufio.sizeVarString(value.accountId) + NOTE_SIZE
     if (value.noteIndex) {
       size += 4
     }
