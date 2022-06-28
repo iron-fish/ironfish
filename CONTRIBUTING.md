@@ -55,4 +55,4 @@ If you are working on something in one of these categories, we will not accept y
 
 In case of problems with trying to contribute to Iron Fish, you can contact us:
 * On [Discord](https://discord.gg/ironfish)
-* Via [email](contact@ironfish.network)
+* Via [email](mailto:contact@ironfish.network)
