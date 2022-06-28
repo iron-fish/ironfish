@@ -9,18 +9,20 @@ import {
   isValidAmount,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
+  PromiseUtils,
   RpcClient,
+  SendTransactionResponse,
   WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import blessed from 'blessed'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
-import { ProgressBar } from '../types'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 const IRON_TO_SEND = 0.1
 
-export default class Bank extends IronfishCommand {
+export default class DepositAll extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
   client: RpcClient | null = null
@@ -42,6 +44,10 @@ export default class Bank extends IronfishCommand {
       parse: (input) => Promise.resolve(input.trim()),
       description: 'the account to send money from',
     }),
+    terminate: Flags.boolean({
+      default: false,
+      description: 'terminate if balance is below minimum transaction requirement',
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'confirm without asking',
@@ -49,13 +55,13 @@ export default class Bank extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(Bank)
+    const { flags } = await this.parse(DepositAll)
 
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
 
     const fee = flags.fee
-    const feeInIron = oreToIron(fee)
+    const terminate = flags.terminate
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
     const accountName =
@@ -94,28 +100,10 @@ export default class Bank extends IronfishCommand {
       this.exit(1)
     }
 
-    const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = Number(balanceResp.content.confirmed)
-    if (confirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
-      const balance = oreToIron(confirmedBalance)
-      const required = IRON_TO_SEND + feeInIron
-      this.log(`Insufficient balance: ${balance}. Required: ${required}`)
-      this.exit(1)
-    }
-
-    const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
-
-    const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
-    const displayFee = displayIronAmountWithCurrency(feeInIron, true)
-    const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
     if (!flags.confirm) {
-      this.log(`
-You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
-Your remaining balance after this transaction will be ${displayNewBalance}.
-The memo will contain the graffiti "${graffiti}".
-
-* This action is NOT reversible *
-      `)
+      this.log(
+        `You are about to deposit all your $IRON to the Iron Fish deposit account. The memos will contain the graffiti "${graffiti}".`,
+      )
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
@@ -124,65 +112,104 @@ The memo will contain the graffiti "${graffiti}".
       }
     }
 
-    // Run the progress bar for about 2 minutes
-    // Chances are that the transaction will finish faster (error or faster computer)
-    const bar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',
-    }) as ProgressBar
+    this.log('Fetching account balance...')
 
-    bar.start()
+    let balanceResp = await this.client.getAccountBalance({ account: accountName })
+    let confirmedBalance = Number(balanceResp.content.confirmed)
+    let unconfirmedBalance = Number(balanceResp.content.unconfirmed)
 
-    let value = 0
-    const timer = setInterval(() => {
-      value++
-      bar.update(value)
-      if (value >= bar.getTotal()) {
-        bar.stop()
+    // Console log will create display issues with Blessed
+    this.logger.pauseLogs()
+
+    const screen = blessed.screen({ smartCSR: true })
+    const text = blessed.text()
+    screen.append(text)
+
+    screen.key('q', () => {
+      screen.destroy()
+      process.exit(0)
+    })
+
+    const status = blessed.text({
+      parent: screen,
+      content: 'STATUS:',
+    })
+
+    const list = blessed.textbox({
+      top: 1,
+      alwaysScroll: true,
+      scrollable: true,
+      parent: screen,
+    })
+
+    const footer = blessed.text({
+      bottom: 0,
+      content: 'Press Q to quit',
+    })
+
+    const txs: SendTransactionResponse[] = []
+
+    setInterval(() => {
+      status.clearBaseLine(0)
+      list.clearBaseLine(0)
+      list.setContent(`\n--- Completed Transactions (${txs.length}) ---\n`)
+
+      for (const transaction of txs) {
+        list.pushLine(`${transaction.hash}`)
       }
+
+      status.setContent(
+        `Balance: Confirmed - ${displayIronAmountWithCurrency(
+          oreToIron(Number(confirmedBalance)),
+          false,
+        )}, Unconfirmed - ${displayIronAmountWithCurrency(
+          oreToIron(Number(unconfirmedBalance)),
+          false,
+        )}`,
+      )
+
+      screen.append(footer)
+      screen.render()
     }, 1000)
 
-    const stopProgressBar = () => {
-      clearInterval(timer)
-      bar.update(100)
-      bar.stop()
-    }
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      balanceResp = await this.client.getAccountBalance({ account: accountName })
+      confirmedBalance = Number(balanceResp.content.confirmed)
+      unconfirmedBalance = Number(balanceResp.content.unconfirmed)
 
-    try {
-      const result = await this.client.sendTransaction({
-        fromAccountName: accountName,
-        receives: [
-          {
-            publicAddress: bankDepositAddress,
-            amount: ironToOre(IRON_TO_SEND).toString(),
-            memo: graffiti,
-          },
-        ],
-        fee: fee.toString(),
-        expirationSequenceDelta: expirationSequenceDelta,
-      })
-
-      stopProgressBar()
-
-      const transaction = result.content
-      this.log(`
-Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
-        transaction.fromAccountName
+      // terminate condition
+      if (terminate && unconfirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
+        screen.destroy()
+        process.exit(0)
       }
-Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
-    } catch (error: unknown) {
-      stopProgressBar()
-      this.log(`An error occurred while sending the transaction.`)
-      if (error instanceof Error) {
-        this.error(error.message)
+      // send transaction
+      if (confirmedBalance > ironToOre(IRON_TO_SEND) + fee) {
+        try {
+          const result = await this.client.sendTransaction({
+            fromAccountName: accountName,
+            receives: [
+              {
+                publicAddress: bankDepositAddress,
+                amount: ironToOre(IRON_TO_SEND).toString(),
+                memo: graffiti,
+              },
+            ],
+            fee: fee.toString(),
+            expirationSequenceDelta: expirationSequenceDelta,
+          })
+
+          const transaction = result.content
+          txs.push(transaction)
+        } catch (error: unknown) {
+          screen.destroy()
+          process.exit(2)
+        }
       }
-      this.exit(2)
+
+      // wait 30 seconds for next transaction
+      await PromiseUtils.sleep(30000)
     }
   }
 

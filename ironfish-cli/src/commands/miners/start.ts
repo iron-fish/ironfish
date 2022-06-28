@@ -97,11 +97,13 @@ export class Miner extends IronfishCommand {
       })
 
       miner.start()
+
       if (flags.richOutput) {
         this.displayHashrate(miner)
       }
 
       await miner.waitForStop()
+
       if (this.updateInterval) {
         clearInterval(this.updateInterval)
       }
@@ -121,11 +123,13 @@ export class Miner extends IronfishCommand {
       })
 
       miner.start()
+
       if (flags.richOutput) {
         this.displayHashrate(miner)
       }
 
       await miner.waitForStop()
+
       if (this.updateInterval) {
         clearInterval(this.updateInterval)
       }

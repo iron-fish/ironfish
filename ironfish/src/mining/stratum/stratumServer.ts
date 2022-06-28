@@ -13,8 +13,10 @@ import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
+import { DisconnectReason } from './constants'
 import { ClientMessageMalformedError } from './errors'
 import {
+  MiningDisconnectMessage,
   MiningNotifyMessage,
   MiningSetTargetMessage,
   MiningSubmitSchema,
@@ -23,27 +25,30 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from './messages'
+import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
+import { STRATUM_VERSION_PROTOCOL, STRATUM_VERSION_PROTOCOL_MIN } from './version'
+
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 
 export class StratumServer {
   readonly server: net.Server
   readonly pool: MiningPool
   readonly config: Config
   readonly logger: Logger
+  readonly peers: StratumPeers
 
   readonly port: number
   readonly host: string
 
-  readonly maxConnectionsByIp: number
-
   clients: Map<number, StratumServerClient>
-  badClients: Set<number>
-  connectionsByIp: Map<string, number>
   nextMinerId: number
   nextMessageId: number
 
   currentWork: Buffer | null = null
   currentMiningRequestId: number | null = null
+  readonly version: number
+  readonly versionMin: number
 
   constructor(options: {
     pool: MiningPool
@@ -51,29 +56,38 @@ export class StratumServer {
     logger: Logger
     port?: number
     host?: string
+    banning?: boolean
   }) {
     this.pool = options.pool
     this.config = options.config
     this.logger = options.logger
 
+    this.version = STRATUM_VERSION_PROTOCOL
+    this.versionMin = STRATUM_VERSION_PROTOCOL_MIN
+
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
-    this.maxConnectionsByIp = this.config.get('poolMaxConnectionsPerIp')
 
     this.clients = new Map()
-    this.badClients = new Set()
     this.nextMinerId = 1
     this.nextMessageId = 1
-    this.connectionsByIp = new Map()
+
+    this.peers = new StratumPeers({
+      config: this.config,
+      server: this,
+      banning: options.banning,
+    })
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
 
   start(): void {
+    this.peers.start()
     this.server.listen(this.port, this.host)
   }
 
   stop(): void {
+    this.peers.stop()
     this.server.close()
   }
 
@@ -98,20 +112,19 @@ export class StratumServer {
     return this.currentWork != null
   }
 
-  addBadClient(client: StratumServerClient): void {
-    this.badClients.add(client.id)
-    this.send(client, 'mining.wait_for_work')
-  }
-
   private onConnection(socket: net.Socket): void {
-    if (!this.isSocketAllowed(socket)) {
+    if (!this.peers.isAllowed(socket)) {
+      if (this.peers.isBanned(socket)) {
+        this.peers.sendBanMessage(socket)
+      }
+
       socket.destroy()
       return
     }
 
     const client = StratumServerClient.accept(socket, this.nextMinerId++)
 
-    this.addConnectionCount(client)
+    this.peers.addConnectionCount(client)
 
     socket.on('data', (data: Buffer) => {
       this.onData(client, data).catch((e) => this.onError(client, e))
@@ -124,27 +137,19 @@ export class StratumServer {
     this.clients.set(client.id, client)
   }
 
-  // Returns the count of connected clients excluding those marked as bad clients
-  getClientCount(): number {
-    let count = 0
-    for (const client of this.clients.keys()) {
-      if (this.badClients.has(client)) {
-        continue
-      }
-      count += 1
-    }
-    return count
-  }
-
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
 
     this.clients.delete(client.id)
-    this.removeConnectionCount(client)
+    this.peers.removeConnectionCount(client)
     client.close()
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {
+    if (this.peers.isShadowBanned(client)) {
+      return
+    }
+
     client.messageBuffer += data.toString('utf-8')
     const lastDelimiterIndex = client.messageBuffer.lastIndexOf('\n')
     const splits = client.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
@@ -156,7 +161,10 @@ export class StratumServer {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        throw new ClientMessageMalformedError(client, header.error)
+        this.peers.ban(client, {
+          message: header.error.message,
+        })
+        return
       }
 
       this.logger.debug(`Client ${client.id} sent ${header.result.method} message`)
@@ -166,18 +174,39 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubscribeSchema, header.result.body)
 
           if (body.error) {
-            throw new ClientMessageMalformedError(client, body.error, header.result.method)
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
+            return
+          }
+
+          // TODO: Remove when making version required
+          if (body.result.version === undefined) {
+            this.peers.shadowBan(client)
+            return
+          }
+
+          // TODO: This undefined check makes version optional, we should require it by
+          // removing this undefined check in a future update once we have given enough
+          // notice after this deploy.
+          if (body.result.version !== undefined && body.result.version < this.versionMin) {
+            this.peers.ban(client, {
+              message: `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
+              reason: DisconnectReason.BAD_VERSION,
+              until: Date.now() + FIFTEEN_MINUTES_MS,
+              versionExpected: this.version,
+            })
+            return
           }
 
           client.publicAddress = body.result.publicAddress
           client.subscribed = true
 
           if (!isValidPublicAddress(client.publicAddress)) {
-            throw new ClientMessageMalformedError(
-              client,
-              `Invalid public address: ${client.publicAddress}`,
-              header.result.method,
-            )
+            this.peers.ban(client, {
+              message: `Invalid public address: ${client.publicAddress}`,
+            })
+            return
           }
 
           const idHex = client.id.toString(16)
@@ -187,11 +216,15 @@ export class StratumServer {
 
           this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
 
-          this.send(client, 'mining.subscribed', { clientId: client.id, graffiti: graffiti })
-          this.send(client, 'mining.set_target', this.getSetTargetMessage())
+          this.send(client.socket, 'mining.subscribed', {
+            clientId: client.id,
+            graffiti: graffiti,
+          })
+
+          this.send(client.socket, 'mining.set_target', this.getSetTargetMessage())
 
           if (this.hasWork()) {
-            this.send(client, 'mining.notify', this.getNotifyMessage())
+            this.send(client.socket, 'mining.notify', this.getNotifyMessage())
           }
 
           break
@@ -201,14 +234,16 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningSubmitSchema, header.result.body)
 
           if (body.error) {
-            throw new ClientMessageMalformedError(client, body.error)
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
+            return
           }
 
           const submittedRequestId = body.result.miningRequestId
           const submittedRandomness = body.result.randomness
 
           void this.pool.submitWork(client, submittedRequestId, submittedRandomness)
-
           break
         }
 
@@ -232,7 +267,7 @@ export class StratumServer {
     client.socket.removeAllListeners()
     client.close()
     this.clients.delete(client.id)
-    this.removeConnectionCount(client)
+    this.peers.removeConnectionCount(client)
   }
 
   private getNotifyMessage(): MiningNotifyMessage {
@@ -270,7 +305,7 @@ export class StratumServer {
     })
 
     for (const client of this.clients.values()) {
-      if (this.badClients.has(client.id)) {
+      if (!client.subscribed) {
         continue
       }
 
@@ -278,8 +313,13 @@ export class StratumServer {
         continue
       }
 
+      if (this.peers.isShadowBanned(client)) {
+        continue
+      }
+
       client.socket.write(serialized)
     }
+
     this.logger.debug('completed broadcast to clients', {
       method,
       id: message.id,
@@ -287,23 +327,13 @@ export class StratumServer {
       messageLength: serialized.length,
     })
   }
-  private send(
-    client: StratumServerClient,
-    method: 'mining.notify',
-    body: MiningNotifyMessage,
-  ): void
-  private send(
-    client: StratumServerClient,
-    method: 'mining.set_target',
-    body: MiningSetTargetMessage,
-  ): void
-  private send(
-    client: StratumServerClient,
-    method: 'mining.subscribed',
-    body: MiningSubscribedMessage,
-  ): void
-  private send(client: StratumServerClient, method: 'mining.wait_for_work'): void
-  private send(client: StratumServerClient, method: string, body?: unknown): void {
+
+  send(socket: net.Socket, method: 'mining.notify', body: MiningNotifyMessage): void
+  send(socket: net.Socket, method: 'mining.disconnect', body: MiningDisconnectMessage): void
+  send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
+  send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessage): void
+  send(socket: net.Socket, method: 'mining.wait_for_work'): void
+  send(socket: net.Socket, method: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,
       method: method,
@@ -311,33 +341,6 @@ export class StratumServer {
     }
 
     const serialized = JSON.stringify(message) + '\n'
-    client.socket.write(serialized)
-  }
-
-  protected addConnectionCount(client: StratumServerClient): void {
-    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
-    this.connectionsByIp.set(client.remoteAddress, count + 1)
-  }
-
-  protected removeConnectionCount(client: StratumServerClient): void {
-    const count = this.connectionsByIp.get(client.remoteAddress) ?? 0
-    this.connectionsByIp.set(client.remoteAddress, count - 1)
-
-    if (count - 1 <= 0) {
-      this.connectionsByIp.delete(client.remoteAddress)
-    }
-  }
-
-  protected isSocketAllowed(socket: net.Socket): boolean {
-    if (!socket.remoteAddress) {
-      return false
-    }
-
-    const connections = this.connectionsByIp.get(socket.remoteAddress) ?? 0
-    if (this.maxConnectionsByIp > 0 && connections >= this.maxConnectionsByIp) {
-      return false
-    }
-
-    return true
+    socket.write(serialized)
   }
 }

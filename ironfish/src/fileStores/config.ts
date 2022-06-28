@@ -31,6 +31,7 @@ export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_POOL_DIFFICULTY = '15000000000'
 export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
 export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
+export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
 export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
@@ -158,6 +159,11 @@ export type ConfigOptions = {
   poolAccountName: string
 
   /**
+   * Should pool clients be banned for perceived bad behavior
+   */
+  poolBanning: boolean
+
+  /**
    * The percent of the confirmed balance of the pool's account that it will payout
    */
   poolBalancePercentPayout: number
@@ -188,12 +194,18 @@ export type ConfigOptions = {
   poolSuccessfulPayoutInterval: number
 
   /**
+   * The length of time in seconds that the pool will wait between status
+   * messages. Setting to 0 disables status messages.
+   */
+  poolStatusNotificationInterval: number
+
+  /**
    * The length of time in seconds that will be used to calculate hashrate for the pool.
    */
   poolRecentShareCutoff: number
 
   /**
-   * The discord webhook URL to post pool critical pool information too
+   * The discord webhook URL to post pool critical pool information to
    */
   poolDiscordWebhook: ''
 
@@ -205,7 +217,7 @@ export type ConfigOptions = {
 
   /**
 
-   * The lark webhook URL to post pool critical pool information too
+   * The lark webhook URL to post pool critical pool information to
    */
   poolLarkWebhook: ''
 
@@ -297,12 +309,14 @@ export class Config extends KeyStore<ConfigOptions> {
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      poolBanning: false,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
       poolDifficulty: DEFAULT_POOL_DIFFICULTY,
       poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
+      poolStatusNotificationInterval: DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL,
       poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
       poolDiscordWebhook: '',
       poolMaxConnectionsPerIp: 0,

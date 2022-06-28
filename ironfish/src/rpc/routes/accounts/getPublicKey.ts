@@ -5,13 +5,13 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetPublicKeyRequest = { account?: string; generate: boolean }
+export type GetPublicKeyRequest = { account?: string; generate?: boolean }
 export type GetPublicKeyResponse = { account: string; publicKey: string }
 
 export const GetPublicKeyRequestSchema: yup.ObjectSchema<GetPublicKeyRequest> = yup
   .object({
     account: yup.string().strip(true),
-    generate: yup.boolean().defined(),
+    generate: yup.boolean().defined().default(false),
   })
   .defined()
 

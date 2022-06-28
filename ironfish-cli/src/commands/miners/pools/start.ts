@@ -43,6 +43,10 @@ export class StartPool extends IronfishCommand {
     balancePercentPayout: Flags.integer({
       description: 'whether the pool should payout or not. useful for solo miners',
     }),
+    banning: Flags.boolean({
+      description: 'whether the pool should ban peers for errors or bad behavior',
+      allowNo: true,
+    }),
   }
 
   pool: MiningPool | null = null
@@ -118,6 +122,7 @@ export class StartPool extends IronfishCommand {
       host: host,
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,
+      banning: flags.banning,
     })
 
     await this.pool.start()

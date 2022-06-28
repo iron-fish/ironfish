@@ -318,19 +318,9 @@ describe('MemPool', () => {
       const add = jest.spyOn(queue, 'add')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { block } = await useBlockWithTx(node, accountA, accountB)
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+      const minersFee = block.transactions[0]
 
-      // TODO: Remove this and use return value of useBlockWithTx when miners
-      // miners fee is always first on the block
-      let minersFee
-      let transaction
-      for (const tx of block.transactions) {
-        if (tx.isMinersFee()) {
-          minersFee = tx
-        } else {
-          transaction = tx
-        }
-      }
       Assert.isNotUndefined(minersFee)
       Assert.isNotUndefined(transaction)
 

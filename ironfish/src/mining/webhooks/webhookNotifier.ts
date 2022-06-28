@@ -6,6 +6,7 @@ import Axios, { AxiosInstance } from 'axios'
 import { createRootLogger, Logger } from '../../logger'
 import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
 import { FileUtils } from '../../utils/file'
+import { MiningPoolStatus } from '../pool'
 
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
@@ -75,6 +76,33 @@ export abstract class WebhookNotifier {
   poolPayoutError(error: unknown): void {
     this.sendText(
       `Error while sending payout transaction: ${ErrorUtils.renderError(error, true)}`,
+    )
+  }
+
+  poolPayoutStarted(
+    payoutId: number,
+    receives: { publicAddress: string; amount: string; memo: string }[],
+    totalShareCount: number,
+  ): void {
+    const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
+
+    this.sendText(
+      `Creating payout of ${totalShareCount} shares to ${
+        receives.length
+      } users for ${displayIronAmountWithCurrency(
+        Number(oreToIron(Number(total.toString()))),
+        false,
+      )}(${payoutId})`,
+    )
+  }
+
+  poolStatus(status: MiningPoolStatus): void {
+    this.sendText(
+      `Status for mining pool '${status.name}':\n\tHashrate: ${FileUtils.formatHashRate(
+        status.hashRate,
+      )}/s\n\tMiners: ${status.miners}\n\tShares pending: ${
+        status.sharesPending
+      }\n\tBan Count: ${status.banCount}`,
     )
   }
 
