@@ -17,7 +17,6 @@ import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
-import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
@@ -49,7 +48,6 @@ export class WorkerPool {
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.GetUnspentNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -223,32 +221,6 @@ export class WorkerPool {
     }
 
     return response
-  }
-
-  async getUnspentNotes(
-    serializedTransactionPosted: Buffer,
-    accountIncomingViewKeys: Array<string>,
-  ): Promise<{
-    notes: ReadonlyArray<{
-      account: string
-      hash: string
-      note: Buffer
-    }>
-  }> {
-    const request = new GetUnspentNotesRequest(
-      serializedTransactionPosted,
-      accountIncomingViewKeys,
-    )
-
-    const response = await this.execute(request).result()
-
-    if (!(response instanceof GetUnspentNotesResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return {
-      notes: response.notes,
-    }
   }
 
   /**

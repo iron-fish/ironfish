@@ -18,7 +18,6 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
@@ -670,8 +669,8 @@ export class Accounts {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for (const { blockHash, note } of this.getDecryptableNotes(account)) {
-      const map = this.decryptableNotes.get(note.hash)
+    for (const { blockHash, noteHash, serializedNote } of this.getDecryptableNotes(account)) {
+      const map = this.decryptableNotes.get(noteHash)
 
       if (!map) {
         throw new Error('All decryptable notes should be in the decryptableNote map')
@@ -691,8 +690,8 @@ export class Accounts {
         }
 
         unspentNotes.push({
-          hash: note.hash,
-          note: new Note(note.note),
+          hash: noteHash,
+          note: new Note(serializedNote),
           index: map.noteIndex,
           confirmed,
         })
@@ -704,10 +703,10 @@ export class Accounts {
 
   private getDecryptableNotes(account: Account): Array<{
     blockHash: string | null
-    note: UnspentNote
+    noteHash: string
+    serializedNote: Buffer
   }> {
     const decryptableNotes = []
-    const incomingViewKey = account.incomingViewKey
 
     for (const [
       noteHash,
@@ -719,11 +718,8 @@ export class Accounts {
 
         decryptableNotes.push({
           blockHash: transactionValue.blockHash,
-          note: {
-            account: incomingViewKey,
-            hash: noteHash,
-            note: serializedNote,
-          },
+          noteHash,
+          serializedNote,
         })
       }
     }
