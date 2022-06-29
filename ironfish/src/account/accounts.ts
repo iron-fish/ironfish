@@ -1188,6 +1188,7 @@ export class Accounts {
 
     this.accounts.delete(account.id)
     await this.db.removeAccount(account.id)
+    await this.db.removeHeadHash(account)
     this.onAccountRemoved.emit(account)
   }
 
