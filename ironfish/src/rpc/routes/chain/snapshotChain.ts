@@ -49,7 +49,8 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
-    const { start, stop } = BlockchainUtils.getBlockRange(node.chain)
+    // The genesis block is included with the node, so we start at the second block
+    const { start, stop } = BlockchainUtils.getBlockRange(node.chain, { start: 2 })
     const maxBlocksPerChunk = request.data?.maxBlocksPerChunk ?? MAX_BLOCKS_PER_SNAPSHOT_CHUNK
 
     request.stream({ start, stop })

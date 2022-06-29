@@ -24,7 +24,7 @@ export default class CreateSnapshot extends IronfishCommand {
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'Bucket URL to upload snapshot to',
+      description: 'S3 bucket to upload snapshot to',
     }),
     path: Flags.string({
       char: 'p',
@@ -125,24 +125,27 @@ export default class CreateSnapshot extends IronfishCommand {
       await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
       CliUx.ux.action.stop(`done`)
 
-      const manifestPath = path.join(exportDir, 'manifest.json')
+      const manifestPath = this.sdk.fileSystem.join(exportDir, 'manifest.json')
+      const manifestPayload = JSON.stringify(
+        {
+          block_height: blockHeight,
+          checksum,
+          file_name: snapshotFileName,
+          file_size: fileSize,
+          timestamp,
+        },
+        undefined,
+        '  ',
+      )
 
-      await fsAsync
-        .writeFile(
-          manifestPath,
-          JSON.stringify({
-            block_height: blockHeight,
-            checksum,
-            file_name: snapshotFileName,
-            file_size: fileSize,
-            timestamp,
-          }),
-        )
-        .then(async () => {
-          CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
-          await this.uploadToBucket(manifestPath, bucket, 'application/json')
-          CliUx.ux.action.stop(`done`)
-        })
+      await fsAsync.writeFile(manifestPath, manifestPayload).then(async () => {
+        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
+        await this.uploadToBucket(manifestPath, bucket, 'application/json')
+        CliUx.ux.action.stop(`done`)
+      })
+
+      this.log('Snapshot upload complete. Uploaded the following manifest:')
+      this.log(manifestPayload)
     }
   }
 
@@ -190,6 +193,7 @@ export default class CreateSnapshot extends IronfishCommand {
       .upload(params, (err: Error) => {
         if (err) {
           this.logger.error(`Could not upload file to S3: ${err.message}`)
+          this.exit(1)
         }
       })
       .promise()
