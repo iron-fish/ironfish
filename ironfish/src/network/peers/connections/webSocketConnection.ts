@@ -86,12 +86,15 @@ export class WebSocketConnection extends Connection {
         return
       }
 
+      this.metrics?.p2p_InboundTraffic.add(event.data.byteLength)
+      this.metrics?.p2p_InboundTraffic_WS.add(event.data.byteLength)
+
       let message
-      const byteCount = event.data.byteLength
+
       try {
         message = parseNetworkMessage(event.data)
-        this.metrics?.p2p_InboundTraffic.add(byteCount)
-        this.metrics?.p2p_InboundTraffic_WS.add(byteCount)
+
+        this.metrics?.p2p_InboundTrafficByMessage.get(message.type)?.add(event.data.byteLength)
       } catch (error) {
         // TODO: any socket that sends invalid messages should probably
         // be punished with some kind of "downgrade" event. This should
@@ -101,8 +104,6 @@ export class WebSocketConnection extends Connection {
         this.close(new NetworkError(message))
         return
       }
-
-      this.metrics?.p2p_InboundTrafficByMessage.get(message.type)?.add(byteCount)
 
       if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(

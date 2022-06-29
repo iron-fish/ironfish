@@ -4,8 +4,8 @@
 
 import os from 'os'
 import { createRootLogger, Logger } from '../logger'
-import { NetworkMessageType, NetworkMessageTypeList } from '../network/types'
-import { SetIntervalToken } from '../utils'
+import { NetworkMessageType } from '../network/types'
+import { NumberEnumUtils, SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -44,7 +44,7 @@ export class MetricsMonitor {
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
 
-    for (const value of NetworkMessageTypeList) {
+    for (const value of NumberEnumUtils.getNumValues(NetworkMessageType)) {
       this.p2p_InboundTrafficByMessage.set(value, this.addMeter())
       this.p2p_OutboundTrafficByMessage.set(value, this.addMeter())
     }

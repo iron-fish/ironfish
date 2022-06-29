@@ -20,12 +20,6 @@ export enum NetworkMessageType {
   SignalRequest = 12,
 }
 
-// Enums contain bi-directional mappings so filter out duplicate enum keys
-// This is used for some cases where we need to do some action for each message type
-export const NetworkMessageTypeList = Object.keys(NetworkMessageType)
-  .map((k) => parseInt(k))
-  .filter((k) => !isNaN(k))
-
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WSWebSocket
 export type IsomorphicWebSocket = WebSocket | WSWebSocket
 export type IsomorphicWebSocketErrorEvent = WSErrorEvent

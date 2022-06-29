@@ -6,7 +6,7 @@ import { Blockchain } from '../blockchain'
 import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { NetworkMessageType, NetworkMessageTypeList } from '../network/types'
+import { NetworkMessageType } from '../network/types'
 import { Block } from '../primitives/block'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -77,7 +77,9 @@ export class Telemetry {
     void this.flushLoop()
 
     if (this.metrics) {
-      void this.metricsLoop()
+      this.metricsInterval = setTimeout(() => {
+        void this.metricsLoop()
+      }, this.METRICS_INTERVAL)
     }
   }
 
@@ -115,30 +117,24 @@ export class Telemetry {
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
 
-    const inboundTrafficFields: Field[] = NetworkMessageTypeList.flatMap((messageType) => {
-      const value = this.metrics?.p2p_InboundTrafficByMessage.get(messageType)?.rate5m
-      return value
-        ? [
-            {
-              name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
-              type: 'float',
-              value: value,
-            },
-          ]
-        : []
+    const inboundTrafficFields: Field[] = [
+      ...this.metrics.p2p_InboundTrafficByMessage.entries(),
+    ].map(([messageType, meter]) => {
+      return {
+        name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+        type: 'float',
+        value: meter.rate5m,
+      }
     })
 
-    const outboundTrafficFields: Field[] = NetworkMessageTypeList.flatMap((messageType) => {
-      const value = this.metrics?.p2p_OutboundTrafficByMessage.get(messageType)?.rate5m
-      return value
-        ? [
-            {
-              name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
-              type: 'float',
-              value: value,
-            },
-          ]
-        : []
+    const outboundTrafficFields: Field[] = [
+      ...this.metrics.p2p_OutboundTrafficByMessage.entries(),
+    ].map(([messageType, meter]) => {
+      return {
+        name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+        type: 'float',
+        value: meter.rate5m,
+      }
     })
 
     this.submit({
