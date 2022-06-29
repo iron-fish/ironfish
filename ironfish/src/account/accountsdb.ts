@@ -236,14 +236,8 @@ export class AccountsDB {
   }
 
   async loadNullifierToNoteMap(map: Map<string, string>): Promise<void> {
-    for await (const nullifierToNoteKey of this.nullifierToNote.getAllKeysIter()) {
-      const value = await this.nullifierToNote.get(nullifierToNoteKey)
-
-      if (!value) {
-        throw new Error('Value must exist if key exists')
-      }
-
-      map.set(nullifierToNoteKey, value)
+    for await (const [key, value] of this.nullifierToNote.getAllIter()) {
+      map.set(key, value)
     }
   }
 
@@ -275,16 +269,8 @@ export class AccountsDB {
       { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
     >,
   ): Promise<void> {
-    await this.database.transaction(async (tx) => {
-      for await (const noteHash of this.decryptableNotes.getAllKeysIter(tx)) {
-        const value = await this.decryptableNotes.get(noteHash)
-
-        if (!value) {
-          throw new Error('Value must exist if key exists')
-        }
-
-        map.set(noteHash, value)
-      }
-    })
+    for await (const [key, value] of this.decryptableNotes.getAllIter()) {
+      map.set(key, value)
+    }
   }
 }
