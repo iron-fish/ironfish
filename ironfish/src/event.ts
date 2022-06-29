@@ -87,8 +87,8 @@ export class Event<A extends unknown[]> {
 export const waitForEmit = <T extends unknown[]>(event: Event<T>): Promise<T> => {
   return new Promise((resolve) => {
     const handler = (...args: T) => {
-      event.off(handler)
       resolve(args)
+      event.off(handler)
     }
     event.on(handler)
   })
