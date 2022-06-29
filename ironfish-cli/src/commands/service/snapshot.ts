@@ -4,11 +4,11 @@
 import { Assert, AsyncUtils, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { S3 } from 'aws-sdk'
-import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
+import tar from 'tar'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -146,23 +146,26 @@ export default class CreateSnapshot extends IronfishCommand {
     }
   }
 
-  zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
-    return new Promise<number | null>((resolve, reject) => {
-      const sourceDir = path.dirname(source)
-      const sourceFile = path.basename(source)
+  async zipDir(source: string, dest: string, excludes: string[] = []): Promise<void> {
+    const sourceDir = path.dirname(source)
+    const sourceFile = path.basename(source)
+    const excludeSet = new Set(excludes)
 
-      const args = ['-zcf', dest, '-C', sourceDir, sourceFile]
-
-      for (const exclude of excludes) {
-        args.unshift(exclude)
-        args.unshift('--exclude')
-      }
-
-      const process = spawn('tar', args)
-      process.on('exit', (code) => resolve(code))
-      process.on('close', (code) => resolve(code))
-      process.on('error', (error) => reject(error))
-    })
+    await tar.create(
+      {
+        gzip: true,
+        file: dest,
+        C: sourceDir,
+        filter: function (path) {
+          if (excludeSet.has(path)) {
+            return false
+          } else {
+            return true
+          }
+        },
+      },
+      [sourceFile],
+    )
   }
 
   async uploadToBucket(filePath: string, bucket: string, contentType: string): Promise<void> {
@@ -186,7 +189,7 @@ export default class CreateSnapshot extends IronfishCommand {
     await s3
       .upload(params, (err: Error) => {
         if (err) {
-          this.logger.error(err.message)
+          this.logger.error(`Could not upload file to S3: ${err.message}`)
         }
       })
       .promise()
