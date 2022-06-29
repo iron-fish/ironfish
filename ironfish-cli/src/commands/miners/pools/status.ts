@@ -31,8 +31,8 @@ export class PoolStatus extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the status of the mining pool'
-    })
+      description: 'follow the status of the mining pool',
+    }),
   }
 
   async start(): Promise<void> {
