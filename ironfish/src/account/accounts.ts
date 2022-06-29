@@ -341,16 +341,18 @@ export class Accounts {
     await this.updateHeadHash(null)
   }
 
-  private decryptNotes(
+  private async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
-  ): Array<{
-    noteIndex: number | null
-    nullifier: string | null
-    merkleHash: string
-    forSpender: boolean
-    account: Account
-  }> {
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
     const accounts = this.listAccounts()
     const notes = new Array<{
       noteIndex: number | null
@@ -374,39 +376,21 @@ export class Accounts {
       }
 
       for (const account of accounts) {
-        // Try decrypting the note as the owner
-        const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
-        if (receivedNote) {
-          if (receivedNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: false,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier:
-                currentNoteIndex !== null
-                  ? Buffer.from(
-                      receivedNote.nullifier(account.spendingKey, BigInt(currentNoteIndex)),
-                    ).toString('hex')
-                  : null,
-              account: account,
-            })
-          }
-          continue
-        }
-
-        // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(account.outgoingViewKey)
-        if (spentNote) {
-          if (spentNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: true,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier: null,
-              account: account,
-            })
-          }
-          continue
+        const decryptedNote = await this.workerPool.decryptNotes(
+          note.serialize(),
+          account.incomingViewKey,
+          account.outgoingViewKey,
+          account.spendingKey,
+          currentNoteIndex,
+        )
+        if (decryptedNote) {
+          notes.push({
+            account,
+            forSpender: decryptedNote.forSpender,
+            merkleHash: decryptedNote.merkleHash.toString('hex'),
+            noteIndex: decryptedNote.index,
+            nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
+          })
         }
       }
     }
@@ -430,8 +414,8 @@ export class Accounts {
 
     let newSequence = submittedSequence
 
-    await transaction.withReference(() => {
-      const notes = this.decryptNotes(transaction, initialNoteIndex)
+    await transaction.withReference(async () => {
+      const notes = await this.decryptNotes(transaction, initialNoteIndex)
 
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
