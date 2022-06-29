@@ -429,11 +429,15 @@ export class MiningPool {
     ])
 
     let minerCount = 0
-    this.stratum.clients.forEach((client) => {
+    let addressMinerCount = 0
+    for (const client of this.stratum.clients.values()) {
       if (client.subscribed) {
         minerCount++
+        if (client.publicAddress === publicAddress) {
+          addressMinerCount++
+        }
       }
-    })
+    }
 
     const status = {
       name: this.name,
@@ -444,23 +448,21 @@ export class MiningPool {
     }
 
     if (publicAddress) {
-      let addressMiners = 0
-      this.stratum.clients.forEach((client) => {
-        if (client.publicAddress === publicAddress) {
-          addressMiners += 1
-        }
-      })
-
+      const [addressHashRate, addressSharesPending] = await Promise.all([
+        this.estimateHashRate(publicAddress),
+        this.shares.sharesPendingPayout(publicAddress),
+      ])
       return {
         ...status,
         addressStatus: {
           publicAddress: publicAddress,
-          hashRate: await this.estimateHashRate(publicAddress),
-          miners: addressMiners,
-          sharesPending: await this.shares.sharesPendingPayout(publicAddress),
+          hashRate: addressHashRate,
+          miners: addressMinerCount,
+          sharesPending: addressSharesPending,
         },
       }
     }
+
     return status
   }
 }
