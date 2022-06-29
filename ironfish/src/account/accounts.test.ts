@@ -154,4 +154,24 @@ describe('Accounts', () => {
       })
     })
   })
+
+  describe('getEarliestHeadHash', () => {
+    it('should return the earliest existing head hash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+      await useAccountFixture(node.accounts, 'accountC')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockA)
+
+      node.accounts['headHashes'].set(accountA.id, blockA.header.hash.toString('hex'))
+      node.accounts['headHashes'].set(accountB.id, blockB.header.hash.toString('hex'))
+
+      expect(await node.accounts.getEarliestHeadHash()).toEqual(blockA.header.hash)
+    })
+  })
 })

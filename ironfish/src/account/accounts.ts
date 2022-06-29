@@ -183,31 +183,9 @@ export class Accounts {
 
     await this.db.loadHeadHashesMap(this.headHashes)
 
-    // Find earliest head hash
-    let earliestHeader = null
-    for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
+    const earliestHash = await this.getEarliestHeadHash()
 
-      if (!headHash) {
-        continue
-      }
-
-      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
-
-      if (!header) {
-        // If no header is returned, the hash is likely invalid and we should remove it
-        await this.db.removeHeadHash(account)
-        continue
-      }
-
-      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
-        earliestHeader = header
-      }
-
-      // TODO: Check if any hashes are on known-forks
-    }
-
-    this.chainProcessor.hash = earliestHeader ? earliestHeader.hash : null
+    this.chainProcessor.hash = earliestHash
 
     await this.loadTransactionsFromDb()
   }
@@ -361,7 +339,7 @@ export class Accounts {
     this.nullifierToNote.clear()
     this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
-    await this.db.removeHeadHashes()
+    await this.updateHeadHash(null)
   }
 
   private decryptNotes(
@@ -1270,6 +1248,34 @@ export class Accounts {
     const key = generateNewPublicAddress(account.spendingKey)
     account.publicAddress = key.public_address
     await this.db.setAccount(account)
+  }
+
+  /// Find and return the earliest occurring head hash in the account head hashes map
+  async getEarliestHeadHash(): Promise<Buffer | null> {
+    let earliestHeader = null
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
+      if (!headHash) {
+        continue
+      }
+
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+
+      if (!header) {
+        // If no header is returned, the hash is likely invalid and we should remove it
+        await this.db.removeHeadHash(account)
+        continue
+      }
+
+      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
+        earliestHeader = header
+      }
+
+      // TODO: Check if any hashes are on known-forks
+    }
+
+    return earliestHeader ? earliestHeader.hash : null
   }
 
   protected assertHasAccount(account: Account): void {
