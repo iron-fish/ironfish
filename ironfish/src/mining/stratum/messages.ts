@@ -44,9 +44,11 @@ export type MiningNotifyMessage = {
   header: string
 }
 
-export type MiningGetStatusMessage = {
-  publicAddress?: string
-}
+export type MiningGetStatusMessage =
+  | {
+      publicAddress?: string
+    }
+  | undefined
 
 export type MiningStatusMessage = {
   name: string
@@ -121,7 +123,7 @@ export const MiningGetStatusSchema: yup.ObjectSchema<MiningGetStatusMessage> = y
   .object({
     publicAddress: yup.string().optional(),
   })
-  .required()
+  .default(undefined)
 
 export const MiningStatusSchema: yup.ObjectSchema<MiningStatusMessage> = yup
   .object({

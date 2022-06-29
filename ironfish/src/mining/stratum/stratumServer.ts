@@ -253,13 +253,15 @@ export class StratumServer {
           const body = await YupUtils.tryValidate(MiningGetStatusSchema, header.result.body)
 
           if (body.error) {
-            throw new ClientMessageMalformedError(client, body.error)
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
           }
 
           this.send(
             client.socket,
             'mining.status',
-            await this.pool.getStatus(body.result.publicAddress),
+            await this.pool.getStatus(body.result?.publicAddress),
           )
 
           break
