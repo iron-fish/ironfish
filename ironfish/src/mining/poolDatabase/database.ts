@@ -61,24 +61,18 @@ export class PoolDatabase {
     )
   }
 
-  async getSharesCountForPayout(): Promise<number> {
-    const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL',
-    )
-    if (result == null) {
-      return 0
-    }
-    return result.count
-  }
+  async getSharesCountForPayout(publicAddress?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL'
 
-  async getAddressSharesCountForPayout(publicAddress: string): Promise<number> {
-    const result = await this.db.get<{ count: number }>(
-      'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL and publicAddress = ?',
-      publicAddress,
-    )
-    if (result == null) {
+    if (publicAddress) {
+      sql += 'AND publicAddress = ?'
+    }
+
+    const result = await this.db.get<{ count: number }>(sql, publicAddress)
+    if (result === undefined) {
       return 0
     }
+
     return result.count
   }
 
@@ -121,26 +115,18 @@ export class PoolDatabase {
     )
   }
 
-  async shareCountSince(timestamp: number): Promise<number> {
-    const result = await this.db.get<{ count: number }>(
-      "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')",
-      timestamp,
-    )
-    if (result == null) {
-      return 0
-    }
-    return result.count
-  }
+  async shareCountSince(timestamp: number, publicAddress?: string): Promise<number> {
+    let sql = "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')"
 
-  async addressShareCountSince(publicAddress: string, timestamp: number): Promise<number> {
-    const result = await this.db.get<{ count: number }>(
-      "SELECT COUNT(id) AS count FROM share WHERE publicAddress = ? AND createdAt > datetime(?, 'unixepoch')",
-      publicAddress,
-      timestamp,
-    )
-    if (result == null) {
+    if (publicAddress) {
+      sql += ' AND publicAddress = ?'
+    }
+
+    const result = await this.db.get<{ count: number }>(sql, timestamp, publicAddress)
+    if (result === undefined) {
       return 0
     }
+
     return result.count
   }
 }
