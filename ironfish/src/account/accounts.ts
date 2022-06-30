@@ -383,6 +383,7 @@ export class Accounts {
           account.spendingKey,
           currentNoteIndex,
         )
+
         if (decryptedNote) {
           notes.push({
             account,
