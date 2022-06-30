@@ -1251,7 +1251,6 @@ export class Accounts {
     await this.db.setAccount(account)
   }
 
-  /// Find and return the earliest occurring head hash in the account head hashes map
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHeader = null
     for (const account of this.accounts.values()) {
