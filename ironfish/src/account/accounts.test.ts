@@ -98,6 +98,47 @@ describe('Accounts', () => {
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
 
+  describe('updateHeadHash', () => {
+    it('should update head hashes for existing accounts', async () => {
+      const { node } = nodeTest
+
+      const saveHeadHashSpy = jest.spyOn(node.accounts.db, 'saveHeadHash')
+      const removeHeadHashSpy = jest.spyOn(node.accounts.db, 'removeHeadHash')
+
+      const newHeadHash = Buffer.alloc(32, 1)
+      const newHeadHashHex = newHeadHash.toString('hex')
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+
+      await node.accounts.updateHeadHash(newHeadHash)
+
+      expect(saveHeadHashSpy).toHaveBeenCalledTimes(2)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(1, accountA, newHeadHashHex)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(2, accountB, newHeadHashHex)
+
+      expect(removeHeadHashSpy).toHaveBeenCalledTimes(0)
+    })
+
+    it('should remove entries when called with null', async () => {
+      const { node } = nodeTest
+
+      const saveHeadHashSpy = jest.spyOn(node.accounts.db, 'saveHeadHash')
+      const removeHeadHashSpy = jest.spyOn(node.accounts.db, 'removeHeadHash')
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+
+      await node.accounts.updateHeadHash(null)
+
+      expect(saveHeadHashSpy).toHaveBeenCalledTimes(0)
+
+      expect(removeHeadHashSpy).toHaveBeenCalledTimes(2)
+      expect(removeHeadHashSpy).toHaveBeenNthCalledWith(1, accountA)
+      expect(removeHeadHashSpy).toHaveBeenNthCalledWith(2, accountB)
+    })
+  })
+
   describe('getBalance', () => {
     it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {
       const { node: nodeA } = await nodeTest.createSetup({
@@ -152,6 +193,26 @@ describe('Accounts', () => {
         confirmed: BigInt(0),
         unconfirmed: BigInt(0),
       })
+    })
+  })
+
+  describe('getEarliestHeadHash', () => {
+    it('should return the earliest existing head hash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+      await useAccountFixture(node.accounts, 'accountC')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockA)
+
+      node.accounts['headHashes'].set(accountA.id, blockA.header.hash.toString('hex'))
+      node.accounts['headHashes'].set(accountB.id, blockB.header.hash.toString('hex'))
+
+      expect(await node.accounts.getEarliestHeadHash()).toEqual(blockA.header.hash)
     })
   })
 })

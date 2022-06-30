@@ -6,7 +6,6 @@ import { IDatabaseEncoding } from '../../storage'
 
 export type AccountsDBMeta = {
   defaultAccountId: string | null
-  headHash: string | null
 }
 
 export type MetaValue = AccountsDBMeta[keyof AccountsDBMeta]

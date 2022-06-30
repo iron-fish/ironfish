@@ -49,6 +49,7 @@ export class Accounts {
   >()
   protected readonly decryptableNotes = new Map<string, Readonly<DecryptableNotesValue>>()
   protected readonly nullifierToNote = new Map<string, string>()
+  protected readonly headHashes = new Map<string, string>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -179,7 +180,12 @@ export class Accounts {
 
     const meta = await this.db.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
-    this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
+
+    await this.db.loadHeadHashesMap(this.headHashes)
+
+    const earliestHash = await this.getEarliestHeadHash()
+
+    this.chainProcessor.hash = earliestHash
 
     await this.loadTransactionsFromDb()
   }
@@ -318,8 +324,13 @@ export class Accounts {
   }
 
   async updateHeadHash(headHash: Buffer | null): Promise<void> {
-    const hashString = headHash && headHash.toString('hex')
-    await this.db.setHeadHash(hashString)
+    for (const account of this.accounts.values()) {
+      if (headHash) {
+        await this.db.saveHeadHash(account, headHash.toString('hex'))
+      } else {
+        await this.db.removeHeadHash(account)
+      }
+    }
   }
 
   async reset(): Promise<void> {
@@ -1177,6 +1188,7 @@ export class Accounts {
 
     this.accounts.delete(account.id)
     await this.db.removeAccount(account.id)
+    await this.db.removeHeadHash(account)
     this.onAccountRemoved.emit(account)
   }
 
@@ -1237,6 +1249,33 @@ export class Accounts {
     const key = generateNewPublicAddress(account.spendingKey)
     account.publicAddress = key.public_address
     await this.db.setAccount(account)
+  }
+
+  async getEarliestHeadHash(): Promise<Buffer | null> {
+    let earliestHeader = null
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
+      if (!headHash) {
+        continue
+      }
+
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+
+      if (!header) {
+        // If no header is returned, the hash is likely invalid and we should remove it
+        await this.db.removeHeadHash(account)
+        continue
+      }
+
+      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
+        earliestHeader = header
+      }
+
+      // TODO: Check if any hashes are on known-forks
+    }
+
+    return earliestHeader ? earliestHeader.hash : null
   }
 
   protected assertHasAccount(account: Account): void {

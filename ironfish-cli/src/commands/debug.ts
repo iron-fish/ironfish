@@ -70,18 +70,29 @@ export default class Debug extends IronfishCommand {
   }
 
   async outputRequiringDB(node: IronfishNode): Promise<Map<string, string>> {
-    const accountsMeta = await node.accounts.db.loadAccountsMeta()
-    const accountsHeadHash = accountsMeta.headHash !== null ? accountsMeta.headHash : ''
+    await node.accounts.load()
+    const output = new Map<string, string>()
 
-    const accountsBlockHeader = await node.chain.getHeader(Buffer.from(accountsHeadHash, 'hex'))
-    const accountsHeadInChain = !!accountsBlockHeader
-    const accountsHeadSequence = accountsBlockHeader?.sequence || 'null'
+    const headHashes = new Map<string, string>()
+    await node.accounts.db.loadHeadHashesMap(headHashes)
 
-    return new Map<string, string>([
-      ['Accounts head hash', `${accountsHeadHash}`],
-      ['Accounts head in chain', `${accountsHeadInChain.toString()}`],
-      ['Accounts head sequence', `${accountsHeadSequence}`],
-    ])
+    for (const [accountId, headHash] of headHashes.entries()) {
+      const account = node.accounts.getAccount(accountId)
+
+      const blockHeader = await node.chain.getHeader(Buffer.from(headHash, 'hex'))
+      const headInChain = !!blockHeader
+      const headSequence = blockHeader?.sequence || 'null'
+
+      const shortId = accountId.slice(0, 6)
+
+      output.set(`Account ${shortId} uuid`, `${accountId}`)
+      output.set(`Account ${shortId} name`, `${account?.name || `ACCOUNT NOT FOUND`}`)
+      output.set(`Account ${shortId} head hash`, `${headHash}`)
+      output.set(`Account ${shortId} head in chain`, `${headInChain.toString()}`)
+      output.set(`Account ${shortId} sequence`, `${headSequence}`)
+    }
+
+    return output
   }
 
   display(output: Map<string, string>): void {
