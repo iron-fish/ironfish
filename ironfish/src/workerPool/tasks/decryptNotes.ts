@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { KEY_LENGTH, NOTE_LENGTH } from '../../common/constants'
+import { ENCRYPTED_NOTE_LENGTH, KEY_LENGTH, NOTE_LENGTH } from '../../common/constants'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -60,7 +60,7 @@ export class DecryptNotesRequest extends WorkerMessage {
     const reader = bufio.read(buffer, true)
 
     const hasCurrentNoteIndex = Boolean(reader.readU8())
-    const serializedNote = reader.readBytes(NOTE_LENGTH)
+    const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
@@ -81,7 +81,7 @@ export class DecryptNotesRequest extends WorkerMessage {
   }
 
   getSize(): number {
-    let size = 1 + NOTE_LENGTH + KEY_LENGTH + KEY_LENGTH + KEY_LENGTH
+    let size = 1 + ENCRYPTED_NOTE_LENGTH + KEY_LENGTH + KEY_LENGTH + KEY_LENGTH
     if (this.currentNoteIndex) {
       size += 4
     }

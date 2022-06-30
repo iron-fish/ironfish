@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { KEY_LENGTH, NOTE_LENGTH } from '../../common/constants'
+import { ENCRYPTED_NOTE_LENGTH, KEY_LENGTH, NOTE_LENGTH } from '../../common/constants'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
 
 describe('DecryptNotesRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new DecryptNotesRequest(
-      Buffer.alloc(NOTE_LENGTH, 1),
+      Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
       Buffer.alloc(KEY_LENGTH, 1).toString('hex'),
       Buffer.alloc(KEY_LENGTH, 1).toString('hex'),
       Buffer.alloc(KEY_LENGTH, 1).toString('hex'),
