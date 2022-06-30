@@ -256,14 +256,18 @@ export class StratumServer {
             this.peers.ban(client, {
               message: body.error.message,
             })
+            return
           }
 
-          this.send(
-            client.socket,
-            'mining.status',
-            await this.pool.getStatus(body.result?.publicAddress),
-          )
+          const publicAddress = body.result?.publicAddress
+          if (publicAddress && !isValidPublicAddress(publicAddress)) {
+            this.peers.ban(client, {
+              message: `Invalid public address: ${publicAddress}`,
+            })
+            return
+          }
 
+          this.send(client.socket, 'mining.status', await this.pool.getStatus(publicAddress))
           break
         }
 
