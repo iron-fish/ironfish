@@ -99,11 +99,13 @@ export class PoolStatus extends IronfishCommand {
   }
 
   renderStatus(status: MiningStatusMessage): string {
-    let result = `Status of mining pool '${status.name}':\n`
+    let result = ''
+    result += `Status of mining pool '${status.name}':\n`
     result += `Miners:                ${status.miners}\n`
     result += `Hashrate:              ${FileUtils.formatHashRate(status.hashRate)}\n`
     result += `Shares pending payout: ${status.sharesPending}\n`
-    result += `Ban count:             ${status.banCount}\n`
+    result += `Clients:               ${status.clients}\n`
+    result += `Bans:                  ${status.bans}\n`
 
     if (status.addressStatus) {
       result += `\nMining status for address '${status.addressStatus.publicAddress}':\n`

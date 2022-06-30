@@ -54,8 +54,9 @@ export type MiningStatusMessage = {
   name: string
   hashRate: number
   miners: number
+  clients: number
+  bans: number
   sharesPending: number
-  banCount: number
   addressStatus?: {
     publicAddress: string
     hashRate: number
@@ -131,7 +132,8 @@ export const MiningStatusSchema: yup.ObjectSchema<MiningStatusMessage> = yup
     hashRate: yup.number().required(),
     miners: yup.number().required(),
     sharesPending: yup.number().required(),
-    banCount: yup.number().required(),
+    clients: yup.number().required(),
+    bans: yup.number().required(),
     addressStatus: yup
       .object({
         publicAddress: yup.string().required(),
