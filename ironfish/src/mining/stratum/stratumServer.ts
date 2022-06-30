@@ -46,6 +46,7 @@ export class StratumServer {
   clients: Map<number, StratumServerClient>
   nextMinerId: number
   nextMessageId: number
+  subscribed: number
 
   currentWork: Buffer | null = null
   currentMiningRequestId: number | null = null
@@ -73,6 +74,7 @@ export class StratumServer {
     this.clients = new Map()
     this.nextMinerId = 1
     this.nextMessageId = 1
+    this.subscribed = 0
 
     this.peers = new StratumPeers({
       config: this.config,
@@ -142,6 +144,10 @@ export class StratumServer {
   private onDisconnect(client: StratumServerClient): void {
     this.logger.debug(`Client ${client.id} disconnected  (${this.clients.size - 1} total)`)
 
+    if (client.subscribed) {
+      this.subscribed--
+    }
+
     this.clients.delete(client.id)
     this.peers.removeConnectionCount(client)
     client.close()
@@ -201,22 +207,23 @@ export class StratumServer {
             return
           }
 
-          client.publicAddress = body.result.publicAddress
-          client.subscribed = true
-
-          if (!isValidPublicAddress(client.publicAddress)) {
+          if (!isValidPublicAddress(body.result.publicAddress)) {
             this.peers.ban(client, {
-              message: `Invalid public address: ${client.publicAddress}`,
+              message: `Invalid public address: ${body.result.publicAddress}`,
             })
             return
           }
+
+          client.publicAddress = body.result.publicAddress
+          client.subscribed = true
+          this.subscribed++
 
           const idHex = client.id.toString(16)
           const graffiti = `${this.pool.name}.${idHex}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
 
-          this.logger.info(`Miner ${idHex} connected (${this.clients.size} total)`)
+          this.logger.info(`Miner ${idHex} connected (${this.subscribed} total)`)
 
           this.send(client.socket, 'mining.subscribed', {
             clientId: client.id,
@@ -260,6 +267,7 @@ export class StratumServer {
           }
 
           const publicAddress = body.result?.publicAddress
+
           if (publicAddress && !isValidPublicAddress(publicAddress)) {
             this.peers.ban(client, {
               message: `Invalid public address: ${publicAddress}`,
@@ -328,6 +336,8 @@ export class StratumServer {
       messageLength: serialized.length,
     })
 
+    let broadcasted = 0
+
     for (const client of this.clients.values()) {
       if (!client.subscribed) {
         continue
@@ -342,12 +352,13 @@ export class StratumServer {
       }
 
       client.socket.write(serialized)
+      broadcasted++
     }
 
     this.logger.debug('completed broadcast to clients', {
       method,
       id: message.id,
-      numClients: this.clients.size,
+      numClients: broadcasted,
       messageLength: serialized.length,
     })
   }
