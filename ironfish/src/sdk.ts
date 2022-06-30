@@ -220,6 +220,7 @@ export class IronfishSdk {
 
     if (this.config.get('enableRpcTcp')) {
       const namespaces = [
+        ApiNamespace.account,
         ApiNamespace.chain,
         ApiNamespace.event,
         ApiNamespace.faucet,
