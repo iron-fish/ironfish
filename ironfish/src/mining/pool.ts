@@ -440,7 +440,8 @@ export class MiningPool {
       hashRate: hashRate,
       miners: this.stratum.subscribed,
       sharesPending: sharesPending,
-      banCount: this.stratum.peers.banCount,
+      bans: this.stratum.peers.banCount,
+      clients: this.stratum.clients.size,
     }
 
     if (publicAddress) {
