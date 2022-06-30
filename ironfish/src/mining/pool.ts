@@ -428,21 +428,17 @@ export class MiningPool {
       this.shares.sharesPendingPayout(),
     ])
 
-    let minerCount = 0
     let addressMinerCount = 0
     for (const client of this.stratum.clients.values()) {
-      if (client.subscribed) {
-        minerCount++
-        if (client.publicAddress === publicAddress) {
-          addressMinerCount++
-        }
+      if (client.subscribed && client.publicAddress === publicAddress) {
+        addressMinerCount++
       }
     }
 
     const status = {
       name: this.name,
       hashRate: hashRate,
-      miners: minerCount,
+      miners: this.stratum.subscribed,
       sharesPending: sharesPending,
       banCount: this.stratum.peers.banCount,
     }
