@@ -78,7 +78,7 @@ function renderStatus(content: GetStatusResponse): string {
     blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
   }
 
-  if (content.blockSyncer.status === 'syncing') {
+  if (!content.blockchain.synced) {
     blockSyncerStatusDetails.push(
       `progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`,
     )
