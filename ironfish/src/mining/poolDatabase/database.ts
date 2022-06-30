@@ -65,7 +65,7 @@ export class PoolDatabase {
     let sql = 'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL'
 
     if (publicAddress) {
-      sql += 'AND publicAddress = ?'
+      sql += ' AND publicAddress = ?'
     }
 
     const result = await this.db.get<{ count: number }>(sql, publicAddress)
