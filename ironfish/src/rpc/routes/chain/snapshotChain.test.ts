@@ -23,19 +23,12 @@ describe('Route chain/snapshotChainStream', () => {
     await expect(chain).toAddBlock(blockA1)
     expect(blockA1.transactions.length).toBe(1)
 
-    const serializedGenesis = strategy.blockSerde.serialize(genesis)
-    const bw1 = bufio.write(getBlockSize(serializedGenesis))
-    const genesisBuffer = writeBlock(bw1, serializedGenesis).render()
-
     const serializedBlockA1 = strategy.blockSerde.serialize(blockA1)
     const bw2 = bufio.write(getBlockSize(serializedBlockA1))
     const blockA1Buffer = writeBlock(bw2, serializedBlockA1).render()
 
-    const bw = bufio.write(
-      8 + bufio.sizeVarBytes(genesisBuffer) + bufio.sizeVarBytes(blockA1Buffer),
-    )
-    bw.writeU64(2)
-    bw.writeVarBytes(genesisBuffer)
+    const bw = bufio.write(8 + bufio.sizeVarBytes(blockA1Buffer))
+    bw.writeU64(1)
     bw.writeVarBytes(blockA1Buffer)
     const expected = bw.render()
 
