@@ -17,8 +17,10 @@ import { DisconnectReason } from './constants'
 import { ClientMessageMalformedError } from './errors'
 import {
   MiningDisconnectMessage,
+  MiningGetStatusSchema,
   MiningNotifyMessage,
   MiningSetTargetMessage,
+  MiningStatusMessage,
   MiningSubmitSchema,
   MiningSubscribedMessage,
   MiningSubscribeSchema,
@@ -247,6 +249,28 @@ export class StratumServer {
           break
         }
 
+        case 'mining.get_status': {
+          const body = await YupUtils.tryValidate(MiningGetStatusSchema, header.result.body)
+
+          if (body.error) {
+            this.peers.ban(client, {
+              message: body.error.message,
+            })
+            return
+          }
+
+          const publicAddress = body.result?.publicAddress
+          if (publicAddress && !isValidPublicAddress(publicAddress)) {
+            this.peers.ban(client, {
+              message: `Invalid public address: ${publicAddress}`,
+            })
+            return
+          }
+
+          this.send(client.socket, 'mining.status', await this.pool.getStatus(publicAddress))
+          break
+        }
+
         default:
           throw new ClientMessageMalformedError(
             client,
@@ -327,12 +351,12 @@ export class StratumServer {
       messageLength: serialized.length,
     })
   }
-
   send(socket: net.Socket, method: 'mining.notify', body: MiningNotifyMessage): void
   send(socket: net.Socket, method: 'mining.disconnect', body: MiningDisconnectMessage): void
   send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessage): void
   send(socket: net.Socket, method: 'mining.wait_for_work'): void
+  send(socket: net.Socket, method: 'mining.status', body: MiningStatusMessage): void
   send(socket: net.Socket, method: string, body?: unknown): void {
     const message: StratumMessage = {
       id: this.nextMessageId++,

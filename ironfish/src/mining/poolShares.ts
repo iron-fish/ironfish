@@ -206,14 +206,14 @@ export class MiningPoolShares {
     }
   }
 
-  async shareRate(): Promise<number> {
-    return (await this.recentShareCount()) / this.recentShareCutoff
+  async shareRate(publicAddress?: string): Promise<number> {
+    return (await this.recentShareCount(publicAddress)) / this.recentShareCutoff
   }
 
-  private async recentShareCount(): Promise<number> {
+  private async recentShareCount(publicAddress?: string): Promise<number> {
     const timestamp = Math.floor(new Date().getTime() / 1000) - this.recentShareCutoff
 
-    return await this.db.shareCountSince(timestamp)
+    return await this.db.shareCountSince(timestamp, publicAddress)
   }
 
   private startPayoutInterval() {
@@ -228,7 +228,7 @@ export class MiningPoolShares {
     }
   }
 
-  async sharesPendingPayout(): Promise<number> {
-    return await this.db.getSharesCountForPayout()
+  async sharesPendingPayout(publicAddress?: string): Promise<number> {
+    return await this.db.getSharesCountForPayout(publicAddress)
   }
 }
