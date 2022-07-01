@@ -17,6 +17,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
@@ -341,18 +342,20 @@ export class Accounts {
     await this.updateHeadHash(null)
   }
 
-  private decryptNotes(
+  private async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
-  ): Array<{
-    noteIndex: number | null
-    nullifier: string | null
-    merkleHash: string
-    forSpender: boolean
-    account: Account
-  }> {
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
     const accounts = this.listAccounts()
-    const notes = new Array<{
+    const decryptedNotes = new Array<{
       noteIndex: number | null
       nullifier: string | null
       merkleHash: string
@@ -360,58 +363,74 @@ export class Accounts {
       account: Account
     }>()
 
-    // Decrement the note index before starting so we can
-    // pre-increment it in the loop rather than post-incrementing it
-    let currentNoteIndex = initialNoteIndex
-    if (currentNoteIndex !== null) {
-      currentNoteIndex--
-    }
+    const batchSize = 20
+    for (const account of accounts) {
+      let decryptNotesPayloads = []
+      let currentNoteIndex = initialNoteIndex
 
-    for (const note of transaction.notes()) {
-      // Increment the note index if it is set
-      if (currentNoteIndex !== null) {
-        currentNoteIndex++
+      for (const note of transaction.notes()) {
+        decryptNotesPayloads.push({
+          serializedNote: note.serialize(),
+          incomingViewKey: account.incomingViewKey,
+          outgoingViewKey: account.outgoingViewKey,
+          spendingKey: account.spendingKey,
+          currentNoteIndex,
+        })
+
+        if (currentNoteIndex) {
+          currentNoteIndex++
+        }
+
+        if (decryptNotesPayloads.length >= batchSize) {
+          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+            account,
+            decryptNotesPayloads,
+          )
+          decryptedNotes.push(...decryptedNotesBatch)
+          decryptNotesPayloads = []
+        }
       }
 
-      for (const account of accounts) {
-        // Try decrypting the note as the owner
-        const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
-        if (receivedNote) {
-          if (receivedNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: false,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier:
-                currentNoteIndex !== null
-                  ? Buffer.from(
-                      receivedNote.nullifier(account.spendingKey, BigInt(currentNoteIndex)),
-                    ).toString('hex')
-                  : null,
-              account: account,
-            })
-          }
-          continue
-        }
-
-        // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(account.outgoingViewKey)
-        if (spentNote) {
-          if (spentNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: true,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier: null,
-              account: account,
-            })
-          }
-          continue
-        }
+      if (decryptNotesPayloads.length) {
+        const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+          account,
+          decryptNotesPayloads,
+        )
+        decryptedNotes.push(...decryptedNotesBatch)
       }
     }
 
-    return notes
+    return decryptedNotes
+  }
+
+  private async decryptNotesFromTransaction(
+    account: Account,
+    decryptNotesPayloads: Array<DecryptNoteOptions>,
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
+    const decryptedNotes = []
+    const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
+
+    for (const decryptedNote of response) {
+      if (decryptedNote) {
+        decryptedNotes.push({
+          account,
+          forSpender: decryptedNote.forSpender,
+          merkleHash: decryptedNote.merkleHash.toString('hex'),
+          noteIndex: decryptedNote.index,
+          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
+        })
+      }
+    }
+
+    return decryptedNotes
   }
 
   /**
@@ -430,8 +449,8 @@ export class Accounts {
 
     let newSequence = submittedSequence
 
-    await transaction.withReference(() => {
-      const notes = this.decryptNotes(transaction, initialNoteIndex)
+    await transaction.withReference(async () => {
+      const notes = await this.decryptNotes(transaction, initialNoteIndex)
 
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
@@ -671,7 +690,6 @@ export class Accounts {
 
     for await (const { blockHash, note } of this.unspentNotesGenerator(account)) {
       const map = this.noteToNullifier.get(note.hash)
-
       if (!map) {
         throw new Error('All decryptable notes should be in the noteToNullifier map')
       }
