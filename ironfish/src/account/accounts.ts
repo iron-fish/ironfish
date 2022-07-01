@@ -382,17 +382,21 @@ export class Accounts {
         }
 
         if (decryptNotesPayloads.length >= batchSize) {
-          decryptedNotes.concat(
-            await this.decryptNotesFromTransaction(account, decryptNotesPayloads),
+          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+            account,
+            decryptNotesPayloads,
           )
+          decryptedNotes.push(...decryptedNotesBatch)
           decryptNotesPayloads = []
         }
       }
 
       if (decryptNotesPayloads.length) {
-        decryptedNotes.concat(
-          await this.decryptNotesFromTransaction(account, decryptNotesPayloads),
+        const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+          account,
+          decryptNotesPayloads,
         )
+        decryptedNotes.push(...decryptedNotesBatch)
       }
     }
 
