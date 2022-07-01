@@ -17,6 +17,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
@@ -354,7 +355,7 @@ export class Accounts {
     }>
   > {
     const accounts = this.listAccounts()
-    const notes = new Array<{
+    const decryptedNotes = new Array<{
       noteIndex: number | null
       nullifier: string | null
       merkleHash: string
@@ -362,41 +363,70 @@ export class Accounts {
       account: Account
     }>()
 
-    // Decrement the note index before starting so we can
-    // pre-increment it in the loop rather than post-incrementing it
-    let currentNoteIndex = initialNoteIndex
-    if (currentNoteIndex !== null) {
-      currentNoteIndex--
-    }
+    const batchSize = 20
+    for (const account of accounts) {
+      let decryptNotesPayloads = []
+      let currentNoteIndex = initialNoteIndex
 
-    for (const note of transaction.notes()) {
-      // Increment the note index if it is set
-      if (currentNoteIndex !== null) {
-        currentNoteIndex++
-      }
-
-      for (const account of accounts) {
-        const decryptedNote = await this.workerPool.decryptNotes(
-          note.serialize(),
-          account.incomingViewKey,
-          account.outgoingViewKey,
-          account.spendingKey,
+      for (const note of transaction.notes()) {
+        decryptNotesPayloads.push({
+          serializedNote: note.serialize(),
+          incomingViewKey: account.incomingViewKey,
+          outgoingViewKey: account.outgoingViewKey,
+          spendingKey: account.spendingKey,
           currentNoteIndex,
-        )
+        })
 
-        if (decryptedNote) {
-          notes.push({
-            account,
-            forSpender: decryptedNote.forSpender,
-            merkleHash: decryptedNote.merkleHash.toString('hex'),
-            noteIndex: decryptedNote.index,
-            nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
-          })
+        if (currentNoteIndex) {
+          currentNoteIndex++
+        }
+
+        if (decryptNotesPayloads.length >= batchSize) {
+          decryptedNotes.concat(
+            await this.decryptNotesFromTransaction(account, decryptNotesPayloads),
+          )
+          decryptNotesPayloads = []
         }
       }
+
+      if (decryptNotesPayloads.length) {
+        decryptedNotes.concat(
+          await this.decryptNotesFromTransaction(account, decryptNotesPayloads),
+        )
+      }
     }
 
-    return notes
+    return decryptedNotes
+  }
+
+  private async decryptNotesFromTransaction(
+    account: Account,
+    decryptNotesPayloads: Array<DecryptNoteOptions>,
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
+    const decryptedNotes = []
+    const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
+
+    for (const decryptedNote of response) {
+      if (decryptedNote) {
+        decryptedNotes.push({
+          account,
+          forSpender: decryptedNote.forSpender,
+          merkleHash: decryptedNote.merkleHash.toString('hex'),
+          noteIndex: decryptedNote.index,
+          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
+        })
+      }
+    }
+
+    return decryptedNotes
   }
 
   /**
@@ -656,7 +686,6 @@ export class Accounts {
 
     for await (const { blockHash, note } of this.unspentNotesGenerator(account)) {
       const map = this.noteToNullifier.get(note.hash)
-
       if (!map) {
         throw new Error('All decryptable notes should be in the noteToNullifier map')
       }

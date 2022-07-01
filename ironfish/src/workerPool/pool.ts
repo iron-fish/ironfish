@@ -17,7 +17,12 @@ import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
-import { DecryptedNote, DecryptNotesRequest, DecryptNotesResponse } from './tasks/decryptNotes'
+import {
+  DecryptedNote,
+  DecryptNoteOptions,
+  DecryptNotesRequest,
+  DecryptNotesResponse,
+} from './tasks/decryptNotes'
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
@@ -227,27 +232,15 @@ export class WorkerPool {
     return response
   }
 
-  async decryptNotes(
-    serializedNote: Buffer,
-    incomingViewKey: string,
-    outgoingViewKey: string,
-    spendingKey: string,
-    currentNoteIndex: number | null,
-  ): Promise<DecryptedNote | null> {
-    const request = new DecryptNotesRequest(
-      serializedNote,
-      incomingViewKey,
-      outgoingViewKey,
-      spendingKey,
-      currentNoteIndex,
-    )
+  async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote | null>> {
+    const request = new DecryptNotesRequest(payloads)
 
     const response = await this.execute(request).result()
     if (!(response instanceof DecryptNotesResponse)) {
       throw new Error('Invalid response')
     }
 
-    return response.note
+    return response.notes
   }
 
   async getUnspentNotes(
