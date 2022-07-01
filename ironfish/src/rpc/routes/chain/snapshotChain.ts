@@ -26,8 +26,6 @@ export type SnapshotChainStreamResponse = {
 export const SnapshotChainStreamRequestSchema: yup.ObjectSchema<SnapshotChainStreamRequest> =
   yup
     .object({
-      start: yup.number().nullable().optional(),
-      stop: yup.number().nullable().optional(),
       maxBlocksPerChunk: yup.number().nullable().optional(),
     })
     .optional()
