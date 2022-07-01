@@ -2,22 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
+import path from 'path'
 
 describe('service:snapshot', () => {
   jest.spyOn(Date, 'now').mockReturnValue(123456789)
   const mockedFileSize = 10000
 
-  const manifestContent = JSON.stringify(
-    {
-      block_height: 3,
-      checksum: Buffer.from('foo').toString('hex'),
-      file_name: `ironfish_snapshot_${Date.now()}.tar.gz`,
-      file_size: mockedFileSize,
-      timestamp: Date.now(),
-    },
-    undefined,
-    '  ',
-  )
+  const manifestContent = {
+    block_height: 3,
+    checksum: Buffer.from('foo').toString('hex'),
+    file_name: `ironfish_snapshot_${Date.now()}.tar.gz`,
+    file_size: mockedFileSize,
+    timestamp: Date.now(),
+  }
 
   beforeAll(() => {
     jest.doMock('@ironfish/sdk', () => {
@@ -43,13 +40,8 @@ describe('service:snapshot', () => {
 
       const mockFileSystem = {
         mkdir: jest.fn(),
-        resolve: jest.fn(),
-        join: jest
-          .fn()
-          .mockReturnValueOnce('testtempdir/blocks')
-          .mockReturnValueOnce('testtempdir/blocks/3')
-          .mockReturnValueOnce(`testtempdir/ironfish_snapshot_${Date.now()}.tar.gz`)
-          .mockReturnValueOnce(`testtempdir/manifest.json`),
+        resolve: jest.fn().mockImplementation((path: string) => path),
+        join: jest.fn().mockImplementation((...paths: string[]) => path.join(...paths)),
       }
 
       const module: typeof jest = {
@@ -110,13 +102,41 @@ describe('service:snapshot', () => {
     jest.dontMock('@ironfish/sdk')
   })
 
-  describe('exports a snapshot of the chain and uploads it', () => {
+  describe('given a bucket, exports a snapshot of the chain and uploads it', () => {
     test
       .stdout()
       .command(['service:snapshot', '--bucket=testbucket'])
       .exit(0)
       .it('outputs the contents of manifest.json', (ctx) => {
-        expectCli(ctx.stdout).include(manifestContent)
+        expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
       })
+  })
+
+  describe('given a path, exports a snapshot of the chain to that path', () => {
+    test
+      .stdout()
+      .command(['service:snapshot', '--path=foobar'])
+      .exit(0)
+      .it('exports blocks and snapshot to correct path', (ctx) => {
+        expectCli(ctx.stdout).include(
+          `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+        )
+      })
+  })
+
+  describe('given a path and bucket, exports a snapshot of the chain to that path and uploads it', () => {
+    test
+      .stdout()
+      .command(['service:snapshot', '--path=foobar', '--bucket=testbucket'])
+      .exit(0)
+      .it(
+        'exports blocks and snapshot to correct path, and outputs the contents of manifest.json',
+        (ctx) => {
+          expectCli(ctx.stdout).include(
+            `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+          )
+          expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
+        },
+      )
   })
 })
