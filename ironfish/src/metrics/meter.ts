@@ -40,7 +40,7 @@ export class Meter {
     this._rate5s = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
     this._rate1m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
     this._rate5m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
-    this._average = new EwmaAverage(this.METER_TIME_INTERVALS_MS.average / this._intervalMs)
+    this._average = new EwmaAverage(this.METER_TIME_INTERVALS_MS.average)
   }
 
   get rate1s(): number {
@@ -68,7 +68,7 @@ export class Meter {
       return
     }
     this._count += count
-    this._average.add(count, this.METER_TIME_INTERVALS_MS.average)
+    this._average.add(count, 1000)
   }
 
   start(): void {

@@ -5,17 +5,30 @@
 import { EwmaAverage } from './ewmaAverage'
 
 describe('EwmaAverage', () => {
-  it('Produces an expected average and variance', () => {
+  it('A new value larger than current average increases average', () => {
     const ewma = new EwmaAverage(1)
 
-    ewma.add(2, 2)
     ewma.add(4, 2)
     ewma.add(5, 2)
 
-    expect(ewma.average).toBe(4.666666666666667)
+    const avgA = ewma.average
 
     ewma.add(6, 2)
-    expect(ewma.average).toBe(5.670588235294118)
+
+    expect(ewma.average).toBeGreaterThanOrEqual(avgA)
+  })
+
+  it('A new value smaller than current average decreases average', () => {
+    const ewma = new EwmaAverage(1)
+
+    ewma.add(4, 2)
+    ewma.add(5, 2)
+
+    const avgA = ewma.average
+
+    ewma.add(2, 2)
+
+    expect(avgA).toBeGreaterThanOrEqual(ewma.average)
   })
 
   it('bigger halflife equals higher weight distribution for early samples', () => {
