@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 /**
  * Utility to compute the exponential weighted moving average
  *
- * inspired by https://github.com/shaka-project/shaka-player/blob/main/lib/abr/ewma.js
+ * inspired by https://github.com/shaka-project/shaka-player/blob/eaadb52627f0a0347390b201866585cce91fe9d0/lib/abr/ewma.js
  */
 export class EwmaAverage {
   /**
@@ -20,6 +20,9 @@ export class EwmaAverage {
   private _estimate = 0
   private _totalWeight = 0
 
+  /**
+   * halflife is the time decay that holds half of the estimate value
+   */
   constructor(halflife: number) {
     Assert.isGreaterThan(halflife, 0)
     this._alpha = Math.exp(Math.log(0.5) / halflife)

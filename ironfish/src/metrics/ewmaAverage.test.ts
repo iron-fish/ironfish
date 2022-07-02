@@ -33,6 +33,21 @@ describe('EwmaAverage', () => {
     expect(ewmaB.average).toBeGreaterThanOrEqual(ewma.average)
   })
 
+  it('smaller weight samples equals less weight distribution for early samples', () => {
+    const ewma = new EwmaAverage(1)
+    const ewmaB = new EwmaAverage(1)
+
+    ewma.add(2, 20)
+    ewma.add(4, 20)
+    ewma.add(8, 20)
+
+    ewmaB.add(2, 10)
+    ewmaB.add(4, 10)
+    ewmaB.add(8, 10)
+
+    expect(ewma.average).toBeGreaterThanOrEqual(ewmaB.average)
+  })
+
   it('can produce negative values', () => {
     const ewma = new EwmaAverage(2)
 

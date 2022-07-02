@@ -26,23 +26,21 @@ export class Meter {
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
-  private _halfLife = 1
-
   private readonly METER_TIME_INTERVALS_MS = {
     rate1s: 1000,
     rate5s: 5000,
     rate1m: 1 * 60 * 1000,
     rate5m: 5 * 60 * 1000,
-    average: 100,
+    average: 100 * 1000,
   }
 
   constructor() {
     this._intervalMs = 1000
-    this._rate1s = new EwmaAverage(this._halfLife)
-    this._rate5s = new EwmaAverage(this._halfLife)
-    this._rate1m = new EwmaAverage(this._halfLife)
-    this._rate5m = new EwmaAverage(this._halfLife)
-    this._average = new EwmaAverage(this._halfLife)
+    this._rate1s = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate1s / this._intervalMs)
+    this._rate5s = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
+    this._rate1m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
+    this._rate5m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
+    this._average = new EwmaAverage(this.METER_TIME_INTERVALS_MS.average / this._intervalMs)
   }
 
   get rate1s(): number {
@@ -114,11 +112,12 @@ export class Meter {
 
     const elapsedMs = now - this._intervalLastMs
     const rateSec = elapsedMs === 0 ? 0 : (this._count / elapsedMs) * 1000
+    const weight = elapsedMs / this._intervalMs
 
-    this._rate1s.add(rateSec, this.METER_TIME_INTERVALS_MS.rate1s / this._intervalMs)
-    this._rate5s.add(rateSec, this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
-    this._rate1m.add(rateSec, this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
-    this._rate5m.add(rateSec, this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
+    this._rate1s.add(rateSec, weight)
+    this._rate5s.add(rateSec, weight)
+    this._rate1m.add(rateSec, weight)
+    this._rate5m.add(rateSec, weight)
     this._count = 0
     this._intervalLastMs = now
   }
