@@ -4,7 +4,8 @@
 
 import os from 'os'
 import { createRootLogger, Logger } from '../logger'
-import { SetIntervalToken } from '../utils'
+import { NetworkMessageType } from '../network/types'
+import { NumberEnumUtils, SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -19,6 +20,8 @@ export class MetricsMonitor {
   readonly p2p_OutboundTraffic: Meter
   readonly p2p_OutboundTraffic_WS: Meter
   readonly p2p_OutboundTraffic_WebRTC: Meter
+  readonly p2p_InboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
+  readonly p2p_OutboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_PeersCount: Gauge
 
   readonly heapTotal: Gauge
@@ -40,6 +43,12 @@ export class MetricsMonitor {
     this.p2p_OutboundTraffic = this.addMeter()
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
+
+    for (const value of NumberEnumUtils.getNumValues(NetworkMessageType)) {
+      this.p2p_InboundTrafficByMessage.set(value, this.addMeter())
+      this.p2p_OutboundTrafficByMessage.set(value, this.addMeter())
+    }
+
     this.p2p_PeersCount = new Gauge()
 
     this.heapTotal = new Gauge()
