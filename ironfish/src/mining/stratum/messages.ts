@@ -20,6 +20,7 @@ export type MiningDisconnectMessage =
 
 export type MiningSubscribeMessage = {
   version: number
+  clientName: string
   publicAddress: string
 }
 
@@ -59,6 +60,7 @@ export type MiningStatusMessage = {
   sharesPending: number
   addressStatus?: {
     publicAddress: string
+    activeMiners: string
     hashRate: number
     miners: number
     sharesPending: number
@@ -109,6 +111,7 @@ export const MiningWaitForWorkSchema: yup.MixedSchema<MiningWaitForWorkMessage> 
 export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = yup
   .object({
     version: yup.number().required(),
+    clientName: yup.string().required(),
     publicAddress: yup.string().required(),
   })
   .required()
@@ -137,6 +140,7 @@ export const MiningStatusSchema: yup.ObjectSchema<MiningStatusMessage> = yup
     addressStatus: yup
       .object({
         publicAddress: yup.string().required(),
+        activeMiners: yup.string().required(),
         hashRate: yup.number().required(),
         miners: yup.number().required(),
         sharesPending: yup.number().required(),

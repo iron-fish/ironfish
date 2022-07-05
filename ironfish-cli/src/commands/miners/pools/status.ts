@@ -60,6 +60,7 @@ export class PoolStatus extends IronfishCommand {
     const stratum = new StratumClient({
       host: host,
       port: port,
+      clientName: 'default',
       logger: createRootLogger(),
     })
 
@@ -109,7 +110,8 @@ export class PoolStatus extends IronfishCommand {
 
     if (status.addressStatus) {
       result += `\nMining status for address '${status.addressStatus.publicAddress}':\n`
-      result += `Miners:                ${status.addressStatus.miners}\n`
+      result += `Number of miners:      ${status.addressStatus.miners}\n`
+      result += `Active miners:         ${status.addressStatus.activeMiners}\n`
       result += `Hashrate:              ${FileUtils.formatHashRate(
         status.addressStatus.hashRate,
       )}\n`

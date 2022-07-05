@@ -205,7 +205,13 @@ export class StratumServer {
             return
           }
 
+          let clientName = 'default'
+          if (body.result.clientName !== undefined) {
+            clientName = body.result.clientName
+          }
+
           client.publicAddress = body.result.publicAddress
+          client.clientName = clientName
           client.subscribed = true
           this.subscribed++
 

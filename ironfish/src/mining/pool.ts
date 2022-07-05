@@ -449,12 +449,16 @@ export class MiningPool {
         this.estimateHashRate(publicAddress),
         this.shares.sharesPendingPayout(publicAddress),
       ])
+      const addressActiveMiners = Array.from(this.stratum.clients.values()).map(
+        (client) => client.clientName,
+      )
       return {
         ...status,
         addressStatus: {
           publicAddress: publicAddress,
           hashRate: addressHashRate,
           miners: addressMinerCount,
+          activeMiners: JSON.stringify(addressActiveMiners),
           sharesPending: addressSharesPending,
         },
       }

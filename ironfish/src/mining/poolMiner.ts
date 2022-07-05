@@ -35,6 +35,7 @@ export class MiningPoolMiner {
     publicAddress: string
     host: string
     port: number
+    minerName: string
   }) {
     this.logger = options.logger
     this.graffiti = null
@@ -49,6 +50,7 @@ export class MiningPoolMiner {
     this.stratum = new StratumClient({
       host: options.host,
       port: options.port,
+      clientName: options.minerName,
       logger: options.logger,
     })
     this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress))
