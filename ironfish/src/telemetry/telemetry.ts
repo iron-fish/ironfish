@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
 import { Block } from '../primitives/block'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
@@ -27,6 +28,7 @@ export class Telemetry {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
+  private readonly localPeerIdentity: Identity
 
   private started: boolean
   private flushInterval: SetIntervalToken | null
@@ -41,6 +43,7 @@ export class Telemetry {
     config: Config
     logger?: Logger
     metrics?: MetricsMonitor
+    localPeerIdentity: Identity
     defaultFields?: Field[]
     defaultTags?: Tag[]
   }) {
@@ -51,6 +54,7 @@ export class Telemetry {
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
     this.defaultFields = options.defaultFields ?? []
+    this.localPeerIdentity = options.localPeerIdentity
 
     this.flushInterval = null
     this.metricsInterval = null
@@ -117,25 +121,83 @@ export class Telemetry {
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
 
-    const inboundTrafficFields: Field[] = [
-      ...this.metrics.p2p_InboundTrafficByMessage.entries(),
-    ].map(([messageType, meter]) => {
-      return {
+    for (const [id, meter] of this.metrics.p2p_OutboundMessagesByPeer) {
+      this.submit({
+        measurement: 'peer_messages',
+        timestamp: new Date(),
+        fields: [
+          {
+            name: 'source',
+            type: 'string',
+            value: this.localPeerIdentity,
+          },
+          {
+            name: 'target',
+            type: 'string',
+            value: id,
+          },
+          {
+            name: 'amount',
+            type: 'float',
+            value: meter.rate5m,
+          },
+        ],
+      })
+    }
+
+    const fields: Field[] = [
+      {
+        name: 'heap_used',
+        type: 'integer',
+        value: this.metrics.heapUsed.value,
+      },
+      {
+        name: 'heap_total',
+        type: 'integer',
+        value: this.metrics.heapTotal.value,
+      },
+      {
+        name: 'inbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_InboundTraffic.rate5m,
+      },
+      {
+        name: 'outbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_OutboundTraffic.rate5m,
+      },
+      {
+        name: 'peers_count',
+        type: 'integer',
+        value: this.metrics.p2p_PeersCount.value,
+      },
+      {
+        name: 'mempool_size',
+        type: 'integer',
+        value: this.metrics.memPoolSize.value,
+      },
+      {
+        name: 'head_sequence',
+        type: 'integer',
+        value: this.chain.head.sequence,
+      },
+    ]
+
+    for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage.entries()) {
+      fields.push({
         name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
         value: meter.rate5m,
-      }
-    })
+      })
+    }
 
-    const outboundTrafficFields: Field[] = [
-      ...this.metrics.p2p_OutboundTrafficByMessage.entries(),
-    ].map(([messageType, meter]) => {
-      return {
+    for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage.entries()) {
+      fields.push({
         name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
         value: meter.rate5m,
-      }
-    })
+      })
+    }
 
     this.submit({
       measurement: 'node_stats',
@@ -146,45 +208,7 @@ export class Telemetry {
           value: this.chain.synced.toString(),
         },
       ],
-      fields: [
-        {
-          name: 'heap_used',
-          type: 'integer',
-          value: this.metrics.heapUsed.value,
-        },
-        {
-          name: 'heap_total',
-          type: 'integer',
-          value: this.metrics.heapTotal.value,
-        },
-        {
-          name: 'inbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_InboundTraffic.rate5m,
-        },
-        {
-          name: 'outbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_OutboundTraffic.rate5m,
-        },
-        {
-          name: 'peers_count',
-          type: 'integer',
-          value: this.metrics.p2p_PeersCount.value,
-        },
-        {
-          name: 'mempool_size',
-          type: 'integer',
-          value: this.metrics.memPoolSize.value,
-        },
-        {
-          name: 'head_sequence',
-          type: 'integer',
-          value: this.chain.head.sequence,
-        },
-        ...inboundTrafficFields,
-        ...outboundTrafficFields,
-      ],
+      fields,
     })
 
     this.metricsInterval = setTimeout(() => {

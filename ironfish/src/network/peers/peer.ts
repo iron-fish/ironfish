@@ -4,6 +4,7 @@
 import colors from 'colors/safe'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
+import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
@@ -63,6 +64,8 @@ export type PeerState =
 export class Peer {
   readonly pendingRPCMax: number
   readonly logger: Logger
+
+  metrics?: MetricsMonitor
 
   /**
    * The current state of the peer.
@@ -216,16 +219,19 @@ export class Peer {
       maxPending = 5,
       maxBanScore = BAN_SCORE.MAX,
       shouldLogMessages = false,
+      metrics,
     }: {
       logger?: Logger
       maxPending?: number
       maxBanScore?: number
       shouldLogMessages?: boolean
+      metrics?: MetricsMonitor
     } = {},
   ) {
     this.logger = logger.withTag('Peer')
     this.pendingRPCMax = maxPending
     this.maxBanScore = maxBanScore
+    this.metrics = metrics
     this.shouldLogMessages = shouldLogMessages
     this._error = null
     this._state = {
@@ -417,6 +423,28 @@ export class Peer {
   }
 
   /**
+   * Records number messages sent using a rolling average
+   */
+  private recordMessageSent() {
+    // don't start the meter until we actually want to record a message to save resources
+    if (this.state.identity && this.metrics) {
+      let meter = this.metrics.p2p_OutboundMessagesByPeer.get(this.state.identity)
+      if (!meter) {
+        meter = this.metrics.addMeter()
+        this.metrics.p2p_OutboundMessagesByPeer.set(this.state.identity, meter)
+      }
+      meter.add(1)
+    }
+  }
+
+  private disposeMessageMeter() {
+    if (this.state.identity && this.metrics) {
+      this.metrics.p2p_OutboundMessagesByPeer.get(this.state.identity)?.stop()
+      this.metrics.p2p_OutboundMessagesByPeer.delete(this.state.identity)
+    }
+  }
+
+  /**
    * Sends a message over the peer's connection if CONNECTED, else drops it.
    * @param message The message to send.
    */
@@ -442,6 +470,7 @@ export class Peer {
           timestamp: Date.now(),
           type: ConnectionType.WebRtc,
         })
+        this.recordMessageSent()
         return this.state.connections.webRtc
       }
     }
@@ -459,6 +488,7 @@ export class Peer {
           timestamp: Date.now(),
           type: ConnectionType.WebSocket,
         })
+        this.recordMessageSent()
         return this.state.connections.webSocket
       }
     }
@@ -661,6 +691,7 @@ export class Peer {
     this.onStateChanged.clear()
     this.onMessage.clear()
     this.onBanned.clear()
+    this.disposeMessageMeter()
   }
 
   punish(score: number, reason?: string): boolean {
