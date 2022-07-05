@@ -145,25 +145,59 @@ export class Telemetry {
       })
     }
 
-    const inboundTrafficFields: Field[] = [
-      ...this.metrics.p2p_InboundTrafficByMessage.entries(),
-    ].map(([messageType, meter]) => {
-      return {
+    const fields: Field[] = [
+      {
+        name: 'heap_used',
+        type: 'integer',
+        value: this.metrics.heapUsed.value,
+      },
+      {
+        name: 'heap_total',
+        type: 'integer',
+        value: this.metrics.heapTotal.value,
+      },
+      {
+        name: 'inbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_InboundTraffic.rate5m,
+      },
+      {
+        name: 'outbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_OutboundTraffic.rate5m,
+      },
+      {
+        name: 'peers_count',
+        type: 'integer',
+        value: this.metrics.p2p_PeersCount.value,
+      },
+      {
+        name: 'mempool_size',
+        type: 'integer',
+        value: this.metrics.memPoolSize.value,
+      },
+      {
+        name: 'head_sequence',
+        type: 'integer',
+        value: this.chain.head.sequence,
+      },
+    ]
+
+    for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage.entries()) {
+      fields.push({
         name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
         value: meter.rate5m,
-      }
-    })
+      })
+    }
 
-    const outboundTrafficFields: Field[] = [
-      ...this.metrics.p2p_OutboundTrafficByMessage.entries(),
-    ].map(([messageType, meter]) => {
-      return {
+    for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage.entries()) {
+      fields.push({
         name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
         value: meter.rate5m,
-      }
-    })
+      })
+    }
 
     this.submit({
       measurement: 'node_stats',
@@ -174,45 +208,7 @@ export class Telemetry {
           value: this.chain.synced.toString(),
         },
       ],
-      fields: [
-        {
-          name: 'heap_used',
-          type: 'integer',
-          value: this.metrics.heapUsed.value,
-        },
-        {
-          name: 'heap_total',
-          type: 'integer',
-          value: this.metrics.heapTotal.value,
-        },
-        {
-          name: 'inbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_InboundTraffic.rate5m,
-        },
-        {
-          name: 'outbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_OutboundTraffic.rate5m,
-        },
-        {
-          name: 'peers_count',
-          type: 'integer',
-          value: this.metrics.p2p_PeersCount.value,
-        },
-        {
-          name: 'mempool_size',
-          type: 'integer',
-          value: this.metrics.memPoolSize.value,
-        },
-        {
-          name: 'head_sequence',
-          type: 'integer',
-          value: this.chain.head.sequence,
-        },
-        ...inboundTrafficFields,
-        ...outboundTrafficFields,
-      ],
+      fields,
     })
 
     this.metricsInterval = setTimeout(() => {
