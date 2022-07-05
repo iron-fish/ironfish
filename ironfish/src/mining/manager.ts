@@ -11,7 +11,6 @@ import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
-import { Telemetry } from '../telemetry'
 import { AsyncUtils } from '../utils/async'
 import { GraffitiUtils } from '../utils/graffiti'
 
@@ -30,23 +29,16 @@ export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
   private readonly node: IronfishNode
-  private readonly telemetry: Telemetry
 
   blocksMined = 0
   minersConnected = 0
 
   readonly onNewBlock = new Event<[Block]>()
 
-  constructor(options: {
-    chain: Blockchain
-    node: IronfishNode
-    memPool: MemPool
-    telemetry: Telemetry
-  }) {
+  constructor(options: { chain: Blockchain; node: IronfishNode; memPool: MemPool }) {
     this.node = options.node
     this.memPool = options.memPool
     this.chain = options.chain
-    this.telemetry = options.telemetry
   }
 
   /**
@@ -194,7 +186,6 @@ export class MiningManager {
 
     this.blocksMined++
     this.onNewBlock.emit(block)
-    this.telemetry.submitBlockMined(block)
 
     return MINED_RESULT.SUCCESS
   }

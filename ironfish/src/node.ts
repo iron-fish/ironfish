@@ -64,7 +64,6 @@ export class IronfishNode {
     workerPool,
     logger,
     webSocket,
-    telemetry,
     privateIdentity,
     hostsStore,
     minedBlocksIndexer,
@@ -81,7 +80,6 @@ export class IronfishNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
-    telemetry: Telemetry
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     minedBlocksIndexer: MinedBlocksIndexer
@@ -93,13 +91,12 @@ export class IronfishNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
-    this.miningManager = new MiningManager({ chain, memPool, node: this, telemetry })
+    this.miningManager = new MiningManager({ chain, memPool, node: this })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
-    this.telemetry = telemetry
     this.minedBlocksIndexer = minedBlocksIndexer
 
     this.peerNetwork = new PeerNetwork({
@@ -124,11 +121,29 @@ export class IronfishNode {
       logger: logger,
     })
 
+    this.telemetry = new Telemetry({
+      chain,
+      logger,
+      config,
+      metrics,
+      workerPool,
+      localPeerIdentity: this.peerNetwork.localPeer.publicIdentity,
+      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
+      ],
+    })
+
+    this.miningManager.onNewBlock.on((block) => {
+      this.telemetry.submitBlockMined(block)
+    })
+
     this.syncer = new Syncer({
       chain,
       metrics,
       logger,
-      telemetry,
+      telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
       strategy: this.strategy,
       blocksPerMessage: config.get('blocksPerMessage'),
@@ -209,19 +224,6 @@ export class IronfishNode {
       workerPool,
     })
 
-    const telemetry = new Telemetry({
-      chain,
-      logger,
-      config,
-      metrics,
-      workerPool,
-      defaultTags: [{ name: 'version', value: pkg.version }],
-      defaultFields: [
-        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', type: 'string', value: uuid() },
-      ],
-    })
-
     const memPool = new MemPool({ chain, metrics, logger })
 
     const accountDB = new AccountsDB({
@@ -258,7 +260,6 @@ export class IronfishNode {
       workerPool,
       logger,
       webSocket,
-      telemetry,
       privateIdentity,
       hostsStore,
       minedBlocksIndexer,

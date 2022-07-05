@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
 import { Block } from '../primitives/block'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
@@ -27,6 +28,7 @@ export class Telemetry {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
+  private readonly localPeerIdentity: Identity
 
   private started: boolean
   private flushInterval: SetIntervalToken | null
@@ -41,6 +43,7 @@ export class Telemetry {
     config: Config
     logger?: Logger
     metrics?: MetricsMonitor
+    localPeerIdentity: Identity
     defaultFields?: Field[]
     defaultTags?: Tag[]
   }) {
@@ -51,6 +54,7 @@ export class Telemetry {
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
     this.defaultFields = options.defaultFields ?? []
+    this.localPeerIdentity = options.localPeerIdentity
 
     this.flushInterval = null
     this.metricsInterval = null
@@ -116,6 +120,30 @@ export class Telemetry {
 
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
+
+    for (const [id, meter] of this.metrics.p2p_OutboundMessagesByPeer) {
+      this.submit({
+        measurement: 'peer_messages',
+        timestamp: new Date(),
+        fields: [
+          {
+            name: 'source',
+            type: 'string',
+            value: this.localPeerIdentity,
+          },
+          {
+            name: 'target',
+            type: 'string',
+            value: id,
+          },
+          {
+            name: 'amount',
+            type: 'float',
+            value: meter.rate5m,
+          },
+        ],
+      })
+    }
 
     const inboundTrafficFields: Field[] = [
       ...this.metrics.p2p_InboundTrafficByMessage.entries(),

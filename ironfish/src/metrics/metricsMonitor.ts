@@ -4,6 +4,7 @@
 
 import os from 'os'
 import { createRootLogger, Logger } from '../logger'
+import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
 import { NumberEnumUtils, SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
@@ -23,6 +24,9 @@ export class MetricsMonitor {
   readonly p2p_InboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_OutboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_PeersCount: Gauge
+
+  // Elements of this map are managed by Peer and PeerNetwork
+  p2p_OutboundMessagesByPeer: Map<Identity, Meter> = new Map()
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
