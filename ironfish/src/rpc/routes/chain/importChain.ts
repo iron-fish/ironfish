@@ -42,7 +42,9 @@ router.register<typeof ImportSnapshotRequestSchema, ImportSnapshotResponse>(
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 
-    request.end({ headSeq: node.chain.head.sequence })
+    if (!request.data?.blocks) {
+      request.end({ headSeq: node.chain.head.sequence })
+    }
 
     const blocks = request.data?.blocks
     if (blocks) {
@@ -50,9 +52,7 @@ router.register<typeof ImportSnapshotRequestSchema, ImportSnapshotResponse>(
       const deserializedBlocks = deserializeChunk(node, reader)
 
       for (const block of deserializedBlocks) {
-        const result = await node.chain.addBlock(block)
-        console.log('isAdded', result.isAdded)
-        console.log('isFork', result.isFork)
+        await node.chain.addBlock(block)
       }
 
       request.end({ headSeq: node.chain.head.sequence })

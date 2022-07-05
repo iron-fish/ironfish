@@ -106,7 +106,6 @@ export default class ImportSnapshot extends IronfishCommand {
           bar.update(percentage)
         },
       }).then((response) => {
-        console.log(response.data)
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         response.data.pipe(writer)
         hasher.update(response.data)
@@ -121,22 +120,17 @@ export default class ImportSnapshot extends IronfishCommand {
 
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
     await this.unzip(snapshotPath, tempDir)
+    CliUx.ux.action.stop('...done')
     const blockExportPath = this.sdk.fileSystem.join(tempDir, 'blocks')
 
     const files = await fsAsync.readdir(blockExportPath)
     files.sort((a, b) => Number(a) - Number(b))
 
     const client = await this.sdk.connectRpc()
-    let { headSeq } = (await client.importSnapshot()).content
 
     for (const file of files) {
-      if (headSeq >= Number(file)) {
-        continue
-      }
-
       const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
-      const response = await client.importSnapshot({ blocks })
-      headSeq = response.content.headSeq
+      await client.importSnapshot({ blocks })
     }
   }
 
