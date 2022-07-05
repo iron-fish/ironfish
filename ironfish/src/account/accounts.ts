@@ -184,9 +184,9 @@ export class Accounts {
 
     await this.db.loadHeadHashesMap(this.headHashes)
 
-    const earliestHash = await this.getEarliestHeadHash()
+    this.chainProcessor.hash = await this.getLatestHeadHash()
 
-    this.chainProcessor.hash = earliestHash
+    this.updateAccountSyncStatus()
 
     await this.loadTransactionsFromDb()
   }
@@ -326,7 +326,7 @@ export class Accounts {
 
   async updateHeadHash(headHash: Buffer | null): Promise<void> {
     for (const account of this.accounts.values()) {
-      if (headHash) {
+      if (headHash && account.upToDate) {
         await this.db.saveHeadHash(account, headHash.toString('hex'))
       } else {
         await this.db.removeHeadHash(account)
@@ -356,7 +356,8 @@ export class Accounts {
       serializedNote: Buffer
     }>
   > {
-    const accounts = this.listAccounts()
+    const accounts = this.listAccounts().filter((a) => a.upToDate)
+    this.logger.warn(`Decrypting notes for ${accounts.map((a) => a.name).join(', ')}`)
     const decryptedNotes = []
 
     const batchSize = 20
@@ -1026,6 +1027,10 @@ export class Accounts {
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
 
+    if (this.chainProcessor.hash) {
+      await this.db.saveHeadHash(account, this.chainProcessor.hash.toString('hex'))
+    }
+
     if (setDefault) {
       await this.setDefaultAccount(account.name)
     }
@@ -1176,6 +1181,7 @@ export class Accounts {
     }
 
     const account = new Account(uuid(), serializedAccount)
+    account.upToDate = false
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
@@ -1295,6 +1301,75 @@ export class Accounts {
     }
 
     return earliestHeader ? earliestHeader.hash : null
+  }
+
+  async getLatestHeadHash(): Promise<Buffer | null> {
+    let latestHeader = null
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
+      if (!headHash) {
+        continue
+      }
+
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+
+      if (!header) {
+        // If no header is returned, the hash is likely invalid and we should remove it
+        await this.db.removeHeadHash(account)
+        continue
+      }
+
+      if (!latestHeader || latestHeader.sequence < header.sequence) {
+        latestHeader = header
+      }
+
+      // TODO: Check if any hashes are on known-forks
+    }
+
+    return latestHeader ? latestHeader.hash : null
+  }
+
+  updateAccountSyncStatus(): void {
+    const latestHash = this.chainProcessor.hash
+
+    for (const account of this.accounts.values()) {
+      const name = account.displayName
+      // If there is no loaded head hash, we assume all accounts should be updated
+      // as the chain is processed
+      if (!latestHash) {
+        this.logger.debug(`${name} up to date since no existing head hash was found.`)
+        account.upToDate = true
+        continue
+      }
+
+      const accountHeadHash = this.headHashes.get(account.id)
+
+      // If we have a latest head hash, but the account doesn't have a head hash
+      // saved, then it's safe to assume this account hasn't been rescanned yet
+      if (!accountHeadHash) {
+        account.upToDate = false
+        this.logger.debug(
+          `${name} has no head hash. Not up to date with ${latestHash.toString('hex')}`,
+        )
+        continue
+      }
+
+      if (accountHeadHash === latestHash.toString('hex')) {
+        account.upToDate = true
+        this.logger.debug(`${name} up to date: ${accountHeadHash}`)
+      } else {
+        account.upToDate = false
+        this.logger.warn(
+          `${name} is not up to date. Account's head hash: ${accountHeadHash}. Latest head hash: ${latestHash.toString(
+            'hex',
+          )}`,
+        )
+        this.logger.warn(
+          "It is recommended to initiate a rescan or else this account's balance may look incorrect.",
+        )
+      }
+    }
   }
 
   protected assertHasAccount(account: Account): void {
