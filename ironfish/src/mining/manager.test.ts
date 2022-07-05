@@ -37,7 +37,7 @@ describe('Mining manager', () => {
     let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
       .blockTransactions
     expect(results).toHaveLength(1)
-    expect(results[0].hash().equals(transaction.hash())).toBe(true)
+    expect(results[0].unsignedHash().equals(transaction.unsignedHash())).toBe(true)
 
     // It shouldn't be returned after 1 more block is added
     const block2 = await useMinerBlockFixture(chain)

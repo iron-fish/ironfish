@@ -454,7 +454,7 @@ export class Accounts {
 
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
-          const transactionHash = transaction.hash()
+          const transactionHash = transaction.unsignedHash()
 
           const existingT = this.transactionMap.get(transactionHash)
           // If we passed in a submittedSequence, set submittedSequence to that value.
@@ -532,7 +532,7 @@ export class Accounts {
    * the related maps.
    */
   async removeTransaction(transaction: Transaction): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
 
     await this.db.database.transaction(async (tx) => {
       await this.updateTransactionMap(transactionHash, null, tx)
@@ -668,7 +668,7 @@ export class Accounts {
             spender,
             amount: Number(decryptedNote.value()),
             memo: decryptedNote.memo().replace(/\x00/g, ''),
-            noteTxHash: transaction.hash().toString('hex'),
+            noteTxHash: transaction.unsignedHash().toString('hex'),
           })
         }
       }
@@ -1085,7 +1085,7 @@ export class Accounts {
             transactionMapValue.blockHash && transactionMapValue.submittedSequence
               ? 'completed'
               : 'pending',
-          hash: transaction.hash().toString('hex'),
+          hash: transaction.unsignedHash().toString('hex'),
           isMinersFee: transaction.isMinersFee(),
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),
@@ -1124,7 +1124,7 @@ export class Accounts {
     if (transactionMapValue) {
       const transaction = transactionMapValue.transaction
 
-      if (transaction.hash().toString('hex') === hash) {
+      if (transaction.unsignedHash().toString('hex') === hash) {
         for (const note of transaction.notes()) {
           // Try decrypting the note as the owner
           let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)

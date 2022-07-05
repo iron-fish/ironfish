@@ -705,7 +705,7 @@ export class PeerNetwork {
     if (!valid) {
       Assert.isNotUndefined(reason)
       this.logger.debug(
-        `Invalid transaction '${transaction.hash().toString('hex')}': ${reason}`,
+        `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
       )
       return false
     }
@@ -717,7 +717,7 @@ export class PeerNetwork {
     // If we know the mempool already has this transaction, we know that
     // the mempool won't accept it, but it is still a valid transaction
     // so we want to gossip it.
-    if (this.node.memPool.exists(transaction.hash())) {
+    if (this.node.memPool.exists(transaction.unsignedHash())) {
       return true
     }
 

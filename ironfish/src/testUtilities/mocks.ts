@@ -8,7 +8,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 export function mockTransaction(): any {
-  return { hash: jest.fn().mockReturnValue(Buffer.alloc(32, 'test')) }
+  return { unsignedHash: jest.fn().mockReturnValue(Buffer.alloc(32, 'test')) }
 }
 
 export function mockEvent(): any {

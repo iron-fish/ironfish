@@ -80,7 +80,7 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction, shouldVerify = true): Promise<boolean> {
-    const hash = transaction.hash()
+    const hash = transaction.unsignedHash()
     const sequence = transaction.expirationSequence()
 
     if (this.exists(hash)) {
@@ -170,7 +170,7 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      const hash = transaction.hash()
+      const hash = transaction.unsignedHash()
 
       if (this.transactions.has(hash)) {
         continue
@@ -190,7 +190,7 @@ export class MemPool {
   }
 
   private addTransaction(transaction: Transaction): void {
-    const hash = transaction.hash()
+    const hash = transaction.unsignedHash()
     this.transactions.set(hash, transaction)
 
     for (const spend of transaction.spends()) {
@@ -202,7 +202,7 @@ export class MemPool {
   }
 
   private deleteTransaction(transaction: Transaction): boolean {
-    const hash = transaction.hash()
+    const hash = transaction.unsignedHash()
     this.transactions.delete(hash)
 
     for (const spend of transaction.spends()) {
