@@ -183,7 +183,7 @@ export class Telemetry {
       },
     ]
 
-    for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage.entries()) {
+    for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
       fields.push({
         name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
@@ -191,7 +191,7 @@ export class Telemetry {
       })
     }
 
-    for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage.entries()) {
+    for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage) {
       fields.push({
         name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
