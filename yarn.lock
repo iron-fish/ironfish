@@ -1933,11 +1933,6 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-15.14.9.tgz#bc43c990c3c9be7281868bbc7b8fdd6e2b57adfa"
   integrity sha512-qjd88DrCxupx/kJD5yQgZdcYKZKSIGBVDIBE1/LTGcNm3d2Np/jxojkdePDdfnBHJc5W7vSMpbJ1aB7p/Py69A==
 
-"@types/node@^17.0.21":
-  version "17.0.23"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.23.tgz#3b41a6e643589ac6442bdbd7a4a3ded62f33f7da"
-  integrity sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==
-
 "@types/normalize-package-data@^2.4.0":
   version "2.4.1"
   resolved "https://registry.yarnpkg.com/@types/normalize-package-data/-/normalize-package-data-2.4.1.tgz#d3357479a0fdfdd5907fe67e17e0a85c906e1301"
@@ -7060,12 +7055,11 @@ node-cleanup@^2.1.2:
   resolved "https://registry.yarnpkg.com/node-cleanup/-/node-cleanup-2.1.2.tgz#7ac19abd297e09a7f72a71545d951b517e4dde2c"
   integrity sha1-esGavSl+Caf3KnFUXZUbUX5N3iw=
 
-node-datachannel@0.2.4:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.2.4.tgz#d2c07718d4d70068dc0b37ba8ca640c2f208895e"
-  integrity sha512-EucGuvV8FpzcuZukOB5qHLQm35cUrY2VTUKIB7fvGXgHk3M0PFi190qsq2317ir1Nn3bjT3IQV+cOpPyqEny4g==
+node-datachannel@0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.3.4.tgz#526fd245c3fdf9bcdcabb0c78ede3aa89531d67a"
+  integrity sha512-iIEUQNVmJ+N3KTpOoe3I+hhdl8lwdPjIT9019tipJ3YP6R0/rDlqh7yLtI5547aomANXV86XUUun/spv4FuHQQ==
   dependencies:
-    "@types/node" "^17.0.21"
     prebuild-install "^7.0.1"
 
 node-fetch@^2.6.1:

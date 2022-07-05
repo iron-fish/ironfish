@@ -14,6 +14,7 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
+import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
 import { mineableHeaderString } from './utils'
@@ -60,6 +61,7 @@ export class MiningPool {
     webhooks?: WebhookNotifier[]
     host?: string
     port?: number
+    banning?: boolean
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -70,6 +72,7 @@ export class MiningPool {
       logger: this.logger,
       host: options.host,
       port: options.port,
+      banning: options.banning,
     })
     this.config = options.config
     this.shares = options.shares
@@ -102,6 +105,7 @@ export class MiningPool {
     host?: string
     port?: number
     balancePercentPayoutFlag?: number
+    banning?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -120,6 +124,7 @@ export class MiningPool {
       host: options.host,
       port: options.port,
       shares,
+      banning: options.banning,
     })
   }
 
@@ -132,7 +137,11 @@ export class MiningPool {
     this.started = true
     await this.shares.start()
 
-    this.logger.info(`Starting stratum server on ${this.stratum.host}:${this.stratum.port}`)
+    this.logger.info(
+      `Starting stratum server v${String(this.stratum.version)} on ${this.stratum.host}:${
+        this.stratum.port
+      }`,
+    )
     this.stratum.start()
 
     this.logger.info('Connecting to node...')
@@ -232,10 +241,10 @@ export class MiningPool {
     try {
       headerBytes = mineableHeaderString(blockTemplate.header)
     } catch (error) {
-      this.logger.debug(`${client.id} sent malformed work. No longer sending work.`)
-      this.stratum.addBadClient(client)
+      this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
       return
     }
+
     const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -397,9 +406,9 @@ export class MiningPool {
     }
   }
 
-  async estimateHashRate(): Promise<number> {
+  async estimateHashRate(publicAddress?: string): Promise<number> {
     // BigInt can't contain decimals, so multiply then divide to give decimal precision
-    const shareRate = await this.shares.shareRate()
+    const shareRate = await this.shares.shareRate(publicAddress)
     const decimalPrecision = 1000000
     return (
       Number(BigInt(Math.floor(shareRate * decimalPrecision)) * this.difficulty) /
@@ -413,24 +422,44 @@ export class MiningPool {
     this.webhooks.map((w) => w.poolStatus(status))
   }
 
-  async getStatus(): Promise<MiningPoolStatus> {
+  async getStatus(publicAddress?: string): Promise<MiningStatusMessage> {
     const [hashRate, sharesPending] = await Promise.all([
       this.estimateHashRate(),
       this.shares.sharesPendingPayout(),
     ])
 
-    return {
+    let addressMinerCount = 0
+    for (const client of this.stratum.clients.values()) {
+      if (client.subscribed && client.publicAddress === publicAddress) {
+        addressMinerCount++
+      }
+    }
+
+    const status = {
       name: this.name,
       hashRate: hashRate,
-      miners: this.stratum.clients.size,
+      miners: this.stratum.subscribed,
       sharesPending: sharesPending,
+      bans: this.stratum.peers.banCount,
+      clients: this.stratum.clients.size,
     }
-  }
-}
 
-export type MiningPoolStatus = {
-  name: string
-  hashRate: number
-  miners: number
-  sharesPending: number
+    if (publicAddress) {
+      const [addressHashRate, addressSharesPending] = await Promise.all([
+        this.estimateHashRate(publicAddress),
+        this.shares.sharesPendingPayout(publicAddress),
+      ])
+      return {
+        ...status,
+        addressStatus: {
+          publicAddress: publicAddress,
+          hashRate: addressHashRate,
+          miners: addressMinerCount,
+          sharesPending: addressSharesPending,
+        },
+      }
+    }
+
+    return status
+  }
 }

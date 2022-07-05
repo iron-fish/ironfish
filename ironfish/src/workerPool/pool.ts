@@ -17,6 +17,12 @@ import { RoundRobinQueue } from './roundrobinqueue'
 import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
+import {
+  DecryptedNote,
+  DecryptNoteOptions,
+  DecryptNotesRequest,
+  DecryptNotesResponse,
+} from './tasks/decryptNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
@@ -48,6 +54,7 @@ export class WorkerPool {
     [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.DecryptNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -221,6 +228,17 @@ export class WorkerPool {
     }
 
     return response
+  }
+
+  async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote | null>> {
+    const request = new DecryptNotesRequest(payloads)
+
+    const response = await this.execute(request).result()
+    if (!(response instanceof DecryptNotesResponse)) {
+      throw new Error('Invalid response')
+    }
+
+    return response.notes
   }
 
   /**

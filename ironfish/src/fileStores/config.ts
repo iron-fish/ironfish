@@ -159,6 +159,11 @@ export type ConfigOptions = {
   poolAccountName: string
 
   /**
+   * Should pool clients be banned for perceived bad behavior
+   */
+  poolBanning: boolean
+
+  /**
    * The percent of the confirmed balance of the pool's account that it will payout
    */
   poolBalancePercentPayout: number
@@ -304,6 +309,7 @@ export class Config extends KeyStore<ConfigOptions> {
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      poolBanning: false,
       poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,

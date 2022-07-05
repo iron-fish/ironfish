@@ -4,7 +4,7 @@
 import { GetPublicKeyResponse } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
 
-describe('accounts:publickey', () => {
+describe('accounts:address', () => {
   const publicKeyResponse: GetPublicKeyResponse = {
     account: 'default',
     publicKey:
@@ -42,9 +42,9 @@ describe('accounts:publickey', () => {
   describe('fetching public key', () => {
     test
       .stdout()
-      .command('accounts:publickey')
+      .command('accounts:address')
       .exit(0)
-      .it('logs account public key', (ctx) => {
+      .it('logs account address', (ctx) => {
         expectCli(ctx.stdout).include(publicKeyResponse.publicKey)
         expectCli(ctx.stdout).include(publicKeyResponse.account)
       })

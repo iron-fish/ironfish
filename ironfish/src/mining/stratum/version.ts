@@ -2,6 +2,5 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export { StratumClient } from './stratumClient'
-export { StratumServer } from './stratumServer'
-export { MiningStatusMessage } from './messages'
+export const STRATUM_VERSION_PROTOCOL = 1
+export const STRATUM_VERSION_PROTOCOL_MIN = 1
