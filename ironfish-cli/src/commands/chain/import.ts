@@ -8,6 +8,7 @@ import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
+import { v4 as uuid } from 'uuid'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -42,7 +43,8 @@ export default class ImportSnapshot extends IronfishCommand {
     const { flags } = await this.parse(ImportSnapshot)
 
     let snapshotPath
-    const tempDir = await fsAsync.mkdtemp(`${os.tmpdir()}${path.sep}`)
+    const tempDir = path.join(os.tmpdir(), uuid())
+    await fsAsync.mkdir(tempDir, {recursive: true})
 
     if (flags.path) {
       snapshotPath = flags.path
