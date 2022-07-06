@@ -44,7 +44,7 @@ import {
   RequestTimeoutError,
 } from './peers/connections'
 import { LocalPeer } from './peers/localPeer'
-import { BAN_SCORE, Peer } from './peers/peer'
+import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { IsomorphicWebSocketConstructor } from './types'
@@ -327,7 +327,7 @@ export class PeerNetwork {
       }
 
       if (peer.send(message)) {
-        peer.knownBlockHashes.set(block.header.hash, false)
+        peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Sent)
       }
     }
   }

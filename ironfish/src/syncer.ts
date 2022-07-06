@@ -9,7 +9,7 @@ import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
-import { BAN_SCORE, PeerState } from './network/peers/peer'
+import { BAN_SCORE, KnownBlockHashesValue, PeerState } from './network/peers/peer'
 import { Block, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Strategy } from './strategy'
@@ -484,9 +484,9 @@ export class Syncer {
 
     const { added, block } = await this.addBlock(peer, newBlock)
 
-    peer.knownBlockHashes.set(block.header.hash, true)
+    peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
     for (const knownPeer of peer.knownPeers.values()) {
-      knownPeer.knownBlockHashes.set(block.header.hash, true)
+      knownPeer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
     }
 
     if (!peer.sequence || block.header.sequence > peer.sequence) {

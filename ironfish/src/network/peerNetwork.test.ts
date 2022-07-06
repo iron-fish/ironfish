@@ -226,6 +226,11 @@ describe('PeerNetwork', () => {
         const peer2Send = jest.spyOn(peer2, 'send')
         const peer3Send = jest.spyOn(peer3, 'send')
 
+        await peerNetwork.peerManager.onMessage.emitAsync(peer1, {
+          peerIdentity: peer1.getIdentityOrThrow(),
+          message: newBlockMessage,
+        })
+
         await peerNetwork['handleGossipMessage'](peer1, newBlockMessage)
 
         expect(peer1.knownBlockHashes.has(blockA1.header.hash)).toBe(true)

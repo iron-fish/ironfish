@@ -63,6 +63,11 @@ export type PeerState =
       connections: Readonly<PeerConnectionState>
     }
 
+export enum KnownBlockHashesValue {
+  Received = 1,
+  Sent = 2,
+}
+
 export class Peer {
   readonly pendingRPCMax: number
   readonly logger: Logger
@@ -197,11 +202,10 @@ export class Peer {
    * Blocks that have been sent or received from this peer. Value is set to true if the block was received
    * from the peer, and false if the block was sent to the peer.
    */
-  readonly knownBlockHashes: LRU<BlockHash, boolean> = new LRU<BlockHash, boolean>(
-    1024,
-    null,
-    BufferMap,
-  )
+  readonly knownBlockHashes: LRU<BlockHash, KnownBlockHashesValue> = new LRU<
+    BlockHash,
+    KnownBlockHashesValue
+  >(1024, null, BufferMap)
 
   /**
    * Event fired for every new incoming message that needs to be processed
