@@ -8,8 +8,8 @@ import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
-import { v4 as uuid } from 'uuid'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -44,7 +44,7 @@ export default class ImportSnapshot extends IronfishCommand {
 
     let snapshotPath
     const tempDir = path.join(os.tmpdir(), uuid())
-    await fsAsync.mkdir(tempDir, {recursive: true})
+    await fsAsync.mkdir(tempDir, { recursive: true })
 
     if (flags.path) {
       snapshotPath = flags.path
@@ -129,10 +129,17 @@ export default class ImportSnapshot extends IronfishCommand {
     files.sort((a, b) => Number(a) - Number(b))
 
     const client = await this.sdk.connectRpc()
+    const status = await client.getChainInfo()
+    let headSeq = Number(status.content.currentBlockIdentifier.index)
 
     for (const file of files) {
+      if (headSeq > Number(file)) {
+        continue
+      }
+
       const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
-      await client.importSnapshot({ blocks })
+      const response = await client.importSnapshot({ blocks })
+      headSeq = response.content.headSeq
     }
   }
 
