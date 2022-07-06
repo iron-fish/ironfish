@@ -156,9 +156,13 @@ export class AccountsDB {
     return meta
   }
 
-  async *loadAccounts(): AsyncGenerator<Account, void, unknown> {
-    for await (const [id, account] of this.accounts.getAllIter()) {
-      yield new Account(id, account)
+  async *loadAccounts(): AsyncGenerator<
+    { id: string; serializedAccount: AccountsValue },
+    void,
+    unknown
+  > {
+    for await (const [id, serializedAccount] of this.accounts.getAllIter()) {
+      yield { id, serializedAccount }
     }
   }
 

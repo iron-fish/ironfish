@@ -4,7 +4,6 @@
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
-import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
@@ -175,8 +174,18 @@ export class Accounts {
   }
 
   async load(): Promise<void> {
-    for await (const account of this.db.loadAccounts()) {
-      this.accounts.set(account.id, account)
+    for await (const { id, serializedAccount } of this.db.loadAccounts()) {
+      this.accounts.set(
+        id,
+        new Account({
+          id,
+          chain: this.chain,
+          config: this.config,
+          decryptedNotes: this.decryptedNotes,
+          serializedAccount,
+          transactions: this.transactionMap,
+        }),
+      )
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -684,79 +693,10 @@ export class Accounts {
     return { notes }
   }
 
-  private async getUnspentNotes(account: Account): Promise<
-    ReadonlyArray<{
-      hash: string
-      note: Note
-      index: number | null
-      confirmed: boolean
-    }>
-  > {
-    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
-    const unspentNotes = []
-
-    for (const { blockHash, noteHash, serializedNote } of this.getDecryptedNotes(account)) {
-      const map = this.decryptedNotes.get(noteHash)
-
-      if (!map) {
-        throw new Error('All decrypted notes should be in the decryptedNote map')
-      }
-
-      if (!map.spent) {
-        let confirmed = false
-
-        if (blockHash) {
-          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-          Assert.isNotNull(header)
-          const main = await this.chain.isHeadChain(header)
-          if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
-          }
-        }
-
-        unspentNotes.push({
-          hash: noteHash,
-          note: new Note(serializedNote),
-          index: map.noteIndex,
-          confirmed,
-        })
-      }
-    }
-
-    return unspentNotes
-  }
-
-  private getDecryptedNotes(account: Account): Array<{
-    blockHash: string | null
-    noteHash: string
-    serializedNote: Buffer
-  }> {
-    const decryptedNotes = []
-
-    for (const [
-      noteHash,
-      { accountId, serializedNote, transactionHash },
-    ] of this.decryptedNotes.entries()) {
-      if (accountId === account.id && transactionHash) {
-        const transactionValue = this.transactionMap.get(transactionHash)
-        Assert.isNotUndefined(transactionValue)
-
-        decryptedNotes.push({
-          blockHash: transactionValue.blockHash,
-          noteHash,
-          serializedNote,
-        })
-      }
-    }
-
-    return decryptedNotes
-  }
-
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
 
-    const notes = await this.getUnspentNotes(account)
+    const notes = await account.getUnspentNotes()
 
     let unconfirmed = BigInt(0)
     let confirmed = BigInt(0)
@@ -822,7 +762,7 @@ export class Accounts {
       receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-    const unspentNotes = await this.getUnspentNotes(sender)
+    const unspentNotes = await sender.getUnspentNotes()
 
     for (const unspentNote of unspentNotes) {
       // Skip unconfirmed notes
@@ -1021,7 +961,14 @@ export class Accounts {
       rescan: null,
     }
 
-    const account = new Account(uuid(), serializedAccount)
+    const account = new Account({
+      id: uuid(),
+      serializedAccount,
+      chain: this.chain,
+      config: this.config,
+      decryptedNotes: this.decryptedNotes,
+      transactions: this.transactionMap,
+    })
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
@@ -1175,7 +1122,14 @@ export class Accounts {
       ...toImport,
     }
 
-    const account = new Account(uuid(), serializedAccount)
+    const account = new Account({
+      id: uuid(),
+      serializedAccount,
+      chain: this.chain,
+      config: this.config,
+      decryptedNotes: this.decryptedNotes,
+      transactions: this.transactionMap,
+    })
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
