@@ -50,7 +50,7 @@ export class Accounts {
   >()
   protected readonly decryptableNotes = new Map<string, Readonly<DecryptableNotesValue>>()
   protected readonly nullifierToNote = new Map<string, string>()
-  protected readonly headHashes = new Map<string, string>()
+  protected readonly headStatus = new Map<string, { headHash: string; upToDate: boolean }>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -182,11 +182,9 @@ export class Accounts {
     const meta = await this.db.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
 
-    await this.db.loadHeadHashesMap(this.headHashes)
+    await this.loadHeadHashes()
 
     this.chainProcessor.hash = await this.getLatestHeadHash()
-
-    this.updateAccountSyncStatus()
 
     await this.loadTransactionsFromDb()
   }
@@ -326,7 +324,10 @@ export class Accounts {
 
   async updateHeadHash(headHash: Buffer | null): Promise<void> {
     for (const account of this.accounts.values()) {
-      if (headHash && account.upToDate) {
+      const headStatus = this.headStatus.get(account.id)
+      Assert.isNotUndefined(headStatus)
+
+      if (headHash && headStatus.upToDate) {
         await this.db.saveHeadHash(account, headHash.toString('hex'))
       } else {
         await this.db.removeHeadHash(account)
@@ -356,7 +357,7 @@ export class Accounts {
       serializedNote: Buffer
     }>
   > {
-    const accounts = this.listAccounts().filter((a) => a.upToDate)
+    const accounts = this.listAccounts().filter((a) => this.isAccountUpToDate(a))
     this.logger.warn(`Decrypting notes for ${accounts.map((a) => a.name).join(', ')}`)
     const decryptedNotes = []
 
@@ -1028,7 +1029,9 @@ export class Accounts {
     await this.db.setAccount(account)
 
     if (this.chainProcessor.hash) {
-      await this.db.saveHeadHash(account, this.chainProcessor.hash.toString('hex'))
+      const headHash = this.chainProcessor.hash.toString('hex')
+      await this.db.saveHeadHash(account, headHash)
+      this.headStatus.set(account.id, { headHash, upToDate: true })
     }
 
     if (setDefault) {
@@ -1181,7 +1184,6 @@ export class Accounts {
     }
 
     const account = new Account(uuid(), serializedAccount)
-    account.upToDate = false
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
@@ -1279,11 +1281,13 @@ export class Accounts {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHeader = null
     for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
+      const headStatus = this.headStatus.get(account.id)
 
-      if (!headHash) {
+      if (!headStatus) {
         continue
       }
+
+      const { headHash } = headStatus
 
       const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
 
@@ -1305,71 +1309,51 @@ export class Accounts {
 
   async getLatestHeadHash(): Promise<Buffer | null> {
     let latestHeader = null
-    for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
 
-      if (!headHash) {
-        continue
-      }
-
+    for (const { headHash } of this.headStatus.values()) {
       const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
-
-      if (!header) {
-        // If no header is returned, the hash is likely invalid and we should remove it
-        await this.db.removeHeadHash(account)
-        continue
-      }
+      Assert.isNotNull(header)
 
       if (!latestHeader || latestHeader.sequence < header.sequence) {
         latestHeader = header
       }
-
-      // TODO: Check if any hashes are on known-forks
     }
-
     return latestHeader ? latestHeader.hash : null
   }
 
-  updateAccountSyncStatus(): void {
-    const latestHash = this.chainProcessor.hash
+  async loadHeadHashes(): Promise<void> {
+    for await (const { accountId, headHash } of this.db.loadHeadHashes()) {
+      this.headStatus.set(accountId, {
+        headHash,
+        upToDate: false,
+      })
+    }
 
-    for (const account of this.accounts.values()) {
-      const name = account.displayName
-      // If there is no loaded head hash, we assume all accounts should be updated
-      // as the chain is processed
-      if (!latestHash) {
-        this.logger.debug(`${name} up to date since no existing head hash was found.`)
-        account.upToDate = true
-        continue
-      }
+    const latestHeadHash = await this.getLatestHeadHash()
 
-      const accountHeadHash = this.headHashes.get(account.id)
-
-      // If we have a latest head hash, but the account doesn't have a head hash
-      // saved, then it's safe to assume this account hasn't been rescanned yet
-      if (!accountHeadHash) {
-        account.upToDate = false
-        this.logger.debug(
-          `${name} has no head hash. Not up to date with ${latestHash.toString('hex')}`,
-        )
-        continue
-      }
-
-      if (accountHeadHash === latestHash.toString('hex')) {
-        account.upToDate = true
-        this.logger.debug(`${name} up to date: ${accountHeadHash}`)
+    for (const [accountId, headStatus] of this.headStatus.entries()) {
+      if (!latestHeadHash || headStatus.headHash === latestHeadHash.toString('hex')) {
+        headStatus.upToDate = true
       } else {
-        account.upToDate = false
+        const account = this.getAccount(accountId)
+        Assert.isNotNull(account)
+
         this.logger.warn(
-          `${name} is not up to date. Account's head hash: ${accountHeadHash}. Latest head hash: ${latestHash.toString(
-            'hex',
-          )}`,
+          `${account.displayName} is not up to date. Account's head hash: ${
+            headStatus.headHash
+          }. Latest head hash: ${latestHeadHash.toString('hex')}`,
         )
         this.logger.warn(
           "It is recommended to initiate a rescan or else this account's balance may look incorrect.",
         )
       }
     }
+  }
+
+  isAccountUpToDate(account: Account): boolean {
+    const headStatus = this.headStatus.get(account.id)
+
+    return headStatus ? headStatus.upToDate : false
   }
 
   protected assertHasAccount(account: Account): void {

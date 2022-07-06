@@ -16,7 +16,6 @@ export class Account {
   readonly outgoingViewKey: string
   publicAddress: string
   rescan: number | null
-  upToDate: boolean
 
   constructor(id: string, serializedAccount: AccountsValue) {
     this.id = id
@@ -26,7 +25,6 @@ export class Account {
     this.outgoingViewKey = serializedAccount.outgoingViewKey
     this.publicAddress = serializedAccount.publicAddress
     this.rescan = serializedAccount.rescan
-    this.upToDate = true
 
     const prefixHash = new MurmurHash3(this.spendingKey, 1)
       .hash(this.incomingViewKey)
