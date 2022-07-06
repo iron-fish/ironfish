@@ -17,10 +17,7 @@ import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
 import { AccountsValue, AccountsValueEncoding } from './database/accounts'
-import {
-  DecryptableNotesValue,
-  DecryptableNotesValueEncoding,
-} from './database/decryptableNotes'
+import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './database/decryptedNotes'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
@@ -48,9 +45,9 @@ export class AccountsDB {
     value: string
   }>
 
-  decryptableNotes: IDatabaseStore<{
+  decryptedNotes: IDatabaseStore<{
     key: string
-    value: DecryptableNotesValue
+    value: DecryptedNotesValue
   }>
 
   nullifierToNote: IDatabaseStore<{ key: string; value: string }>
@@ -98,13 +95,13 @@ export class AccountsDB {
       valueEncoding: new AccountsValueEncoding(),
     })
 
-    this.decryptableNotes = this.database.addStore<{
+    this.decryptedNotes = this.database.addStore<{
       key: string
-      value: DecryptableNotesValue
+      value: DecryptedNotesValue
     }>({
-      name: 'decryptableNotes',
+      name: 'decryptedNotes',
       keyEncoding: new StringHashEncoding(),
-      valueEncoding: new DecryptableNotesValueEncoding(),
+      valueEncoding: new DecryptedNotesValueEncoding(),
     })
 
     this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
@@ -278,35 +275,35 @@ export class AccountsDB {
     }
   }
 
-  async saveDecryptableNotes(
+  async saveDecryptedNotes(
     noteHash: string,
-    note: Readonly<DecryptableNotesValue>,
+    note: Readonly<DecryptedNotesValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptableNotes.put(noteHash, note, tx)
+    await this.decryptedNotes.put(noteHash, note, tx)
   }
 
-  async removeDecryptableNotes(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.decryptableNotes.del(noteHash, tx)
+  async removeDecryptedNotes(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.decryptedNotes.del(noteHash, tx)
   }
 
-  async replaceDecryptableNotesMap(map: Map<string, DecryptableNotesValue>): Promise<void> {
-    await this.decryptableNotes.clear()
+  async replaceDecryptedNotesMap(map: Map<string, DecryptedNotesValue>): Promise<void> {
+    await this.decryptedNotes.clear()
 
     await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
-        await this.decryptableNotes.put(key, value, tx)
+        await this.decryptedNotes.put(key, value, tx)
       }
     })
   }
 
-  async loadDecryptableNotesMap(
+  async loadDecryptedNotesMap(
     map: Map<
       string,
       { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
     >,
   ): Promise<void> {
-    for await (const [key, value] of this.decryptableNotes.getAllIter()) {
+    for await (const [key, value] of this.decryptedNotes.getAllIter()) {
       map.set(key, value)
     }
   }
