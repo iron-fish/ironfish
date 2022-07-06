@@ -50,6 +50,26 @@ export class StringHashEncoding implements IDatabaseEncoding<string> {
   }
 }
 
+export class NullableStringEncoding implements IDatabaseEncoding<string | null> {
+  serialize(value: string | null): Buffer {
+    const size = value ? bufio.sizeVarString(value, 'utf8') : 0
+
+    const buffer = bufio.write(size)
+    if (value) {
+      buffer.writeVarString(value, 'utf8')
+    }
+    return buffer.render()
+  }
+
+  deserialize(buffer: Buffer): string | null {
+    const reader = bufio.read(buffer, true)
+    if (reader.left()) {
+      return reader.readVarString('utf8')
+    }
+    return null
+  }
+}
+
 export class ArrayEncoding<T extends IJsonSerializable[]> extends JsonEncoding<T> {}
 
 export default class BufferToStringEncoding implements Serde<Buffer, string> {

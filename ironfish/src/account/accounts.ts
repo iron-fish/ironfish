@@ -50,7 +50,7 @@ export class Accounts {
   >()
   protected readonly decryptedNotes = new Map<string, Readonly<DecryptedNotesValue>>()
   protected readonly nullifierToNote = new Map<string, string>()
-  protected readonly headHashes = new Map<string, string>()
+  protected readonly headHashes = new Map<string, string | null>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -108,7 +108,7 @@ export class Accounts {
         })
       }
 
-      await this.updateHeadHash(header.hash)
+      await this.updateHeadHashes(header.hash)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
@@ -118,7 +118,7 @@ export class Accounts {
         await this.syncTransaction(transaction, {})
       }
 
-      await this.updateHeadHash(header.previousBlockHash)
+      await this.updateHeadHashes(header.previousBlockHash)
     })
   }
 
@@ -246,7 +246,7 @@ export class Accounts {
 
     if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
-      await this.updateHeadHash(this.chainProcessor.hash)
+      await this.updateHeadHashes(this.chainProcessor.hash)
     }
   }
 
@@ -324,14 +324,18 @@ export class Accounts {
     }
   }
 
-  async updateHeadHash(headHash: Buffer | null): Promise<void> {
+  async updateHeadHashes(headHash: Buffer | null): Promise<void> {
     for (const account of this.accounts.values()) {
-      if (headHash) {
-        await this.db.saveHeadHash(account, headHash.toString('hex'))
-      } else {
-        await this.db.removeHeadHash(account)
-      }
+      await this.updateHeadHash(account, headHash)
     }
+  }
+
+  async updateHeadHash(account: Account, headHash: Buffer | null): Promise<void> {
+    const hash = headHash ? headHash.toString('hex') : null
+
+    this.headHashes.set(account.id, hash)
+
+    await this.db.saveHeadHash(account, hash)
   }
 
   async reset(): Promise<void> {
@@ -340,7 +344,7 @@ export class Accounts {
     this.nullifierToNote.clear()
     this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
-    await this.updateHeadHash(null)
+    await this.updateHeadHashes(null)
   }
 
   private async decryptNotes(
@@ -1025,6 +1029,7 @@ export class Accounts {
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
+    await this.updateHeadHash(account, this.chainProcessor.hash)
 
     if (setDefault) {
       await this.setDefaultAccount(account.name)
@@ -1179,6 +1184,7 @@ export class Accounts {
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
+    await this.updateHeadHash(account, null)
 
     this.onAccountImported.emit(account)
 
@@ -1283,7 +1289,10 @@ export class Accounts {
 
       if (!header) {
         // If no header is returned, the hash is likely invalid and we should remove it
-        await this.db.removeHeadHash(account)
+        this.logger.warn(
+          `${account.displayName} has an invalid head hash ${headHash}. This account needs to be rescanned.`,
+        )
+        await this.db.saveHeadHash(account, null)
         continue
       }
 
