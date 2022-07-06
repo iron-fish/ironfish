@@ -118,6 +118,50 @@ describe('Accounts', () => {
     })
   })
 
+  describe('scanTransactions', () => {
+    it('should update head status', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+
+      await node.accounts.updateHead()
+
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+
+      const blockB = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockB)
+
+      await node.accounts.updateHead()
+
+      let headStatusA = node.accounts['headStatus'].get(accountA.id)
+      let headStatusB = node.accounts['headStatus'].get(accountB.id)
+
+      // Confirm pre-rescan state
+      expect(headStatusA).toEqual({
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+      expect(headStatusB).toEqual({ headHash: null, upToDate: false })
+
+      await node.accounts.scanTransactions()
+
+      headStatusA = node.accounts['headStatus'].get(accountA.id)
+      headStatusB = node.accounts['headStatus'].get(accountB.id)
+
+      expect(headStatusA).toEqual({
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+      expect(headStatusB).toEqual({
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+    })
+  })
+
   describe('getBalance', () => {
     it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {
       const { node: nodeA } = await nodeTest.createSetup({
@@ -189,11 +233,75 @@ describe('Accounts', () => {
       const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(blockB)
 
-      node.accounts['headHashes'].set(accountA.id, blockA.header.hash.toString('hex'))
-      node.accounts['headHashes'].set(accountB.id, blockB.header.hash.toString('hex'))
-      node.accounts['headHashes'].set(accountC.id, null)
+      node.accounts['headStatus'].set(accountA.id, {
+        headHash: blockA.header.hash.toString('hex'),
+        upToDate: false,
+      })
+      node.accounts['headStatus'].set(accountB.id, {
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+      node.accounts['headStatus'].set(accountC.id, { headHash: null, upToDate: false })
 
       expect(await node.accounts.getEarliestHeadHash()).toEqual(blockA.header.hash)
+    })
+  })
+
+  describe('getLatestHeadHash', () => {
+    it('should return the latest head hash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+      const accountC = await useAccountFixture(node.accounts, 'accountC')
+      await useAccountFixture(node.accounts, 'accountD')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockB)
+
+      node.accounts['headStatus'].set(accountA.id, {
+        headHash: blockA.header.hash.toString('hex'),
+        upToDate: false,
+      })
+      node.accounts['headStatus'].set(accountB.id, {
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+      node.accounts['headStatus'].set(accountC.id, { headHash: null, upToDate: false })
+
+      expect(await node.accounts.getLatestHeadHash()).toEqual(blockB.header.hash)
+    })
+  })
+
+  describe('loadHeadHashes', () => {
+    it('should properly saturate headStatus', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'accountA')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+
+      await node.accounts.updateHead()
+
+      const accountB = await useAccountFixture(node.accounts, 'accountB')
+
+      const blockB = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockB)
+
+      await node.accounts.updateHead()
+
+      await node.accounts.loadHeadHashes()
+
+      const headStatusA = node.accounts['headStatus'].get(accountA.id)
+      const headStatusB = node.accounts['headStatus'].get(accountB.id)
+      expect(headStatusA).toEqual({
+        headHash: blockB.header.hash.toString('hex'),
+        upToDate: true,
+      })
+      expect(headStatusB).toEqual({ headHash: null, upToDate: false })
     })
   })
 })
