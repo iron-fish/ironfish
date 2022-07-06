@@ -18,6 +18,7 @@ export enum NetworkMessageType {
   PeerListRequest = 10,
   Signal = 11,
   SignalRequest = 12,
+  NewBlockHashes = 13,
 }
 
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WSWebSocket
