@@ -4,11 +4,11 @@
 import { DEFAULT_SNAPSHOT_BUCKET, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
-import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
+import tar from 'tar'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -143,19 +143,19 @@ export default class ImportSnapshot extends IronfishCommand {
     }
   }
 
-  async unzip(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
-    return new Promise<number | null>((resolve, reject) => {
-      const args = ['-xvzf', source, '-C', dest]
+  async unzip(source: string, dest: string, excludes: string[] = []): Promise<void> {
+    const excludeSet = new Set(excludes)
 
-      for (const exclude of excludes) {
-        args.unshift(exclude)
-        args.unshift('--exclude')
-      }
-
-      const process = spawn('tar', args)
-      process.on('exit', (code) => resolve(code))
-      process.on('close', (code) => resolve(code))
-      process.on('error', (error) => reject(error))
+    await tar.extract({
+      file: source,
+      C: dest,
+      filter: function (path) {
+        if (excludeSet.has(path)) {
+          return false
+        } else {
+          return true
+        }
+      },
     })
   }
 }

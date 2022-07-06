@@ -60,6 +60,7 @@
     "@oclif/core": "1.6.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
+    "@types/tar": "6.1.1",
     "axios": "0.21.4",
     "blessed": "0.1.81",
     "json-colorizer": "2.2.2",
