@@ -22,7 +22,7 @@ import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
 import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
-import { DecryptableNotesValue } from './database/decryptableNotes'
+import { DecryptedNotesValue } from './database/decryptedNotes'
 import { validateAccount } from './validator'
 
 type SyncTransactionParams =
@@ -48,7 +48,7 @@ export class Accounts {
       submittedSequence: number | null
     }>
   >()
-  protected readonly decryptableNotes = new Map<string, Readonly<DecryptableNotesValue>>()
+  protected readonly decryptedNotes = new Map<string, Readonly<DecryptedNotesValue>>()
   protected readonly nullifierToNote = new Map<string, string>()
   protected readonly headHashes = new Map<string, string>()
 
@@ -268,13 +268,13 @@ export class Accounts {
 
   async loadTransactionsFromDb(): Promise<void> {
     await this.db.loadNullifierToNoteMap(this.nullifierToNote)
-    await this.db.loadDecryptableNotesMap(this.decryptableNotes)
+    await this.db.loadDecryptedNotesMap(this.decryptedNotes)
     await this.db.loadTransactionsIntoMap(this.transactionMap)
   }
 
   async saveTransactionsToDb(): Promise<void> {
     await this.db.replaceNullifierToNoteMap(this.nullifierToNote)
-    await this.db.replaceDecryptableNotesMap(this.decryptableNotes)
+    await this.db.replaceDecryptedNotesMap(this.decryptedNotes)
     await this.db.replaceTransactions(this.transactionMap)
   }
 
@@ -310,17 +310,17 @@ export class Accounts {
     }
   }
 
-  async updateDecryptableNotesMap(
+  async updateDecryptedNotesMap(
     noteHash: string,
-    note: Readonly<DecryptableNotesValue> | null,
+    note: Readonly<DecryptedNotesValue> | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     if (note === null) {
-      this.decryptableNotes.delete(noteHash)
-      await this.db.removeDecryptableNotes(noteHash, tx)
+      this.decryptedNotes.delete(noteHash)
+      await this.db.removeDecryptedNotes(noteHash, tx)
     } else {
-      this.decryptableNotes.set(noteHash, note)
-      await this.db.saveDecryptableNotes(noteHash, note, tx)
+      this.decryptedNotes.set(noteHash, note)
+      await this.db.saveDecryptedNotes(noteHash, note, tx)
     }
   }
 
@@ -336,7 +336,7 @@ export class Accounts {
 
   async reset(): Promise<void> {
     this.transactionMap.clear()
-    this.decryptableNotes.clear()
+    this.decryptedNotes.clear()
     this.nullifierToNote.clear()
     this.chainProcessor.hash = null
     await this.saveTransactionsToDb()
@@ -488,7 +488,7 @@ export class Accounts {
               await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
             }
 
-            await this.updateDecryptableNotesMap(
+            await this.updateDecryptedNotesMap(
               merkleHash,
               {
                 accountId: account.id,
@@ -512,15 +512,15 @@ export class Accounts {
           const noteHash = this.nullifierToNote.get(nullifier)
 
           if (noteHash) {
-            const nullifier = this.decryptableNotes.get(noteHash)
+            const nullifier = this.decryptedNotes.get(noteHash)
 
             if (!nullifier) {
               throw new Error(
-                'nullifierToNote mappings must have a corresponding decryptableNotes map',
+                'nullifierToNote mappings must have a corresponding decryptedNotes map',
               )
             }
 
-            await this.updateDecryptableNotesMap(
+            await this.updateDecryptedNotesMap(
               noteHash,
               {
                 ...nullifier,
@@ -546,13 +546,13 @@ export class Accounts {
 
       for (const note of transaction.notes()) {
         const merkleHash = note.merkleHash().toString('hex')
-        const decryptableNote = this.decryptableNotes.get(merkleHash)
+        const decryptedNote = this.decryptedNotes.get(merkleHash)
 
-        if (decryptableNote) {
-          await this.updateDecryptableNotesMap(merkleHash, null, tx)
+        if (decryptedNote) {
+          await this.updateDecryptedNotesMap(merkleHash, null, tx)
 
-          if (decryptableNote.nullifierHash) {
-            await this.updateNullifierToNoteMap(decryptableNote.nullifierHash, null, tx)
+          if (decryptedNote.nullifierHash) {
+            await this.updateNullifierToNoteMap(decryptedNote.nullifierHash, null, tx)
           }
         }
       }
@@ -562,15 +562,15 @@ export class Accounts {
         const noteHash = this.nullifierToNote.get(nullifierHash)
 
         if (noteHash) {
-          const nullifier = this.decryptableNotes.get(noteHash)
+          const nullifier = this.decryptedNotes.get(noteHash)
 
           if (!nullifier) {
             throw new Error(
-              'nullifierToNote mappings must have a corresponding decryptableNote map',
+              'nullifierToNote mappings must have a corresponding decryptedNote map',
             )
           }
 
-          await this.updateDecryptableNotesMap(
+          await this.updateDecryptedNotesMap(
             noteHash,
             {
               ...nullifier,
@@ -695,11 +695,11 @@ export class Accounts {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const unspentNotes = []
 
-    for (const { blockHash, noteHash, serializedNote } of this.getDecryptableNotes(account)) {
-      const map = this.decryptableNotes.get(noteHash)
+    for (const { blockHash, noteHash, serializedNote } of this.getDecryptedNotes(account)) {
+      const map = this.decryptedNotes.get(noteHash)
 
       if (!map) {
-        throw new Error('All decryptable notes should be in the decryptableNote map')
+        throw new Error('All decrypted notes should be in the decryptedNote map')
       }
 
       if (!map.spent) {
@@ -727,22 +727,22 @@ export class Accounts {
     return unspentNotes
   }
 
-  private getDecryptableNotes(account: Account): Array<{
+  private getDecryptedNotes(account: Account): Array<{
     blockHash: string | null
     noteHash: string
     serializedNote: Buffer
   }> {
-    const decryptableNotes = []
+    const decryptedNotes = []
 
     for (const [
       noteHash,
       { accountId, serializedNote, transactionHash },
-    ] of this.decryptableNotes.entries()) {
+    ] of this.decryptedNotes.entries()) {
       if (accountId === account.id && transactionHash) {
         const transactionValue = this.transactionMap.get(transactionHash)
         Assert.isNotUndefined(transactionValue)
 
-        decryptableNotes.push({
+        decryptedNotes.push({
           blockHash: transactionValue.blockHash,
           noteHash,
           serializedNote,
@@ -750,7 +750,7 @@ export class Accounts {
       }
     }
 
-    return decryptableNotes
+    return decryptedNotes
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
@@ -845,10 +845,10 @@ export class Accounts {
           )
 
           // Update our map so this doesn't happen again
-          const noteMapValue = this.decryptableNotes.get(unspentNote.hash)
+          const noteMapValue = this.decryptedNotes.get(unspentNote.hash)
           if (noteMapValue) {
             this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
-            await this.updateDecryptableNotesMap(unspentNote.hash, {
+            await this.updateDecryptedNotesMap(unspentNote.hash, {
               ...noteMapValue,
               spent: true,
             })

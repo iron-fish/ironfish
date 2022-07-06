@@ -108,7 +108,7 @@ describe('Accounts', () => {
 
     await node.accounts.saveTransactionsToDb()
 
-    node.accounts['decryptableNotes'].clear()
+    node.accounts['decryptedNotes'].clear()
     node.accounts['nullifierToNote'].clear()
     node.accounts['transactionMap'].clear()
 
