@@ -33,7 +33,6 @@ export class StratumClient {
   readonly socket: net.Socket
   readonly host: string
   readonly port: number
-  readonly clientName: string
   readonly logger: Logger
   readonly version: number
 
@@ -57,10 +56,9 @@ export class StratumClient {
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
   readonly onStatus = new Event<[MiningStatusMessage]>()
 
-  constructor(options: { host: string; port: number; clientName: string; logger: Logger }) {
+  constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
     this.port = options.port
-    this.clientName = options.clientName
     this.logger = options.logger
     this.version = STRATUM_VERSION_PROTOCOL
 
@@ -122,10 +120,10 @@ export class StratumClient {
     }
   }
 
-  subscribe(publicAddress: string): void {
+  subscribe(publicAddress: string, name?: string): void {
     this.send('mining.subscribe', {
       version: this.version,
-      clientName: this.clientName,
+      name,
       publicAddress: publicAddress,
     })
 

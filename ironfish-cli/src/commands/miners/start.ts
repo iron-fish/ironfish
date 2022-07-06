@@ -35,9 +35,7 @@ export class Miner extends IronfishCommand {
     }),
     name: Flags.string({
       char: 'n',
-      default: 'default',
-      description:
-        'the miner name distinguish different machines such as iron1. Server hostname is recommended',
+      description: 'the miner name distinguishes different miners',
     }),
     address: Flags.string({
       char: 'a',
@@ -75,8 +73,6 @@ export class Miner extends IronfishCommand {
         this.error('The given public address is not valid, please provide a valid one.')
       }
 
-      const minerName = flags.name
-
       let host = this.sdk.config.get('poolHost')
       let port = this.sdk.config.get('poolPort')
 
@@ -93,8 +89,9 @@ export class Miner extends IronfishCommand {
         }
       }
 
+      const nameInfo = flags.name ? ` with name ${flags.name}` : ''
       this.log(
-        `Starting to mine with public address: ${flags.address} at pool ${host}:${port} with name ${minerName}`,
+        `Starting to mine with public address: ${flags.address} at pool ${host}:${port}${nameInfo}`,
       )
 
       const miner = new MiningPoolMiner({
@@ -104,7 +101,7 @@ export class Miner extends IronfishCommand {
         batchSize,
         host: host,
         port: port,
-        minerName,
+        name: flags.name,
       })
 
       miner.start()
