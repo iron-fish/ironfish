@@ -17,9 +17,9 @@ interface MempoolEntry {
 }
 
 export class MemPool {
-  readonly transactions = new BufferMap<Transaction>()
-  readonly nullifiers = new BufferMap<Buffer>()
-  readonly queue: FastPriorityQueue<MempoolEntry>
+  private readonly transactions = new BufferMap<Transaction>()
+  private readonly nullifiers = new BufferMap<Buffer>()
+  private readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
   private readonly chain: Blockchain
@@ -54,8 +54,8 @@ export class MemPool {
     return this.transactions.size
   }
 
-  exists(transactionHash: Buffer): boolean {
-    return this.transactions.has(transactionHash)
+  exists(transaction: Transaction): boolean {
+    return this.transactions.has(transaction.hash())
   }
 
   *get(): Generator<Transaction, void, unknown> {
@@ -80,10 +80,10 @@ export class MemPool {
    * Accepts a transaction from the network
    */
   async acceptTransaction(transaction: Transaction, shouldVerify = true): Promise<boolean> {
-    const hash = transaction.unsignedHash()
+    const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
 
-    if (this.exists(hash)) {
+    if (this.exists(transaction)) {
       return false
     }
 
@@ -93,9 +93,7 @@ export class MemPool {
     )
 
     if (isExpiredSequence) {
-      this.logger.debug(
-        `Invalid transaction '${hash.toString('hex')}': expired sequence ${sequence}`,
-      )
+      this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
       return false
     }
 
@@ -106,7 +104,7 @@ export class MemPool {
 
       if (!valid) {
         Assert.isNotUndefined(reason)
-        this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+        this.logger.debug(`Invalid transaction '${hash}': ${reason}`)
         return false
       }
     }
@@ -131,7 +129,7 @@ export class MemPool {
 
     this.addTransaction(transaction)
 
-    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
     return true
   }
 
@@ -170,9 +168,7 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      const hash = transaction.unsignedHash()
-
-      if (this.transactions.has(hash)) {
+      if (this.exists(transaction)) {
         continue
       }
 
@@ -190,7 +186,7 @@ export class MemPool {
   }
 
   private addTransaction(transaction: Transaction): void {
-    const hash = transaction.unsignedHash()
+    const hash = transaction.hash()
     this.transactions.set(hash, transaction)
 
     for (const spend of transaction.spends()) {
@@ -202,7 +198,7 @@ export class MemPool {
   }
 
   private deleteTransaction(transaction: Transaction): boolean {
-    const hash = transaction.unsignedHash()
+    const hash = transaction.hash()
     this.transactions.delete(hash)
 
     for (const spend of transaction.spends()) {
