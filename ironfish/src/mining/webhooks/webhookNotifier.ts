@@ -40,10 +40,10 @@ export abstract class WebhookNotifier {
     this.sendText('Disconnected from node unexpectedly. Reconnecting.')
   }
 
-  poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
+  poolSubmittedBlock(blockHeaderSequence: string, hashRate: number, clients: number): void {
     this.sendText(
-      `Block ${this.renderHashHex(
-        hashedHeaderHex,
+      `Block ${this.renderChainReference(
+        blockHeaderSequence,
         this.explorerBlocksUrl,
       )} submitted successfully! ${FileUtils.formatHashRate(
         hashRate,
@@ -65,7 +65,7 @@ export abstract class WebhookNotifier {
       } users for ${displayIronAmountWithCurrency(
         Number(oreToIron(Number(total.toString()))),
         false,
-      )} in transaction ${this.renderHashHex(
+      )} in transaction ${this.renderChainReference(
         transactionHashHex,
         this.explorerTransactionsUrl,
       )}. Transaction pending (${payoutId})`,
@@ -112,11 +112,11 @@ export abstract class WebhookNotifier {
     )
   }
 
-  private renderHashHex(hashHex: string, explorerUrl: string | null): string {
+  private renderChainReference(chainReference: string, explorerUrl: string | null): string {
     if (explorerUrl == null) {
-      return `\`${hashHex}\``
+      return `\`${chainReference}\``
     }
 
-    return `${explorerUrl + hashHex}`
+    return `${explorerUrl + chainReference}`
   }
 }

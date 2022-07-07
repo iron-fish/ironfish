@@ -254,15 +254,18 @@ export class MiningPool {
 
       if (result.content.added) {
         const hashRate = await this.estimateHashRate()
-        const hashedHeaderHex = hashedHeader.toString('hex')
 
         this.logger.info(
-          `Block ${hashedHeaderHex} submitted successfully! ${FileUtils.formatHashRate(
-            hashRate,
-          )}/s`,
+          `Block ${hashedHeader.toString(
+            'hex',
+          )} submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s`,
         )
         this.webhooks.map((w) =>
-          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
+          w.poolSubmittedBlock(
+            blockTemplate.header.sequence.toString(),
+            hashRate,
+            this.stratum.clients.size,
+          ),
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
