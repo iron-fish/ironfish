@@ -179,9 +179,13 @@ export class AccountsDB {
     await this.headHashes.clear()
   }
 
-  async loadHeadHashesMap(map: Map<string, string | null>): Promise<void> {
+  async *loadHeadHashes(): AsyncGenerator<
+    { accountId: string; headHash: string | null },
+    void,
+    unknown
+  > {
     for await (const [accountId, headHash] of this.headHashes.getAllIter()) {
-      map.set(accountId, headHash)
+      yield { accountId, headHash }
     }
   }
 
