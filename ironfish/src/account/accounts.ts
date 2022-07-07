@@ -175,8 +175,15 @@ export class Accounts {
   }
 
   async load(): Promise<void> {
-    for await (const account of this.db.loadAccounts()) {
-      this.accounts.set(account.id, account)
+    for await (const { id, serializedAccount } of this.db.loadAccounts()) {
+      this.accounts.set(
+        id,
+        new Account({
+          ...serializedAccount,
+          id,
+          decryptedNotes: this.decryptedNotes,
+        }),
+      )
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -688,75 +695,6 @@ export class Accounts {
     return { notes }
   }
 
-  private async getUnspentNotes(account: Account): Promise<
-    ReadonlyArray<{
-      hash: string
-      note: Note
-      index: number | null
-      confirmed: boolean
-    }>
-  > {
-    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
-    const unspentNotes = []
-
-    for (const { blockHash, noteHash, serializedNote } of this.getDecryptedNotes(account)) {
-      const map = this.decryptedNotes.get(noteHash)
-
-      if (!map) {
-        throw new Error('All decrypted notes should be in the decryptedNote map')
-      }
-
-      if (!map.spent) {
-        let confirmed = false
-
-        if (blockHash) {
-          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-          Assert.isNotNull(header)
-          const main = await this.chain.isHeadChain(header)
-          if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
-          }
-        }
-
-        unspentNotes.push({
-          hash: noteHash,
-          note: new Note(serializedNote),
-          index: map.noteIndex,
-          confirmed,
-        })
-      }
-    }
-
-    return unspentNotes
-  }
-
-  private getDecryptedNotes(account: Account): Array<{
-    blockHash: string | null
-    noteHash: string
-    serializedNote: Buffer
-  }> {
-    const decryptedNotes = []
-
-    for (const [
-      noteHash,
-      { accountId, serializedNote, transactionHash },
-    ] of this.decryptedNotes.entries()) {
-      if (accountId === account.id && transactionHash) {
-        const transactionValue = this.transactionMap.get(transactionHash)
-        Assert.isNotUndefined(transactionValue)
-
-        decryptedNotes.push({
-          blockHash: transactionValue.blockHash,
-          noteHash,
-          serializedNote,
-        })
-      }
-    }
-
-    return decryptedNotes
-  }
-
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
 
@@ -776,6 +714,48 @@ export class Accounts {
     }
 
     return { unconfirmed, confirmed }
+  }
+
+  private async getUnspentNotes(account: Account): Promise<
+    ReadonlyArray<{
+      hash: string
+      note: Note
+      index: number | null
+      confirmed: boolean
+    }>
+  > {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const notes = []
+    const unspentNotes = account.getUnspentNotes()
+
+    for (const { hash, note, index, transactionHash } of unspentNotes) {
+      let confirmed = false
+
+      if (transactionHash) {
+        const transaction = this.transactionMap.get(transactionHash)
+        Assert.isNotUndefined(transaction)
+        const { blockHash } = transaction
+
+        if (blockHash) {
+          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+          Assert.isNotNull(header)
+          const main = await this.chain.isHeadChain(header)
+          if (main) {
+            const confirmations = this.chain.head.sequence - header.sequence
+            confirmed = confirmations >= minimumBlockConfirmations
+          }
+        }
+      }
+
+      notes.push({
+        confirmed,
+        hash,
+        index,
+        note,
+      })
+    }
+
+    return notes
   }
 
   async pay(
@@ -1016,16 +996,16 @@ export class Accounts {
 
     const key = generateKey()
 
-    const serializedAccount: AccountsValue = {
+    const account = new Account({
+      id: uuid(),
       name,
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
       rescan: null,
-    }
-
-    const account = new Account(uuid(), serializedAccount)
+      decryptedNotes: this.decryptedNotes,
+    })
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
@@ -1160,27 +1140,19 @@ export class Accounts {
     return { transactionInfo, transactionNotes }
   }
 
-  async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
+  async importAccount(toImport: Omit<AccountsValue, 'rescan'>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    const accountDefaults = {
-      name: '',
-      spendingKey: '',
-      incomingViewKey: '',
-      outgoingViewKey: '',
-      publicAddress: '',
-      rescan: null,
-    }
-    const serializedAccount: AccountsValue = {
-      ...accountDefaults,
+    const account = new Account({
       ...toImport,
-    }
-
-    const account = new Account(uuid(), serializedAccount)
+      id: uuid(),
+      decryptedNotes: this.decryptedNotes,
+      rescan: null,
+    })
 
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)

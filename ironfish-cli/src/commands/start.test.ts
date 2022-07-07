@@ -90,13 +90,15 @@ describe('start command', () => {
       getDefaultAccount: jest.fn(),
       createAccount: jest.fn().mockImplementation(
         (name: string) =>
-          new ironfishmodule.Account('id', {
+          new ironfishmodule.Account({
+            id: 'id',
             incomingViewKey: '',
             outgoingViewKey: '',
             publicAddress: '',
             rescan: null,
             spendingKey: '',
             name,
+            decryptedNotes: new Map(),
           }),
       ),
     }
