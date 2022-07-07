@@ -3,12 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import MurmurHash3 from 'imurmurhash'
 import { Note } from '../primitives/note'
+import { IDatabaseTransaction } from '../storage'
+import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
 import { DecryptedNotesValue } from './database/decryptedNotes'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
+  private readonly accountsDb: AccountsDB
   private readonly decryptedNotes: Map<string, DecryptedNotesValue>
 
   readonly id: string
@@ -28,7 +31,7 @@ export class Account {
     outgoingViewKey,
     publicAddress,
     rescan,
-    decryptedNotes,
+    accountsDb,
   }: {
     id: string
     name: string
@@ -37,7 +40,7 @@ export class Account {
     outgoingViewKey: string
     publicAddress: string
     rescan: number | null
-    decryptedNotes: Map<string, DecryptedNotesValue>
+    accountsDb: AccountsDB
   }) {
     this.id = id
     this.name = name
@@ -55,7 +58,8 @@ export class Account {
     const hashSlice = prefixHash.slice(0, 7)
     this.displayName = `${this.name} (${hashSlice})`
 
-    this.decryptedNotes = decryptedNotes
+    this.accountsDb = accountsDb
+    this.decryptedNotes = new Map<string, DecryptedNotesValue>()
   }
 
   serialize(): AccountsValue {
@@ -69,6 +73,10 @@ export class Account {
     }
   }
 
+  reset(): void {
+    this.decryptedNotes.clear()
+  }
+
   getUnspentNotes(): ReadonlyArray<{
     hash: string
     index: number | null
@@ -77,10 +85,8 @@ export class Account {
   }> {
     const unspentNotes = []
 
-    for (const [
-      hash,
-      { accountId, noteIndex, serializedNote, spent, transactionHash },
-    ] of this.decryptedNotes.entries()) {
+    for (const [hash, { accountId, noteIndex, serializedNote, spent, transactionHash }] of this
+      .decryptedNotes) {
       // TODO(rohanjadvani): Remove the accountId check once each account owns
       // its own decrypted notes
       if (accountId === this.id && !spent) {
@@ -94,5 +100,23 @@ export class Account {
     }
 
     return unspentNotes
+  }
+
+  getDecryptedNote(hash: string): DecryptedNotesValue | undefined {
+    return this.decryptedNotes.get(hash)
+  }
+
+  async updateDecryptedNote(
+    noteHash: string,
+    note: Readonly<DecryptedNotesValue>,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.decryptedNotes.set(noteHash, note)
+    await this.accountsDb.saveDecryptedNotes(noteHash, note, tx)
+  }
+
+  async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+    this.decryptedNotes.delete(noteHash)
+    await this.accountsDb.removeDecryptedNotes(noteHash, tx)
   }
 }
