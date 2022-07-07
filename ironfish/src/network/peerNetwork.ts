@@ -34,6 +34,7 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { PooledTrasactionsRequest } from './messages/pooledTransactionsRequest'
 import {
   Direction,
   RPC_TIMEOUT_MILLIS,
@@ -547,6 +548,8 @@ export class PeerNetwork {
           })
         } else if (rpcMessage instanceof GetBlocksRequest) {
           responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
+        } else if (rpcMessage instanceof PooledTrasactionsRequest) {
+          responseMessage = this.onPooledTrasactionsRequest(rpcId)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -686,6 +689,11 @@ export class PeerNetwork {
     })
 
     return new GetBlocksResponse(serialized, rpcId)
+  }
+
+  private onPooledTrasactionsRequest(rpcId: number): CannotSatisfyRequest {
+    // TODO(daniel): implement response for pooled transaction
+    return new CannotSatisfyRequest(rpcId)
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
