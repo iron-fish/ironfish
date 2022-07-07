@@ -21,6 +21,7 @@ export class Transaction {
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _signature: Buffer
+  private _hash?: TransactionHash
 
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
@@ -189,7 +190,8 @@ export class Transaction {
    * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
    */
   hash(): TransactionHash {
-    return blake3(this.transactionPostedSerialized)
+    this._hash = this._hash || blake3(this.transactionPostedSerialized)
+    return this._hash
   }
 
   equals(other: Transaction): boolean {

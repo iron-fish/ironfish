@@ -206,6 +206,13 @@ describe('Mining manager', () => {
       // This value is what the code generates from the fixture block
       validBlock.header.work = expect.any(BigInt)
 
+      // This populates the _hash field on all transactions so that
+      // the test passes. Without it the expected block and the actual
+      // block passed to onNewBlockSpy would have different transaction._hash values
+      for (const t of validBlock.transactions) {
+        t.hash()
+      }
+
       await miningManager.submitBlockTemplate(blockTemplateA1)
       expect(onNewBlockSpy).toBeCalledWith(validBlock)
     })
