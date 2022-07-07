@@ -4,6 +4,7 @@
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
@@ -178,12 +179,9 @@ export class Accounts {
       this.accounts.set(
         id,
         new Account({
+          ...serializedAccount,
           id,
-          chain: this.chain,
-          config: this.config,
           decryptedNotes: this.decryptedNotes,
-          serializedAccount,
-          transactions: this.transactionMap,
         }),
       )
     }
@@ -696,7 +694,7 @@ export class Accounts {
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
 
-    const notes = await account.getUnspentNotes()
+    const notes = await this.getUnspentNotes(account)
 
     let unconfirmed = BigInt(0)
     let confirmed = BigInt(0)
@@ -712,6 +710,48 @@ export class Accounts {
     }
 
     return { unconfirmed, confirmed }
+  }
+
+  private async getUnspentNotes(account: Account): Promise<
+    ReadonlyArray<{
+      hash: string
+      note: Note
+      index: number | null
+      confirmed: boolean
+    }>
+  > {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const notes = []
+    const unspentNotes = account.getUnspentNotes()
+
+    for (const { hash, note, index, transactionHash } of unspentNotes) {
+      let confirmed = false
+
+      if (transactionHash) {
+        const transaction = this.transactionMap.get(transactionHash)
+        Assert.isNotUndefined(transaction)
+        const { blockHash } = transaction
+
+        if (blockHash) {
+          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+          Assert.isNotNull(header)
+          const main = await this.chain.isHeadChain(header)
+          if (main) {
+            const confirmations = this.chain.head.sequence - header.sequence
+            confirmed = confirmations >= minimumBlockConfirmations
+          }
+        }
+      }
+
+      notes.push({
+        confirmed,
+        hash,
+        index,
+        note,
+      })
+    }
+
+    return notes
   }
 
   async pay(
@@ -762,7 +802,7 @@ export class Accounts {
       receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-    const unspentNotes = await sender.getUnspentNotes()
+    const unspentNotes = await this.getUnspentNotes(sender)
 
     for (const unspentNote of unspentNotes) {
       // Skip unconfirmed notes
@@ -952,22 +992,15 @@ export class Accounts {
 
     const key = generateKey()
 
-    const serializedAccount: AccountsValue = {
+    const account = new Account({
+      id: uuid(),
       name,
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
       rescan: null,
-    }
-
-    const account = new Account({
-      id: uuid(),
-      serializedAccount,
-      chain: this.chain,
-      config: this.config,
       decryptedNotes: this.decryptedNotes,
-      transactions: this.transactionMap,
     })
 
     this.accounts.set(account.id, account)
@@ -1102,33 +1135,18 @@ export class Accounts {
     return { transactionInfo, transactionNotes }
   }
 
-  async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
+  async importAccount(toImport: Omit<AccountsValue, 'rescan'>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    const accountDefaults = {
-      name: '',
-      spendingKey: '',
-      incomingViewKey: '',
-      outgoingViewKey: '',
-      publicAddress: '',
-      rescan: null,
-    }
-    const serializedAccount: AccountsValue = {
-      ...accountDefaults,
-      ...toImport,
-    }
-
     const account = new Account({
+      ...toImport,
       id: uuid(),
-      serializedAccount,
-      chain: this.chain,
-      config: this.config,
       decryptedNotes: this.decryptedNotes,
-      transactions: this.transactionMap,
+      rescan: null,
     })
 
     this.accounts.set(account.id, account)
