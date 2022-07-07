@@ -21,15 +21,13 @@ export class Transaction {
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _signature: Buffer
-  private _hash: TransactionHash
+  private _hash?: TransactionHash
 
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
   constructor(transactionPostedSerialized: Buffer) {
     this.transactionPostedSerialized = transactionPostedSerialized
-
-    this._hash = blake3(this.transactionPostedSerialized)
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
@@ -192,6 +190,7 @@ export class Transaction {
    * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
    */
   hash(): TransactionHash {
+    this._hash = this._hash || blake3(this.transactionPostedSerialized)
     return this._hash
   }
 

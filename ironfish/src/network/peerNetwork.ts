@@ -744,7 +744,7 @@ export class PeerNetwork {
     // If we know the mempool already has this transaction, we know that
     // the mempool won't accept it, but it is still a valid transaction
     // so we want to gossip it.
-    if (this.node.memPool.exists(transaction)) {
+    if (this.node.memPool.exists(transaction.hash())) {
       return true
     }
 

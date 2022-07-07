@@ -37,7 +37,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(memPool.exists(transaction)).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
       })
     })
 
@@ -51,7 +51,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(memPool.exists(transaction)).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
       })
     })
   })
@@ -219,7 +219,7 @@ describe('MemPool', () => {
 
         await memPool.acceptTransaction(transaction)
 
-        expect(memPool.exists(transaction)).toBe(true)
+        expect(memPool.exists(transaction.hash())).toBe(true)
         expect([...memPool.get()]).toContainEqual(transaction)
       }, 60000)
     })
@@ -294,14 +294,14 @@ describe('MemPool', () => {
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
-      expect(memPool.exists(transactionA)).toBe(true)
-      expect(memPool.exists(transactionB)).toBe(true)
+      expect(memPool.exists(transactionA.hash())).toBe(true)
+      expect(memPool.exists(transactionB.hash())).toBe(true)
 
       jest.spyOn(transactionA, 'expirationSequence').mockImplementation(() => 1)
       await chain.addBlock(block)
 
-      expect(memPool.exists(transactionA)).toBe(false)
-      expect(memPool.exists(transactionB)).toBe(false)
+      expect(memPool.exists(transactionA.hash())).toBe(false)
+      expect(memPool.exists(transactionB.hash())).toBe(false)
       expect([...memPool.get()]).not.toContainEqual(transactionA)
       expect([...memPool.get()]).not.toContainEqual(transactionB)
     }, 60000)
@@ -325,10 +325,10 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      expect(memPool.exists(transaction)).toBe(true)
+      expect(memPool.exists(transaction.hash())).toBe(true)
       expect([...memPool.get()]).toContainEqual(transaction)
 
-      expect(memPool.exists(minersFee)).toBe(false)
+      expect(memPool.exists(minersFee.hash())).toBe(false)
       expect([...memPool.get()]).not.toContainEqual(minersFee)
     }, 60000)
   })

@@ -54,8 +54,8 @@ export class MemPool {
     return this.transactions.size
   }
 
-  exists(transaction: Transaction): boolean {
-    return this.transactions.has(transaction.hash())
+  exists(hash: TransactionHash): boolean {
+    return this.transactions.has(hash)
   }
 
   *get(): Generator<Transaction, void, unknown> {
@@ -83,7 +83,7 @@ export class MemPool {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
 
-    if (this.exists(transaction)) {
+    if (this.exists(transaction.hash())) {
       return false
     }
 
@@ -168,7 +168,7 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      if (this.exists(transaction)) {
+      if (this.exists(transaction.hash())) {
         continue
       }
 
