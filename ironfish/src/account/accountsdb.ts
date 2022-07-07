@@ -10,6 +10,7 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  NullableStringEncoding,
   StringEncoding,
   StringHashEncoding,
 } from '../storage'
@@ -42,7 +43,7 @@ export class AccountsDB {
 
   headHashes: IDatabaseStore<{
     key: string
-    value: string
+    value: string | null
   }>
 
   decryptedNotes: IDatabaseStore<{
@@ -82,11 +83,11 @@ export class AccountsDB {
 
     this.headHashes = this.database.addStore<{
       key: string
-      value: string
+      value: string | null
     }>({
       name: 'headHashes',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new StringEncoding(),
+      valueEncoding: new NullableStringEncoding(),
     })
 
     this.accounts = this.database.addStore<{ key: string; value: AccountsValue }>({
@@ -162,7 +163,7 @@ export class AccountsDB {
     }
   }
 
-  async saveHeadHash(account: Account, headHash: string): Promise<void> {
+  async saveHeadHash(account: Account, headHash: string | null): Promise<void> {
     await this.headHashes.put(account.id, headHash)
   }
 
@@ -174,17 +175,7 @@ export class AccountsDB {
     await this.headHashes.clear()
   }
 
-  async replaceHeadHashes(map: Map<string, string>): Promise<void> {
-    await this.headHashes.clear()
-
-    await this.database.transaction(async (tx) => {
-      for (const [key, value] of map) {
-        await this.headHashes.put(key, value, tx)
-      }
-    })
-  }
-
-  async loadHeadHashesMap(map: Map<string, string>): Promise<void> {
+  async loadHeadHashesMap(map: Map<string, string | null>): Promise<void> {
     for await (const [accountId, headHash] of this.headHashes.getAllIter()) {
       map.set(accountId, headHash)
     }
