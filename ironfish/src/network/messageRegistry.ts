@@ -10,6 +10,7 @@ import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
+import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
@@ -96,6 +97,8 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return SignalMessage.deserialize(body)
     case NetworkMessageType.SignalRequest:
       return SignalRequestMessage.deserialize(body)
+    case NetworkMessageType.NewBlockHashes:
+      return NewBlockHashesMessage.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }

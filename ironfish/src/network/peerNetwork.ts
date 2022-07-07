@@ -31,6 +31,7 @@ import {
   NetworkMessage,
 } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
+import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import {
   Direction,
@@ -457,6 +458,8 @@ export class PeerNetwork {
       await this.handleGossipMessage(peer, message)
     } else if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
+    } else if (message instanceof NewBlockHashesMessage) {
+      this.handleNewBlockHashesMessage(peer, message)
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
@@ -567,6 +570,10 @@ export class PeerNetwork {
         this.logger.debug(`Dropping response to unknown request ${rpcId}`)
       }
     }
+  }
+
+  private handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
+    this.logger.debug(`Received unimplemented message ${message.type}`)
   }
 
   private updateIsReady(): void {
