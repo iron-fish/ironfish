@@ -34,6 +34,7 @@ export type FollowChainStreamResponse = {
       hash: string
       size: number
       fee: number
+      index: number
       notes: Array<{ commitment: string }>
       spends: Array<{ nullifier: string }>
     }>
@@ -72,6 +73,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
                 hash: yup.string().defined(),
                 size: yup.number().defined(),
                 fee: yup.number().defined(),
+                index: yup.number().defined(),
                 notes: yup
                   .array(
                     yup
@@ -112,7 +114,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     })
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
-      const transactions = block.transactions.map((transaction) => {
+      const transactions = block.transactions.map((transaction, index) => {
         return transaction.withReference(() => {
           return {
             hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
@@ -120,6 +122,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
               JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
             ).byteLength,
             fee: Number(transaction.fee()),
+            index: index,
             notes: [...transaction.notes()].map((note) => ({
               commitment: note.merkleHash().toString('hex'),
             })),
