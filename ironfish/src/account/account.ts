@@ -13,6 +13,7 @@ export const ACCOUNT_KEY_LENGTH = 32
 export class Account {
   private readonly accountsDb: AccountsDB
   private readonly decryptedNotes: Map<string, DecryptedNotesValue>
+  private readonly nullifierToNoteHash: Map<string, string>
 
   readonly id: string
   readonly displayName: string
@@ -60,6 +61,7 @@ export class Account {
 
     this.accountsDb = accountsDb
     this.decryptedNotes = new Map<string, DecryptedNotesValue>()
+    this.nullifierToNoteHash = new Map<string, string>()
   }
 
   serialize(): AccountsValue {
@@ -75,14 +77,17 @@ export class Account {
 
   async load(): Promise<void> {
     await this.accountsDb.loadDecryptedNotes(this.decryptedNotes)
+    await this.accountsDb.loadNullifierToNoteHash(this.nullifierToNoteHash)
   }
 
   async save(): Promise<void> {
     await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes)
+    await this.accountsDb.replaceNullifierToNoteHash(this.nullifierToNoteHash)
   }
 
   reset(): void {
     this.decryptedNotes.clear()
+    this.nullifierToNoteHash.clear()
   }
 
   getUnspentNotes(): ReadonlyArray<{
@@ -125,6 +130,24 @@ export class Account {
 
   async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
     this.decryptedNotes.delete(noteHash)
-    await this.accountsDb.removeDecryptedNotes(noteHash, tx)
+    await this.accountsDb.deleteDecryptedNote(noteHash, tx)
+  }
+
+  getNoteHash(nullifier: string): string | undefined {
+    return this.nullifierToNoteHash.get(nullifier)
+  }
+
+  async updateNullifierNoteHash(
+    nullifier: string,
+    noteHash: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.nullifierToNoteHash.set(nullifier, noteHash)
+    await this.accountsDb.saveNullifierNoteHash(nullifier, noteHash, tx)
+  }
+
+  async deleteNullifier(nullifier: string, tx?: IDatabaseTransaction): Promise<void> {
+    this.nullifierToNoteHash.delete(nullifier)
+    await this.accountsDb.deleteNullifier(nullifier, tx)
   }
 }
