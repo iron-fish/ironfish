@@ -533,14 +533,14 @@ export class Accounts {
             const noteHash = this.nullifierToNote.get(nullifier)
 
             if (noteHash) {
-              const nullifier = account.getDecryptedNote(noteHash)
+              const decryptedNote = account.getDecryptedNote(noteHash)
 
               // TODO(rohanjadvani): Clean this up when nullifierToNote is pushed to account
-              if (!nullifier) {
+              if (!decryptedNote) {
                 continue
               }
 
-              if (nullifier.accountId !== account.id) {
+              if (decryptedNote.accountId !== account.id) {
                 throw new Error(
                   'nullifierToNote mappings must have a corresponding decryptedNotes map',
                 )
@@ -549,7 +549,7 @@ export class Accounts {
               await account.updateDecryptedNote(
                 noteHash,
                 {
-                  ...nullifier,
+                  ...decryptedNote,
                   spent: !isRemovingTransaction,
                 },
                 tx,
