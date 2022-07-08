@@ -51,7 +51,7 @@ export class AccountsDB {
     value: DecryptedNotesValue
   }>
 
-  nullifierToNote: IDatabaseStore<{ key: string; value: string }>
+  nullifierToNoteHash: IDatabaseStore<{ key: string; value: string }>
 
   transactions: IDatabaseStore<{
     key: Buffer
@@ -105,8 +105,8 @@ export class AccountsDB {
       valueEncoding: new DecryptedNotesValueEncoding(),
     })
 
-    this.nullifierToNote = this.database.addStore<{ key: string; value: string }>({
-      name: 'nullifierToNote',
+    this.nullifierToNoteHash = this.database.addStore<{ key: string; value: string }>({
+      name: 'nullifierToNoteHash',
       keyEncoding: new StringHashEncoding(),
       valueEncoding: new StringEncoding(),
     })
@@ -246,30 +246,30 @@ export class AccountsDB {
     }
   }
 
-  async saveNullifierToNote(
+  async saveNullifierNoteHash(
     nullifier: string,
     note: string,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nullifierToNote.put(nullifier, note, tx)
+    await this.nullifierToNoteHash.put(nullifier, note, tx)
   }
 
-  async removeNullifierToNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifierToNote.del(noteHash, tx)
+  async deleteNullifier(nullifier: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.nullifierToNoteHash.del(nullifier, tx)
   }
 
-  async replaceNullifierToNoteMap(map: Map<string, string>): Promise<void> {
-    await this.nullifierToNote.clear()
+  async replaceNullifierToNoteHash(map: Map<string, string>): Promise<void> {
+    await this.nullifierToNoteHash.clear()
 
     await this.database.transaction(async (tx) => {
       for (const [key, value] of map) {
-        await this.nullifierToNote.put(key, value, tx)
+        await this.nullifierToNoteHash.put(key, value, tx)
       }
     })
   }
 
-  async loadNullifierToNoteMap(map: Map<string, string>): Promise<void> {
-    for await (const [key, value] of this.nullifierToNote.getAllIter()) {
+  async loadNullifierToNoteHash(map: Map<string, string>): Promise<void> {
+    for await (const [key, value] of this.nullifierToNoteHash.getAllIter()) {
       map.set(key, value)
     }
   }
@@ -282,7 +282,7 @@ export class AccountsDB {
     await this.decryptedNotes.put(noteHash, note, tx)
   }
 
-  async removeDecryptedNotes(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.decryptedNotes.del(noteHash, tx)
   }
 

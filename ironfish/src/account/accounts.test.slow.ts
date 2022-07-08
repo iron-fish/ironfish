@@ -109,7 +109,6 @@ describe('Accounts', () => {
     await node.accounts.saveTransactionsToDb()
 
     node.accounts['resetAccounts']()
-    node.accounts['nullifierToNote'].clear()
     node.accounts['transactionMap'].clear()
 
     // Account should now have a balance of 0 after clearing the cache
