@@ -174,14 +174,14 @@ export class Accounts {
 
   async load(): Promise<void> {
     for await (const { id, serializedAccount } of this.db.loadAccounts()) {
-      this.accounts.set(
+      const account = new Account({
+        ...serializedAccount,
         id,
-        new Account({
-          ...serializedAccount,
-          id,
-          accountsDb: this.db,
-        }),
-      )
+        accountsDb: this.db,
+      })
+      await account.load()
+
+      this.accounts.set(id, account)
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -272,11 +272,19 @@ export class Accounts {
   }
 
   async loadTransactionsFromDb(): Promise<void> {
+    for (const account of this.accounts.values()) {
+      await account.load()
+    }
+
     await this.db.loadNullifierToNoteMap(this.nullifierToNote)
     await this.db.loadTransactionsIntoMap(this.transactionMap)
   }
 
   async saveTransactionsToDb(): Promise<void> {
+    for (const account of this.accounts.values()) {
+      await account.save()
+    }
+
     await this.db.replaceNullifierToNoteMap(this.nullifierToNote)
     await this.db.replaceTransactions(this.transactionMap)
   }

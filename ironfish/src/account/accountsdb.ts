@@ -270,7 +270,7 @@ export class AccountsDB {
     }
   }
 
-  async saveDecryptedNotes(
+  async saveDecryptedNote(
     noteHash: string,
     note: Readonly<DecryptedNotesValue>,
     tx?: IDatabaseTransaction,
@@ -282,7 +282,7 @@ export class AccountsDB {
     await this.decryptedNotes.del(noteHash, tx)
   }
 
-  async replaceDecryptedNotesMap(map: Map<string, DecryptedNotesValue>): Promise<void> {
+  async replaceDecryptedNotes(map: Map<string, DecryptedNotesValue>): Promise<void> {
     await this.decryptedNotes.clear()
 
     await this.database.transaction(async (tx) => {
@@ -292,7 +292,7 @@ export class AccountsDB {
     })
   }
 
-  async loadDecryptedNotesMap(
+  async loadDecryptedNotes(
     map: Map<
       string,
       { nullifierHash: string | null; noteIndex: number | null; spent: boolean }

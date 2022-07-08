@@ -73,6 +73,14 @@ export class Account {
     }
   }
 
+  async load(): Promise<void> {
+    await this.accountsDb.loadDecryptedNotes(this.decryptedNotes)
+  }
+
+  async save(): Promise<void> {
+    await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes)
+  }
+
   reset(): void {
     this.decryptedNotes.clear()
   }
@@ -112,7 +120,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.decryptedNotes.set(noteHash, note)
-    await this.accountsDb.saveDecryptedNotes(noteHash, note, tx)
+    await this.accountsDb.saveDecryptedNote(noteHash, note, tx)
   }
 
   async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
