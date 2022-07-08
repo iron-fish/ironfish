@@ -137,7 +137,11 @@ export class Account {
     return this.nullifierToNoteHash.get(nullifier)
   }
 
-  async updateNullifierNoteHash(nullifier: string, noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+  async updateNullifierNoteHash(
+    nullifier: string,
+    noteHash: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     this.nullifierToNoteHash.set(nullifier, noteHash)
     await this.accountsDb.saveNullifierNoteHash(nullifier, noteHash, tx)
   }
