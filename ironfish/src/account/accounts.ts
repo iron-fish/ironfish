@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -15,7 +14,6 @@ import { NoteWitness } from '../merkletree/witness'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
-import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -24,7 +22,7 @@ import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
 import { validateAccount } from './validator'
 
-type SyncTransactionParams =
+export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
   | { blockHash: string; initialNoteIndex: number }
@@ -40,13 +38,6 @@ export class Accounts {
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
 
-  protected readonly transactionMap = new BufferMap<
-    Readonly<{
-      transaction: Transaction
-      blockHash: string | null
-      submittedSequence: number | null
-    }>
-  >()
   protected readonly headStatus = new Map<
     string,
     { headHash: string | null; upToDate: boolean }
@@ -181,7 +172,6 @@ export class Accounts {
         id,
         accountsDb: this.db,
       })
-      await account.load()
 
       this.accounts.set(id, account)
     }
@@ -190,10 +180,9 @@ export class Accounts {
     this.defaultAccount = meta.defaultAccountId
 
     await this.loadHeadHashes()
-
     this.chainProcessor.hash = await this.getLatestHeadHash()
 
-    await this.loadTransactionsFromDb()
+    await this.loadAccountsFromDb()
   }
 
   async close(): Promise<void> {
@@ -250,7 +239,7 @@ export class Accounts {
     }
 
     if (this.db.database.isOpen) {
-      await this.saveTransactionsToDb()
+      await this.saveAccountsToDb()
       await this.updateHeadHashes(this.chainProcessor.hash)
     }
   }
@@ -261,9 +250,7 @@ export class Accounts {
     }
 
     await this.updateHead()
-
     await this.expireTransactions()
-
     await this.rebroadcastTransactions()
 
     if (this.isStarted) {
@@ -271,37 +258,15 @@ export class Accounts {
     }
   }
 
-  async loadTransactionsFromDb(): Promise<void> {
+  async loadAccountsFromDb(): Promise<void> {
     for (const account of this.accounts.values()) {
       await account.load()
     }
-
-    await this.db.loadTransactionsIntoMap(this.transactionMap)
   }
 
-  async saveTransactionsToDb(): Promise<void> {
+  async saveAccountsToDb(): Promise<void> {
     for (const account of this.accounts.values()) {
       await account.save()
-    }
-
-    await this.db.replaceTransactions(this.transactionMap)
-  }
-
-  async updateTransactionMap(
-    transactionHash: Buffer,
-    transaction: Readonly<{
-      transaction: Transaction
-      blockHash: string | null
-      submittedSequence: number | null
-    }> | null,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    if (transaction === null) {
-      this.transactionMap.delete(transactionHash)
-      await this.db.removeTransaction(transactionHash, tx)
-    } else {
-      this.transactionMap.set(transactionHash, transaction)
-      await this.db.saveTransaction(transactionHash, transaction, tx)
     }
   }
 
@@ -333,9 +298,8 @@ export class Accounts {
 
   async reset(): Promise<void> {
     this.resetAccounts()
-    this.transactionMap.clear()
     this.chainProcessor.hash = null
-    await this.saveTransactionsToDb()
+    await this.saveAccountsToDb()
     await this.updateHeadHashes(null)
   }
 
@@ -349,20 +313,34 @@ export class Accounts {
     transaction: Transaction,
     initialNoteIndex: number | null,
   ): Promise<
-    Array<{
-      noteIndex: number | null
-      nullifier: string | null
-      merkleHash: string
-      forSpender: boolean
-      account: Account
-      serializedNote: Buffer
-    }>
+    Map<
+      string,
+      Array<{
+        noteIndex: number | null
+        nullifier: string | null
+        merkleHash: string
+        forSpender: boolean
+        account: Account
+        serializedNote: Buffer
+      }>
+    >
   > {
     const accounts = this.listAccounts().filter((a) => this.isAccountUpToDate(a))
-    const decryptedNotes = []
+    const decryptedNotesByAccountId = new Map<
+      string,
+      Array<{
+        noteIndex: number | null
+        nullifier: string | null
+        merkleHash: string
+        forSpender: boolean
+        account: Account
+        serializedNote: Buffer
+      }>
+    >()
 
     const batchSize = 20
     for (const account of accounts) {
+      const decryptedNotes = []
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
@@ -396,9 +374,11 @@ export class Accounts {
         )
         decryptedNotes.push(...decryptedNotesBatch)
       }
+
+      decryptedNotesByAccountId.set(account.id, decryptedNotes)
     }
 
-    return decryptedNotes
+    return decryptedNotesByAccountId
   }
 
   private async decryptNotesFromTransaction(
@@ -444,102 +424,17 @@ export class Accounts {
     params: SyncTransactionParams,
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
-    const blockHash = 'blockHash' in params ? params.blockHash : null
-    const submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
-
-    let newSequence = submittedSequence
 
     await transaction.withReference(async () => {
-      const notes = await this.decryptNotes(transaction, initialNoteIndex)
-      const transactionHash = transaction.hash()
+      const decryptedNotesByAccountId = await this.decryptNotes(transaction, initialNoteIndex)
 
-      return this.db.database.transaction(async (tx) => {
-        if (notes.length > 0) {
-          const existingT = this.transactionMap.get(transactionHash)
-          // If we passed in a submittedSequence, set submittedSequence to that value.
-          // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          // submittedSequence was passed in.
-          // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
-          newSequence = submittedSequence || existingT?.submittedSequence || null
-
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          await this.updateTransactionMap(
-            transactionHash,
-            {
-              transaction,
-              blockHash,
-              submittedSequence: newSequence,
-            },
-            tx,
-          )
-        }
-
-        for (const {
-          noteIndex,
-          nullifier,
-          forSpender,
-          merkleHash,
-          account,
-          serializedNote,
-        } of notes) {
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          if (!forSpender) {
-            if (nullifier !== null) {
-              await account.updateNullifierNoteHash(nullifier, merkleHash, tx)
-            }
-
-            await account.updateDecryptedNote(
-              merkleHash,
-              {
-                accountId: account.id,
-                nullifierHash: nullifier,
-                noteIndex: noteIndex,
-                serializedNote,
-                spent: false,
-                transactionHash,
-              },
-              tx,
-            )
-          }
-        }
-
-        // If newSequence is null and blockHash is null, we're removing the transaction from
-        // the chain and it wasn't created by us, so unmark notes as spent
-        const isRemovingTransaction = newSequence === null && blockHash === null
-
-        for (const account of this.accounts.values()) {
-          for (const spend of transaction.spends()) {
-            const nullifier = spend.nullifier.toString('hex')
-            const noteHash = account.getNoteHash(nullifier)
-
-            if (noteHash) {
-              const decryptedNote = account.getDecryptedNote(noteHash)
-
-              // TODO(rohanjadvani): Clean this up when nullifierToNote is pushed to account
-              if (!decryptedNote) {
-                continue
-              }
-
-              if (decryptedNote.accountId !== account.id) {
-                throw new Error(
-                  'nullifierToNote mappings must have a corresponding decryptedNotes map',
-                )
-              }
-
-              await account.updateDecryptedNote(
-                noteHash,
-                {
-                  ...decryptedNote,
-                  spent: !isRemovingTransaction,
-                },
-                tx,
-              )
-            }
-          }
-        }
-      })
+      for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+        await this.db.database.transaction(async (tx) => {
+          const account = this.accounts.get(accountId)
+          Assert.isNotUndefined(account)
+          await account.syncTransaction(transaction, decryptedNotes, params, tx)
+        })
+      }
     })
   }
 
@@ -552,43 +447,7 @@ export class Accounts {
 
     for (const account of this.accounts.values()) {
       await this.db.database.transaction(async (tx) => {
-        await this.updateTransactionMap(transactionHash, null, tx)
-
-        for (const note of transaction.notes()) {
-          const merkleHash = note.merkleHash().toString('hex')
-          const decryptedNote = account.getDecryptedNote(merkleHash)
-
-          if (decryptedNote) {
-            await account.deleteDecryptedNote(merkleHash, tx)
-
-            if (decryptedNote.nullifierHash) {
-              await account.deleteNullifier(decryptedNote.nullifierHash, tx)
-            }
-          }
-        }
-
-        for (const spend of transaction.spends()) {
-          const nullifier = spend.nullifier.toString('hex')
-          const noteHash = account.getNoteHash(nullifier)
-
-          if (noteHash) {
-            const decryptedNote = account.getDecryptedNote(noteHash)
-            if (!decryptedNote) {
-              throw new Error(
-                'nullifierToNote mappings must have a corresponding decryptedNote',
-              )
-            }
-
-            await account.updateDecryptedNote(
-              noteHash,
-              {
-                ...decryptedNote,
-                spent: false,
-              },
-              tx,
-            )
-          }
-        }
+        await account.deleteTransaction(transactionHash, transaction, tx)
       })
     }
   }
@@ -673,9 +532,7 @@ export class Accounts {
 
     const notes = []
 
-    for (const transactionMapValue of this.transactionMap.values()) {
-      const transaction = transactionMapValue.transaction
-
+    for (const { transaction } of account.getTransactions()) {
       for (const note of transaction.notes()) {
         // Try decrypting the note as the owner
         let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
@@ -738,8 +595,8 @@ export class Accounts {
       let confirmed = false
 
       if (transactionHash) {
-        const transaction = this.transactionMap.get(transactionHash)
-        Assert.isNotUndefined(transaction)
+        const transaction = account.getTransaction(transactionHash)
+        Assert.isNotUndefined(transaction, 'test')
         const { blockHash } = transaction
 
         if (blockHash) {
@@ -914,50 +771,53 @@ export class Accounts {
       return
     }
 
-    for (const [transactionHash, tx] of this.transactionMap) {
-      const { transaction, blockHash, submittedSequence } = tx
+    for (const account of this.accounts.values()) {
+      for (const tx of account.getTransactions()) {
+        const { transaction, blockHash, submittedSequence } = tx
+        const transactionHash = transaction.hash()
 
-      // Skip transactions that are already added to a block
-      if (blockHash) {
-        continue
+        // Skip transactions that are already added to a block
+        if (blockHash) {
+          continue
+        }
+
+        // TODO: Submitted sequence is only set from transactions generated by this node and we don't rebroadcast
+        // transactions to us, or from us and generated from another node, but we should do this later. It
+        // will require us to set submittedSequence in syncTransaction to the current head if it's null
+        if (!submittedSequence) {
+          continue
+        }
+
+        // TODO: This algorithm suffers a deanonymization attack where you can
+        // watch to see what transactions node continously send out, then you can
+        // know those transactions are theres. This should be randomized and made
+        // less, predictable later to help prevent that attack.
+        if (head.sequence - submittedSequence < this.rebroadcastAfter) {
+          continue
+        }
+
+        const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
+
+        // We still update this even if it's not valid to prevent constantly
+        // reprocessing valid transaction every block. Give them a few blocks to
+        // try to become valid.
+        await account.updateTransaction(transactionHash, {
+          ...tx,
+          submittedSequence: head.sequence,
+        })
+
+        if (!verify.valid) {
+          this.logger.debug(
+            `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
+              'hex',
+            )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+          )
+
+          continue
+        }
+
+        this.broadcastTransaction(transaction)
       }
-
-      // TODO: Submitted sequence is only set from transactions generated by this node and we don't rebroadcast
-      // transactions to us, or from us and generated from another node, but we should do this later. It
-      // will require us to set submittedSequence in syncTransaction to the current head if it's null
-      if (!submittedSequence) {
-        continue
-      }
-
-      // TODO: This algorithm suffers a deanonymization attack where you can
-      // watch to see what transactions node continously send out, then you can
-      // know those transactions are theres. This should be randomized and made
-      // less, predictable later to help prevent that attack.
-      if (head.sequence - submittedSequence < this.rebroadcastAfter) {
-        continue
-      }
-
-      const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
-
-      // We still update this even if it's not valid to prevent constantly
-      // reprocessing valid transaction every block. Give them a few blocks to
-      // try to become valid.
-      await this.updateTransactionMap(transactionHash, {
-        ...tx,
-        submittedSequence: head.sequence,
-      })
-
-      if (!verify.valid) {
-        this.logger.debug(
-          `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
-            'hex',
-          )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
-        )
-
-        continue
-      }
-
-      this.broadcastTransaction(transaction)
     }
   }
 
@@ -976,21 +836,21 @@ export class Accounts {
       return
     }
 
-    for (const [_, tx] of this.transactionMap) {
-      const { transaction, blockHash } = tx
+    for (const account of this.accounts.values()) {
+      for (const { transaction, blockHash } of account.getTransactions()) {
+        // Skip transactions that are already added to a block
+        if (blockHash) {
+          continue
+        }
 
-      // Skip transactions that are already added to a block
-      if (blockHash) {
-        continue
-      }
+        const isExpired = this.chain.verifier.isExpiredSequence(
+          transaction.expirationSequence(),
+          head.sequence,
+        )
 
-      const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.expirationSequence(),
-        head.sequence,
-      )
-
-      if (isExpired) {
-        await this.removeTransaction(transaction)
+        if (isExpired) {
+          await this.removeTransaction(transaction)
+        }
       }
     }
   }
@@ -1035,56 +895,6 @@ export class Accounts {
     await this.scanTransactions()
   }
 
-  getTransactions(account: Account): {
-    transactions: {
-      creator: boolean
-      status: string
-      hash: string
-      isMinersFee: boolean
-      fee: number
-      notes: number
-      spends: number
-    }[]
-  } {
-    this.assertHasAccount(account)
-
-    const transactions = []
-
-    for (const transactionMapValue of this.transactionMap.values()) {
-      const transaction = transactionMapValue.transaction
-
-      // check if account created transaction
-      let transactionCreator = false
-      let transactionRecipient = false
-
-      for (const note of transaction.notes()) {
-        if (note.decryptNoteForSpender(account.outgoingViewKey)) {
-          transactionCreator = true
-          break
-        } else if (note.decryptNoteForOwner(account.incomingViewKey)) {
-          transactionRecipient = true
-        }
-      }
-
-      if (transactionCreator || transactionRecipient) {
-        transactions.push({
-          creator: transactionCreator,
-          status:
-            transactionMapValue.blockHash && transactionMapValue.submittedSequence
-              ? 'completed'
-              : 'pending',
-          hash: transaction.hash().toString('hex'),
-          isMinersFee: transaction.isMinersFee(),
-          fee: Number(transaction.fee()),
-          notes: transaction.notesLength(),
-          spends: transaction.spendsLength(),
-        })
-      }
-    }
-
-    return { transactions }
-  }
-
   getTransaction(
     account: Account,
     hash: string,
@@ -1107,10 +917,10 @@ export class Accounts {
     let transactionInfo = null
     const transactionNotes = []
 
-    const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
+    const transactionValue = account.getTransaction(Buffer.from(hash, 'hex'))
 
-    if (transactionMapValue) {
-      const transaction = transactionMapValue.transaction
+    if (transactionValue) {
+      const transaction = transactionValue.transaction
 
       if (transaction.hash().toString('hex') === hash) {
         for (const note of transaction.notes()) {
@@ -1136,7 +946,7 @@ export class Accounts {
         if (transactionNotes.length > 0) {
           transactionInfo = {
             status:
-              transactionMapValue.blockHash && transactionMapValue.submittedSequence
+              transactionValue.blockHash && transactionValue.submittedSequence
                 ? 'completed'
                 : 'pending',
             isMinersFee: transaction.isMinersFee(),
