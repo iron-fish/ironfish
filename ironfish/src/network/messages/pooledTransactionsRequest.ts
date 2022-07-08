@@ -6,7 +6,7 @@ import { TransactionHash } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
-export class PooledTrasactionsRequest extends RpcNetworkMessage {
+export class PooledTransactionsRequest extends RpcNetworkMessage {
   transactionHashes: TransactionHash[]
 
   constructor(transactionHashes: TransactionHash[], rpcId?: number) {
@@ -26,7 +26,7 @@ export class PooledTrasactionsRequest extends RpcNetworkMessage {
     return bw.render()
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): PooledTrasactionsRequest {
+  static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsRequest {
     const reader = bufio.read(buffer, true)
     const transactionHashesLength = reader.readU16()
     const transactionHashes = []
@@ -36,7 +36,7 @@ export class PooledTrasactionsRequest extends RpcNetworkMessage {
       transactionHashes.push(hash)
     }
 
-    return new PooledTrasactionsRequest(transactionHashes, rpcId)
+    return new PooledTransactionsRequest(transactionHashes, rpcId)
   }
 
   getSize(): number {

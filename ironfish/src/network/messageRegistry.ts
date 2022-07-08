@@ -15,7 +15,7 @@ import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
-import { PooledTrasactionsRequest } from './messages/pooledTransactionsRequest'
+import { PooledTransactionsRequest } from './messages/pooledTransactionsRequest'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { SignalMessage } from './messages/signal'
 import { SignalRequestMessage } from './messages/signalRequest'
@@ -65,7 +65,7 @@ const parseRpcNetworkMessage = (
     case NetworkMessageType.GetBlocksResponse:
       return GetBlocksResponse.deserialize(body, rpcId)
     case NetworkMessageType.PooledTransactionsRequest:
-      return PooledTrasactionsRequest.deserialize(body, rpcId)
+      return PooledTransactionsRequest.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
