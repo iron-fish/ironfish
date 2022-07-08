@@ -595,12 +595,12 @@ export class Accounts {
 
   async scanTransactions(): Promise<void> {
     if (this.scan) {
-      this.logger.info('Skipping Scan, already scanning.')
+      this.logger.info('Skipping scan, already scanning')
       return
     }
 
     if (this.chainProcessor.hash === null) {
-      this.logger.debug('Skipping scan, there is no blocks to scan')
+      this.logger.debug('Skipping scan, there are no blocks to scan')
       return
     }
 
@@ -613,12 +613,19 @@ export class Accounts {
 
     const accountHeadHash = this.chainProcessor.hash
 
+    const scanStart = await this.getEarliestHeadHash()
+
     const scanFor = Array.from(this.accounts.values())
       .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
       .map((a) => a.displayName)
       .join(', ')
 
     this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
+    this.logger.info(
+      `Scan starting from earliest found account head hash: ${
+        scanStart ? scanStart.toString('hex') : 'GENESIS'
+      }`,
+    )
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const {
@@ -626,7 +633,7 @@ export class Accounts {
       transaction,
       initialNoteIndex,
       sequence,
-    } of this.chain.iterateTransactions(null, accountHeadHash, undefined, false)) {
+    } of this.chain.iterateTransactions(scanStart, accountHeadHash, undefined, false)) {
       if (scan.isAborted) {
         scan.signalComplete()
         this.scan = null
@@ -1271,7 +1278,7 @@ export class Accounts {
       const headStatus = this.headStatus.get(account.id)
 
       if (!headStatus || !headStatus.headHash) {
-        continue
+        return null
       }
 
       const header = await this.chain.getHeader(Buffer.from(headStatus.headHash, 'hex'))
@@ -1325,8 +1332,18 @@ export class Accounts {
     const latestHeadHash = await this.getLatestHeadHash()
 
     for (const account of this.accounts.values()) {
-      const headStatus = this.headStatus.get(account.id)
-      Assert.isNotUndefined(headStatus)
+      let headStatus = this.headStatus.get(account.id)
+
+      // TODO: We need this until we have migrations, since there's no way to
+      // bootstrap the head status state right now
+      if (!headStatus) {
+        headStatus = {
+          headHash: null,
+          upToDate: latestHeadHash === null,
+        }
+        this.headStatus.set(account.id, headStatus)
+        await this.updateHeadHash(account, latestHeadHash)
+      }
 
       if (!latestHeadHash || headStatus.headHash === latestHeadHash.toString('hex')) {
         headStatus.upToDate = true
