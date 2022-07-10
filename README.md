@@ -34,12 +34,12 @@ See https://ironfish.network
      1. On Ubuntu: `apt install build-essential`
      1. On Amazon Linux: `sudo yum groupinstall "Development Tools"`
 
-   - If `yarn install` fails with an error that includes "Error: Could not find any Python installation to use", you may need to install Python3 (required by node-gyp). on MacOS:
+   - If `yarn install` fails with an error that includes "Error: Could not find any Python installation to use", you may need to install Python3 (required by node-gyp) on macOS:
      1. Run `brew install python`
 
 ## Usage
 
-Once your environment is setup - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).
+Once your environment is set up - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).
 
 ## Running Tests
 
@@ -50,16 +50,16 @@ Once your environment is setup - you can run the CLI by following [these directi
 1. To test a specific project
    1. Run `yarn test` at the root of the project
    1. Run `yarn test:watch` in ./ironfish or ./ironfish-cli if you want the tests to run on change
-   1. Run `yarn test:coverage:html` if you want to export the coverage in an easy to use format (open the index.html file in the coverage folder of the project)
+   1. Run `yarn test:coverage:html` if you want to export the coverage in an easy-to-use format (open the index.html file in the coverage folder of the project)
 
 ## Structure of the repository
 
 - [ironfish](./ironfish/README.md): The library that contains the IronfishSDK and all Ironfish code written in TypeScript.
-- [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command-line interface built on Node. More details in [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
+- [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command-line interface built on Node. More details are in [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
 - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
 - [ironfish-rust-nodejs](./ironfish-rust-nodejs/README.md): Wrapper for `ironfish-rust` as a native NodeJS addon.
 - [ironfish-rust-wasm](./ironfish-rust-wasm/README.md): Wrapper for `ironfish-rust` in WASM.
-- [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the block chain and all of its forks.
+- [ironfish-graph-explorer](./ironfish-graph-explorer/README.md): A visual tool to explore the blockchain and all of its forks.
 
 ## Other Repositories
 
