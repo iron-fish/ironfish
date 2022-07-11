@@ -1,5 +1,7 @@
 const { ESLintUtils } = require("@typescript-eslint/utils");
 
+const assignableFnNames = ["filter", "flat", "flatMap"];
+
 function getTypeName(parserServices, checker, node) {
   const originalNode = parserServices.esTreeNodeToTSNodeMap.get(node);
   const nodeType = checker.getTypeAtLocation(originalNode);
@@ -39,6 +41,22 @@ module.exports.rules = {
             });
           }
         },
+      };
+    },
+  },
+  "no-unassigned-expr": {
+    create(context) {
+      return {
+        "ExpressionStatement > CallExpression > MemberExpression > Identifier":
+          function (node) {
+            if (assignableFnNames.includes(node.name)) {
+              context.report({
+                node,
+                message:
+                  "Return value is unused, this is likely unintentional.",
+              });
+            }
+          },
       };
     },
   },

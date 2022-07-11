@@ -55,3 +55,34 @@ ruleTester.run("no-buffer-cmp", rules["no-buffer-cmp"], {
     },
   ],
 });
+
+ruleTester.run("no-unassigned-expr", rules["no-unassigned-expr"], {
+  valid: [
+    `
+      const foo = [1, 2, 3]
+      const x = foo.filter((f) => f === 999)
+    `,
+    `
+      function bar() {
+        const foo = [1, 2, 3]
+        return foo.flatMap((f) => f === 999)
+      }
+    `,
+  ],
+  invalid: [
+    {
+      code: `
+        const foo = [1, 2, 3]
+        foo.filter((f) => f === 999)
+      `,
+      errors: [{ message: /Return value is unused/i }],
+    },
+    {
+      code: `
+        const foo = [1,2,3]
+        foo.flatMap((f) => f === 999)
+      `,
+      errors: [{ message: /Return value is unused/i }],
+    },
+  ],
+});
