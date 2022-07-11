@@ -83,7 +83,7 @@ describe('Accounts', () => {
     })
 
     // Check that it was last broadcast at its added height
-    let invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
+    let invalidTxEntry = accountA.getTransaction(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
@@ -94,7 +94,7 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     // It should now be planned to be processed at head + 1
-    invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
+    invalidTxEntry = accountA.getTransaction(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
 

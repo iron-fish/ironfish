@@ -205,7 +205,7 @@ export class AccountsDB {
     await this.transactions.put(transactionHash, serialized, tx)
   }
 
-  async removeTransaction(transactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteTransaction(transactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     await this.transactions.del(transactionHash, tx)
   }
 
@@ -229,7 +229,7 @@ export class AccountsDB {
     })
   }
 
-  async loadTransactionsIntoMap(
+  async loadTransactions(
     map: BufferMap<{
       transaction: Transaction
       blockHash: string | null

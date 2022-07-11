@@ -54,7 +54,9 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { transactions } = node.accounts.getTransactions(account)
-    request.end({ account: account.displayName, transactions })
+    request.end({
+      account: account.displayName,
+      transactions: account.getTransactionsWithMetadata(),
+    })
   },
 )

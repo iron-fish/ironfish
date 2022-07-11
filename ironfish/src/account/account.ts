@@ -1,9 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
+import { Assert } from '../assert'
+import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
+import { SyncTransactionParams } from './accounts'
 import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
 import { DecryptedNotesValue } from './database/decryptedNotes'
@@ -14,6 +18,13 @@ export class Account {
   private readonly accountsDb: AccountsDB
   private readonly decryptedNotes: Map<string, DecryptedNotesValue>
   private readonly nullifierToNoteHash: Map<string, string>
+  private readonly transactions: BufferMap<
+    Readonly<{
+      transaction: Transaction
+      blockHash: string | null
+      submittedSequence: number | null
+    }>
+  >
 
   readonly id: string
   readonly displayName: string
@@ -62,6 +73,11 @@ export class Account {
     this.accountsDb = accountsDb
     this.decryptedNotes = new Map<string, DecryptedNotesValue>()
     this.nullifierToNoteHash = new Map<string, string>()
+    this.transactions = new BufferMap<{
+      transaction: Transaction
+      blockHash: string | null
+      submittedSequence: number | null
+    }>()
   }
 
   serialize(): AccountsValue {
@@ -78,16 +94,19 @@ export class Account {
   async load(): Promise<void> {
     await this.accountsDb.loadDecryptedNotes(this.decryptedNotes)
     await this.accountsDb.loadNullifierToNoteHash(this.nullifierToNoteHash)
+    await this.accountsDb.loadTransactions(this.transactions)
   }
 
   async save(): Promise<void> {
     await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes)
     await this.accountsDb.replaceNullifierToNoteHash(this.nullifierToNoteHash)
+    await this.accountsDb.replaceTransactions(this.transactions)
   }
 
   reset(): void {
     this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
+    this.transactions.clear()
   }
 
   getUnspentNotes(): ReadonlyArray<{
@@ -98,11 +117,9 @@ export class Account {
   }> {
     const unspentNotes = []
 
-    for (const [hash, { accountId, noteIndex, serializedNote, spent, transactionHash }] of this
+    for (const [hash, { noteIndex, serializedNote, spent, transactionHash }] of this
       .decryptedNotes) {
-      // TODO(rohanjadvani): Remove the accountId check once each account owns
-      // its own decrypted notes
-      if (accountId === this.id && !spent) {
+      if (!spent) {
         unspentNotes.push({
           hash,
           index: noteIndex,
@@ -128,6 +145,118 @@ export class Account {
     await this.accountsDb.saveDecryptedNote(noteHash, note, tx)
   }
 
+  async syncTransaction(
+    transaction: Transaction,
+    decryptedNotes: Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+      serializedNote: Buffer
+    }>,
+    params: SyncTransactionParams,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    const transactionHash = transaction.hash()
+    const blockHash = 'blockHash' in params ? params.blockHash : null
+    let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
+
+    const record = this.transactions.get(transactionHash)
+    if (record) {
+      submittedSequence = record.submittedSequence
+    }
+
+    const isRemovingTransaction = submittedSequence === null && blockHash === null
+    await this.updateTransaction(
+      transactionHash,
+      { transaction, blockHash, submittedSequence },
+      tx,
+    )
+    await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
+    await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+  }
+
+  async updateTransaction(
+    hash: Buffer,
+    transactionValue: {
+      transaction: Transaction
+      blockHash: string | null
+      submittedSequence: number | null
+    },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.transactions.set(hash, transactionValue)
+    await this.accountsDb.saveTransaction(hash, transactionValue, tx)
+  }
+
+  private async bulkUpdateDecryptedNotes(
+    transactionHash: Buffer,
+    decryptedNotes: Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      serializedNote: Buffer
+    }>,
+    tx: IDatabaseTransaction,
+  ) {
+    for (const {
+      noteIndex,
+      nullifier,
+      forSpender,
+      merkleHash,
+      serializedNote,
+    } of decryptedNotes) {
+      if (!forSpender) {
+        if (nullifier !== null) {
+          await this.updateNullifierNoteHash(nullifier, merkleHash, tx)
+        }
+
+        await this.updateDecryptedNote(
+          merkleHash,
+          {
+            accountId: this.id,
+            nullifierHash: nullifier,
+            noteIndex: noteIndex,
+            serializedNote,
+            spent: false,
+            transactionHash,
+          },
+          tx,
+        )
+      }
+    }
+  }
+
+  private async processTransactionSpends(
+    transaction: Transaction,
+    isRemovingTransaction: boolean,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const spend of transaction.spends()) {
+      const nullifier = spend.nullifier.toString('hex')
+      const noteHash = this.getNoteHash(nullifier)
+
+      if (noteHash) {
+        const decryptedNote = this.getDecryptedNote(noteHash)
+        Assert.isNotUndefined(
+          decryptedNote,
+          'nullifierToNote mappings must have a corresponding decryptedNote',
+        )
+
+        await this.updateDecryptedNote(
+          noteHash,
+          {
+            ...decryptedNote,
+            spent: !isRemovingTransaction,
+          },
+          tx,
+        )
+      }
+    }
+  }
+
   async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
     this.decryptedNotes.delete(noteHash)
     await this.accountsDb.deleteDecryptedNote(noteHash, tx)
@@ -149,5 +278,110 @@ export class Account {
   async deleteNullifier(nullifier: string, tx?: IDatabaseTransaction): Promise<void> {
     this.nullifierToNoteHash.delete(nullifier)
     await this.accountsDb.deleteNullifier(nullifier, tx)
+  }
+
+  getTransaction(hash: Buffer):
+    | Readonly<{
+        transaction: Transaction
+        blockHash: string | null
+        submittedSequence: number | null
+      }>
+    | undefined {
+    return this.transactions.get(hash)
+  }
+
+  getTransactions(): Generator<
+    Readonly<{
+      transaction: Transaction
+      blockHash: string | null
+      submittedSequence: number | null
+    }>
+  > {
+    return this.transactions.values()
+  }
+
+  getTransactionsWithMetadata(): Array<{
+    creator: boolean
+    status: string
+    hash: string
+    isMinersFee: boolean
+    fee: number
+    notes: number
+    spends: number
+  }> {
+    const transactions = []
+
+    for (const { blockHash, submittedSequence, transaction } of this.transactions.values()) {
+      // check if account created transaction
+      let transactionCreator = false
+      let transactionRecipient = false
+
+      for (const note of transaction.notes()) {
+        if (note.decryptNoteForSpender(this.outgoingViewKey)) {
+          transactionCreator = true
+          break
+        } else if (note.decryptNoteForOwner(this.incomingViewKey)) {
+          transactionRecipient = true
+        }
+      }
+
+      if (transactionCreator || transactionRecipient) {
+        transactions.push({
+          creator: transactionCreator,
+          status: blockHash && submittedSequence ? 'completed' : 'pending',
+          hash: transaction.hash().toString('hex'),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+        })
+      }
+    }
+
+    return transactions
+  }
+
+  async deleteTransaction(
+    hash: Buffer,
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const note of transaction.notes()) {
+      const merkleHash = note.merkleHash().toString('hex')
+      const decryptedNote = this.getDecryptedNote(merkleHash)
+
+      if (decryptedNote) {
+        await this.deleteDecryptedNote(merkleHash, tx)
+
+        if (decryptedNote.nullifierHash) {
+          await this.deleteNullifier(decryptedNote.nullifierHash, tx)
+        }
+      }
+    }
+
+    for (const spend of transaction.spends()) {
+      const nullifier = spend.nullifier.toString('hex')
+      const noteHash = this.getNoteHash(nullifier)
+
+      if (noteHash) {
+        const decryptedNote = this.getDecryptedNote(noteHash)
+        Assert.isNotUndefined(
+          decryptedNote,
+          'nullifierToNote mappings must have a corresponding decryptedNote',
+        )
+
+        await this.updateDecryptedNote(
+          noteHash,
+          {
+            ...decryptedNote,
+            spent: false,
+          },
+          tx,
+        )
+      }
+    }
+
+    this.transactions.delete(hash)
+    await this.accountsDb.deleteTransaction(hash, tx)
   }
 }
