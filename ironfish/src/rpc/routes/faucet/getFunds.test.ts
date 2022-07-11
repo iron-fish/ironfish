@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import axios, { AxiosError } from 'axios'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RequestError } from '../../clients'
+import { RpcRequestError } from '../../clients'
 
 jest.mock('axios')
 
@@ -74,7 +74,7 @@ describe('Route faucet.getFunds', () => {
         })
         await expect(
           routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
-        ).rejects.toThrow(RequestError)
+        ).rejects.toThrow(RpcRequestError)
       })
     })
 

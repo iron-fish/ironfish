@@ -4,7 +4,7 @@
 
 import { Event } from '../event'
 
-export class Request<TRequest = unknown, TResponse = unknown> {
+export class RpcRequest<TRequest = unknown, TResponse = unknown> {
   data: TRequest
   ended = false
   closed = false
