@@ -8,7 +8,9 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
+import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
+import { TransactionHash } from '../primitives/transaction'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Field } from './interfaces/field'
@@ -327,5 +329,44 @@ export class Telemetry {
         },
       ],
     })
+  }
+
+  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+    const hash = transaction.hash()
+
+    if (!this.shouldSubmitTransaction(hash)) {
+      return
+    }
+
+    this.submit({
+      measurement: 'transaction_propagation',
+      timestamp: seenAt,
+      tags: [
+        {
+          name: 'hash',
+          value: hash.toString('hex'),
+        },
+      ],
+      fields: [
+        {
+          name: 'notes',
+          type: 'integer',
+          value: transaction.notesLength(),
+        },
+        {
+          name: 'spends',
+          type: 'integer',
+          value: transaction.spendsLength(),
+        },
+      ],
+    })
+  }
+
+  /*
+   * We don't want to log all transaction propagation because there are too many
+   * In this way we can only log propagation for a percentage of transactions
+   */
+  private shouldSubmitTransaction(hash: TransactionHash) {
+    return hash.readDoubleBE() % 10000 === 0
   }
 }
