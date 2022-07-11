@@ -17,7 +17,7 @@ export class PooledTransactionsRequest extends RpcNetworkMessage {
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
 
-    bw.writeU16(this.transactionHashes.length)
+    bw.writeVarint(this.transactionHashes.length)
 
     for (const hash of this.transactionHashes) {
       bw.writeHash(hash)
@@ -28,7 +28,7 @@ export class PooledTransactionsRequest extends RpcNetworkMessage {
 
   static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsRequest {
     const reader = bufio.read(buffer, true)
-    const transactionHashesLength = reader.readU16()
+    const transactionHashesLength = reader.readVarint()
     const transactionHashes = []
 
     for (let i = 0; i < transactionHashesLength; i++) {
@@ -42,7 +42,7 @@ export class PooledTransactionsRequest extends RpcNetworkMessage {
   getSize(): number {
     let size = 0
 
-    size += 2
+    size += bufio.sizeVarint(this.transactionHashes.length)
 
     size += this.transactionHashes.length * 32
 
