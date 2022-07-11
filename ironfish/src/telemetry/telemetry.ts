@@ -232,6 +232,15 @@ export class Telemetry {
 
     const fields = this.defaultFields.concat(metric.fields)
 
+    // TODO(jason): RollingAverage can produce a negative number which seems
+    // like it should be a bug. Investigate then delete this TODO. Negative
+    // floats are not allowed by telemetry and produce a 422 error.
+    for (const field of fields) {
+      if (field.type === 'float') {
+        field.value = Math.max(0, field.value)
+      }
+    }
+
     this.points.push({
       ...metric,
       timestamp: metric.timestamp,
