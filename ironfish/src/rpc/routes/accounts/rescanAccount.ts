@@ -36,8 +36,13 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       if (request.data.reset) {
         await node.accounts.reset()
       }
+
       void node.accounts.scanTransactions()
       scan = node.accounts.scan
+
+      if (!scan) {
+        node.accounts.logger.warn(`Attempted to start accounts scan but one did not start.`)
+      }
     }
 
     if (scan && request.data.follow) {
