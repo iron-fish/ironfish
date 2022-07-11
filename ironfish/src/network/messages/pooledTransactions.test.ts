@@ -4,10 +4,7 @@
 import { blake3 } from '@napi-rs/blake-hash'
 import { randomBytes, randomInt } from 'crypto'
 import { v4 as uuid } from 'uuid'
-import {
-  PooledTransactionsRequest,
-  PooledTransactionsResponse,
-} from './pooledTransactionsRequest'
+import { PooledTransactionsRequest, PooledTransactionsResponse } from './pooledTransactions'
 
 describe('PooledTransactionsRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {

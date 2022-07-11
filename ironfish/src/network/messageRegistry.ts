@@ -18,7 +18,7 @@ import { PeerListRequestMessage } from './messages/peerListRequest'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
-} from './messages/pooledTransactionsRequest'
+} from './messages/pooledTransactions'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { SignalMessage } from './messages/signal'
 import { SignalRequestMessage } from './messages/signalRequest'
