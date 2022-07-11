@@ -162,19 +162,35 @@ export class Account {
     const blockHash = 'blockHash' in params ? params.blockHash : null
     let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
 
+    let shouldUpdateTransaction = true
     const record = this.transactions.get(transactionHash)
     if (record) {
       submittedSequence = record.submittedSequence
+      shouldUpdateTransaction = !this.transactionValuesAreEqual(record, transaction, blockHash)
+    }
+
+    if (shouldUpdateTransaction) {
+      await this.updateTransaction(
+        transactionHash,
+        { transaction, blockHash, submittedSequence },
+        tx,
+      )
     }
 
     const isRemovingTransaction = submittedSequence === null && blockHash === null
-    await this.updateTransaction(
-      transactionHash,
-      { transaction, blockHash, submittedSequence },
-      tx,
-    )
     await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
     await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+  }
+
+  private transactionValuesAreEqual(
+    record: Readonly<{
+      transaction: Transaction
+      blockHash: string | null
+    }>,
+    transaction: Transaction,
+    blockHash: string | null,
+  ): boolean {
+    return record.transaction.equals(transaction) && record.blockHash === blockHash
   }
 
   async updateTransaction(

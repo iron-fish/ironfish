@@ -375,7 +375,9 @@ export class Accounts {
         decryptedNotes.push(...decryptedNotesBatch)
       }
 
-      decryptedNotesByAccountId.set(account.id, decryptedNotes)
+      if (decryptedNotes.length) {
+        decryptedNotesByAccountId.set(account.id, decryptedNotes)
+      }
     }
 
     return decryptedNotesByAccountId
