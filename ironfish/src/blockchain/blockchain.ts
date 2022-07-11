@@ -1120,19 +1120,15 @@ export class Blockchain {
   }
 
   /**
-   * Iterates through transactions, starting from fromHash or the genesis block,
+   * Iterates through block headers, starting from fromHash or the genesis block,
    * to toHash or the heaviest head.
    */
-  async *iterateTransactions(
+  async *iterateBlockHeaders(
     fromHash: Buffer | null = null,
     toHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
     reachable = true,
-  ): AsyncGenerator<
-    { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
-    void,
-    unknown
-  > {
+  ): AsyncGenerator<BlockHeader, void, void> {
     let from: BlockHeader | null
     if (fromHash) {
       from = await this.getHeader(fromHash, tx)
@@ -1151,9 +1147,7 @@ export class Blockchain {
     Assert.isNotNull(to, `Expected 'to' not to be null`)
 
     for await (const header of this.iterateTo(from, to, tx, reachable)) {
-      for await (const transaction of this.iterateBlockTransactions(header, tx)) {
-        yield transaction
-      }
+      yield header
     }
   }
 
