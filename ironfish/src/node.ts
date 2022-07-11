@@ -139,6 +139,10 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
+    this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
+      this.telemetry.submitNewTransactionSeen(transaction, received)
+    })
+
     this.syncer = new Syncer({
       chain,
       metrics,

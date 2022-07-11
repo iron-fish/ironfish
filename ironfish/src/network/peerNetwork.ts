@@ -15,6 +15,7 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
+import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Strategy } from '../strategy'
@@ -81,6 +82,7 @@ export class PeerNetwork {
   readonly localPeer: LocalPeer
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
+  readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
 
   private started = false
   private readonly minPeers: number
@@ -726,6 +728,8 @@ export class PeerNetwork {
   private async onNewTransaction(
     message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    const received = new Date()
+
     if (!this.enableSyncing) {
       return false
     }
@@ -771,6 +775,7 @@ export class PeerNetwork {
     }
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
+      this.onTransactionAccepted.emit(transaction, received)
       return true
     }
 
