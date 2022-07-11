@@ -220,7 +220,7 @@ describe('Accounts', () => {
   })
 
   describe('getEarliestHeadHash', () => {
-    it('should return the earliest existing head hash', async () => {
+    it('should return the earliest head hash', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.accounts, 'accountA')
@@ -243,7 +243,7 @@ describe('Accounts', () => {
       })
       node.accounts['headStatus'].set(accountC.id, { headHash: null, upToDate: false })
 
-      expect(await node.accounts.getEarliestHeadHash()).toEqual(blockA.header.hash)
+      expect(await node.accounts.getEarliestHeadHash()).toEqual(null)
     })
   })
 
