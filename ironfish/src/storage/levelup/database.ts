@@ -69,7 +69,7 @@ export class LevelupDatabase extends Database {
         if (error) {
           if (error instanceof levelErrors.OpenError) {
             // Here we coerce leveldb specific errors into ironfish storage
-            // layer errors. We need to do message descrimination because the
+            // layer errors. We need to do message discrimination because the
             // leveldb JS wrapper does not provide a way to discriminate on the
             // various native errors. See https://github.com/Level/errors for
             // more information.
