@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
-import { Response, ResponseEnded } from '../response'
+import { RpcResponse, RpcResponseEnded } from '../response'
 import {
   ApiNamespace,
   BlockTemplateStreamRequest,
@@ -91,34 +91,34 @@ export abstract class RpcClient {
     route: string,
     data?: unknown,
     options?: { timeoutMs?: number | null },
-  ): Response<TEnd, TStream>
+  ): RpcResponse<TEnd, TStream>
 
   async status(
     params: GetStatusRequest = undefined,
-  ): Promise<ResponseEnded<GetStatusResponse>> {
+  ): Promise<RpcResponseEnded<GetStatusResponse>> {
     return this.request<GetStatusResponse>(
       `${ApiNamespace.node}/getStatus`,
       params,
     ).waitForEnd()
   }
 
-  statusStream(): Response<void, GetStatusResponse> {
+  statusStream(): RpcResponse<void, GetStatusResponse> {
     return this.request<void, GetStatusResponse>(`${ApiNamespace.node}/getStatus`, {
       stream: true,
     })
   }
 
-  async stopNode(): Promise<ResponseEnded<StopNodeResponse>> {
+  async stopNode(): Promise<RpcResponseEnded<StopNodeResponse>> {
     return this.request<StopNodeResponse>(`${ApiNamespace.node}/stopNode`).waitForEnd()
   }
 
-  getLogStream(): Response<void, GetLogStreamResponse> {
+  getLogStream(): RpcResponse<void, GetLogStreamResponse> {
     return this.request<void, GetLogStreamResponse>(`${ApiNamespace.node}/getLogStream`)
   }
 
   async getAccounts(
     params: GetAccountsRequest = undefined,
-  ): Promise<ResponseEnded<GetAccountsResponse>> {
+  ): Promise<RpcResponseEnded<GetAccountsResponse>> {
     return await this.request<GetAccountsResponse>(
       `${ApiNamespace.account}/getAccounts`,
       params,
@@ -127,7 +127,7 @@ export abstract class RpcClient {
 
   async getDefaultAccount(
     params: GetDefaultAccountRequest = undefined,
-  ): Promise<ResponseEnded<GetDefaultAccountResponse>> {
+  ): Promise<RpcResponseEnded<GetDefaultAccountResponse>> {
     return await this.request<GetDefaultAccountResponse>(
       `${ApiNamespace.account}/getDefaultAccount`,
       params,
@@ -136,14 +136,14 @@ export abstract class RpcClient {
 
   async createAccount(
     params: CreateAccountRequest,
-  ): Promise<ResponseEnded<CreateAccountResponse>> {
+  ): Promise<RpcResponseEnded<CreateAccountResponse>> {
     return await this.request<CreateAccountResponse>(
       `${ApiNamespace.account}/create`,
       params,
     ).waitForEnd()
   }
 
-  async useAccount(params: UseAccountRequest): Promise<ResponseEnded<UseAccountResponse>> {
+  async useAccount(params: UseAccountRequest): Promise<RpcResponseEnded<UseAccountResponse>> {
     return await this.request<UseAccountResponse>(
       `${ApiNamespace.account}/use`,
       params,
@@ -152,7 +152,7 @@ export abstract class RpcClient {
 
   async removeAccount(
     params: RemoveAccountRequest,
-  ): Promise<ResponseEnded<RemoveAccountResponse>> {
+  ): Promise<RpcResponseEnded<RemoveAccountResponse>> {
     return await this.request<RemoveAccountResponse>(
       `${ApiNamespace.account}/remove`,
       params,
@@ -161,7 +161,7 @@ export abstract class RpcClient {
 
   async getAccountBalance(
     params: GetBalanceRequest = {},
-  ): Promise<ResponseEnded<GetBalanceResponse>> {
+  ): Promise<RpcResponseEnded<GetBalanceResponse>> {
     return this.request<GetBalanceResponse>(
       `${ApiNamespace.account}/getBalance`,
       params,
@@ -170,7 +170,7 @@ export abstract class RpcClient {
 
   rescanAccountStream(
     params: RescanAccountRequest = {},
-  ): Response<void, RescanAccountResponse> {
+  ): RpcResponse<void, RescanAccountResponse> {
     return this.request<void, RescanAccountResponse>(
       `${ApiNamespace.account}/rescanAccount`,
       params,
@@ -179,7 +179,7 @@ export abstract class RpcClient {
 
   async exportAccount(
     params: ExportAccountRequest = {},
-  ): Promise<ResponseEnded<ExportAccountResponse>> {
+  ): Promise<RpcResponseEnded<ExportAccountResponse>> {
     return this.request<ExportAccountResponse>(
       `${ApiNamespace.account}/exportAccount`,
       params,
@@ -188,7 +188,7 @@ export abstract class RpcClient {
 
   async importAccount(
     params: ImportAccountRequest,
-  ): Promise<ResponseEnded<ImportAccountResponse>> {
+  ): Promise<RpcResponseEnded<ImportAccountResponse>> {
     return this.request<ImportAccountResponse>(
       `${ApiNamespace.account}/importAccount`,
       params,
@@ -197,7 +197,7 @@ export abstract class RpcClient {
 
   async getAccountPublicKey(
     params: GetPublicKeyRequest,
-  ): Promise<ResponseEnded<GetPublicKeyResponse>> {
+  ): Promise<RpcResponseEnded<GetPublicKeyResponse>> {
     return this.request<GetPublicKeyResponse>(
       `${ApiNamespace.account}/getPublicKey`,
       params,
@@ -206,7 +206,7 @@ export abstract class RpcClient {
 
   async getAccountNotes(
     params: GetAccountNotesRequest = {},
-  ): Promise<ResponseEnded<GetAccountNotesResponse>> {
+  ): Promise<RpcResponseEnded<GetAccountNotesResponse>> {
     return await this.request<GetAccountNotesResponse>(
       `${ApiNamespace.account}/getAccountNotes`,
       params,
@@ -215,7 +215,7 @@ export abstract class RpcClient {
 
   async getAccountTransaction(
     params: GetAccountTransactionRequest,
-  ): Promise<ResponseEnded<GetAccountTransactionResponse>> {
+  ): Promise<RpcResponseEnded<GetAccountTransactionResponse>> {
     return await this.request<GetAccountTransactionResponse>(
       `${ApiNamespace.account}/getAccountTransaction`,
       params,
@@ -224,7 +224,7 @@ export abstract class RpcClient {
 
   async getAccountTransactions(
     params: GetAccountTransactionsRequest,
-  ): Promise<ResponseEnded<GetAccountTransactionsResponse>> {
+  ): Promise<RpcResponseEnded<GetAccountTransactionsResponse>> {
     return await this.request<GetAccountTransactionsResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
@@ -233,22 +233,22 @@ export abstract class RpcClient {
 
   async getPeers(
     params: GetPeersRequest = undefined,
-  ): Promise<ResponseEnded<GetPeersResponse>> {
+  ): Promise<RpcResponseEnded<GetPeersResponse>> {
     return this.request<GetPeersResponse>(`${ApiNamespace.peer}/getPeers`, params).waitForEnd()
   }
 
-  getPeersStream(params: GetPeersRequest = undefined): Response<void, GetPeersResponse> {
+  getPeersStream(params: GetPeersRequest = undefined): RpcResponse<void, GetPeersResponse> {
     return this.request<void, GetPeersResponse>(`${ApiNamespace.peer}/getPeers`, {
       ...params,
       stream: true,
     })
   }
 
-  async getPeer(params: GetPeerRequest): Promise<ResponseEnded<GetPeerResponse>> {
+  async getPeer(params: GetPeerRequest): Promise<RpcResponseEnded<GetPeerResponse>> {
     return this.request<GetPeerResponse>(`${ApiNamespace.peer}/getPeer`, params).waitForEnd()
   }
 
-  getPeerStream(params: GetPeerRequest): Response<void, GetPeerResponse> {
+  getPeerStream(params: GetPeerRequest): RpcResponse<void, GetPeerResponse> {
     return this.request<void, GetPeerResponse>(`${ApiNamespace.peer}/getPeer`, {
       ...params,
       stream: true,
@@ -257,7 +257,7 @@ export abstract class RpcClient {
 
   async getPeerMessages(
     params: GetPeerMessagesRequest,
-  ): Promise<ResponseEnded<GetPeerMessagesResponse>> {
+  ): Promise<RpcResponseEnded<GetPeerMessagesResponse>> {
     return this.request<GetPeerMessagesResponse>(
       `${ApiNamespace.peer}/getPeerMessages`,
       params,
@@ -266,7 +266,7 @@ export abstract class RpcClient {
 
   getPeerMessagesStream(
     params: GetPeerMessagesRequest,
-  ): Response<void, GetPeerMessagesResponse> {
+  ): RpcResponse<void, GetPeerMessagesResponse> {
     return this.request<void, GetPeerMessagesResponse>(`${ApiNamespace.peer}/getPeerMessages`, {
       ...params,
       stream: true,
@@ -275,7 +275,7 @@ export abstract class RpcClient {
 
   async getWorkersStatus(
     params: GetWorkersStatusRequest = undefined,
-  ): Promise<ResponseEnded<GetWorkersStatusResponse>> {
+  ): Promise<RpcResponseEnded<GetWorkersStatusResponse>> {
     return this.request<GetWorkersStatusResponse>(
       `${ApiNamespace.worker}/getStatus`,
       params,
@@ -284,7 +284,7 @@ export abstract class RpcClient {
 
   getWorkersStatusStream(
     params: GetWorkersStatusRequest = undefined,
-  ): Response<void, GetWorkersStatusResponse> {
+  ): RpcResponse<void, GetWorkersStatusResponse> {
     return this.request<void, GetWorkersStatusResponse>(`${ApiNamespace.worker}/getStatus`, {
       ...params,
       stream: true,
@@ -293,7 +293,7 @@ export abstract class RpcClient {
 
   async getRpcStatus(
     params: GetRpcStatusRequest = undefined,
-  ): Promise<ResponseEnded<GetRpcStatusResponse>> {
+  ): Promise<RpcResponseEnded<GetRpcStatusResponse>> {
     return this.request<GetRpcStatusResponse>(
       `${ApiNamespace.rpc}/getStatus`,
       params,
@@ -302,20 +302,20 @@ export abstract class RpcClient {
 
   getRpcStatusStream(
     params: GetRpcStatusRequest = undefined,
-  ): Response<void, GetRpcStatusResponse> {
+  ): RpcResponse<void, GetRpcStatusResponse> {
     return this.request<void, GetRpcStatusResponse>(`${ApiNamespace.rpc}/getStatus`, {
       ...params,
       stream: true,
     })
   }
 
-  onGossipStream(params: OnGossipRequest = undefined): Response<void, OnGossipResponse> {
+  onGossipStream(params: OnGossipRequest = undefined): RpcResponse<void, OnGossipResponse> {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
   }
 
   async sendTransaction(
     params: SendTransactionRequest,
-  ): Promise<ResponseEnded<SendTransactionResponse>> {
+  ): Promise<RpcResponseEnded<SendTransactionResponse>> {
     return this.request<SendTransactionResponse>(
       `${ApiNamespace.transaction}/sendTransaction`,
       params,
@@ -324,14 +324,14 @@ export abstract class RpcClient {
 
   blockTemplateStream(
     params: BlockTemplateStreamRequest = undefined,
-  ): Response<void, BlockTemplateStreamResponse> {
+  ): RpcResponse<void, BlockTemplateStreamResponse> {
     return this.request<void, BlockTemplateStreamResponse>(
       `${ApiNamespace.miner}/blockTemplateStream`,
       params,
     )
   }
 
-  submitBlock(params: SubmitBlockRequest): Promise<ResponseEnded<SubmitBlockResponse>> {
+  submitBlock(params: SubmitBlockRequest): Promise<RpcResponseEnded<SubmitBlockResponse>> {
     return this.request<SubmitBlockResponse>(
       `${ApiNamespace.miner}/submitBlock`,
       params,
@@ -340,27 +340,27 @@ export abstract class RpcClient {
 
   exportMinedStream(
     params: ExportMinedStreamRequest = undefined,
-  ): Response<void, ExportMinedStreamResponse> {
+  ): RpcResponse<void, ExportMinedStreamResponse> {
     return this.request<void, ExportMinedStreamResponse>(
       `${ApiNamespace.miner}/exportMinedStream`,
       params,
     )
   }
 
-  async getFunds(params: GetFundsRequest): Promise<ResponseEnded<GetFundsResponse>> {
+  async getFunds(params: GetFundsRequest): Promise<RpcResponseEnded<GetFundsResponse>> {
     return this.request<GetFundsResponse>(
       `${ApiNamespace.faucet}/getFunds`,
       params,
     ).waitForEnd()
   }
 
-  async getBlock(params: GetBlockRequest): Promise<ResponseEnded<GetBlockResponse>> {
+  async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
     return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
   }
 
   async getChainInfo(
     params: GetChainInfoRequest = undefined,
-  ): Promise<ResponseEnded<GetChainInfoResponse>> {
+  ): Promise<RpcResponseEnded<GetChainInfoResponse>> {
     return this.request<GetChainInfoResponse>(
       `${ApiNamespace.chain}/getChainInfo`,
       params,
@@ -369,7 +369,7 @@ export abstract class RpcClient {
 
   exportChainStream(
     params: ExportChainStreamRequest = undefined,
-  ): Response<void, ExportChainStreamResponse> {
+  ): RpcResponse<void, ExportChainStreamResponse> {
     return this.request<void, ExportChainStreamResponse>(
       `${ApiNamespace.chain}/exportChainStream`,
       params,
@@ -378,7 +378,7 @@ export abstract class RpcClient {
 
   followChainStream(
     params: FollowChainStreamRequest = undefined,
-  ): Response<void, FollowChainStreamResponse> {
+  ): RpcResponse<void, FollowChainStreamResponse> {
     return this.request<void, FollowChainStreamResponse>(
       `${ApiNamespace.chain}/followChainStream`,
       params,
@@ -387,7 +387,7 @@ export abstract class RpcClient {
 
   async getBlockInfo(
     params: GetBlockInfoRequest,
-  ): Promise<ResponseEnded<GetBlockInfoResponse>> {
+  ): Promise<RpcResponseEnded<GetBlockInfoResponse>> {
     return this.request<GetBlockInfoResponse>(
       `${ApiNamespace.chain}/getBlockInfo`,
       params,
@@ -396,7 +396,7 @@ export abstract class RpcClient {
 
   async showChain(
     params: ShowChainRequest = undefined,
-  ): Promise<ResponseEnded<ShowChainResponse>> {
+  ): Promise<RpcResponseEnded<ShowChainResponse>> {
     return this.request<ShowChainResponse>(
       `${ApiNamespace.chain}/showChain`,
       params,
@@ -405,7 +405,7 @@ export abstract class RpcClient {
 
   getTransactionStream(
     params: GetTransactionStreamRequest,
-  ): Response<void, GetTransactionStreamResponse> {
+  ): RpcResponse<void, GetTransactionStreamResponse> {
     return this.request<void, GetTransactionStreamResponse>(
       `${ApiNamespace.chain}/getTransactionStream`,
       params,
@@ -414,14 +414,14 @@ export abstract class RpcClient {
 
   async getConfig(
     params: GetConfigRequest = undefined,
-  ): Promise<ResponseEnded<GetConfigResponse>> {
+  ): Promise<RpcResponseEnded<GetConfigResponse>> {
     return this.request<GetConfigResponse>(
       `${ApiNamespace.config}/getConfig`,
       params,
     ).waitForEnd()
   }
 
-  async setConfig(params: SetConfigRequest): Promise<ResponseEnded<SetConfigResponse>> {
+  async setConfig(params: SetConfigRequest): Promise<RpcResponseEnded<SetConfigResponse>> {
     return this.request<SetConfigResponse>(
       `${ApiNamespace.config}/setConfig`,
       params,
@@ -430,7 +430,7 @@ export abstract class RpcClient {
 
   async uploadConfig(
     params: UploadConfigRequest,
-  ): Promise<ResponseEnded<UploadConfigResponse>> {
+  ): Promise<RpcResponseEnded<UploadConfigResponse>> {
     return this.request<UploadConfigResponse>(
       `${ApiNamespace.config}/uploadConfig`,
       params,

@@ -8,7 +8,7 @@
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
-import { RequestError } from '../../clients/errors'
+import { RpcRequestError } from '../../clients/errors'
 
 describe('Route account/create', () => {
   jest.setTimeout(15000)
@@ -56,7 +56,7 @@ describe('Route account/create', () => {
       expect.assertions(3)
       await routeTest.client.request('account/create').waitForEnd()
     } catch (e: unknown) {
-      if (!(e instanceof RequestError)) {
+      if (!(e instanceof RpcRequestError)) {
         throw e
       }
       expect(e.status).toBe(400)
@@ -74,7 +74,7 @@ describe('Route account/create', () => {
       expect.assertions(2)
       await routeTest.client.request('account/create', { name: name }).waitForEnd()
     } catch (e: unknown) {
-      if (!(e instanceof RequestError)) {
+      if (!(e instanceof RpcRequestError)) {
         throw e
       }
       expect(e.status).toBe(400)

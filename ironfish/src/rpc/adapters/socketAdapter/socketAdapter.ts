@@ -9,7 +9,7 @@ import { JSONUtils } from '../../../utils'
 import { ErrorUtils } from '../../../utils/error'
 import { YupUtils } from '../../../utils/yup'
 import { MessageBuffer } from '../../messageBuffer'
-import { Request } from '../../request'
+import { RpcRequest } from '../../request'
 import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
 import { IRpcAdapter } from '../adapter'
@@ -24,7 +24,7 @@ import {
 type SocketClient = {
   id: string
   socket: net.Socket
-  requests: Map<string, Request>
+  requests: Map<string, RpcRequest>
   messageBuffer: MessageBuffer
 }
 
@@ -133,7 +133,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   onClientConnection(socket: net.Socket): void {
-    const requests = new Map<string, Request>()
+    const requests = new Map<string, RpcRequest>()
     const client = { socket, requests, id: uuid(), messageBuffer: new MessageBuffer() }
     this.clients.set(client.id, client)
 
@@ -183,7 +183,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       const message = result.result.data
 
       const requestId = uuid()
-      const request = new Request(
+      const request = new RpcRequest(
         message.data,
         (status: number, data?: unknown) => {
           this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)

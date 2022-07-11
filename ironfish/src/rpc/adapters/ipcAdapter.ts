@@ -9,7 +9,7 @@ import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { Meter } from '../../metrics/meter'
 import { YupUtils } from '../../utils/yup'
-import { Request } from '../request'
+import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
@@ -86,7 +86,7 @@ export class RpcIpcAdapter implements IRpcAdapter {
   server: IpcServer | null = null
   namespaces: ApiNamespace[]
   logger: Logger
-  pending = new Map<IpcSocketId, Request[]>()
+  pending = new Map<IpcSocketId, RpcRequest[]>()
   started = false
   connection: IpcAdapterConnectionInfo
   inboundTraffic = new Meter()
@@ -242,7 +242,7 @@ export class RpcIpcAdapter implements IRpcAdapter {
     Assert.isNotNull(router)
     Assert.isNotNull(server)
 
-    const request = new Request(
+    const request = new RpcRequest(
       message.data,
       (status: number, data?: unknown) => {
         this.emitResponse(socket, message.mid, status, data)
