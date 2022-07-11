@@ -35,7 +35,7 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
-import { PooledTransactionsRequest } from './messages/pooledTransactionsRequest'
+import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import {
   Direction,
   RPC_TIMEOUT_MILLIS,
