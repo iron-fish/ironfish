@@ -15,7 +15,7 @@ export class MessageMalformedError extends Error {
       if (method) {
         this.message += ` (${method})`
       }
-      this.message + `: ${error.message}`
+      this.message += `: ${error.message}`
     }
   }
 }
