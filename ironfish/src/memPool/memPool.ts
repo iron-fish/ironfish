@@ -58,7 +58,15 @@ export class MemPool {
     return this.transactions.has(hash)
   }
 
-  *get(): Generator<Transaction, void, unknown> {
+  /*
+   * Returns a transaction if the transaction with that hash exists in the mempool
+   * Otherwise, returns undefined
+   */
+  get(hash: TransactionHash): Transaction | undefined {
+    return this.transactions.get(hash)
+  }
+
+  *orderedTransactions(): Generator<Transaction, void, unknown> {
     const clone = this.queue.clone()
 
     while (!clone.isEmpty()) {

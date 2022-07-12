@@ -55,7 +55,7 @@ export class MiningManager {
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
-    for (const transaction of this.memPool.get()) {
+    for (const transaction of this.memPool.orderedTransactions()) {
       if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
         break
       }

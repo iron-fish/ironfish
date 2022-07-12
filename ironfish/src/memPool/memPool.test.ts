@@ -56,7 +56,7 @@ describe('MemPool', () => {
     })
   })
 
-  describe('get', () => {
+  describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
     it('returns transactions from the node mempool sorted by fees', async () => {
@@ -77,7 +77,7 @@ describe('MemPool', () => {
       await memPool.acceptTransaction(transactionB)
       await memPool.acceptTransaction(transactionC)
 
-      const transactions = Array.from(memPool.get())
+      const transactions = Array.from(memPool.orderedTransactions())
       expect(transactions).toEqual([transactionB, transactionC, transactionA])
     }, 60000)
 
@@ -95,7 +95,7 @@ describe('MemPool', () => {
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
 
-      const generator = memPool.get()
+      const generator = memPool.orderedTransactions()
       const result = generator.next()
       expect(result.done).toBe(false)
 
@@ -220,7 +220,7 @@ describe('MemPool', () => {
         await memPool.acceptTransaction(transaction)
 
         expect(memPool.exists(transaction.hash())).toBe(true)
-        expect([...memPool.get()]).toContainEqual(transaction)
+        expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
       }, 60000)
     })
 
@@ -302,8 +302,8 @@ describe('MemPool', () => {
 
       expect(memPool.exists(transactionA.hash())).toBe(false)
       expect(memPool.exists(transactionB.hash())).toBe(false)
-      expect([...memPool.get()]).not.toContainEqual(transactionA)
-      expect([...memPool.get()]).not.toContainEqual(transactionB)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionB)
     }, 60000)
   })
 
@@ -326,10 +326,10 @@ describe('MemPool', () => {
       await chain.removeBlock(block.header.hash)
 
       expect(memPool.exists(transaction.hash())).toBe(true)
-      expect([...memPool.get()]).toContainEqual(transaction)
+      expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
-      expect([...memPool.get()]).not.toContainEqual(minersFee)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(minersFee)
     }, 60000)
   })
 })
