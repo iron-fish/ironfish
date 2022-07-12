@@ -312,6 +312,7 @@ export class Accounts {
   private async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
+    accounts?: Array<Account>,
   ): Promise<
     Map<
       string,
@@ -325,7 +326,9 @@ export class Accounts {
       }>
     >
   > {
-    const accounts = this.listAccounts().filter((a) => this.isAccountUpToDate(a))
+    const accountsToCheck =
+      accounts || this.listAccounts().filter((a) => this.isAccountUpToDate(a))
+
     const decryptedNotesByAccountId = new Map<
       string,
       Array<{
@@ -339,7 +342,7 @@ export class Accounts {
     >()
 
     const batchSize = 20
-    for (const account of accounts) {
+    for (const account of accountsToCheck) {
       const decryptedNotes = []
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
@@ -424,11 +427,16 @@ export class Accounts {
   async syncTransaction(
     transaction: Transaction,
     params: SyncTransactionParams,
+    accounts?: Array<Account>,
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
     await transaction.withReference(async () => {
-      const decryptedNotesByAccountId = await this.decryptNotes(transaction, initialNoteIndex)
+      const decryptedNotesByAccountId = await this.decryptNotes(
+        transaction,
+        initialNoteIndex,
+        accounts,
+      )
 
       for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
         await this.db.database.transaction(async (tx) => {
@@ -505,10 +513,14 @@ export class Accounts {
           return
         }
 
-        await this.syncTransaction(transaction, {
-          blockHash,
-          initialNoteIndex: initialNoteIndex,
-        })
+        await this.syncTransaction(
+          transaction,
+          {
+            blockHash,
+            initialNoteIndex,
+          },
+          outdatedAccounts,
+        )
         scan.onTransaction.emit(sequence)
       }
 
