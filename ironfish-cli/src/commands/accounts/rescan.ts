@@ -12,9 +12,11 @@ export class RescanCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    detach: Flags.boolean({
-      default: false,
-      description: 'if a scan is already happening, follow that scan instead',
+    follow: Flags.boolean({
+      char: 'f',
+      default: true,
+      description: 'follow the rescan live, or attach to an already running rescan',
+      allowNo: true,
     }),
     reset: Flags.boolean({
       default: false,
@@ -29,14 +31,19 @@ export class RescanCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(RescanCommand)
-    const { detach, reset, local } = flags
+    const { follow, reset, local } = flags
+
+    if (local && !follow) {
+      this.error('You cannot pass both --local and --no-follow')
+    }
+
     const client = await this.sdk.connectRpc(local)
 
     CliUx.ux.action.start('Rescanning Transactions', 'Asking node to start scanning', {
       stdout: true,
     })
 
-    const response = client.rescanAccountStream({ reset, follow: !detach })
+    const response = client.rescanAccountStream({ reset, follow })
 
     try {
       for await (const { sequence, startedAt } of response.contentStream()) {
@@ -53,6 +60,6 @@ export class RescanCommand extends IronfishCommand {
       throw error
     }
 
-    CliUx.ux.action.stop(detach ? 'Scan started in background' : 'Scanning Complete')
+    CliUx.ux.action.stop(follow ? 'Scanning Complete' : 'Scan started in background')
   }
 }

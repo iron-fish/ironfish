@@ -60,7 +60,7 @@ export class Accounts {
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
-  protected readonly logger: Logger
+  readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   private readonly config: Config
@@ -580,6 +580,10 @@ export class Accounts {
   }
 
   async scanTransactions(): Promise<void> {
+    if (!this.isOpen) {
+      throw new Error('Cannot start a scan if accounts are not loaded')
+    }
+
     if (this.scan) {
       this.logger.info('Skipping Scan, already scanning.')
       return
