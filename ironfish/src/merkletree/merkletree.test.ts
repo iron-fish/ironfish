@@ -50,18 +50,21 @@ describe('Merkle tree', function () {
     )
   })
 
-  it('adds nodes correctly', async () => {
+  it.only('adds nodes correctly', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('a', [0])
     await expect(tree).toHaveNodes([])
 
     await tree.add('b')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('ab', [1, 1])
     await expect(tree).toHaveNodes([[1, Side.Left, 0, '<a|b-0>']])
 
     await tree.add('c')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|c-0>'],
@@ -70,6 +73,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('d')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcd', [1, 1, 2, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -78,6 +82,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('e')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcde', [1, 1, 2, 2, 4])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -89,6 +94,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('f')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdef', [1, 1, 2, 2, 4, 4])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -100,6 +106,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('g')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefg', [1, 1, 2, 2, 4, 4, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -112,6 +119,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('h')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefgh', [1, 1, 2, 2, 4, 4, 7, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -124,6 +132,7 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('i')
+    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefghi', [1, 1, 2, 2, 4, 4, 7, 7, 8])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
