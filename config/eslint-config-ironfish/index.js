@@ -60,6 +60,12 @@ module.exports = {
     'ironfish/no-vague-imports': 'error',
     'ironfish/no-buffer-cmp': 'error',
 
+    // Catches expressions that aren't assigned
+    '@typescript-eslint/no-unused-expressions': [
+      'error',
+      { allowShortCircuit: true, allowTernary: true },
+    ],
+
     // Seems to be needed to allow for custom jest matchers
     '@typescript-eslint/no-namespace': [
       'error',
