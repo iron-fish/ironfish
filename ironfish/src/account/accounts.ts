@@ -135,11 +135,12 @@ export class Accounts {
       return
     }
 
-    this.updateHeadState = new ScanState()
+    const scan = new ScanState()
+    this.updateHeadState = scan
 
     try {
       const { hashChanged } = await this.chainProcessor.update({
-        signal: this.updateHeadState.abortController.signal,
+        signal: scan.abortController.signal,
       })
 
       if (hashChanged) {
@@ -148,7 +149,7 @@ export class Accounts {
         )
       }
     } finally {
-      this.updateHeadState.signalComplete()
+      scan.signalComplete()
       this.updateHeadState = null
     }
   }
@@ -239,13 +240,7 @@ export class Accounts {
       clearTimeout(this.eventLoopTimeout)
     }
 
-    if (this.scan) {
-      await this.scan.abort()
-    }
-
-    if (this.updateHeadState) {
-      await this.updateHeadState.abort()
-    }
+    await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
     if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
@@ -602,6 +597,12 @@ export class Accounts {
     await this.updateHeadState?.wait()
 
     const accountHeadHash = this.chainProcessor.hash
+
+    if (scan.isAborted) {
+      scan.signalComplete()
+      this.scan = null
+      return
+    }
 
     const scanFor = Array.from(this.accounts.values())
       .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
