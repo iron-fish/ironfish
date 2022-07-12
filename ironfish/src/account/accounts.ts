@@ -111,7 +111,7 @@ export class Accounts {
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
-          blockHash: blockHash,
+          blockHash: blockHash.toString('hex'),
           initialNoteIndex: initialNoteIndex,
         })
       }
@@ -623,7 +623,11 @@ export class Accounts {
         return
       }
 
-      await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
+      await this.syncTransaction(transaction, {
+        blockHash: blockHash.toString('hex'),
+        initialNoteIndex: initialNoteIndex,
+      })
+
       scan.onTransaction.emit(sequence)
     }
 
