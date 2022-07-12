@@ -22,9 +22,9 @@ describe('PooledTransactionsRequest', () => {
 describe('PooledTransactionsResponse', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const rpcId = 53242
-    const hashes = [...Array(100)].map((_) => randomBytes(randomInt(500, 10000)))
+    const transactions = [...Array(100)].map((_) => randomBytes(randomInt(500, 10000)))
 
-    const message = new PooledTransactionsResponse(hashes, rpcId)
+    const message = new PooledTransactionsResponse(transactions, rpcId)
 
     const buffer = message.serialize()
     const deserializedMessage = PooledTransactionsResponse.deserialize(buffer, rpcId)

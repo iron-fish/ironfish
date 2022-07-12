@@ -18,6 +18,7 @@ import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
+import { SerializedTransaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
@@ -35,7 +36,10 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
-import { PooledTransactionsRequest } from './messages/pooledTransactions'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import {
   Direction,
   RPC_TIMEOUT_MILLIS,
@@ -551,7 +555,7 @@ export class PeerNetwork {
         } else if (rpcMessage instanceof GetBlocksRequest) {
           responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
         } else if (rpcMessage instanceof PooledTransactionsRequest) {
-          responseMessage = this.onPooledTransactionsRequest(rpcId)
+          responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -567,9 +571,8 @@ export class PeerNetwork {
         responseMessage = new CannotSatisfyRequest(rpcId)
       }
 
-      if (peer.state.type === 'CONNECTED') {
-        peer.send(responseMessage)
-      }
+      // TODO(daniel) if this is a response with transactions mark transaction hashes as seen by peer
+      peer.send(responseMessage)
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
@@ -693,9 +696,20 @@ export class PeerNetwork {
     return new GetBlocksResponse(serialized, rpcId)
   }
 
-  private onPooledTransactionsRequest(rpcId: number): CannotSatisfyRequest {
-    // TODO(daniel): implement response for pooled transaction
-    return new CannotSatisfyRequest(rpcId)
+  private onPooledTransactionsRequest(
+    message: PooledTransactionsRequest,
+    rpcId: number,
+  ): PooledTransactionsResponse {
+    const transactions: SerializedTransaction[] = []
+
+    for (const hash of message.transactionHashes) {
+      const transaction = this.node.memPool.get(hash)
+      if (transaction) {
+        transactions.push(transaction.serialize())
+      }
+    }
+
+    return new PooledTransactionsResponse(transactions, rpcId)
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {

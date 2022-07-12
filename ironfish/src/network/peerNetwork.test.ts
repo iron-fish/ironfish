@@ -8,8 +8,10 @@ jest.mock('ws')
 import type WSWebSocket from 'ws'
 import http from 'http'
 import net from 'net'
+import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
+import { useAccountFixture, useBlockWithTx } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import {
   mockChain,
@@ -23,7 +25,12 @@ import { DisconnectingMessage } from './messages/disconnecting'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
+import { Peer } from './peers/peer'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 import { NetworkMessageType } from './types'
 
@@ -239,6 +246,32 @@ describe('PeerNetwork', () => {
         expect(peer1Send).not.toBeCalled()
         expect(peer2Send).not.toBeCalled()
         expect(peer3Send).toBeCalledWith(newBlockMessage)
+      })
+    })
+
+    describe('handles requests for mempool transactions', () => {
+      const nodeTest = createNodeTest()
+
+      it('should respond to PooledTransactionsRequest', async () => {
+        const { peerNetwork, node } = nodeTest
+
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        await memPool.acceptTransaction(transaction)
+
+        const peerIdentity = uuid()
+        const peer = new Peer(peerIdentity)
+        const sendSpy = jest.spyOn(peer, 'send')
+
+        const rpcId = 432
+        const message = new PooledTransactionsRequest([transaction.hash()], rpcId)
+        const response = new PooledTransactionsResponse([transaction.serialize()], rpcId)
+
+        peerNetwork.peerManager.onMessage.emit(peer, { peerIdentity, message })
+
+        expect(sendSpy).toHaveBeenCalledWith(response)
       })
     })
 

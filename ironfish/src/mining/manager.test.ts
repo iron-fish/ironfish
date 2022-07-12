@@ -30,7 +30,7 @@ describe('Mining manager', () => {
       chain.head.sequence + 2,
     )
 
-    jest.spyOn(node.memPool, 'get').mockImplementation(function* () {
+    jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
       yield transaction
     })
 
