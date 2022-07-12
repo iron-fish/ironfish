@@ -335,9 +335,11 @@ export class IronfishNode {
       this.rpc.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
-      this.workerPool.stop(),
       this.minedBlocksIndexer.stop(),
     ])
+
+    // Do after to avoid unhandled error from aborted jobs
+    await Promise.allSettled([this.workerPool.stop()])
 
     if (this.shutdownResolve) {
       this.shutdownResolve()
