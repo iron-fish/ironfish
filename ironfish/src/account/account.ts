@@ -167,12 +167,15 @@ export class Account {
       submittedSequence = record.submittedSequence
     }
 
+    if (!record || !record.transaction.equals(transaction) || record.blockHash !== blockHash) {
+      await this.updateTransaction(
+        transactionHash,
+        { transaction, blockHash, submittedSequence },
+        tx,
+      )
+    }
+
     const isRemovingTransaction = submittedSequence === null && blockHash === null
-    await this.updateTransaction(
-      transactionHash,
-      { transaction, blockHash, submittedSequence },
-      tx,
-    )
     await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
     await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
   }
