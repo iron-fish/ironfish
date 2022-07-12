@@ -1,9 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
+  S3Client,
+  UploadPartCommand,
+} from '@aws-sdk/client-s3'
 import { Assert, AsyncUtils, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { S3 } from 'aws-sdk'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
@@ -13,6 +19,10 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
+const RAW_UPLOAD_CHUNK_SIZE = Number(process.env.UPLOAD_CHUNK_SIZE)
+const UPLOAD_CHUNK_SIZE = isNaN(RAW_UPLOAD_CHUNK_SIZE)
+  ? 50 * 1024 * 1024
+  : RAW_UPLOAD_CHUNK_SIZE
 export default class CreateSnapshot extends IronfishCommand {
   static hidden = true
 
@@ -24,7 +34,7 @@ export default class CreateSnapshot extends IronfishCommand {
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'S3 bucket to upload snapshot to',
+      description: 'S3 bucket URL to upload snapshot to',
     }),
     path: Flags.string({
       char: 'p',
@@ -173,29 +183,143 @@ export default class CreateSnapshot extends IronfishCommand {
 
   async uploadToBucket(filePath: string, bucket: string, contentType: string): Promise<void> {
     const baseName = path.basename(filePath)
-
-    const s3 = new S3({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    })
-
     const fileHandle = await fsAsync.open(filePath, 'r')
     const contentStream = fileHandle.createReadStream()
 
+    const s3 = new S3Client({
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+      },
+      region: process.env.AWS_REGION,
+    })
+
     const params = {
-      Body: contentStream,
       Bucket: bucket,
       Key: baseName,
       ContentType: contentType,
     }
 
-    await s3
-      .upload(params, (err: Error) => {
-        if (err) {
-          this.logger.error(`Could not upload file to S3: ${err.message}`)
-          this.exit(1)
+    const uploadId = await s3
+      .send(new CreateMultipartUploadCommand(params))
+      .then((result) => result.UploadId)
+      .catch((err: Error) => {
+        this.logger.error(`Could not create multipart upload to S3: ${err.message}`)
+        throw new Error(err.message)
+      })
+
+    Assert.isNotUndefined(uploadId)
+
+    const uploadPartsPromise = new Promise<{
+      Parts: { ETag: string | undefined; PartNumber: number }[]
+    }>((resolve, reject) => {
+      const partMap: { Parts: { ETag: string | undefined; PartNumber: number }[] } = {
+        Parts: [],
+      }
+
+      let partNum = 1
+      let acc: Buffer | null = null
+
+      contentStream.on('data', (chunk: Buffer) => {
+        if (!acc) {
+          acc = chunk
+        } else {
+          acc = Buffer.concat([acc, chunk])
+        }
+
+        if (acc.length > UPLOAD_CHUNK_SIZE) {
+          contentStream.pause()
+
+          // const chunkSize = acc.length
+
+          const params = {
+            Bucket: bucket,
+            Key: baseName,
+            PartNumber: partNum,
+            UploadId: uploadId,
+            ContentType: contentType,
+            Body: acc,
+            // ContentLength: chunkSize,
+          }
+
+          s3.send(new UploadPartCommand(params))
+            .then((result) => {
+              partMap.Parts.push({ ETag: result.ETag, PartNumber: params.PartNumber })
+              partNum += 1
+              acc = null
+              contentStream.resume()
+            })
+            .catch((err: Error) => {
+              this.logger.error(`Could not upload part to S3 bucket: ${err.message}`)
+              reject(err)
+            })
         }
       })
-      .promise()
+
+      contentStream.on('close', () => {
+        if (acc) {
+          // const chunkSize = acc.length
+
+          const params = {
+            Bucket: bucket,
+            Key: baseName,
+            PartNumber: partNum,
+            UploadId: uploadId,
+            ContentType: contentType,
+            Body: acc,
+            // ContentLength: chunkSize,
+          }
+
+          s3.send(new UploadPartCommand(params))
+            .then((result) => {
+              partMap.Parts.push({ ETag: result.ETag, PartNumber: params.PartNumber })
+              acc = null
+              resolve(partMap)
+            })
+            .catch((err: Error) => {
+              this.logger.error(`Could not upload last part to S3 bucket: ${err.message}`)
+              reject(err)
+            })
+        }
+      })
+
+      contentStream.on('error', (err) => {
+        this.logger.error(`Could not read file: ${err.message}; aborting upload to S3...`)
+        const params = {
+          Bucket: bucket,
+          Key: baseName,
+          UploadId: uploadId,
+        }
+
+        s3.send(new AbortMultipartUploadCommand(params))
+          .then()
+          .catch((awsErr: Error) => {
+            this.logger.error(`Could not abort S3 upload: ${awsErr.message}`)
+          })
+        reject(err)
+      })
+    })
+
+    const partMap = await uploadPartsPromise
+
+    this.logger.debug(
+      `All parts of snapshot have been uploaded. Finalizing multipart upload. Parts: ${partMap.Parts.length}`,
+    )
+
+    const completionParams = {
+      Bucket: bucket,
+      Key: baseName,
+      UploadId: uploadId,
+      MultipartUpload: partMap,
+    }
+
+    await s3
+      .send(new CompleteMultipartUploadCommand(completionParams))
+      .then(() => {
+        this.logger.info(`Multipart upload complete.`)
+      })
+      .catch((err: Error) => {
+        throw new Error(`Could not complete multipart S3 upload: ${err.message}`)
+      })
   }
 }
