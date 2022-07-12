@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
+import { GENESIS_BLOCK_SEQUENCE } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
@@ -16,7 +17,7 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
-import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import { HashUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
@@ -589,11 +590,6 @@ export class Accounts {
       return
     }
 
-    if (this.chainProcessor.hash === null) {
-      this.logger.debug('Skipping scan, there is no blocks to scan')
-      return
-    }
-
     const scan = new ScanState()
     this.scan = scan
 
@@ -601,17 +597,52 @@ export class Accounts {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const accountHeadHash = this.chainProcessor.hash
+    if (scan.isAborted) {
+      scan.signalComplete()
+      this.scan = null
+      return
+    }
+
+    let accountHeadHash = this.chainProcessor.hash
+
+    if (accountHeadHash === null) {
+      accountHeadHash = this.chain.head.hash
+
+      this.logger.debug(
+        `Accounts head hash is empty, scanning to block chain head ${Number(
+          this.chain.head.sequence,
+        )}.`,
+      )
+    }
+
+    const accountHead = await this.chain.getHeader(accountHeadHash)
+    if (!accountHead) {
+      this.logger.debug(
+        `Could not find account head ${HashUtils.renderHash(
+          accountHeadHash,
+        )} in chain, aborting.`,
+      )
+
+      await scan.abort()
+      scan.signalComplete()
+      this.scan = null
+      return
+    }
 
     const scanFor = Array.from(this.accounts.values())
       .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
       .map((a) => a.displayName)
       .join(', ')
 
-    this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
+    this.logger.info(
+      `Scanning for transactions${scanFor ? ` for ${scanFor}` : ''} to ${String(
+        accountHead.sequence,
+      )}`,
+    )
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const {
+      previousBlockHash,
       blockHash,
       transaction,
       initialNoteIndex,
@@ -623,8 +654,18 @@ export class Accounts {
         return
       }
 
+      // Update the chain processor to the last block the rescan completed when
+      // we start a new block
+      if (
+        this.chainProcessor.hash?.compare(previousBlockHash) ||
+        (this.chainProcessor.hash === null && sequence > GENESIS_BLOCK_SEQUENCE)
+      ) {
+        this.chainProcessor.hash = previousBlockHash
+        await this.updateHeadHash(previousBlockHash)
+      }
+
       await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
-      scan.onTransaction.emit(sequence)
+      scan.onTransaction.emit(sequence, accountHead.sequence)
     }
 
     for (const account of this.accounts.values()) {
@@ -1284,7 +1325,7 @@ export class Accounts {
 }
 
 export class ScanState {
-  onTransaction = new Event<[sequence: number]>()
+  onTransaction = new Event<[sequence: number, endSequence: number]>()
 
   readonly startedAt: number
   readonly abortController: AbortController

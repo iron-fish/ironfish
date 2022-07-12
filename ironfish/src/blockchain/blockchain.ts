@@ -1129,7 +1129,13 @@ export class Blockchain {
     tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<
-    { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
+    {
+      transaction: Transaction
+      initialNoteIndex: number
+      sequence: number
+      blockHash: string
+      previousBlockHash: Buffer
+    },
     void,
     unknown
   > {
@@ -1161,7 +1167,13 @@ export class Blockchain {
     header: BlockHeader,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
+    {
+      transaction: Transaction
+      initialNoteIndex: number
+      sequence: number
+      blockHash: string
+      previousBlockHash: Buffer
+    },
     void,
     unknown
   > {
@@ -1184,6 +1196,7 @@ export class Blockchain {
         initialNoteIndex: noteIndex,
         blockHash: header.hash.toString('hex'),
         sequence: header.sequence,
+        previousBlockHash: header.previousBlockHash,
       }
     }
   }

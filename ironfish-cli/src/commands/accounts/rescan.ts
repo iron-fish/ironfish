@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Meter, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { kMaxLength } from 'buffer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { ProgressBar } from '../../types'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
@@ -39,27 +42,50 @@ export class RescanCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
 
-    CliUx.ux.action.start('Rescanning Transactions', 'Asking node to start scanning', {
+    CliUx.ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
     })
 
     const response = client.rescanAccountStream({ reset, follow })
 
+    const speed = new Meter()
+
+    const progress = CliUx.ux.progress({
+      format: 'Scanning Blocks: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
+    }) as ProgressBar
+
+    let started = false
+    let lastSequence = 0
+
     try {
-      for await (const { sequence, startedAt } of response.contentStream()) {
-        CliUx.ux.action.status = `Scanning Block: ${sequence}, ${Math.floor(
-          (Date.now() - startedAt) / 1000,
-        )} seconds`
+      for await (const { endSequence, sequence } of response.contentStream()) {
+        if (!started) {
+          CliUx.ux.action.stop()
+          speed.start()
+          progress.start(endSequence, 0)
+          started = true
+        }
+
+        const completed = sequence - lastSequence
+        lastSequence = sequence
+
+        speed.add(completed)
+        progress.increment(completed)
+
+        progress.update({
+          estimate: TimeUtils.renderEstimate(sequence, endSequence, speed.rate1m),
+          speed: speed.rate1s.toFixed(0),
+        })
       }
     } catch (error) {
       if (hasUserResponseError(error)) {
-        CliUx.ux.action.stop(error.codeMessage)
-        return
+        progress?.stop()
+        this.error(error.codeMessage)
       }
 
       throw error
     }
 
-    CliUx.ux.action.stop(follow ? 'Scanning Complete' : 'Scan started in background')
+    this.log(follow ? 'Scanning Complete' : 'Scan started in background')
   }
 }
