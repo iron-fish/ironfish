@@ -510,10 +510,8 @@ export class Accounts {
         scan.onTransaction.emit(sequence)
       }
 
-      if (blockHeader.sequence % 20 === 0) {
-        for (const account of outdatedAccounts) {
-          await this.updateHeadHash(account, blockHeader.hash)
-        }
+      for (const account of outdatedAccounts) {
+        await this.updateHeadHash(account, blockHeader.hash)
       }
     }
 
