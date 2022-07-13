@@ -59,12 +59,21 @@ describe('service:snapshot', () => {
       return module
     })
 
-    jest.mock('aws-sdk', () => {
-      const mockS3 = {
-        upload: jest.fn().mockReturnThis(),
-        promise: jest.fn(),
+    jest.mock('@aws-sdk/client-s3', () => {
+      const mockS3Client = {
+        send: jest
+          .fn()
+          .mockReturnValue(Promise.resolve({ ETag: 'barbaz' }))
+          .mockReturnValueOnce(Promise.resolve({ UploadId: 'foobar' })),
       }
-      return { S3: jest.fn(() => mockS3) }
+
+      return {
+        S3Client: jest.fn(() => mockS3Client),
+        AbortMultipartUploadCommand: jest.fn(),
+        CompleteMultipartUploadCommand: jest.fn(),
+        CreateMultipartUploadCommand: jest.fn(),
+        UploadPartCommand: jest.fn(),
+      }
     })
 
     jest.mock('tar', () => {

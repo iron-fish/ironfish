@@ -15,14 +15,14 @@ import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import tar from 'tar'
+import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
-const RAW_UPLOAD_CHUNK_SIZE = Number(process.env.UPLOAD_CHUNK_SIZE)
-const UPLOAD_CHUNK_SIZE = isNaN(RAW_UPLOAD_CHUNK_SIZE)
-  ? 50 * 1024 * 1024
-  : RAW_UPLOAD_CHUNK_SIZE
+// AWS requires that upload parts be at least 5MB
+const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
+const MAX_MULTIPART_NUM = 10000
 export default class CreateSnapshot extends IronfishCommand {
   static hidden = true
 
@@ -35,6 +35,24 @@ export default class CreateSnapshot extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 bucket URL to upload snapshot to',
+    }),
+    accessKeyId: Flags.string({
+      char: 'a',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'S3 access key ID',
+    }),
+    secretAccessKey: Flags.string({
+      char: 's',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'S3 secret access key',
+    }),
+    region: Flags.string({
+      char: 'r',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'AWS region where bucket is contained',
     }),
     path: Flags.string({
       char: 'p',
@@ -56,6 +74,13 @@ export default class CreateSnapshot extends IronfishCommand {
     const { flags } = await this.parse(CreateSnapshot)
 
     const bucket = (flags.bucket || process.env.IRONFISH_SNAPSHOT_BUCKET || '').trim()
+    const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
+    const secretAccessKey = (
+      flags.secretAccessKey ||
+      process.env.AWS_SECRET_ACCESS_KEY ||
+      ''
+    ).trim()
+    const region = (flags.region || process.env.AWS_REGION || '').trim()
 
     let exportDir
 
@@ -63,7 +88,8 @@ export default class CreateSnapshot extends IronfishCommand {
       exportDir = this.sdk.fileSystem.resolve(flags.path)
     } else {
       try {
-        exportDir = await fsAsync.mkdtemp(`${os.tmpdir()}${path.sep}`)
+        const tempDir = path.join(os.tmpdir(), uuid())
+        exportDir = await fsAsync.mkdir(tempDir, { recursive: true })
       } catch (err) {
         this.log(`Could not create temp folder for snapshot generation`)
         this.exit(1)
@@ -132,7 +158,14 @@ export default class CreateSnapshot extends IronfishCommand {
       const blockHeight = stop
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
-      await this.uploadToBucket(snapshotPath, bucket, 'application/x-compressed-tar')
+      await this.uploadToBucket(
+        snapshotPath,
+        'application/x-compressed-tar',
+        bucket,
+        accessKeyId,
+        secretAccessKey,
+        region,
+      )
       CliUx.ux.action.stop(`done`)
 
       const manifestPath = this.sdk.fileSystem.join(exportDir, 'manifest.json')
@@ -150,7 +183,14 @@ export default class CreateSnapshot extends IronfishCommand {
 
       await fsAsync.writeFile(manifestPath, manifestPayload).then(async () => {
         CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
-        await this.uploadToBucket(manifestPath, bucket, 'application/json')
+        await this.uploadToBucket(
+          manifestPath,
+          'application/json',
+          bucket,
+          accessKeyId,
+          secretAccessKey,
+          region,
+        )
         CliUx.ux.action.stop(`done`)
       })
 
@@ -181,17 +221,35 @@ export default class CreateSnapshot extends IronfishCommand {
     )
   }
 
-  async uploadToBucket(filePath: string, bucket: string, contentType: string): Promise<void> {
+  async uploadToBucket(
+    filePath: string,
+    contentType: string,
+    bucket: string,
+    accessKeyId: string,
+    secretAccessKey: string,
+    region: string,
+  ): Promise<void> {
     const baseName = path.basename(filePath)
     const fileHandle = await fsAsync.open(filePath, 'r')
+
+    const stat = await fsAsync.stat(filePath)
+    const fileSize = stat.size
+    let numParts = MAX_MULTIPART_NUM
+
+    while (fileSize / numParts < MINIMUM_MULTIPART_FILE_SIZE) {
+      numParts /= 2
+    }
+
+    const uploadChunkSize = fileSize / numParts
+
     const contentStream = fileHandle.createReadStream()
 
     const s3 = new S3Client({
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
+        accessKeyId,
+        secretAccessKey,
       },
-      region: process.env.AWS_REGION,
+      region,
     })
 
     const params = {
@@ -227,10 +285,8 @@ export default class CreateSnapshot extends IronfishCommand {
           acc = Buffer.concat([acc, chunk])
         }
 
-        if (acc.length > UPLOAD_CHUNK_SIZE) {
+        if (acc.length > uploadChunkSize) {
           contentStream.pause()
-
-          // const chunkSize = acc.length
 
           const params = {
             Bucket: bucket,
@@ -239,7 +295,6 @@ export default class CreateSnapshot extends IronfishCommand {
             UploadId: uploadId,
             ContentType: contentType,
             Body: acc,
-            // ContentLength: chunkSize,
           }
 
           s3.send(new UploadPartCommand(params))
@@ -258,8 +313,6 @@ export default class CreateSnapshot extends IronfishCommand {
 
       contentStream.on('close', () => {
         if (acc) {
-          // const chunkSize = acc.length
-
           const params = {
             Bucket: bucket,
             Key: baseName,
@@ -267,7 +320,6 @@ export default class CreateSnapshot extends IronfishCommand {
             UploadId: uploadId,
             ContentType: contentType,
             Body: acc,
-            // ContentLength: chunkSize,
           }
 
           s3.send(new UploadPartCommand(params))
@@ -296,6 +348,7 @@ export default class CreateSnapshot extends IronfishCommand {
           .catch((awsErr: Error) => {
             this.logger.error(`Could not abort S3 upload: ${awsErr.message}`)
           })
+
         reject(err)
       })
     })
