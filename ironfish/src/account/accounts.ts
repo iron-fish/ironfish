@@ -645,7 +645,7 @@ export class Accounts {
         initialNoteIndex: initialNoteIndex,
       })
 
-      scan.onTransaction.emit(sequence)
+      scan.onTransaction.emit(sequence, accountHead.sequence)
       lastBlockHash = blockHash
     }
 
@@ -1311,7 +1311,7 @@ export class Accounts {
 }
 
 export class ScanState {
-  onTransaction = new Event<[sequence: number]>()
+  onTransaction = new Event<[sequence: number, endSequence: number]>()
 
   readonly startedAt: number
   readonly abortController: AbortController
