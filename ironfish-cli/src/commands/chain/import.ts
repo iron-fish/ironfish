@@ -54,6 +54,9 @@ export default class ImportSnapshot extends IronfishCommand {
         this.log(`Cannot download snapshot without bucket URL`)
       }
 
+      const client = await this.sdk.connectRpc()
+      const status = await client.getChainInfo()
+
       const manifest = await axios
         .get<{
           checksum: string
@@ -73,6 +76,10 @@ export default class ImportSnapshot extends IronfishCommand {
           }. The size of the latest snapshot file is ${FileUtils.formatFileSize(
             manifest.file_size,
           )}`,
+        )
+
+        this.log(
+          `Current head sequence of your local chain: ${status.content.currentBlockIdentifier.index}`,
         )
 
         const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
@@ -129,17 +136,10 @@ export default class ImportSnapshot extends IronfishCommand {
     files.sort((a, b) => Number(a) - Number(b))
 
     const client = await this.sdk.connectRpc()
-    const status = await client.getChainInfo()
-    let headSeq = Number(status.content.currentBlockIdentifier.index)
 
     for (const file of files) {
-      if (headSeq > Number(file)) {
-        continue
-      }
-
       const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
-      const response = await client.importSnapshot({ blocks })
-      headSeq = response.content.headSeq
+      await client.importSnapshot({ blocks })
     }
   }
 

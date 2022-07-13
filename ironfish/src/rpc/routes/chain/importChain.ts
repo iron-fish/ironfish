@@ -52,7 +52,15 @@ router.register<typeof ImportSnapshotRequestSchema, ImportSnapshotResponse>(
       const deserializedBlocks = deserializeChunk(node, reader)
 
       for (const block of deserializedBlocks) {
-        await node.chain.addBlock(block)
+        const present = await node.chain.hasBlock(block.header.hash)
+        if (!present) {
+          const result = await node.chain.addBlock(block)
+          if (!result.isAdded && result.reason) {
+            node.logger.debug(
+              `Could not add block ${block.header.sequence} from snapshot, reason: ${result.reason}`,
+            )
+          }
+        }
       }
 
       request.end({ headSeq: node.chain.head.sequence })
