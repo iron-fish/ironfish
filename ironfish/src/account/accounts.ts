@@ -584,19 +584,12 @@ export class Accounts {
       return
     }
 
-    if (this.chainProcessor.hash === null) {
-      this.logger.debug('Skipping scan, there is no blocks to scan')
-      return
-    }
-
     const scan = new ScanState()
     this.scan = scan
 
     // If were updating the account head we need to wait until its finished
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
-
-    const accountHeadHash = this.chainProcessor.hash
 
     if (scan.isAborted) {
       scan.signalComplete()
@@ -609,10 +602,21 @@ export class Accounts {
       .map((a) => a.displayName)
       .join(', ')
 
+    const accountHeadHash = this.chainProcessor?.hash
+      ? this.chainProcessor.hash
+      : this.chain.head.hash
+
+    const accountHead = await this.chain.getHeader(accountHeadHash)
+    Assert.isNotNull(accountHead)
+
     this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
+
+    let syncChainProcessor = false
+    let lastBlockHash: Buffer | null = null
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const {
+      previousBlockHash,
       blockHash,
       transaction,
       initialNoteIndex,
@@ -624,12 +628,30 @@ export class Accounts {
         return
       }
 
+      const chainProcessorHash: Buffer =
+        this.chainProcessor.hash ?? this.chain.genesis.previousBlockHash
+
+      if (!syncChainProcessor && chainProcessorHash.equals(previousBlockHash)) {
+        syncChainProcessor = true
+      }
+
+      if (syncChainProcessor && !chainProcessorHash.equals(previousBlockHash)) {
+        this.chainProcessor.hash = previousBlockHash
+        await this.updateHeadHash(previousBlockHash)
+      }
+
       await this.syncTransaction(transaction, {
         blockHash: blockHash.toString('hex'),
         initialNoteIndex: initialNoteIndex,
       })
 
       scan.onTransaction.emit(sequence)
+      lastBlockHash = blockHash
+    }
+
+    if (syncChainProcessor) {
+      this.chainProcessor.hash = lastBlockHash
+      await this.updateHeadHash(lastBlockHash)
     }
 
     for (const account of this.accounts.values()) {

@@ -154,4 +154,32 @@ describe('Accounts', () => {
       })
     })
   })
+
+  describe('scanTransaction', () => {
+    it('should rescan and update chain processor', async () => {
+      const { chain, accounts } = await nodeTest.createSetup()
+
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
+
+      // Test this works even if processor is not reset
+      await accounts.updateHead()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      const block2 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block2)
+
+      // Should only scan up to the current procesor head block1
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      // Now with a reset chain processor should go to end of chain
+      await accounts.reset()
+      expect(accounts['chainProcessor']['hash']).toBe(null)
+
+      // This should carry the chain processor to block2
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
+    })
+  })
 })
