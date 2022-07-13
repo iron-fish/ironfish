@@ -72,8 +72,7 @@ function deserializeChunk(node: IronfishNode, reader: bufio.BufferReader): Block
   const blocks: Block[] = []
   const blocksLength = reader.readU64()
   for (let i = 0; i < blocksLength; i++) {
-    const blockBuffer = reader.readVarBytes()
-    const blockReader = bufio.read(blockBuffer, true)
+    const blockReader = bufio.read(reader.readVarBytes(), true)
     const serializedBlock = readBlock(blockReader)
     const block = node.chain.strategy.blockSerde.deserialize(serializedBlock)
     blocks.push(block)
