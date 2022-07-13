@@ -5,18 +5,20 @@ import { expect as expectCli, test } from '@oclif/test'
 
 describe('accounts:rescan', () => {
   const contentStream = jest.fn().mockImplementation(function* () {
-    yield 0
+    yield { sequence: 0, endSequence: 100, startedAt: Date.now() }
   })
 
   beforeAll(() => {
     jest.mock('@ironfish/sdk', () => {
       const originalModule = jest.requireActual('@ironfish/sdk')
+
       const client = {
         connect: jest.fn(),
         rescanAccountStream: jest.fn().mockImplementation(() => ({
           contentStream,
         })),
       }
+
       const module: typeof jest = {
         ...originalModule,
         IronfishSdk: {
@@ -30,6 +32,7 @@ describe('accounts:rescan', () => {
           })),
         },
       }
+
       return module
     })
   })
