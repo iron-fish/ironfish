@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_SNAPSHOT_BUCKET, FileUtils } from '@ironfish/sdk'
+import { DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import crypto from 'crypto'
@@ -49,7 +49,7 @@ export default class ImportSnapshot extends IronfishCommand {
     if (flags.path) {
       snapshotPath = flags.path
     } else {
-      const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET || '').trim()
+      const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
       if (!bucket) {
         this.log(`Cannot download snapshot without bucket URL`)
       }
@@ -64,7 +64,7 @@ export default class ImportSnapshot extends IronfishCommand {
           file_size: number
           timestamp: number
           block_height: number
-        }>(`${bucket}/manifest.json`)
+        }>(`https://${bucket}/manifest.json`)
         .then((r) => r.data)
 
       if (!flags.confirm) {
@@ -105,7 +105,7 @@ export default class ImportSnapshot extends IronfishCommand {
       await axios({
         method: 'GET',
         responseType: 'stream',
-        url: `${bucket}/${manifest.file_name}`,
+        url: `https://${bucket}/${manifest.file_name}`,
         onDownloadProgress: (progressEvent: {
           lengthComputable: number
           loaded: number
