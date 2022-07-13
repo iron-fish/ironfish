@@ -572,20 +572,16 @@ export class Accounts {
 
     const notes = await this.getUnspentNotes(account)
 
-    let unconfirmed = BigInt(0)
     let confirmed = BigInt(0)
 
     for (const note of notes) {
       const value = note.note.value()
-
-      unconfirmed += value
-
       if (note.index !== null && note.confirmed) {
         confirmed += value
       }
     }
 
-    return { unconfirmed, confirmed }
+    return { unconfirmed: account.unconfirmedBalance, confirmed }
   }
 
   private async getUnspentNotes(account: Account): Promise<

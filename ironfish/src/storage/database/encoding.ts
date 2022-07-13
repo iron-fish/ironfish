@@ -5,6 +5,7 @@
 import bufio from 'bufio'
 import hexArray from 'hex-array'
 import { IJSON, IJsonSerializable, Serde } from '../../serde'
+import { BigIntUtils } from '../../utils'
 import { IDatabaseEncoding } from './types'
 
 export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncoding<T> {
@@ -83,6 +84,16 @@ export default class BufferToStringEncoding implements Serde<Buffer, string> {
 
   equals(): boolean {
     throw new Error('You should never use this')
+  }
+}
+
+export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
+  serialize(value: bigint): Buffer {
+    return BigIntUtils.toBytesLE(value)
+  }
+
+  deserialize(buffer: Buffer): bigint {
+    return BigIntUtils.fromBytesLE(buffer)
   }
 }
 

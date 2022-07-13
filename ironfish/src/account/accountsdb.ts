@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { FileSystem } from '../fileSystems'
 import { Transaction } from '../primitives/transaction'
 import {
+  BigIntLEEncoding,
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
@@ -44,6 +46,11 @@ export class AccountsDB {
   headHashes: IDatabaseStore<{
     key: string
     value: string | null
+  }>
+
+  balances: IDatabaseStore<{
+    key: string
+    value: bigint
   }>
 
   decryptedNotes: IDatabaseStore<{
@@ -96,6 +103,12 @@ export class AccountsDB {
       valueEncoding: new AccountsValueEncoding(),
     })
 
+    this.balances = this.database.addStore<{ key: string; value: bigint }>({
+      name: 'balances',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new BigIntLEEncoding(),
+    })
+
     this.decryptedNotes = this.database.addStore<{
       key: string
       value: DecryptedNotesValue
@@ -136,7 +149,14 @@ export class AccountsDB {
   }
 
   async setAccount(account: Account): Promise<void> {
-    await this.accounts.put(account.id, account.serialize())
+    await this.database.transaction(async (tx) => {
+      await this.accounts.put(account.id, account.serialize(), tx)
+
+      const unconfirmedBalance = await this.balances.get(account.id, tx)
+      if (unconfirmedBalance === undefined) {
+        await this.saveUnconfirmedBalance(account, BigInt(0), tx)
+      }
+    })
   }
 
   async removeAccount(id: string): Promise<void> {
@@ -305,5 +325,15 @@ export class AccountsDB {
     for await (const [key, value] of this.decryptedNotes.getAllIter()) {
       map.set(key, value)
     }
+  }
+
+  async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
+    const unconfirmedBalance = await this.balances.get(account.id, tx)
+    Assert.isNotUndefined(unconfirmedBalance)
+    return unconfirmedBalance
+  }
+
+  async saveUnconfirmedBalance(account: Account, balance: bigint, tx?: IDatabaseTransaction,): Promise<void> {
+    await this.balances.put(account.id, balance, tx)
   }
 }
