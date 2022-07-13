@@ -26,6 +26,10 @@ import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import {
+  GetBlockTransactionsRequest,
+  GetBlockTransactionsResponse,
+} from './messages/getBlockTransactions'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import {
   displayNetworkMessageType,
@@ -556,6 +560,8 @@ export class PeerNetwork {
           responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
         } else if (rpcMessage instanceof PooledTransactionsRequest) {
           responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
+        } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
+          responseMessage = this.onGetBlockTransactionsRequest(rpcMessage)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -710,6 +716,13 @@ export class PeerNetwork {
     }
 
     return new PooledTransactionsResponse(transactions, rpcId)
+  }
+
+  private onGetBlockTransactionsRequest(
+    message: GetBlockTransactionsRequest,
+  ): GetBlockTransactionsResponse {
+    // TODO(IRO-2279): Implement a handler for this
+    return new GetBlockTransactionsResponse(message.blockHash, [], message.rpcId)
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {

@@ -6,6 +6,10 @@ import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import {
+  GetBlockTransactionsRequest,
+  GetBlockTransactionsResponse,
+} from './messages/getBlockTransactions'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
@@ -45,6 +49,8 @@ const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetBlocksResponse,
     NetworkMessageType.PooledTransactionsRequest,
     NetworkMessageType.PooledTransactionsResponse,
+    NetworkMessageType.GetBlockTransactionsRequest,
+    NetworkMessageType.GetBlockTransactionsResponse,
   ].includes(type)
 }
 
@@ -73,6 +79,10 @@ const parseRpcNetworkMessage = (
       return PooledTransactionsRequest.deserialize(body, rpcId)
     case NetworkMessageType.PooledTransactionsResponse:
       return PooledTransactionsResponse.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsRequest:
+      return GetBlockTransactionsRequest.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsResponse:
+      return GetBlockTransactionsResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
