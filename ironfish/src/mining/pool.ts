@@ -430,7 +430,7 @@ export class MiningPool {
 
     let addressMinerCount = 0
 
-    const status = {
+    const status: MiningStatusMessage = {
       name: this.name,
       hashRate: hashRate,
       miners: this.stratum.subscribed,
@@ -456,15 +456,12 @@ export class MiningPool {
         }
       }
 
-      return {
-        ...status,
-        addressStatus: {
-          publicAddress: publicAddress,
-          hashRate: addressHashRate,
-          miners: addressMinerCount,
-          connectedMiners: addressConnectedMiners,
-          sharesPending: addressSharesPending,
-        },
+      status.addressStatus = {
+        publicAddress: publicAddress,
+        hashRate: addressHashRate,
+        miners: addressMinerCount,
+        connectedMiners: addressConnectedMiners,
+        sharesPending: addressSharesPending,
       }
     }
 
