@@ -206,6 +206,7 @@ export class StratumServer {
           }
 
           client.publicAddress = body.result.publicAddress
+          client.name = body.result.name
           client.subscribed = true
           this.subscribed++
 

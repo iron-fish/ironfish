@@ -109,7 +109,8 @@ export class PoolStatus extends IronfishCommand {
 
     if (status.addressStatus) {
       result += `\nMining status for address '${status.addressStatus.publicAddress}':\n`
-      result += `Miners:                ${status.addressStatus.miners}\n`
+      result += `Number of miners:      ${status.addressStatus.miners}\n`
+      result += `Connected miners:      ${status.addressStatus.connectedMiners.join(', ')}\n`
       result += `Hashrate:              ${FileUtils.formatHashRate(
         status.addressStatus.hashRate,
       )}\n`
