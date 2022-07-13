@@ -450,9 +450,7 @@ export class MiningPool {
       for (const client of this.stratum.clients.values()) {
         if (client.subscribed && client.publicAddress === publicAddress) {
           addressMinerCount++
-          if (client.name) {
-            addressConnectedMiners.push(client.name)
-          }
+          addressConnectedMiners.push(client.name || `Miner ${client.id}`)
         }
       }
 
