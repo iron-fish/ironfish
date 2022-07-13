@@ -11,10 +11,10 @@ describe('service:snapshot', () => {
 
   const manifestContent = {
     block_height: 3,
-    checksum: Buffer.from('foo').toString('hex'),
-    file_name: `ironfish_snapshot_${Date.now()}.tar.gz`,
+    checksum: 'e5b844cc57f57094ea4585e235f36c78c1cd222262bb89d53c94dcb4d6b3e55d',
+    file_name: `ironfish_snapshot_123456789.tar.gz`,
     file_size: mockedFileSize,
-    timestamp: Date.now(),
+    timestamp: 123456789,
   }
 
   beforeAll(() => {
@@ -64,8 +64,7 @@ describe('service:snapshot', () => {
       const mockS3Client = {
         send: jest
           .fn()
-          .mockReturnValue(Promise.resolve({ ETag: 'barbaz' }))
-          .mockReturnValueOnce(Promise.resolve({ UploadId: 'foobar' })),
+          .mockReturnValue(Promise.resolve({ UploadId: 'foobar', ETag: 'barbaz' })),
       }
 
       return {
@@ -81,19 +80,11 @@ describe('service:snapshot', () => {
       return { create: jest.fn() }
     })
 
-    jest.mock('crypto', () => {
-      const mockHasher = {
-        update: jest.fn().mockReturnThis(),
-        digest: jest.fn().mockReturnValue(Buffer.from('foo')),
-      }
-      return { createHash: jest.fn(() => mockHasher), Hash: jest.fn(() => mockHasher) }
-    })
-
     jest.mock('fs/promises', () => {
       const mockFileHandle = {
         createReadStream: jest
           .fn()
-          .mockReturnValue(Readable.from(Buffer.alloc(10 * 1024 * 1024))),
+          .mockImplementation(() => Readable.from(Buffer.alloc(10 * 1024 * 1024))),
       }
 
       const mockStats = {
@@ -103,6 +94,8 @@ describe('service:snapshot', () => {
       return {
         FileHandle: jest.fn(() => mockFileHandle),
         open: jest.fn().mockReturnValue(Promise.resolve(mockFileHandle)),
+        mkdir: jest.fn().mockImplementation((tempdir: string) => tempdir),
+        rm: jest.fn(),
         rmdir: jest.fn(),
         stat: jest.fn(() => mockStats),
         writeFile: jest.fn(() => Promise.resolve()),
