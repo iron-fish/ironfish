@@ -333,7 +333,11 @@ export class AccountsDB {
     return unconfirmedBalance
   }
 
-  async saveUnconfirmedBalance(account: Account, balance: bigint, tx?: IDatabaseTransaction,): Promise<void> {
+  async saveUnconfirmedBalance(
+    account: Account,
+    balance: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     await this.balances.put(account.id, balance, tx)
   }
 }
