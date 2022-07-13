@@ -31,7 +31,7 @@ import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
 import { STRATUM_VERSION_PROTOCOL, STRATUM_VERSION_PROTOCOL_MIN } from './version'
 
-const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
+const FIVE_MINUTES_MS = 5 * 60 * 1000
 
 export class StratumServer {
   readonly server: net.Server
@@ -188,20 +188,11 @@ export class StratumServer {
             return
           }
 
-          // TODO: Remove when making version required
-          if (body.result.version === undefined) {
-            this.peers.shadowBan(client)
-            return
-          }
-
-          // TODO: This undefined check makes version optional, we should require it by
-          // removing this undefined check in a future update once we have given enough
-          // notice after this deploy.
-          if (body.result.version !== undefined && body.result.version < this.versionMin) {
+          if (body.result.version < this.versionMin) {
             this.peers.ban(client, {
               message: `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
               reason: DisconnectReason.BAD_VERSION,
-              until: Date.now() + FIFTEEN_MINUTES_MS,
+              until: Date.now() + FIVE_MINUTES_MS,
               versionExpected: this.version,
             })
             return

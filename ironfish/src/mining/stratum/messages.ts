@@ -19,7 +19,7 @@ export type MiningDisconnectMessage =
   | undefined
 
 export type MiningSubscribeMessage = {
-  version?: number
+  version: number
   publicAddress: string
 }
 
@@ -108,7 +108,7 @@ export const MiningWaitForWorkSchema: yup.MixedSchema<MiningWaitForWorkMessage> 
 
 export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = yup
   .object({
-    version: yup.number().optional(),
+    version: yup.number().required(),
     publicAddress: yup.string().required(),
   })
   .required()
