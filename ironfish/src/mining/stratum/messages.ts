@@ -140,7 +140,7 @@ export const MiningStatusSchema: yup.ObjectSchema<MiningStatusMessage> = yup
     addressStatus: yup
       .object({
         publicAddress: yup.string().required(),
-        connectedMiners: yup.array(yup.string().required()).required(),
+        connectedMiners: yup.array(yup.string().required()).defined(),
         hashRate: yup.number().required(),
         miners: yup.number().required(),
         sharesPending: yup.number().required(),
