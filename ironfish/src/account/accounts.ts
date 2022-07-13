@@ -483,16 +483,28 @@ export class Accounts {
     const startHash = await this.getEarliestHeadHash()
     const endHash = this.chainProcessor.hash
 
-    const outdatedAccounts = this.listAccounts().filter((a) => !this.isAccountUpToDate(a))
+    const accounts: Array<Account> = []
+    const remainingAccounts: Array<Account> = []
+
+    const startHashHex = startHash ? startHash.toString('hex') : null
+
+    for (const account of this.accounts.values()) {
+      const headStatus = this.headStatus.get(account.id)
+      Assert.isNotUndefined(headStatus)
+
+      if (startHashHex === headStatus.headHash) {
+        accounts.push(account)
+      } else {
+        remainingAccounts.push(account)
+      }
+    }
 
     this.logger.info(
       `Scan starting from earliest found account head hash: ${
         startHash ? startHash.toString('hex') : 'GENESIS'
       }`,
     )
-    this.logger.info(
-      `Accounts to scan for: ${outdatedAccounts.map((a) => a.displayName).join(', ')}`,
-    )
+    this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
@@ -519,13 +531,30 @@ export class Accounts {
             blockHash,
             initialNoteIndex,
           },
-          outdatedAccounts,
+          accounts,
         )
         scan.onTransaction.emit(sequence)
       }
 
-      for (const account of outdatedAccounts) {
+      for (const account of accounts) {
         await this.updateHeadHash(account, blockHeader.hash)
+      }
+
+      const hashHex = blockHeader.hash.toString('hex')
+
+      let i = 0
+      while (i < remainingAccounts.length) {
+        const account = remainingAccounts[i]
+        const headStatus = this.headStatus.get(account.id)
+        Assert.isNotUndefined(headStatus)
+
+        if (headStatus.headHash === hashHex) {
+          remainingAccounts.splice(i, 1)
+          accounts.push(account)
+          this.logger.debug(`Adding ${account.displayName} to scan`)
+        } else {
+          i += 1
+        }
       }
     }
 
