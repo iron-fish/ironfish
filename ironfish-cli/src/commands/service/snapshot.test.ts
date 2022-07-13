@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { expect as expectCli, test } from '@oclif/test'
 import path from 'path'
+import { Readable } from 'stream'
 
 describe('service:snapshot', () => {
   jest.spyOn(Date, 'now').mockReturnValue(123456789)
-  const mockedFileSize = 10000
+  const mockedFileSize = 10 * 1024 * 1024
 
   const manifestContent = {
     block_height: 3,
@@ -90,7 +91,9 @@ describe('service:snapshot', () => {
 
     jest.mock('fs/promises', () => {
       const mockFileHandle = {
-        createReadStream: jest.fn().mockReturnValue(['test']),
+        createReadStream: jest
+          .fn()
+          .mockReturnValue(Readable.from(Buffer.alloc(10 * 1024 * 1024))),
       }
 
       const mockStats = {
@@ -98,11 +101,11 @@ describe('service:snapshot', () => {
       }
 
       return {
-        open: jest.fn().mockReturnValue(mockFileHandle),
-        writeFile: jest.fn(() => Promise.resolve()),
-        mkdtemp: jest.fn().mockReturnValue('testtempdir/'),
         FileHandle: jest.fn(() => mockFileHandle),
+        open: jest.fn().mockReturnValue(Promise.resolve(mockFileHandle)),
+        rmdir: jest.fn(),
         stat: jest.fn(() => mockStats),
+        writeFile: jest.fn(() => Promise.resolve()),
       }
     })
   })

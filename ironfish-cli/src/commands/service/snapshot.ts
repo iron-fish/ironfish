@@ -197,6 +197,10 @@ export default class CreateSnapshot extends IronfishCommand {
       this.log('Snapshot upload complete. Uploaded the following manifest:')
       this.log(manifestPayload)
     }
+
+    CliUx.ux.action.start('Removing intermediate block snapshot files...')
+    await fsAsync.rm(blockExportPath, { recursive: true })
+    CliUx.ux.action.stop('done')
   }
 
   async zipDir(source: string, dest: string, excludes: string[] = []): Promise<void> {
