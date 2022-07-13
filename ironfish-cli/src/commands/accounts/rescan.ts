@@ -77,14 +77,18 @@ export class RescanCommand extends IronfishCommand {
         })
       }
     } catch (error) {
+      progress?.stop()
+      speed.stop()
+
       if (hasUserResponseError(error)) {
-        progress?.stop()
         this.error(error.codeMessage)
       }
 
       throw error
     }
 
+    speed.stop()
+    progress?.stop()
     this.log(follow ? 'Scanning Complete' : 'Scan started in background')
   }
 }
