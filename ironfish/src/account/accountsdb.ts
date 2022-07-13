@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
 import { Transaction } from '../primitives/transaction'
 import {
+  BigIntLEEncoding,
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
@@ -44,6 +45,11 @@ export class AccountsDB {
   headHashes: IDatabaseStore<{
     key: string
     value: string | null
+  }>
+
+  balances: IDatabaseStore<{
+    key: string
+    value: BigInt
   }>
 
   decryptedNotes: IDatabaseStore<{
@@ -94,6 +100,12 @@ export class AccountsDB {
       name: 'accounts',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountsValueEncoding(),
+    })
+
+    this.balances = this.database.addStore<{ key: string; value: BigInt }>({
+      name: 'balances',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new BigIntLEEncoding(),
     })
 
     this.decryptedNotes = this.database.addStore<{
