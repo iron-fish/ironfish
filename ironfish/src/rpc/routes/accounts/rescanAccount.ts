@@ -35,8 +35,7 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
 
     if (!scan) {
       if (node.accounts.updateHeadState) {
-        void node.accounts.updateHeadState.abort()
-        await node.accounts.updateHeadState.wait()
+        await node.accounts.updateHeadState.abort()
       }
 
       if (request.data.reset) {
