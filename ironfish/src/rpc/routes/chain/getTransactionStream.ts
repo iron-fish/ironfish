@@ -124,7 +124,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
         if (notes.length) {
           transactions.push({
-            hash: tx.hash().toString('hex'),
+            hash: tx.unsignedHash().toString('hex'),
             isMinersFee: tx.isMinersFee(),
             notes: notes,
           })

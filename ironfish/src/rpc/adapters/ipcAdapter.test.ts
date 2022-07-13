@@ -6,7 +6,7 @@
 import os from 'os'
 import * as yup from 'yup'
 import { IronfishSdk } from '../../sdk'
-import { RequestError, RpcSocketClient } from '../clients'
+import { RpcRequestError, RpcSocketClient } from '../clients'
 import { ALL_API_NAMESPACES } from '../routes'
 import { ERROR_CODES, ValidationError } from './errors'
 import { RpcIpcAdapter } from './ipcAdapter'
@@ -93,7 +93,7 @@ describe('IpcAdapter', () => {
       expect.assertions(3)
       await response.waitForEnd()
     } catch (error: unknown) {
-      if (!(error instanceof RequestError)) {
+      if (!(error instanceof RpcRequestError)) {
         throw error
       }
       expect(error.status).toBe(402)
@@ -119,7 +119,7 @@ describe('IpcAdapter', () => {
       expect.assertions(3)
       await response.waitForEnd()
     } catch (error: unknown) {
-      if (!(error instanceof RequestError)) {
+      if (!(error instanceof RpcRequestError)) {
         throw error
       }
       expect(error.status).toBe(400)

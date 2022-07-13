@@ -11,10 +11,13 @@ import { DisconnectReason } from './constants'
 import { ServerMessageMalformedError } from './errors'
 import {
   MiningDisconnectMessageSchema,
+  MiningGetStatusMessage,
   MiningNotifyMessage,
   MiningNotifySchema,
   MiningSetTargetMessage,
   MiningSetTargetSchema,
+  MiningStatusMessage,
+  MiningStatusSchema,
   MiningSubmitMessage,
   MiningSubscribedMessage,
   MiningSubscribedMessageSchema,
@@ -46,18 +49,16 @@ export class StratumClient {
   private disconnectVersion: number | null = null
   private disconnectMessage: string | null = null
 
-  private readonly publicAddress: string
-
   readonly onConnected = new Event<[]>()
   readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
   readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
   readonly onNotify = new Event<[MiningNotifyMessage]>()
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
+  readonly onStatus = new Event<[MiningStatusMessage]>()
 
-  constructor(options: { publicAddress: string; host: string; port: number; logger: Logger }) {
+  constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
     this.port = options.port
-    this.publicAddress = options.publicAddress
     this.logger = options.logger
     this.version = STRATUM_VERSION_PROTOCOL
 
@@ -119,10 +120,10 @@ export class StratumClient {
     }
   }
 
-  subscribe(): void {
+  subscribe(publicAddress: string): void {
     this.send('mining.subscribe', {
       version: this.version,
-      publicAddress: this.publicAddress,
+      publicAddress: publicAddress,
     })
 
     this.logger.info('Subscribing to pool to receive work')
@@ -135,12 +136,17 @@ export class StratumClient {
     })
   }
 
+  getStatus(publicAddress?: string): void {
+    this.send('mining.get_status', { publicAddress: publicAddress })
+  }
+
   isConnected(): boolean {
     return this.connected
   }
 
   private send(method: 'mining.submit', body: MiningSubmitMessage): void
   private send(method: 'mining.subscribe', body: MiningSubscribeMessage): void
+  private send(method: 'mining.get_status', body: MiningGetStatusMessage): void
   private send(method: string, body?: unknown): void {
     if (!this.connected) {
       return
@@ -274,6 +280,16 @@ export class StratumClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
           this.onWaitForWork.emit(body.result)
+          break
+        }
+
+        case 'mining.status': {
+          const body = await YupUtils.tryValidate(MiningStatusSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+          this.onStatus.emit(body.result)
           break
         }
 

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { v4 as uuid } from 'uuid'
 import { mockChain, mockConfig, mockWorkerPool } from '../testUtilities/mocks'
 import { GraffitiUtils } from '../utils/graffiti'
 import { Metric } from './interfaces/metric'
@@ -30,6 +31,7 @@ describe('Telemetry', () => {
       chain: mockChain(),
       workerPool: mockWorkerPool(),
       config: mockConfig({ blockGraffiti: mockGraffiti }),
+      localPeerIdentity: uuid(),
     })
 
     telemetry.start()
@@ -56,6 +58,7 @@ describe('Telemetry', () => {
           chain: mockChain(),
           workerPool: mockWorkerPool(),
           config: mockConfig({ blockGraffiti: mockGraffiti }),
+          localPeerIdentity: uuid(),
         })
         const currentPoints = disabledTelemetry['points']
         disabledTelemetry.submit(mockMetric)

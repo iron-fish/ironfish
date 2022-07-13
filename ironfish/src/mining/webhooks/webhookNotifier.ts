@@ -6,7 +6,6 @@ import Axios, { AxiosInstance } from 'axios'
 import { createRootLogger, Logger } from '../../logger'
 import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
 import { FileUtils } from '../../utils/file'
-import { MiningPoolStatus } from '../pool'
 
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
@@ -96,13 +95,20 @@ export abstract class WebhookNotifier {
     )
   }
 
-  poolStatus(status: MiningPoolStatus): void {
+  poolStatus(status: {
+    name: string
+    hashRate: number
+    miners: number
+    sharesPending: number
+    bans: number
+    clients: number
+  }): void {
     this.sendText(
       `Status for mining pool '${status.name}':\n\tHashrate: ${FileUtils.formatHashRate(
         status.hashRate,
-      )}/s\n\tMiners: ${status.miners}\n\tShares pending: ${
-        status.sharesPending
-      }\n\tBan Count: ${status.banCount}`,
+      )}/s\n\tMiners: ${status.miners}\n\tShares pending: ${status.sharesPending}\n\tClients: ${
+        status.clients
+      }\n\tBans: ${status.bans}`,
     )
   }
 

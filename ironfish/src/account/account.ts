@@ -5,6 +5,8 @@
 import MurmurHash3 from 'imurmurhash'
 import { AccountsValue } from './database/accounts'
 
+export const ACCOUNT_KEY_LENGTH = 32
+
 export class Account {
   readonly displayName: string
   name: string

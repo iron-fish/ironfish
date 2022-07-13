@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { PromiseUtils, SetTimeoutToken } from '../../utils'
-import { RequestError } from '../clients/errors'
-import { Request } from '../request'
-import { Response } from '../response'
+import { RpcRequestError } from '../clients/errors'
+import { RpcRequest } from '../request'
+import { RpcResponse } from '../response'
 import { Router } from '../routes'
 import { Stream } from '../stream'
 import { ResponseError } from './errors'
@@ -30,7 +30,7 @@ export class RpcMemoryAdapter {
     const stream = new Stream<TStream>()
     const response = new MemoryResponse(promise, stream, null)
 
-    const request = new Request(
+    const request = new RpcRequest(
       data,
       (status: number, data?: unknown) => {
         response.status = status
@@ -51,7 +51,7 @@ export class RpcMemoryAdapter {
         // Set the response status to the errors status because RequsetError takes it from the response
         response.status = e.status
 
-        const error = new RequestError(response, e.code, e.message, e.stack)
+        const error = new RpcRequestError(response, e.code, e.message, e.stack)
 
         // Do this so in memory requests retain the original stack and are easier to debug
         error.stack = error.codeStack ?? error.stack
@@ -66,8 +66,8 @@ export class RpcMemoryAdapter {
   }
 }
 
-export class MemoryResponse<TEnd, TStream> extends Response<TEnd, TStream> {
-  request: Request<unknown, unknown> | null = null
+export class MemoryResponse<TEnd, TStream> extends RpcResponse<TEnd, TStream> {
+  request: RpcRequest<unknown, unknown> | null = null
   routePromise: Promise<void> | null = null
 
   constructor(
@@ -78,7 +78,7 @@ export class MemoryResponse<TEnd, TStream> extends Response<TEnd, TStream> {
     super(promise, stream, timeout)
   }
 
-  end(...args: Parameters<Request['end']>): ReturnType<Request['end']> {
+  end(...args: Parameters<RpcRequest['end']>): ReturnType<RpcRequest['end']> {
     Assert.isNotNull(this.request)
     return this.request.end(args)
   }

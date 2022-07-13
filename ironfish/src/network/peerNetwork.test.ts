@@ -8,8 +8,11 @@ jest.mock('ws')
 import type WSWebSocket from 'ws'
 import http from 'http'
 import net from 'net'
+import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
+import { useAccountFixture, useBlockWithTx } from '../testUtilities'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import {
   mockChain,
   mockNode,
@@ -17,11 +20,17 @@ import {
   mockTransaction,
   mockWorkerPool,
 } from '../testUtilities/mocks'
+import { createNodeTest } from '../testUtilities/nodeTest'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
+import { Peer } from './peers/peer'
 import { getConnectedPeer, mockHostsStore, mockPrivateIdentity } from './testUtilities'
 import { NetworkMessageType } from './types'
 
@@ -196,6 +205,74 @@ describe('PeerNetwork', () => {
       )
 
       expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
+    })
+
+    describe('handle block gossip', () => {
+      const nodeTest = createNodeTest()
+
+      it('should mark block hashes as known and known on peers', async () => {
+        const { strategy, chain, peerNetwork, syncer } = nodeTest
+
+        const genesis = await chain.getBlock(chain.genesis)
+        Assert.isNotNull(genesis)
+
+        strategy.disableMiningReward()
+        syncer.blocksPerMessage = 1
+
+        const blockA1 = await makeBlockAfter(chain, genesis)
+
+        const { peer: peer1 } = getConnectedPeer(peerNetwork.peerManager)
+        const { peer: peer2 } = getConnectedPeer(peerNetwork.peerManager)
+        const { peer: peer3 } = getConnectedPeer(peerNetwork.peerManager)
+        peer1.knownPeers.set(peer2.getIdentityOrThrow(), peer2)
+        peer2.knownPeers.set(peer1.getIdentityOrThrow(), peer1)
+
+        const newBlockMessage = new NewBlockMessage(strategy.blockSerde.serialize(blockA1))
+
+        const peer1Send = jest.spyOn(peer1, 'send')
+        const peer2Send = jest.spyOn(peer2, 'send')
+        const peer3Send = jest.spyOn(peer3, 'send')
+
+        await peerNetwork.peerManager.onMessage.emitAsync(peer1, {
+          peerIdentity: peer1.getIdentityOrThrow(),
+          message: newBlockMessage,
+        })
+
+        await peerNetwork['handleGossipMessage'](peer1, newBlockMessage)
+
+        expect(peer1.knownBlockHashes.has(blockA1.header.hash)).toBe(true)
+        expect(peer2.knownBlockHashes.has(blockA1.header.hash)).toBe(true)
+        expect(peer3.knownBlockHashes.has(blockA1.header.hash)).toBe(true)
+        expect(peer1Send).not.toBeCalled()
+        expect(peer2Send).not.toBeCalled()
+        expect(peer3Send).toBeCalledWith(newBlockMessage)
+      })
+    })
+
+    describe('handles requests for mempool transactions', () => {
+      const nodeTest = createNodeTest()
+
+      it('should respond to PooledTransactionsRequest', async () => {
+        const { peerNetwork, node } = nodeTest
+
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        await memPool.acceptTransaction(transaction)
+
+        const peerIdentity = uuid()
+        const peer = new Peer(peerIdentity)
+        const sendSpy = jest.spyOn(peer, 'send')
+
+        const rpcId = 432
+        const message = new PooledTransactionsRequest([transaction.hash()], rpcId)
+        const response = new PooledTransactionsResponse([transaction.serialize()], rpcId)
+
+        peerNetwork.peerManager.onMessage.emit(peer, { peerIdentity, message })
+
+        expect(sendSpy).toHaveBeenCalledWith(response)
+      })
     })
 
     describe('handles new transactions', () => {

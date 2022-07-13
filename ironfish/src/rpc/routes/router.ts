@@ -7,7 +7,7 @@ import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
-import { Request } from '../request'
+import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
 
 export enum ApiNamespace {
@@ -28,7 +28,7 @@ export enum ApiNamespace {
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
-  request: Request<TRequest, TResponse>,
+  request: RpcRequest<TRequest, TResponse>,
   node: IronfishNode,
 ) => Promise<void> | void
 
@@ -76,7 +76,7 @@ export class Router {
     })
   }
 
-  async route(route: string, request: Request): Promise<void> {
+  async route(route: string, request: RpcRequest): Promise<void> {
     const [namespace, method] = route.split('/')
 
     const namespaceRoutes = this.routes.get(namespace)
