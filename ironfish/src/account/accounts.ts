@@ -669,7 +669,12 @@ export class Accounts {
 
       if (transactionHash) {
         const transaction = account.getTransaction(transactionHash)
-        Assert.isNotUndefined(transaction, 'test')
+        Assert.isNotUndefined(
+          transaction,
+          `Transaction '${transactionHash.toString('hex')}' missing for account '${
+            account.id
+          }'`,
+        )
         const { blockHash } = transaction
 
         if (blockHash) {
