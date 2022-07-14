@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils } from '@ironfish/sdk'
+import { DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import crypto from 'crypto'
@@ -58,15 +58,7 @@ export default class ImportSnapshot extends IronfishCommand {
       const client = await this.sdk.connectRpc()
       const status = await client.getChainInfo()
 
-      const manifest = await axios
-        .get<{
-          checksum: string
-          file_name: string
-          file_size: number
-          timestamp: number
-          block_height: number
-        }>(`${bucketUrl}/manifest.json`)
-        .then((r) => r.data)
+      const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
 
       if (!flags.confirm) {
         this.log(

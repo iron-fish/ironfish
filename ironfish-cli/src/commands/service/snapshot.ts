@@ -8,7 +8,13 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import { Assert, AsyncUtils, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  AsyncUtils,
+  DEFAULT_SNAPSHOT_BUCKET_URL,
+  FileUtils,
+  SnapshotManifest,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -174,33 +180,31 @@ export default class CreateSnapshot extends IronfishCommand {
       CliUx.ux.action.stop(`done`)
 
       const manifestPath = this.sdk.fileSystem.join(exportDir, 'manifest.json')
-      const manifestPayload = JSON.stringify(
-        {
-          block_height: blockHeight,
-          checksum,
-          file_name: snapshotFileName,
-          file_size: fileSize,
-          timestamp,
-        },
-        undefined,
-        '  ',
-      )
+      const manifest: SnapshotManifest = {
+        block_height: blockHeight,
+        checksum,
+        file_name: snapshotFileName,
+        file_size: fileSize,
+        timestamp,
+      }
 
-      await fsAsync.writeFile(manifestPath, manifestPayload).then(async () => {
-        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucketUrl}`)
-        await this.uploadToBucket(
-          manifestPath,
-          'application/json',
-          bucketUrl,
-          accessKeyId,
-          secretAccessKey,
-          region,
-        )
-        CliUx.ux.action.stop(`done`)
-      })
+      await fsAsync
+        .writeFile(manifestPath, JSON.stringify(manifest, undefined, '  '))
+        .then(async () => {
+          CliUx.ux.action.start(`Uploading latest snapshot information to ${bucketUrl}`)
+          await this.uploadToBucket(
+            manifestPath,
+            'application/json',
+            bucketUrl,
+            accessKeyId,
+            secretAccessKey,
+            region,
+          )
+          CliUx.ux.action.stop(`done`)
+        })
 
       this.log('Snapshot upload complete. Uploaded the following manifest:')
-      this.log(manifestPayload)
+      this.log(JSON.stringify(manifest, undefined, '  '))
     }
 
     CliUx.ux.action.start('Removing intermediate block snapshot files...')
