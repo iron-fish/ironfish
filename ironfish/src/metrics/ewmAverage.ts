@@ -9,7 +9,7 @@ import { Assert } from '../assert'
  *
  * inspired by https://github.com/shaka-project/shaka-player/blob/eaadb52627f0a0347390b201866585cce91fe9d0/lib/abr/ewma.js
  */
-export class EwmaAverage {
+export class EwmAverage {
   /**
    * Current average
    */

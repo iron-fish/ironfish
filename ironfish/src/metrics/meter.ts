@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { SetIntervalToken } from '../utils'
-import { EwmaAverage } from './ewmaAverage'
+import { EwmAverage } from './ewmAverage'
 
 /**
  * A metric type useful for recording metered things like
@@ -16,11 +16,11 @@ import { EwmaAverage } from './ewmaAverage'
  * */
 export class Meter {
   private _started = false
-  private _rate1s: EwmaAverage
-  private _rate5s: EwmaAverage
-  private _rate1m: EwmaAverage
-  private _rate5m: EwmaAverage
-  private _average: EwmaAverage
+  private _rate1s: EwmAverage
+  private _rate5s: EwmAverage
+  private _rate1m: EwmAverage
+  private _rate5m: EwmAverage
+  private _average: EwmAverage
   private _count = 0
   private _interval: SetIntervalToken | null = null
   private _intervalMs: number
@@ -36,11 +36,11 @@ export class Meter {
 
   constructor() {
     this._intervalMs = 1000
-    this._rate1s = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate1s / this._intervalMs)
-    this._rate5s = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
-    this._rate1m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
-    this._rate5m = new EwmaAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
-    this._average = new EwmaAverage(this.METER_TIME_INTERVALS_MS.average)
+    this._rate1s = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate1s / this._intervalMs)
+    this._rate5s = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
+    this._rate1m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
+    this._rate5m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
+    this._average = new EwmAverage(this.METER_TIME_INTERVALS_MS.average)
   }
 
   get rate1s(): number {

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { EwmaAverage } from './ewmaAverage'
+import { EwmAverage } from './ewmAverage'
 
-describe('EwmaAverage', () => {
+describe('EwmAverage', () => {
   it('A new value larger than current average increases average', () => {
-    const ewma = new EwmaAverage(1)
+    const ewma = new EwmAverage(1)
 
     ewma.add(4, 2)
     ewma.add(5, 2)
@@ -19,7 +19,7 @@ describe('EwmaAverage', () => {
   })
 
   it('A new value smaller than current average decreases average', () => {
-    const ewma = new EwmaAverage(1)
+    const ewma = new EwmAverage(1)
 
     ewma.add(4, 2)
     ewma.add(5, 2)
@@ -32,8 +32,8 @@ describe('EwmaAverage', () => {
   })
 
   it('bigger halflife equals higher weight distribution for early samples', () => {
-    const ewma = new EwmaAverage(1)
-    const ewmaB = new EwmaAverage(2)
+    const ewma = new EwmAverage(1)
+    const ewmaB = new EwmAverage(2)
 
     ewma.add(6, 1)
     ewma.add(3, 1)
@@ -47,8 +47,8 @@ describe('EwmaAverage', () => {
   })
 
   it('smaller weight samples equals less weight distribution for early samples', () => {
-    const ewma = new EwmaAverage(1)
-    const ewmaB = new EwmaAverage(1)
+    const ewma = new EwmAverage(1)
+    const ewmaB = new EwmAverage(1)
 
     ewma.add(2, 20)
     ewma.add(4, 20)
@@ -62,7 +62,7 @@ describe('EwmaAverage', () => {
   })
 
   it('can produce negative values', () => {
-    const ewma = new EwmaAverage(2)
+    const ewma = new EwmAverage(2)
 
     ewma.add(1, 2)
     ewma.add(-1, 2)
