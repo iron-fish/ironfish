@@ -68,6 +68,7 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { ImportSnapshotRequest, ImportSnapshotResponse } from '../routes/chain/importChain'
 import {
   SnapshotChainStreamRequest,
   SnapshotChainStreamResponse,
@@ -391,11 +392,20 @@ export abstract class RpcClient {
 
   snapshotChainStream(
     params: SnapshotChainStreamRequest = undefined,
-  ): Response<void, SnapshotChainStreamResponse> {
+  ): RpcResponse<void, SnapshotChainStreamResponse> {
     return this.request<void, SnapshotChainStreamResponse>(
       `${ApiNamespace.chain}/snapshotChainStream`,
       params,
     )
+  }
+
+  importSnapshot(
+    params: ImportSnapshotRequest = undefined,
+  ): Promise<RpcResponseEnded<ImportSnapshotResponse>> {
+    return this.request<ImportSnapshotResponse>(
+      `${ApiNamespace.chain}/importSnapshot`,
+      params,
+    ).waitForEnd()
   }
 
   async getBlockInfo(

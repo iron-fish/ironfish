@@ -1,0 +1,34 @@
+{
+  "Route chain/importSnapshot given serialized blocks, it adds successfully adds them to the chain": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "69E263E931FA1A2A4B0437A8EFF79FFB7A353B6384A7AEAC9F90AC12AE4811EF",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:LOSwvimRrBolnJNnzT/3uBFEQsrptc5b3fT5KvmzZmw="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12167378078913471945996581698193578003257923478462384564023044230",
+        "randomness": "0",
+        "timestamp": 1657054477934,
+        "minersFee": "0",
+        "work": "0",
+        "hash": "2C4E6FD78842D746697C438FE252F5464905071778B288CC7D322FCC01EF6E29",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAJRKhtjwUdYRX0vfNof3xtYRo12ASfbAIvjJhmM5ez7EsPg+BV7JXKOAGljGMmBg54FzfcqJIybKB8EDfq7pXjSJXbU0qw5qyuAQO/rLnEqXMRBJZ1Ln9yEplf6FV3yk3RX7fAV/8LswtOZIbf115ECIP6cEGUlJmSijy7sm82gFYu21LfpKY9jXo746qBxCK7kIo8zI7yg2LBw4ZDypM6EFDvJMcx3EfpLYOHE6uIwUSArpDokK8GVOI5poAL0L3VMztAOWTpOwsvA1orjUuDOibjTl1AtzFUicmNv0qWRIc8hQUReS3Ya4jrH1lvmbf2BlansrmJ1+XzVFZBDaQCyZ3wH+dus4DLRAcAxZPs+jOawgQY2PHvIkRHL1/Tfb49r9lEEWkZjzzb1NhHoyHjWA1xIvXdNgBKQgBP7czpH6X6T5uzCytYfBk0r9Ft3Ui3gFIUWgk6PQrjTyUMeIgN5TfZ5lRi+bvkT+fJkbUCsT4Aq3jF6A4nkpv/rcDc5LQFc5JkJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw6ty/XhtJyPMsdodk5lpLnFxOn/YsCHMAIk+feoA80WT0gToo452EIP4j2QWrwdZbasy2Xcg87ysUULHGw12HAg=="
+        }
+      ]
+    }
+  ]
+}

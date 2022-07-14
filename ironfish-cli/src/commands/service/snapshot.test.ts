@@ -107,10 +107,10 @@ describe('service:snapshot', () => {
     jest.dontMock('@ironfish/sdk')
   })
 
-  describe('given a bucket, exports a snapshot of the chain and uploads it', () => {
+  describe('given the upload flag, exports a snapshot of the chain and uploads it', () => {
     test
       .stdout()
-      .command(['service:snapshot', '--bucket=testbucket'])
+      .command(['service:snapshot', '--upload'])
       .exit(0)
       .it('outputs the contents of manifest.json', (ctx) => {
         expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
@@ -129,10 +129,10 @@ describe('service:snapshot', () => {
       })
   })
 
-  describe('given a path and bucket, exports a snapshot of the chain to that path and uploads it', () => {
+  describe('given the upload flag and bucket, exports a snapshot of the chain to that path and uploads it', () => {
     test
       .stdout()
-      .command(['service:snapshot', '--path=foobar', '--bucket=testbucket'])
+      .command(['service:snapshot', '--upload', '--path=foobar'])
       .exit(0)
       .it(
         'exports blocks and snapshot to correct path, and outputs the contents of manifest.json',
