@@ -29,7 +29,7 @@ export const ImportSnapshotRequestSchema: yup.ObjectSchema<ImportSnapshotRequest
   })
   .optional()
 
-export const ImportSnapshotSchema: yup.ObjectSchema<ImportSnapshotResponse> = yup
+export const ImportSnapshotResponseSchema: yup.ObjectSchema<ImportSnapshotResponse> = yup
   .object({
     headSeq: yup.number().defined(),
   })

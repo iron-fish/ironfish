@@ -31,6 +31,10 @@ export default class CreateSnapshot extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    upload: Flags.boolean({
+      default: false,
+      allowNo: true,
+    }),
     bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -155,7 +159,7 @@ export default class CreateSnapshot extends IronfishCommand {
     const checksum = hasher.digest().toString('hex')
     CliUx.ux.action.stop(`done (${checksum})`)
 
-    if (bucketUrl) {
+    if (flags.upload) {
       const blockHeight = stop
 
       CliUx.ux.action.start(`Uploading to ${bucketUrl}`)

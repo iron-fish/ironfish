@@ -21,7 +21,7 @@ export default class ImportSnapshot extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    bucket: Flags.string({
+    bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
@@ -29,7 +29,7 @@ export default class ImportSnapshot extends IronfishCommand {
     }),
     path: Flags.string({
       char: 'p',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to snapshot file',
     }),
@@ -49,9 +49,10 @@ export default class ImportSnapshot extends IronfishCommand {
     if (flags.path) {
       snapshotPath = flags.path
     } else {
-      const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
-      if (!bucket) {
+      const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
+      if (!bucketUrl) {
         this.log(`Cannot download snapshot without bucket URL`)
+        this.exit(1)
       }
 
       const client = await this.sdk.connectRpc()
@@ -64,7 +65,7 @@ export default class ImportSnapshot extends IronfishCommand {
           file_size: number
           timestamp: number
           block_height: number
-        }>(`https://${bucket}/manifest.json`)
+        }>(`${bucketUrl}/manifest.json`)
         .then((r) => r.data)
 
       if (!flags.confirm) {
@@ -102,10 +103,10 @@ export default class ImportSnapshot extends IronfishCommand {
       const hasher = crypto.createHash('sha256')
       const writer = snapshotFile.createWriteStream()
 
-      await axios({
+      const response = await axios({
         method: 'GET',
         responseType: 'stream',
-        url: `https://${bucket}/${manifest.file_name}`,
+        url: `${bucketUrl}/${manifest.file_name}`,
         onDownloadProgress: (progressEvent: {
           lengthComputable: number
           loaded: number
@@ -114,11 +115,11 @@ export default class ImportSnapshot extends IronfishCommand {
           const percentage = Math.floor((progressEvent.loaded / progressEvent.total) * 100)
           bar.update(percentage)
         },
-      }).then((response) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        response.data.pipe(writer)
-        hasher.update(response.data)
       })
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      response.data.pipe(writer)
+      hasher.update(response.data)
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
@@ -143,19 +144,10 @@ export default class ImportSnapshot extends IronfishCommand {
     }
   }
 
-  async unzip(source: string, dest: string, excludes: string[] = []): Promise<void> {
-    const excludeSet = new Set(excludes)
-
+  async unzip(source: string, dest: string): Promise<void> {
     await tar.extract({
       file: source,
       C: dest,
-      filter: function (path) {
-        if (excludeSet.has(path)) {
-          return false
-        } else {
-          return true
-        }
-      },
     })
   }
 }
