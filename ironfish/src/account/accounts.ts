@@ -145,8 +145,8 @@ export class Accounts {
       return false
     }
 
-    for (const account of this.accounts.values()) {
-      if (account.rescan !== null) {
+    for (const { upToDate } of this.headStatus.values()) {
+      if (!upToDate) {
         return true
       }
     }
@@ -567,11 +567,6 @@ export class Accounts {
     }
 
     for (const account of accounts) {
-      if (account.rescan !== null && account.rescan <= scan.startedAt) {
-        account.rescan = null
-        await this.db.setAccount(account)
-      }
-
       this.headStatus.set(account.id, {
         headHash: endHash.toString('hex'),
         upToDate: true,
@@ -948,7 +943,6 @@ export class Accounts {
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
-      rescan: null,
       accountsDb: this.db,
     })
 
@@ -968,10 +962,13 @@ export class Accounts {
     return account
   }
 
-  async startScanTransactionsFor(account: Account): Promise<void> {
-    account.rescan = Date.now()
-    await this.db.setAccount(account)
-    await this.scanTransactions()
+  async skipRescan(account: Account): Promise<void> {
+    const headStatus = this.headStatus.get(account.id)
+    Assert.isNotUndefined(headStatus)
+
+    headStatus.upToDate = true
+
+    await this.updateHeadHash(account, this.chainProcessor.hash)
   }
 
   getTransaction(
@@ -1050,7 +1047,6 @@ export class Accounts {
     const account = new Account({
       ...toImport,
       id: uuid(),
-      rescan: null,
       accountsDb: this.db,
     })
 
@@ -1059,7 +1055,7 @@ export class Accounts {
 
     const headHash = this.chainProcessor.hash ? this.chainProcessor.hash.toString('hex') : null
     this.headStatus.set(account.id, {
-      headHash,
+      headHash: null,
       upToDate: headHash === null,
     })
     await this.updateHeadHash(account, null)
@@ -1216,15 +1212,13 @@ export class Accounts {
     for (const account of this.accounts.values()) {
       let headStatus = this.headStatus.get(account.id)
 
-      // TODO: We need this until we have migrations, since there's no way to
-      // bootstrap the head status state right now
       if (!headStatus) {
         headStatus = {
           headHash: null,
           upToDate: latestHeadHash === null,
         }
         this.headStatus.set(account.id, headStatus)
-        await this.updateHeadHash(account, latestHeadHash)
+        await this.updateHeadHash(account, null)
       }
 
       if (!latestHeadHash || headStatus.headHash === latestHeadHash.toString('hex')) {

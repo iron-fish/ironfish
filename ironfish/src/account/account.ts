@@ -33,7 +33,6 @@ export class Account {
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string
-  rescan: number | null
 
   constructor({
     id,
@@ -42,7 +41,6 @@ export class Account {
     incomingViewKey,
     outgoingViewKey,
     publicAddress,
-    rescan,
     accountsDb,
   }: {
     id: string
@@ -51,7 +49,6 @@ export class Account {
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string
-    rescan: number | null
     accountsDb: AccountsDB
   }) {
     this.id = id
@@ -60,7 +57,6 @@ export class Account {
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
-    this.rescan = rescan
 
     const prefixHash = new MurmurHash3(this.spendingKey, 1)
       .hash(this.incomingViewKey)
@@ -87,7 +83,6 @@ export class Account {
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
-      rescan: this.rescan,
     }
   }
 
