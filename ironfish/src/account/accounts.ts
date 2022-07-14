@@ -468,41 +468,53 @@ export class Accounts {
     const scan = new ScanState()
     this.scan = scan
 
-    // If were updating the account head we need to wait until its finished
+    // If we are updating the account head, we need to wait until its finished
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const accountHeadHash = this.chainProcessor.hash
+    const startHash = await this.getEarliestHeadHash()
+    const endHash = this.chainProcessor.hash
 
-    const scanStart = await this.getEarliestHeadHash()
+    const outdatedAccounts = this.listAccounts().filter((a) => !this.isAccountUpToDate(a))
 
-    const scanFor = Array.from(this.accounts.values())
-      .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
-      .map((a) => a.displayName)
-      .join(', ')
-
-    this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
     this.logger.info(
       `Scan starting from earliest found account head hash: ${
-        scanStart ? scanStart.toString('hex') : 'GENESIS'
+        startHash ? startHash.toString('hex') : 'GENESIS'
       }`,
+    )
+    this.logger.info(
+      `Accounts to scan for: ${outdatedAccounts.map((a) => a.displayName).join(', ')}`,
     )
 
     // Go through every transaction in the chain and add notes that we can decrypt
-    for await (const {
-      blockHash,
-      transaction,
-      initialNoteIndex,
-      sequence,
-    } of this.chain.iterateTransactions(scanStart, accountHeadHash, undefined, false)) {
-      if (scan.isAborted) {
-        scan.signalComplete()
-        this.scan = null
-        return
+    for await (const blockHeader of this.chain.iterateBlockHeaders(
+      startHash,
+      endHash,
+      undefined,
+      false,
+    )) {
+      for await (const {
+        blockHash,
+        transaction,
+        initialNoteIndex,
+        sequence,
+      } of this.chain.iterateBlockTransactions(blockHeader)) {
+        if (scan.isAborted) {
+          scan.signalComplete()
+          this.scan = null
+          return
+        }
+
+        await this.syncTransaction(transaction, {
+          blockHash,
+          initialNoteIndex: initialNoteIndex,
+        })
+        scan.onTransaction.emit(sequence)
       }
 
-      await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
-      scan.onTransaction.emit(sequence)
+      for (const account of outdatedAccounts) {
+        await this.updateHeadHash(account, blockHeader.hash)
+      }
     }
 
     for (const account of this.accounts.values()) {
@@ -512,12 +524,12 @@ export class Accounts {
       }
 
       this.headStatus.set(account.id, {
-        headHash: accountHeadHash.toString('hex'),
+        headHash: endHash.toString('hex'),
         upToDate: true,
       })
     }
 
-    await this.updateHeadHashes(accountHeadHash)
+    await this.updateHeadHashes(endHash)
 
     this.logger.info(
       `Finished scanning for transactions after ${Math.floor(
