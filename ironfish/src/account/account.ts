@@ -419,7 +419,10 @@ export class Account {
     await this.accountsDb.deleteTransaction(hash, tx)
   }
 
-  private async saveUnconfirmedBalance(balance: bigint, tx?: IDatabaseTransaction): Promise<void> {
+  private async saveUnconfirmedBalance(
+    balance: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     this.unconfirmedBalance = balance
     await this.accountsDb.saveUnconfirmedBalance(this, balance, tx)
   }
