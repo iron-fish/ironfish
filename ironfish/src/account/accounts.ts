@@ -297,15 +297,15 @@ export class Accounts {
   }
 
   async reset(): Promise<void> {
-    this.resetAccounts()
+    await this.resetAccounts()
     this.chainProcessor.hash = null
     await this.saveAccountsToDb()
     await this.updateHeadHashes(null)
   }
 
-  private resetAccounts(): void {
+  private async resetAccounts(): Promise<void> {
     for (const account of this.accounts.values()) {
-      account.reset()
+      await account.reset()
     }
   }
 
@@ -596,20 +596,16 @@ export class Accounts {
 
     const notes = await this.getUnspentNotes(account)
 
-    let unconfirmed = BigInt(0)
     let confirmed = BigInt(0)
 
     for (const note of notes) {
       const value = note.note.value()
-
-      unconfirmed += value
-
       if (note.index !== null && note.confirmed) {
         confirmed += value
       }
     }
 
-    return { unconfirmed, confirmed }
+    return { unconfirmed: await account.getUnconfirmedBalance(), confirmed }
   }
 
   private async getUnspentNotes(account: Account): Promise<

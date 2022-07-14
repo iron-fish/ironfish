@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { FileSystem } from '../fileSystems'
 import { Transaction } from '../primitives/transaction'
 import {
@@ -49,7 +50,7 @@ export class AccountsDB {
 
   balances: IDatabaseStore<{
     key: string
-    value: BigInt
+    value: bigint
   }>
 
   decryptedNotes: IDatabaseStore<{
@@ -102,7 +103,7 @@ export class AccountsDB {
       valueEncoding: new AccountsValueEncoding(),
     })
 
-    this.balances = this.database.addStore<{ key: string; value: BigInt }>({
+    this.balances = this.database.addStore<{ key: string; value: bigint }>({
       name: 'balances',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BigIntLEEncoding(),
@@ -148,7 +149,14 @@ export class AccountsDB {
   }
 
   async setAccount(account: Account): Promise<void> {
-    await this.accounts.put(account.id, account.serialize())
+    await this.database.transaction(async (tx) => {
+      await this.accounts.put(account.id, account.serialize(), tx)
+
+      const unconfirmedBalance = await this.balances.get(account.id, tx)
+      if (unconfirmedBalance === undefined) {
+        await this.saveUnconfirmedBalance(account, BigInt(0), tx)
+      }
+    })
   }
 
   async removeAccount(id: string): Promise<void> {
@@ -308,14 +316,29 @@ export class AccountsDB {
     })
   }
 
-  async loadDecryptedNotes(
-    map: Map<
-      string,
-      { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
-    >,
-  ): Promise<void> {
-    for await (const [key, value] of this.decryptedNotes.getAllIter()) {
-      map.set(key, value)
+  async *loadDecryptedNotes(): AsyncGenerator<{
+    hash: string
+    decryptedNote: DecryptedNotesValue
+  }> {
+    for await (const [hash, decryptedNote] of this.decryptedNotes.getAllIter()) {
+      yield {
+        hash,
+        decryptedNote,
+      }
     }
+  }
+
+  async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
+    const unconfirmedBalance = await this.balances.get(account.id, tx)
+    Assert.isNotUndefined(unconfirmedBalance)
+    return unconfirmedBalance
+  }
+
+  async saveUnconfirmedBalance(
+    account: Account,
+    balance: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.balances.put(account.id, balance, tx)
   }
 }
