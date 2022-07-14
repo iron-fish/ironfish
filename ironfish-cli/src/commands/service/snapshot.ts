@@ -8,7 +8,7 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import { Assert, AsyncUtils, FileUtils } from '@ironfish/sdk'
+import { Assert, AsyncUtils, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -23,6 +23,7 @@ import { ProgressBar } from '../../types'
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
 const MAX_MULTIPART_NUM = 10000
+
 export default class CreateSnapshot extends IronfishCommand {
   static hidden = true
 
@@ -30,7 +31,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    bucket: Flags.string({
+    bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
@@ -73,7 +74,7 @@ export default class CreateSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSnapshot)
 
-    const bucket = (flags.bucket || process.env.IRONFISH_SNAPSHOT_BUCKET || '').trim()
+    const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
     const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
     const secretAccessKey = (
       flags.secretAccessKey ||
@@ -154,14 +155,14 @@ export default class CreateSnapshot extends IronfishCommand {
     const checksum = hasher.digest().toString('hex')
     CliUx.ux.action.stop(`done (${checksum})`)
 
-    if (bucket) {
+    if (bucketUrl) {
       const blockHeight = stop
 
-      CliUx.ux.action.start(`Uploading to ${bucket}`)
+      CliUx.ux.action.start(`Uploading to ${bucketUrl}`)
       await this.uploadToBucket(
         snapshotPath,
         'application/x-compressed-tar',
-        bucket,
+        bucketUrl,
         accessKeyId,
         secretAccessKey,
         region,
@@ -182,11 +183,11 @@ export default class CreateSnapshot extends IronfishCommand {
       )
 
       await fsAsync.writeFile(manifestPath, manifestPayload).then(async () => {
-        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucket}`)
+        CliUx.ux.action.start(`Uploading latest snapshot information to ${bucketUrl}`)
         await this.uploadToBucket(
           manifestPath,
           'application/json',
-          bucket,
+          bucketUrl,
           accessKeyId,
           secretAccessKey,
           region,
@@ -228,11 +229,15 @@ export default class CreateSnapshot extends IronfishCommand {
   async uploadToBucket(
     filePath: string,
     contentType: string,
-    bucket: string,
+    bucketUrl: string,
     accessKeyId: string,
     secretAccessKey: string,
     region: string,
   ): Promise<void> {
+    // The config value for the snapshot bucket contains the entire URL
+    // but the S3 client only requires the bucket name.
+    const bucket = new URL(bucketUrl).hostname.split('.')[0]
+
     const baseName = path.basename(filePath)
     const fileHandle = await fsAsync.open(filePath, 'r')
 
