@@ -108,7 +108,7 @@ describe('Accounts', () => {
 
     await node.accounts.saveAccountsToDb()
 
-    node.accounts['resetAccounts']()
+    await node.accounts['resetAccounts']()
 
     // Account should now have a balance of 0 after clearing the cache
     await expect(node.accounts.getBalance(account)).resolves.toEqual({
