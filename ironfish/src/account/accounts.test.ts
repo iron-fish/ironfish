@@ -83,7 +83,7 @@ describe('Accounts', () => {
     })
 
     // Check that it was last broadcast at its added height
-    let invalidTxEntry = accountA.getTransaction(invalidTx.hash())
+    let invalidTxEntry = accountA.getTransaction(invalidTx.unsignedHash())
     expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
@@ -94,7 +94,7 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     // It should now be planned to be processed at head + 1
-    invalidTxEntry = accountA.getTransaction(invalidTx.hash())
+    invalidTxEntry = accountA.getTransaction(invalidTx.unsignedHash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
 
@@ -159,6 +159,34 @@ describe('Accounts', () => {
         headHash: blockB.header.hash.toString('hex'),
         upToDate: true,
       })
+    })
+
+    it('should rescan and update chain processor', async () => {
+      const { chain, accounts } = nodeTest
+
+      await useAccountFixture(accounts, 'accountA')
+
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
+
+      // Test this works even if processor is not reset
+      await accounts.updateHead()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      const block2 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block2)
+
+      // Should only scan up to the current procesor head block1
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      // Now with a reset chain processor should go to end of chain
+      await accounts.reset()
+      expect(accounts['chainProcessor']['hash']).toBe(null)
+
+      // This should carry the chain processor to block2
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
   })
 

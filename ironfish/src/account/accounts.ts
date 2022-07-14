@@ -11,6 +11,7 @@ import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
+import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
@@ -45,7 +46,7 @@ export class Accounts {
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
-  protected readonly logger: Logger
+  readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   private readonly config: Config
@@ -56,6 +57,7 @@ export class Accounts {
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
+  private readonly createTransactionMutex: Mutex
 
   constructor({
     chain,
@@ -78,6 +80,7 @@ export class Accounts {
     this.db = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
+    this.createTransactionMutex = new Mutex()
 
     this.chainProcessor = new ChainProcessor({
       logger: this.logger,
@@ -94,7 +97,7 @@ export class Accounts {
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
-          blockHash: blockHash,
+          blockHash: blockHash.toString('hex'),
           initialNoteIndex: initialNoteIndex,
         })
       }
@@ -118,11 +121,12 @@ export class Accounts {
       return
     }
 
-    this.updateHeadState = new ScanState()
+    const scan = new ScanState()
+    this.updateHeadState = scan
 
     try {
       const { hashChanged } = await this.chainProcessor.update({
-        signal: this.updateHeadState.abortController.signal,
+        signal: scan.abortController.signal,
       })
 
       if (hashChanged) {
@@ -131,7 +135,7 @@ export class Accounts {
         )
       }
     } finally {
-      this.updateHeadState.signalComplete()
+      scan.signalComplete()
       this.updateHeadState = null
     }
   }
@@ -230,13 +234,7 @@ export class Accounts {
       clearTimeout(this.eventLoopTimeout)
     }
 
-    if (this.scan) {
-      await this.scan.abort()
-    }
-
-    if (this.updateHeadState) {
-      await this.updateHeadState.abort()
-    }
+    await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
     if (this.db.database.isOpen) {
       await this.saveAccountsToDb()
@@ -453,7 +451,7 @@ export class Accounts {
    * the related maps.
    */
   async removeTransaction(transaction: Transaction): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
 
     for (const account of this.accounts.values()) {
       await this.db.database.transaction(async (tx) => {
@@ -463,13 +461,12 @@ export class Accounts {
   }
 
   async scanTransactions(): Promise<void> {
-    if (this.scan) {
-      this.logger.info('Skipping scan, already scanning')
-      return
+    if (!this.isOpen) {
+      throw new Error('Cannot start a scan if accounts are not loaded')
     }
 
-    if (this.chainProcessor.hash === null) {
-      this.logger.debug('Skipping scan, there are no blocks to scan')
+    if (this.scan) {
+      this.logger.info('Skipping Scan, already scanning.')
       return
     }
 
@@ -481,7 +478,10 @@ export class Accounts {
     await this.updateHeadState?.wait()
 
     const startHash = await this.getEarliestHeadHash()
-    const endHash = this.chainProcessor.hash
+    const endHash = this.chainProcessor.hash || this.chain.head.hash
+
+    const endHeader = await this.chain.getHeader(endHash)
+    Assert.isNotNull(endHeader)
 
     // Accounts that need to be updated at the current scan sequence
     const accounts: Array<Account> = []
@@ -499,6 +499,12 @@ export class Accounts {
       } else if (!headStatus.upToDate) {
         remainingAccounts.push(account)
       }
+    }
+
+    if (scan.isAborted) {
+      scan.signalComplete()
+      this.scan = null
+      return
     }
 
     this.logger.info(
@@ -530,12 +536,12 @@ export class Accounts {
         await this.syncTransaction(
           transaction,
           {
-            blockHash,
+            blockHash: blockHash.toString('hex'),
             initialNoteIndex,
           },
           accounts,
         )
-        scan.onTransaction.emit(sequence)
+        scan.onTransaction.emit(sequence, endHeader.sequence)
       }
 
       for (const account of accounts) {
@@ -570,6 +576,13 @@ export class Accounts {
         headHash: endHash.toString('hex'),
         upToDate: true,
       })
+    }
+
+    if (this.chainProcessor.hash === null) {
+      const latestHeadHash = await this.getLatestHeadHash()
+      Assert.isNotNull(latestHeadHash)
+
+      this.chainProcessor.hash = latestHeadHash
     }
 
     await this.updateHeadHashes(endHash)
@@ -613,7 +626,7 @@ export class Accounts {
             spender,
             amount: Number(decryptedNote.value()),
             memo: decryptedNote.memo().replace(/\x00/g, ''),
-            noteTxHash: transaction.hash().toString('hex'),
+            noteTxHash: transaction.unsignedHash().toString('hex'),
           })
         }
       }
@@ -721,91 +734,97 @@ export class Accounts {
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
-    this.assertHasAccount(sender)
+    const unlock = await this.createTransactionMutex.lock()
 
-    // TODO: If we're spending from multiple accounts, we need to figure out a
-    // way to split the transaction fee. - deekerno
-    let amountNeeded =
-      receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
+    try {
+      this.assertHasAccount(sender)
 
-    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-    const unspentNotes = await this.getUnspentNotes(sender)
+      // TODO: If we're spending from multiple accounts, we need to figure out a
+      // way to split the transaction fee. - deekerno
+      let amountNeeded =
+        receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
-    for (const unspentNote of unspentNotes) {
-      // Skip unconfirmed notes
-      if (unspentNote.index === null || !unspentNote.confirmed) {
-        continue
-      }
+      const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+      const unspentNotes = await this.getUnspentNotes(sender)
 
-      if (unspentNote.note.value() > BigInt(0)) {
-        // Double-check that the nullifier for the note isn't in the tree already
-        // This would indicate a bug in the account transaction stores
-        const nullifier = Buffer.from(
-          unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
-        )
+      for (const unspentNote of unspentNotes) {
+        // Skip unconfirmed notes
+        if (unspentNote.index === null || !unspentNote.confirmed) {
+          continue
+        }
 
-        if (await this.chain.nullifiers.contains(nullifier)) {
-          this.logger.debug(
-            `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
-              'hex',
-            )}`,
+        if (unspentNote.note.value() > BigInt(0)) {
+          // Double-check that the nullifier for the note isn't in the tree already
+          // This would indicate a bug in the account transaction stores
+          const nullifier = Buffer.from(
+            unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
           )
 
-          // Update our map so this doesn't happen again
-          const noteMapValue = sender.getDecryptedNote(unspentNote.hash)
-          if (noteMapValue) {
-            this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
-            await sender.updateDecryptedNote(unspentNote.hash, {
-              ...noteMapValue,
-              spent: true,
-            })
+          if (await this.chain.nullifiers.contains(nullifier)) {
+            this.logger.debug(
+              `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
+                'hex',
+              )}`,
+            )
+
+            // Update our map so this doesn't happen again
+            const noteMapValue = sender.getDecryptedNote(unspentNote.hash)
+            if (noteMapValue) {
+              this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
+              await sender.updateDecryptedNote(unspentNote.hash, {
+                ...noteMapValue,
+                spent: true,
+              })
+            }
+
+            // Move on to the next note
+            continue
           }
 
-          // Move on to the next note
-          continue
-        }
+          // Try creating a witness from the note
+          const witness = await this.chain.notes.witness(unspentNote.index)
 
-        // Try creating a witness from the note
-        const witness = await this.chain.notes.witness(unspentNote.index)
+          if (witness === null) {
+            this.logger.debug(
+              `Could not create a witness for note with index ${unspentNote.index}`,
+            )
+            continue
+          }
 
-        if (witness === null) {
+          // Otherwise, push the note into the list of notes to spend
           this.logger.debug(
-            `Could not create a witness for note with index ${unspentNote.index}`,
+            `Accounts: spending note ${unspentNote.index} ${
+              unspentNote.hash
+            } ${unspentNote.note.value()}`,
           )
-          continue
+          notesToSpend.push({ note: unspentNote.note, witness: witness })
+          amountNeeded -= unspentNote.note.value()
         }
 
-        // Otherwise, push the note into the list of notes to spend
-        this.logger.debug(
-          `Accounts: spending note ${unspentNote.index} ${
-            unspentNote.hash
-          } ${unspentNote.note.value()}`,
-        )
-        notesToSpend.push({ note: unspentNote.note, witness: witness })
-        amountNeeded -= unspentNote.note.value()
+        if (amountNeeded <= 0) {
+          break
+        }
       }
 
-      if (amountNeeded <= 0) {
-        break
+      if (amountNeeded > 0) {
+        throw new Error('Insufficient funds')
       }
-    }
 
-    if (amountNeeded > 0) {
-      throw new Error('Insufficient funds')
+      return this.workerPool.createTransaction(
+        sender.spendingKey,
+        transactionFee,
+        notesToSpend.map((n) => ({
+          note: n.note,
+          treeSize: n.witness.treeSize(),
+          authPath: n.witness.authenticationPath,
+          rootHash: n.witness.rootHash,
+        })),
+        receives,
+        expirationSequence,
+      )
+    } finally {
+      unlock()
     }
-
-    return this.workerPool.createTransaction(
-      sender.spendingKey,
-      transactionFee,
-      notesToSpend.map((n) => ({
-        note: n.note,
-        treeSize: n.witness.treeSize(),
-        authPath: n.witness.authenticationPath,
-        rootHash: n.witness.rootHash,
-      })),
-      receives,
-      expirationSequence,
-    )
   }
 
   broadcastTransaction(transaction: Transaction): void {
@@ -834,7 +853,7 @@ export class Accounts {
     for (const account of this.accounts.values()) {
       for (const tx of account.getTransactions()) {
         const { transaction, blockHash, submittedSequence } = tx
-        const transactionHash = transaction.hash()
+        const transactionHash = transaction.unsignedHash()
 
         // Skip transactions that are already added to a block
         if (blockHash) {
@@ -982,7 +1001,7 @@ export class Accounts {
     if (transactionValue) {
       const transaction = transactionValue.transaction
 
-      if (transaction.hash().toString('hex') === hash) {
+      if (transaction.unsignedHash().toString('hex') === hash) {
         for (const note of transaction.notes()) {
           // Try decrypting the note as the owner
           let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
@@ -1240,7 +1259,7 @@ export class Accounts {
 }
 
 export class ScanState {
-  onTransaction = new Event<[sequence: number]>()
+  onTransaction = new Event<[sequence: number, endSequence: number]>()
 
   readonly startedAt: number
   readonly abortController: AbortController

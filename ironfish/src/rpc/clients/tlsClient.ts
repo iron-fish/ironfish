@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import tls from 'tls'
 import { ErrorUtils } from '../../utils'
-import { ConnectionRefusedError } from './errors'
+import { RpcConnectionRefusedError } from './errors'
 import { RpcTcpClient } from './tcpClient'
 
 export class RpcTlsClient extends RpcTcpClient {
@@ -20,9 +20,9 @@ export class RpcTlsClient extends RpcTcpClient {
         client.off('secureConnection', onSecureConnect)
         client.off('error', onError)
         if (ErrorUtils.isConnectRefusedError(error)) {
-          reject(new ConnectionRefusedError())
+          reject(new RpcConnectionRefusedError())
         } else if (ErrorUtils.isNoEntityError(error)) {
-          reject(new ConnectionRefusedError())
+          reject(new RpcConnectionRefusedError())
         } else {
           reject(error)
         }

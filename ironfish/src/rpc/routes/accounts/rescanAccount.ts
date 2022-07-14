@@ -6,7 +6,7 @@ import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 export type RescanAccountRequest = { follow?: boolean; reset?: boolean }
-export type RescanAccountResponse = { sequence: number; startedAt: number }
+export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
   .object({
@@ -18,6 +18,7 @@ export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> 
 export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse> = yup
   .object({
     sequence: yup.number().defined(),
+    endSequence: yup.number().defined(),
     startedAt: yup.number().defined(),
   })
   .defined()
@@ -33,17 +34,27 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
     }
 
     if (!scan) {
+      if (node.accounts.updateHeadState) {
+        await node.accounts.updateHeadState.abort()
+      }
+
       if (request.data.reset) {
         await node.accounts.reset()
       }
+
       void node.accounts.scanTransactions()
       scan = node.accounts.scan
+
+      if (!scan) {
+        node.accounts.logger.warn(`Attempted to start accounts scan but one did not start.`)
+      }
     }
 
     if (scan && request.data.follow) {
-      const onTransaction = (sequence: number) => {
+      const onTransaction = (sequence: number, endSequence: number) => {
         request.stream({
-          sequence: Number(sequence),
+          sequence: sequence,
+          endSequence: endSequence,
           startedAt: scan?.startedAt || 0,
         })
       }

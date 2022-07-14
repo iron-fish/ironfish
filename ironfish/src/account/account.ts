@@ -184,7 +184,7 @@ export class Account {
     params: SyncTransactionParams,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
     const blockHash = 'blockHash' in params ? params.blockHash : null
     let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
 
@@ -374,7 +374,7 @@ export class Account {
         transactions.push({
           creator: transactionCreator,
           status: blockHash && submittedSequence ? 'completed' : 'pending',
-          hash: transaction.hash().toString('hex'),
+          hash: transaction.unsignedHash().toString('hex'),
           isMinersFee: transaction.isMinersFee(),
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),

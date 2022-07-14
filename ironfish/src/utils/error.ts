@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RequestError } from '../rpc/clients/errors'
+import { RpcRequestError } from '../rpc/clients/errors'
 
 /**
  * This is used to unwrap a message from an error
@@ -15,7 +15,7 @@ export function renderError(error: unknown, stack = false): string {
   }
 
   if (stack) {
-    if (error instanceof RequestError && error.codeStack) {
+    if (error instanceof RpcRequestError && error.codeStack) {
       // stack also contains the error message
       return `${error.message}\n${error.codeStack}`
     }

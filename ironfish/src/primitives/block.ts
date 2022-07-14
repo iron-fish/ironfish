@@ -80,6 +80,17 @@ export class Block {
   }
 }
 
+export type CompactBlockTransaction = {
+  index: number
+  transaction: SerializedTransaction
+}
+
+export type SerializedCompactBlock = {
+  header: SerializedBlockHeader
+  transactionHashes: Buffer[]
+  transactions: CompactBlockTransaction[]
+}
+
 export type SerializedBlock = {
   header: SerializedBlockHeader
   transactions: SerializedTransaction[]

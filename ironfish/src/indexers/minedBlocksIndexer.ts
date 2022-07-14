@@ -342,9 +342,9 @@ export class MinedBlocksIndexer {
       }
     }
 
-    const accountsToRemove = await this.getAccountsToBeRemoved()
+    let accountsToRemove = await this.getAccountsToBeRemoved()
     if (accountsToRemove) {
-      accountsToRemove.filter((name) => name !== accountName)
+      accountsToRemove = accountsToRemove.filter((name) => name !== accountName)
       await this.accountsToRemove.put(REMOVAL_KEY, { accounts: accountsToRemove })
     }
 

@@ -679,6 +679,7 @@ export class PeerManager {
     const peer = new Peer(identity, {
       logger: this.logger,
       shouldLogMessages: this.logPeerMessages,
+      metrics: this.metrics,
     })
 
     // Add the peer to peers. It's new, so it shouldn't exist there already

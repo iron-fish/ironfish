@@ -117,7 +117,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
-    expect(result.content.hash).toEqual(tx.hash().toString('hex'))
+    expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
   }, 30000)
 
   it('calls the pay method on the node with multiple recipient', async () => {
@@ -134,7 +134,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
-    expect(result.content.hash).toEqual(tx.hash().toString('hex'))
+    expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
   }, 30000)
 
   it('lets you configure the expiration', async () => {

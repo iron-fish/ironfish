@@ -11,7 +11,7 @@ import { DisconnectReason } from './constants'
 import { StratumServer } from './stratumServer'
 import { StratumServerClient } from './stratumServerClient'
 
-const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
+const FIVE_MINUTES_MS = 5 * 60 * 1000
 const PEERS_TICK_MS = 10000
 
 export class StratumPeers {
@@ -100,7 +100,7 @@ export class StratumPeers {
       return
     }
 
-    const until = options?.until ?? Date.now() + FIFTEEN_MINUTES_MS
+    const until = options?.until ?? Date.now() + FIVE_MINUTES_MS
 
     let existing = this.bannedByIp.get(client.remoteAddress)
 

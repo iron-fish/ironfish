@@ -125,9 +125,9 @@ export default class Testnet extends IronfishCommand {
 
     const updateNodeName = existingNodeName !== confirmedGraffiti && !flags.skipName
     const updateGraffiti = existingGraffiti !== confirmedGraffiti && !flags.skipGraffiti
-    const needsUpdate = updateNodeName || updateGraffiti
+    const updateTelemetry = !telemetryEnabled && !flags.skipTelemetry
 
-    let updateTelemetry = !telemetryEnabled && !flags.skipTelemetry
+    const needsUpdate = updateNodeName || updateGraffiti || updateTelemetry
 
     if (!needsUpdate) {
       this.log('Your node is already up to date!')
@@ -135,6 +135,12 @@ export default class Testnet extends IronfishCommand {
     }
 
     if (!flags.confirm) {
+      if (updateTelemetry) {
+        this.log(
+          `You are about to enable telemetry which will submit anonymized data to Iron Fish`,
+        )
+      }
+
       if (updateNodeName) {
         this.log(
           `You are about to change your NODE NAME from ${
@@ -155,14 +161,6 @@ export default class Testnet extends IronfishCommand {
       if (!confirmed) {
         return
       }
-
-      this.log('')
-    }
-
-    if (!flags.confirm && updateTelemetry) {
-      updateTelemetry = await CliUx.ux.confirm(
-        'Do you want to help improve Iron Fish by enabling Telemetry? (y)es / (n)o',
-      )
 
       this.log('')
     }

@@ -19,7 +19,11 @@ import {
   SchemaValue,
   StringEncoding,
 } from '../database'
-import { DatabaseIsLockedError } from '../database/errors'
+import {
+  DatabaseIsCorruptError,
+  DatabaseIsLockedError,
+  DatabaseIsOpenError,
+} from '../database/errors'
 import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
@@ -64,7 +68,19 @@ export class LevelupDatabase extends Database {
       const opened = levelup(this.db, (error?: unknown) => {
         if (error) {
           if (error instanceof levelErrors.OpenError) {
-            reject(new DatabaseIsLockedError(error.message))
+            // Here we coerce leveldb specific errors into ironfish storage
+            // layer errors. We need to do message discrimination because the
+            // leveldb JS wrapper does not provide a way to discriminate on the
+            // various native errors. See https://github.com/Level/errors for
+            // more information.
+
+            if (error.message.indexOf('Corruption') !== -1) {
+              reject(new DatabaseIsCorruptError(error.message, error))
+            } else if (error.message.indexOf('IO error: lock') !== -1) {
+              reject(new DatabaseIsLockedError(error.message, error))
+            } else {
+              reject(new DatabaseIsOpenError(error.message, error))
+            }
           } else {
             reject(error)
           }

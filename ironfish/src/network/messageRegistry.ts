@@ -10,9 +10,15 @@ import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
+import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { SignalMessage } from './messages/signal'
 import { SignalRequestMessage } from './messages/signalRequest'
@@ -37,6 +43,8 @@ const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetBlockHashesResponse,
     NetworkMessageType.GetBlocksRequest,
     NetworkMessageType.GetBlocksResponse,
+    NetworkMessageType.PooledTransactionsRequest,
+    NetworkMessageType.PooledTransactionsResponse,
   ].includes(type)
 }
 
@@ -61,6 +69,10 @@ const parseRpcNetworkMessage = (
       return GetBlocksRequest.deserialize(body, rpcId)
     case NetworkMessageType.GetBlocksResponse:
       return GetBlocksResponse.deserialize(body, rpcId)
+    case NetworkMessageType.PooledTransactionsRequest:
+      return PooledTransactionsRequest.deserialize(body, rpcId)
+    case NetworkMessageType.PooledTransactionsResponse:
+      return PooledTransactionsResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
@@ -96,6 +108,10 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return SignalMessage.deserialize(body)
     case NetworkMessageType.SignalRequest:
       return SignalRequestMessage.deserialize(body)
+    case NetworkMessageType.NewBlockHashes:
+      return NewBlockHashesMessage.deserialize(body)
+    case NetworkMessageType.NewBlockV2:
+      return NewBlockV2Message.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }
