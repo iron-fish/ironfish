@@ -483,16 +483,30 @@ export class Accounts {
     const startHash = await this.getEarliestHeadHash()
     const endHash = this.chainProcessor.hash
 
-    const outdatedAccounts = this.listAccounts().filter((a) => !this.isAccountUpToDate(a))
+    // Accounts that need to be updated at the current scan sequence
+    const accounts: Array<Account> = []
+    // Accounts that need to be updated at future scan sequences
+    let remainingAccounts: Array<Account> = []
+
+    const startHashHex = startHash ? startHash.toString('hex') : null
+
+    for (const account of this.accounts.values()) {
+      const headStatus = this.headStatus.get(account.id)
+      Assert.isNotUndefined(headStatus)
+
+      if (startHashHex === headStatus.headHash) {
+        accounts.push(account)
+      } else if (!headStatus.upToDate) {
+        remainingAccounts.push(account)
+      }
+    }
 
     this.logger.info(
       `Scan starting from earliest found account head hash: ${
         startHash ? startHash.toString('hex') : 'GENESIS'
       }`,
     )
-    this.logger.info(
-      `Accounts to scan for: ${outdatedAccounts.map((a) => a.displayName).join(', ')}`,
-    )
+    this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
@@ -519,17 +533,34 @@ export class Accounts {
             blockHash,
             initialNoteIndex,
           },
-          outdatedAccounts,
+          accounts,
         )
         scan.onTransaction.emit(sequence)
       }
 
-      for (const account of outdatedAccounts) {
+      for (const account of accounts) {
         await this.updateHeadHash(account, blockHeader.hash)
       }
+
+      const hashHex = blockHeader.hash.toString('hex')
+      const newRemainingAccounts = []
+
+      for (const remainingAccount of remainingAccounts) {
+        const headStatus = this.headStatus.get(remainingAccount.id)
+        Assert.isNotUndefined(headStatus)
+
+        if (headStatus.headHash === hashHex) {
+          accounts.push(remainingAccount)
+          this.logger.debug(`Adding ${remainingAccount.displayName} to scan`)
+        } else {
+          newRemainingAccounts.push(remainingAccount)
+        }
+      }
+
+      remainingAccounts = newRemainingAccounts
     }
 
-    for (const account of this.accounts.values()) {
+    for (const account of accounts) {
       if (account.rescan !== null && account.rescan <= scan.startedAt) {
         account.rescan = null
         await this.db.setAccount(account)
