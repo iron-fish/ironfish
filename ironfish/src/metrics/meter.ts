@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { SetIntervalToken } from '../utils'
 import { EwmAverage } from './ewmAverage'
+import { RollingAverage } from './rollingAverage'
 
 /**
  * A metric type useful for recording metered things like
@@ -20,7 +21,7 @@ export class Meter {
   private _rate5s: EwmAverage
   private _rate1m: EwmAverage
   private _rate5m: EwmAverage
-  private _average: EwmAverage
+  private _average: RollingAverage
   private _count = 0
   private _interval: SetIntervalToken | null = null
   private _intervalMs: number
@@ -40,7 +41,7 @@ export class Meter {
     this._rate5s = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
     this._rate1m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
     this._rate5m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
-    this._average = new EwmAverage(this.METER_TIME_INTERVALS_MS.average)
+    this._average = new RollingAverage(1000)
   }
 
   get rate1s(): number {
@@ -68,7 +69,7 @@ export class Meter {
       return
     }
     this._count += count
-    this._average.add(count, 1000)
+    this._average.add(count)
   }
 
   start(): void {
