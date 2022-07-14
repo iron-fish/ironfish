@@ -494,7 +494,7 @@ export class Accounts {
 
       if (startHashHex === headStatus.headHash) {
         accounts.push(account)
-      } else {
+      } else if (!headStatus.upToDate) {
         remainingAccounts.push(account)
       }
     }
