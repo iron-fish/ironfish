@@ -68,11 +68,11 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { ImportSnapshotRequest, ImportSnapshotResponse } from '../routes/chain/importChain'
 import {
   SnapshotChainStreamRequest,
   SnapshotChainStreamResponse,
 } from '../routes/chain/snapshotChain'
-import { ImportSnapshotRequest, ImportSnapshotResponse } from '../routes/chain/importChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   ExportMinedStreamRequest,
