@@ -483,8 +483,10 @@ export class Accounts {
     const startHash = await this.getEarliestHeadHash()
     const endHash = this.chainProcessor.hash
 
+    // Accounts that need to be updated at the current scan sequence
     const accounts: Array<Account> = []
-    const remainingAccounts: Array<Account> = []
+    // Accounts that need to be updated at future scan sequences
+    let remainingAccounts: Array<Account> = []
 
     const startHashHex = startHash ? startHash.toString('hex') : null
 
@@ -541,21 +543,21 @@ export class Accounts {
       }
 
       const hashHex = blockHeader.hash.toString('hex')
+      const newRemainingAccounts = []
 
-      let i = 0
-      while (i < remainingAccounts.length) {
-        const account = remainingAccounts[i]
-        const headStatus = this.headStatus.get(account.id)
+      for (const remainingAccount of remainingAccounts) {
+        const headStatus = this.headStatus.get(remainingAccount.id)
         Assert.isNotUndefined(headStatus)
 
         if (headStatus.headHash === hashHex) {
-          remainingAccounts.splice(i, 1)
-          accounts.push(account)
-          this.logger.debug(`Adding ${account.displayName} to scan`)
+          accounts.push(remainingAccount)
+          this.logger.debug(`Adding ${remainingAccount.displayName} to scan`)
         } else {
-          i += 1
+          newRemainingAccounts.push(remainingAccount)
         }
       }
+
+      remainingAccounts = newRemainingAccounts
     }
 
     for (const account of accounts) {
