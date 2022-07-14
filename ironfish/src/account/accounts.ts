@@ -558,7 +558,7 @@ export class Accounts {
       }
     }
 
-    for (const account of this.accounts.values()) {
+    for (const account of accounts) {
       if (account.rescan !== null && account.rescan <= scan.startedAt) {
         account.rescan = null
         await this.db.setAccount(account)
