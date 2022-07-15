@@ -280,7 +280,7 @@ export class IronfishNode {
     await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
 
     try {
-      await this.chain.open(options)
+      await this.chain.open()
       await this.accounts.open(options)
       await this.minedBlocksIndexer.open(options)
     } catch (e) {

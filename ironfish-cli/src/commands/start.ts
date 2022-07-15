@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  IronfishNode,
+  Migrator,
+  NodeUtils,
+  PrivateIdentity,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import tweetnacl from 'tweetnacl'
 import { v4 as uuid } from 'uuid'
@@ -91,6 +98,10 @@ export default class Start extends IronfishCommand {
       description: 'genereate new identity for each new start',
       hidden: true,
     }),
+    upgrade: Flags.boolean({
+      allowNo: true,
+      description: 'run migrations when an upgrade is required',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -119,6 +130,18 @@ export default class Start extends IronfishCommand {
       workers,
       generateNewIdentity,
     } = flags
+
+    if (
+      flags.upgrade !== undefined &&
+      flags.upgrade !== this.sdk.config.get('databaseMigrate')
+    ) {
+      this.sdk.config.setOverride('databaseMigrate', flags.upgrade)
+    }
+
+    if (this.sdk.config.get('databaseMigrate')) {
+      const migrator = new Migrator({ sdk: this.sdk, logger: this.logger })
+      await migrator.migrate({ quietNoop: true })
+    }
 
     if (bootstrap !== undefined) {
       // Parse comma-separated bootstrap nodes

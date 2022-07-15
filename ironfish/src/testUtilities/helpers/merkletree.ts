@@ -113,7 +113,6 @@ export async function makeTree({
   })
 
   await db.open()
-  await tree.upgrade()
 
   if (leaves) {
     for (const i of leaves) {

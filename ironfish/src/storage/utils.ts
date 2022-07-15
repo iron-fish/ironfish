@@ -7,7 +7,18 @@ import { Platform } from '../platform'
 import { IDatabase } from './database'
 import { LevelupDatabase } from './levelup'
 
-export function createDB(options: { location: string }): IDatabase {
+export function createDB(options: {
+  location: string
+  createIfMissing?: boolean
+  errorIfExists?: boolean
+  compression?: boolean
+  cacheSize?: number
+  writeBufferSize?: number
+  blockSize?: number
+  maxOpenFiles?: number
+  blockRestartInterval?: number
+  maxFileSize?: number
+}): IDatabase {
   const runtime = Platform.getRuntime()
 
   if (runtime.type === 'node') {

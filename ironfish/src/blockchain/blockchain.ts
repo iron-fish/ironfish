@@ -56,7 +56,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 6
+const DATABASE_VERSION = 10
 
 export class Blockchain {
   db: IDatabase
@@ -258,21 +258,14 @@ export class Blockchain {
     return genesisHeader
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.opened) {
       return
     }
-
     this.opened = true
-    await this.db.open()
 
-    if (options.upgrade) {
-      await this.db.upgrade(DATABASE_VERSION)
-      await this.notes.upgrade()
-      await this.nullifiers.upgrade()
-    }
+    await this.db.open()
+    await this.db.upgrade(DATABASE_VERSION)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
