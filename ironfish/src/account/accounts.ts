@@ -39,10 +39,7 @@ export class Accounts {
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
 
-  protected readonly headStatus = new Map<
-    string,
-    { headHash: string | null; upToDate: boolean }
-  >()
+  protected readonly headHashes = new Map<string, string | null>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -145,8 +142,8 @@ export class Accounts {
       return false
     }
 
-    for (const { upToDate } of this.headStatus.values()) {
-      if (!upToDate) {
+    for (const account of this.accounts.values()) {
+      if (!this.isAccountUpToDate(account)) {
         return true
       }
     }
@@ -284,12 +281,7 @@ export class Accounts {
   async updateHeadHash(account: Account, headHash: Buffer | null): Promise<void> {
     const hash = headHash ? headHash.toString('hex') : null
 
-    const headStatus = this.headStatus.get(account.id)
-    Assert.isNotUndefined(headStatus)
-
-    headStatus.headHash = hash
-
-    this.headStatus.set(account.id, headStatus)
+    this.headHashes.set(account.id, hash)
 
     await this.db.saveHeadHash(account, hash)
   }
@@ -491,12 +483,12 @@ export class Accounts {
     const startHashHex = startHash ? startHash.toString('hex') : null
 
     for (const account of this.accounts.values()) {
-      const headStatus = this.headStatus.get(account.id)
-      Assert.isNotUndefined(headStatus)
+      const headHash = this.headHashes.get(account.id)
+      Assert.isNotUndefined(headHash)
 
-      if (startHashHex === headStatus.headHash) {
+      if (startHashHex === headHash) {
         accounts.push(account)
-      } else if (!headStatus.upToDate) {
+      } else if (!this.isAccountUpToDate(account)) {
         remainingAccounts.push(account)
       }
     }
@@ -552,10 +544,10 @@ export class Accounts {
       const newRemainingAccounts = []
 
       for (const remainingAccount of remainingAccounts) {
-        const headStatus = this.headStatus.get(remainingAccount.id)
-        Assert.isNotUndefined(headStatus)
+        const headHash = this.headHashes.get(remainingAccount.id)
+        Assert.isNotUndefined(headHash)
 
-        if (headStatus.headHash === hashHex) {
+        if (headHash === hashHex) {
           accounts.push(remainingAccount)
           this.logger.debug(`Adding ${remainingAccount.displayName} to scan`)
         } else {
@@ -566,21 +558,12 @@ export class Accounts {
       remainingAccounts = newRemainingAccounts
     }
 
-    for (const account of accounts) {
-      this.headStatus.set(account.id, {
-        headHash: endHash.toString('hex'),
-        upToDate: true,
-      })
-    }
-
     if (this.chainProcessor.hash === null) {
       const latestHeadHash = await this.getLatestHeadHash()
       Assert.isNotNull(latestHeadHash)
 
       this.chainProcessor.hash = latestHeadHash
     }
-
-    await this.updateHeadHashes(endHash)
 
     this.logger.info(
       `Finished scanning for transactions after ${Math.floor(
@@ -954,10 +937,6 @@ export class Accounts {
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
 
-    this.headStatus.set(account.id, {
-      headHash: null,
-      upToDate: true,
-    })
     await this.updateHeadHash(account, this.chainProcessor.hash)
 
     if (setDefault) {
@@ -968,11 +947,6 @@ export class Accounts {
   }
 
   async skipRescan(account: Account): Promise<void> {
-    const headStatus = this.headStatus.get(account.id)
-    Assert.isNotUndefined(headStatus)
-
-    headStatus.upToDate = true
-
     await this.updateHeadHash(account, this.chainProcessor.hash)
   }
 
@@ -1058,11 +1032,6 @@ export class Accounts {
     this.accounts.set(account.id, account)
     await this.db.setAccount(account)
 
-    const headHash = this.chainProcessor.hash ? this.chainProcessor.hash.toString('hex') : null
-    this.headStatus.set(account.id, {
-      headHash: null,
-      upToDate: headHash === null,
-    })
     await this.updateHeadHash(account, null)
 
     this.onAccountImported.emit(account)
@@ -1158,18 +1127,18 @@ export class Accounts {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHeader = null
     for (const account of this.accounts.values()) {
-      const headStatus = this.headStatus.get(account.id)
+      const headHash = this.headHashes.get(account.id)
 
-      if (!headStatus || !headStatus.headHash) {
+      if (!headHash) {
         return null
       }
 
-      const header = await this.chain.getHeader(Buffer.from(headStatus.headHash, 'hex'))
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
 
       if (!header) {
         // If no header is returned, the hash is likely invalid and we should remove it
         this.logger.warn(
-          `${account.displayName} has an invalid head hash ${headStatus.headHash}. This account needs to be rescanned.`,
+          `${account.displayName} has an invalid head hash ${headHash}. This account needs to be rescanned.`,
         )
         await this.db.saveHeadHash(account, null)
         continue
@@ -1188,7 +1157,7 @@ export class Accounts {
   async getLatestHeadHash(): Promise<Buffer | null> {
     let latestHeader = null
 
-    for (const { headHash } of this.headStatus.values()) {
+    for (const headHash of this.headHashes.values()) {
       if (!headHash) {
         continue
       }
@@ -1206,42 +1175,25 @@ export class Accounts {
 
   async loadHeadHashes(): Promise<void> {
     for await (const { accountId, headHash } of this.db.loadHeadHashes()) {
-      this.headStatus.set(accountId, {
-        headHash,
-        upToDate: false,
-      })
+      this.headHashes.set(accountId, headHash)
     }
 
-    const latestHeadHash = await this.getLatestHeadHash()
-
     for (const account of this.accounts.values()) {
-      let headStatus = this.headStatus.get(account.id)
-
-      if (!headStatus) {
-        headStatus = {
-          headHash: null,
-          upToDate: latestHeadHash === null,
-        }
-        this.headStatus.set(account.id, headStatus)
+      if (!this.headHashes.has(account.id)) {
         await this.updateHeadHash(account, null)
-      }
-
-      if (!latestHeadHash || headStatus.headHash === latestHeadHash.toString('hex')) {
-        headStatus.upToDate = true
-      } else {
-        this.logger.warn(
-          `${account.displayName} is not up to date. Account's head hash: ${
-            headStatus.headHash ?? 'NULL'
-          }. Latest head hash: ${latestHeadHash.toString('hex')}.`,
-        )
-        this.logger.warn("This account's balance may look incorrect until it is rescanned.")
       }
     }
   }
 
   isAccountUpToDate(account: Account): boolean {
-    const headStatus = this.headStatus.get(account.id)
-    return headStatus ? headStatus.upToDate : false
+    const headHash = this.headHashes.get(account.id)
+    Assert.isNotUndefined(headHash)
+
+    const chainHeadHash = this.chainProcessor.hash
+      ? this.chainProcessor.hash.toString('hex')
+      : null
+
+    return headHash === chainHeadHash
   }
 
   protected assertHasAccount(account: Account): void {
