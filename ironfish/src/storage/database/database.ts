@@ -36,9 +36,12 @@ export interface IDatabase {
   close(): Promise<void>
 
   /**
-   * Check if the database needs to be upgraded and warn the use
+   * Check if the database needs to be upgraded
    */
   upgrade(version: number): Promise<void>
+
+  getVersion(): Promise<number>
+  putVersion(version: number, transaction?: IDatabaseTransaction): Promise<void>
 
   /**
    * Add an {@link IDatabaseStore} to the database
@@ -130,6 +133,8 @@ export abstract class Database implements IDatabase {
   abstract open(options?: DatabaseOptions): Promise<void>
   abstract close(): Promise<void>
   abstract upgrade(version: number): Promise<void>
+  abstract getVersion(): Promise<number>
+  abstract putVersion(version: number): Promise<void>
 
   abstract transaction(): IDatabaseTransaction
 
