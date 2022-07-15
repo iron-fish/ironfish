@@ -12,7 +12,7 @@ export interface DecryptedNotesValue {
   nullifierHash: string | null
   serializedNote: Buffer
   spent: boolean
-  transactionHash: Buffer | null
+  transactionHash: Buffer
 }
 
 export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedNotesValue> {
@@ -24,8 +24,7 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
     let flags = 0
     flags |= Number(!!noteIndex) << 0
     flags |= Number(!!nullifierHash) << 1
-    flags |= Number(!!transactionHash) << 2
-    flags |= Number(spent) << 3
+    flags |= Number(spent) << 2
     bw.writeU8(flags)
 
     bw.writeVarString(accountId)
@@ -49,8 +48,7 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
     const flags = reader.readU8()
     const hasNoteIndex = flags & (1 << 0)
     const hasNullifierHash = flags & (1 << 1)
-    const hasTransactionHash = flags & (1 << 2)
-    const spent = Boolean(flags & (1 << 3))
+    const spent = Boolean(flags & (1 << 2))
 
     const accountId = reader.readVarString()
     const serializedNote = reader.readBytes(NOTE_SIZE)
@@ -65,10 +63,7 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
       nullifierHash = reader.readHash('hex')
     }
 
-    let transactionHash = null
-    if (hasTransactionHash) {
-      transactionHash = reader.readHash()
-    }
+    const transactionHash = reader.readHash()
 
     return { accountId, noteIndex, nullifierHash, serializedNote, spent, transactionHash }
   }
@@ -81,9 +76,6 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
     if (value.nullifierHash) {
       size += 32
     }
-    if (value.transactionHash) {
-      size += 32
-    }
-    return size
+    return size + 32
   }
 }

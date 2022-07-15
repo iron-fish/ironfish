@@ -25,7 +25,7 @@ import { validateAccount } from './validator'
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
-  | { blockHash: string; initialNoteIndex: number }
+  | { blockHash: string; initialNoteIndex: number; sequence: number }
   // Used if the transaction is not yet part of the chain
   | { submittedSequence: number }
   | Record<string, never>
@@ -91,11 +91,13 @@ export class Accounts {
       for await (const {
         transaction,
         blockHash,
+        sequence,
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
-          blockHash: blockHash,
-          initialNoteIndex: initialNoteIndex,
+          blockHash,
+          initialNoteIndex,
+          sequence,
         })
       }
 
@@ -518,6 +520,7 @@ export class Accounts {
           {
             blockHash,
             initialNoteIndex,
+            sequence,
           },
           outdatedAccounts,
         )
@@ -593,19 +596,7 @@ export class Accounts {
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
-
-    const notes = await this.getUnspentNotes(account)
-
-    let confirmed = BigInt(0)
-
-    for (const note of notes) {
-      const value = note.note.value()
-      if (note.index !== null && note.confirmed) {
-        confirmed += value
-      }
-    }
-
-    return { unconfirmed: await account.getUnconfirmedBalance(), confirmed }
+    return account.getBalance(this.chain.head.sequence - 12, this.chain.head.sequence)
   }
 
   private async getUnspentNotes(account: Account): Promise<
