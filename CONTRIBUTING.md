@@ -25,7 +25,7 @@ Please read our [README.md](./README.md) first, to learn how to set up Iron Fish
 If you don't know what contribution you can work on, here are a few suggestions:
 * Take a look at our current [list of issues](https://github.com/iron-fish/ironfish/issues). Update the issue if you are interested in working on it.
 * Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
-* Help us add new tests. More testing allow everyone to ship quality code faster.
+* Help us add new tests. More testing allows everyone to ship quality code faster.
 * Write documentation or fix the existing documentation
 * If you still don't know what could be a good task for you, do not hesitate to contact us.
 
@@ -42,13 +42,13 @@ If you are working on something in one of these categories, we will not accept y
  - #### Upgrading Package Versions
    - This is a common attack vector by malicious agents. We lock down our packages for this very reason, and only allow the core team to upgrade packages unless you submit a FIP first explaining why you want to upgrade the package.
  - #### Upgrading Node Versions
-   - There is a large impact in upgrading node versions. Iron Fish takes advantage of many experimental node features, some of which are not fully fleshed out. We use workers, and native code boundaries. Node is also known to introduce bugs in newer versions, even LTS. Because of this, there is production testing we do on our side when upgrading node to ensure it's compatible. Because of this, we don't allow users to upgrade our node versions unless a FIP is filed.
+   - There is a large impact in upgrading node versions. Iron Fish takes advantage of many experimental node features, some of which are not fully fleshed out. We use workers and native code boundaries. Node is also known to introduce bugs in newer versions, even LTS. Because of this, there is production testing we do on our side when upgrading node to ensure it's compatible. Because of this, we don't allow users to upgrade our node versions unless a FIP is filed.
  - #### Refactor a core system
-   - Often engineers have visions for core systems, and may be in the process of changing them. FIP's help avoid overlap and having your changes over-written. Some core systems include, MerkleTree, Blockchain, PeerNetwork, Verifier, Consensus.
- - #### Making new product design decisions that has no precedent
-   - This one is more complicated. If our products works one way, and you open a PR to change the core product principles to work in another way, then we are going to close your PR as it does not fit into our vision. Try to match existing precedent as much as possible in your code.
+   - Often engineers have visions for core systems, and may be in the process of changing them. FIP's help avoid overlap and having your changes overwritten. Some core systems include: MerkleTree, Blockchain, PeerNetwork, Verifier, and Consensus.
+ - #### Making new product design decisions that have no precedent
+   - This one is more complicated. If our product works one way, and you open a PR to change the core product principles to work in another way, then we are going to close your PR as it does not fit into our vision. Try to match existing precedent as much as possible in your code.
  - #### Tests for CLI commands
-   - They are not useful in their current form. Most of these tests are mocking out the entire node and sending back hand crafted values which are merely asserted and make changes these commands more annoying. We are accepting a FIP for refactoring command tests to be more valuable and not use mocking.
+   - They are not useful in their current form. Most of these tests are mocking out the entire node and sending back handcrafted values which are merely asserted and make changes to these commands more annoying. We are accepting a FIP for refactoring command tests to be more valuable and not use mocking.
 
 
 # Contact Us

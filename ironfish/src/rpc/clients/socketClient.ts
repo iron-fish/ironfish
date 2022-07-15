@@ -7,10 +7,10 @@ import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
-import { isResponseError, Response } from '../response'
+import { isRpcResponseError, RpcResponse } from '../response'
 import { Stream } from '../stream'
 import { RpcClient } from './client'
-import { ConnectionError, RequestError, RequestTimeoutError } from './errors'
+import { RequestTimeoutError, RpcConnectionError, RpcRequestError } from './errors'
 
 const REQUEST_TIMEOUT_MS = null
 
@@ -40,7 +40,7 @@ export abstract class RpcSocketClient extends RpcClient {
   pending = new Map<
     number,
     {
-      response: Response<unknown>
+      response: RpcResponse<unknown>
       stream: Stream<unknown>
       timeout: SetTimeoutToken | null
       resolve: (message: unknown) => void
@@ -55,7 +55,7 @@ export abstract class RpcSocketClient extends RpcClient {
     return this.connect()
       .then(() => true)
       .catch((e: unknown) => {
-        if (e instanceof ConnectionError) {
+        if (e instanceof RpcConnectionError) {
           return false
         }
         throw e
@@ -68,7 +68,7 @@ export abstract class RpcSocketClient extends RpcClient {
     options: {
       timeoutMs?: number | null
     } = {},
-  ): Response<TEnd, TStream> {
+  ): RpcResponse<TEnd, TStream> {
     Assert.isNotNull(this.client, 'Connect first using connect()')
 
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
@@ -77,7 +77,7 @@ export abstract class RpcSocketClient extends RpcClient {
     const timeoutMs = options.timeoutMs === undefined ? this.timeoutMs : options.timeoutMs
 
     let timeout: SetTimeoutToken | null = null
-    let response: Response<TEnd, TStream> | null = null
+    let response: RpcResponse<TEnd, TStream> | null = null
 
     if (timeoutMs !== null) {
       timeout = setTimeout(() => {
@@ -107,13 +107,13 @@ export abstract class RpcSocketClient extends RpcClient {
       reject(...args)
     }
 
-    response = new Response<TEnd, TStream>(promise, stream, timeout)
+    response = new RpcResponse<TEnd, TStream>(promise, stream, timeout)
 
     const pending = {
       resolve: resolveRequest as (value: unknown) => void,
       reject: rejectRequest,
       timeout: timeout,
-      response: response as Response<unknown>,
+      response: response as RpcResponse<unknown>,
       stream: stream as Stream<unknown>,
       type: route,
     }
@@ -152,7 +152,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     pending.response.status = result.status
 
-    if (isResponseError(pending.response)) {
+    if (isRpcResponseError(pending.response)) {
       const { result: errorBody, error: errorError } = await YupUtils.tryValidate(
         IpcErrorSchema,
         result.data,
@@ -160,7 +160,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
       if (errorBody) {
         pending.reject(
-          new RequestError(
+          new RpcRequestError(
             pending.response,
             errorBody.code,
             errorBody.message,

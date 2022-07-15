@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Response } from '../response'
+import { RpcResponse } from '../response'
 
 /*
  The errors in this file are to be used by RPC client implementations
@@ -15,31 +15,31 @@ import { Response } from '../response'
  * The base class for a connection related error. In case someone wants
  * to log and handle any connection related issues.
  */
-export abstract class ConnectionError extends Error {}
+export abstract class RpcConnectionError extends Error {}
 
 /**
  * Thrown when the connection attempt has failed for any reason. Most
  * likely because the server is not running, the server is unreachable,
  * the server is running on a different port, etc...
  */
-export class ConnectionRefusedError extends ConnectionError {}
+export class RpcConnectionRefusedError extends RpcConnectionError {}
 
 /** Thrown when the connection is lost after you've successfully connected.
  *
  * @note In a stateless connection like HTTP this should happen after the request was sent out, but before the response has been returned.
  * @note In a stateful connection like websockets or IPC, this should be thrown any time after you've connected when the connection has been disconnected unexpectly. */
-export class ConnectionLostError extends ConnectionError {}
+export class RpcConnectionLostError extends RpcConnectionError {}
 
 /** Thrown when a response comes back with a code that is between 400 to 500 */
-export class RequestError<TEnd = unknown, TStream = unknown> extends Error {
-  response?: Response<TEnd, TStream> = undefined
+export class RpcRequestError<TEnd = unknown, TStream = unknown> extends Error {
+  response?: RpcResponse<TEnd, TStream> = undefined
   status: number
   code: string
   codeMessage: string
   codeStack: string | null
 
   constructor(
-    response: Response<TEnd, TStream>,
+    response: RpcResponse<TEnd, TStream>,
     code: string,
     codeMessage: string,
     codeStack?: string,
@@ -55,8 +55,8 @@ export class RequestError<TEnd = unknown, TStream = unknown> extends Error {
 }
 
 /** Thrown when the request timeout has been exceeded and the request has been aborted */
-export class RequestTimeoutError<TEnd, TStream> extends RequestError<TEnd, TStream> {
-  constructor(response: Response<TEnd, TStream>, timeoutMs: number, route: string) {
+export class RequestTimeoutError<TEnd, TStream> extends RpcRequestError<TEnd, TStream> {
+  constructor(response: RpcResponse<TEnd, TStream>, timeoutMs: number, route: string) {
     super(response, 'request-timeout', `Timeout of ${timeoutMs} exceeded to ${route}`)
   }
 }

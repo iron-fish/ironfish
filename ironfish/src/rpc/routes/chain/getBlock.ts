@@ -175,7 +175,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
       return {
         transaction_identifier: {
-          hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+          hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
         },
         operations: [],
         metadata: {

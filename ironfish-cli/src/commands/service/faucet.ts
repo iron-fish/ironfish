@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ConnectionError, Meter, PromiseUtils, RpcSocketClient, WebApi } from '@ironfish/sdk'
+import { Meter, PromiseUtils, RpcConnectionError, RpcSocketClient, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -66,7 +66,7 @@ export default class Faucet extends IronfishCommand {
       try {
         await this.startSyncing(client, api, speed)
       } catch (e) {
-        if (e instanceof ConnectionError) {
+        if (e instanceof RpcConnectionError) {
           this.log('Connection error... retrying in 5 seconds')
           await PromiseUtils.sleep(5000)
           continue

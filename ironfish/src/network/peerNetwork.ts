@@ -15,8 +15,10 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
+import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
+import { SerializedTransaction } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
@@ -31,7 +33,13 @@ import {
   NetworkMessage,
 } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
+import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewTransactionMessage } from './messages/newTransaction'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import {
   Direction,
   RPC_TIMEOUT_MILLIS,
@@ -44,7 +52,7 @@ import {
   RequestTimeoutError,
 } from './peers/connections'
 import { LocalPeer } from './peers/localPeer'
-import { BAN_SCORE, Peer } from './peers/peer'
+import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { IsomorphicWebSocketConstructor } from './types'
@@ -78,6 +86,7 @@ export class PeerNetwork {
   readonly localPeer: LocalPeer
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
+  readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
 
   private started = false
   private readonly minPeers: number
@@ -181,7 +190,7 @@ export class PeerNetwork {
     this.node.miningManager.onNewBlock.on((block) => {
       const serializedBlock = this.strategy.blockSerde.serialize(block)
 
-      this.gossip(new NewBlockMessage(serializedBlock))
+      this.broadcastBlock(new NewBlockMessage(serializedBlock))
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
@@ -312,6 +321,27 @@ export class PeerNetwork {
   }
 
   /**
+   * Send a block to all connected peers who haven't yet received the block.
+   */
+  private broadcastBlock(message: NewBlockMessage): void {
+    this.seenGossipFilter.add(message.nonce)
+
+    // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
+    const block = this.strategy.blockSerde.deserialize(message.block)
+
+    for (const peer of this.peerManager.getConnectedPeers()) {
+      // Don't send the block to peers who already know about it
+      if (peer.knownBlockHashes.has(block.header.hash)) {
+        continue
+      }
+
+      if (peer.send(message)) {
+        peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Sent)
+      }
+    }
+  }
+
+  /**
    * Fire an RPC request to the given peer identity. Returns a promise that
    * will resolve when the response is received, or will be rejected if the
    * request cannot be completed before timing out.
@@ -436,6 +466,10 @@ export class PeerNetwork {
       await this.handleGossipMessage(peer, message)
     } else if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
+    } else if (message instanceof NewBlockHashesMessage) {
+      this.handleNewBlockHashesMessage(peer, message)
+    } else if (message instanceof NewBlockV2Message) {
+      this.handleNewBlockV2Message(peer, message)
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
@@ -458,6 +492,12 @@ export class PeerNetwork {
     let gossip
     if (gossipMessage instanceof NewBlockMessage) {
       gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
+
+      if (gossip) {
+        this.broadcastBlock(gossipMessage)
+      }
+
+      return
     } else if (gossipMessage instanceof NewTransactionMessage) {
       gossip = await this.onNewTransaction({ peerIdentity, message: gossipMessage })
     } else {
@@ -514,6 +554,8 @@ export class PeerNetwork {
           })
         } else if (rpcMessage instanceof GetBlocksRequest) {
           responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
+        } else if (rpcMessage instanceof PooledTransactionsRequest) {
+          responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -529,9 +571,8 @@ export class PeerNetwork {
         responseMessage = new CannotSatisfyRequest(rpcId)
       }
 
-      if (peer.state.type === 'CONNECTED') {
-        peer.send(responseMessage)
-      }
+      // TODO(daniel) if this is a response with transactions mark transaction hashes as seen by peer
+      peer.send(responseMessage)
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
@@ -540,6 +581,14 @@ export class PeerNetwork {
         this.logger.debug(`Dropping response to unknown request ${rpcId}`)
       }
     }
+  }
+
+  private handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
+    this.logger.debug(`Received unimplemented message ${message.type}`)
+  }
+
+  private handleNewBlockV2Message(peer: Peer, message: NewBlockV2Message) {
+    this.logger.debug(`Received unimplemented message ${message.type}`)
   }
 
   private updateIsReady(): void {
@@ -647,6 +696,22 @@ export class PeerNetwork {
     return new GetBlocksResponse(serialized, rpcId)
   }
 
+  private onPooledTransactionsRequest(
+    message: PooledTransactionsRequest,
+    rpcId: number,
+  ): PooledTransactionsResponse {
+    const transactions: SerializedTransaction[] = []
+
+    for (const hash of message.transactionHashes) {
+      const transaction = this.node.memPool.get(hash)
+      if (transaction) {
+        transactions.push(transaction.serialize())
+      }
+    }
+
+    return new PooledTransactionsResponse(transactions, rpcId)
+  }
+
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
     if (!this.enableSyncing) {
       return false
@@ -677,6 +742,8 @@ export class PeerNetwork {
   private async onNewTransaction(
     message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
+    const received = new Date()
+
     if (!this.enableSyncing) {
       return false
     }
@@ -705,7 +772,7 @@ export class PeerNetwork {
     if (!valid) {
       Assert.isNotUndefined(reason)
       this.logger.debug(
-        `Invalid transaction '${transaction.hash().toString('hex')}': ${reason}`,
+        `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
       )
       return false
     }
@@ -722,6 +789,7 @@ export class PeerNetwork {
     }
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
+      this.onTransactionAccepted.emit(transaction, received)
       return true
     }
 

@@ -184,7 +184,10 @@ export class Account {
 
   private saveDecryptedNoteSequence(transactionHash: Buffer, noteHash: string): void {
     const transaction = this.transactions.get(transactionHash)
-    Assert.isNotUndefined(transaction, `Transaction undefined for '${transactionHash.toString('hex')}'`)
+    Assert.isNotUndefined(
+      transaction,
+      `Transaction undefined for '${transactionHash.toString('hex')}'`,
+    )
 
     const { sequence } = transaction
     if (sequence) {
@@ -206,7 +209,7 @@ export class Account {
     params: SyncTransactionParams,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
     const blockHash = 'blockHash' in params ? params.blockHash : null
     const sequence = 'sequence' in params ? params.sequence : null
     let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
@@ -400,7 +403,7 @@ export class Account {
         transactions.push({
           creator: transactionCreator,
           status: blockHash && submittedSequence ? 'completed' : 'pending',
-          hash: transaction.hash().toString('hex'),
+          hash: transaction.unsignedHash().toString('hex'),
           isMinersFee: transaction.isMinersFee(),
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),
@@ -457,21 +460,19 @@ export class Account {
   }
 
   async getBalance(
-    start: number,
-    end: number,
+    unconfirmedSequenceStart: number,
+    headSequence: number,
   ): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     const unconfirmed = await this.getUnconfirmedBalance()
     let confirmed = unconfirmed
 
-    for (let i = start; i < end; i++) {
+    for (let i = unconfirmedSequenceStart; i <= headSequence; i++) {
       const noteHashes = this.noteHashesBySequence.get(i)
       if (noteHashes) {
         for (const hash of noteHashes) {
           const note = this.decryptedNotes.get(hash)
           Assert.isNotUndefined(note)
-          if (note.spent) {
-            confirmed += new Note(note.serializedNote).value()
-          } else {
+          if (!note.spent) {
             confirmed -= new Note(note.serializedNote).value()
           }
         }

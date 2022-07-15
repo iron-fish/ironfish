@@ -3,24 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { SetTimeoutToken } from '../utils'
-import { ConnectionLostError } from './clients'
+import { RpcConnectionLostError } from './clients'
 import { Stream } from './stream'
 
-export function isResponseError(response: Response<unknown>): boolean {
-  return isResponseUserError(response) || isResponseServerError(response)
+export function isRpcResponseError(response: RpcResponse<unknown>): boolean {
+  return isRpcResponseUserError(response) || isRpcResponseServerError(response)
 }
 
-export function isResponseServerError(response: Response<unknown>): boolean {
+export function isRpcResponseServerError(response: RpcResponse<unknown>): boolean {
   return response.status >= 500 && response.status <= 599
 }
 
-export function isResponseUserError(response: Response<unknown>): boolean {
+export function isRpcResponseUserError(response: RpcResponse<unknown>): boolean {
   return response.status >= 400 && response.status <= 499
 }
 
-export type ResponseEnded<TEnd> = Exclude<Response<TEnd>, 'content'> & { content: TEnd }
+export type RpcResponseEnded<TEnd> = Exclude<RpcResponse<TEnd>, 'content'> & { content: TEnd }
 
-export class Response<TEnd = unknown, TStream = unknown> {
+export class RpcResponse<TEnd = unknown, TStream = unknown> {
   private promise: Promise<TEnd>
   private stream: Stream<TStream>
   private timeout: SetTimeoutToken | null
@@ -38,9 +38,9 @@ export class Response<TEnd = unknown, TStream = unknown> {
     this.timeout = timeout
   }
 
-  async waitForEnd(): Promise<ResponseEnded<TEnd>> {
+  async waitForEnd(): Promise<RpcResponseEnded<TEnd>> {
     this.content = await this.promise
-    return this as ResponseEnded<TEnd>
+    return this as RpcResponseEnded<TEnd>
   }
 
   async *contentStream(ignoreClose = true): AsyncGenerator<TStream, void> {
@@ -53,7 +53,7 @@ export class Response<TEnd = unknown, TStream = unknown> {
     }
 
     await this.promise.catch((e) => {
-      if (e instanceof ConnectionLostError && ignoreClose) {
+      if (e instanceof RpcConnectionLostError && ignoreClose) {
         return
       }
       throw e

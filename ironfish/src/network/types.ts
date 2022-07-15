@@ -18,6 +18,12 @@ export enum NetworkMessageType {
   PeerListRequest = 10,
   Signal = 11,
   SignalRequest = 12,
+  PooledTransactionsRequest = 13,
+  PooledTransactionsResponse = 14,
+  NewPooledTransactionHashes = 15,
+  NewTransactionV2 = 16,
+  NewBlockHashes = 17,
+  NewBlockV2 = 18,
 }
 
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WSWebSocket

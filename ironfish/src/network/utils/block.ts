@@ -4,15 +4,14 @@
 import bufio from 'bufio'
 import { Assert } from '../../assert'
 import { SerializedBlock } from '../../primitives/block'
+import { SerializedBlockHeader } from '../../primitives/blockheader'
 import { GraffitiSerdeInstance } from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
 
-export function writeBlock(
+export function writeBlockHeader(
   bw: bufio.StaticWriter | bufio.BufferWriter,
-  block: SerializedBlock,
+  header: SerializedBlockHeader,
 ): bufio.StaticWriter | bufio.BufferWriter {
-  const { header, transactions } = block
-
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
   bw.writeHash(header.noteCommitment.commitment)
@@ -27,16 +26,24 @@ export function writeBlock(
   bw.writeBytes(BigIntUtils.toBytesLE(-BigInt(header.minersFee), 8))
 
   bw.writeBytes(GraffitiSerdeInstance.deserialize(header.graffiti))
+  return bw
+}
 
-  bw.writeU16(transactions.length)
-  for (const transaction of transactions) {
+export function writeBlock(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  block: SerializedBlock,
+): bufio.StaticWriter | bufio.BufferWriter {
+  bw = writeBlockHeader(bw, block.header)
+
+  bw.writeU16(block.transactions.length)
+  for (const transaction of block.transactions) {
     bw.writeVarBytes(transaction)
   }
 
   return bw
 }
 
-export function readBlock(reader: bufio.BufferReader): SerializedBlock {
+export function readBlockHeader(reader: bufio.BufferReader): SerializedBlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash('hex')
   const noteCommitment = reader.readHash()
@@ -49,6 +56,28 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const minersFee = (-BigIntUtils.fromBytesLE(reader.readBytes(8))).toString()
   const graffiti = GraffitiSerdeInstance.serialize(reader.readBytes(32))
 
+  return {
+    sequence,
+    previousBlockHash,
+    noteCommitment: {
+      commitment: noteCommitment,
+      size: noteCommitmentSize,
+    },
+    nullifierCommitment: {
+      commitment: nullifierCommitment,
+      size: nullifierCommitmentSize,
+    },
+    target,
+    randomness,
+    timestamp,
+    minersFee,
+    graffiti,
+  }
+}
+
+export function readBlock(reader: bufio.BufferReader): SerializedBlock {
+  const header = readBlockHeader(reader)
+
   const transactionsLength = reader.readU16()
   const transactions = []
   for (let j = 0; j < transactionsLength; j++) {
@@ -56,28 +85,12 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   }
 
   return {
-    header: {
-      sequence,
-      previousBlockHash,
-      noteCommitment: {
-        commitment: noteCommitment,
-        size: noteCommitmentSize,
-      },
-      nullifierCommitment: {
-        commitment: nullifierCommitment,
-        size: nullifierCommitmentSize,
-      },
-      target,
-      randomness,
-      timestamp,
-      minersFee,
-      graffiti,
-    },
+    header,
     transactions,
   }
 }
 
-export function getBlockSize(block: SerializedBlock): number {
+export function getBlockHeaderSize(): number {
   let size = 0
   size += 4 // sequence
   size += 32 // previousBlockHash
@@ -90,10 +103,16 @@ export function getBlockSize(block: SerializedBlock): number {
   size += 8 // timestamp
   size += 8 // minersFee
   size += 32 // graffiti
+  return size
+}
+
+export function getBlockSize(block: SerializedBlock): number {
+  let size = getBlockHeaderSize()
 
   size += 2 // transactions length
   for (const transaction of block.transactions) {
     size += bufio.sizeVarBytes(transaction)
   }
+
   return size
 }

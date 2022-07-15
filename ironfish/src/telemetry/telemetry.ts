@@ -6,7 +6,11 @@ import { Blockchain } from '../blockchain'
 import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { Identity } from '../network'
+import { NetworkMessageType } from '../network/types'
+import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
+import { TransactionHash } from '../primitives/transaction'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Field } from './interfaces/field'
@@ -26,6 +30,7 @@ export class Telemetry {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
+  private readonly localPeerIdentity: Identity
 
   private started: boolean
   private flushInterval: SetIntervalToken | null
@@ -40,6 +45,7 @@ export class Telemetry {
     config: Config
     logger?: Logger
     metrics?: MetricsMonitor
+    localPeerIdentity: Identity
     defaultFields?: Field[]
     defaultTags?: Tag[]
   }) {
@@ -50,6 +56,7 @@ export class Telemetry {
     this.metrics = options.metrics ?? null
     this.defaultTags = options.defaultTags ?? []
     this.defaultFields = options.defaultFields ?? []
+    this.localPeerIdentity = options.localPeerIdentity
 
     this.flushInterval = null
     this.metricsInterval = null
@@ -76,7 +83,9 @@ export class Telemetry {
     void this.flushLoop()
 
     if (this.metrics) {
-      void this.metricsLoop()
+      this.metricsInterval = setTimeout(() => {
+        void this.metricsLoop()
+      }, this.METRICS_INTERVAL)
     }
   }
 
@@ -114,46 +123,94 @@ export class Telemetry {
   private metricsLoop(): void {
     Assert.isNotNull(this.metrics)
 
+    for (const [id, meter] of this.metrics.p2p_OutboundMessagesByPeer) {
+      this.submit({
+        measurement: 'peer_messages',
+        timestamp: new Date(),
+        fields: [
+          {
+            name: 'source',
+            type: 'string',
+            value: this.localPeerIdentity,
+          },
+          {
+            name: 'target',
+            type: 'string',
+            value: id,
+          },
+          {
+            name: 'amount',
+            type: 'float',
+            value: meter.rate5m,
+          },
+        ],
+      })
+    }
+
+    const fields: Field[] = [
+      {
+        name: 'heap_used',
+        type: 'integer',
+        value: this.metrics.heapUsed.value,
+      },
+      {
+        name: 'heap_total',
+        type: 'integer',
+        value: this.metrics.heapTotal.value,
+      },
+      {
+        name: 'inbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_InboundTraffic.rate5m,
+      },
+      {
+        name: 'outbound_traffic',
+        type: 'float',
+        value: this.metrics.p2p_OutboundTraffic.rate5m,
+      },
+      {
+        name: 'peers_count',
+        type: 'integer',
+        value: this.metrics.p2p_PeersCount.value,
+      },
+      {
+        name: 'mempool_size',
+        type: 'integer',
+        value: this.metrics.memPoolSize.value,
+      },
+      {
+        name: 'head_sequence',
+        type: 'integer',
+        value: this.chain.head.sequence,
+      },
+    ]
+
+    for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
+      fields.push({
+        name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+        type: 'float',
+        value: meter.rate5m,
+      })
+    }
+
+    for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage) {
+      fields.push({
+        name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
+        type: 'float',
+        value: meter.rate5m,
+      })
+    }
+
     this.submit({
       measurement: 'node_stats',
       timestamp: new Date(),
-      fields: [
+      tags: [
         {
-          name: 'heap_used',
-          type: 'integer',
-          value: this.metrics.heapUsed.value,
-        },
-        {
-          name: 'heap_total',
-          type: 'integer',
-          value: this.metrics.heapTotal.value,
-        },
-        {
-          name: 'inbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_InboundTraffic.rate1s,
-        },
-        {
-          name: 'outbound_traffic',
-          type: 'float',
-          value: this.metrics.p2p_OutboundTraffic.rate1s,
-        },
-        {
-          name: 'peers_count',
-          type: 'integer',
-          value: this.metrics.p2p_PeersCount.value,
-        },
-        {
-          name: 'mempool_size',
-          type: 'integer',
-          value: this.metrics.memPoolSize.value,
-        },
-        {
-          name: 'head_sequence',
-          type: 'integer',
-          value: this.chain.head.sequence,
+          name: 'synced',
+          value: this.chain.synced.toString(),
         },
       ],
+      fields,
     })
 
     this.metricsInterval = setTimeout(() => {
@@ -176,6 +233,15 @@ export class Telemetry {
     }
 
     const fields = this.defaultFields.concat(metric.fields)
+
+    // TODO(jason): RollingAverage can produce a negative number which seems
+    // like it should be a bug. Investigate then delete this TODO. Negative
+    // floats are not allowed by telemetry and produce a 422 error.
+    for (const field of fields) {
+      if (field.type === 'float') {
+        field.value = Math.max(0, field.value)
+      }
+    }
 
     this.points.push({
       ...metric,
@@ -272,5 +338,44 @@ export class Telemetry {
         },
       ],
     })
+  }
+
+  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+    const hash = transaction.hash()
+
+    if (!this.shouldSubmitTransaction(hash)) {
+      return
+    }
+
+    this.submit({
+      measurement: 'transaction_propagation',
+      timestamp: seenAt,
+      tags: [
+        {
+          name: 'hash',
+          value: hash.toString('hex'),
+        },
+      ],
+      fields: [
+        {
+          name: 'notes',
+          type: 'integer',
+          value: transaction.notesLength(),
+        },
+        {
+          name: 'spends',
+          type: 'integer',
+          value: transaction.spendsLength(),
+        },
+      ],
+    })
+  }
+
+  /*
+   * We don't want to log all transaction propagation because there are too many
+   * In this way we can only log propagation for a percentage of transactions
+   */
+  private shouldSubmitTransaction(hash: TransactionHash) {
+    return hash.readDoubleBE() % 10000 === 0
   }
 }
