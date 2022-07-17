@@ -278,12 +278,18 @@ export class Accounts {
       accounts = this.listAccounts()
     }
 
+    if(headHash) {
+      console.log('updateHeadHashes', headHash.toString('hex'), accounts.map(a => a.id))
+    }
     for (const account of accounts) {
       await this.updateHeadHash(account, headHash)
     }
   }
 
   async updateHeadHash(account: Account, headHash: Buffer | null): Promise<void> {
+    if (headHash) {
+      console.log('updateHeadHash', account.id, headHash.toString('hex'))
+    }
     const hash = headHash ? headHash.toString('hex') : null
 
     const headStatus = this.headStatus.get(account.id)
@@ -640,8 +646,18 @@ export class Accounts {
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
-    const headSequence = this.chain.head.sequence
+    const headHash = await account.getHeadHash()
+    if (!headHash) {
+      return {
+        unconfirmed: BigInt(0),
+        confirmed: BigInt(0),
+      }
+    }
+    const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+    Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
+    const headSequence = header.sequence
     const unconfirmedSequenceStart = headSequence - this.config.get('minimumBlockConfirmations')
+    console.log(unconfirmedSequenceStart, headSequence)
     return account.getBalance(unconfirmedSequenceStart, headSequence)
   }
 

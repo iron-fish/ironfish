@@ -28,6 +28,7 @@ export class Account {
   >
 
   private readonly noteHashesBySequence: Map<number, string[]>
+  private readonly submittedNoteHashes: Set<string>
 
   readonly id: string
   readonly displayName: string
@@ -84,6 +85,7 @@ export class Account {
     }>()
 
     this.noteHashesBySequence = new Map<number, string[]>()
+    this.submittedNoteHashes = new Set<string>()
   }
 
   serialize(): AccountsValue {
@@ -189,10 +191,13 @@ export class Account {
       `Transaction undefined for '${transactionHash.toString('hex')}'`,
     )
 
-    const { sequence } = transaction
+    const { sequence, submittedSequence } = transaction
     if (sequence) {
       const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? []
       this.noteHashesBySequence.set(sequence, decryptedNotes.concat(noteHash))
+      this.submittedNoteHashes.delete(noteHash)
+    } else if (submittedSequence) {
+      this.submittedNoteHashes.add(noteHash)
     }
   }
 
@@ -330,6 +335,7 @@ export class Account {
       }
     }
 
+    this.submittedNoteHashes.delete(noteHash)
     this.decryptedNotes.delete(noteHash)
     await this.accountsDb.deleteDecryptedNote(noteHash, tx)
   }
@@ -466,7 +472,7 @@ export class Account {
     const unconfirmed = await this.getUnconfirmedBalance()
     let confirmed = unconfirmed
 
-    for (let i = unconfirmedSequenceStart; i <= headSequence; i++) {
+    for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
       const noteHashes = this.noteHashesBySequence.get(i)
       if (noteHashes) {
         for (const hash of noteHashes) {
@@ -476,6 +482,14 @@ export class Account {
             confirmed -= new Note(note.serializedNote).value()
           }
         }
+      }
+    }
+
+    for (const noteHash of this.submittedNoteHashes.values()) {
+      const note = this.decryptedNotes.get(noteHash)
+      Assert.isNotUndefined(note)
+      if (!note.spent) {
+        confirmed -= new Note(note.serializedNote).value()
       }
     }
 
@@ -494,5 +508,9 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.accountsDb.saveUnconfirmedBalance(this, balance, tx)
+  }
+
+  async getHeadHash(): Promise<string | null> {
+    return this.accountsDb.getHeadHash(this)
   }
 }

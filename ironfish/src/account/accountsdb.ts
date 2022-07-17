@@ -187,6 +187,12 @@ export class AccountsDB {
     }
   }
 
+  async getHeadHash(account: Account): Promise<string | null> {
+    const headHash = await this.headHashes.get(account.id)
+    Assert.isNotUndefined(headHash)
+    return headHash
+  }
+
   async saveHeadHash(account: Account, headHash: string | null): Promise<void> {
     await this.headHashes.put(account.id, headHash)
   }
