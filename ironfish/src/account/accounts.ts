@@ -658,6 +658,7 @@ export class Accounts {
     const headSequence = header.sequence
     const unconfirmedSequenceStart = headSequence - this.config.get('minimumBlockConfirmations')
     console.log(unconfirmedSequenceStart, headSequence)
+    // this should check main chain for unspent notes, that's why the slow test is failing
     return account.getBalance(unconfirmedSequenceStart, headSequence)
   }
 
