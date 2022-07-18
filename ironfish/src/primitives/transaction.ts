@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TransactionPosted } from '@ironfish/rust-nodejs'
+import { TransactionPosted, TransactionType } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Serde } from '../serde'
@@ -21,6 +21,7 @@ export class Transaction {
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _signature: Buffer
+  private readonly _type: TransactionType
   private _hash?: TransactionHash
 
   private transactionPosted: TransactionPosted | null = null
@@ -67,6 +68,9 @@ export class Transaction {
     })
 
     this._signature = reader.readBytes(64, true)
+
+    // TODO: Make these variable names match the transaction mod.rs
+    this._type = reader.readU8()
   }
 
   serialize(): Buffer {

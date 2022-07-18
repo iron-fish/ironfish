@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 
-describe('Accounts', () => {
+describe('Transaction', () => {
   const nodeTest = createNodeTest()
 
   it('produces unique transaction hashes', async () => {

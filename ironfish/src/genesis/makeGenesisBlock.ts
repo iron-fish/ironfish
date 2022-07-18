@@ -7,6 +7,7 @@ import {
   generateKey,
   Note as NativeNote,
   Transaction as NativeTransaction,
+  TransactionType,
 } from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
@@ -65,7 +66,7 @@ export async function makeGenesisBlock(
   logger.info(`Generating a miner's fee transaction for the block...`)
   const note = new NativeNote(account.publicAddress, BigInt(0), '')
 
-  const minersFeeTransaction = new NativeTransaction()
+  const minersFeeTransaction = new NativeTransaction(TransactionType.MinersFee)
   minersFeeTransaction.receive(account.spendingKey, note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
@@ -76,7 +77,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
-  const initialTransaction = new NativeTransaction()
+  const initialTransaction = new NativeTransaction(TransactionType.Normal)
 
   logger.info('  Generating the receipt...')
   initialTransaction.receive(genesisKey.spending_key, genesisNote)
@@ -112,7 +113,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction()
+  const transaction = new NativeTransaction(TransactionType.Normal)
   logger.info(`  Generating a spend for ${allocationSum} coins...`)
   transaction.spend(genesisKey.spending_key, genesisNote, witness)
 

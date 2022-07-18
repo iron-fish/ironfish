@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use ironfish_rust::transaction::TransactionType;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -151,16 +152,19 @@ pub struct NativeTransaction {
 
 impl Default for NativeTransaction {
     fn default() -> Self {
-        Self::new()
+        Self::new(0)
     }
 }
 
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new() -> NativeTransaction {
+    pub fn new(tx_type: u32) -> NativeTransaction {
         NativeTransaction {
-            transaction: ProposedTransaction::new(SAPLING.clone()),
+            transaction: ProposedTransaction::new(
+                SAPLING.clone(),
+                TransactionType::from_u8(tx_type as u8),
+            ),
         }
     }
 

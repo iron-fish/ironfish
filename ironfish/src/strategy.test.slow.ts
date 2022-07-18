@@ -9,6 +9,7 @@ import {
   Note as NativeNote,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
+  TransactionType,
 } from '@ironfish/rust-nodejs'
 import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
@@ -108,7 +109,7 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, BigInt(42), '')
 
-      const transaction = new NativeTransaction()
+      const transaction = new NativeTransaction(TransactionType.MinersFee)
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
@@ -131,7 +132,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(TransactionType.Normal)
       expect(transaction).toBeTruthy()
     })
 
@@ -268,7 +269,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a transaction', async () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(TransactionType.Normal)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {

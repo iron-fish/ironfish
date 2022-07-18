@@ -14,6 +14,13 @@ export interface NativeSpendProof {
   rootHash: Buffer
   nullifier: Buffer
 }
+export const enum TransactionType {
+  Normal = 0,
+  MinersFee = 1,
+  CreateAsset = 2,
+  MintAsset = 3,
+  BurnAsset = 4
+}
 export interface Key {
   spending_key: string
   incoming_view_key: string
@@ -78,7 +85,7 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor()
+  constructor(txType: number)
   /** Create a proof of a new note owned by the recipient in this transaction. */
   receive(spenderHexKey: string, note: Note): string
   /** Spend the note owned by spender_hex_key at the given witness location. */

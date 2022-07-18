@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Note, Transaction } from '@ironfish/rust-nodejs'
+import { Note, Transaction, TransactionType } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
@@ -210,7 +210,8 @@ export class CreateTransactionTask extends WorkerTask {
     receives,
     expirationSequence,
   }: CreateTransactionRequest): CreateTransactionResponse {
-    const transaction = new Transaction()
+    // TODO: MAGIC
+    const transaction = new Transaction(TransactionType.Normal)
     transaction.setExpirationSequence(expirationSequence)
 
     for (const spend of spends) {

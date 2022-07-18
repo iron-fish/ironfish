@@ -2,16 +2,16 @@
   "DecryptNotesTask execute posts the miners fee transaction": [
     {
       "name": "test",
-      "spendingKey": "7e4311d2d61fe05587816d10193c60e98b2085dfb0ecbdb42639e09f7811d48f",
-      "incomingViewKey": "4b418a76a156199bc160a6d0b4c647177f2535a96cdf57e5fa3f24963ed80203",
-      "outgoingViewKey": "82c5d61ff38c3c651200e8610016683d4cc3a37eec533c11810d6e13f1754099",
-      "publicAddress": "433c13f7f1a89a2dbcc0e9a4c16ee89dfc80050a5a7abe4ff78308a2317ca9645cc344b9e77f82f44bdfab",
+      "spendingKey": "da61edf5ccd3bfbe89e34a4920b75118392af3d5d2eca0adabfe5921558fb80c",
+      "incomingViewKey": "64c77061e3b1ced21d121bd9bf5fba59969c280a370fb523ef5617f489838003",
+      "outgoingViewKey": "c24486d84eba048e03f901fb71a2ca1526891bb14287c83df6ef0473b5337bb0",
+      "publicAddress": "218d78c0ef66077b2466e409ee649bcaec55ac23c962a6fbae4ca923c1729c776f497b7b200c0708d998d8",
       "rescan": null,
-      "displayName": "test (e18c3e4)"
+      "displayName": "test (bcb7c5e)"
     },
     {
       "type": "Buffer",
-      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAKxFAxjseyN6tbSvSA1vpDAS7hqhvxkJXUCIIR19E6jZW2X5zBWk9tRvqo8oBcCfBpncqwMSReNVwfa2B16FY7wlWeotVuiitIAStwgvZQui7YpY/DP9E+zP1L/eWEK3axbLD7CdgHNnHfYlg46+H77B1wns/7SPSMgN72pFK7Z9wWea5qd4ewfAouVGPlKcY4XBGAFVViy/fxSygO3PAdmdHRd0Dj4+sBJnes47aKIbVWkSo2q83zLIMXRazcs5zoPIGgFGo3Gk5MoDVw7hyIHvI8g68uiwd25iYsaoDERxWKudu7GJLhR/Ngz/CHSCKWmE/mBBnc90gexUQA+STWcz6JlySpFECW58DfXFqcoYADGyzipIAWeYzF12aX0In1XiCUy6uhIXBypivn7kDYRdHcuIVmTDGCNGN+u45eaOCTaSWuWJ6PB5uG5tn85ZPQxBfR0yagKx1yVrxkEIuJNU71Cr6hY0iJ6L+g74f2IlyeOjGUWEhyF0gh59RGU6jsPzbEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwnrNSQFABAWtSbSfXnM/U6b7bZ6Alcp93UXzhSv3rdr52sS0AR2uyLi69PQbx8jtU6IroaSbQm+lXqIbhujOfBg=="
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIH+m5bwAonOV6WA9wQU7RtKkGQSTp6LEsYhP9dp35NeyVgbvqfZh0xMkF4ZXvt/5YZlzrtk7OZPDTdvibIGW1xhrJkyP9pV1DncT8BiQLvjd3eXi/DYyRnyyjdOmJB12QspdFOLy71ozv6aFMTx2kre9o/tmSaY2aZO/L27glJNcf9QNi9qsno8eoWDYk1RQYR5/fF+bADs5p+6ZTkiM0yY+LtJKtYTn9dg4iwrxf4EzeeLpgjQkdHN+IaW9LhV6iqC3Q2IySUiOOwcSHf5q8L/cHKOr8u+3qDDt8qbD0UWrUuRsUY50+GHO9KvQvSuFRYKeecUt3JE7r8DnGJqmxod/jQy0537H+en6Edf4plyuYOrKXyo7KZhOrwfrwW27A3uw1xmD/L1ECcwounErigUYb38OdSkWyL0+PcUiG78SXb0wvpcQiugebUIXMdOQRyF/e3VsMT3O3Slu662PSylgeT9ZfMAIayUioPhNIrEyRWUmw4LHy/zRXsqg22jIQvbNEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw/xhgPmniuwjetormwgfjoR4Vcsil/IqZ4tl62r/Q8MiIGVMiwebwbIfJgl6iCZTJULUEc3lSyIKu+/6OaJjPBQA="
     }
   ]
 }
