@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
+import { NodeFileProvider } from '../fileSystems/nodeFileSystem'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
@@ -28,9 +29,12 @@ describe('Read genesis block', () => {
   })
 
   it('Can start a chain with the existing genesis block', async () => {
+    const files = new NodeFileProvider()
+    await files.init()
+
     const workerPool = new WorkerPool()
     const strategy = new Strategy(workerPool)
-    const chain = new Blockchain({ location: makeDbPath(), strategy, workerPool })
+    const chain = new Blockchain({ location: makeDbPath(), strategy, workerPool, files })
     await chain.open()
 
     // We should also be able to create new blocks after the genesis block

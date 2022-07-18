@@ -9,16 +9,12 @@ import { PromiseUtils } from './promise'
 /**
  * Try to open the node DB's and wait until they can be opened
  */
-async function waitForOpen(
-  node: IronfishNode,
-  abort?: null | (() => boolean),
-  options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-): Promise<void> {
+async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): Promise<void> {
   let logged = false
 
   while (!abort || !abort()) {
     try {
-      await node.openDB(options)
+      await node.openDB()
       return
     } catch (e) {
       if (e instanceof DatabaseIsLockedError) {

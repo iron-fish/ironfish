@@ -7,12 +7,12 @@ import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Migration } from '../migration'
 
-export default class Migration010 extends Migration {
-  name = '010-chain'
+export default class Migration012 extends Migration {
+  name = '012-indexer'
 
   async prepare(node: IronfishNode): Promise<IDatabase> {
-    await node.files.mkdir(node.chain.location, { recursive: true })
-    return createDB({ location: node.chain.location })
+    await node.files.mkdir(node.minedBlocksIndexer.location, { recursive: true })
+    return createDB({ location: node.minedBlocksIndexer.location })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function

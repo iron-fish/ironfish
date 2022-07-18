@@ -16,7 +16,7 @@ export class RevertCommand extends IronfishCommand {
   async start(): Promise<void> {
     await this.parse(RevertCommand)
 
-    const migrator = new Migrator({ sdk: this.sdk, logger: this.logger })
-    await migrator.revert()
+    const node = await this.sdk.node()
+    await node.migrator.revert()
   }
 }

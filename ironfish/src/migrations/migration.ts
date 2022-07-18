@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishSdk } from '../sdk'
+import { IronfishNode } from '../node'
 import { IDatabase, IDatabaseTransaction } from '../storage'
 
 export abstract class Migration {
@@ -14,7 +14,7 @@ export abstract class Migration {
     return this
   }
 
-  abstract prepare(sdk: IronfishSdk): Promise<IDatabase> | IDatabase
-  abstract forward(sdk: IronfishSdk, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
-  abstract backward(sdk: IronfishSdk, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
+  abstract prepare(node: IronfishNode): Promise<IDatabase> | IDatabase
+  abstract forward(node: IronfishNode, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
+  abstract backward(node: IronfishNode, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
 }

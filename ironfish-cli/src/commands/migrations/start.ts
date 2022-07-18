@@ -16,8 +16,8 @@ export class StartCommand extends IronfishCommand {
   async start(): Promise<void> {
     await this.parse(StartCommand)
 
-    const migrator = new Migrator({ sdk: this.sdk, logger: this.logger })
-    await migrator.migrate()
+    const node = await this.sdk.node()
+    await node.migrator.migrate()
 
     this.exit(0)
   }

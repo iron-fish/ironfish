@@ -129,19 +129,8 @@ export default class Start extends IronfishCommand {
       port,
       workers,
       generateNewIdentity,
+      upgrade,
     } = flags
-
-    if (
-      flags.upgrade !== undefined &&
-      flags.upgrade !== this.sdk.config.get('databaseMigrate')
-    ) {
-      this.sdk.config.setOverride('databaseMigrate', flags.upgrade)
-    }
-
-    if (this.sdk.config.get('databaseMigrate')) {
-      const migrator = new Migrator({ sdk: this.sdk, logger: this.logger })
-      await migrator.migrate({ quietNoop: true })
-    }
 
     if (bootstrap !== undefined) {
       // Parse comma-separated bootstrap nodes
@@ -181,6 +170,9 @@ export default class Start extends IronfishCommand {
       generateNewIdentity !== this.sdk.config.get('generateNewIdentity')
     ) {
       this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
+    }
+    if (upgrade !== undefined && upgrade !== this.sdk.config.get('databaseMigrate')) {
+      this.sdk.config.setOverride('databaseMigrate', upgrade)
     }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {

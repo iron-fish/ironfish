@@ -16,7 +16,7 @@ export class StatusCommand extends IronfishCommand {
   async start(): Promise<void> {
     await this.parse(StatusCommand)
 
-    const migrator = new Migrator({ sdk: this.sdk, logger: this.logger })
-    await migrator.check()
+    const node = await this.sdk.node()
+    await node.migrator.check()
   }
 }

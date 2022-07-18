@@ -23,7 +23,7 @@ export default class Debug extends IronfishCommand {
 
     let dbOpen = true
     try {
-      await node.openDB({ upgrade: false })
+      await node.openDB()
     } catch (err) {
       if (err instanceof DatabaseIsLockedError) {
         this.log('Database in use, skipping output that requires database.')

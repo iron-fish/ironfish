@@ -4,25 +4,52 @@
 
 /* eslint-disable no-console */
 import { Logger } from '../logger'
-import { IronfishSdk } from '../sdk'
+import { IronfishNode } from '../node'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
 import { Migration } from './migration'
 
 export class Migrator {
-  readonly sdk: IronfishSdk
+  readonly node: IronfishNode
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { sdk: IronfishSdk; logger: Logger }) {
-    this.sdk = options.sdk
+  constructor(options: { node: IronfishNode; logger: Logger }) {
+    this.node = options.node
     this.logger = options.logger
 
     this.migrations = MIGRATIONS.map((m) => new m().init()).sort((a, b) => a.id - b.id)
   }
 
+  /**
+   * Returns true if any database is at version 0
+   */
+  async isInitial(): Promise<boolean> {
+    for (const migration of this.migrations) {
+      if (await this.isEmpty(migration)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Returns true if the migration database is at version 0
+   */
+  async isEmpty(migration: Migration): Promise<boolean> {
+    const db = await migration.prepare(this.node)
+
+    try {
+      await db.open()
+      const version = await db.getVersion()
+      return version === 0
+    } finally {
+      await db.close()
+    }
+  }
+
   async isApplied(migration: Migration): Promise<boolean> {
-    const db = await migration.prepare(this.sdk)
+    const db = await migration.prepare(this.node)
 
     try {
       await db.open()
@@ -41,13 +68,13 @@ export class Migrator {
 
       if (applied) {
         this.logger.info(`Reverting ${migration.name}`)
-        const db = await migration.prepare(this.sdk)
+        const db = await migration.prepare(this.node)
 
         try {
           await db.open()
 
           await db.transaction(async (tx) => {
-            await migration.backward(this.sdk, db, tx)
+            await migration.backward(this.node, db, tx)
             await db.putVersion(migration.id - 1, tx)
           })
         } finally {
@@ -73,7 +100,9 @@ export class Migrator {
     const unapplied = status.filter(([, applied]) => !applied).map(([migration]) => migration)
 
     if (unapplied.length === 0) {
-      logger?.info(`All ${this.migrations.length} migrations applied.`)
+      if (!options?.quietNoop) {
+        logger?.info(`All ${this.migrations.length} migrations applied.`)
+      }
       return
     }
 
@@ -82,13 +111,13 @@ export class Migrator {
     for (const migration of unapplied) {
       writeOut?.(`  Applying ${migration.name}...`)
 
-      const db = await migration.prepare(this.sdk)
+      const db = await migration.prepare(this.node)
 
       try {
         await db.open()
 
         await db.transaction(async (tx) => {
-          await migration.forward(this.sdk, db, tx)
+          await migration.forward(this.node, db, tx)
           await db.putVersion(migration.id, tx)
         })
       } catch (e) {
@@ -102,9 +131,7 @@ export class Migrator {
       writeOut?.(` OK\n`)
     }
 
-    if (unapplied.length || !options?.quietNoop) {
-      logger?.info(`Successfully ran ${unapplied.length} migrations`)
-    }
+    logger?.info(`Successfully ran ${unapplied.length} migrations`)
   }
 
   async check(): Promise<void> {

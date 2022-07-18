@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import '../testUtilities/matchers/error'
 import leveldown from 'leveldown'
 import { IJsonSerializable } from '../serde'
 import { PromiseUtils } from '../utils'
@@ -9,6 +10,7 @@ import {
   ArrayEncoding,
   BufferEncoding,
   DatabaseSchema,
+  DatabaseVersionError,
   DuplicateKeyError,
   JsonEncoding,
   StringEncoding,
@@ -93,11 +95,13 @@ describe('Database', () => {
   it('should upgrade and throw upgrade error', async () => {
     await db.open()
     expect(await db.metaStore.get('version')).toBe(undefined)
+    expect(await db.getVersion()).toBe(0)
 
-    await db.upgrade(1)
+    await expect(db.upgrade(1)).toRejectErrorInstance(DatabaseVersionError)
+
+    await db.putVersion(1)
     expect(await db.metaStore.get('version')).toBe(1)
-
-    await expect(db.upgrade(3)).rejects.toThrowError('You are running a newer')
+    expect(await db.getVersion()).toBe(1)
   })
 
   it('should store and get values', async () => {
