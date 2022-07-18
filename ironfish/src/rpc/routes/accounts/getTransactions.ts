@@ -17,6 +17,7 @@ export type GetAccountTransactionsResponse = {
     fee: number
     notes: number
     spends: number
+    expiration: number
   }[]
 }
 
@@ -42,6 +43,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
               fee: yup.number().defined(),
               notes: yup.number().defined(),
               spends: yup.number().defined(),
+              expiration: yup.number().defined(),
             })
             .defined(),
         )
