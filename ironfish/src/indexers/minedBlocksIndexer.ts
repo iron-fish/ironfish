@@ -192,12 +192,6 @@ export class MinedBlocksIndexer {
     }
 
     this.isOpen = false
-    await this.closeDB()
-  }
-
-  async openDB(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {}
-
-  async closeDB(): Promise<void> {
     await this.database.close()
   }
 

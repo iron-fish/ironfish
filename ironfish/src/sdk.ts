@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { isFunction } from 'lodash'
 import { BoxKeyPair } from 'tweetnacl'
 import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
@@ -15,7 +14,6 @@ import {
 } from './logger'
 import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
-import { Migrator } from './migrations'
 import { PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { IronfishNode } from './node'
