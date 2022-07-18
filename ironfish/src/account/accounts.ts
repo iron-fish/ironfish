@@ -1096,6 +1096,7 @@ export class Accounts {
       fee: number
       notes: number
       spends: number
+      expiration: number
     }[]
   } {
     this.assertHasAccount(account)
@@ -1130,6 +1131,7 @@ export class Accounts {
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),
           spends: transaction.spendsLength(),
+          expiration: transaction.expirationSequence(),
         })
       }
     }
