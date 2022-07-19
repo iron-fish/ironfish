@@ -249,13 +249,13 @@ describe('PeerNetwork', () => {
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
 
-    it('bans the peer when requesting transactions past the end of the block', async () => {
+    it('responds with CannotSatisfy when requesting transactions past the end of the block', async () => {
       const { peerNetwork, node } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const peerIdentity = peer.getIdentityOrThrow()
 
-      const punishSpy = jest.spyOn(peer, 'punish')
+      const sendSpy = jest.spyOn(peer, 'send')
 
       const rpcId = 432
       const genesisBlock = await node.chain.getBlock(node.chain.genesis.hash)
@@ -266,26 +266,28 @@ describe('PeerNetwork', () => {
         [genesisBlock.transactions.length + 1],
         rpcId,
       )
+      const response = new CannotSatisfyRequest(rpcId)
 
       await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
 
-      expect(punishSpy).toReturnWith(true)
+      expect(sendSpy).toHaveBeenCalledWith(response)
     })
 
-    it('bans the peer when requesting transactions with negative indexes', async () => {
+    it('responds with CannotSatisfy when requesting transactions with negative indexes', async () => {
       const { peerNetwork, node } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const peerIdentity = peer.getIdentityOrThrow()
 
-      const punishSpy = jest.spyOn(peer, 'punish')
+      const sendSpy = jest.spyOn(peer, 'send')
 
       const rpcId = 432
       const message = new GetBlockTransactionsRequest(node.chain.genesis.hash, [-1], rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
 
       await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
 
-      expect(punishSpy).toReturnWith(true)
+      expect(sendSpy).toHaveBeenCalledWith(response)
     })
   })
 
