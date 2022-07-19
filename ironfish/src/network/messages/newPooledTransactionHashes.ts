@@ -10,7 +10,7 @@ export class NewPooledTransactionHashes extends NetworkMessage {
   hashes: TransactionHash[]
 
   constructor(hashes: TransactionHash[]) {
-    super(NetworkMessageType.PooledTransactionsRequest)
+    super(NetworkMessageType.NewPooledTransactionHashes)
     this.hashes = hashes
   }
 
@@ -32,7 +32,7 @@ export class NewPooledTransactionHashes extends NetworkMessage {
     const hashes = []
 
     for (let i = 0; i < length; i++) {
-      const hash = reader.readBytes(32)
+      const hash = reader.readHash()
       hashes.push(hash)
     }
 
