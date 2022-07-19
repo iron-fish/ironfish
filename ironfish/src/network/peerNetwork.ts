@@ -73,6 +73,8 @@ import { WebSocketServer } from './webSocketServer'
 const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
 
+const MAX_GET_BLOCK_TRANSACTIONS_DEPTH = 10
+
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
@@ -561,7 +563,7 @@ export class PeerNetwork {
         } else if (rpcMessage instanceof PooledTransactionsRequest) {
           responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
-          responseMessage = this.onGetBlockTransactionsRequest(rpcMessage)
+          responseMessage = await this.onGetBlockTransactionsRequest(peer, rpcMessage)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -718,11 +720,70 @@ export class PeerNetwork {
     return new PooledTransactionsResponse(transactions, rpcId)
   }
 
-  private onGetBlockTransactionsRequest(
+  private async onGetBlockTransactionsRequest(
+    peer: Peer,
     message: GetBlockTransactionsRequest,
-  ): GetBlockTransactionsResponse {
-    // TODO(IRO-2279): Implement a handler for this
-    return new GetBlockTransactionsResponse(message.blockHash, [], message.rpcId)
+  ): Promise<GetBlockTransactionsResponse> {
+    const block = await this.chain.db.withTransaction(null, async (tx) => {
+      const header = await this.chain.getHeader(message.blockHash, tx)
+
+      if (header === null) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested transactions for block ${message.blockHash.toString(
+            'hex',
+          )} that isn't in the database`,
+        )
+      }
+
+      if (header.sequence < this.chain.head.sequence - MAX_GET_BLOCK_TRANSACTIONS_DEPTH) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested transactions for block ${message.blockHash.toString(
+            'hex',
+          )} with sequence ${header.sequence} while chain head is at sequence ${
+            this.chain.head.sequence
+          }`,
+        )
+      }
+
+      const block = await this.chain.getBlock(header, tx)
+
+      Assert.isNotNull(
+        block,
+        'Database should contain transactions if it contains block header',
+      )
+
+      return block
+    })
+
+    if (message.transactionIndexes.length > block.transactions.length) {
+      const errorMessage = `Requested ${
+        message.transactionIndexes.length
+      } transactions for block ${block.header.hash.toString('hex')} that contains ${
+        block.transactions.length
+      } transactions`
+      throw new CannotSatisfyRequestError(errorMessage)
+    }
+
+    const transactions = []
+    let currentIndex = 0
+    for (const transactionIndex of message.transactionIndexes) {
+      if (transactionIndex < 0) {
+        const errorMessage = `Requested negative transaction index`
+        throw new CannotSatisfyRequestError(errorMessage)
+      }
+
+      currentIndex += transactionIndex
+
+      if (currentIndex >= block.transactions.length) {
+        const errorMessage = `Requested transaction index past the end of the block's transactions`
+        throw new CannotSatisfyRequestError(errorMessage)
+      }
+
+      transactions.push(block.transactions[currentIndex].serialize())
+      currentIndex++
+    }
+
+    return new GetBlockTransactionsResponse(message.blockHash, transactions, message.rpcId)
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
