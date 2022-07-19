@@ -761,7 +761,6 @@ export class PeerNetwork {
       } transactions for block ${block.header.hash.toString('hex')} that contains ${
         block.transactions.length
       } transactions`
-      peer.punish(BAN_SCORE.MAX, errorMessage)
       throw new CannotSatisfyRequestError(errorMessage)
     }
 
@@ -770,7 +769,6 @@ export class PeerNetwork {
     for (const transactionIndex of message.transactionIndexes) {
       if (transactionIndex < 0) {
         const errorMessage = `Requested negative transaction index`
-        peer.punish(BAN_SCORE.MAX, errorMessage)
         throw new CannotSatisfyRequestError(errorMessage)
       }
 
@@ -778,7 +776,6 @@ export class PeerNetwork {
 
       if (currentIndex >= block.transactions.length) {
         const errorMessage = `Requested transaction index past the end of the block's transactions`
-        peer.punish(BAN_SCORE.MAX, errorMessage)
         throw new CannotSatisfyRequestError(errorMessage)
       }
 
