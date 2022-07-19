@@ -26,7 +26,7 @@ export type GetStatusResponse = {
     memTotal: number
   }
   miningDirector: {
-    status: 'started'
+    status: 'started' | 'stopped'
     miners: number
     blocks: number
   }
@@ -205,7 +205,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       memTotal: node.metrics.memTotal,
     },
     miningDirector: {
-      status: 'started',
+      status: node.miningManager.minersConnected ? 'started' : 'stopped',
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
     },
