@@ -4,6 +4,7 @@
 
 use super::{panic_hook, WasmIoError, WasmSaplingKeyError};
 use ironfish_rust::note::Memo;
+use ironfish_rust::primitives::asset_type::AssetType;
 use ironfish_rust::sapling_bls12::{Key, Note};
 use wasm_bindgen::prelude::*;
 
@@ -21,7 +22,7 @@ impl WasmNote {
         let owner_address =
             ironfish_rust::PublicAddress::from_hex(owner).map_err(WasmSaplingKeyError)?;
         Ok(WasmNote {
-            note: Note::new(owner_address, value, Memo::from(memo)),
+            note: Note::new(owner_address, value, Memo::from(memo), AssetType::default()),
         })
     }
 
