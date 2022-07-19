@@ -8,26 +8,31 @@ import { Transaction, TransactionHash } from '../primitives/transaction'
 import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import { Peer, PeerState } from './peers/peer'
 
+type TxState =
+  | {
+      peer: Peer
+      action: 'REQUEST_SCHEDULED'
+      timeout: NodeJS.Timeout
+    }
+  | {
+      peer: Peer
+      action: 'IN_FLIGHT'
+      timeout: NodeJS.Timeout
+      clearDisconnectHandler: () => void
+    }
+
 /**
  * When a node receives a new transaction hash is needs to query the sender for
  * the full transaction object. This class encapsulates logic for resolving transaction
- * hashes to full transactions from the network
+ * hashes to full transactions from the network. It operates as a state machine. Each transaction
+ * hash has it's own state which changes when peers are queried, requests timeout or a
+ * full transaction is received from the network
  */
 export class TxFetcher {
-  private readonly pending = new BufferMap<
-    | {
-        peer: Peer
-        action: 'REQUEST_SCHEDULED'
-        timeout: NodeJS.Timeout
-      }
-    | {
-        peer: Peer
-        action: 'IN_FLIGHT'
-        timeout: NodeJS.Timeout
-        clearDisconnectHandler: () => void
-      }
-  >()
+  // State of the current requests for each transaction
+  private readonly pending = new BufferMap<TxState>()
 
+  // Set of peers that also may be able to fetch the transaction
   private readonly sources = new BufferMap<Set<Peer>>()
 
   private readonly memPool: MemPool
@@ -36,8 +41,12 @@ export class TxFetcher {
     this.memPool = memPool
   }
 
+  /* Called when a new transaction hash is received from the newtork
+   * This schedules requests for the hash to be sent out and if
+   * requests are already in progress, it adds the peer as a backup source */
   addSource(hash: TransactionHash, peer: Peer): void {
-    if (this.alreadyResolved(hash)) {
+    if (this.isResolved(hash)) {
+      this.removeState(hash)
       return
     }
 
@@ -56,20 +65,21 @@ export class TxFetcher {
     }
   }
 
-  fetchFromNextSource(hash: TransactionHash): void {
-    if (this.alreadyResolved(hash)) {
-      this.pending.delete(hash)
+  /* Called when a transaction is received and confirmed from the network
+   * either in a block or in a gossiped transaction request */
+  resolve(transaction: Transaction): void {
+    this.removeState(transaction.hash())
+  }
+
+  private fetchFromNextSource(hash: TransactionHash): void {
+    if (this.isResolved(hash)) {
+      this.removeState(hash)
       return
     }
 
     // Clear the previous source
     const currentState = this.pending.get(hash)
-    if (currentState && currentState.action === 'IN_FLIGHT') {
-      clearTimeout(currentState.timeout)
-      currentState.clearDisconnectHandler()
-    } else if (currentState && currentState.action === 'REQUEST_SCHEDULED') {
-      clearTimeout(currentState.timeout)
-    }
+    currentState && this.cleanupCallbacks(currentState)
 
     // Get the next source
     const peer = this.popSource(hash)
@@ -87,8 +97,9 @@ export class TxFetcher {
     })
   }
 
-  sendRequest(hash: TransactionHash, peer: Peer): void {
-    if (this.alreadyResolved(hash)) {
+  private sendRequest(hash: TransactionHash, peer: Peer): void {
+    if (this.isResolved(hash)) {
+      this.removeState(hash)
       return
     }
 
@@ -125,22 +136,6 @@ export class TxFetcher {
     })
   }
 
-  transactionResolved(transaction: Transaction): void {
-    const hash = transaction.hash()
-    const currentState = this.pending.get(hash)
-
-    if (currentState && currentState.action === 'IN_FLIGHT') {
-      currentState.clearDisconnectHandler()
-    }
-
-    if (currentState) {
-      clearTimeout(currentState.timeout)
-    }
-
-    this.pending.delete(hash)
-    this.sources.delete(hash)
-  }
-
   private popSource(hash: TransactionHash): Peer | undefined {
     const sources = this.sources.get(hash)
 
@@ -161,8 +156,26 @@ export class TxFetcher {
     return nextSource
   }
 
-  private alreadyResolved(hash: TransactionHash): boolean {
-    // TODO(daniel): Also return transactions that were recently added to the chain
+  private removeState(hash: TransactionHash): void {
+    const currentState = this.pending.get(hash)
+
+    currentState && this.cleanupCallbacks(currentState)
+
+    this.pending.delete(hash)
+    this.sources.delete(hash)
+  }
+
+  private cleanupCallbacks(state: TxState) {
+    if (state.action === 'IN_FLIGHT') {
+      clearTimeout(state.timeout)
+      state.clearDisconnectHandler()
+    } else if (state.action === 'REQUEST_SCHEDULED') {
+      clearTimeout(state.timeout)
+    }
+  }
+
+  private isResolved(hash: TransactionHash): boolean {
+    // TODO: Also check transactions recently added to the chain
     return this.memPool.exists(hash)
   }
 }
