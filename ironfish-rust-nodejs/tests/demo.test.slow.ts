@@ -39,8 +39,8 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction()
-    const note = new Note(key.public_address, BigInt(20), 'test')
+    const transaction = new Transaction(0)
+    const note = new Note(key.public_address, BigInt(20), 'test', '')
     transaction.receive(key.spending_key, note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -76,17 +76,17 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction()
-    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner')
+    const minersFeeTransaction = new Transaction(0)
+    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', '')
     minersFeeTransaction.receive(key.spending_key, minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
-    const transaction = new Transaction()
+    const transaction = new Transaction(0)
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
-    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
+    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', '')
 
     let currentHash = encryptedNote.merkleHash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {
@@ -109,7 +109,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.spend(key.spending_key, decryptedNote, witness)
     transaction.receive(key.spending_key, newNote)
 
-    const postedTransaction = new TransactionPosted(transaction.post(key.spending_key, key.public_address, BigInt(5)))
+    const postedTransaction = new TransactionPosted(transaction.post(key.spending_key, key.public_address, BigInt(5), ''))
 
     expect(postedTransaction.expirationSequence()).toEqual(10)
     expect(postedTransaction.fee()).toEqual(BigInt(5))

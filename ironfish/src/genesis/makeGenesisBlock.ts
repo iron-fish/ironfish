@@ -55,6 +55,7 @@ export async function makeGenesisBlock(
     genesisKey.public_address,
     BigInt(allocationSum),
     info.memo,
+    '',
   )
 
   // Create a miner's fee transaction for the block.
@@ -64,7 +65,7 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+  const note = new NativeNote(account.publicAddress, BigInt(0), '', '')
 
   const minersFeeTransaction = new NativeTransaction(TransactionType.MinersFee)
   minersFeeTransaction.receive(account.spendingKey, note)
@@ -121,13 +122,13 @@ export async function makeGenesisBlock(
     logger.info(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
+    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo, '')
     transaction.receive(genesisKey.spending_key, note)
   }
 
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
-    transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
+    transaction.post(genesisKey.spending_key, undefined, BigInt(0), ''),
   )
   transactionList.push(postedTransaction)
 

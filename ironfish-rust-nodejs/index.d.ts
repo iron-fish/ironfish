@@ -48,7 +48,7 @@ export class NoteEncrypted {
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string)
+  constructor(owner: string, value: bigint, memo: string, identifier: string)
   static deserialize(bytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */
@@ -110,7 +110,7 @@ export class Transaction {
    * sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
    * aka: self.transaction_fee - intended_transaction_fee - change = 0
    */
-  post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
+  post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint, assetIdentifier: string): Buffer
   setExpirationSequence(expirationSequence: number): void
 }
 export class FoundBlockResult {

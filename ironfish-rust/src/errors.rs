@@ -11,6 +11,7 @@ use bellman::SynthesisError;
 /// Error raised if constructing a sapling key fails for any reason.
 #[derive(Debug)]
 pub enum SaplingKeyError {
+    AssetError,
     IOError,
     FieldDecodingError,
     InvalidViewingKey,
@@ -32,6 +33,12 @@ impl Error for SaplingKeyError {}
 impl From<io::Error> for SaplingKeyError {
     fn from(_e: io::Error) -> SaplingKeyError {
         SaplingKeyError::IOError
+    }
+}
+
+impl From<AssetError> for SaplingKeyError {
+    fn from(_e: AssetError) -> SaplingKeyError {
+        SaplingKeyError::AssetError
     }
 }
 
@@ -111,6 +118,7 @@ impl From<io::Error> for TransactionError {
 /// Errors raised when constructing a note
 #[derive(Debug)]
 pub enum NoteError {
+    AssetError,
     IoError,
     RandomnessError,
     KeyError,
@@ -137,15 +145,28 @@ impl From<SaplingKeyError> for NoteError {
     }
 }
 
+impl From<AssetError> for NoteError {
+    fn from(_e: AssetError) -> NoteError {
+        NoteError::AssetError
+    }
+}
+
 /// Errors raised when creating an asset
 #[derive(Debug)]
 pub enum AssetError {
+    IoError,
     RandomnessError,
 }
 
 impl fmt::Display for AssetError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl From<io::Error> for AssetError {
+    fn from(_e: io::Error) -> AssetError {
+        AssetError::IoError
     }
 }
 

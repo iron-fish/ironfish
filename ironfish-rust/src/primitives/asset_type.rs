@@ -2,6 +2,7 @@
 
 use blake2s_simd::Params as Blake2sParams;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
+use std::io;
 use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 
 use crate::{errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION};
@@ -15,7 +16,6 @@ lazy_static! {
 #[derive(Copy, Clone, Debug)]
 pub struct AssetType {
     identifier: [u8; ASSET_IDENTIFIER_LENGTH], // 32 byte asset type preimage
-    nonce: Option<u8>,
 }
 
 // Abstract type representing an asset
@@ -59,7 +59,6 @@ impl AssetType {
         if AssetType::hash_to_point(h.as_array()).is_some() {
             Some(AssetType {
                 identifier: *h.as_array(),
-                nonce: Some(nonce),
             })
         } else {
             None
@@ -112,7 +111,6 @@ impl AssetType {
         if AssetType::hash_to_point(identifier).is_some() {
             Some(AssetType {
                 identifier: *identifier,
-                nonce: None,
             })
         } else {
             None // invalid asset identifier
@@ -139,8 +137,24 @@ impl AssetType {
         }
     }
 
-    pub fn get_nonce(&self) -> Option<u8> {
-        self.nonce
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, AssetError> {
+        let mut identifier = [0; ASSET_IDENTIFIER_LENGTH];
+        reader.read_exact(&mut identifier)?;
+
+        Ok(AssetType { identifier })
+    }
+
+    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+        writer.write_all(&self.identifier)?;
+        Ok(())
+    }
+
+    pub fn from_string(string: String) -> Option<Self> {
+        let identifier_as_bytes = string.as_bytes();
+        let num_to_clone = std::cmp::min(identifier_as_bytes.len(), 32);
+        let mut identifier_bytes = [0; ASSET_IDENTIFIER_LENGTH];
+        identifier_bytes[..num_to_clone].clone_from_slice(&identifier_as_bytes[..num_to_clone]);
+        AssetType::from_identifier(&identifier_bytes)
     }
 }
 
