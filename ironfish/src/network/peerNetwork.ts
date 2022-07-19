@@ -39,6 +39,7 @@ import {
 import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
+import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import {
   PooledTransactionsRequest,
@@ -474,6 +475,8 @@ export class PeerNetwork {
       this.handleNewBlockHashesMessage(peer, message)
     } else if (message instanceof NewBlockV2Message) {
       this.handleNewBlockV2Message(peer, message)
+    } else if (message instanceof NewPooledTransactionHashes) {
+      this.handleNewPooledTransactionHashes(peer, message)
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
@@ -594,6 +597,10 @@ export class PeerNetwork {
   }
 
   private handleNewBlockV2Message(peer: Peer, message: NewBlockV2Message) {
+    this.logger.debug(`Received unimplemented message ${message.type}`)
+  }
+
+  private handleNewPooledTransactionHashes(peer: Peer, message: NewPooledTransactionHashes) {
     this.logger.debug(`Received unimplemented message ${message.type}`)
   }
 
