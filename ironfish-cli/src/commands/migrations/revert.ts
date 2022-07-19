@@ -5,7 +5,9 @@ import { IronfishCommand } from '../../command'
 import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
 
 export class RevertCommand extends IronfishCommand {
-  static description = `Run migrations`
+  static description = `Revert the last run migration`
+
+  static hidden = true
 
   static flags = {
     [ConfigFlagKey]: ConfigFlag,

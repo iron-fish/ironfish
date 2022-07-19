@@ -5,7 +5,7 @@ import { IronfishCommand } from '../../command'
 import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
 
 export class StatusCommand extends IronfishCommand {
-  static description = `Run migrations`
+  static description = `List all the migration statuses`
 
   static flags = {
     [ConfigFlagKey]: ConfigFlag,
