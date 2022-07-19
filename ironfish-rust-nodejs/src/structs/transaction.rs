@@ -237,7 +237,6 @@ impl NativeTransaction {
         spender_hex_key: String,
         change_goes_to: Option<String>,
         intended_transaction_fee: BigInt,
-        asset_identifier: String,
     ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
@@ -257,7 +256,6 @@ impl NativeTransaction {
                 &spender_key,
                 change_key,
                 intended_transaction_fee_u64,
-                asset_identifier,
             )
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
