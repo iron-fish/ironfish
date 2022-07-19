@@ -42,6 +42,7 @@
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start:dev": "node start",
+	"start:once": "yarn build && yarn start:js",
     "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node bin/run",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
