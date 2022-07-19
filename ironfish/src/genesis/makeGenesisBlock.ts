@@ -128,7 +128,7 @@ export async function makeGenesisBlock(
 
   logger.info('  Posting the transaction...')
   const postedTransaction = new Transaction(
-    transaction.post(genesisKey.spending_key, undefined, BigInt(0), ''),
+    transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
   )
   transactionList.push(postedTransaction)
 

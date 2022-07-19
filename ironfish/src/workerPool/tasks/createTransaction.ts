@@ -228,12 +228,7 @@ export class CreateTransactionTask extends WorkerTask {
       transaction.receive(spendKey, note)
     }
 
-    const serializedTransactionPosted = transaction.post(
-      spendKey,
-      undefined,
-      transactionFee,
-      '',
-    )
+    const serializedTransactionPosted = transaction.post(spendKey, undefined, transactionFee)
 
     return new CreateTransactionResponse(serializedTransactionPosted, jobId)
   }
