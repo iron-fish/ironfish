@@ -60,6 +60,7 @@ import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
+import { TxFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
 import { VERSION_PROTOCOL } from './version'
@@ -108,6 +109,7 @@ export class PeerNetwork {
   private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
+  private readonly txFetcher: TxFetcher
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -204,6 +206,14 @@ export class PeerNetwork {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
       this.gossip(new NewTransactionMessage(serializedTransaction))
+    })
+
+    this.txFetcher = new TxFetcher(this.node.memPool)
+
+    this.chain.onConnectBlock.on((block) => {
+      for (const transaction of block.transactions) {
+        this.txFetcher.resolve(transaction)
+      }
     })
   }
 
@@ -871,6 +881,7 @@ export class PeerNetwork {
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
       this.onTransactionAccepted.emit(transaction, received)
+      this.txFetcher.resolve(transaction)
       return true
     }
 
