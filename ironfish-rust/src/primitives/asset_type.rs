@@ -106,14 +106,16 @@ impl AssetType {
     }
 
     /// Attempt to construct an asset type from an existing asset identifier
-    pub fn from_identifier(identifier: &[u8; ASSET_IDENTIFIER_LENGTH]) -> Option<AssetType> {
+    pub fn from_identifier(
+        identifier: &[u8; ASSET_IDENTIFIER_LENGTH],
+    ) -> Result<AssetType, AssetError> {
         // Attempt to hash to point
         if AssetType::hash_to_point(identifier).is_some() {
-            Some(AssetType {
+            Ok(AssetType {
                 identifier: *identifier,
             })
         } else {
-            None // invalid asset identifier
+            Err(AssetError::InvalidIdentifier)
         }
     }
 
@@ -149,11 +151,11 @@ impl AssetType {
         Ok(())
     }
 
-    pub fn from_string(string: String) -> Option<Self> {
+    pub fn from_string(string: String) -> Result<AssetType, AssetError> {
         let identifier_as_bytes = string.as_bytes();
         let num_to_clone = std::cmp::min(identifier_as_bytes.len(), 32);
         let mut identifier_bytes = [0; ASSET_IDENTIFIER_LENGTH];
-        identifier_bytes[..num_to_clone].clone_from_slice(&identifier_as_bytes[..num_to_clone]);
+        identifier_bytes[..num_to_clone].copy_from_slice(&identifier_as_bytes[..num_to_clone]);
         AssetType::from_identifier(&identifier_bytes)
     }
 }

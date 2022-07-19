@@ -23,7 +23,7 @@ impl NativeNote {
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
         let asset_type = asset_type::AssetType::from_string(identifier)
-            .ok_or(Error::from_reason("foo".to_string()))?;
+            .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(NativeNote {
             note: Note::new(owner_address, value_u64, Memo::from(memo), asset_type),
         })

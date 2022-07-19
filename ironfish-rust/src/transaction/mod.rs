@@ -183,8 +183,7 @@ impl ProposedTransaction {
             return Err(TransactionError::InvalidBalanceError);
         }
         if change_amount > 0 {
-            let asset_type = AssetType::from_string(asset_identifier)
-                .ok_or(TransactionError::VerificationFailed)?;
+            let asset_type = AssetType::from_string(asset_identifier)?;
 
             // TODO: The public address generated from the spender_key if
             // change_goes_to is None should probably be associated with a

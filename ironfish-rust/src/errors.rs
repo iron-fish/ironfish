@@ -83,6 +83,7 @@ impl From<io::Error> for SaplingProofError {
 /// Errors raised when constructing a transaction
 #[derive(Debug)]
 pub enum TransactionError {
+    AssetError(AssetError),
     InvalidBalanceError,
     IllegalValueError,
     SigningError,
@@ -112,6 +113,12 @@ impl From<SaplingProofError> for TransactionError {
 impl From<io::Error> for TransactionError {
     fn from(e: io::Error) -> TransactionError {
         TransactionError::IoError(e)
+    }
+}
+
+impl From<AssetError> for TransactionError {
+    fn from(e: AssetError) -> TransactionError {
+        TransactionError::AssetError(e)
     }
 }
 
@@ -154,6 +161,7 @@ impl From<AssetError> for NoteError {
 /// Errors raised when creating an asset
 #[derive(Debug)]
 pub enum AssetError {
+    InvalidIdentifier,
     IoError,
     RandomnessError,
 }
