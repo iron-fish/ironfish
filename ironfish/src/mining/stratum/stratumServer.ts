@@ -288,6 +288,7 @@ export class StratumServer {
       )}`,
     )
 
+    client.socket.removeAllListeners()
     client.close()
     this.clients.delete(client.id)
     this.peers.removeConnectionCount(client)
