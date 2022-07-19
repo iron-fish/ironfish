@@ -40,7 +40,7 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction(0)
-    const note = new Note(key.public_address, BigInt(20), 'test', '')
+    const note = new Note(key.public_address, BigInt(20), 'test', Note.getDefaultIdentifier())
     transaction.receive(key.spending_key, note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -86,7 +86,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
-    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', '')
+    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Note.getDefaultIdentifier())
 
     let currentHash = encryptedNote.merkleHash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {

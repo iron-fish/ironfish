@@ -17,12 +17,14 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String, asset_identifier: String) -> Result<Self> {
+    pub fn new(owner: String, value: BigInt, memo: String, asset_identifier: Buffer) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
-        let asset_type = AssetType::from_string(asset_identifier)
+        let mut identifier = [0; 32];
+        identifier.copy_from_slice(&asset_identifier);
+        let asset_type = AssetType::from_identifier(&identifier)
             .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(NativeNote {
             note: Note::new(owner_address, value_u64, Memo::from(memo), asset_type),
@@ -76,5 +78,10 @@ impl NativeNote {
         let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 
         Ok(Buffer::from(nullifier))
+    }
+
+    #[napi]
+    pub fn get_default_identifier() -> Buffer {
+        Buffer::from(AssetType::default().get_identifier().to_vec())
     }
 }

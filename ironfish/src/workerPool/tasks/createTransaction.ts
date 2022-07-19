@@ -224,7 +224,7 @@ export class CreateTransactionTask extends WorkerTask {
     }
 
     for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(publicAddress, amount, memo, '')
+      const note = new Note(publicAddress, amount, memo, Note.getDefaultIdentifier())
       transaction.receive(spendKey, note)
     }
 

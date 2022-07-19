@@ -150,14 +150,6 @@ impl AssetType {
         writer.write_all(&self.identifier)?;
         Ok(())
     }
-
-    pub fn from_string(string: String) -> Result<AssetType, AssetError> {
-        let identifier_as_bytes = string.as_bytes();
-        let num_to_clone = std::cmp::min(identifier_as_bytes.len(), 32);
-        let mut identifier_bytes = [0; ASSET_IDENTIFIER_LENGTH];
-        identifier_bytes[..num_to_clone].copy_from_slice(&identifier_as_bytes[..num_to_clone]);
-        AssetType::from_identifier(&identifier_bytes)
-    }
 }
 
 impl PartialEq for AssetType {

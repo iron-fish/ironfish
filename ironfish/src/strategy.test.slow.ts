@@ -107,7 +107,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '', '')
+      minerNote = new NativeNote(owner, BigInt(42), '', NativeNote.getDefaultIdentifier())
 
       const transaction = new NativeTransaction(TransactionType.MinersFee)
       expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
@@ -147,7 +147,12 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
-      const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '', '')
+      const receivingNote = new NativeNote(
+        receiverKey.public_address,
+        BigInt(40),
+        '',
+        NativeNote.getDefaultIdentifier(),
+      )
       const result = transaction.receive(spenderKey.spending_key, receivingNote)
       expect(result).toEqual('')
     })
@@ -282,12 +287,17 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '', '')
+      const noteForSpender = new NativeNote(
+        spenderKey.public_address,
+        BigInt(10),
+        '',
+        NativeNote.getDefaultIdentifier(),
+      )
       const receiverNoteToSelf = new NativeNote(
         generateNewPublicAddress(receiverKey.spending_key).public_address,
         BigInt(29),
         '',
-        '',
+        NativeNote.getDefaultIdentifier(),
       )
 
       expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')

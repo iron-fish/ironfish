@@ -6,6 +6,7 @@ import type { Account } from '../account'
 import {
   generateKey,
   Note as NativeNote,
+  Note,
   Transaction as NativeTransaction,
   TransactionType,
 } from '@ironfish/rust-nodejs'
@@ -55,7 +56,7 @@ export async function makeGenesisBlock(
     genesisKey.public_address,
     BigInt(allocationSum),
     info.memo,
-    '',
+    Note.getDefaultIdentifier(),
   )
 
   // Create a miner's fee transaction for the block.
@@ -65,7 +66,7 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(account.publicAddress, BigInt(0), '', '')
+  const note = new NativeNote(account.publicAddress, BigInt(0), '', Note.getDefaultIdentifier())
 
   const minersFeeTransaction = new NativeTransaction(TransactionType.MinersFee)
   minersFeeTransaction.receive(account.spendingKey, note)
@@ -122,7 +123,12 @@ export async function makeGenesisBlock(
     logger.info(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo, '')
+    const note = new NativeNote(
+      alloc.publicAddress,
+      BigInt(alloc.amount),
+      info.memo,
+      Note.getDefaultIdentifier(),
+    )
     transaction.receive(genesisKey.spending_key, note)
   }
 
