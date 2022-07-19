@@ -17,12 +17,12 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String, identifier: String) -> Result<Self> {
+    pub fn new(owner: String, value: BigInt, memo: String, asset_identifier: String) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
             .map_err(|err| Error::from_reason(err.to_string()))?;
-        let asset_type = AssetType::from_string(identifier)
+        let asset_type = AssetType::from_string(asset_identifier)
             .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(NativeNote {
             note: Note::new(owner_address, value_u64, Memo::from(memo), asset_type),
