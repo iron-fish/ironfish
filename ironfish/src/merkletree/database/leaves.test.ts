@@ -15,7 +15,7 @@ describe('NoteLeafEncoding', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const encoding = new NoteLeafEncoding()
     const key = generateKey()
-    const note = new Note(key.public_address, 10n, '', Note.getDefaultIdentifier())
+    const note = new Note(key.public_address, 10n, '', Note.getDefaultAssetIdentifier())
     const tx = new Transaction(TransactionType.Normal)
     tx.receive(key.spending_key, note)
     const buf = tx.post_miners_fee()

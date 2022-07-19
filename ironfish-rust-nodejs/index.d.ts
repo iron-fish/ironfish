@@ -68,7 +68,7 @@ export class Note {
    * 'nullifier set', preventing double-spend.
    */
   nullifier(ownerPrivateKey: string, position: bigint): Buffer
-  static getDefaultIdentifier(): Buffer
+  static getDefaultAssetIdentifier(): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {

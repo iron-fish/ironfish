@@ -81,7 +81,7 @@ impl NativeNote {
     }
 
     #[napi]
-    pub fn get_default_identifier() -> Buffer {
+    pub fn get_default_asset_identifier() -> Buffer {
         Buffer::from(AssetType::default().get_identifier().to_vec())
     }
 }
