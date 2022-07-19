@@ -175,7 +175,6 @@ impl ProposedTransaction {
         spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
-        asset_identifier: String,
     ) -> Result<Transaction, TransactionError> {
         let change_amount = self.transaction_fee - intended_transaction_fee as i64;
 
@@ -183,8 +182,6 @@ impl ProposedTransaction {
             return Err(TransactionError::InvalidBalanceError);
         }
         if change_amount > 0 {
-            let asset_type = AssetType::from_string(asset_identifier)?;
-
             // TODO: The public address generated from the spender_key if
             // change_goes_to is None should probably be associated with a
             // known diversifier (eg: that used on other notes?)
@@ -196,7 +193,7 @@ impl ProposedTransaction {
                 change_address,
                 change_amount as u64, // we checked it was positive
                 Memo([0; 32]),
-                asset_type,
+                AssetType::default(),
             );
             self.receive(spender_key, &change_note)?;
         }
