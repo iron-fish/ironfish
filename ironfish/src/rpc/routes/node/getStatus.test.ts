@@ -13,14 +13,14 @@ describe('Route node/getStatus', () => {
 
     expect(response.content).toMatchObject({
       node: {
-        status: 'stopped' ,
+        status: 'stopped',
       },
       memory: {
         heapUsed: expect.any(Number),
         rss: expect.any(Number),
       },
       miningDirector: {
-        status: 'stopped',
+        status: 'started',
       },
       blockSyncer: {
         status: 'stopped',
