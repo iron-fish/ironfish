@@ -252,11 +252,7 @@ impl NativeTransaction {
 
         let posted_transaction = self
             .transaction
-            .post(
-                &spender_key,
-                change_key,
-                intended_transaction_fee_u64,
-            )
+            .post(&spender_key, change_key, intended_transaction_fee_u64)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         let mut vec: Vec<u8> = vec![];

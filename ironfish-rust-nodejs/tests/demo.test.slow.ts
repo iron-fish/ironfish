@@ -77,7 +77,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction(0)
-    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', '')
+    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Note.getDefaultAssetIdentifier())
     minersFeeTransaction.receive(key.spending_key, minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
@@ -109,7 +109,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.spend(key.spending_key, decryptedNote, witness)
     transaction.receive(key.spending_key, newNote)
 
-    const postedTransaction = new TransactionPosted(transaction.post(key.spending_key, key.public_address, BigInt(5), ''))
+    const postedTransaction = new TransactionPosted(transaction.post(key.spending_key, key.public_address, BigInt(5)))
 
     expect(postedTransaction.expirationSequence()).toEqual(10)
     expect(postedTransaction.fee()).toEqual(BigInt(5))

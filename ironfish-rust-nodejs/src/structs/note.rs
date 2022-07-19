@@ -17,7 +17,12 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String, asset_identifier: Buffer) -> Result<Self> {
+    pub fn new(
+        owner: String,
+        value: BigInt,
+        memo: String,
+        asset_identifier: Buffer,
+    ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
