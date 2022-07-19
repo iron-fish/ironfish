@@ -304,7 +304,10 @@ impl<'a> Note {
 #[cfg(test)]
 mod test {
     use super::{Memo, Note};
-    use crate::keys::{shared_secret, SaplingKey};
+    use crate::{
+        keys::{shared_secret, SaplingKey},
+        primitives::asset_type::AssetType,
+    };
 
     #[test]
     fn test_plaintext_serialization() {
