@@ -13,7 +13,7 @@ import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionHash } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
@@ -429,6 +429,11 @@ export class Accounts {
     }
 
     return decryptedNotes
+  }
+
+  async transactionIsSynced(hash: TransactionHash): Promise<boolean> {
+    // TODO: Implement
+    return Promise.resolve(false)
   }
 
   /**

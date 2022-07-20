@@ -18,7 +18,7 @@ import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
-import { SerializedTransaction } from '../primitives/transaction'
+import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
@@ -106,10 +106,6 @@ export class PeerNetwork {
   private readonly strategy: Strategy
   private readonly chain: Blockchain
   private readonly seenGossipFilter: RollingFilter
-  private readonly seenTransactionsFilter = new RollingFilter(
-    GOSSIP_FILTER_SIZE,
-    GOSSIP_FILTER_FP_RATE,
-  )
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
 
@@ -208,7 +204,6 @@ export class PeerNetwork {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
       const message = new NewTransactionMessage(serializedTransaction)
-      this.seenTransactionsFilter.add(message.nonce)
 
       for (const peer of this.peerManager.getConnectedPeers()) {
         if (peer.send(message)) {
@@ -349,12 +344,16 @@ export class PeerNetwork {
     }
   }
 
-  private getPeersToSendTo(peerIdentity: string): ReadonlyArray<Peer> {
+  private getPeersToSendTo(peerIdentity: string, hash: TransactionHash): ReadonlyArray<Peer> {
     const peersConnections =
       this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
 
     return [...this.peerManager.identifiedPeers.values()].filter((p) => {
       if (p.state.type !== 'CONNECTED') {
+        return false
+      }
+
+      if (p.knownTransactionHashes.has(hash)) {
         return false
       }
 
@@ -855,7 +854,15 @@ export class PeerNetwork {
       return false
     }
 
-    if (!this.seenTransactionsFilter.added(message.message.nonce)) {
+    const hash = new Transaction(message.message.transaction).hash()
+
+    const peersToSendTo = this.getPeersToSendTo(message.peerIdentity, hash)
+
+    if (
+      (await this.node.accounts.transactionIsSynced(hash)) &&
+      this.node.memPool.exists(hash) &&
+      peersToSendTo.length === 0
+    ) {
       return false
     }
 
@@ -879,7 +886,6 @@ export class PeerNetwork {
     // relevant to the accounts, despite coming from a different node.
     await this.node.accounts.syncTransaction(transaction, {})
 
-    const peersToSendTo = this.getPeersToSendTo(message.peerIdentity)
     // If we know the mempool already has this transaction, we know that
     // the mempool won't accept it, but it is still a valid transaction
     // so we want to gossip it.
