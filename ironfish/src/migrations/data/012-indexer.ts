@@ -8,7 +8,7 @@ import { createDB } from '../../storage/utils'
 import { Migration } from '../migration'
 
 export default class Migration012 extends Migration {
-  name = '012-indexer'
+  path = __filename
 
   async prepare(node: IronfishNode): Promise<IDatabase> {
     await node.files.mkdir(node.minedBlocksIndexer.location, { recursive: true })

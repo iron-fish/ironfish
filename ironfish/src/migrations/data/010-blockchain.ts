@@ -8,7 +8,7 @@ import { createDB } from '../../storage/utils'
 import { Migration } from '../migration'
 
 export default class Migration010 extends Migration {
-  name = '010-chain'
+  path = __filename
 
   async prepare(node: IronfishNode): Promise<IDatabase> {
     await node.files.mkdir(node.chain.location, { recursive: true })

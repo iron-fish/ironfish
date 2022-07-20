@@ -18,7 +18,9 @@ export class Migrator {
     this.node = options.node
     this.logger = options.logger
 
-    this.migrations = MIGRATIONS.map((m) => new m().init()).sort((a, b) => a.id - b.id)
+    this.migrations = MIGRATIONS.map((m) => new m().init(options.node.files)).sort(
+      (a, b) => a.id - b.id,
+    )
   }
 
   /**

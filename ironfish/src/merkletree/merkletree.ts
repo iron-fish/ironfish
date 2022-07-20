@@ -171,7 +171,7 @@ export class MerkleTree<
         Assert.isNever(countType)
       }
 
-      await this.counter.put(countType, count)
+      await this.counter.put(countType, count, tx)
     }
 
     return count
