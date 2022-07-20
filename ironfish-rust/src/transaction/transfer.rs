@@ -2,11 +2,10 @@
 // let tx = TransferTransaction::build(spends, outputs);
 // tx.verify();
 
-use std::{cmp::Ordering, io, ops::AddAssign, sync::Arc};
+use std::{cmp::Ordering, io, sync::Arc};
 
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
@@ -21,7 +20,7 @@ use crate::{
     receiving::OutputSignature,
     spending::SpendSignature,
     witness::WitnessTrait,
-    Note, ReceiptParams, ReceiptProof, Sapling, SaplingKey, SpendParams, SpendProof,
+    AssetType, Note, ReceiptParams, ReceiptProof, Sapling, SaplingKey, SpendParams, SpendProof,
 };
 
 use super::{
@@ -86,7 +85,12 @@ impl TransferTransaction {
                 // TODO: AsRef or something?
                 let spender_key = spends[0].spender_key.clone();
                 let payout_address = spender_key.generate_public_address();
-                let change_note = Note::new(payout_address, change_amount as u64, Memo::default());
+                let change_note = Note::new(
+                    payout_address,
+                    change_amount as u64,
+                    Memo::default(),
+                    AssetType::default(),
+                );
                 // TODO: we should verify this output value change_amount - this = 0
                 let (mut change_output_params, _total_output_value) = add_outputs(
                     sapling.clone(),
@@ -387,7 +391,7 @@ mod tests {
         sapling_bls12,
         test_util::make_fake_witness,
         transaction::transfer::{Output, Spend, Transaction, TransferTransaction},
-        Note, SaplingKey,
+        AssetType, Note, SaplingKey,
     };
 
     #[test]
@@ -397,9 +401,24 @@ mod tests {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
 
-        let in_note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
-        let out_note = Note::new(receiver_key.generate_public_address(), 40, Memo::default());
-        let in_note2 = Note::new(spender_key.generate_public_address(), 18, Memo::default());
+        let in_note = Note::new(
+            spender_key.generate_public_address(),
+            42,
+            Memo::default(),
+            AssetType::default(),
+        );
+        let out_note = Note::new(
+            receiver_key.generate_public_address(),
+            40,
+            Memo::default(),
+            AssetType::default(),
+        );
+        let in_note2 = Note::new(
+            spender_key.generate_public_address(),
+            18,
+            Memo::default(),
+            AssetType::default(),
+        );
 
         let witness = make_fake_witness(&in_note);
         let _witness2 = make_fake_witness(&in_note2);
@@ -452,8 +471,8 @@ mod tests {
         let spender_address = spender_key.generate_public_address();
         let receiver_address = receiver_key.generate_public_address();
 
-        let in_note = Note::new(spender_address, 42, Memo::default());
-        let out_note = Note::new(receiver_address, 41, Memo::default());
+        let in_note = Note::new(spender_address, 42, Memo::default(), AssetType::default());
+        let out_note = Note::new(receiver_address, 41, Memo::default(), AssetType::default());
         let witness = make_fake_witness(&in_note);
 
         let spends = vec![Spend::new(spender_key.clone(), &in_note, &witness)];
