@@ -7,7 +7,7 @@ import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-export const ENCRYPTED_NOTE_LENGTH = 32 + 32 + 32 + 83 + 16 + 64 + 16
+export const ENCRYPTED_NOTE_LENGTH = 32 + 32 + 32 + 115 + 16 + 64 + 16
 
 export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
@@ -35,7 +35,7 @@ export class NoteEncrypted {
     // ephememeral public key
     reader.seek(32)
     // encrypted note
-    reader.seek(83)
+    reader.seek(115)
     // aead MAC
     reader.seek(16)
     // note encryption keys
@@ -44,7 +44,7 @@ export class NoteEncrypted {
     reader.seek(16)
 
     // total serialized size: 192 (proof from transaction)
-    // + 32 + 32 + 32 + 83 + 16 + 64 + 16 = 467 bytes
+    // + 32 + 32 + 32 + 115 + 16 + 64 + 16 = 499 bytes
   }
 
   serialize(): Buffer {
