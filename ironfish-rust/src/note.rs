@@ -23,7 +23,7 @@ pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Memo(pub [u8; 32]);
 
 impl From<&str> for Memo {

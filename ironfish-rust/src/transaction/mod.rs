@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::primitives::asset_type::AssetType;
+pub mod transfer;
+use crate::{
+    primitives::asset_type::AssetType, receiving::OutputSignature, spending::SpendSignature,
+};
 
 use super::{
     errors::{SaplingProofError, TransactionError},
@@ -191,6 +194,7 @@ impl ProposedTransaction {
             .note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
         self._partial_post()
     }
+
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
