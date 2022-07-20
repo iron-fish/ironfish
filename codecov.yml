@@ -1,7 +1,6 @@
 ignore:
   - config/*
   - ironfish-rust-nodejs/*
-  - ironfish-rust-wasm/*
 comment: false
 github_checks:
   annotations: false

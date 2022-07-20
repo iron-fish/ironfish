@@ -64,7 +64,6 @@ Once your environment is set up - you can run the CLI by following [these direct
 - [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command-line interface built on Node. More details in [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
 - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
 - [ironfish-rust-nodejs](./ironfish-rust-nodejs/README.md): Wrapper for `ironfish-rust` as a native NodeJS addon.
-- [ironfish-rust-wasm](./ironfish-rust-wasm/README.md): Wrapper for `ironfish-rust` in WASM.
 
 ## Contributing Code
 

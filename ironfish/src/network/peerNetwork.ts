@@ -348,6 +348,32 @@ export class PeerNetwork {
     }
   }
 
+  private broadcastTransaction(
+    gossipMessage: NewTransactionMessage,
+    peerIdentity: string,
+  ): void {
+    const peersConnections =
+      this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
+
+    for (const activePeer of this.peerManager.getConnectedPeers()) {
+      if (activePeer.state.type !== 'CONNECTED') {
+        throw new Error('Peer not in state CONNECTED returned from getConnectedPeers')
+      }
+
+      // To reduce network noise, we don't send the message back to the peer that
+      // sent it to us, or any of the peers connected to it
+      if (
+        activePeer.state.identity === peerIdentity ||
+        (peersConnections.has(activePeer.state.identity) &&
+          peersConnections.get(activePeer.state.identity)?.state.type === 'CONNECTED')
+      ) {
+        continue
+      }
+
+      activePeer.send(gossipMessage)
+    }
+  }
+
   /**
    * Fire an RPC request to the given peer identity. Returns a promise that
    * will resolve when the response is received, or will be rejected if the
@@ -498,44 +524,16 @@ export class PeerNetwork {
 
     const peerIdentity = peer.getIdentityOrThrow()
 
-    let gossip
     if (gossipMessage instanceof NewBlockMessage) {
-      gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
+      const gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
 
       if (gossip) {
         this.broadcastBlock(gossipMessage)
       }
-
-      return
     } else if (gossipMessage instanceof NewTransactionMessage) {
-      gossip = await this.onNewTransaction({ peerIdentity, message: gossipMessage })
+      await this.onNewTransaction({ peerIdentity, message: gossipMessage })
     } else {
       throw new Error(`Invalid gossip message type: '${gossipMessage.type}'`)
-    }
-
-    if (!gossip) {
-      return
-    }
-
-    const peersConnections =
-      this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
-
-    for (const activePeer of this.peerManager.getConnectedPeers()) {
-      if (activePeer.state.type !== 'CONNECTED') {
-        throw new Error('Peer not in state CONNECTED returned from getConnectedPeers')
-      }
-
-      // To reduce network noise, we don't send the message back to the peer that
-      // sent it to us, or any of the peers connected to it
-      if (
-        activePeer.state.identity === peerIdentity ||
-        (peersConnections.has(activePeer.state.identity) &&
-          peersConnections.get(activePeer.state.identity)?.state.type === 'CONNECTED')
-      ) {
-        continue
-      }
-
-      activePeer.send(gossipMessage)
     }
   }
 
@@ -866,11 +864,13 @@ export class PeerNetwork {
     // the mempool won't accept it, but it is still a valid transaction
     // so we want to gossip it.
     if (this.node.memPool.exists(transaction.hash())) {
+      this.broadcastTransaction(message.message, message.peerIdentity)
       return true
     }
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
       this.onTransactionAccepted.emit(transaction, received)
+      this.broadcastTransaction(message.message, message.peerIdentity)
       return true
     }
 
