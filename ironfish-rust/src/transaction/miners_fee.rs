@@ -60,7 +60,6 @@ impl MinersFeeTransaction {
         calculated_public_key -= value_balance_point;
 
         if calculated_public_key != public_key.0 {
-            println!("UHOH:\n{}\n{}", calculated_public_key, public_key.0);
             return Err(TransactionError::InvalidBalanceError);
         }
 
