@@ -37,28 +37,6 @@ mod tests;
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 
-#[derive(Clone)]
-pub enum TransactionType {
-    Normal,
-    MinersFee,
-    CreateAsset,
-    MintAsset,
-    BurnAsset,
-}
-
-impl TransactionType {
-    pub fn from_u8(type_num: u8) -> TransactionType {
-        match type_num {
-            0 => Self::Normal,
-            1 => Self::MinersFee,
-            2 => Self::CreateAsset,
-            3 => Self::MintAsset,
-            4 => Self::BurnAsset,
-            _ => Self::Normal,
-        }
-    }
-}
-
 /// A collection of spend and receipt proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the receipt values.
 ///
@@ -97,15 +75,13 @@ pub struct ProposedTransaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
-
-    transaction_type: TransactionType,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
 }
 
 impl ProposedTransaction {
-    pub fn new(sapling: Arc<Sapling>, tx_type: TransactionType) -> ProposedTransaction {
+    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction {
         ProposedTransaction {
             sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
@@ -114,7 +90,6 @@ impl ProposedTransaction {
             receipts: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
-            transaction_type: tx_type,
         }
     }
 
@@ -253,7 +228,6 @@ impl ProposedTransaction {
             spends: spend_proofs,
             receipts: receipt_proofs,
             binding_signature,
-            transaction_type: self.transaction_type.clone(),
         })
     }
 
@@ -387,8 +361,6 @@ pub struct Transaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
-
-    transaction_type: TransactionType,
 }
 
 impl Transaction {
@@ -412,7 +384,6 @@ impl Transaction {
             receipts.push(ReceiptProof::read(&mut reader)?);
         }
         let binding_signature = Signature::read(&mut reader)?;
-        let transaction_type = TransactionType::from_u8(reader.read_u8()?);
 
         Ok(Transaction {
             sapling,
@@ -421,7 +392,6 @@ impl Transaction {
             receipts,
             binding_signature,
             expiration_sequence,
-            transaction_type,
         })
     }
 
@@ -439,7 +409,6 @@ impl Transaction {
             receipt.write(&mut writer)?;
         }
         self.binding_signature.write(&mut writer)?;
-        writer.write_u8(self.transaction_type.clone() as u8)?;
 
         Ok(())
     }
