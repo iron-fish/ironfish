@@ -5,5 +5,5 @@ module.exports = {
   watchPlugins: ["../config/jestWatchPlugin"],
   coverageProvider: "v8",
   coverageReporters: ["text-summary", "json", "clover", "text"],
-  testPathIgnorePatterns: [".*\\.test\\.slow\\.ts$", ".*\\.test\\.perf\\.ts$"],
+  testPathIgnorePatterns: ['.*\\.test\\.slow\\.ts$', '.*\\.test\\.perf\\.ts$'],
 };

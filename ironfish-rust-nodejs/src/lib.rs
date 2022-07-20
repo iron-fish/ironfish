@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// use ironfish_rust::transaction::TransactionType as NativeTransactionType;
 use napi::bindgen_prelude::*;
 use napi::Error;
 use napi_derive::napi;
@@ -11,16 +10,6 @@ use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
 
 pub mod structs;
-
-// TODO: Try to re-use the main transaction type enum
-#[napi]
-pub enum TransactionType {
-    Normal,
-    MinersFee,
-    CreateAsset,
-    MintAsset,
-    BurnAsset,
-}
 
 #[napi(object)]
 pub struct Key {

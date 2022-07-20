@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::transaction::TransactionType;
 use wasm_bindgen::prelude::*;
 
 use ironfish_rust::sapling_bls12::{Key, ProposedTransaction, PublicAddress, Transaction, SAPLING};
@@ -113,7 +112,7 @@ impl WasmTransaction {
         panic_hook::set_once();
 
         WasmTransaction {
-            transaction: ProposedTransaction::new(SAPLING.clone(), TransactionType::Normal),
+            transaction: ProposedTransaction::new(SAPLING.clone()),
         }
     }
 

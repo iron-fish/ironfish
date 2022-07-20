@@ -11,7 +11,6 @@ use crate::{
     primitives::asset_type::AssetType,
     sapling_bls12,
     test_util::make_fake_witness,
-    transaction::TransactionType,
 };
 
 use zcash_primitives::redjubjub::Signature;
@@ -19,7 +18,7 @@ use zcash_primitives::redjubjub::Signature;
 #[test]
 fn test_transaction() {
     let sapling = sapling_bls12::SAPLING.clone();
-    let mut transaction = ProposedTransaction::new(sapling.clone(), TransactionType::Normal);
+    let mut transaction = ProposedTransaction::new(sapling.clone());
     let spender_key: SaplingKey = SaplingKey::generate_key();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let in_note = Note::new(
@@ -108,7 +107,7 @@ fn test_transaction() {
 #[test]
 fn test_miners_fee() {
     let sapling = &*sapling_bls12::SAPLING;
-    let mut transaction = ProposedTransaction::new(sapling.clone(), TransactionType::Normal);
+    let mut transaction = ProposedTransaction::new(sapling.clone());
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let out_note = Note::new(
         receiver_key.generate_public_address(),
@@ -142,7 +141,7 @@ fn test_transaction_signature() {
     let spender_address = spender_key.generate_public_address();
     let receiver_address = receiver_key.generate_public_address();
 
-    let mut transaction = ProposedTransaction::new(sapling, TransactionType::Normal);
+    let mut transaction = ProposedTransaction::new(sapling);
     let in_note = Note::new(spender_address, 42, Memo([0; 32]), AssetType::default());
     let out_note = Note::new(receiver_address, 41, Memo([0; 32]), AssetType::default());
     let witness = make_fake_witness(&in_note);
