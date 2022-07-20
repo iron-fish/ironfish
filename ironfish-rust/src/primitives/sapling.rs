@@ -7,8 +7,7 @@ use rand::{CryptoRng, Rng, RngCore};
 use zcash_primitives::{
     constants,
     keys::prf_expand,
-    sapling::pedersen_hash::{pedersen_hash, Personalization},
-    sapling::{Nullifier, Rseed, ViewingKey},
+    sapling::{pedersen_hash, pedersen_hash::Personalization, Nullifier, Rseed, ViewingKey},
 };
 
 use super::asset_type::AssetType;
@@ -80,7 +79,7 @@ impl Note {
         assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
 
         // Compute the Pedersen hash of the note contents
-        let hash_of_contents = pedersen_hash(
+        let hash_of_contents = pedersen_hash::pedersen_hash(
             Personalization::NoteCommitment,
             note_contents
                 .into_iter()

@@ -8,10 +8,8 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use jubjub::ExtendedPoint;
+use jubjub::ExtendedPoint; 
 use zcash_primitives::constants;
-
-use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey};
 
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean::{self, AllocatedBit, Boolean};
@@ -20,6 +18,7 @@ use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
 use zcash_proofs::circuit::ecc::EdwardsPoint;
 use zcash_proofs::circuit::{ecc, pedersen_hash};
+use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey};
 use zcash_proofs::constants::{
     NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
     PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
@@ -647,9 +646,9 @@ mod test {
     use group::{Curve, Group};
     use rand::{prelude::StdRng, Rng, RngCore, SeedableRng};
     use zcash_primitives::{
-        sapling::pedersen_hash,
         sapling::{Diversifier, ProofGenerationKey, Rseed},
     };
+    use zcash_primitives::sapling::pedersen_hash::{pedersen_hash, Personalization};
 
     #[test]
     fn test_input_circuit_with_bls12_381() {
@@ -727,8 +726,8 @@ mod test {
                     let lhs = lhs.to_le_bits();
                     let rhs = rhs.to_le_bits();
 
-                    cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-                        pedersen_hash::Personalization::MerkleTree(i),
+                    cur = jubjub::ExtendedPoint::from(pedersen_hash(
+                        Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
                             .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),
@@ -890,8 +889,8 @@ mod test {
                     let lhs = lhs.to_le_bits();
                     let rhs = rhs.to_le_bits();
 
-                    cur = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-                        pedersen_hash::Personalization::MerkleTree(i),
+                    cur = jubjub::ExtendedPoint::from(pedersen_hash(
+                        Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
                             .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),

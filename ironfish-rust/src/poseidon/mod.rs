@@ -2,9 +2,15 @@
 use std::ops::AddAssign;
 use std::ops::SubAssign;
 
+use bls12_381::Bls12;
+use ff::Field;
+use ff::PrimeField;
+use rand::RngCore;
 use rand::{Rng};
 
 use std::ops::MulAssign;
+
+use self::bls12::Bls12PoseidonParams;
 
 pub mod bls12;
 
@@ -46,7 +52,7 @@ fn batch_inversion(v: &mut [jubjub::Fr]) {
         // Ignore zero elements
         .filter(|g| !g.is_zero_vartime())
     {
-        tmp.mul_assign(&g);
+        tmp.mul_assign(g);
         prod.push(tmp);
     }
 
@@ -65,7 +71,7 @@ fn batch_inversion(v: &mut [jubjub::Fr]) {
     {
         // tmp := tmp * g.z; g.z := tmp * s = 1/z
         let mut newtmp = tmp;
-        newtmp.mul_assign(&g);
+        newtmp.mul_assign(*g);
         *g = tmp;
         g.mul_assign(&s);
         tmp = newtmp;
@@ -103,7 +109,7 @@ pub trait PoseidonEngine {
     type SBox: SBox;
 }
 
-pub fn poseidon_hash<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]) -> Vec<jubjub::Fr> {
+pub fn poseidon_hash(params: &Bls12PoseidonParams, input: &[jubjub::Fr]) -> Vec<jubjub::Fr> {
     let output_len = params.output_len() as usize;
     let absorbtion_len = params.absorbtion_cycle_len() as usize;
     let t = params.t();
@@ -131,7 +137,7 @@ pub fn poseidon_hash<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]
     state[..output_len].to_vec()
 }
 
-pub fn poseidon_mimc<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]) -> Vec<jubjub::Fr> {
+pub fn poseidon_mimc(params: &Bls12PoseidonParams, input: &[jubjub::Fr]) -> Vec<jubjub::Fr> {
     assert_eq!(input.len(), params.t() as usize);
     let mut state = input.to_vec();
     let state_len = params.t() as usize;
@@ -153,7 +159,7 @@ pub fn poseidon_mimc<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]
             el.add_assign(c);
         }
 
-        E::SBox::apply(&mut state[..]);
+        QuinticSBox::apply(&mut state[..]);
 
         let mut new_state = vec![jubjub::Fr::zero(); state_len];
 
@@ -172,7 +178,7 @@ pub fn poseidon_mimc<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]
             el.add_assign(c);
         }
 
-        E::SBox::apply(&mut state[0..1]);
+        QuinticSBox::apply(&mut state[0..1]);
 
         let mut new_state = vec![jubjub::Fr::zero(); state_len];
 
@@ -192,7 +198,7 @@ pub fn poseidon_mimc<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]
             el.add_assign(c);
         }
 
-        E::SBox::apply(&mut state[..]);
+        QuinticSBox::apply(&mut state[..]);
 
         let mut new_state = vec![jubjub::Fr::zero(); state_len];
 
@@ -211,7 +217,7 @@ pub fn poseidon_mimc<E: PoseidonEngine>(params: &E::Params, input: &[jubjub::Fr]
             el.add_assign(c);
         }
 
-        E::SBox::apply(&mut state[..]);
+        QuinticSBox::apply(&mut state[..]);
     }
 
     state
@@ -231,10 +237,10 @@ fn scalar_product(input: &[jubjub::Fr], by: &[jubjub::Fr]) -> jubjub::Fr {
 
 // For simplicity we'll not generate a matrix using a way from the paper and sampling
 // an element with some zero MSBs and instead just sample and retry
-fn generate_mds_matrix<E: PoseidonEngine, R: Rng>(t: u32, rng: &mut R) -> Vec<jubjub::Fr> {
+fn generate_mds_matrix(t: u32, mut rng: &mut dyn RngCore) -> Vec<jubjub::Fr> {
     loop {
-        let x: Vec<jubjub::Fr> = (0..t).map(|_| rng.gen()).collect();
-        let y: Vec<jubjub::Fr> = (0..t).map(|_| rng.gen()).collect();
+        let x: Vec<jubjub::Fr> = (0..t).map(|_| jubjub::Fr::random(&mut rng)).collect();
+        let y: Vec<jubjub::Fr> = (0..t).map(|_| jubjub::Fr::random(&mut rng)).collect();
 
         let mut invalid = false;
 
