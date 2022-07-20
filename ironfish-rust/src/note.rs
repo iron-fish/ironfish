@@ -19,7 +19,7 @@ use zcash_primitives::primitives::{Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 
-pub const ENCRYPTED_NOTE_SIZE: usize = 83;
+pub const ENCRYPTED_NOTE_SIZE: usize = 115;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
@@ -108,11 +108,10 @@ impl<'a> Note {
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
-        let mut memo_vec = vec![];
+        let mut memo_bytes = [0; 32];
         let mut memo = Memo([0; 32]);
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+        reader.read_exact(&mut memo_bytes)?;
+        memo.0.copy_from_slice(&memo_bytes[..]);
         let asset_type = AssetType::read(&mut reader)?;
 
         Ok(Self {
@@ -219,7 +218,8 @@ impl<'a> Note {
         bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
 
         LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
-        bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
+        bytes_to_encrypt[51..83].copy_from_slice(&self.memo.0[..]);
+        bytes_to_encrypt[83..].copy_from_slice(self.asset_type.get_identifier());
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 
@@ -274,11 +274,10 @@ impl<'a> Note {
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let mut memo_vec = vec![];
+        let mut memo_bytes = [0; 32];
         let mut memo = Memo([0; 32]);
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+        reader.read_exact(&mut memo_bytes)?;
+        memo.0.copy_from_slice(&memo_bytes[..]);
         let asset_type = AssetType::read(&mut reader)?;
         Ok((diversifier_bytes, randomness, value, memo, asset_type))
     }

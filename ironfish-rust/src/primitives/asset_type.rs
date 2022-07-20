@@ -142,7 +142,6 @@ impl AssetType {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, AssetError> {
         let mut identifier = [0; ASSET_IDENTIFIER_LENGTH];
         reader.read_exact(&mut identifier)?;
-
         Ok(AssetType { identifier })
     }
 

@@ -39,7 +39,7 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction(0)
+    const transaction = new Transaction()
     const note = new Note(key.public_address, BigInt(20), 'test', Note.getDefaultAssetIdentifier())
     transaction.receive(key.spending_key, note)
 
@@ -59,7 +59,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
-    expect(decryptedNoteBuffer.byteLength).toBe(115)
+    expect(decryptedNoteBuffer.byteLength).toBe(147)
 
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)
@@ -76,13 +76,13 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction(0)
+    const minersFeeTransaction = new Transaction()
     const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Note.getDefaultAssetIdentifier())
     minersFeeTransaction.receive(key.spending_key, minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
-    const transaction = new Transaction(0)
+    const transaction = new Transaction()
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
