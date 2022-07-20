@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
+import { Blockchain } from '../blockchain'
 import { MemPool } from '../memPool'
+import { Block } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import { Peer, PeerState } from './peers/peer'
@@ -36,17 +39,29 @@ export class TxFetcher {
   private readonly sources = new BufferMap<Set<Peer>>()
 
   private readonly memPool: MemPool
+  private readonly chain: Blockchain
 
-  constructor(memPool: MemPool) {
+  private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU(
+    1024,
+    null,
+    BufferMap,
+  )
+
+  constructor(memPool: MemPool, chain: Blockchain) {
     this.memPool = memPool
+    this.chain = chain
+
+    this.chain.onConnectBlock.on((block) => {
+      this.onConnectBlock(block)
+    })
   }
 
   /* Called when a new transaction hash is received from the newtork
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
-  addSource(hash: TransactionHash, peer: Peer): void {
+  hashReceived(hash: TransactionHash, peer: Peer): void {
     if (this.isResolved(hash)) {
-      this.removeState(hash)
+      this.removeTransaction(hash)
       return
     }
 
@@ -56,39 +71,21 @@ export class TxFetcher {
       return
     }
 
-    const sources = this.sources.get(hash) || new Set<Peer>()
-    sources.add(peer)
-    this.sources.set(hash, sources)
-
-    if (!currentState) {
-      this.fetchFromNextSource(hash)
-    }
-  }
-
-  /* Called when a transaction is received and confirmed from the network
-   * either in a block or in a gossiped transaction request */
-  resolve(transaction: Transaction): void {
-    this.removeState(transaction.hash())
-  }
-
-  private fetchFromNextSource(hash: TransactionHash): void {
-    if (this.isResolved(hash)) {
-      this.removeState(hash)
+    if (currentState) {
+      const sources = this.sources.get(hash) || new Set<Peer>()
+      sources.add(peer)
+      this.sources.set(hash, sources)
       return
     }
 
-    // Clear the previous source
-    const currentState = this.pending.get(hash)
-    currentState && this.cleanupCallbacks(currentState)
+    const timeout = setTimeout(() => {
+      if (this.isResolved(hash)) {
+        this.removeTransaction(hash)
+        return
+      }
 
-    // Get the next source
-    const peer = this.popSource(hash)
-    if (!peer) {
-      this.pending.delete(hash)
-      return
-    }
-
-    const timeout = setTimeout(() => this.sendRequest(hash, peer), 500)
+      this.requestTransaction(hash)
+    }, 500)
 
     this.pending.set(hash, {
       peer,
@@ -97,9 +94,36 @@ export class TxFetcher {
     })
   }
 
-  private sendRequest(hash: TransactionHash, peer: Peer): void {
+  /* Called when a transaction has been received and confirmed from the network
+   * either in a block or in a gossiped transaction request */
+  removeTransaction(hash: TransactionHash): void {
+    const currentState = this.pending.get(hash)
+
+    currentState && this.cleanupCallbacks(currentState)
+
+    this.pending.delete(hash)
+    this.sources.delete(hash)
+  }
+
+  private requestFromNextPeer(hash: TransactionHash): void {
     if (this.isResolved(hash)) {
-      this.removeState(hash)
+      this.removeTransaction(hash)
+      return
+    }
+
+    // Clear the previous source
+    const currentState = this.pending.get(hash)
+    currentState && this.cleanupCallbacks(currentState)
+
+    this.requestTransaction(hash)
+  }
+
+  private requestTransaction(hash: TransactionHash): void {
+    // Get the next peer randomly to distribute load more evenly
+    const peer = this.popRandomPeer(hash)
+    if (!peer) {
+      this.pending.delete(hash)
+      this.sources.delete(hash)
       return
     }
 
@@ -108,14 +132,14 @@ export class TxFetcher {
     const sent = peer.send(message)
 
     if (!sent) {
-      this.fetchFromNextSource(hash)
+      this.requestFromNextPeer(hash)
       return
     }
 
     const onPeerDisconnect = ({ peer, state }: { peer: Peer; state: PeerState }) => {
       if (state.type === 'DISCONNECTED') {
         peer.onStateChanged.off(onPeerDisconnect)
-        this.fetchFromNextSource(hash)
+        this.requestFromNextPeer(hash)
       }
     }
     peer.onStateChanged.on(onPeerDisconnect)
@@ -125,7 +149,7 @@ export class TxFetcher {
     }
 
     const timeout = setTimeout(() => {
-      this.fetchFromNextSource(hash)
+      this.requestFromNextPeer(hash)
     }, 5000)
 
     this.pending.set(hash, {
@@ -136,33 +160,26 @@ export class TxFetcher {
     })
   }
 
-  private popSource(hash: TransactionHash): Peer | undefined {
+  private popRandomPeer(hash: TransactionHash): Peer | undefined {
     const sources = this.sources.get(hash)
 
     if (!sources) {
       return undefined
     }
 
-    let nextSource
-    for (const source of sources.values()) {
-      nextSource = source
-      break
+    const nextSourceIndex = Math.floor(Math.random() * sources.size)
+
+    let currIndex = 0
+    for (const source of sources) {
+      if (nextSourceIndex === currIndex) {
+        const nextSource = source
+        sources.delete(source)
+        return nextSource
+      }
+      currIndex++
     }
 
-    if (nextSource) {
-      sources.delete(nextSource)
-    }
-
-    return nextSource
-  }
-
-  private removeState(hash: TransactionHash): void {
-    const currentState = this.pending.get(hash)
-
-    currentState && this.cleanupCallbacks(currentState)
-
-    this.pending.delete(hash)
-    this.sources.delete(hash)
+    return undefined
   }
 
   private cleanupCallbacks(state: TxState) {
@@ -175,7 +192,15 @@ export class TxFetcher {
   }
 
   private isResolved(hash: TransactionHash): boolean {
-    // TODO: Also check transactions recently added to the chain
-    return this.memPool.exists(hash)
+    return this.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)
+  }
+
+  private onConnectBlock(block: Block) {
+    for (const transaction of block.transactions) {
+      const hash = transaction.hash()
+
+      this.recentlyAddedToChain.set(hash, true)
+      this.removeTransaction(hash)
+    }
   }
 }
