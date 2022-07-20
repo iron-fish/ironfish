@@ -92,12 +92,11 @@ export class Migrator {
     const logger = options?.quiet ? null : this.logger
     const writeOut = options?.quiet ? null : (t: string) => process.stdout.write(t)
 
-    const status = await Promise.all(
-      this.migrations.map(async (migration) => {
-        const applied = await this.isApplied(migration)
-        return [migration, applied] as const
-      }),
-    )
+    const status = new Array<[Migration, boolean]>()
+    for (const migration of this.migrations) {
+      const applied = await this.isApplied(migration)
+      status.push([migration, applied])
+    }
 
     const unapplied = status.filter(([, applied]) => !applied).map(([migration]) => migration)
 
