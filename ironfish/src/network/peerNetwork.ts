@@ -374,9 +374,9 @@ export class PeerNetwork {
 
   private broadcastTransaction(
     gossipMessage: NewTransactionMessage,
-    peerIdentity: string,
+    peersToSendTo: ReadonlyArray<Peer>,
   ): void {
-    for (const activePeer of this.getPeersToSendTo(peerIdentity)) {
+    for (const activePeer of peersToSendTo) {
       if (activePeer.send(gossipMessage)) {
         const hash = new Transaction(gossipMessage.transaction).hash()
         activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
@@ -879,17 +879,18 @@ export class PeerNetwork {
     // relevant to the accounts, despite coming from a different node.
     await this.node.accounts.syncTransaction(transaction, {})
 
+    const peersToSendTo = this.getPeersToSendTo(message.peerIdentity)
     // If we know the mempool already has this transaction, we know that
     // the mempool won't accept it, but it is still a valid transaction
     // so we want to gossip it.
     if (this.node.memPool.exists(transaction.hash())) {
-      this.broadcastTransaction(message.message, message.peerIdentity)
+      this.broadcastTransaction(message.message, peersToSendTo)
       return true
     }
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
       this.onTransactionAccepted.emit(transaction, received)
-      this.broadcastTransaction(message.message, message.peerIdentity)
+      this.broadcastTransaction(message.message, peersToSendTo)
       return true
     }
 
