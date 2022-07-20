@@ -111,15 +111,12 @@ impl TransferTransaction {
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         // Check value consistency
-        let mut value_balance_point = transaction_fee_to_point(transaction_fee)?;
-        value_balance_point = -value_balance_point;
+        let value_balance_point = transaction_fee_to_point(transaction_fee)?;
 
         let mut calculated_public_key = binding_verification_key;
-        // calculated_public_key -= value_balance_point;
-        calculated_public_key += value_balance_point;
+        calculated_public_key -= value_balance_point;
 
         if calculated_public_key != public_key.0 {
-            println!("UHOH:\n{}\n{}", calculated_public_key, public_key.0);
             return Err(TransactionError::InvalidBalanceError);
         }
 
@@ -323,7 +320,7 @@ fn transaction_signature_hash(
 }
 
 // TODO: This can be generalized further, this code exists almost verbatim in ::build
-fn verify_binding_signature(
+pub fn verify_binding_signature(
     transaction_fee: i64,
     transaction_signature_hash: &[u8; 32],
     binding_signature: &Signature,

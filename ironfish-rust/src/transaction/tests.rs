@@ -6,7 +6,6 @@
 use super::{ProposedTransaction, Transaction};
 use crate::{
     keys::SaplingKey,
-    merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::{Memo, Note},
     primitives::asset_type::AssetType,
     sapling_bls12,
@@ -102,35 +101,6 @@ fn test_transaction() {
         .write(&mut serialized_again)
         .expect("should be able to serialize transaction again");
     assert_eq!(serialized_transaction, serialized_again);
-}
-
-#[test]
-fn test_miners_fee() {
-    let sapling = &*sapling_bls12::SAPLING;
-    let mut transaction = ProposedTransaction::new(sapling.clone());
-    let receiver_key: SaplingKey = SaplingKey::generate_key();
-    let out_note = Note::new(
-        receiver_key.generate_public_address(),
-        42,
-        Memo([0; 32]),
-        AssetType::default(),
-    );
-    transaction
-        .receive(&receiver_key, &out_note)
-        .expect("It's a valid note");
-    let posted_transaction = transaction
-        .post_miners_fee()
-        .expect("it is a valid miner's fee");
-    assert_eq!(posted_transaction.transaction_fee, -42);
-    assert_eq!(
-        posted_transaction
-            .iter_receipts()
-            .next()
-            .unwrap()
-            .merkle_note
-            .note_encryption_keys[0..30],
-        NOTE_ENCRYPTION_MINER_KEYS[0..30]
-    );
 }
 
 #[test]
