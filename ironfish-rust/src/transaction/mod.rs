@@ -165,7 +165,7 @@ impl ProposedTransaction {
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
-                Memo([0; 32]),
+                Memo::default(),
             );
             self.receive(spender_key, &change_note)?;
         }
