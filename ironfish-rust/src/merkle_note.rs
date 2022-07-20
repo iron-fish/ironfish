@@ -281,7 +281,7 @@ mod test {
     fn test_view_key_encryption() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(receiver_key.generate_public_address(), 42, Memo([0; 32]));
+        let note = Note::new(receiver_key.generate_public_address(), 42, Memo::default());
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
@@ -307,7 +307,7 @@ mod test {
     #[test]
     fn test_receipt_invalid_commitment() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
