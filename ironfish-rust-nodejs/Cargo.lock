@@ -236,6 +236,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bls12_381"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62250ece575fa9b22068b3a8d59586f01d426dd7785522efd97632959e71c986"
+dependencies = [
+ "ff 0.12.0",
+ "group 0.12.0",
+ "pairing 0.22.0",
+ "rand_core 0.6.3",
+ "subtle",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -488,6 +501,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df689201f395c6b90dfe87127685f8dbfc083a5e779e613575d8bd7314300c3e"
+dependencies = [
+ "bitvec 1.0.1",
+ "rand_core 0.6.3",
+ "subtle",
+]
+
+[[package]]
 name = "fpe"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -672,10 +696,10 @@ dependencies = [
  "blake2b_simd 0.5.11",
  "blake2s_simd 0.5.11",
  "blake3",
- "bls12_381",
+ "bls12_381 0.7.0",
  "byteorder",
- "ff",
- "group",
+ "ff 0.8.0",
+ "group 0.8.0",
  "jubjub",
  "lazy_static",
  "rand 0.8.5",
@@ -1012,6 +1036,12 @@ checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "radium"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "radium"
@@ -1592,8 +1622,8 @@ dependencies = [
  "bls12_381",
  "byteorder",
  "directories",
- "ff",
- "group",
+ "ff 0.8.0",
+ "group 0.8.0",
  "jubjub",
  "lazy_static",
  "rand_core 0.6.3",

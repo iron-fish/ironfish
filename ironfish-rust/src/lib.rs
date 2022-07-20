@@ -22,6 +22,8 @@ pub mod receiving;
 pub mod spending;
 pub mod transaction;
 pub mod witness;
+pub mod poseidon;
+
 pub use {
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},
     merkle_note::MerkleNote,
