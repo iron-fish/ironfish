@@ -7,7 +7,7 @@ import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Migration } from '../migration'
 
-export default class Migration010 extends Migration {
+export class Migration010 extends Migration {
   path = __filename
 
   async prepare(node: IronfishNode): Promise<IDatabase> {
