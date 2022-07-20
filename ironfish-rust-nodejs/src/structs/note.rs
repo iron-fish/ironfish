@@ -5,7 +5,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::{AssetType,note::Memo, Note, SaplingKey};
+use ironfish_rust::{note::Memo, AssetType, Note, SaplingKey};
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
