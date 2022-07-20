@@ -5,8 +5,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::note::Memo;
-use ironfish_rust::sapling_bls12::{Key, Note};
+use ironfish_rust::{note::Memo, Note, SaplingKey};
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -67,8 +66,8 @@ impl NativeNote {
     pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let private_key =
-            Key::from_hex(&owner_private_key).map_err(|err| Error::from_reason(err.to_string()))?;
+        let private_key = SaplingKey::from_hex(&owner_private_key)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
 
         let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 
