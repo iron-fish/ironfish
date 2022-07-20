@@ -517,21 +517,26 @@ export class PeerNetwork {
     peer: Peer,
     gossipMessage: GossipNetworkMessage,
   ): Promise<void> {
-    if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
-      return
-    }
-
     const peerIdentity = peer.getIdentityOrThrow()
 
     if (gossipMessage instanceof NewBlockMessage) {
+      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
+        return
+      }
       const gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
 
       if (gossip) {
         this.broadcastBlock(gossipMessage)
       }
     } else if (gossipMessage instanceof NewTransactionMessage) {
+      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
+        return
+      }
       await this.onNewTransaction({ peerIdentity, message: gossipMessage })
     } else {
+      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
+        return
+      }
       throw new Error(`Invalid gossip message type: '${gossipMessage.type}'`)
     }
   }
