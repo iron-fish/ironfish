@@ -7,7 +7,7 @@ import { BufferMap } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { MemPool } from '../memPool'
 import { Block } from '../primitives'
-import { Transaction, TransactionHash } from '../primitives/transaction'
+import { TransactionHash } from '../primitives/transaction'
 import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import { Peer, PeerState } from './peers/peer'
 
@@ -56,7 +56,8 @@ export class TxFetcher {
     })
   }
 
-  /* Called when a new transaction hash is received from the newtork
+  /**
+   * Called when a new transaction hash is received from the newtork
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
   hashReceived(hash: TransactionHash, peer: Peer): void {
@@ -78,6 +79,8 @@ export class TxFetcher {
       return
     }
 
+    /* Wait 500ms before requesting a new hash to see if we receive the full
+     * transaction from the network first */
     const timeout = setTimeout(() => {
       if (this.isResolved(hash)) {
         this.removeTransaction(hash)
@@ -94,7 +97,8 @@ export class TxFetcher {
     })
   }
 
-  /* Called when a transaction has been received and confirmed from the network
+  /**
+   * Called when a transaction has been received and confirmed from the network
    * either in a block or in a gossiped transaction request */
   removeTransaction(hash: TransactionHash): void {
     const currentState = this.pending.get(hash)
@@ -111,7 +115,7 @@ export class TxFetcher {
       return
     }
 
-    // Clear the previous source
+    // Clear the previous peer request state
     const currentState = this.pending.get(hash)
     currentState && this.cleanupCallbacks(currentState)
 
