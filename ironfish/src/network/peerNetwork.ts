@@ -208,10 +208,12 @@ export class PeerNetwork {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
       const message = new NewTransactionMessage(serializedTransaction)
-      this.seenGossipFilter.add(message.nonce)
+      this.seenTransactionsFilter.add(message.nonce)
 
       for (const peer of this.peerManager.getConnectedPeers()) {
-        peer.send(message)
+        if (peer.send(message)) {
+          peer.knownTransactionHashes.set(transaction.hash(), KnownBlockHashesValue.Sent)
+        }
       }
     })
   }
@@ -529,9 +531,9 @@ export class PeerNetwork {
         this.broadcastBlock(gossipMessage)
       }
     } else if (gossipMessage instanceof NewTransactionMessage) {
-      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
-        return
-      }
+      const hash = new Transaction(gossipMessage.transaction).hash()
+      peer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
+
       await this.onNewTransaction({ peerIdentity, message: gossipMessage })
     } else {
       if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
@@ -826,6 +828,10 @@ export class PeerNetwork {
     message: IncomingPeerMessage<NewTransactionMessage>,
   ): Promise<boolean> {
     const received = new Date()
+
+    if (!this.seenTransactionsFilter.added(message.message.nonce)) {
+      return false
+    }
 
     if (!this.enableSyncing) {
       return false

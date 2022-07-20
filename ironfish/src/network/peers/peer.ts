@@ -8,6 +8,7 @@ import colors from 'colors/safe'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
+import { TransactionHash } from '../../primitives/transaction'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
@@ -209,6 +210,15 @@ export class Peer {
     BlockHash,
     KnownBlockHashesValue
   >(1024, null, BufferMap)
+
+  /**
+   * Blocks that have been sent or received from this peer. Value is set to true if the block was received
+   * from the peer, and false if the block was sent to the peer.
+   */
+  readonly knownTransactionHashes: LRU<TransactionHash, KnownBlockHashesValue> = new LRU<
+    TransactionHash,
+    KnownBlockHashesValue
+  >(8192, null, BufferMap)
 
   /**
    * Event fired for every new incoming message that needs to be processed
