@@ -27,6 +27,7 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
+    primitives::asset_type::AssetType,
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
     transaction::{ProposedTransaction, Transaction},

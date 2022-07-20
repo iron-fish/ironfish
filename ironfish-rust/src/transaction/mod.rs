@@ -171,6 +171,7 @@ impl ProposedTransaction {
                 change_address,
                 change_amount as u64, // we checked it was positive
                 Memo([0; 32]),
+                AssetType::default(),
             );
             self.receive(spender_key, &change_note)?;
         }

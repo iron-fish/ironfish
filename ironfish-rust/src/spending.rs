@@ -420,6 +420,7 @@ mod test {
     use crate::{
         keys::SaplingKey,
         note::{Memo, Note},
+        primitives::asset_type::AssetType,
         sapling_bls12,
         test_util::make_fake_witness,
     };
@@ -436,7 +437,12 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, Memo([0; 32]));
+        let note = Note::new(
+            public_address,
+            note_randomness,
+            Memo([0; 32]),
+            AssetType::default(),
+        );
         let witness = make_fake_witness(&note);
 
         let spend = SpendParams::new(sapling.clone(), key, &note, &witness)

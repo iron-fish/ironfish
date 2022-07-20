@@ -40,7 +40,7 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction()
-    const note = new Note(key.public_address, BigInt(20), 'test')
+    const note = new Note(key.public_address, BigInt(20), 'test', Note.getDefaultAssetIdentifier())
     transaction.receive(key.spending_key, note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -59,7 +59,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
-    expect(decryptedNoteBuffer.byteLength).toBe(115)
+    expect(decryptedNoteBuffer.byteLength).toBe(147)
 
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)
@@ -77,7 +77,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction()
-    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner')
+    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Note.getDefaultAssetIdentifier())
     minersFeeTransaction.receive(key.spending_key, minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
@@ -86,7 +86,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
-    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
+    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Note.getDefaultAssetIdentifier())
 
     let currentHash = encryptedNote.merkleHash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {

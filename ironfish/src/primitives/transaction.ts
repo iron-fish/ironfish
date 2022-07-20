@@ -6,7 +6,7 @@ import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Serde } from '../serde'
-import { NoteEncrypted } from './noteEncrypted'
+import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
 export type TransactionHash = Buffer
@@ -63,7 +63,7 @@ export class Transaction {
       // proof
       reader.seek(192)
 
-      return new NoteEncrypted(reader.readBytes(275, true))
+      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
     this._signature = reader.readBytes(64, true)

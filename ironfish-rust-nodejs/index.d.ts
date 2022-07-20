@@ -41,7 +41,7 @@ export class NoteEncrypted {
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string)
+  constructor(owner: string, value: bigint, memo: string, assetIdentifier: Buffer)
   static deserialize(bytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */
@@ -61,6 +61,7 @@ export class Note {
    * 'nullifier set', preventing double-spend.
    */
   nullifier(ownerPrivateKey: string, position: bigint): Buffer
+  static getDefaultAssetIdentifier(): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {
