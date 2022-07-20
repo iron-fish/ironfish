@@ -212,7 +212,7 @@ mod test {
 
     #[test]
     fn test_bls12_poseidon_hash() {
-        let rng = thread_rng();
+        let mut rng = thread_rng();
 
         let params = Bls12PoseidonParams::new();
         let input: Vec<jubjub::Fr> = (0..params.t()).map(|_| jubjub::Fr::random(&mut rng)).collect();

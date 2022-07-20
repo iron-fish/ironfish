@@ -24,7 +24,7 @@ use crate::{
 };
 
 use super::{
-    transaction_fee_to_point, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
+    SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION, transaction_fee_to_point,
 };
 
 // TODO: Everything
