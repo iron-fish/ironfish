@@ -106,6 +106,10 @@ export class PeerNetwork {
   private readonly strategy: Strategy
   private readonly chain: Blockchain
   private readonly seenGossipFilter: RollingFilter
+  private readonly seenTransactionsFilter = new RollingFilter(
+    GOSSIP_FILTER_SIZE,
+    GOSSIP_FILTER_FP_RATE,
+  )
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
 
@@ -203,7 +207,12 @@ export class PeerNetwork {
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
 
-      this.gossip(new NewTransactionMessage(serializedTransaction))
+      const message = new NewTransactionMessage(serializedTransaction)
+      this.seenGossipFilter.add(message.nonce)
+
+      for (const peer of this.peerManager.getConnectedPeers()) {
+        peer.send(message)
+      }
     })
   }
 
@@ -315,16 +324,6 @@ export class PeerNetwork {
     await this.peerManager.stop()
     this.webSocketServer?.close()
     this.updateIsReady()
-  }
-
-  /**
-   * Send the message to all connected peers with the expectation that they
-   * will forward it to their other peers. The goal is for everyone to
-   * receive the message.
-   */
-  private gossip(message: GossipNetworkMessage): void {
-    this.seenGossipFilter.add(message.nonce)
-    this.peerManager.broadcast(message)
   }
 
   /**
