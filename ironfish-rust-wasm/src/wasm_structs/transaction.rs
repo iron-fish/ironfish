@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::{ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use wasm_bindgen::prelude::*;
 
-use ironfish_rust::sapling_bls12::{Key, ProposedTransaction, PublicAddress, Transaction, SAPLING};
+use ironfish_rust::sapling_bls12::SAPLING;
 
 use super::errors::*;
 use super::note::WasmNote;
@@ -119,7 +120,7 @@ impl WasmTransaction {
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[wasm_bindgen]
     pub fn receive(&mut self, spender_hex_key: &str, note: &WasmNote) -> Result<String, JsValue> {
-        let spender_key = Key::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
+        let spender_key = SaplingKey::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
         self.transaction
             .receive(&spender_key, &note.note)
             .map_err(WasmSaplingProofError)?;
@@ -134,7 +135,7 @@ impl WasmTransaction {
         note: &WasmNote,
         witness: &JsWitness,
     ) -> Result<String, JsValue> {
-        let spender_key = Key::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
+        let spender_key = SaplingKey::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
         self.transaction
             .spend(spender_key, &note.note, witness)
             .map_err(WasmSaplingProofError)?;
@@ -172,7 +173,7 @@ impl WasmTransaction {
         change_goes_to: Option<String>,
         intended_transaction_fee: u64,
     ) -> Result<WasmTransactionPosted, JsValue> {
-        let spender_key = Key::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
+        let spender_key = SaplingKey::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
         let change_key = match change_goes_to {
             Some(s) => Some(PublicAddress::from_hex(&s).map_err(WasmSaplingKeyError)?),
             None => None,

@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::IncomingViewKey;
+use ironfish_rust::MerkleNoteHash;
+use ironfish_rust::OutgoingViewKey;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::sapling_bls12;
 use ironfish_rust::MerkleNote;
 
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
-    pub(crate) note: sapling_bls12::MerkleNote,
+    pub(crate) note: MerkleNote,
 }
 
 #[napi]
@@ -53,10 +55,10 @@ impl NativeNoteEncrypted {
     /// new parent
     #[napi]
     pub fn combine_hash(depth: i64, left: Buffer, right: Buffer) -> Result<Buffer> {
-        let left_hash = sapling_bls12::MerkleNoteHash::read(left.as_ref())
+        let left_hash = MerkleNoteHash::read(left.as_ref())
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
-        let right_hash = sapling_bls12::MerkleNoteHash::read(right.as_ref())
+        let right_hash = MerkleNoteHash::read(right.as_ref())
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         let converted_depth: usize = depth
@@ -65,7 +67,7 @@ impl NativeNoteEncrypted {
 
         let mut vec = Vec::with_capacity(32);
 
-        sapling_bls12::MerkleNoteHash::new(sapling_bls12::MerkleNoteHash::combine_hash(
+        MerkleNoteHash::new(MerkleNoteHash::combine_hash(
             converted_depth,
             &left_hash.0,
             &right_hash.0,
@@ -79,7 +81,7 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
-        let incoming_view_key = sapling_bls12::IncomingViewKey::from_hex(&incoming_hex_key)
+        let incoming_view_key = IncomingViewKey::from_hex(&incoming_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
@@ -96,7 +98,7 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
-        let outgoing_view_key = sapling_bls12::OutgoingViewKey::from_hex(&outgoing_hex_key)
+        let outgoing_view_key = OutgoingViewKey::from_hex(&outgoing_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::MerkleNoteHash;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
+use ironfish_rust::sapling_bls12::Scalar;
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 use super::panic_hook;

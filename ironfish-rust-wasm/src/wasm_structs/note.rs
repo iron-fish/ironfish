@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{panic_hook, WasmIoError, WasmSaplingKeyError};
-use ironfish_rust::note::Memo;
-use ironfish_rust::sapling_bls12::{Key, Note};
+use ironfish_rust::{note::Memo, Note, SaplingKey};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -63,7 +62,7 @@ impl WasmNote {
     /// 'nullifier set', preventing double-spend.
     #[wasm_bindgen]
     pub fn nullifier(&self, owner_private_key: &str, position: u64) -> Result<Vec<u8>, JsValue> {
-        let private_key = Key::from_hex(owner_private_key).map_err(WasmSaplingKeyError)?;
+        let private_key = SaplingKey::from_hex(owner_private_key).map_err(WasmSaplingKeyError)?;
         Ok(self.note.nullifier(&private_key, position).to_vec())
     }
 }

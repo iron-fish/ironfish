@@ -5,7 +5,7 @@
 extern crate ironfish_rust;
 extern crate wasm_bindgen;
 
-use ironfish_rust::sapling_bls12;
+use ironfish_rust::SaplingKey;
 
 pub mod panic_hook;
 pub mod wasm_structs;
@@ -47,7 +47,7 @@ impl Key {
 
 #[wasm_bindgen(js_name = "generateKey")]
 pub fn create_key_to_js() -> Key {
-    let sapling_key = sapling_bls12::Key::generate_key();
+    let sapling_key = SaplingKey::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -59,7 +59,7 @@ pub fn create_key_to_js() -> Key {
 
 #[wasm_bindgen(catch, js_name = "generateNewPublicAddress")]
 pub fn create_new_public_key_to_js(private_key: &str) -> Result<Key, JsValue> {
-    let sapling_key = sapling_bls12::Key::from_hex(private_key).map_err(WasmSaplingKeyError)?;
+    let sapling_key = SaplingKey::from_hex(private_key).map_err(WasmSaplingKeyError)?;
 
     Ok(Key {
         spending_key: sapling_key.hex_spending_key(),

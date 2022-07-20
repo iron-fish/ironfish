@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::sapling_bls12;
-use ironfish_rust::MerkleNote;
+use ironfish_rust::{IncomingViewKey, MerkleNote, MerkleNoteHash, OutgoingViewKey};
 use wasm_bindgen::prelude::*;
 
 use super::{panic_hook, WasmIoError, WasmNote, WasmSaplingKeyError};
 
 #[wasm_bindgen]
 pub struct WasmNoteEncrypted {
-    pub(crate) note: sapling_bls12::MerkleNote,
+    pub(crate) note: MerkleNote,
 }
 
 #[wasm_bindgen]
@@ -52,14 +51,12 @@ impl WasmNoteEncrypted {
     pub fn combine_hash(depth: usize, left: &[u8], right: &[u8]) -> Result<Vec<u8>, JsValue> {
         let mut left_hash_reader: std::io::Cursor<&[u8]> = std::io::Cursor::new(left);
         let mut right_hash_reader: std::io::Cursor<&[u8]> = std::io::Cursor::new(right);
-        let left_hash =
-            sapling_bls12::MerkleNoteHash::read(&mut left_hash_reader).map_err(WasmIoError)?;
-        let right_hash =
-            sapling_bls12::MerkleNoteHash::read(&mut right_hash_reader).map_err(WasmIoError)?;
+        let left_hash = MerkleNoteHash::read(&mut left_hash_reader).map_err(WasmIoError)?;
+        let right_hash = MerkleNoteHash::read(&mut right_hash_reader).map_err(WasmIoError)?;
 
         let mut cursor: Vec<u8> = Vec::with_capacity(32);
 
-        sapling_bls12::MerkleNoteHash::new(sapling_bls12::MerkleNoteHash::combine_hash(
+        MerkleNoteHash::new(MerkleNoteHash::combine_hash(
             depth,
             &left_hash.0,
             &right_hash.0,
@@ -74,7 +71,7 @@ impl WasmNoteEncrypted {
     #[wasm_bindgen(js_name = "decryptNoteForOwner")]
     pub fn decrypt_note_for_owner(&self, owner_hex_key: &str) -> Result<Option<WasmNote>, JsValue> {
         let owner_view_key =
-            sapling_bls12::IncomingViewKey::from_hex(owner_hex_key).map_err(WasmSaplingKeyError)?;
+            IncomingViewKey::from_hex(owner_hex_key).map_err(WasmSaplingKeyError)?;
         Ok(match self.note.decrypt_note_for_owner(&owner_view_key) {
             Ok(n) => Some(WasmNote { note: { n } }),
             Err(_) => None,
@@ -87,8 +84,8 @@ impl WasmNoteEncrypted {
         &self,
         spender_hex_key: &str,
     ) -> Result<Option<WasmNote>, JsValue> {
-        let spender_view_key = sapling_bls12::OutgoingViewKey::from_hex(spender_hex_key)
-            .map_err(WasmSaplingKeyError)?;
+        let spender_view_key =
+            OutgoingViewKey::from_hex(spender_hex_key).map_err(WasmSaplingKeyError)?;
 
         Ok(
             match self.note.decrypt_note_for_spender(&spender_view_key) {
@@ -107,8 +104,7 @@ mod tests {
     use super::*;
     use ironfish_rust::merkle_note::MerkleNote;
     use ironfish_rust::note::Memo;
-    use ironfish_rust::sapling_bls12::Note;
-    use ironfish_rust::SaplingKey;
+    use ironfish_rust::{Note, SaplingKey};
 
     #[test]
     fn test_merkle_notes_are_equal() {
