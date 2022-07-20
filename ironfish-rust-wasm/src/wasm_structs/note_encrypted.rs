@@ -115,7 +115,7 @@ mod tests {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
         let owner = receiver_key.generate_public_address();
-        let note = Note::new(owner.clone(), 42, Memo([0; 32]));
+        let note = Note::new(owner.clone(), 42, Memo([0; 32]), AssetType::default());
         let diffie_hellman_keys = owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
