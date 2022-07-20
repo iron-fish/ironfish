@@ -52,8 +52,8 @@ impl WasmTransactionPosted {
     #[wasm_bindgen(js_name = "getNote")]
     pub fn get_note(&self, index: usize) -> Result<Vec<u8>, JsValue> {
         let proof = &self.transaction.receipts()[index];
-        // Note bytes are 275
-        let mut cursor: Vec<u8> = Vec::with_capacity(275);
+        // Note bytes are 307
+        let mut cursor: Vec<u8> = Vec::with_capacity(307);
         proof
             .merkle_note()
             .write(&mut cursor)
