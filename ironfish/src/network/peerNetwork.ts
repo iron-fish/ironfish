@@ -371,7 +371,10 @@ export class PeerNetwork {
         continue
       }
 
-      activePeer.send(gossipMessage)
+      if (activePeer.send(gossipMessage)) {
+        const hash = new Transaction(gossipMessage.transaction).hash()
+        activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
+      }
     }
   }
 
@@ -829,10 +832,6 @@ export class PeerNetwork {
   ): Promise<boolean> {
     const received = new Date()
 
-    if (!this.seenTransactionsFilter.added(message.message.nonce)) {
-      return false
-    }
-
     if (!this.enableSyncing) {
       return false
     }
@@ -847,6 +846,10 @@ export class PeerNetwork {
     }
 
     if (this.node.workerPool.saturated) {
+      return false
+    }
+
+    if (!this.seenTransactionsFilter.added(message.message.nonce)) {
       return false
     }
 
