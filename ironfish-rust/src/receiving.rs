@@ -13,6 +13,10 @@ use rand::{rngs::OsRng, thread_rng, Rng};
 
 use std::{io, sync::Arc};
 
+pub(crate) trait OutputSignature {
+    fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()>;
+}
+
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
@@ -89,13 +93,15 @@ impl ReceiptParams {
 
         Ok(receipt_proof)
     }
+}
 
+impl OutputSignature for ReceiptParams {
     /// Write the signature of this proof to the provided writer.
     ///
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
         Ok(())
@@ -166,13 +172,15 @@ impl ReceiptProof {
     pub fn merkle_note(&self) -> MerkleNote {
         self.merkle_note.clone()
     }
+}
 
+impl OutputSignature for ReceiptProof {
     /// Write the signature of this proof to the provided writer.
     ///
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
         Ok(())

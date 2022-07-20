@@ -31,6 +31,10 @@ use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
 use zcash_primitives::primitives::Nullifier;
 use zcash_primitives::redjubjub;
 
+pub(crate) trait SpendSignature {
+    fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()>;
+}
+
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
 ///
@@ -175,6 +179,16 @@ impl<'a> SpendParams {
         Ok(spend_proof)
     }
 
+    /// Get the value_commitment from this proof as an edwards Point.
+    ///
+    /// This integrates the value and randomness into a single point, using
+    /// an appropriate generator.
+    pub(crate) fn value_commitment(&self) -> ExtendedPoint {
+        self.value_commitment.commitment().into()
+    }
+}
+
+impl SpendSignature for SpendParams {
     /// Serialize the fields that are needed in calculating a signature to
     /// the provided writer (probably a Blake2B writer)
     ///
@@ -183,7 +197,7 @@ impl<'a> SpendParams {
     ///
     /// It is also used during verification, which is why there is an identical
     /// function on the SpendProof struct.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()> {
         serialize_signature_fields(
             writer,
             &self.proof,
@@ -193,14 +207,6 @@ impl<'a> SpendParams {
             self.tree_size,
             &self.nullifier,
         )
-    }
-
-    /// Get the value_commitment from this proof as an edwards Point.
-    ///
-    /// This integrates the value and randomness into a single point, using
-    /// an appropriate generator.
-    pub(crate) fn value_commitment(&self) -> ExtendedPoint {
-        self.value_commitment.commitment().into()
     }
 }
 /// The publicly visible value of a spent note. These get serialized to prove
@@ -367,10 +373,12 @@ impl SpendProof {
             _ => Err(errors::SaplingProofError::VerificationFailed),
         }
     }
+}
 
+impl SpendSignature for SpendProof {
     /// Serialize the fields that are needed in calculating a signature to
     /// the provided writer (probably a Blake2B writer)
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()> {
         serialize_signature_fields(
             writer,
             &self.proof,
