@@ -70,8 +70,8 @@ impl NativeTransactionPosted {
             .map_err(|_| Error::from_reason("Value out of range".to_string()))?;
 
         let proof = &self.transaction.receipts()[index_usize];
-        // Note bytes are 275
-        let mut vec: Vec<u8> = Vec::with_capacity(275);
+        // Note bytes are 307
+        let mut vec: Vec<u8> = Vec::with_capacity(307);
         proof
             .merkle_note()
             .write(&mut vec)
