@@ -16,21 +16,15 @@ use crate::{
 };
 
 use super::{
-    transaction_fee_to_point, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
+    transaction_fee_to_point,
+    transfer::{verify_binding_signature, Transaction},
+    SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
 };
-
-pub trait Transaction {
-    fn read(sapling: Arc<Sapling>, reader: impl io::Read) -> Result<Self, TransactionError>
-    where
-        Self: Sized;
-    fn write(&self, writer: impl io::Write) -> io::Result<()>;
-    fn verify(&self) -> Result<(), TransactionError>;
-}
 
 pub struct MinersFeeTransaction {
     fee: i64,
     sapling: Arc<Sapling>,
-    receipt_proof: ReceiptProof,
+    output: ReceiptProof,
     binding_signature: Signature,
 }
 
@@ -86,7 +80,7 @@ impl MinersFeeTransaction {
         Ok(MinersFeeTransaction {
             sapling,
             fee,
-            receipt_proof: receipt_params.post()?,
+            output: receipt_params.post()?,
             binding_signature,
         })
     }
@@ -95,20 +89,20 @@ impl MinersFeeTransaction {
 impl Transaction for MinersFeeTransaction {
     fn read(sapling: Arc<Sapling>, mut reader: impl io::Read) -> Result<Self, TransactionError> {
         let fee = reader.read_i64::<LittleEndian>()?;
-        let receipt_proof = ReceiptProof::read(&mut reader)?;
+        let output = ReceiptProof::read(&mut reader)?;
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(MinersFeeTransaction {
             sapling,
             fee,
-            receipt_proof,
+            output,
             binding_signature,
         })
     }
 
     fn write(&self, mut writer: impl io::Write) -> io::Result<()> {
         writer.write_i64::<LittleEndian>(self.fee)?;
-        self.receipt_proof.write(&mut writer)?;
+        self.output.write(&mut writer)?;
         self.binding_signature.write(&mut writer)?;
         Ok(())
     }
@@ -118,10 +112,10 @@ impl Transaction for MinersFeeTransaction {
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
 
-        self.receipt_proof.verify_proof(&self.sapling)?;
-        binding_verification_key -= self.receipt_proof.merkle_note.value_commitment;
+        self.output.verify_proof(&self.sapling)?;
+        binding_verification_key -= self.output.merkle_note.value_commitment;
 
-        let transaction_signature_hash = transaction_signature_hash(&self.receipt_proof, self.fee);
+        let transaction_signature_hash = transaction_signature_hash(&self.output, self.fee);
 
         verify_binding_signature(
             self.fee,
@@ -154,35 +148,6 @@ fn transaction_signature_hash(output: &impl OutputSignature, fee: i64) -> [u8; 3
     transaction_signature_hash
 }
 
-// TODO: This can be generalized further, this code exists almost verbatim in ::build
-fn verify_binding_signature(
-    fee: i64,
-    transaction_signature_hash: &[u8; 32],
-    binding_signature: &Signature,
-    binding_verification_key: &ExtendedPoint,
-) -> Result<(), TransactionError> {
-    let mut value_balance_point = transaction_fee_to_point(fee)?;
-    value_balance_point = -value_balance_point;
-
-    let mut public_key_point = *binding_verification_key;
-    public_key_point += value_balance_point;
-    let public_key = PublicKey(public_key_point);
-
-    let mut data_to_verify_signature = [0; 64];
-    data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
-    (&mut data_to_verify_signature[32..]).copy_from_slice(transaction_signature_hash);
-
-    if !public_key.verify(
-        &data_to_verify_signature,
-        binding_signature,
-        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    ) {
-        Err(TransactionError::VerificationFailed)
-    } else {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use zcash_primitives::redjubjub::Signature;
@@ -207,7 +172,7 @@ mod tests {
             .expect("should build");
         assert_eq!(transaction.fee, -42);
         assert_eq!(
-            transaction.receipt_proof.merkle_note.note_encryption_keys[0..30],
+            transaction.output.merkle_note.note_encryption_keys[0..30],
             NOTE_ENCRYPTION_MINER_KEYS[0..30]
         );
     }

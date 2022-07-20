@@ -321,7 +321,7 @@ fn transaction_signature_hash(
 }
 
 // TODO: This can be generalized further, this code exists almost verbatim in ::build
-fn verify_binding_signature(
+pub fn verify_binding_signature(
     transaction_fee: i64,
     transaction_signature_hash: &[u8; 32],
     binding_signature: &Signature,
