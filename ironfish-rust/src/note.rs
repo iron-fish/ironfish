@@ -109,7 +109,7 @@ impl<'a> Note {
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
         let mut memo_bytes = [0; 32];
-        let mut memo = Memo([0; 32]);
+        let mut memo = Memo::default();
         reader.read_exact(&mut memo_bytes)?;
         memo.0.copy_from_slice(&memo_bytes[..]);
         let asset_type = AssetType::read(&mut reader)?;
@@ -275,7 +275,7 @@ impl<'a> Note {
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let mut memo_bytes = [0; 32];
-        let mut memo = Memo([0; 32]);
+        let mut memo = Memo::default();
         reader.read_exact(&mut memo_bytes)?;
         memo.0.copy_from_slice(&memo_bytes[..]);
         let asset_type = AssetType::read(&mut reader)?;
@@ -342,7 +342,7 @@ mod test {
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(public_address, 42, Memo([0; 32]), AssetType::default());
+        let note = Note::new(public_address, 42, Memo::default(), AssetType::default());
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);
