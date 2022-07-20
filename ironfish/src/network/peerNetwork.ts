@@ -349,28 +349,34 @@ export class PeerNetwork {
     }
   }
 
-  private broadcastTransaction(
-    gossipMessage: NewTransactionMessage,
-    peerIdentity: string,
-  ): void {
+  private getPeersToSendTo(peerIdentity: string): ReadonlyArray<Peer> {
     const peersConnections =
       this.peerManager.identifiedPeers.get(peerIdentity)?.knownPeers || new Map<string, Peer>()
 
-    for (const activePeer of this.peerManager.getConnectedPeers()) {
-      if (activePeer.state.type !== 'CONNECTED') {
-        throw new Error('Peer not in state CONNECTED returned from getConnectedPeers')
+    return [...this.peerManager.identifiedPeers.values()].filter((p) => {
+      if (p.state.type !== 'CONNECTED') {
+        return false
       }
 
       // To reduce network noise, we don't send the message back to the peer that
       // sent it to us, or any of the peers connected to it
       if (
-        activePeer.state.identity === peerIdentity ||
-        (peersConnections.has(activePeer.state.identity) &&
-          peersConnections.get(activePeer.state.identity)?.state.type === 'CONNECTED')
+        p.state.identity === peerIdentity ||
+        (peersConnections.has(p.state.identity) &&
+          peersConnections.get(p.state.identity)?.state.type === 'CONNECTED')
       ) {
-        continue
+        return false
       }
 
+      return true
+    })
+  }
+
+  private broadcastTransaction(
+    gossipMessage: NewTransactionMessage,
+    peerIdentity: string,
+  ): void {
+    for (const activePeer of this.getPeersToSendTo(peerIdentity)) {
       if (activePeer.send(gossipMessage)) {
         const hash = new Transaction(gossipMessage.transaction).hash()
         activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
