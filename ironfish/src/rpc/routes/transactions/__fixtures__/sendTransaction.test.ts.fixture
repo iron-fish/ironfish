@@ -1,0 +1,47 @@
+{
+  "Transactions sendTransaction calls the pay method on the node with single recipient": [
+    {
+      "name": "account",
+      "spendingKey": "355018177cab231a3a52c165a7ca5bd3f93d1ae1a750d18eb7784725b9cc4c10",
+      "incomingViewKey": "9e646670558ee7688aa529f5dd4dd0d1ee1f2f676f8eae98557629cbd4004503",
+      "outgoingViewKey": "5a03394c9a459f41bcf3566f691406e627987d7158bd6f564a9792f761d501f9",
+      "publicAddress": "8bd7e85c1c865336a0230984bf62c0736e62697b4c093d6ed517b95c9e71dc5a8a81c61f8a32e241ca59d0",
+      "rescan": null,
+      "displayName": "account (45c1c05)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJPDN/nfHoGGTbhXA8zaoDPqQexmFEGLqmDi9rQQG193Vc2A0Ht1b3LQEbhtBdGXjIkqW7PpCXExfxs2Ube/pLE/335T5T+yAlhxju80T6w+eMoaIIk/W6B5nqE40CSgMgqlIrVqSWKBu+rO+nwhMseKiUxYLYwH5KWV7VC3uDzs4Pybne0UfjFv04qZFoWRCbVyuxmsCUvL2iI4b+xyygSNGWQvDfNLATKYnT1Ez9C8Io8d+ilOUJ+ihZxhIr3FWZXzFrJ72sur/sI15q3kVeMlrtfKOUi9VLRcJ50GGMEBIulzdCTuiK+Ups6IrH/qYsppjFtKdOYwXYRRK23tGhxOD/+ILyEbYkxuZKjyGW+0PHmCfZL3f5iL6xgFcvS6tMYvbkhIm/UTqkhxPCRE3i1pQIck5gn1o7l5GNGGXmEn3NZRlu8Ohpjz2yMS7MAttf2578Mf2o+Jywtj6rREo73zMn3YNitKbBPq3drkolqBvsT4mIplY3+W8HH9eK5F7/92CxVo9e13PTaKtN542ssnZdkb9rIJiKINslGBNBmY7SkWQmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAoWloHsB2+E5QHnLPPMu9PlKqirXDtfRaH+6uu+wGWcVA21wf9Jswg1tuyVYjLNOxFdnZgwDo+tgHEA5wdXgAI"
+    }
+  ],
+  "Transactions sendTransaction calls the pay method on the node with multiple recipient": [
+    {
+      "name": "account_multi-output",
+      "spendingKey": "8b185bfc709063c7ddb746dbf91f644bc118005959b2c54083dd1841adba2a5b",
+      "incomingViewKey": "b94a1237dfe6ea48b1f4bc545e48357a499070db33a7467e2e68c06c1e4f2904",
+      "outgoingViewKey": "6c308196a265eb2aabbe6d48f3c95d91d15280a50057dafd5df5c69318f9b440",
+      "publicAddress": "3a3fd5e6903eb6108ca47729e52da02915c911545d5524c335736bc95cd195a52fd6dfa2afeb0161203621",
+      "rescan": null,
+      "displayName": "account_multi-output (7153d8b)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJJPW1Gn0ludwBbjh5tTU2IaTS6HIunxhx47M701yomTQsTX/CBm7HlDY0Z/XTMQRYza19LRqPMP4O51uHwYY3eqK2ftTPn5IomlR0EPqJw4hzBCZBVuUgmyVjp2bQ5JNRGMO99Q1HBaK4hPKsZ2kQfyYVtWB6R/RFzgwJRBfmVgR3p1eXH4D/ZgZ7LX7Fh3YYQZWyI067bRKDbMo6/3z+EgMI6lnXhL8pVdk4XPSutCHwXWeSW3B6U31dWlx58I6x19zuNqUUgch0h2SbaUQJVCkzh3QGMW7YS33xNYWLBhs89h5sjT7gOzcmRHUuuV7ehhohNj5G3YdX6ROLFS5y4/yMc6q1d9699rEGQS/lPeN3dos1e1k1eqn3t+pnvd2rdMGBRZ12fWpMvJKRRUFZ2QuKHTOoM756o7Jsl5B9hG0w/H1nFnIRkisKxJOJ5txoffHC2UwWSfkS86k1d+otVTgsAvmTKvOdUXFNfSj3lSES9AOe6Ap8pUv9iZeDtdrlrEbWfRJOljK6HNX5GvYaVsWxroMfjqHJ9+Q6qlkKQKxJnwQmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA2Qr2QqkqRkvuOskS4GwSbvo62D7hAygFL7P00r/XIp4bP0eirlo1G4KNWF8RQKLS+I168ETmkmDSn0ywhM/kL"
+    }
+  ],
+  "Transactions sendTransaction lets you configure the expiration": [
+    {
+      "name": "expiration",
+      "spendingKey": "0641f9f74fda9d5e1ff61ab6aebce04e6419a3057546a0f9716551573f1be65d",
+      "incomingViewKey": "7e7f69afdd3e611de5e142fc60724ed8c7f970631d3c7da8f6e91db8da5c0805",
+      "outgoingViewKey": "6d8f9498750acac3d6ea175df257f1de41b1dd7ad16cf49c1badccea82098b74",
+      "publicAddress": "6aaa8c87dd11a6104cee4619910a9333d2e26e0e65ccfbab477410020c563cd4a0b7218b70e4b26cdfcd73",
+      "rescan": null,
+      "displayName": "expiration (8e42ffd)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJMjau3V8wVdZx8aoTyY/awUNdndP+I5VJtb2Jp91ZR7hyyEO50MjCVX+pLBNdgLJ6/S4M7ZnrfLvIClgdpl++J3MU6Tq0IbEieYrFjIeaE77stADRx4QFplpc1UzBuUGwEGzI7fA3PFwhPicSllXODSBRqKh4V2kRoUInQ3ucJCwlpO+o17L5TR6fOvGYnKvY1ypXHtlDxcFjOZC3RQtbNQYUCEMCy7a9tQ9CwASKsZBX5TWkD7Epf+J4TyjZ1hTOczQ9TFW746Efa6iowdaNSFPhlhLFqdE5ke8SOUiDmhhEz3yVHAeJtugUGC0PpkNqOi/Q9Eep95iMf8TCpwX12LgAbuzXNagY5s0UXc8TJQd+8AlQSY8GdHn7+eft0/n/k7Qrf3wZWwOF52xqkW3+ASkC+m2SLEiYRNt7aMMk9n+68QiUKScsJFO5gQZG4uxVclbEdqYKGeYBZuxZmkMGKqXXZwy2/FZhnvmFrcIO09eUiK5nXmXFU+4B5E1UHfO5A9JrJp6BbciczgINRSwmLP3fpPSN6a/KItqpgi/ONlrOJ4QmVhbnN0YWxrIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDPe90RH/F5KeCRe9xnFK9gn6akW4QaPSNzlluqWCF322mA+CMIlOJKAacBsxs4YgImXCS4xBZd6kgvXU/iqBUC"
+    }
+  ]
+}

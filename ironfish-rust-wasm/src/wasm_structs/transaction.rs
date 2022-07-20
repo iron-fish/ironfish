@@ -52,7 +52,7 @@ impl WasmTransactionPosted {
     #[wasm_bindgen(js_name = "getNote")]
     pub fn get_note(&self, index: usize) -> Result<Vec<u8>, JsValue> {
         let proof = &self.transaction.receipts()[index];
-        // Note bytes are 307
+        // Note bytes are 307 (should match `ENCRYPTED_NOTE_LENGTH` in JS)
         let mut cursor: Vec<u8> = Vec::with_capacity(307);
         proof
             .merkle_note()

@@ -1,0 +1,22 @@
+{
+  "PeerNetwork when enable syncing is true handles requests for mempool transactions should respond to PooledTransactionsRequest": [
+    {
+      "name": "accountA",
+      "spendingKey": "b320da0b482579bdcdb6fce576f4006b9aeef567da8e41194504106ac49f9d62",
+      "incomingViewKey": "3cc8305d55393be58f82b1dcc195178883ead9f176c3169b0e17bbe14fbbb601",
+      "outgoingViewKey": "f1475838d83843ebcbf0fdb2b41e3ac12ed62efef32b62ad85cecf8fd8cd9a8c",
+      "publicAddress": "0c6caf486908ccbc6416e187f5ec43e429f13301d6d65efe41556fdf206aeb3cdbb72d4fa9fb2260391968",
+      "rescan": null,
+      "displayName": "accountA (81953ee)"
+    },
+    {
+      "name": "accountB",
+      "spendingKey": "b5dac683cab5180c9bdf10e08d2bb65de974d9ce4a9ff1f3a54fcef4b3cb8cce",
+      "incomingViewKey": "a29a74786f4ab053719d07afafe8a80cd3e69dabddd8ab29fb381b20e43f1307",
+      "outgoingViewKey": "6f875554f0862d008461461fd14634e85d0b62b72f956e39c788bca68589e3fe",
+      "publicAddress": "e2f590d706bf42f0b5b8bd920e7f212c6fae6ce56e3c8c1b45c73bc8b5a315c3fb6d301b1f08eed9f3cb3e",
+      "rescan": null,
+      "displayName": "accountB (19f0638)"
+    }
+  ]
+}
