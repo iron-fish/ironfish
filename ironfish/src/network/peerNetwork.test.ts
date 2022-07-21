@@ -11,6 +11,7 @@ import net from 'net'
 import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
+import { VerificationResultReason } from '../consensus/verifier'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -449,7 +450,7 @@ describe('PeerNetwork', () => {
         expect(syncTransaction).not.toHaveBeenCalled()
       })
 
-      it('verifies and syncs transactions once', async () => {
+      it('verifies and syncs the same transaction once', async () => {
         const { peerNetwork, node } = nodeTest
 
         const { accounts, memPool } = node
@@ -496,6 +497,45 @@ describe('PeerNetwork', () => {
         expect(acceptTransaction).toHaveBeenCalledTimes(1)
 
         expect(syncTransaction).toHaveBeenCalledTimes(1)
+
+        expect(peer.knownTransactionHashes.has(transaction.hash())).toBe(true)
+      })
+
+      it('does not syncs or gossip invalid transactions', async () => {
+        const { peerNetwork, node } = nodeTest
+
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
+
+        const verifyTransactionContextual = jest
+          .spyOn(node.chain.verifier, 'verifyTransactionNoncontextual')
+          .mockResolvedValueOnce({
+            valid: false,
+            reason: VerificationResultReason.DOUBLE_SPEND,
+          })
+
+        const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+        const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
+        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+
+        const message = new NewTransactionMessage(transaction.serialize())
+
+        const gossip = await peerNetwork['onNewTransaction'](peer, message)
+
+        expect(gossip).toBe(false)
+
+        expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
+        expect(verifyTransactionContextual).toHaveBeenCalledTimes(1)
+
+        expect(memPool.exists(transaction.hash())).toBe(false)
+        expect(acceptTransaction).not.toHaveBeenCalled()
+
+        expect(syncTransaction).not.toHaveBeenCalled()
 
         expect(peer.knownTransactionHashes.has(transaction.hash())).toBe(true)
       })
