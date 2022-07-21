@@ -4,7 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
-import { Transaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transactions/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -177,6 +177,7 @@ export class AccountsDB {
   ): Promise<void> {
     const serialized = {
       ...transaction,
+      type: transaction.transaction.type,
       transaction: transaction.transaction.serialize(),
     }
     await this.transactions.put(transactionHash, serialized, tx)
@@ -199,6 +200,7 @@ export class AccountsDB {
       for (const [key, value] of map) {
         const serialized = {
           ...value,
+          type: value.transaction.type,
           transaction: value.transaction.serialize(),
         }
         await this.transactions.put(key, serialized, tx)
@@ -216,7 +218,7 @@ export class AccountsDB {
     for await (const [key, value] of this.transactions.getAllIter()) {
       const deserialized = {
         ...value,
-        transaction: new Transaction(value.transaction),
+        transaction: Transaction.deserialize(value.type, value.transaction),
       }
 
       map.set(key, deserialized)

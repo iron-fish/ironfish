@@ -9,7 +9,9 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { Block, SerializedBlock } from '../primitives/block'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
+import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
+import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
+import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 import { IJSON } from '../serde'
 import { getCurrentTestPath } from './utils'
 
@@ -237,10 +239,10 @@ export async function useTxFixture(
       await restoreTransactionFixtureToAccounts(tx, accounts)
     },
     serialize: (tx: Transaction): SerializedTransaction => {
-      return tx.serialize()
+      return { data: tx.serialize(), type: tx.type }
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx)
+      return Transaction.deserialize(tx.type, tx.data)
     },
   })
 }
@@ -250,12 +252,12 @@ export async function useMinersTxFixture(
   to?: Account,
   sequence?: number,
   amount = 0,
-): Promise<Transaction> {
+): Promise<MinersFeeTransaction> {
   if (!to) {
     to = await useAccountFixture(accounts)
   }
 
-  return useTxFixture(accounts, to, to, () => {
+  const generate = () => {
     Assert.isNotUndefined(to)
 
     return accounts.chain.strategy.createMinersFee(
@@ -263,6 +265,18 @@ export async function useMinersTxFixture(
       sequence || accounts.chain.head.sequence + 1,
       to.spendingKey,
     )
+  }
+
+  return useFixture(generate, {
+    process: async (tx: MinersFeeTransaction): Promise<void> => {
+      await restoreTransactionFixtureToAccounts(tx, accounts)
+    },
+    serialize: (tx: MinersFeeTransaction): Buffer => {
+      return tx.serialize()
+    },
+    deserialize: (tx: Buffer): MinersFeeTransaction => {
+      return new MinersFeeTransaction(tx)
+    },
   })
 }
 

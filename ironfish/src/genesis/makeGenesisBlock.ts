@@ -5,6 +5,7 @@
 import type { Account } from '../account'
 import {
   generateKey,
+  MinersFeeTransaction as NativeMinersFeeTransaction,
   Note as NativeNote,
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
@@ -12,8 +13,10 @@ import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transactions/transaction'
 import { GraffitiUtils } from '../utils/graffiti'
+import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
+import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 
 export type GenesisBlockInfo = {
   memo: string
@@ -71,9 +74,8 @@ export async function makeGenesisBlock(
     NativeNote.getDefaultAssetIdentifier(),
   )
 
-  const minersFeeTransaction = new NativeTransaction()
-  minersFeeTransaction.receive(account.spendingKey, note)
-  const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
+  const minersFeeTransaction = new NativeMinersFeeTransaction(account.spendingKey, note)
+  const postedMinersFeeTransaction = new MinersFeeTransaction(minersFeeTransaction.serialize())
 
   /**
    *
@@ -82,19 +84,17 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
-  const initialTransaction = new NativeTransaction()
-
   logger.info('  Generating the receipt...')
-  initialTransaction.receive(genesisKey.spending_key, genesisNote)
+  const initialTransaction = new NativeMinersFeeTransaction(genesisKey.spending_key, genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
+  const postedInitialTransaction = new MinersFeeTransaction(initialTransaction.serialize())
   transactionList.push(postedInitialTransaction)
 
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
   // so we can construct a witness. They will be re-added later when the block is constructed.
   logger.info('  Adding the note to the tree...')
-  if (postedInitialTransaction.notesLength() !== 1) {
+  if (postedInitialTransaction.notes().length !== 1) {
     throw new Error('Expected postedInitialTransaction to have 1 note')
   }
   await chain.notes.add(postedMinersFeeTransaction.getNote(0))
@@ -136,7 +136,7 @@ export async function makeGenesisBlock(
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new Transaction(
+  const postedTransaction = new TransferTransaction(
     transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
   )
   transactionList.push(postedTransaction)

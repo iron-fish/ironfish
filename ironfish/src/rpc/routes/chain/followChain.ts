@@ -113,21 +113,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = block.transactions.map((transaction) => {
-        return transaction.withReference(() => {
-          return {
-            hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
-            size: Buffer.from(
-              JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-            ).byteLength,
-            fee: Number(transaction.fee()),
-            notes: [...transaction.notes()].map((note) => ({
-              commitment: note.merkleHash().toString('hex'),
-            })),
-            spends: [...transaction.spends()].map((spend) => ({
-              nullifier: spend.nullifier.toString('hex'),
-            })),
-          }
-        })
+        return {
+          hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
+          size: transaction.serialize().byteLength,
+          fee: Number(transaction.fee()),
+          notes: [...transaction.notes()].map((note) => ({
+            commitment: note.merkleHash().toString('hex'),
+          })),
+          spends: [...transaction.spends()].map((spend) => ({
+            nullifier: spend.nullifier.toString('hex'),
+          })),
+        }
       })
 
       request.stream({

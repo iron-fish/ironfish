@@ -6,6 +6,7 @@ import {
   generateKey,
   generateNewPublicAddress,
   Key,
+  MinersFeeTransaction as NativeMinersFeeTransaction,
   Note as NativeNote,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
@@ -17,6 +18,7 @@ import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
+import { TransferTransaction } from './primitives/transactions/transferTransaction'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { createNodeTest } from './testUtilities'
@@ -73,9 +75,10 @@ describe('Demonstrate the Sapling API', () => {
   let receiverKey: Key
   let spenderKey: Key
   let minerNote: NativeNote
-  let minerTransaction: NativeTransactionPosted
+  let minerTransaction: NativeMinersFeeTransaction
   let transaction: NativeTransaction
   let publicTransaction: NativeTransactionPosted
+  let transferTransaction: TransferTransaction
 
   beforeAll(async () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
@@ -108,11 +111,9 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, BigInt(42), '', NativeNote.getDefaultAssetIdentifier())
 
-      const transaction = new NativeTransaction()
-      expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
-      minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
+      minerTransaction = new NativeMinersFeeTransaction(spenderKey.spending_key, minerNote)
       expect(minerTransaction).toBeTruthy()
-      expect(minerTransaction.notesLength()).toEqual(1)
+      expect(minerTransaction.getNote()).not.toBeNull()
     })
 
     it('Can verify the miner transaction', () => {
@@ -122,10 +123,8 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can add the miner transaction note to the tree', async () => {
-      for (let i = 0; i < minerTransaction.notesLength(); i++) {
-        const note = Buffer.from(minerTransaction.getNote(i))
-        await tree.add(new NoteEncrypted(note))
-      }
+      const note = Buffer.from(minerTransaction.getNote())
+      await tree.add(new NoteEncrypted(note))
       const treeSize: number = await tree.size()
       expect(treeSize).toBeGreaterThan(0)
     })
@@ -160,6 +159,7 @@ describe('Demonstrate the Sapling API', () => {
       publicTransaction = new NativeTransactionPosted(
         transaction.post(spenderKey.spending_key, null, BigInt(0)),
       )
+      transferTransaction = new TransferTransaction(publicTransaction.serialize())
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -198,50 +198,18 @@ describe('Demonstrate the Sapling API', () => {
       const strategy = new Strategy(new WorkerPool())
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
-      await minersFee.withReference(async () => {
-        expect(minersFee['transactionPosted']).not.toBeNull()
+      await transferTransaction.withReference(async () => {
+        expect(transferTransaction['transactionPosted']).not.toBeNull()
 
-        expect(minersFee.notesLength()).toEqual(1)
-        expect(minersFee['transactionPosted']).not.toBeNull()
+        expect(transferTransaction.notes()).toHaveLength(1)
+        expect(transferTransaction['transactionPosted']).not.toBeNull()
 
         // Reference returning happens on the promise jobs queue, so use an await
         // to delay until reference returning is expected to happen
         return Promise.resolve()
       })
 
-      expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
-
-    it('Does not hold a note if no references are taken', async () => {
-      // Generate a miner's fee transaction
-      const key = generateKey()
-      const strategy = new Strategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
-
-      expect(minersFee['transactionPosted']).toBeNull()
-      const noteIterator = minersFee.notes()
-      expect(minersFee['transactionPosted']).toBeNull()
-
-      let note: NoteEncrypted | null = null
-      for (const n of noteIterator) {
-        note = n
-      }
-      if (note === null) {
-        throw new Error('Must have at least one note')
-      }
-
-      expect(note['noteEncrypted']).toBeNull()
-      const decryptedNote = note.decryptNoteForOwner(key.incoming_view_key)
-      expect(decryptedNote).toBeDefined()
-      expect(note['noteEncrypted']).toBeNull()
-
-      if (decryptedNote === undefined) {
-        throw new Error('Note must be decryptable')
-      }
-
-      expect(decryptedNote['note']).toBeNull()
-      expect(decryptedNote.value()).toBe(BigInt(2000000000))
-      expect(decryptedNote['note']).toBeNull()
+      expect(transferTransaction['transactionPosted']).toBeNull()
     }, 60000)
   })
 

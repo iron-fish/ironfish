@@ -30,7 +30,8 @@ import {
 } from '../primitives/noteEncrypted'
 import { Nullifier, NullifierHash } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
+import { Transaction } from '../primitives/transactions/transaction'
 import { IJSON } from '../serde'
 import {
   BUFFER_ENCODING,
@@ -860,7 +861,7 @@ export class Blockchain {
    */
   async newBlock(
     userTransactions: Transaction[],
-    minersFee: Transaction,
+    minersFee: MinersFeeTransaction,
     graffiti?: Buffer,
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
@@ -896,7 +897,7 @@ export class Blockchain {
         target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
       }
 
-      for (const transaction of transactions) {
+      for (const transaction of userTransactions) {
         for (const note of transaction.notes()) {
           await this.notes.add(note, tx)
         }
@@ -1189,7 +1190,7 @@ export class Blockchain {
     // header.noteCommitment is the size of the tree after the
     // last note in the block.
     for (const transaction of block.transactions.reverse()) {
-      noteIndex -= transaction.notesLength()
+      noteIndex -= transaction.notes().length
 
       yield {
         transaction,

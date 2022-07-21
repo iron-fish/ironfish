@@ -128,11 +128,11 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
       const fee = tx.fee()
 
       transactions.push({
-        signature: tx.transactionSignature().toString('hex'),
+        signature: tx.signature().toString('hex'),
         hash: tx.unsignedHash().toString('hex'),
         fee: fee.toString(),
-        spends: tx.spendsLength(),
-        notes: tx.notesLength(),
+        spends: tx.spends().length,
+        notes: tx.notes().length,
       })
     }
 

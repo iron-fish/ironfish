@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
+import { SerializedTransaction } from '../primitives/transactions/transaction'
 import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 import { NullifierSerdeInstance } from './serdeInstances'
@@ -28,7 +30,10 @@ export type SerializedBlockTemplate = {
     minersFee: string
     graffiti: string
   }
-  transactions: string[]
+  transactions: {
+    data: string
+    type: number
+  }[]
   previousBlockInfo?: {
     target: string
     timestamp: number
@@ -59,7 +64,10 @@ export class BlockTemplateSerde {
       timestamp: previousBlock.header.timestamp.getTime(),
     }
 
-    const transactions = block.transactions.map((t) => t.serialize().toString('hex'))
+    const transactions = block.transactions.map((t) => ({
+      data: t.serialize().toString('hex'),
+      type: t.type
+    }))
     return {
       header,
       transactions,
@@ -93,7 +101,7 @@ export class BlockTemplateSerde {
     )
 
     const transactions = blockTemplate.transactions.map((t) =>
-      strategy.transactionSerde.deserialize(Buffer.from(t, 'hex')),
+      Transaction.deserialize(t.type, Buffer.from(t.data, 'hex')),
     )
 
     return new Block(header, transactions)

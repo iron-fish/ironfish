@@ -2,20 +2,20 @@ import bufio from 'bufio'
 import { Transaction, TransactionType } from "./transaction";
 import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from '../noteEncrypted'
 import { Spend } from '../spend';
-import { TransactionPosted } from '@ironfish/rust-nodejs';
+import { NativeTransactionPosted, TransactionPosted } from '@ironfish/rust-nodejs';
 import { blake3 } from '@napi-rs/blake-hash'
 
 export class TransferTransaction extends Transaction {
-  readonly expirationSequence: number
-  readonly fee: BigInt
-  readonly notes: NoteEncrypted[]
-  readonly signature: Buffer
-  readonly spends: Spend[]
+  private readonly _expirationSequence: number
+  private readonly _fee: bigint
+  private readonly _notes: NoteEncrypted[]
+  private readonly _signature: Buffer
+  private readonly _spends: Spend[]
 
   readonly serializedTransaction: Buffer
   private _hash?: Buffer
   private referenceCount = 0
-  private transactionPosted: TransactionPosted | null
+  private transactionPosted: NativeTransactionPosted | null
 
   constructor(serializedTransaction: Buffer) {
     super(TransactionType.Transfer)
@@ -26,10 +26,10 @@ export class TransferTransaction extends Transaction {
 
     const spendsLength = reader.readU64()
     const notesLength = reader.readU64()
-    this.fee = BigInt(reader.readI64()) 
-    this.expirationSequence = reader.readU32()
+    this._fee = BigInt(reader.readI64()) 
+    this._expirationSequence = reader.readU32()
 
-    this.spends = Array.from({ length: spendsLength }, () => {
+    this._spends = Array.from({ length: spendsLength }, () => {
       // proof
       reader.seek(192)
       // value commitment
@@ -52,77 +52,38 @@ export class TransferTransaction extends Transaction {
       }
     })
 
-    this.notes = Array.from({ length: notesLength }, () => {
+    this._notes = Array.from({ length: notesLength }, () => {
       // proof
       reader.seek(192)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
-    this.signature = reader.readBytes(64, true)
+    this._signature = reader.readBytes(64, true)
   }
 
   serialize(): Buffer {
     return this.serializedTransaction
   }
 
-  /**
-   * Preallocate any resources necessary for using the transaction.
-   */
-  takeReference(): TransactionPosted {
-    this.referenceCount++
-    if (this.transactionPosted === null) {
-      this.transactionPosted = new TransactionPosted(this.serializedTransaction)
-    }
-    return this.transactionPosted
+  expirationSequence(): number {
+    return this._expirationSequence
   }
 
-  /**
-   * Return any resources necessary for using the transaction.
-   */
-  returnReference(): void {
-    this.referenceCount--
-    if (this.referenceCount <= 0) {
-      this.referenceCount = 0
-      this.transactionPosted = null
-    }
+  fee(): bigint {
+    return this._fee
   }
 
-  /**
-   * Wraps the given callback in takeReference and returnReference.
-   */
-  withReference<R>(callback: (transaction: TransactionPosted) => R): R {
-    const transaction = this.takeReference()
+  notes(): NoteEncrypted[] {
+    return this._notes
+  }
 
-    const result = callback(transaction)
-
-    Promise.resolve(result).finally(() => {
-      this.returnReference()
-    })
-
-    return result
+  signature(): Buffer {
+    return this._signature
   }
   
-  /**
-   * The number of notes in the transaction.
-   */
-  notesLength(): number {
-    return this.notes.length
-  }
-
-  getNote(index: number): NoteEncrypted {
-    return this.notes[index]
-  }
-
-  /**
-   * The number of spends in the transaction.
-   */
-  spendsLength(): number {
-    return this.spends.length
-  }
-
-  getSpend(index: number): Spend {
-    return this.spends[index]
+  spends(): Spend[] {
+    return this._spends
   }
 
   /**
@@ -140,5 +101,33 @@ export class TransferTransaction extends Transaction {
   hash(): Buffer {
     this._hash = this._hash || blake3(this.serializedTransaction)
     return this._hash
+  }
+
+  withReference<R>(callback: (transaction: TransactionPosted) => R): R {
+    const transaction = this.takeReference()
+
+    const result = callback(transaction)
+
+    Promise.resolve(result).finally(() => {
+      this.returnReference()
+    })
+
+    return result
+  }
+      
+  private takeReference(): TransactionPosted {
+    this.referenceCount++
+    if (this.transactionPosted === null) {
+      this.transactionPosted = new TransactionPosted(this.serializedTransaction)
+    }
+    return this.transactionPosted
+  }
+
+  private returnReference(): void {
+    this.referenceCount--
+    if (this.referenceCount <= 0) {
+      this.referenceCount = 0
+      this.transactionPosted = null
+    }
   }
 }

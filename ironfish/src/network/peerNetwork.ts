@@ -18,7 +18,7 @@ import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
-import { SerializedTransaction } from '../primitives/transaction'
+import { SerializedTransaction } from '../primitives/transactions/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
@@ -201,7 +201,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
+      const serializedTransaction = { type: transaction.type, data: transaction.serialize() }
 
       this.gossip(new NewTransactionMessage(serializedTransaction))
     })
@@ -718,7 +718,7 @@ export class PeerNetwork {
     for (const hash of message.transactionHashes) {
       const transaction = this.node.memPool.get(hash)
       if (transaction) {
-        transactions.push(transaction.serialize())
+        transactions.push({ data: transaction.serialize(), type: transaction.type })  
       }
     }
 

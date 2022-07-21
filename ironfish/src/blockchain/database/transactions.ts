@@ -4,7 +4,9 @@
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
-import { Transaction } from '../../primitives/transaction'
+import { Transaction, TransactionType } from '../../primitives/transactions/transaction'
+import { MinersFeeTransaction } from '../../primitives/transactions/minersFeeTransaction'
+import { TransferTransaction } from '../../primitives/transactions/transferTransaction'
 
 export type TransactionsValue = {
   transactions: Transaction[]
@@ -15,6 +17,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     const bw = bufio.write(this.getSize(value))
 
     for (const tx of value.transactions) {
+      bw.writeU8(tx.type)
       bw.writeVarBytes(tx.serialize())
     }
 
@@ -25,9 +28,18 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     const reader = bufio.read(buffer, true)
 
     const transactions = []
-
     while (reader.left()) {
-      transactions.push(new Transaction(reader.readVarBytes()))
+      const type = reader.readU8()
+      const serializedTransaction = reader.readVarBytes()
+
+      switch (type) {
+        case TransactionType.MinersFee:
+          transactions.push(new MinersFeeTransaction(serializedTransaction))
+          break
+        case TransactionType.Transfer:
+          transactions.push(new TransferTransaction(serializedTransaction))
+          break
+      }
     }
 
     return { transactions }
@@ -36,7 +48,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
   getSize(value: TransactionsValue): number {
     let size = 0
     for (const tx of value.transactions) {
-      size += bufio.sizeVarBytes(tx.serialize())
+      size += bufio.sizeVarBytes(tx.serialize()) + 1
     }
     return size
   }

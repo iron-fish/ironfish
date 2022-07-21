@@ -13,7 +13,8 @@ import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionType } from '../primitives/transactions/transaction'
+import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
@@ -447,81 +448,79 @@ export class Accounts {
 
     let newSequence = submittedSequence
 
-    await transaction.withReference(async () => {
-      const notes = await this.decryptNotes(transaction, initialNoteIndex)
+    const notes = await this.decryptNotes(transaction, initialNoteIndex)
 
-      return this.db.database.transaction(async (tx) => {
-        if (notes.length > 0) {
-          const transactionHash = transaction.unsignedHash()
+    return this.db.database.transaction(async (tx) => {
+      if (notes.length > 0) {
+        const transactionHash = transaction.unsignedHash()
 
-          const existingT = this.transactionMap.get(transactionHash)
-          // If we passed in a submittedSequence, set submittedSequence to that value.
-          // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
-          // submittedSequence was passed in.
-          // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
-          newSequence = submittedSequence || existingT?.submittedSequence || null
+        const existingT = this.transactionMap.get(transactionHash)
+        // If we passed in a submittedSequence, set submittedSequence to that value.
+        // Otherwise, if we already have a submittedSequence, keep that value regardless of whether
+        // submittedSequence was passed in.
+        // Otherwise, we don't have an existing sequence or new sequence, so set submittedSequence null
+        newSequence = submittedSequence || existingT?.submittedSequence || null
 
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          await this.updateTransactionMap(
-            transactionHash,
+        // The transaction is useful if we want to display transaction history,
+        // but since we spent the note, we don't need to put it in the nullifierToNote mappings
+        await this.updateTransactionMap(
+          transactionHash,
+          {
+            transaction,
+            blockHash,
+            submittedSequence: newSequence,
+          },
+          tx,
+        )
+      }
+
+      for (const { noteIndex, nullifier, forSpender, merkleHash } of notes) {
+        // The transaction is useful if we want to display transaction history,
+        // but since we spent the note, we don't need to put it in the nullifierToNote mappings
+        if (!forSpender) {
+          if (nullifier !== null) {
+            await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
+          }
+
+          await this.updateNoteToNullifierMap(
+            merkleHash,
             {
-              transaction,
-              blockHash,
-              submittedSequence: newSequence,
+              nullifierHash: nullifier,
+              noteIndex: noteIndex,
+              spent: false,
             },
             tx,
           )
         }
+      }
 
-        for (const { noteIndex, nullifier, forSpender, merkleHash } of notes) {
-          // The transaction is useful if we want to display transaction history,
-          // but since we spent the note, we don't need to put it in the nullifierToNote mappings
-          if (!forSpender) {
-            if (nullifier !== null) {
-              await this.updateNullifierToNoteMap(nullifier, merkleHash, tx)
-            }
+      // If newSequence is null and blockHash is null, we're removing the transaction from
+      // the chain and it wasn't created by us, so unmark notes as spent
+      const isRemovingTransaction = newSequence === null && blockHash === null
 
-            await this.updateNoteToNullifierMap(
-              merkleHash,
-              {
-                nullifierHash: nullifier,
-                noteIndex: noteIndex,
-                spent: false,
-              },
-              tx,
+      for (const spend of transaction.spends()) {
+        const nullifier = spend.nullifier.toString('hex')
+        const noteHash = this.nullifierToNote.get(nullifier)
+
+        if (noteHash) {
+          const nullifier = this.noteToNullifier.get(noteHash)
+
+          if (!nullifier) {
+            throw new Error(
+              'nullifierToNote mappings must have a corresponding noteToNullifier map',
             )
           }
+
+          await this.updateNoteToNullifierMap(
+            noteHash,
+            {
+              ...nullifier,
+              spent: !isRemovingTransaction,
+            },
+            tx,
+          )
         }
-
-        // If newSequence is null and blockHash is null, we're removing the transaction from
-        // the chain and it wasn't created by us, so unmark notes as spent
-        const isRemovingTransaction = newSequence === null && blockHash === null
-
-        for (const spend of transaction.spends()) {
-          const nullifier = spend.nullifier.toString('hex')
-          const noteHash = this.nullifierToNote.get(nullifier)
-
-          if (noteHash) {
-            const nullifier = this.noteToNullifier.get(noteHash)
-
-            if (!nullifier) {
-              throw new Error(
-                'nullifierToNote mappings must have a corresponding noteToNullifier map',
-              )
-            }
-
-            await this.updateNoteToNullifierMap(
-              noteHash,
-              {
-                ...nullifier,
-                spent: !isRemovingTransaction,
-              },
-              tx,
-            )
-          }
-        }
-      })
+      }
     })
   }
 
@@ -855,7 +854,7 @@ export class Accounts {
     receives: { publicAddress: string; amount: bigint; memo: string }[],
     transactionFee: bigint,
     expirationSequence: number,
-  ): Promise<Transaction> {
+  ): Promise<TransferTransaction> {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
@@ -1127,10 +1126,10 @@ export class Accounts {
               ? 'completed'
               : 'pending',
           hash: transaction.unsignedHash().toString('hex'),
-          isMinersFee: transaction.isMinersFee(),
+          isMinersFee: transaction.type === TransactionType.MinersFee,
           fee: Number(transaction.fee()),
-          notes: transaction.notesLength(),
-          spends: transaction.spendsLength(),
+          notes: transaction.notes().length,
+          spends: transaction.spends().length,
           expiration: transaction.expirationSequence(),
         })
       }
@@ -1193,10 +1192,10 @@ export class Accounts {
               transactionMapValue.blockHash && transactionMapValue.submittedSequence
                 ? 'completed'
                 : 'pending',
-            isMinersFee: transaction.isMinersFee(),
+            isMinersFee: transaction.type === TransactionType.MinersFee,
             fee: Number(transaction.fee()),
-            notes: transaction.notesLength(),
-            spends: transaction.spendsLength(),
+            notes: transaction.notes().length,
+            spends: transaction.spends().length,
           }
         }
       }

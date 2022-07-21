@@ -42,7 +42,13 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
         })
         .required()
         .defined(),
-      transactions: yup.array().of(yup.string().required()).required().defined(),
+      transactions: yup
+        .array().of(
+          yup
+            .object({ data: yup.string().required(), type: yup.number().required() }).required().defined()
+          )
+        .required()
+        .defined(),
       previousBlockInfo: yup
         .object({
           target: yup.string().required(),

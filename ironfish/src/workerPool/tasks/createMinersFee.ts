@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateNewPublicAddress, Note, Transaction } from '@ironfish/rust-nodejs'
+import { generateNewPublicAddress, MinersFeeTransaction, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
@@ -45,15 +45,15 @@ export class CreateMinersFeeRequest extends WorkerMessage {
 }
 
 export class CreateMinersFeeResponse extends WorkerMessage {
-  readonly serializedTransactionPosted: Uint8Array
+  readonly serializedTransaction: Uint8Array
 
-  constructor(serializedTransactionPosted: Uint8Array, jobId: number) {
+  constructor(serializedTransaction: Uint8Array, jobId: number) {
     super(WorkerMessageType.CreateMinersFee, jobId)
-    this.serializedTransactionPosted = serializedTransactionPosted
+    this.serializedTransaction = serializedTransaction
   }
 
   serialize(): Buffer {
-    return Buffer.from(this.serializedTransactionPosted)
+    return Buffer.from(this.serializedTransaction)
   }
 
   static deserialize(jobId: number, buffer: Buffer): CreateMinersFeeResponse {
@@ -61,7 +61,7 @@ export class CreateMinersFeeResponse extends WorkerMessage {
   }
 
   getSize(): number {
-    return this.serializedTransactionPosted.byteLength
+    return this.serializedTransaction.byteLength
   }
 }
 
@@ -85,10 +85,8 @@ export class CreateMinersFeeTask extends WorkerTask {
       Note.getDefaultAssetIdentifier(),
     )
 
-    const transaction = new Transaction()
-    transaction.receive(spendKey, minerNote)
-
-    const serializedTransactionPosted = transaction.post_miners_fee()
-    return new CreateMinersFeeResponse(serializedTransactionPosted, jobId)
+    const transaction = new MinersFeeTransaction(spendKey, minerNote)
+    const serializedTransaction = transaction.serialize()
+    return new CreateMinersFeeResponse(serializedTransaction, jobId)
   }
 }

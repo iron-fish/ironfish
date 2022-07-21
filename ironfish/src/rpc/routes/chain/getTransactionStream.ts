@@ -7,6 +7,7 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
+import { TransactionType } from '../../../primitives/transactions/transaction'
 import { PromiseUtils } from '../../../utils/promise'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -125,7 +126,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         if (notes.length) {
           transactions.push({
             hash: tx.unsignedHash().toString('hex'),
-            isMinersFee: tx.isMinersFee(),
+            isMinersFee: tx.type === TransactionType.MinersFee,
             notes: notes,
           })
         }

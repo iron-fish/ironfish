@@ -9,7 +9,9 @@ import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
-import { SerializedTransaction, Transaction } from './transaction'
+import { MinersFeeTransaction } from './transactions/minersFeeTransaction'
+import { SerializedTransaction, Transaction, TransactionType } from './transactions/transaction'
+import { TransferTransaction } from './transactions/transferTransaction'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
@@ -33,8 +35,8 @@ export class Block {
     let nullifiers = 0
 
     for (const transaction of this.transactions) {
-      notes += transaction.notesLength()
-      nullifiers += transaction.spendsLength()
+      notes += transaction.notes().length
+      nullifiers += transaction.spends().length
     }
 
     return { notes, nullifiers }
@@ -118,7 +120,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       if (
         !transaction1 ||
         !transaction2 ||
-        !this.strategy.transactionSerde.equals(transaction1, transaction2)
+        !transaction1.equals(transaction2)
       ) {
         return false
       }
@@ -130,7 +132,10 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
   serialize(block: Block): SerializedBlock {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
-      transactions: block.transactions.map((t) => this.strategy.transactionSerde.serialize(t)),
+      transactions: block.transactions.map((t) => ({
+        data: t.serialize(),
+        type: t.type,
+      })),
     }
   }
 
@@ -143,9 +148,14 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       Array.isArray(data.transactions)
     ) {
       const header = this.blockHeaderSerde.deserialize(data.header)
-      const transactions = data.transactions.map((t) =>
-        this.strategy.transactionSerde.deserialize(t),
-      )
+      const transactions = data.transactions.map((t) => {
+        switch (t.type) {
+          case TransactionType.MinersFee:
+            return new MinersFeeTransaction(t.data)
+          case TransactionType.Transfer:
+            return new TransferTransaction(t.data)
+        }
+      })
       return new Block(header, transactions)
     }
     throw new Error('Unable to deserialize')

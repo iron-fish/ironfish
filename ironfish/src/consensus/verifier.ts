@@ -8,7 +8,7 @@ import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
+import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
@@ -137,13 +137,13 @@ export class Verifier {
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
+  verifyNewTransaction({data, type}: SerializedTransaction): Transaction {
     try {
-      const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
+      const transaction = Transaction.deserialize(type, data)
 
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
-      transaction.takeReference()
+      transaction.withReference(() => {})
 
       return transaction
     } catch (e) {
