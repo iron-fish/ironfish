@@ -1,17 +1,22 @@
 // Credit to https://github.com/anoma/masp for providing the initial implementation of this file
 
+use ff::PrimeField;
 use blake2s_simd::Params as Blake2sParams;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use std::io;
 use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 
-use crate::{errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION};
+use crate::{errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION, poseidon::constants::POSEIDON_CONSTANTS_2};
 
 use super::{constants::ASSET_IDENTIFIER_LENGTH, sapling::ValueCommitment};
+
+use blstrs::Scalar as Fr;
 
 lazy_static! {
     pub static ref DEFAULT_ASSET: AssetType = AssetType::new(b"").unwrap();
 }
+
+use bellman_neptune::poseidon::Poseidon;
 
 #[derive(Copy, Clone, Debug)]
 pub struct AssetType {

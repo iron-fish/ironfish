@@ -13,6 +13,8 @@ use std::ops::MulAssign;
 use self::bls12::Bls12PoseidonParams;
 
 pub mod bls12;
+pub mod constants;
+pub mod hasher;
 
 pub trait GroupHasher {
     fn new(personalization: &[u8]) -> Self;
