@@ -5,7 +5,6 @@
 import { zip } from 'lodash'
 import { Assert } from '../assert'
 import { Serde } from '../serde'
-import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
@@ -70,7 +69,7 @@ export class Block {
   }
 
   equals(block: Block): boolean {
-    return block === this || this.header.strategy.blockSerde.equals(this, block)
+    return block === this || new BlockSerde().equals(this, block)
   }
 
   get minersFee(): Transaction {
@@ -101,8 +100,8 @@ export type SerializedCounts = { notes: number; nullifiers: number }
 export class BlockSerde implements Serde<Block, SerializedBlock> {
   blockHeaderSerde: BlockHeaderSerde
 
-  constructor(readonly strategy: Strategy) {
-    this.blockHeaderSerde = new BlockHeaderSerde(strategy)
+  constructor() {
+    this.blockHeaderSerde = new BlockHeaderSerde()
   }
 
   equals(block1: Block, block2: Block): boolean {

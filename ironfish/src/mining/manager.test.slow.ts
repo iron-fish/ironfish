@@ -202,7 +202,7 @@ describe('Mining manager', () => {
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
 
-      const validBlock = BlockTemplateSerde.deserialize(strategy, blockTemplateA1)
+      const validBlock = BlockTemplateSerde.deserialize(blockTemplateA1)
       // This value is what the code generates from the fixture block
       validBlock.header.work = expect.any(BigInt)
 

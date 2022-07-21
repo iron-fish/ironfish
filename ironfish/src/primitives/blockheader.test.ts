@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest } from '../testUtilities/nodeTest'
+// import { createNodeTest } from '../testUtilities/nodeTest'
 import { GraffitiUtils } from '../utils'
 import { BlockHeader, BlockHeaderSerde, isBlockHeavier, isBlockLater } from './blockheader'
 import { Target } from './target'
 
 describe('BlockHeaderSerde', () => {
-  const nodeTest = createNodeTest()
-  const serde = new BlockHeaderSerde(nodeTest.strategy)
+  // const nodeTest = createNodeTest()
+  const serde = new BlockHeaderSerde()
 
   it('checks equal block headers', () => {
-    const { strategy } = nodeTest
-
     const header1 = new BlockHeader(
-      strategy,
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
@@ -28,7 +25,6 @@ describe('BlockHeaderSerde', () => {
     )
 
     const header2 = new BlockHeader(
-      strategy,
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
@@ -98,10 +94,7 @@ describe('BlockHeaderSerde', () => {
   })
 
   it('serializes and deserializes a block header', () => {
-    const { strategy } = nodeTest
-
     const header = new BlockHeader(
-      strategy,
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 8 },
@@ -120,7 +113,6 @@ describe('BlockHeaderSerde', () => {
 
   it('checks block is later than', () => {
     const header1 = new BlockHeader(
-      nodeTest.strategy,
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },
@@ -149,7 +141,6 @@ describe('BlockHeaderSerde', () => {
 
   it('checks block is heavier than', () => {
     const header1 = new BlockHeader(
-      nodeTest.strategy,
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },

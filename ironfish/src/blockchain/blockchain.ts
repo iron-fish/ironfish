@@ -172,7 +172,7 @@ export class Blockchain {
     this.headers = this.db.addStore({
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new HeaderEncoding(this.strategy),
+      valueEncoding: new HeaderEncoding(),
     })
 
     // BlockHash -> Transaction[]
@@ -918,7 +918,6 @@ export class Blockchain {
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
       const header = new BlockHeader(
-        this.strategy,
         previousSequence + 1,
         previousBlockHash,
         noteCommitment,

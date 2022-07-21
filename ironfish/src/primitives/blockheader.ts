@@ -8,7 +8,6 @@ import {
   NullifierSerdeInstance,
   Serde,
 } from '../serde'
-import { Strategy } from '../strategy'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
 import { Target } from './target'
@@ -48,9 +47,6 @@ export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
 }
 
 export class BlockHeader {
-  // Strategy for hashing block and tree nodes and calculating targets
-  public strategy: Strategy
-
   /**
    * The sequence number of the block. Blocks in a chain increase in ascending
    * order of sequence. More than one block may have the same sequence,
@@ -124,7 +120,6 @@ export class BlockHeader {
   public hash: Buffer
 
   constructor(
-    strategy: Strategy,
     sequence: number,
     previousBlockHash: BlockHash,
     noteCommitment: { commitment: NoteEncryptedHash; size: number },
@@ -137,7 +132,6 @@ export class BlockHeader {
     work = BigInt(0),
     hash?: Buffer,
   ) {
-    this.strategy = strategy
     this.sequence = sequence
     this.previousBlockHash = previousBlockHash
     this.noteCommitment = noteCommitment
@@ -220,8 +214,6 @@ export type SerializedBlockHeader = {
 }
 
 export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeader> {
-  constructor(readonly strategy: Strategy) {}
-
   equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
@@ -273,7 +265,6 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     }
 
     const header = new BlockHeader(
-      this.strategy,
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {

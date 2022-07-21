@@ -21,7 +21,7 @@ export class Strategy {
   private miningRewardCachedByYear: Map<number, number>
 
   constructor(workerPool: WorkerPool) {
-    this.blockSerde = new BlockSerde(this)
+    this.blockSerde = new BlockSerde()
     this.noteSerde = new NoteEncryptedSerde()
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = workerPool
