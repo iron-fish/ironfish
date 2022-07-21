@@ -10,13 +10,11 @@ import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
-import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
-  strategy: Strategy
   chain: Blockchain
   private readonly workerPool: WorkerPool
 
@@ -26,7 +24,6 @@ export class Verifier {
   enableVerifyTarget = true
 
   constructor(chain: Blockchain, workerPool: WorkerPool) {
-    this.strategy = chain.strategy
     this.chain = chain
     this.workerPool = workerPool
   }
@@ -139,7 +136,7 @@ export class Verifier {
    */
   verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
     try {
-      const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
+      const transaction = new Transaction(serializedTransaction)
 
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here

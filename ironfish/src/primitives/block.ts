@@ -115,11 +115,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
     }
 
     for (const [transaction1, transaction2] of zip(block1.transactions, block2.transactions)) {
-      if (
-        !transaction1 ||
-        !transaction2 ||
-        !this.strategy.transactionSerde.equals(transaction1, transaction2)
-      ) {
+      if (!transaction1 || !transaction2 || !transaction1.equals(transaction2)) {
         return false
       }
     }
@@ -130,7 +126,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
   serialize(block: Block): SerializedBlock {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
-      transactions: block.transactions.map((t) => this.strategy.transactionSerde.serialize(t)),
+      transactions: block.transactions.map((t) => t.serialize()),
     }
   }
 
@@ -143,9 +139,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       Array.isArray(data.transactions)
     ) {
       const header = this.blockHeaderSerde.deserialize(data.header)
-      const transactions = data.transactions.map((t) =>
-        this.strategy.transactionSerde.deserialize(t),
-      )
+      const transactions = data.transactions.map((t) => new Transaction(t))
       return new Block(header, transactions)
     }
     throw new Error('Unable to deserialize')

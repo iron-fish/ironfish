@@ -8,7 +8,7 @@ import { BlockSerde } from './primitives/block'
 import { BlockHash, BlockHeaderSerde, hashBlockHeader } from './primitives/blockheader'
 import { NoteEncrypted } from './primitives/noteEncrypted'
 import { NullifierHasher } from './primitives/nullifier'
-import { Transaction, TransactionSerde } from './primitives/transaction'
+import { Transaction } from './primitives/transaction'
 import { Serde } from './serde'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -23,14 +23,12 @@ export class Strategy {
   readonly blockSerde: BlockSerde
   readonly blockHeaderSerde: BlockHeaderSerde
   readonly noteSerde: Serde<NoteEncrypted, Buffer>
-  readonly transactionSerde: TransactionSerde
 
   private miningRewardCachedByYear: Map<number, number>
 
   constructor(workerPool: WorkerPool) {
     this.noteHasher = new NoteHasher()
     this.nullifierHasher = new NullifierHasher()
-    this.transactionSerde = new TransactionSerde()
     this.blockSerde = new BlockSerde(this)
     this.blockHeaderSerde = new BlockHeaderSerde(this)
     this.noteSerde = this.noteHasher.elementSerde()
