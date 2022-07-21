@@ -10,6 +10,7 @@ import {
   NoteEncrypted,
   Transaction,
   TransactionPosted,
+  MinersFeeTransaction,
 } from '../'
 
 describe('Demonstrate the Sapling API', () => {
@@ -39,21 +40,15 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction()
     const note = new Note(key.public_address, BigInt(20), 'test', Note.getDefaultAssetIdentifier())
-    transaction.receive(key.spending_key, note)
+    const transaction = new MinersFeeTransaction(key.spending_key, note)
 
-    const serializedPostedTransaction = transaction.post_miners_fee()
-    const postedTransaction = new TransactionPosted(serializedPostedTransaction)
+    expect(transaction.fee()).toEqual(BigInt(-20))
+    expect(transaction.hash().byteLength).toBe(32)
+    expect(transaction.signature().byteLength).toBe(64)
+    expect(transaction.verify()).toBe(true)
 
-    expect(postedTransaction.fee()).toEqual(BigInt(-20))
-    expect(postedTransaction.notesLength()).toBe(1)
-    expect(postedTransaction.spendsLength()).toBe(0)
-    expect(postedTransaction.hash().byteLength).toBe(32)
-    expect(postedTransaction.transactionSignature().byteLength).toBe(64)
-    expect(postedTransaction.verify()).toBe(true)
-
-    const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
+    const encryptedNote = new NoteEncrypted(transaction.getNote())
     expect(encryptedNote.merkleHash().byteLength).toBe(32)
     expect(encryptedNote.equals(encryptedNote)).toBe(true)
 
@@ -76,15 +71,12 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction()
     const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Note.getDefaultAssetIdentifier())
-    minersFeeTransaction.receive(key.spending_key, minersFeeNote)
-
-    const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
+    const minersFeeTransaction = new MinersFeeTransaction(key.spending_key, minersFeeNote)
 
     const transaction = new Transaction()
     transaction.setExpirationSequence(10)
-    const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
+    const encryptedNote = new NoteEncrypted(minersFeeTransaction.getNote())
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
     const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Note.getDefaultAssetIdentifier())
 

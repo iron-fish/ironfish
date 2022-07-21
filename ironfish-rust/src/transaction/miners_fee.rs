@@ -22,10 +22,10 @@ use super::{
 };
 
 pub struct MinersFeeTransaction {
-    fee: i64,
+    pub fee: i64,
     sapling: Arc<Sapling>,
-    output: ReceiptProof,
-    binding_signature: Signature,
+    pub output: ReceiptProof,
+    pub binding_signature: Signature,
 }
 
 impl MinersFeeTransaction {
@@ -82,6 +82,24 @@ impl MinersFeeTransaction {
             output: receipt_params.post()?,
             binding_signature,
         })
+    }
+
+    pub fn signature_hash(&self) -> [u8; 32] {
+        let expiration_sequence = 2;
+        let mut hasher = Blake2b::new()
+            .hash_length(32)
+            .personal(SIGNATURE_HASH_PERSONALIZATION)
+            .to_state();
+        hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        hasher
+            .write_u32::<LittleEndian>(expiration_sequence)
+            .unwrap();
+        hasher.write_i64::<LittleEndian>(self.fee).unwrap();
+        self.output.serialize_signature_fields(&mut hasher).unwrap();
+
+        let mut hash_result = [0; 32];
+        hash_result[..].clone_from_slice(hasher.finalize().as_ref());
+        hash_result
     }
 }
 
