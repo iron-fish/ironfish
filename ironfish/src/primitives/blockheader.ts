@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
+import {
+  BlockHashSerdeInstance,
+  GraffitiSerdeInstance,
+  NullifierSerdeInstance,
+  Serde,
+} from '../serde'
 import { Strategy } from '../strategy'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
@@ -176,7 +181,7 @@ export class BlockHeader {
     headerBytes.set(BigIntUtils.toBytesBE(this.randomness, 8))
     headerBytes.set(partialHeader, 8)
 
-    const hash = this.strategy.hashBlockHeader(headerBytes)
+    const hash = hashBlockHeader(headerBytes)
     this.hash = hash
     return hash
   }
@@ -220,16 +225,12 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
   equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
-      this.strategy.noteHasher
-        .hashSerde()
-        .equals(element1.noteCommitment.commitment, element2.noteCommitment.commitment) &&
+      element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
       element1.noteCommitment.size === element2.noteCommitment.size &&
-      this.strategy.nullifierHasher
-        .hashSerde()
-        .equals(
-          element1.nullifierCommitment.commitment,
-          element2.nullifierCommitment.commitment,
-        ) &&
+      NullifierSerdeInstance.equals(
+        element1.nullifierCommitment.commitment,
+        element2.nullifierCommitment.commitment,
+      ) &&
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
       element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
@@ -244,15 +245,11 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .serialize(header.noteCommitment.commitment),
+        commitment: header.noteCommitment.commitment,
         size: header.noteCommitment.size,
       },
       nullifierCommitment: {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .serialize(header.nullifierCommitment.commitment),
+        commitment: NullifierSerdeInstance.serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
       },
       target: header.target.targetValue.toString(),
@@ -280,15 +277,11 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .deserialize(data.noteCommitment.commitment),
+        commitment: data.noteCommitment.commitment,
         size: data.noteCommitment.size,
       },
       {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .deserialize(data.nullifierCommitment.commitment),
+        commitment: NullifierSerdeInstance.deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
       },
       new Target(data.target),

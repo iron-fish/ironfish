@@ -4,15 +4,15 @@
 
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { GraffitiUtils } from '../utils'
-import { BlockHeader, isBlockHeavier, isBlockLater } from './blockheader'
+import { BlockHeader, BlockHeaderSerde, isBlockHeavier, isBlockLater } from './blockheader'
 import { Target } from './target'
 
 describe('BlockHeaderSerde', () => {
   const nodeTest = createNodeTest()
+  const serde = new BlockHeaderSerde(nodeTest.strategy)
 
   it('checks equal block headers', () => {
     const { strategy } = nodeTest
-    const serde = strategy.blockHeaderSerde
 
     const header1 = new BlockHeader(
       strategy,
@@ -99,7 +99,6 @@ describe('BlockHeaderSerde', () => {
 
   it('serializes and deserializes a block header', () => {
     const { strategy } = nodeTest
-    const serde = strategy.blockHeaderSerde
 
     const header = new BlockHeader(
       strategy,
@@ -133,8 +132,8 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
     )
 
-    const serialized = nodeTest.strategy.blockHeaderSerde.serialize(header1)
-    const header2 = nodeTest.strategy.blockHeaderSerde.deserialize(serialized)
+    const serialized = serde.serialize(header1)
+    const header2 = serde.deserialize(serialized)
     expect(isBlockLater(header1, header2)).toBe(false)
 
     header1.sequence = 6
@@ -162,8 +161,8 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
     )
 
-    const serialized = nodeTest.strategy.blockHeaderSerde.serialize(header1)
-    const header2 = nodeTest.strategy.blockHeaderSerde.deserialize(serialized)
+    const serialized = serde.serialize(header1)
+    const header2 = serde.deserialize(serialized)
     expect(isBlockHeavier(header1, header2)).toBe(false)
 
     header1.work = BigInt(1)
