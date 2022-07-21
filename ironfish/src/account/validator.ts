@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { AccountsValue } from './database/accounts'
+import { AccountValue } from './database/accounts'
 
 const PUBLIC_ADDRESS_LENGTH = 86
 const SPENDING_KEY_LENGTH = 64
@@ -31,7 +31,7 @@ export function isValidOutgoingViewKey(outgoingViewKey: string): boolean {
   )
 }
 
-export function validateAccount(toImport: Partial<AccountsValue>): void {
+export function validateAccount(toImport: Partial<AccountValue>): void {
   if (!toImport.name) {
     throw new Error(`Imported account has no name`)
   }

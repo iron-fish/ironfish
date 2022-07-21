@@ -19,7 +19,7 @@ import {
 import { createDB } from '../storage/utils'
 import { WorkerPool } from '../workerPool'
 import { Account } from './account'
-import { AccountsValue, AccountsValueEncoding } from './database/accounts'
+import { AccountValue, AccountValueEncoding } from './database/accounts'
 import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './database/decryptedNotes'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
@@ -36,7 +36,7 @@ export class AccountsDB {
   location: string
   files: FileSystem
 
-  accounts: IDatabaseStore<{ key: string; value: AccountsValue }>
+  accounts: IDatabaseStore<{ key: string; value: AccountValue }>
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
@@ -97,10 +97,10 @@ export class AccountsDB {
       valueEncoding: new NullableStringEncoding(),
     })
 
-    this.accounts = this.database.addStore<{ key: string; value: AccountsValue }>({
+    this.accounts = this.database.addStore<{ key: string; value: AccountValue }>({
       name: 'accounts',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountsValueEncoding(),
+      valueEncoding: new AccountValueEncoding(),
     })
 
     this.balances = this.database.addStore<{ key: string; value: bigint }>({
@@ -178,7 +178,7 @@ export class AccountsDB {
   }
 
   async *loadAccounts(): AsyncGenerator<
-    { id: string; serializedAccount: AccountsValue },
+    { id: string; serializedAccount: AccountValue },
     void,
     unknown
   > {

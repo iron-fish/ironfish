@@ -20,7 +20,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
 import { AccountsDB } from './accountsdb'
-import { AccountsValue } from './database/accounts'
+import { AccountValue } from './database/accounts'
 import { validateAccount } from './validator'
 
 export type SyncTransactionParams =
@@ -1016,7 +1016,7 @@ export class Accounts {
     return { transactionInfo, transactionNotes }
   }
 
-  async importAccount(toImport: Omit<AccountsValue, 'rescan'>): Promise<Account> {
+  async importAccount(toImport: Omit<AccountValue, 'rescan'>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.getAccountByName(toImport.name)) {

@@ -9,7 +9,7 @@ import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
 import { SyncTransactionParams } from './accounts'
 import { AccountsDB } from './accountsdb'
-import { AccountsValue } from './database/accounts'
+import { AccountValue } from './database/accounts'
 import { DecryptedNotesValue } from './database/decryptedNotes'
 
 export const ACCOUNT_KEY_LENGTH = 32
@@ -76,7 +76,7 @@ export class Account {
     }>()
   }
 
-  serialize(): AccountsValue {
+  serialize(): AccountValue {
     return {
       name: this.name,
       spendingKey: this.spendingKey,
