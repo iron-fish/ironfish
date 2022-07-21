@@ -817,9 +817,14 @@ export class PeerNetwork {
   private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
     const received = new Date()
 
-    // Mark the peer as knowing about the transaction
+    // Mark the peer as knowing about the transaction as well as their known peers
+    // since they probably sent it to them. We will remove the known peers once we start
+    // gossiping message based on hash
     const hash = new Transaction(message.transaction).hash()
     peer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
+    for (const [_, knownPeer] of peer.knownPeers) {
+      knownPeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
+    }
 
     if (!this.enableSyncing) {
       return false
