@@ -256,7 +256,9 @@ impl From<PoseidonDomain> for Fr {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use bellman::gadgets::test::TestConstraintSystem;
+    use rand::thread_rng;
 
     use super::*;
     // use merkletree::{merkle::MerkleTree, store::VecStore};
@@ -269,4 +271,46 @@ mod tests {
         bytes[24..].copy_from_slice(&u64s[3].to_le_bytes());
         bytes
     }
+
+    #[test]
+    fn test_hash2_circuit() {
+        let mut rng = thread_rng();
+
+        for _ in 0..10 {
+            let mut cs = TestConstraintSystem::<Fr>::new();
+
+            let a = Fr::random(&mut rng);
+            let b = Fr::random(&mut rng);
+
+            let a_num = {
+                let mut cs = cs.namespace(|| "a");
+                AllocatedNum::alloc(&mut cs, || Ok(a)).expect("alloc failed")
+            };
+
+            let b_num = {
+                let mut cs = cs.namespace(|| "b");
+                AllocatedNum::alloc(&mut cs, || Ok(b)).expect("alloc failed")
+            };
+
+            let out = PoseidonFunction::hash2_circuit(
+                cs.namespace(|| "hash2"),
+                &a_num,
+                &b_num,
+            )
+            .expect("hash2 function failed");
+
+            assert!(cs.is_satisfied(), "constraints not satisfied");
+            // assert_eq!(cs.num_constraints(), 311);
+
+            let expected: Fr = PoseidonFunction::hash2(&a.into(), &b.into()).into();
+
+            assert_eq!(
+                expected,
+                out.get_value().expect("get_value failed"),
+                "circuit and non circuit do not match"
+            );
+        }
+    }
+
 }
+

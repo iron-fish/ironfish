@@ -2,9 +2,9 @@ use std::convert::TryInto;
 
 use super::*;
 use bls12_381::{Bls12};
-use ff::{PrimeField, PrimeFieldBits, Field};
+use ff::{Field};
 use jubjub;
-use rand::{rngs::OsRng, prelude::StdRng, SeedableRng};
+use rand::{ prelude::StdRng, SeedableRng};
 use crate::primitives::constants::GH_FIRST_BLOCK;
 use blake2b_simd::Params as Blake2b;
 
@@ -203,12 +203,7 @@ impl PoseidonHashParams for Bls12PoseidonParams {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rand::{thread_rng, Rng};
-
-    #[test]
-    fn test_generate_bls12_poseidon_params() {
-        let params = Bls12PoseidonParams::new();
-    }
+    use rand::{thread_rng};
 
     #[test]
     fn test_bls12_poseidon_hash() {
