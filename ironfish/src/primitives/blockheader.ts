@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHashSerdeInstance, GraffitiSerdeInstance, Serde } from '../serde'
-import { Strategy } from '../strategy'
+import { BlockHashSerdeInstance, GraffitiSerdeInstance, NullifierSerdeInstance } from '../serde'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
 import { Target } from './target'
@@ -43,9 +42,6 @@ export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
 }
 
 export class BlockHeader {
-  // Strategy for hashing block and tree nodes and calculating targets
-  public strategy: Strategy
-
   /**
    * The sequence number of the block. Blocks in a chain increase in ascending
    * order of sequence. More than one block may have the same sequence,
@@ -119,7 +115,6 @@ export class BlockHeader {
   public hash: Buffer
 
   constructor(
-    strategy: Strategy,
     sequence: number,
     previousBlockHash: BlockHash,
     noteCommitment: { commitment: NoteEncryptedHash; size: number },
@@ -132,7 +127,6 @@ export class BlockHeader {
     work = BigInt(0),
     hash?: Buffer,
   ) {
-    this.strategy = strategy
     this.sequence = sequence
     this.previousBlockHash = previousBlockHash
     this.noteCommitment = noteCommitment
@@ -153,7 +147,7 @@ export class BlockHeader {
    * This is used for calculating the hash in miners and for verifying it.
    */
   serializePartial(): Buffer {
-    return new PartialBlockHeaderSerde().serialize({
+    return PartialBlockHeaderSerde.serialize({
       sequence: this.sequence,
       previousBlockHash: this.previousBlockHash,
       noteCommitment: this.noteCommitment,
@@ -176,7 +170,7 @@ export class BlockHeader {
     headerBytes.set(BigIntUtils.toBytesBE(this.randomness, 8))
     headerBytes.set(partialHeader, 8)
 
-    const hash = this.strategy.hashBlockHeader(headerBytes)
+    const hash = hashBlockHeader(headerBytes)
     this.hash = hash
     return hash
   }
@@ -214,22 +208,16 @@ export type SerializedBlockHeader = {
   graffiti: string
 }
 
-export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeader> {
-  constructor(readonly strategy: Strategy) {}
-
-  equals(element1: BlockHeader, element2: BlockHeader): boolean {
+export class BlockHeaderSerde {
+  static equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
-      this.strategy.noteHasher
-        .hashSerde()
-        .equals(element1.noteCommitment.commitment, element2.noteCommitment.commitment) &&
+      element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
       element1.noteCommitment.size === element2.noteCommitment.size &&
-      this.strategy.nullifierHasher
-        .hashSerde()
-        .equals(
-          element1.nullifierCommitment.commitment,
-          element2.nullifierCommitment.commitment,
-        ) &&
+      NullifierSerdeInstance.equals(
+        element1.nullifierCommitment.commitment,
+        element2.nullifierCommitment.commitment,
+      ) &&
       element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
       element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
@@ -239,20 +227,16 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     )
   }
 
-  serialize(header: BlockHeader): SerializedBlockHeader {
+  static serialize(header: BlockHeader): SerializedBlockHeader {
     const serialized = {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .serialize(header.noteCommitment.commitment),
+        commitment: header.noteCommitment.commitment,
         size: header.noteCommitment.size,
       },
       nullifierCommitment: {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .serialize(header.nullifierCommitment.commitment),
+        commitment: NullifierSerdeInstance.serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
       },
       target: header.target.targetValue.toString(),
@@ -267,7 +251,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     return serialized
   }
 
-  deserialize(data: SerializedBlockHeader): BlockHeader {
+  static deserialize(data: SerializedBlockHeader): BlockHeader {
     // TODO: this needs to make assertions on the data format
     // as it can be from untrusted sources
     let hashBuffer
@@ -276,19 +260,14 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     }
 
     const header = new BlockHeader(
-      this.strategy,
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
-        commitment: this.strategy.noteHasher
-          .hashSerde()
-          .deserialize(data.noteCommitment.commitment),
+        commitment: data.noteCommitment.commitment,
         size: data.noteCommitment.size,
       },
       {
-        commitment: this.strategy.nullifierHasher
-          .hashSerde()
-          .deserialize(data.nullifierCommitment.commitment),
+        commitment: NullifierSerdeInstance.deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
       },
       new Target(data.target),

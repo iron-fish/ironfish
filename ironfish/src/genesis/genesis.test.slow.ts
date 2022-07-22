@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
-import { SerializedBlock } from '../primitives/block'
+import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
 import { Strategy } from '../strategy'
@@ -119,7 +119,7 @@ describe('Create genesis block', () => {
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
-    const serialized = strategy.blockSerde.serialize(block)
+    const serialized = BlockSerde.serialize(block)
     const jsonedBlock = IJSON.stringify(serialized, '  ')
 
     // Now start from scratch with a clean database and make sure the block
@@ -128,7 +128,7 @@ describe('Create genesis block', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = strategy.blockSerde.deserialize(result)
+    const deserializedBlock = BlockSerde.deserialize(result)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 

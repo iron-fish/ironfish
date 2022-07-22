@@ -115,7 +115,6 @@ export class IronfishNode {
       webSocket: webSocket,
       node: this,
       chain: chain,
-      strategy: strategy,
       metrics: this.metrics,
       hostsStore: hostsStore,
       logger: logger,
@@ -149,7 +148,6 @@ export class IronfishNode {
       logger,
       telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
-      strategy: this.strategy,
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
