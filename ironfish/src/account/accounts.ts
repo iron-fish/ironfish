@@ -26,7 +26,7 @@ import { validateAccount } from './validator'
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
-  | { blockHash: string; initialNoteIndex: number }
+  | { blockHash: string; initialNoteIndex: number; sequence: number }
   // Used if the transaction is not yet part of the chain
   | { submittedSequence: number }
   | Record<string, never>
@@ -91,11 +91,13 @@ export class Accounts {
       for await (const {
         transaction,
         blockHash,
+        sequence,
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
           blockHash: blockHash.toString('hex'),
-          initialNoteIndex: initialNoteIndex,
+          initialNoteIndex,
+          sequence,
         })
       }
 
@@ -530,6 +532,7 @@ export class Accounts {
           {
             blockHash: blockHash.toString('hex'),
             initialNoteIndex,
+            sequence,
           },
           accounts,
         )
@@ -615,19 +618,18 @@ export class Accounts {
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
-
-    const notes = await this.getUnspentNotes(account)
-
-    let confirmed = BigInt(0)
-
-    for (const note of notes) {
-      const value = note.note.value()
-      if (note.index !== null && note.confirmed) {
-        confirmed += value
+    const headHash = await account.getHeadHash()
+    if (!headHash) {
+      return {
+        unconfirmed: BigInt(0),
+        confirmed: BigInt(0),
       }
     }
-
-    return { unconfirmed: await account.getUnconfirmedBalance(), confirmed }
+    const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+    Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
+    const headSequence = header.sequence
+    const unconfirmedSequenceStart = headSequence - this.config.get('minimumBlockConfirmations')
+    return account.getBalance(unconfirmedSequenceStart, headSequence)
   }
 
   private async getUnspentNotes(account: Account): Promise<

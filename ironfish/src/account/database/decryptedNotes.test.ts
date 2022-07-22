@@ -4,7 +4,7 @@
 import { DecryptedNotesValue, DecryptedNotesValueEncoding, NOTE_SIZE } from './decryptedNotes'
 
 describe('DecryptedNotesValueEncoding', () => {
-  describe('with a null note index, nullifier hash, and transaction hash', () => {
+  describe('with a null note index and nullifier hash', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
       const encoder = new DecryptedNotesValueEncoding()
 
@@ -14,7 +14,7 @@ describe('DecryptedNotesValueEncoding', () => {
         nullifierHash: null,
         spent: false,
         serializedNote: Buffer.alloc(NOTE_SIZE, 1),
-        transactionHash: null,
+        transactionHash: Buffer.alloc(32, 1),
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
