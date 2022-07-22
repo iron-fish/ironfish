@@ -13,6 +13,7 @@ import {
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
+import { FileSystem } from '../fileSystems'
 import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
@@ -56,7 +57,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 6
+const DATABASE_VERSION = 10
 
 export class Blockchain {
   db: IDatabase
@@ -64,6 +65,8 @@ export class Blockchain {
   strategy: Strategy
   verifier: Verifier
   metrics: MetricsMonitor
+  location: string
+  files: FileSystem
 
   synced = false
   opened = false
@@ -104,6 +107,7 @@ export class Blockchain {
   onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
 
   private _head: BlockHeader | null = null
+
   get head(): BlockHeader {
     Assert.isNotNull(
       this._head,
@@ -147,10 +151,13 @@ export class Blockchain {
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
     autoSeed?: boolean
+    files: FileSystem
   }) {
     const logger = options.logger || createRootLogger()
 
+    this.location = options.location
     this.strategy = options.strategy
+    this.files = options.files
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this, options.workerPool)
@@ -258,21 +265,15 @@ export class Blockchain {
     return genesisHeader
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.opened) {
       return
     }
-
     this.opened = true
-    await this.db.open()
 
-    if (options.upgrade) {
-      await this.db.upgrade(DATABASE_VERSION)
-      await this.notes.upgrade()
-      await this.nullifiers.upgrade()
-    }
+    await this.files.mkdir(this.location, { recursive: true })
+    await this.db.open()
+    await this.db.upgrade(DATABASE_VERSION)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {

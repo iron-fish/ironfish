@@ -48,6 +48,14 @@ class MockFileSystem extends FileSystem {
     return ''
   }
 
+  basename(): string {
+    return ''
+  }
+
+  extname(): string {
+    return ''
+  }
+
   resolve(): string {
     return ''
   }
