@@ -210,7 +210,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = this.strategy.transactionSerde.serialize(transaction)
+      const serializedTransaction = transaction.serialize()
 
       const message = new NewTransactionMessage(serializedTransaction)
 
