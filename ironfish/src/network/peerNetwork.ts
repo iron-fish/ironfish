@@ -30,6 +30,7 @@ import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
+import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import {
   displayNetworkMessageType,
@@ -565,6 +566,8 @@ export class PeerNetwork {
           responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
           responseMessage = await this.onGetBlockTransactionsRequest(peer, rpcMessage)
+        } else if (rpcMessage instanceof GetCompactBlockRequest) {
+          responseMessage = this.onGetCompactBlockRequest()
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -789,6 +792,11 @@ export class PeerNetwork {
     }
 
     return new GetBlockTransactionsResponse(message.blockHash, transactions, message.rpcId)
+  }
+
+  private onGetCompactBlockRequest(): GetCompactBlockResponse {
+    // TODO(IRO-2317): Implement a handler for compact block requests
+    throw new CannotSatisfyRequestError('Compact block requests are not yet supported.')
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
