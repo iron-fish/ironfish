@@ -4,6 +4,7 @@
 import { DatabaseIsLockedError, FileUtils, IronfishNode, IronfishPKG } from '@ironfish/sdk'
 import { execSync } from 'child_process'
 import os from 'os'
+import { getHeapStatistics } from 'v8'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -45,6 +46,7 @@ export default class Debug extends IronfishCommand {
     const cpuThreads = cpus.length
 
     const memTotal = FileUtils.formatMemorySize(os.totalmem())
+    const heapTotal = FileUtils.formatMemorySize(getHeapStatistics().total_available_size)
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
@@ -63,6 +65,7 @@ export default class Debug extends IronfishCommand {
       ['CPU model(s)', `${cpuNames.toString()}`],
       ['CPU threads', `${cpuThreads}`],
       ['RAM total', `${memTotal}`],
+      ['Heap total', `${heapTotal}`],
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
