@@ -200,8 +200,7 @@ export class AccountsDB {
       for (const [key, value] of map) {
         const serialized = {
           ...value,
-          type: value.transaction.type,
-          transaction: value.transaction.serialize(),
+          transaction: value.transaction.serializeWithType(),
         }
         await this.transactions.put(key, serialized, tx)
       }
@@ -218,7 +217,7 @@ export class AccountsDB {
     for await (const [key, value] of this.transactions.getAllIter()) {
       const deserialized = {
         ...value,
-        transaction: Transaction.deserialize(value.type, value.transaction),
+        transaction: Transaction.deserialize(value.transaction),
       }
 
       map.set(key, deserialized)

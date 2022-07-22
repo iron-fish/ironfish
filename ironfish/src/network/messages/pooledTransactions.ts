@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { SerializedTransaction, TransactionHash } from '../../primitives/transactions/transaction'
+import {
+  SerializedTransaction,
+  TransactionHash,
+} from '../../primitives/transactions/transaction'
 import { NetworkMessageType } from '../types'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
@@ -64,8 +67,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     bw.writeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
-      bw.writeVarBytes(transaction.data)
-      bw.writeU8(transaction.type)
+      bw.writeVarBytes(transaction)
     }
 
     return bw.render()
@@ -77,9 +79,8 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     const transactions = []
 
     for (let i = 0; i < transactionsLength; i++) {
-      const data = reader.readVarBytes()
-      const type = reader.readU8()
-      transactions.push({data, type})
+      const transaction = reader.readVarBytes()
+      transactions.push(transaction)
     }
 
     return new PooledTransactionsResponse(transactions, rpcId)
@@ -91,7 +92,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     size += bufio.sizeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
-      size += bufio.sizeVarBytes(transaction.data) + 1
+      size += bufio.sizeVarBytes(transaction)
     }
 
     return size

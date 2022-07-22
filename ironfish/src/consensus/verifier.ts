@@ -137,9 +137,9 @@ export class Verifier {
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  verifyNewTransaction({data, type}: SerializedTransaction): Transaction {
+  verifyNewTransaction(data: SerializedTransaction): Transaction {
     try {
-      const transaction = Transaction.deserialize(type, data)
+      const transaction = Transaction.deserialize(data)
 
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here

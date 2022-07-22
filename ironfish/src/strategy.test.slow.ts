@@ -183,21 +183,15 @@ describe('Demonstrate the Sapling API', () => {
 
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
-      // Generate a miner's fee transaction
       const workerPool = new WorkerPool()
-      const strategy = new Strategy(workerPool)
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
-
-      expect(minersFee['transactionPosted']).toBeNull()
-      expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
-      expect(minersFee['transactionPosted']).toBeNull()
+      expect(transferTransaction['transactionPosted']).toBeNull()
+      expect(await workerPool.verify(transferTransaction, { verifyFees: false })).toEqual({
+        valid: true,
+      })
+      expect(transferTransaction['transactionPosted']).toBeNull()
     }, 60000)
 
     it('Holds a posted transaction if a reference is taken', async () => {
-      // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
-
       await transferTransaction.withReference(async () => {
         expect(transferTransaction['transactionPosted']).not.toBeNull()
 

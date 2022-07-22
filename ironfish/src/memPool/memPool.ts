@@ -9,8 +9,11 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
-import { Transaction, TransactionHash, TransactionType } from '../primitives/transactions/transaction'
-import { TransferTransaction } from '../primitives/transactions/transferTransaction'
+import {
+  Transaction,
+  TransactionHash,
+  TransactionType,
+} from '../primitives/transactions/transaction'
 
 interface MempoolEntry {
   fee: bigint

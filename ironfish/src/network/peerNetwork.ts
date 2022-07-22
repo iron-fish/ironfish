@@ -201,8 +201,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = { type: transaction.type, data: transaction.serialize() }
-
+      const serializedTransaction = transaction.serializeWithType()
       this.gossip(new NewTransactionMessage(serializedTransaction))
     })
   }
@@ -718,7 +717,7 @@ export class PeerNetwork {
     for (const hash of message.transactionHashes) {
       const transaction = this.node.memPool.get(hash)
       if (transaction) {
-        transactions.push({ data: transaction.serialize(), type: transaction.type })  
+        transactions.push(transaction.serializeWithType())
       }
     }
 

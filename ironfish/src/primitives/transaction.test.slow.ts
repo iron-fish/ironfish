@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import { TransactionType } from './transactions/transaction'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -42,8 +43,8 @@ describe('Accounts', () => {
       account.spendingKey,
     )
 
-    expect(transactionA.isMinersFee()).toBe(true)
-    expect(transactionB.isMinersFee()).toBe(true)
+    expect(transactionA.type === TransactionType.MinersFee).toBe(true)
+    expect(transactionB.type === TransactionType.MinersFee).toBe(true)
   })
 
   it('check if a transaction is not a miners fee', async () => {
@@ -74,6 +75,6 @@ describe('Accounts', () => {
       BigInt(1),
       0,
     )
-    expect(transaction.isMinersFee()).toBe(false)
+    expect(transaction.type === TransactionType.MinersFee).toBe(false)
   }, 600000)
 })

@@ -9,7 +9,9 @@ import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
+import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
 import { Transaction } from '../primitives/transactions/transaction'
+import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
@@ -34,8 +36,6 @@ import {
 } from './tasks/verifyTransaction'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
-import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
-import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
@@ -131,7 +131,11 @@ export class WorkerPool {
     await Promise.all(workers.map((w) => w.stop()))
   }
 
-  async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<MinersFeeTransaction> {
+  async createMinersFee(
+    spendKey: string,
+    amount: bigint,
+    memo: string,
+  ): Promise<MinersFeeTransaction> {
     const request = new CreateMinersFeeRequest(amount, memo, spendKey)
 
     const response = await this.execute(request).result()

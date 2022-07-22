@@ -28,8 +28,7 @@ export class NewBlockV2Message extends NetworkMessage {
     bw.writeVarint(this.compactBlock.transactions.length)
     for (const transaction of this.compactBlock.transactions) {
       bw.writeVarint(transaction.index)
-      bw.writeVarBytes(transaction.transaction.data)
-      bw.writeU8(transaction.transaction.type)
+      bw.writeVarBytes(transaction.transaction)
     }
 
     return bw.render()
@@ -51,9 +50,8 @@ export class NewBlockV2Message extends NetworkMessage {
     const transactionsLength = reader.readVarint()
     for (let i = 0; i < transactionsLength; i++) {
       const index = reader.readVarint()
-      const data = reader.readVarBytes()
-      const type = reader.readU8()
-      transactions.push({ index, transaction: { data, type } })
+      const transaction = reader.readVarBytes()
+      transactions.push({ index, transaction })
     }
 
     const compactBlock: SerializedCompactBlock = {
@@ -76,8 +74,7 @@ export class NewBlockV2Message extends NetworkMessage {
     size += sizeVarint(this.compactBlock.transactions.length)
     for (const transaction of this.compactBlock.transactions) {
       size += sizeVarint(transaction.index)
-      size += sizeVarBytes(transaction.transaction.data)
-      size += 1
+      size += sizeVarBytes(transaction.transaction)
     }
 
     return size

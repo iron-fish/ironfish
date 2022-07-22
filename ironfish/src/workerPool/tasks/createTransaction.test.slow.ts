@@ -114,8 +114,7 @@ describe('CreateTransactionTask', () => {
 
       const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(spendNote)
-      for (let i = 0; i < minerTransaction.notesLength(); i++) {
-        const note = minerTransaction.getNote(i)
+      for (const note of minerTransaction.notes()) {
         await tree.add(note)
       }
 

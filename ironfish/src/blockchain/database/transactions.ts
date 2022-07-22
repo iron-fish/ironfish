@@ -4,8 +4,8 @@
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
-import { Transaction, TransactionType } from '../../primitives/transactions/transaction'
 import { MinersFeeTransaction } from '../../primitives/transactions/minersFeeTransaction'
+import { Transaction, TransactionType } from '../../primitives/transactions/transaction'
 import { TransferTransaction } from '../../primitives/transactions/transferTransaction'
 
 export type TransactionsValue = {

@@ -1,9 +1,12 @@
-import bufio from 'bufio'
-import { Transaction, TransactionType } from "./transaction";
-import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from '../noteEncrypted'
-import { Spend } from '../spend';
-import { NativeTransactionPosted, TransactionPosted } from '@ironfish/rust-nodejs';
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { NativeTransactionPosted, TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
+import bufio from 'bufio'
+import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from '../noteEncrypted'
+import { Spend } from '../spend'
+import { Transaction, TransactionType } from './transaction'
 
 export class TransferTransaction extends Transaction {
   private readonly _expirationSequence: number
@@ -26,7 +29,7 @@ export class TransferTransaction extends Transaction {
 
     const spendsLength = reader.readU64()
     const notesLength = reader.readU64()
-    this._fee = BigInt(reader.readI64()) 
+    this._fee = BigInt(reader.readI64())
     this._expirationSequence = reader.readU32()
 
     this._spends = Array.from({ length: spendsLength }, () => {
@@ -81,7 +84,7 @@ export class TransferTransaction extends Transaction {
   signature(): Buffer {
     return this._signature
   }
-  
+
   spends(): Spend[] {
     return this._spends
   }
@@ -114,7 +117,7 @@ export class TransferTransaction extends Transaction {
 
     return result
   }
-      
+
   private takeReference(): TransactionPosted {
     this.referenceCount++
     if (this.transactionPosted === null) {

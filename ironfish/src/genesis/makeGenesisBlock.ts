@@ -13,10 +13,9 @@ import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transactions/transaction'
-import { GraffitiUtils } from '../utils/graffiti'
 import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
 import { TransferTransaction } from '../primitives/transactions/transferTransaction'
+import { GraffitiUtils } from '../utils/graffiti'
 
 export type GenesisBlockInfo = {
   memo: string
@@ -85,7 +84,10 @@ export async function makeGenesisBlock(
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
   logger.info('  Generating the receipt...')
-  const initialTransaction = new NativeMinersFeeTransaction(genesisKey.spending_key, genesisNote)
+  const initialTransaction = new NativeMinersFeeTransaction(
+    genesisKey.spending_key,
+    genesisNote,
+  )
 
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new MinersFeeTransaction(initialTransaction.serialize())

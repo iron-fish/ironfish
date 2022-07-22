@@ -1,7 +1,10 @@
-import { Transaction, TransactionType } from "./transaction";
-import { MinersFeeTransaction as NativeMinersFeeTransaction } from "@ironfish/rust-nodejs";
-import { NoteEncrypted } from "../noteEncrypted";
-import { Spend } from "../spend";
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { MinersFeeTransaction as NativeMinersFeeTransaction } from '@ironfish/rust-nodejs'
+import { NoteEncrypted } from '../noteEncrypted'
+import { Spend } from '../spend'
+import { Transaction, TransactionType } from './transaction'
 
 export class MinersFeeTransaction extends Transaction {
   private readonly serializedTransaction: Buffer
@@ -22,7 +25,7 @@ export class MinersFeeTransaction extends Transaction {
     return NativeMinersFeeTransaction.deserialize(this.serializedTransaction).fee()
   }
 
-  hash(): Buffer { 
+  hash(): Buffer {
     return NativeMinersFeeTransaction.deserialize(this.serializedTransaction).hash()
   }
 
@@ -58,11 +61,13 @@ export class MinersFeeTransaction extends Transaction {
 
     return result
   }
-      
+
   private takeReference(): NativeMinersFeeTransaction {
     this.referenceCount++
     if (this.nativeTransaction === null) {
-      this.nativeTransaction = NativeMinersFeeTransaction.deserialize(this.serializedTransaction)
+      this.nativeTransaction = NativeMinersFeeTransaction.deserialize(
+        this.serializedTransaction,
+      )
     }
     return this.nativeTransaction
   }

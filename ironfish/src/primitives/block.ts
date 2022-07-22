@@ -9,9 +9,7 @@ import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
-import { MinersFeeTransaction } from './transactions/minersFeeTransaction'
-import { SerializedTransaction, Transaction, TransactionType } from './transactions/transaction'
-import { TransferTransaction } from './transactions/transferTransaction'
+import { SerializedTransaction, Transaction } from './transactions/transaction'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
@@ -117,11 +115,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
     }
 
     for (const [transaction1, transaction2] of zip(block1.transactions, block2.transactions)) {
-      if (
-        !transaction1 ||
-        !transaction2 ||
-        !transaction1.equals(transaction2)
-      ) {
+      if (!transaction1 || !transaction2 || !transaction1.equals(transaction2)) {
         return false
       }
     }
@@ -132,10 +126,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
   serialize(block: Block): SerializedBlock {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
-      transactions: block.transactions.map((t) => ({
-        data: t.serialize(),
-        type: t.type,
-      })),
+      transactions: block.transactions.map((t) => t.serializeWithType()),
     }
   }
 
@@ -148,14 +139,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       Array.isArray(data.transactions)
     ) {
       const header = this.blockHeaderSerde.deserialize(data.header)
-      const transactions = data.transactions.map((t) => {
-        switch (t.type) {
-          case TransactionType.MinersFee:
-            return new MinersFeeTransaction(t.data)
-          case TransactionType.Transfer:
-            return new TransferTransaction(t.data)
-        }
-      })
+      const transactions = data.transactions.map((t) => Transaction.deserialize(t))
       return new Block(header, transactions)
     }
     throw new Error('Unable to deserialize')

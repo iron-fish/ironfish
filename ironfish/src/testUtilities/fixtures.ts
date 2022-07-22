@@ -11,7 +11,6 @@ import { IronfishNode } from '../node'
 import { Block, SerializedBlock } from '../primitives/block'
 import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
 import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
-import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 import { IJSON } from '../serde'
 import { getCurrentTestPath } from './utils'
 
@@ -239,10 +238,10 @@ export async function useTxFixture(
       await restoreTransactionFixtureToAccounts(tx, accounts)
     },
     serialize: (tx: Transaction): SerializedTransaction => {
-      return { data: tx.serialize(), type: tx.type }
+      return tx.serializeWithType()
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return Transaction.deserialize(tx.type, tx.data)
+      return Transaction.deserialize(tx)
     },
   })
 }

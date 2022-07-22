@@ -6,16 +6,14 @@ import bufio from 'bufio'
 
 export interface TransactionsValue {
   transaction: Buffer
-  type: number
   blockHash: string | null
   submittedSequence: number | null
 }
 
 export class TransactionsValueEncoding implements IDatabaseEncoding<TransactionsValue> {
   serialize(value: TransactionsValue): Buffer {
-    const { type, transaction, blockHash, submittedSequence } = value
+    const { transaction, blockHash, submittedSequence } = value
     const bw = bufio.write(this.getSize(value))
-    bw.writeU8(type)
     bw.writeVarBytes(transaction)
 
     let flags = 0
@@ -35,7 +33,6 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
 
   deserialize(buffer: Buffer): TransactionsValue {
     const reader = bufio.read(buffer, true)
-    const type = reader.readU8()
     const transaction = reader.readVarBytes()
 
     const flags = reader.readU8()
@@ -52,12 +49,11 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
       submittedSequence = reader.readU32()
     }
 
-    return { type, transaction, blockHash, submittedSequence }
+    return { transaction, blockHash, submittedSequence }
   }
 
   getSize(value: TransactionsValue): number {
     let size = bufio.sizeVarBytes(value.transaction) + 1
-    size += 1
     if (value.blockHash) {
       size += 32
     }

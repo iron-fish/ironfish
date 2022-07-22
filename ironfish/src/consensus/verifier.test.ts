@@ -18,7 +18,6 @@ import {
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { VerificationResultReason } from './verifier'
-import { TransactionType } from '../primitives/transactions/transaction'
 
 describe('Verifier', () => {
   describe('Transaction', () => {
@@ -26,21 +25,19 @@ describe('Verifier', () => {
 
     it('rejects if the transaction cannot be deserialized', () => {
       expect(() =>
-        nodeTest.chain.verifier.verifyNewTransaction({ data: Buffer.alloc(32, 'hello'), type: TransactionType.Transfer }),
+        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
       ).toThrowError('Transaction cannot deserialize')
 
       expect(() =>
-        nodeTest.chain.verifier.verifyNewTransaction(
-          {data: Buffer.from(JSON.stringify({ not: 'valid' })), type: TransactionType.Transfer },
-        ),
+        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
       ).toThrowError('Transaction cannot deserialize')
     })
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = tx.serialize()
-
-      const transaction = nodeTest.chain.verifier.verifyNewTransaction({ data: serialized, type: TransactionType.Transfer })
+      const transaction = nodeTest.chain.verifier.verifyNewTransaction(
+        Buffer.alloc(32, 'hello'),
+      )
 
       expect(tx.equals(transaction)).toBe(true)
     }, 60000)

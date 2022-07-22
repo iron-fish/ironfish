@@ -47,13 +47,7 @@ const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
       })
       .required()
       .defined(),
-    transactions: yup
-      .array().of(
-        yup
-          .object({ data: yup.string().required(), type: yup.number().required() }).required().defined()
-        )
-      .required()
-      .defined(),
+    transactions: yup.array().of(yup.string().required()).required().defined(),
   })
   .required()
   .defined()

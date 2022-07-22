@@ -37,8 +37,7 @@ export function writeBlock(
 
   bw.writeU16(block.transactions.length)
   for (const transaction of block.transactions) {
-    bw.writeVarBytes(transaction.data)
-    bw.writeU8(transaction.type)
+    bw.writeVarBytes(transaction)
   }
 
   return bw
@@ -82,9 +81,7 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const transactionsLength = reader.readU16()
   const transactions = []
   for (let j = 0; j < transactionsLength; j++) {
-    const data = reader.readVarBytes()
-    const type = reader.readU8()
-    transactions.push({ data, type })
+    transactions.push(reader.readVarBytes())
   }
 
   return {
@@ -114,7 +111,7 @@ export function getBlockSize(block: SerializedBlock): number {
 
   size += 2 // transactions length
   for (const transaction of block.transactions) {
-    size += bufio.sizeVarBytes(transaction.data) + 1
+    size += bufio.sizeVarBytes(transaction)
   }
 
   return size
