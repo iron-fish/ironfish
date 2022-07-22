@@ -34,7 +34,7 @@ export abstract class Transaction {
   abstract unsignedHash(): Buffer
 
   abstract serialize(): Buffer
-  abstract withReference<R>(callback: Function): R
+  abstract withReference<R>(callback: (t: unknown) => R): R
 
   serializeWithType(): Buffer {
     const headerSize = 1

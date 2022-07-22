@@ -65,9 +65,7 @@ export class MinersFeeTransaction extends Transaction {
   private takeReference(): NativeMinersFeeTransaction {
     this.referenceCount++
     if (this.nativeTransaction === null) {
-      this.nativeTransaction = NativeMinersFeeTransaction.deserialize(
-        this.serializedTransaction,
-      )
+      this.nativeTransaction = NativeMinersFeeTransaction.deserialize(this.serializedTransaction)
     }
     return this.nativeTransaction
   }
