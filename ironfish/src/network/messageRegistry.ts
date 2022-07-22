@@ -52,6 +52,8 @@ const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.PooledTransactionsResponse,
     NetworkMessageType.GetBlockTransactionsRequest,
     NetworkMessageType.GetBlockTransactionsResponse,
+    NetworkMessageType.GetCompactBlockRequest,
+    NetworkMessageType.GetCompactBlockResponse,
   ].includes(type)
 }
 
