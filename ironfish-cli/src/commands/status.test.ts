@@ -17,6 +17,7 @@ describe('status', () => {
       git: 'src',
     },
     memory: {
+      heapMax: 5,
       heapTotal: 2,
       heapUsed: 1,
       rss: 3,

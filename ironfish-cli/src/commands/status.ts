@@ -117,11 +117,12 @@ function renderStatus(content: GetStatusResponse): string {
 
   const heapTotal = FileUtils.formatMemorySize(content.memory.heapTotal)
   const heapUsed = FileUtils.formatMemorySize(content.memory.heapUsed)
+  const heapMax = FileUtils.formatMemorySize(content.memory.heapMax)
   const rss = FileUtils.formatMemorySize(content.memory.rss)
   const memFree = FileUtils.formatMemorySize(content.memory.memFree)
 
-  const memoryStatus = `Heap: ${heapUsed} / ${heapTotal} (${(
-    (content.memory.heapUsed / content.memory.heapTotal) *
+  const memoryStatus = `Heap: ${heapUsed} -> ${heapTotal} / ${heapMax} (${(
+    (content.memory.heapUsed / content.memory.heapMax) *
     100
   ).toFixed(1)}%), RSS: ${rss} (${(
     (content.memory.rss / content.memory.memTotal) *
