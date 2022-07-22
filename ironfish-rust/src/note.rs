@@ -101,11 +101,8 @@ impl<'a> Note {
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
-        let mut memo_vec = vec![];
         let mut memo = Memo::default();
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+        reader.read_exact(&mut memo.0)?;
 
         Ok(Self {
             owner,
@@ -262,11 +259,10 @@ impl<'a> Note {
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let mut memo_vec = vec![];
+
         let mut memo = Memo::default();
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+        reader.read_exact(&mut memo.0)?;
+
         Ok((diversifier_bytes, randomness, value, memo))
     }
 
