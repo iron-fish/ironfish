@@ -452,8 +452,9 @@ describe('PeerNetwork', () => {
 
       it('verifies and syncs the same transaction once', async () => {
         const { peerNetwork, node } = nodeTest
+        const { accounts, memPool, chain } = node
 
-        const { accounts, memPool } = node
+        chain.synced = true
         const accountA = await useAccountFixture(accounts, 'accountA')
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
@@ -503,8 +504,10 @@ describe('PeerNetwork', () => {
 
       it('does not syncs or gossip invalid transactions', async () => {
         const { peerNetwork, node } = nodeTest
+        const { accounts, memPool, chain } = node
 
-        const { accounts, memPool } = node
+        chain.synced = true
+
         const accountA = await useAccountFixture(accounts, 'accountA')
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
