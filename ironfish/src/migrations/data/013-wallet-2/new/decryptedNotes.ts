@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Assert } from '../../assert'
-import { IDatabaseEncoding } from '../../storage'
+import { Assert } from '../../../../assert'
+import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 
 export const NOTE_SIZE = 43 + 8 + 32 + 32
+
+export type DecryptedNotesStore = IDatabaseStore<{
+  key: string
+  value: DecryptedNotesValue
+}>
 
 export interface DecryptedNotesValue {
   accountId: string

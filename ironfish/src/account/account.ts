@@ -97,6 +97,7 @@ export class Account {
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
       this.decryptedNotes.set(hash, decryptedNote)
+
       if (!decryptedNote.spent) {
         unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
       }
@@ -122,7 +123,7 @@ export class Account {
     hash: string
     index: number | null
     note: Note
-    transactionHash: Buffer | null
+    transactionHash: Buffer
   }> {
     const unspentNotes = []
 

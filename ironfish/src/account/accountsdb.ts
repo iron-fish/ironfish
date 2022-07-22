@@ -24,7 +24,7 @@ import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './database/dec
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
-const DATABASE_VERSION = 5
+const DATABASE_VERSION = 11
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -134,14 +134,10 @@ export class AccountsDB {
     })
   }
 
-  async open(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
+  async open(): Promise<void> {
     await this.files.mkdir(this.location, { recursive: true })
-
     await this.database.open()
-
-    if (options.upgrade) {
-      await this.database.upgrade(DATABASE_VERSION)
-    }
+    await this.database.upgrade(DATABASE_VERSION)
   }
 
   async close(): Promise<void> {

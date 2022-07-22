@@ -40,12 +40,18 @@ export class Migrator {
   }
 
   async migrate(): Promise<void> {
+    console.log('foo', 1)
+
     if (await this.migrated()) {
       return
     }
 
+    console.log('foo')
+
     const current = await this.getCurrentId()
     const unapplied = this.migrations.filter((a) => a.id > current)
+
+    console.log('foo')
 
     try {
       await this.db.run('begin transaction')
@@ -53,6 +59,8 @@ export class Migrator {
 
       for (const migration of unapplied) {
         process.stdout.write(`  Applying ${migration.name}...`)
+
+        console.log('foo')
 
         try {
           await migration.forward(this.db)

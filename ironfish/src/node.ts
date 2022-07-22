@@ -17,6 +17,7 @@ import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
+import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
@@ -38,6 +39,7 @@ export class IronfishNode {
   miningManager: MiningManager
   metrics: MetricsMonitor
   memPool: MemPool
+  migrator: Migrator
   workerPool: WorkerPool
   files: FileSystem
   rpc: RpcServer
@@ -98,6 +100,8 @@ export class IronfishNode {
     this.logger = logger
     this.pkg = pkg
     this.minedBlocksIndexer = minedBlocksIndexer
+
+    this.migrator = new Migrator({ node: this, logger })
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
@@ -226,6 +230,7 @@ export class IronfishNode {
       metrics,
       autoSeed,
       workerPool,
+      files,
     })
 
     const memPool = new MemPool({ chain, metrics, logger })
@@ -270,19 +275,18 @@ export class IronfishNode {
     })
   }
 
-  /**
-   * Load the databases and initialize node components.
-   * Set `upgrade` to change if the schema version is upgraded. Set `load` to false to tell components not to load data from the database. Useful if you don't want data loaded when performing a migration that might cause an incompatability crash.
-   */
-  async openDB(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
-    await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
+  async openDB(): Promise<void> {
+    const migrate = this.config.get('databaseMigrate')
+    const initial = await this.migrator.isInitial()
+
+    if (migrate || initial) {
+      await this.migrator.migrate({ quiet: !migrate, quietNoop: true })
+    }
 
     try {
-      await this.chain.open(options)
-      await this.accounts.open(options)
-      await this.minedBlocksIndexer.open(options)
+      await this.chain.open()
+      await this.accounts.open()
+      await this.minedBlocksIndexer.open()
     } catch (e) {
       await this.chain.close()
       await this.accounts.close()
