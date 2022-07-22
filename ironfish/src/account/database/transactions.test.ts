@@ -11,6 +11,7 @@ describe('TransactionsValueEncoding', () => {
       const value: TransactionsValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: null,
+        sequence: null,
         submittedSequence: null,
       }
       const buffer = encoder.serialize(value)
@@ -26,6 +27,7 @@ describe('TransactionsValueEncoding', () => {
       const value: TransactionsValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: null,
+        sequence: null,
         submittedSequence: 123,
       }
       const buffer = encoder.serialize(value)
@@ -41,6 +43,7 @@ describe('TransactionsValueEncoding', () => {
       const value: TransactionsValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: Buffer.alloc(32, 1).toString('hex'),
+        sequence: 124,
         submittedSequence: null,
       }
       const buffer = encoder.serialize(value)
@@ -56,6 +59,7 @@ describe('TransactionsValueEncoding', () => {
       const value: TransactionsValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: Buffer.alloc(32, 1).toString('hex'),
+        sequence: 124,
         submittedSequence: 123,
       }
       const buffer = encoder.serialize(value)

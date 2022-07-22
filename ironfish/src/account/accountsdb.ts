@@ -220,6 +220,7 @@ export class AccountsDB {
     transaction: {
       transaction: Transaction
       blockHash: string | null
+      sequence: number | null
       submittedSequence: number | null
     },
     tx?: IDatabaseTransaction,
@@ -239,6 +240,7 @@ export class AccountsDB {
     map: BufferMap<{
       transaction: Transaction
       blockHash: string | null
+      sequence: number | null
       submittedSequence: number | null
     }>,
   ): Promise<void> {
@@ -259,6 +261,7 @@ export class AccountsDB {
     map: BufferMap<{
       transaction: Transaction
       blockHash: string | null
+      sequence: number | null
       submittedSequence: number | null
     }>,
   ): Promise<void> {
