@@ -4,6 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { FileSystem } from '../fileSystems'
+import { parseTransaction } from '../primitives/transactions/registry'
 import { Transaction } from '../primitives/transactions/transaction'
 import {
   BUFFER_ENCODING,
@@ -216,7 +217,7 @@ export class AccountsDB {
     for await (const [key, value] of this.transactions.getAllIter()) {
       const deserialized = {
         ...value,
-        transaction: Transaction.deserialize(value.transaction),
+        transaction: parseTransaction(value.transaction),
       }
 
       map.set(key, deserialized)

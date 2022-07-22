@@ -8,6 +8,7 @@ import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
+import { parseTransaction } from '../primitives/transactions/registry'
 import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
@@ -136,7 +137,7 @@ export class Verifier {
    */
   verifyNewTransaction(data: SerializedTransaction): Transaction {
     try {
-      const transaction = Transaction.deserialize(data)
+      const transaction = parseTransaction(data)
 
       // Transaction is lazily deserialized, so we use withReference()
       // to force deserialization errors here

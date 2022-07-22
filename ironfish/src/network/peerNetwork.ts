@@ -20,6 +20,7 @@ import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
+import { parseTransaction } from '../primitives/transactions/registry'
 import { SerializedTransaction, TransactionHash } from '../primitives/transactions/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
@@ -364,7 +365,7 @@ export class PeerNetwork {
   ): void {
     for (const activePeer of peersToSendTo) {
       if (activePeer.send(message)) {
-        const hash = Transaction.deserialize(message.transaction).hash()
+        const hash = parseTransaction(message.transaction).hash()
         activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
       }
     }
@@ -819,7 +820,7 @@ export class PeerNetwork {
     // Mark the peer as knowing about the transaction as well as their known peers
     // since they probably sent it to them. We will remove the known peers once we start
     // gossiping message based on hash
-    const hash = Transaction.deserialize(message.transaction).hash()
+    const hash = parseTransaction(message.transaction).hash()
     peer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
     for (const [_, knownPeer] of peer.knownPeers) {
       knownPeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)

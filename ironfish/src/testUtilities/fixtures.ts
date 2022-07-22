@@ -10,6 +10,7 @@ import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { Block, SerializedBlock } from '../primitives/block'
 import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
+import { parseTransaction } from '../primitives/transactions/registry'
 import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
 import { IJSON } from '../serde'
 import { getCurrentTestPath } from './utils'
@@ -241,7 +242,7 @@ export async function useTxFixture(
       return tx.serializeWithType()
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
-      return Transaction.deserialize(tx)
+      return parseTransaction(tx)
     },
   })
 }

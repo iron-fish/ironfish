@@ -4,8 +4,6 @@
 import bufio from 'bufio'
 import { NoteEncrypted } from '../noteEncrypted'
 import { Spend } from '../spend'
-import { MinersFeeTransaction } from './minersFeeTransaction'
-import { TransferTransaction } from './transferTransaction'
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,21 +41,6 @@ export abstract class Transaction {
     bw.writeU8(this.type)
     bw.writeBytes(data)
     return bw.render()
-  }
-
-  static deserialize(buffer: Buffer): Transaction {
-    const reader = bufio.read(buffer, true)
-    const type = reader.readU8()
-    const data = reader.readVarBytes()
-
-    switch (type) {
-      case TransactionType.MinersFee:
-        return new MinersFeeTransaction(data)
-      case TransactionType.Transfer:
-        return new TransferTransaction(data)
-      default:
-        throw new Error(`Invalid transaction type: ${type}`)
-    }
   }
 
   equals(other: Transaction): boolean {
