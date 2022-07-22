@@ -177,7 +177,6 @@ export class AccountsDB {
   ): Promise<void> {
     const serialized = {
       ...transaction,
-      type: transaction.transaction.type,
       transaction: transaction.transaction.serialize(),
     }
     await this.transactions.put(transactionHash, serialized, tx)

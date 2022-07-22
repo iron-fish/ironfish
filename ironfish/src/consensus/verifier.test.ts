@@ -35,9 +35,8 @@ describe('Verifier', () => {
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const transaction = nodeTest.chain.verifier.verifyNewTransaction(
-        Buffer.alloc(32, 'hello'),
-      )
+      const serialized = tx.serializeWithType()
+      const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 
       expect(tx.equals(transaction)).toBe(true)
     }, 60000)

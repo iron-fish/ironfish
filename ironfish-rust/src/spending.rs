@@ -440,7 +440,7 @@ mod test {
         let note = Note::new(
             public_address,
             note_randomness,
-            Memo([0; 32]),
+            Memo::default(),
             AssetType::default(),
         );
         let witness = make_fake_witness(&note);

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
+import { Transaction } from '../primitives/transactions/transaction'
 import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 import { NullifierSerdeInstance } from './serdeInstances'

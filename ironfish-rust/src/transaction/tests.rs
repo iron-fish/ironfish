@@ -23,19 +23,19 @@ fn test_transaction() {
     let in_note = Note::new(
         spender_key.generate_public_address(),
         42,
-        Memo([0; 32]),
+        Memo::default(),
         AssetType::default(),
     );
     let out_note = Note::new(
         receiver_key.generate_public_address(),
         40,
-        Memo([0; 32]),
+        Memo::default(),
         AssetType::default(),
     );
     let in_note2 = Note::new(
         spender_key.generate_public_address(),
         18,
-        Memo([0; 32]),
+        Memo::default(),
         AssetType::default(),
     );
     let witness = make_fake_witness(&in_note);
@@ -112,8 +112,8 @@ fn test_transaction_signature() {
     let receiver_address = receiver_key.generate_public_address();
 
     let mut transaction = ProposedTransaction::new(sapling);
-    let in_note = Note::new(spender_address, 42, Memo([0; 32]), AssetType::default());
-    let out_note = Note::new(receiver_address, 41, Memo([0; 32]), AssetType::default());
+    let in_note = Note::new(spender_address, 42, Memo::default(), AssetType::default());
+    let out_note = Note::new(receiver_address, 41, Memo::default(), AssetType::default());
     let witness = make_fake_witness(&in_note);
 
     transaction

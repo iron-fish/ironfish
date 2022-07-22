@@ -115,7 +115,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       const transactions = block.transactions.map((transaction) => {
         return {
           hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
-          size: transaction.serialize().byteLength,
+          size: transaction.serializeWithType().byteLength,
           fee: Number(transaction.fee()),
           notes: [...transaction.notes()].map((note) => ({
             commitment: note.merkleHash().toString('hex'),

@@ -207,7 +207,7 @@ mod test {
         let note = Note::new(
             spender_key.generate_public_address(),
             42,
-            Memo([0; 32]),
+            Memo::default(),
             AssetType::default(),
         );
 

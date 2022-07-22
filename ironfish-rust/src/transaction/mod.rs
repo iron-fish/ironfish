@@ -171,7 +171,7 @@ impl ProposedTransaction {
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
-                Memo([0; 32]),
+                Memo::default(),
                 AssetType::default(),
             );
             self.receive(spender_key, &change_note)?;
@@ -219,11 +219,11 @@ impl ProposedTransaction {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
-        let mut spend_proofs = vec![];
+        let mut spend_proofs = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             spend_proofs.push(spend.post(&data_to_sign)?);
         }
-        let mut receipt_proofs = vec![];
+        let mut receipt_proofs = Vec::with_capacity(self.receipts.len());
         for receipt in &self.receipts {
             receipt_proofs.push(receipt.post()?);
         }
@@ -381,8 +381,8 @@ impl Transaction {
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
-        let mut spends = vec![];
-        let mut receipts = vec![];
+        let mut spends = Vec::with_capacity(num_spends as usize);
+        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_spends {
             spends.push(SpendProof::read(&mut reader)?);
         }
