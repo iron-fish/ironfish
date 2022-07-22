@@ -104,8 +104,9 @@ export class Account {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
-      if (this.id === decryptedNote.accountId) {
+      if (decryptedNote.accountId === this.id) {
         this.decryptedNotes.set(hash, decryptedNote)
+
         if (!decryptedNote.spent) {
           unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
         }
