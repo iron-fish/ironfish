@@ -37,7 +37,7 @@ describe('Verifier', () => {
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
+      const serialized = tx.serialize()
 
       const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 

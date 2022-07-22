@@ -5,7 +5,6 @@
 import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
-import { Serde } from '../serde'
 import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -200,22 +199,5 @@ export class Transaction {
 
   expirationSequence(): number {
     return this._expirationSequence
-  }
-}
-
-/**
- * Serializer and equality checker for Transaction wrappers.
- */
-export class TransactionSerde implements Serde<Transaction, SerializedTransaction> {
-  equals(tx1: Transaction, tx2: Transaction): boolean {
-    return tx1.equals(tx2)
-  }
-
-  serialize(transaction: Transaction): SerializedTransaction {
-    return transaction.serialize()
-  }
-
-  deserialize(data: SerializedTransaction): Transaction {
-    return new Transaction(data)
   }
 }
