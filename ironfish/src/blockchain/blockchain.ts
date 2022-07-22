@@ -956,7 +956,7 @@ export class Blockchain {
       if (index < noteCount) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oldNote = (await this.notes.get(index, tx))!
-        if (!this.strategy.noteSerde.equals(note, oldNote)) {
+        if (!note.serialize().equals(oldNote.serialize())) {
           const message = `Tried to insert a note, but a different note already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)

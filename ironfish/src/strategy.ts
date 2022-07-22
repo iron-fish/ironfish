@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
-import { NoteEncrypted, NoteEncryptedSerde } from './primitives/noteEncrypted'
 import { Transaction } from './primitives/transaction'
-import { Serde } from './serde'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
 
@@ -14,12 +12,10 @@ import { WorkerPool } from './workerPool'
  */
 export class Strategy {
   readonly workerPool: WorkerPool
-  readonly noteSerde: Serde<NoteEncrypted, Buffer>
 
   private miningRewardCachedByYear: Map<number, number>
 
   constructor(workerPool: WorkerPool) {
-    this.noteSerde = new NoteEncryptedSerde()
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = workerPool
   }
