@@ -12,7 +12,7 @@ import { BlockSerde, SerializedBlock } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()
-  const blockSerde = new BlockSerde()
+  const blockSerde = BlockSerde
 
   it('correctly counts notes and nullifiers', async () => {
     const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')

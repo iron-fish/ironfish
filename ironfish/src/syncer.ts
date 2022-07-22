@@ -424,7 +424,7 @@ export class Syncer {
   }> {
     Assert.isNotNull(this.chain.head)
 
-    const block = new BlockSerde().deserialize(serialized)
+    const block = BlockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     this.speed.add(1)

@@ -244,7 +244,7 @@ export class Blockchain {
 
   private async seed() {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = new BlockSerde().deserialize(serialized)
+    const genesis = BlockSerde.deserialize(serialized)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)

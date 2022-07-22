@@ -200,7 +200,7 @@ export class PeerNetwork {
     }
 
     this.node.miningManager.onNewBlock.on((block) => {
-      const serializedBlock = new BlockSerde().serialize(block)
+      const serializedBlock = BlockSerde.serialize(block)
 
       this.broadcastBlock(new NewBlockMessage(serializedBlock))
     })
@@ -335,7 +335,7 @@ export class PeerNetwork {
     this.seenGossipFilter.add(message.nonce)
 
     // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
-    const block = new BlockSerde().deserialize(message.block)
+    const block = BlockSerde.deserialize(message.block)
 
     for (const peer of this.peerManager.getConnectedPeers()) {
       // Don't send the block to peers who already know about it
@@ -695,7 +695,7 @@ export class PeerNetwork {
 
     const serialized = blocks.map((block) => {
       Assert.isNotNull(block)
-      return new BlockSerde().serialize(block)
+      return BlockSerde.serialize(block)
     })
 
     return new GetBlocksResponse(serialized, rpcId)

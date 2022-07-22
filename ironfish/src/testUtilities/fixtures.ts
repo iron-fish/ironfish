@@ -173,10 +173,10 @@ export async function useBlockFixture(
       }
     },
     serialize: (block: Block): SerializedBlock => {
-      return new BlockSerde().serialize(block)
+      return BlockSerde.serialize(block)
     },
     deserialize: (serialized: SerializedBlock): Block => {
-      return new BlockSerde().deserialize(serialized)
+      return BlockSerde.deserialize(serialized)
     },
   })
 }

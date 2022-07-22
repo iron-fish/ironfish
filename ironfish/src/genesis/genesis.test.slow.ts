@@ -119,7 +119,7 @@ describe('Create genesis block', () => {
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
-    const serialized = new BlockSerde().serialize(block)
+    const serialized = BlockSerde.serialize(block)
     const jsonedBlock = IJSON.stringify(serialized, '  ')
 
     // Now start from scratch with a clean database and make sure the block
@@ -128,7 +128,7 @@ describe('Create genesis block', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = new BlockSerde().deserialize(result)
+    const deserializedBlock = BlockSerde.deserialize(result)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 

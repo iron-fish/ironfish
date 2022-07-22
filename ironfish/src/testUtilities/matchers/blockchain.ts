@@ -43,7 +43,7 @@ function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcher
 function toEqualBlock(self: Block, other: Block): jest.CustomMatcherResult {
   let error: string | null = null
 
-  if (!new BlockSerde().equals(self, other)) {
+  if (!BlockSerde.equals(self, other)) {
     error = `Blocks do not match:\n\nDifference:\n\n${String(diff(self, other))}`
   }
 

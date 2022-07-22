@@ -158,24 +158,15 @@ describe('Syncer', () => {
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
       .mockImplementationOnce(() =>
-        Promise.resolve([
-          new BlockSerde().serialize(genesis),
-          new BlockSerde().serialize(blockA1),
-        ]),
+        Promise.resolve([BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)]),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([
-          new BlockSerde().serialize(blockA1),
-          new BlockSerde().serialize(blockA2),
-        ]),
+        Promise.resolve([BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)]),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([
-          new BlockSerde().serialize(blockA2),
-          new BlockSerde().serialize(blockA3),
-        ]),
+        Promise.resolve([BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)]),
       )
-      .mockImplementationOnce(() => Promise.resolve([new BlockSerde().serialize(blockA3)]))
+      .mockImplementationOnce(() => Promise.resolve([BlockSerde.serialize(blockA3)]))
 
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)

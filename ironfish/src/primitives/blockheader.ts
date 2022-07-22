@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  BlockHashSerdeInstance,
-  GraffitiSerdeInstance,
-  NullifierSerdeInstance,
-  Serde,
-} from '../serde'
+import { BlockHashSerdeInstance, GraffitiSerdeInstance, NullifierSerdeInstance } from '../serde'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
 import { Target } from './target'
@@ -152,7 +147,7 @@ export class BlockHeader {
    * This is used for calculating the hash in miners and for verifying it.
    */
   serializePartial(): Buffer {
-    return new PartialBlockHeaderSerde().serialize({
+    return PartialBlockHeaderSerde.serialize({
       sequence: this.sequence,
       previousBlockHash: this.previousBlockHash,
       noteCommitment: this.noteCommitment,
@@ -213,8 +208,8 @@ export type SerializedBlockHeader = {
   graffiti: string
 }
 
-export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeader> {
-  equals(element1: BlockHeader, element2: BlockHeader): boolean {
+export class BlockHeaderSerde {
+  static equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
       element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
@@ -232,7 +227,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     )
   }
 
-  serialize(header: BlockHeader): SerializedBlockHeader {
+  static serialize(header: BlockHeader): SerializedBlockHeader {
     const serialized = {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
@@ -256,7 +251,7 @@ export class BlockHeaderSerde implements Serde<BlockHeader, SerializedBlockHeade
     return serialized
   }
 
-  deserialize(data: SerializedBlockHeader): BlockHeader {
+  static deserialize(data: SerializedBlockHeader): BlockHeader {
     // TODO: this needs to make assertions on the data format
     // as it can be from untrusted sources
     let hashBuffer

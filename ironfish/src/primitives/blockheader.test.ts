@@ -8,8 +8,7 @@ import { BlockHeader, BlockHeaderSerde, isBlockHeavier, isBlockLater } from './b
 import { Target } from './target'
 
 describe('BlockHeaderSerde', () => {
-  // const nodeTest = createNodeTest()
-  const serde = new BlockHeaderSerde()
+  const serde = BlockHeaderSerde
 
   it('checks equal block headers', () => {
     const header1 = new BlockHeader(

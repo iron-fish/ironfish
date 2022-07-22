@@ -186,7 +186,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     })
 
     // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
-    const blockBuffer = Buffer.from(JSON.stringify(new BlockSerde().serialize(block)))
+    const blockBuffer = Buffer.from(JSON.stringify(BlockSerde.serialize(block)))
 
     request.end({
       blockIdentifier: {

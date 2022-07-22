@@ -346,7 +346,7 @@ describe('PeerNetwork', () => {
         peer1.knownPeers.set(peer2.getIdentityOrThrow(), peer2)
         peer2.knownPeers.set(peer1.getIdentityOrThrow(), peer1)
 
-        const newBlockMessage = new NewBlockMessage(new BlockSerde().serialize(blockA1))
+        const newBlockMessage = new NewBlockMessage(BlockSerde.serialize(blockA1))
 
         const peer1Send = jest.spyOn(peer1, 'send')
         const peer2Send = jest.spyOn(peer2, 'send')

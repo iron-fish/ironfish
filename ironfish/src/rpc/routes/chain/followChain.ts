@@ -139,7 +139,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           sequence: block.header.sequence,
           previous: block.header.previousBlockHash.toString('hex'),
           graffiti: GraffitiUtils.toHuman(block.header.graffiti),
-          size: Buffer.from(JSON.stringify(new BlockSerde().serialize(block))).byteLength,
+          size: Buffer.from(JSON.stringify(BlockSerde.serialize(block))).byteLength,
           work: block.header.work.toString(),
           main: type === 'connected',
           timestamp: block.header.timestamp.valueOf(),
