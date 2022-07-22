@@ -8,10 +8,11 @@ import {
 } from '../testUtilities/fixtures'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { SerializedBlock } from './block'
+import { BlockSerde, SerializedBlock } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()
+  const blockSerde = new BlockSerde()
 
   it('correctly counts notes and nullifiers', async () => {
     const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')
@@ -35,15 +36,15 @@ describe('Block', () => {
 
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+    const serialized = blockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
 
-    const deserialized = nodeTest.strategy.blockSerde.deserialize(serialized)
-    expect(nodeTest.strategy.blockSerde.equals(deserialized, block)).toBe(true)
+    const deserialized = blockSerde.deserialize(serialized)
+    expect(blockSerde.equals(deserialized, block)).toBe(true)
   })
 
   it('throws when deserializing invalid block', () => {
-    const serde = nodeTest.strategy.blockSerde
+    const serde = blockSerde
 
     expect(() => serde.deserialize({ bad: 'data' } as unknown as SerializedBlock)).toThrowError(
       'Unable to deserialize',
@@ -56,9 +57,7 @@ describe('Block', () => {
     const { block: block1 } = await useBlockWithTx(nodeTest.node, account, account)
 
     // Header change
-    const block2 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block2 = blockSerde.deserialize(blockSerde.serialize(block1))
     expect(block1.equals(block2)).toBe(true)
     block2.header.randomness = BigInt(400)
     expect(block1.equals(block2)).toBe(false)
@@ -72,17 +71,13 @@ describe('Block', () => {
     expect(block1.equals(block2)).toBe(false)
 
     // Transactions length
-    const block3 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block3 = blockSerde.deserialize(blockSerde.serialize(block1))
     expect(block1.equals(block3)).toBe(true)
     block3.transactions.pop()
     expect(block1.equals(block3)).toBe(false)
 
     // Transaction equality
-    const block4 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block4 = blockSerde.deserialize(blockSerde.serialize(block1))
     expect(block1.equals(block4)).toBe(true)
     block4.transactions.pop()
     block4.transactions.push(tx)

@@ -5,6 +5,7 @@
 import { Assert } from './assert'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
+import { BlockSerde } from './primitives/block'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
 import { createNodeTest } from './testUtilities/nodeTest'
 import { PromiseUtils } from './utils'
@@ -158,23 +159,23 @@ describe('Syncer', () => {
       .spyOn(peerNetwork, 'getBlocks')
       .mockImplementationOnce(() =>
         Promise.resolve([
-          strategy.blockSerde.serialize(genesis),
-          strategy.blockSerde.serialize(blockA1),
+          new BlockSerde().serialize(genesis),
+          new BlockSerde().serialize(blockA1),
         ]),
       )
       .mockImplementationOnce(() =>
         Promise.resolve([
-          strategy.blockSerde.serialize(blockA1),
-          strategy.blockSerde.serialize(blockA2),
+          new BlockSerde().serialize(blockA1),
+          new BlockSerde().serialize(blockA2),
         ]),
       )
       .mockImplementationOnce(() =>
         Promise.resolve([
-          strategy.blockSerde.serialize(blockA2),
-          strategy.blockSerde.serialize(blockA3),
+          new BlockSerde().serialize(blockA2),
+          new BlockSerde().serialize(blockA3),
         ]),
       )
-      .mockImplementationOnce(() => Promise.resolve([strategy.blockSerde.serialize(blockA3)]))
+      .mockImplementationOnce(() => Promise.resolve([new BlockSerde().serialize(blockA3)]))
 
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)

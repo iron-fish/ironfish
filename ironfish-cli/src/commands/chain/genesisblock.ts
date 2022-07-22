@@ -9,6 +9,7 @@ import {
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
+import { BlockSerde } from '@ironfish/sdk/src/primitives/block'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -87,7 +88,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const { block } = await makeGenesisBlock(node.chain, info, account, this.logger)
 
     this.log(`\nGenesis Block`)
-    const serialized = node.strategy.blockSerde.serialize(block)
+    const serialized = new BlockSerde().serialize(block)
     this.log(IJSON.stringify(serialized, '  '))
   }
 }

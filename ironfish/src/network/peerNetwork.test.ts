@@ -12,6 +12,7 @@ import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
+import { BlockSerde } from '../primitives/block'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -19,7 +20,7 @@ import {
   useMinersTxFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { mockChain, mockNode, mockStrategy } from '../testUtilities/mocks'
+import { mockChain, mockNode } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
@@ -50,7 +51,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -68,7 +68,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -92,7 +91,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         minPeers: 1,
         hostsStore: mockHostsStore(),
       })
@@ -130,7 +128,6 @@ describe('PeerNetwork', () => {
         webSocket: wsActual,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         listen: true,
         port: 0,
         minPeers: 1,
@@ -294,7 +291,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -350,7 +346,7 @@ describe('PeerNetwork', () => {
         peer1.knownPeers.set(peer2.getIdentityOrThrow(), peer2)
         peer2.knownPeers.set(peer1.getIdentityOrThrow(), peer1)
 
-        const newBlockMessage = new NewBlockMessage(strategy.blockSerde.serialize(blockA1))
+        const newBlockMessage = new NewBlockMessage(new BlockSerde().serialize(blockA1))
 
         const peer1Send = jest.spyOn(peer1, 'send')
         const peer2Send = jest.spyOn(peer2, 'send')

@@ -21,7 +21,7 @@ import { NodeEncoding } from '../merkletree/database/nodes'
 import { NoteHasher } from '../merkletree/hasher'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
   NoteEncrypted,
@@ -244,7 +244,7 @@ export class Blockchain {
 
   private async seed() {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = this.strategy.blockSerde.deserialize(serialized)
+    const genesis = new BlockSerde().deserialize(serialized)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
