@@ -138,14 +138,13 @@ export class Account {
   }> {
     const unspentNotes = []
 
-    for (const [hash, { noteIndex, serializedNote, spent, transactionHash }] of this
-      .decryptedNotes) {
-      if (!spent) {
+    for (const [hash, decryptedNote] of this.decryptedNotes) {
+      if (!decryptedNote.spent) {
         unspentNotes.push({
           hash,
-          index: noteIndex,
-          note: new Note(serializedNote),
-          transactionHash,
+          index: decryptedNote.noteIndex,
+          note: new Note(decryptedNote.serializedNote),
+          transactionHash: decryptedNote.transactionHash,
         })
       }
     }
@@ -259,25 +258,23 @@ export class Account {
     }>,
     tx: IDatabaseTransaction,
   ) {
-    for (const {
-      noteIndex,
-      nullifier,
-      forSpender,
-      merkleHash,
-      serializedNote,
-    } of decryptedNotes) {
-      if (!forSpender) {
-        if (nullifier !== null) {
-          await this.updateNullifierNoteHash(nullifier, merkleHash, tx)
+    for (const decryptedNote of decryptedNotes) {
+      if (!decryptedNote.forSpender) {
+        if (decryptedNote.nullifier !== null) {
+          await this.updateNullifierNoteHash(
+            decryptedNote.nullifier,
+            decryptedNote.merkleHash,
+            tx,
+          )
         }
 
         await this.updateDecryptedNote(
-          merkleHash,
+          decryptedNote.merkleHash,
           {
             accountId: this.id,
-            nullifierHash: nullifier,
-            noteIndex: noteIndex,
-            serializedNote,
+            nullifierHash: decryptedNote.nullifier,
+            noteIndex: decryptedNote.noteIndex,
+            serializedNote: decryptedNote.serializedNote,
             spent: false,
             transactionHash,
           },
