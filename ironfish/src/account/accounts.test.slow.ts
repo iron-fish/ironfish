@@ -514,7 +514,7 @@ describe('Accounts', () => {
     ).resolves.toBeTruthy()
   }, 600000)
 
-  it.only('Removes notes when rolling back a fork', async () => {
+  it('Removes notes when rolling back a fork', async () => {
     // Create a block A1 that gives account A money
     // Create a block B1 and B2 that gives account B money
     // G -> A1

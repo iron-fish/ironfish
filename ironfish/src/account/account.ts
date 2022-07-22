@@ -27,8 +27,8 @@ export class Account {
     }>
   >
 
-  private readonly noteHashesBySequence: Map<number, string[]>
-  private readonly submittedNoteHashes: Set<string>
+  private readonly noteHashesBySequence: Map<number, Set<string>>
+  private readonly nonChainNoteHashes: Set<string>
 
   readonly id: string
   readonly displayName: string
@@ -84,8 +84,8 @@ export class Account {
       submittedSequence: number | null
     }>()
 
-    this.noteHashesBySequence = new Map<number, string[]>()
-    this.submittedNoteHashes = new Set<string>()
+    this.noteHashesBySequence = new Map<number, Set<string>>()
+    this.nonChainNoteHashes = new Set<string>()
   }
 
   serialize(): AccountsValue {
@@ -191,13 +191,15 @@ export class Account {
       `Transaction undefined for '${transactionHash.toString('hex')}'`,
     )
 
-    const { sequence, submittedSequence } = transaction
-    if (sequence) {
-      const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? []
-      this.noteHashesBySequence.set(sequence, decryptedNotes.concat(noteHash))
-      this.submittedNoteHashes.delete(noteHash)
-    } else if (submittedSequence) {
-      this.submittedNoteHashes.add(noteHash)
+    const { sequence, blockHash } = transaction
+    if (blockHash) {
+      Assert.isNotNull(sequence)
+      const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? new Set<string>()
+      decryptedNotes.add(noteHash)
+      this.noteHashesBySequence.set(sequence, decryptedNotes)
+      this.nonChainNoteHashes.delete(noteHash)
+    } else {
+      this.nonChainNoteHashes.add(noteHash)
     }
   }
 
@@ -335,7 +337,7 @@ export class Account {
       }
     }
 
-    this.submittedNoteHashes.delete(noteHash)
+    this.nonChainNoteHashes.delete(noteHash)
     this.decryptedNotes.delete(noteHash)
     await this.accountsDb.deleteDecryptedNote(noteHash, tx)
   }
@@ -485,7 +487,7 @@ export class Account {
       }
     }
 
-    for (const noteHash of this.submittedNoteHashes.values()) {
+    for (const noteHash of this.nonChainNoteHashes.values()) {
       const note = this.decryptedNotes.get(noteHash)
       Assert.isNotUndefined(note)
       if (!note.spent) {

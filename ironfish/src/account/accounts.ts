@@ -278,18 +278,12 @@ export class Accounts {
       accounts = this.listAccounts()
     }
 
-    if(headHash) {
-      console.log('updateHeadHashes', headHash.toString('hex'), accounts.map(a => a.id))
-    }
     for (const account of accounts) {
       await this.updateHeadHash(account, headHash)
     }
   }
 
   async updateHeadHash(account: Account, headHash: Buffer | null): Promise<void> {
-    if (headHash) {
-      console.log('updateHeadHash', account.id, headHash.toString('hex'))
-    }
     const hash = headHash ? headHash.toString('hex') : null
 
     const headStatus = this.headStatus.get(account.id)
@@ -657,7 +651,6 @@ export class Accounts {
     Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
     const headSequence = header.sequence
     const unconfirmedSequenceStart = headSequence - this.config.get('minimumBlockConfirmations')
-    console.log(unconfirmedSequenceStart, headSequence)
     // this should check main chain for unspent notes, that's why the slow test is failing
     return account.getBalance(unconfirmedSequenceStart, headSequence)
   }
