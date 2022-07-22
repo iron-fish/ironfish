@@ -36,14 +36,14 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
     readonly merkleHasher: MerkleHasher<E, H, SE, SH>,
   ) {}
 
-  verify(myHash: H): boolean {
+  async verify(myHash: H): Promise<boolean> {
     let currentHash = myHash
     for (let i = 0; i < this.authenticationPath.length; i++) {
       const node = this.authenticationPath[i]
       if (node.side === Side.Left) {
-        currentHash = this.merkleHasher.combineHash(i, currentHash, node.hashOfSibling)
+        currentHash = await this.merkleHasher.combineHash(i, currentHash, node.hashOfSibling)
       } else {
-        currentHash = this.merkleHasher.combineHash(i, node.hashOfSibling, currentHash)
+        currentHash = await this.merkleHasher.combineHash(i, node.hashOfSibling, currentHash)
       }
     }
     return this.merkleHasher.hashSerde().equals(currentHash, this.rootHash)

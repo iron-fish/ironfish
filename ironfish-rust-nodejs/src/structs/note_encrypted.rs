@@ -113,3 +113,48 @@ impl NativeNoteEncrypted {
         )
     }
 }
+
+struct CombineHashTask {
+    depth: i64,
+    left: Buffer,
+    right: Buffer,
+}
+
+impl Task for CombineHashTask {
+    type Output = Vec<u8>;
+    type JsValue = Buffer;
+
+    fn compute(&mut self) -> napi::Result<Self::Output> {
+        let left_hash = MerkleNoteHash::read(self.left.as_ref())
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        let right_hash = MerkleNoteHash::read(self.right.as_ref())
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        let converted_depth: usize = self
+            .depth
+            .try_into()
+            .map_err(|_| Error::from_reason("Value could not fit in usize".to_string()))?;
+
+        let mut vec = Vec::with_capacity(32);
+
+        MerkleNoteHash::new(MerkleNoteHash::combine_hash(
+            converted_depth,
+            &left_hash.0,
+            &right_hash.0,
+        ))
+        .write(&mut vec)
+        .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(vec)
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+        Ok(Buffer::from(output))
+    }
+}
+
+#[napi]
+fn async_combine_hash(depth: i64, left: Buffer, right: Buffer) -> AsyncTask<CombineHashTask> {
+    AsyncTask::new(CombineHashTask { depth, left, right })
+}

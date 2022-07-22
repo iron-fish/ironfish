@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NoteEncrypted as NativeNoteEncrypted } from '@ironfish/rust-nodejs'
+import { asyncCombineHash } from '@ironfish/rust-nodejs'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -35,7 +35,7 @@ export interface MerkleHasher<E, H, SE extends JsonSerializable, SH extends Json
   /**
    * Combine two hashes to get the parent hash
    */
-  combineHash: (depth: number, left: H, right: H) => H
+  combineHash: (depth: number, left: H, right: H) => H | Promise<H>
 }
 
 /**
@@ -70,12 +70,12 @@ export class NoteHasher
     return note.merkleHash()
   }
 
-  combineHash(
+  async combineHash(
     depth: number,
     left: NoteEncryptedHash,
     right: NoteEncryptedHash,
-  ): NoteEncryptedHash {
-    return Buffer.from(NativeNoteEncrypted.combineHash(depth, left, right))
+  ): Promise<NoteEncryptedHash> {
+    return asyncCombineHash(depth, left, right) as Promise<NoteEncryptedHash>
   }
 }
 

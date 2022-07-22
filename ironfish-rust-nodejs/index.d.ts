@@ -9,6 +9,7 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export function asyncCombineHash(depth: number, left: Buffer, right: Buffer): Promise<unknown>
 export interface NativeSpendProof {
   treeSize: number
   rootHash: Buffer
