@@ -37,7 +37,6 @@ export class Account {
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string
-  rescan: number | null
 
   constructor({
     id,
@@ -46,7 +45,6 @@ export class Account {
     incomingViewKey,
     outgoingViewKey,
     publicAddress,
-    rescan,
     accountsDb,
   }: {
     id: string
@@ -55,7 +53,6 @@ export class Account {
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string
-    rescan: number | null
     accountsDb: AccountsDB
   }) {
     this.id = id
@@ -64,7 +61,6 @@ export class Account {
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
-    this.rescan = rescan
 
     const prefixHash = new MurmurHash3(this.spendingKey, 1)
       .hash(this.incomingViewKey)
@@ -95,7 +91,6 @@ export class Account {
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
-      rescan: this.rescan,
     }
   }
 
@@ -322,6 +317,7 @@ export class Account {
 
   private async deleteDecryptedNote(
     noteHash: string,
+    transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const existingNote = this.decryptedNotes.get(noteHash)
@@ -334,6 +330,16 @@ export class Account {
         await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
       } else {
         await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
+      }
+    }
+
+    const record = this.transactions.get(transactionHash)
+    if (record && record.sequence) {
+      const { sequence } = record
+      const noteHashes = this.noteHashesBySequence.get(sequence)
+      if (noteHashes) {
+        noteHashes.delete(noteHash)
+        this.noteHashesBySequence.set(sequence, noteHashes)
       }
     }
 
@@ -433,7 +439,7 @@ export class Account {
       const decryptedNote = this.getDecryptedNote(merkleHash)
 
       if (decryptedNote) {
-        await this.deleteDecryptedNote(merkleHash, tx)
+        await this.deleteDecryptedNote(merkleHash, hash, tx)
 
         if (decryptedNote.nullifierHash) {
           await this.deleteNullifier(decryptedNote.nullifierHash, tx)

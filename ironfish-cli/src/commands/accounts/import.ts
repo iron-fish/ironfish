@@ -114,7 +114,6 @@ export class ImportCommand extends IronfishCommand {
       incomingViewKey: incomingViewKey,
       outgoingViewKey: outgoingViewKey,
       publicAddress: publicAddress,
-      rescan: null,
     }
   }
 }
