@@ -195,7 +195,7 @@ mod test {
     fn test_receipt_round_trip() {
         let sapling = &*sapling_bls12::SAPLING;
         let spender_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
 
         let receipt = ReceiptParams::new(sapling.clone(), &spender_key, &note)
             .expect("should be able to create receipt proof");

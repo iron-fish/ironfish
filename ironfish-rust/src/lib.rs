@@ -34,9 +34,6 @@ pub mod sapling_bls12;
 #[cfg(test)]
 pub(crate) mod test_util; // I'm not sure if this is the right way to publish the utility library.
 
-#[cfg(all(feature = "native", feature = "wasm"))]
-compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the same time");
-
 // The main entry-point to the sapling API. Construct this with loaded parameters, and then call
 // methods on it to do the actual work.
 //

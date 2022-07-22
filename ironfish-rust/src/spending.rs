@@ -424,7 +424,7 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, Memo([0; 32]));
+        let note = Note::new(public_address, note_randomness, Memo::default());
         let witness = make_fake_witness(&note);
 
         let spend = SpendParams::new(sapling.clone(), key, &note, &witness)
