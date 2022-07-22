@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { TransactionHash } from '../../primitives/transaction'
+import { TransactionHash } from '../../primitives/transactions/transaction'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 

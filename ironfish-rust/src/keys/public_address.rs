@@ -17,7 +17,7 @@ use super::{errors, IncomingViewKey, SaplingKey};
 /// the creation of multiple public addresses without revealing the viewing key.
 /// This allows the user to have multiple "accounts", or to even have different
 /// payment addresses per transaction.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct PublicAddress {
     /// Diversifier is a struct of 11 bytes. The array is hashed and interpreted
     /// as an edwards point, but we have to store the diversifier independently

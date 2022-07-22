@@ -29,16 +29,13 @@ describe('Verifier', () => {
       ).toThrowError('Transaction cannot deserialize')
 
       expect(() =>
-        nodeTest.chain.verifier.verifyNewTransaction(
-          Buffer.from(JSON.stringify({ not: 'valid' })),
-        ),
+        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
       ).toThrowError('Transaction cannot deserialize')
     })
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = tx.serialize()
-
+      const serialized = tx.serializeWithType()
       const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 
       expect(tx.equals(transaction)).toBe(true)

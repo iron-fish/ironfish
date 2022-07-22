@@ -6,7 +6,7 @@ import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { parseTransaction } from '../primitives/transactions/registry'
 import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 import { NullifierSerdeInstance } from './serdeInstances'
@@ -60,7 +60,7 @@ export class BlockTemplateSerde {
       timestamp: previousBlock.header.timestamp.getTime(),
     }
 
-    const transactions = block.transactions.map((t) => t.serialize().toString('hex'))
+    const transactions = block.transactions.map((t) => t.serializeWithType().toString('hex'))
     return {
       header,
       transactions,
@@ -93,8 +93,8 @@ export class BlockTemplateSerde {
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )
 
-    const transactions = blockTemplate.transactions.map(
-      (t) => new Transaction(Buffer.from(t, 'hex')),
+    const transactions = blockTemplate.transactions.map((t) =>
+      parseTransaction(Buffer.from(t, 'hex')),
     )
 
     return new Block(header, transactions)

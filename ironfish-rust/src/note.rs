@@ -57,7 +57,7 @@ impl fmt::Display for Memo {
 ///
 /// When receiving funds, a new note needs to be created for the new owner
 /// to hold those funds.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Note {
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.

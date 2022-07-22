@@ -15,6 +15,8 @@ describe('GetBlocksRequest', () => {
 })
 
 describe('GetBlocksResponse', () => {
+  const transactions = [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')]
+
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const rpcId = 0
     const message = new GetBlocksResponse(
@@ -37,7 +39,7 @@ describe('GetBlocksResponse', () => {
             target: '12',
             timestamp: 200000,
           },
-          transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
+          transactions,
         },
         {
           header: {
@@ -57,7 +59,7 @@ describe('GetBlocksResponse', () => {
             target: '13',
             timestamp: 200000,
           },
-          transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
+          transactions,
         },
       ],
       rpcId,
@@ -90,7 +92,7 @@ describe('GetBlocksResponse', () => {
           work: '123',
           hash: 'ramen',
         },
-        transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
+        transactions,
       },
       {
         header: {
@@ -112,7 +114,7 @@ describe('GetBlocksResponse', () => {
           work: '123',
           hash: 'noodles',
         },
-        transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
+        transactions,
       },
     ]
 

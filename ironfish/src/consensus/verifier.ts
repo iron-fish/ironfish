@@ -8,7 +8,8 @@ import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
+import { parseTransaction } from '../primitives/transactions/registry'
+import { SerializedTransaction, Transaction } from '../primitives/transactions/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
@@ -134,15 +135,13 @@ export class Verifier {
    *
    * @returns deserialized transaction to be processed by the main handler.
    */
-  verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
+  verifyNewTransaction(data: SerializedTransaction): Transaction {
     try {
-      const transaction = new Transaction(serializedTransaction)
+      const transaction = parseTransaction(data)
 
-      // Transaction is lazily deserialized, so we use takeReference()
+      // Transaction is lazily deserialized, so we use withReference()
       // to force deserialization errors here
-      transaction.takeReference()
-
-      return transaction
+      return transaction.withReference(() => transaction)
     } catch (e) {
       let message = 'Transaction cannot deserialize.'
       if (e instanceof Error) {

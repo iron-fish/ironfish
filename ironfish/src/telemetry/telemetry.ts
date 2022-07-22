@@ -10,7 +10,7 @@ import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
 import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
-import { TransactionHash } from '../primitives/transaction'
+import { TransactionHash } from '../primitives/transactions/transaction'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { Field } from './interfaces/field'
@@ -360,12 +360,12 @@ export class Telemetry {
         {
           name: 'notes',
           type: 'integer',
-          value: transaction.notesLength(),
+          value: transaction.notes.length,
         },
         {
           name: 'spends',
           type: 'integer',
-          value: transaction.spendsLength(),
+          value: transaction.spends.length,
         },
       ],
     })

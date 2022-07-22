@@ -8,7 +8,7 @@ import { BlockSerde } from './primitives/block'
 import { BlockHash, BlockHeaderSerde, hashBlockHeader } from './primitives/blockheader'
 import { NoteEncrypted } from './primitives/noteEncrypted'
 import { NullifierHasher } from './primitives/nullifier'
-import { Transaction } from './primitives/transaction'
+import { MinersFeeTransaction } from './primitives/transactions/minersFeeTransaction'
 import { Serde } from './serde'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -107,7 +107,7 @@ export class Strategy {
     totalTransactionFees: bigint,
     blockSequence: number,
     minerSpendKey: string,
-  ): Promise<Transaction> {
+  ): Promise<MinersFeeTransaction> {
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward
     const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))

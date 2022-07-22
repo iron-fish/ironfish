@@ -54,7 +54,6 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
 
   getSize(value: TransactionsValue): number {
     let size = bufio.sizeVarBytes(value.transaction)
-    size += 1
     if (value.blockHash) {
       size += 32
     }

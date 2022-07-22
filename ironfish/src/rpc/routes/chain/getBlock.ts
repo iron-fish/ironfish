@@ -168,8 +168,6 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         nullifier: BlockHashSerdeInstance.serialize(spend.nullifier),
       }))
 
-      const transactionBuffer = Buffer.from(JSON.stringify(transaction.serialize()))
-
       return {
         transaction_identifier: {
           hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
@@ -178,7 +176,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         metadata: {
           notes,
           spends,
-          size: transactionBuffer.byteLength,
+          size: transaction.serialize().byteLength,
           fee: Number(transaction.fee()),
         },
       }

@@ -9,7 +9,11 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
-import { Transaction, TransactionHash } from '../primitives/transaction'
+import {
+  Transaction,
+  TransactionHash,
+  TransactionType,
+} from '../primitives/transactions/transaction'
 
 interface MempoolEntry {
   fee: bigint
@@ -180,7 +184,7 @@ export class MemPool {
         continue
       }
 
-      if (transaction.isMinersFee()) {
+      if (transaction.type === TransactionType.MinersFee) {
         continue
       }
 

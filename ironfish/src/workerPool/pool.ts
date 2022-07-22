@@ -9,7 +9,9 @@ import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
-import { Transaction } from '../primitives/transaction'
+import { MinersFeeTransaction } from '../primitives/transactions/minersFeeTransaction'
+import { Transaction } from '../primitives/transactions/transaction'
+import { TransferTransaction } from '../primitives/transactions/transferTransaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
@@ -129,7 +131,11 @@ export class WorkerPool {
     await Promise.all(workers.map((w) => w.stop()))
   }
 
-  async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
+  async createMinersFee(
+    spendKey: string,
+    amount: bigint,
+    memo: string,
+  ): Promise<MinersFeeTransaction> {
     const request = new CreateMinersFeeRequest(amount, memo, spendKey)
 
     const response = await this.execute(request).result()
@@ -138,7 +144,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted))
+    return new MinersFeeTransaction(Buffer.from(response.serializedTransaction))
   }
 
   async createTransaction(
@@ -155,7 +161,7 @@ export class WorkerPool {
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
     expirationSequence: number,
-  ): Promise<Transaction> {
+  ): Promise<TransferTransaction> {
     const spendsWithSerializedNotes = spends.map((s) => ({
       ...s,
       note: s.note.serialize(),
@@ -174,7 +180,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    return new Transaction(Buffer.from(response.serializedTransactionPosted))
+    return new TransferTransaction(Buffer.from(response.serializedTransactionPosted))
   }
 
   async verify(

@@ -9,7 +9,8 @@ import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
-import { SerializedTransaction, Transaction } from './transaction'
+import { parseTransaction } from './transactions/registry'
+import { SerializedTransaction, Transaction } from './transactions/transaction'
 
 /**
  * Represent a single block in the chain. Essentially just a block header
@@ -33,8 +34,8 @@ export class Block {
     let nullifiers = 0
 
     for (const transaction of this.transactions) {
-      notes += transaction.notesLength()
-      nullifiers += transaction.spendsLength()
+      notes += transaction.notes().length
+      nullifiers += transaction.spends().length
     }
 
     return { notes, nullifiers }
@@ -126,7 +127,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
   serialize(block: Block): SerializedBlock {
     return {
       header: this.blockHeaderSerde.serialize(block.header),
-      transactions: block.transactions.map((t) => t.serialize()),
+      transactions: block.transactions.map((t) => t.serializeWithType()),
     }
   }
 
@@ -139,7 +140,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       Array.isArray(data.transactions)
     ) {
       const header = this.blockHeaderSerde.deserialize(data.header)
-      const transactions = data.transactions.map((t) => new Transaction(t))
+      const transactions = data.transactions.map((t) => parseTransaction(t))
       return new Block(header, transactions)
     }
     throw new Error('Unable to deserialize')

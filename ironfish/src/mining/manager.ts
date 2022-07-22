@@ -8,8 +8,8 @@ import { Blockchain } from '../blockchain'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { IronfishNode } from '../node'
+import { Transaction } from '../primitives'
 import { Block } from '../primitives/block'
-import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
 import { GraffitiUtils } from '../utils/graffiti'
@@ -90,8 +90,8 @@ export class MiningManager {
     // Sum the transaction fees
     let totalTransactionFees = BigInt(0)
     const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
-    for (const transactionFee of transactionFees) {
-      totalTransactionFees += transactionFee
+    for (const fee of transactionFees) {
+      totalTransactionFees += fee
     }
 
     return {

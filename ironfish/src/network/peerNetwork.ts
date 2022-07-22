@@ -20,7 +20,8 @@ import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
-import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
+import { parseTransaction } from '../primitives/transactions/registry'
+import { SerializedTransaction, TransactionHash } from '../primitives/transactions/transaction'
 import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
@@ -210,8 +211,7 @@ export class PeerNetwork {
     })
 
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = transaction.serialize()
-
+      const serializedTransaction = transaction.serializeWithType()
       const message = new NewTransactionMessage(serializedTransaction)
 
       for (const peer of this.peerManager.getConnectedPeers()) {
@@ -365,7 +365,7 @@ export class PeerNetwork {
   ): void {
     for (const activePeer of peersToSendTo) {
       if (activePeer.send(message)) {
-        const hash = new Transaction(message.transaction).hash()
+        const hash = parseTransaction(message.transaction).hash()
         activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
       }
     }
@@ -714,7 +714,7 @@ export class PeerNetwork {
     for (const hash of message.transactionHashes) {
       const transaction = this.node.memPool.get(hash)
       if (transaction) {
-        transactions.push(transaction.serialize())
+        transactions.push(transaction.serializeWithType())
       }
     }
 
@@ -820,7 +820,7 @@ export class PeerNetwork {
     // Mark the peer as knowing about the transaction as well as their known peers
     // since they probably sent it to them. We will remove the known peers once we start
     // gossiping message based on hash
-    const hash = new Transaction(message.transaction).hash()
+    const hash = parseTransaction(message.transaction).hash()
     peer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
     for (const [_, knownPeer] of peer.knownPeers) {
       knownPeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
