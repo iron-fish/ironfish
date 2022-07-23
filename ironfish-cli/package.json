@@ -53,7 +53,7 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "0.1.7",
+    "@ironfish/rust-nodejs": "0.1.8",
     "@ironfish/sdk": "0.0.18",
     "@oclif/core": "1.6.1",
     "@oclif/plugin-help": "5.1.12",
