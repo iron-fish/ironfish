@@ -442,7 +442,9 @@ export class Syncer {
 
       if (!this.loader) {
         this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
-        this.startSync(peer)
+        if (peer.sequence !== null) {
+          this.startSync(peer)
+        }
       } else {
         this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
       }
