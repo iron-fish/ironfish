@@ -1087,8 +1087,8 @@ export class Accounts {
     await this.scanTransactions()
   }
 
-  async getTransactions(account: Account): Promise<
-    Array<{
+  getTransactions(account: Account): {
+    transactions: {
       creator: boolean
       status: string
       hash: string
@@ -1096,9 +1096,8 @@ export class Accounts {
       fee: number
       notes: number
       spends: number
-      expiration: number
-    }>
-  > {
+    }[]
+  } {
     this.assertHasAccount(account)
 
     const transactions = []
@@ -1120,34 +1119,22 @@ export class Accounts {
       }
 
       if (transactionCreator || transactionRecipient) {
-        const { blockHash } = transactionMapValue
-
-        let status = 'pending'
-        if (blockHash) {
-          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-          Assert.isNotNull(header)
-          const main = await this.chain.isHeadChain(header)
-          if (main) {
-            status = 'completed'
-          } else {
-            status = 'forked'
-          }
-        }
-
         transactions.push({
           creator: transactionCreator,
-          status,
+          status:
+            transactionMapValue.blockHash && transactionMapValue.submittedSequence
+              ? 'completed'
+              : 'pending',
           hash: transaction.unsignedHash().toString('hex'),
           isMinersFee: transaction.isMinersFee(),
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),
           spends: transaction.spendsLength(),
-          expiration: transaction.expirationSequence(),
         })
       }
     }
 
-    return transactions
+    return { transactions }
   }
 
   getTransaction(

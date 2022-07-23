@@ -19,7 +19,6 @@ describe('accounts:transactions', () => {
         fee: 0.1,
         notes: 1,
         spends: 1,
-        expiration: 1,
       },
     ],
   }
@@ -90,7 +89,6 @@ describe('accounts:transactions', () => {
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].fee)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].notes)
         expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].spends)
-        expectCli(ctx.stdout).include(responseContentTransactions.transactions[0].expiration)
       })
   })
 

@@ -120,10 +120,9 @@ export class StratumClient {
     }
   }
 
-  subscribe(publicAddress: string, name?: string): void {
+  subscribe(publicAddress: string): void {
     this.send('mining.subscribe', {
       version: this.version,
-      name,
       publicAddress: publicAddress,
     })
 

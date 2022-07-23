@@ -110,9 +110,6 @@ export class TransactionsCommand extends IronfishCommand {
       spends: {
         header: 'Spends',
       },
-      expiration: {
-        header: 'Expiration',
-      },
     })
 
     this.log(`\n`)

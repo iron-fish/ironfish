@@ -10,7 +10,6 @@ export class StratumServerClient {
   connected: boolean
   subscribed: boolean
   publicAddress: string | null = null
-  name: string | undefined
   remoteAddress: string
   graffiti: Buffer | null = null
   messageBuffer: string

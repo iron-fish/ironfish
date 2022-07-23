@@ -17,7 +17,6 @@ export type GetAccountTransactionsResponse = {
     fee: number
     notes: number
     spends: number
-    expiration: number
   }[]
 }
 
@@ -43,7 +42,6 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
               fee: yup.number().defined(),
               notes: yup.number().defined(),
               spends: yup.number().defined(),
-              expiration: yup.number().defined(),
             })
             .defined(),
         )
@@ -54,9 +52,9 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
 router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.account}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
-  async (request, node): Promise<void> => {
+  (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const transactions = await node.accounts.getTransactions(account)
+    const { transactions } = node.accounts.getTransactions(account)
     request.end({ account: account.displayName, transactions })
   },
 )

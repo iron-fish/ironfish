@@ -54,7 +54,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
   transactions: SerializedTransaction[]
 
   constructor(transactions: SerializedTransaction[], rpcId?: number) {
-    super(NetworkMessageType.PooledTransactionsResponse, Direction.Response, rpcId)
+    super(NetworkMessageType.PooledTransactionsRequest, Direction.Response, rpcId)
     this.transactions = transactions
   }
 

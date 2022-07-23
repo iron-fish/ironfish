@@ -33,10 +33,6 @@ export class Miner extends IronfishCommand {
       char: 'p',
       description: 'the host and port of the mining pool to connect to such as 92.191.17.232',
     }),
-    name: Flags.string({
-      char: 'n',
-      description: 'the miner name distinguishes different miners',
-    }),
     address: Flags.string({
       char: 'a',
       description: 'the public address to receive pool payouts',
@@ -89,10 +85,7 @@ export class Miner extends IronfishCommand {
         }
       }
 
-      const nameInfo = flags.name ? ` with name ${flags.name}` : ''
-      this.log(
-        `Starting to mine with public address: ${flags.address} at pool ${host}:${port}${nameInfo}`,
-      )
+      this.log(`Starting to mine with public address: ${flags.address} at pool ${host}:${port}`)
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
@@ -101,7 +94,6 @@ export class Miner extends IronfishCommand {
         batchSize,
         host: host,
         port: port,
-        name: flags.name,
       })
 
       miner.start()

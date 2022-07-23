@@ -22,7 +22,6 @@ export class MiningPoolMiner {
   private stopResolve: (() => void) | null
 
   private readonly publicAddress: string
-  private readonly name: string | undefined
 
   graffiti: Buffer | null
   miningRequestId: number
@@ -36,11 +35,9 @@ export class MiningPoolMiner {
     publicAddress: string
     host: string
     port: number
-    name?: string
   }) {
     this.logger = options.logger
     this.graffiti = null
-    this.name = options.name
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
       throw new Error(`Invalid public address: ${this.publicAddress}`)
@@ -54,7 +51,7 @@ export class MiningPoolMiner {
       port: options.port,
       logger: options.logger,
     })
-    this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
+    this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress))
     this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
     this.stratum.onNotify.on((m) =>
