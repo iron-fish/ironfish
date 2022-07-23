@@ -1,6 +1,7 @@
 name: Report a general issue
 description: In need of help or don\'t have a specific bug or feature? Use this!
 title: "[issue name]"
+labels: ['question']
 assignees:
   - iron-fish/engineering
 body:
