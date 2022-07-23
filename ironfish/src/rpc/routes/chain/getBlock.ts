@@ -168,10 +168,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         nullifier: BlockHashSerdeInstance.serialize(spend.nullifier),
       }))
 
-      // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
-      const transactionBuffer = Buffer.from(
-        JSON.stringify(node.strategy.transactionSerde.serialize(transaction)),
-      )
+      const transactionBuffer = Buffer.from(JSON.stringify(transaction.serialize()))
 
       return {
         transaction_identifier: {
