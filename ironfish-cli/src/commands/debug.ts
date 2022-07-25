@@ -50,6 +50,9 @@ export default class Debug extends IronfishCommand {
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
+    const nodeName = this.sdk.config.get('nodeName').toString()
+    const blockGraffiti = this.sdk.config.get('blockGraffiti').toString()
+
     let cmdInPath: boolean
     try {
       execSync('ironfish --help', { stdio: 'ignore' })
@@ -69,6 +72,8 @@ export default class Debug extends IronfishCommand {
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
+      ['Node Name', `${nodeName ? nodeName : 'NONE'}`],
+      ['Block Graffiti', `${blockGraffiti ? blockGraffiti : 'NONE'}`],
     ])
   }
 
