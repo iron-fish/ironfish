@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { MessageBuffer } from './messageBuffer'
 
-describe('MesssageBuffer', () => {
+describe('MessageBuffer', () => {
   const delimiter = '\n'
   const firstMessage = 'foo'
   const secondMessage = 'bar'

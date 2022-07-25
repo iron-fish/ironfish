@@ -32,7 +32,7 @@ export class NoteEncrypted {
     // note commitment
     this._noteCommitment = reader.readBytes(32)
 
-    // ephememeral public key
+    // ephemeral public key
     reader.seek(32)
     // encrypted note
     reader.seek(83)
