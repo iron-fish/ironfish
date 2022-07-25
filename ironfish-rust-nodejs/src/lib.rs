@@ -2,13 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::note::Memo;
+use ironfish_rust::sapling_bls12::SAPLING;
+use ironfish_rust::Note;
+use ironfish_rust::ProposedTransaction;
+use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
+use ironfish_rust::Transaction;
 use napi::bindgen_prelude::*;
+use napi::threadsafe_function::ErrorStrategy;
+use napi::threadsafe_function::ThreadsafeFunction;
+use napi::threadsafe_function::ThreadsafeFunctionCallMode;
 use napi::Error;
 use napi_derive::napi;
 
 use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
+use structs::NativeTransactionPosted;
 
 pub mod structs;
 
@@ -60,6 +70,8 @@ pub struct FoundBlockResult {
     pub mining_request_id: f64,
 }
 
+// Miner threadpool
+// TODO: Rename
 #[napi]
 struct ThreadPoolHandler {
     #[allow(dead_code)]
@@ -110,5 +122,83 @@ impl ThreadPoolHandler {
     #[allow(dead_code)]
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
+    }
+}
+
+#[napi]
+struct NativeWorkerPool {
+    pool: rayon::ThreadPool,
+}
+
+#[napi]
+impl NativeWorkerPool {
+    #[napi(constructor)]
+    // TODO: Take in a thread count
+    pub fn new() -> NativeWorkerPool {
+        NativeWorkerPool {
+            pool: rayon::ThreadPoolBuilder::new()
+                .num_threads(6)
+                .build()
+                .unwrap(),
+        }
+    }
+
+    #[napi]
+    pub fn verify_transaction(
+        &self,
+        transaction: &NativeTransactionPosted,
+        verify_fees: bool,
+        callback: JsFunction,
+    ) -> napi::Result<()> {
+        let tscb: ThreadsafeFunction<(), ErrorStrategy::CalleeHandled> = callback
+            .create_threadsafe_function(0, |ctx| ctx.env.get_undefined().map(|v| vec![v]))?;
+
+        let tx = transaction.transaction().clone();
+
+        self.pool.spawn(move || {
+            // std::thread::sleep_ms(250);
+            if verify_fees && tx.transaction_fee() < 0 {
+                tscb.call(Ok(()), ThreadsafeFunctionCallMode::NonBlocking);
+                return;
+            }
+
+            tx.verify().unwrap();
+
+            tscb.call(Ok(()), ThreadsafeFunctionCallMode::NonBlocking);
+        });
+
+        Ok(())
+    }
+
+    #[napi]
+    pub fn create_miners_fee(
+        &self,
+        amount_big: BigInt,
+        memo: String,
+        spend_key: String,
+        callback: JsFunction,
+    ) -> napi::Result<()> {
+        let tscb: ThreadsafeFunction<(), ErrorStrategy::CalleeHandled> = callback
+            .create_threadsafe_function(0, |ctx| ctx.env.get_undefined().map(|v| vec![v]))?;
+
+        let amount = amount_big.get_u64().1;
+
+        self.pool.spawn(move || {
+            // std::thread::sleep_ms(250);
+            let key = SaplingKey::from_hex(&spend_key).unwrap();
+            // let miner_key = generate_new_public_address(spend_key).unwrap();
+            // let miner_public_address = PublicAddress::from_hex(&miner_key.public_address).unwrap();
+            let miner_public_address = key.generate_public_address();
+            let miner_note = Note::new(miner_public_address, amount as u64, Memo::from(memo));
+
+            let mut tx = ProposedTransaction::new(SAPLING.clone());
+            tx.receive(&key, &miner_note).unwrap();
+
+            tx.post_miners_fee().unwrap();
+
+            tscb.call(Ok(()), ThreadsafeFunctionCallMode::NonBlocking);
+        });
+
+        Ok(())
     }
 }

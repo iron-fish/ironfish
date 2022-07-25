@@ -119,3 +119,8 @@ export class ThreadPoolHandler {
   getFoundBlock(): FoundBlockResult | undefined | null
   getHashRateSubmission(): number
 }
+export class NativeWorkerPool {
+  constructor()
+  verifyTransaction(transaction: TransactionPosted, verifyFees: boolean, callback: (...args: any[]) => any): void
+  createMinersFee(amountBig: bigint, memo: string, spendKey: string, callback: (...args: any[]) => any): void
+}

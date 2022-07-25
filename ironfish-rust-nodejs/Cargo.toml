@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi-derive = "2.2.0"
 ironfish_rust= { path = "../ironfish-rust", features = ["native"] }
+rayon = "1.5.3"
 
 [dependencies.napi]
 version = "2.2.0"

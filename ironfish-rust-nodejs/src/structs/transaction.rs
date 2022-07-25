@@ -143,6 +143,12 @@ impl NativeTransactionPosted {
     }
 }
 
+impl NativeTransactionPosted {
+    pub(crate) fn transaction(&self) -> &Transaction {
+        &self.transaction
+    }
+}
+
 #[napi(js_name = "Transaction")]
 pub struct NativeTransaction {
     transaction: ProposedTransaction,
