@@ -12,7 +12,9 @@ use super::{
     witness::WitnessTrait,
     Sapling,
 };
+use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::GroupEncoding;
@@ -422,19 +424,42 @@ impl Transaction {
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
 
+        // Batch proof verifiers
+        let mut spends_verifier = Verifier::<Bls12>::new();
+        let mut receipts_verifier = Verifier::<Bls12>::new();
+
         for spend in self.spends.iter() {
-            spend.verify_proof(&self.sapling)?;
-            let mut tmp = spend.value_commitment;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
+            spend.verify_value_commitment()?;
+
+            let public_inputs = spend.public_inputs();
+            spends_verifier.queue((&spend.proof, &public_inputs[..]));
+
+            binding_verification_key += spend.value_commitment;
+        }
+
+        // TODO: Try verify_multicore
+        if spends_verifier
+            .verify(&mut OsRng, &self.sapling.spend_params.vk)
+            .is_err()
+        {
+            return Err(SaplingProofError::VerificationFailed.into());
         }
 
         for receipt in self.receipts.iter() {
-            receipt.verify_proof(&self.sapling)?;
-            let mut tmp = receipt.merkle_note.value_commitment;
-            tmp = -tmp;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
+            receipt.verify_value_commitment()?;
+
+            let public_inputs = receipt.public_inputs();
+            receipts_verifier.queue((&receipt.proof, &public_inputs[..]));
+
+            binding_verification_key -= receipt.merkle_note.value_commitment;
+        }
+
+        // TODO: Try verify_multicore
+        if receipts_verifier
+            .verify(&mut OsRng, &self.sapling.receipt_params.vk)
+            .is_err()
+        {
+            return Err(SaplingProofError::VerificationFailed.into());
         }
 
         let hash_to_verify_signature = self.transaction_signature_hash();
