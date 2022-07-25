@@ -91,6 +91,10 @@ export default class Start extends IronfishCommand {
       description: 'genereate new identity for each new start',
       hidden: true,
     }),
+    upgrade: Flags.boolean({
+      allowNo: true,
+      description: 'run migrations when an upgrade is required',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -118,6 +122,7 @@ export default class Start extends IronfishCommand {
       port,
       workers,
       generateNewIdentity,
+      upgrade,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -158,6 +163,9 @@ export default class Start extends IronfishCommand {
       generateNewIdentity !== this.sdk.config.get('generateNewIdentity')
     ) {
       this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
+    }
+    if (upgrade !== undefined && upgrade !== this.sdk.config.get('databaseMigrate')) {
+      this.sdk.config.setOverride('databaseMigrate', upgrade)
     }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {

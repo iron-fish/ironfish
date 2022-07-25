@@ -37,6 +37,7 @@ export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 export type ConfigOptions = {
   bootstrapNodes: string[]
   databaseName: string
+  databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
@@ -270,6 +271,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
+      databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
       enableListenP2P: true,
