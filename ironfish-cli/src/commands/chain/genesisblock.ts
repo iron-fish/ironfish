@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  BlockSerde,
   GENESIS_SUPPLY_IN_IRON,
   GenesisBlockInfo,
   IJSON,
@@ -9,7 +10,6 @@ import {
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
-import { BlockSerde } from '@ironfish/sdk/src/primitives/block'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
