@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  BlockSerde,
   GENESIS_SUPPLY_IN_IRON,
   GenesisBlockInfo,
   IJSON,
@@ -87,7 +88,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const { block } = await makeGenesisBlock(node.chain, info, account, this.logger)
 
     this.log(`\nGenesis Block`)
-    const serialized = node.strategy.blockSerde.serialize(block)
+    const serialized = BlockSerde.serialize(block)
     this.log(IJSON.stringify(serialized, '  '))
   }
 }

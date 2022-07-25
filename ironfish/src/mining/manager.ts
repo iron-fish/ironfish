@@ -141,7 +141,7 @@ export class MiningManager {
   }
 
   async submitBlockTemplate(blockTemplate: SerializedBlockTemplate): Promise<MINED_RESULT> {
-    const block = BlockTemplateSerde.deserialize(this.node.strategy, blockTemplate)
+    const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (

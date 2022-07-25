@@ -16,10 +16,9 @@ import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
-import { SerializedBlock } from '../primitives/block'
+import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { SerializedTransaction } from '../primitives/transaction'
-import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -103,7 +102,6 @@ export class PeerNetwork {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
-  private readonly strategy: Strategy
   private readonly chain: Blockchain
   private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
@@ -134,7 +132,6 @@ export class PeerNetwork {
     logger?: Logger
     metrics?: MetricsMonitor
     node: IronfishNode
-    strategy: Strategy
     chain: Blockchain
     hostsStore: HostsStore
   }) {
@@ -143,7 +140,6 @@ export class PeerNetwork {
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
     this.chain = options.chain
-    this.strategy = options.strategy
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.bootstrapNodes = options.bootstrapNodes || []
@@ -195,7 +191,7 @@ export class PeerNetwork {
     }
 
     this.node.miningManager.onNewBlock.on((block) => {
-      const serializedBlock = this.strategy.blockSerde.serialize(block)
+      const serializedBlock = BlockSerde.serialize(block)
 
       this.broadcastBlock(new NewBlockMessage(serializedBlock))
     })
@@ -334,7 +330,7 @@ export class PeerNetwork {
     this.seenGossipFilter.add(message.nonce)
 
     // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
-    const block = this.strategy.blockSerde.deserialize(message.block)
+    const block = BlockSerde.deserialize(message.block)
 
     for (const peer of this.peerManager.getConnectedPeers()) {
       // Don't send the block to peers who already know about it
@@ -703,7 +699,7 @@ export class PeerNetwork {
 
     const serialized = blocks.map((block) => {
       Assert.isNotNull(block)
-      return this.strategy.blockSerde.serialize(block)
+      return BlockSerde.serialize(block)
     })
 
     return new GetBlocksResponse(serialized, rpcId)

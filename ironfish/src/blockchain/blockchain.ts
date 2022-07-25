@@ -18,9 +18,10 @@ import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
 import { NodeEncoding } from '../merkletree/database/nodes'
+import { NoteHasher } from '../merkletree/hasher'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
   NoteEncrypted,
@@ -28,10 +29,10 @@ import {
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
-import { Nullifier, NullifierHash } from '../primitives/nullifier'
+import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
+import { IJSON, NullifierSerdeInstance } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -171,7 +172,7 @@ export class Blockchain {
     this.headers = this.db.addStore({
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new HeaderEncoding(this.strategy),
+      valueEncoding: new HeaderEncoding(),
     })
 
     // BlockHash -> Transaction[]
@@ -202,7 +203,7 @@ export class Blockchain {
     })
 
     this.notes = new MerkleTree({
-      hasher: this.strategy.noteHasher,
+      hasher: new NoteHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NoteLeafEncoding(),
       nodeEncoding: new NodeEncoding(),
@@ -212,7 +213,7 @@ export class Blockchain {
     })
 
     this.nullifiers = new MerkleTree({
-      hasher: this.strategy.nullifierHasher,
+      hasher: new NullifierHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NullifierLeafEncoding(),
       nodeEncoding: new NodeEncoding(),
@@ -243,7 +244,7 @@ export class Blockchain {
 
   private async seed() {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = this.strategy.blockSerde.deserialize(serialized)
+    const genesis = BlockSerde.deserialize(serialized)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -917,7 +918,6 @@ export class Blockchain {
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
       const header = new BlockHeader(
-        this.strategy,
         previousSequence + 1,
         previousBlockHash,
         noteCommitment,
@@ -956,7 +956,7 @@ export class Blockchain {
       if (index < noteCount) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oldNote = (await this.notes.get(index, tx))!
-        if (!this.strategy.noteSerde.equals(note, oldNote)) {
+        if (!note.equals(oldNote)) {
           const message = `Tried to insert a note, but a different note already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
@@ -983,7 +983,7 @@ export class Blockchain {
       if (index < nullifierCount) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oldNullifier = (await this.nullifiers.get(index, tx))!
-        if (!this.strategy.nullifierHasher.elementSerde().equals(nullifier, oldNullifier)) {
+        if (!NullifierSerdeInstance.equals(nullifier, oldNullifier)) {
           const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
