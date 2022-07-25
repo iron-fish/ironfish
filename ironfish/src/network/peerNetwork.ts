@@ -358,22 +358,6 @@ export class PeerNetwork {
     }
   }
 
-  knowsTransaction(hash: TransactionHash, peerId: Identity): boolean {
-    const toTest = Buffer.concat([hash, Buffer.from(peerId)])
-    return this.knownTransactionFilter.test(toTest)
-  }
-
-  private markKnowsTransaction(hash: TransactionHash, peerId: Identity): void {
-    const toAdd = Buffer.concat([hash, Buffer.from(peerId)])
-    this.knownTransactionFilter.add(toAdd)
-  }
-
-  private connectedPeersWithoutTransaction(hash: TransactionHash): ReadonlyArray<Peer> {
-    return [...this.peerManager.identifiedPeers.values()].filter((p) => {
-      return p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)
-    })
-  }
-
   private broadcastTransaction(
     message: NewTransactionMessage,
     peersToSendTo: ReadonlyArray<Peer>,
@@ -388,6 +372,22 @@ export class PeerNetwork {
         this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
+  }
+
+  knowsTransaction(hash: TransactionHash, peerId: Identity): boolean {
+    const toTest = Buffer.concat([hash, Buffer.from(peerId)])
+    return this.knownTransactionFilter.test(toTest)
+  }
+
+  private markKnowsTransaction(hash: TransactionHash, peerId: Identity): void {
+    const toAdd = Buffer.concat([hash, Buffer.from(peerId)])
+    this.knownTransactionFilter.add(toAdd)
+  }
+
+  private connectedPeersWithoutTransaction(hash: TransactionHash): ReadonlyArray<Peer> {
+    return [...this.peerManager.identifiedPeers.values()].filter((p) => {
+      return p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)
+    })
   }
 
   /**
