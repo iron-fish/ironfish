@@ -15,6 +15,7 @@ describe('status', () => {
       status: 'started',
       version: '0.0.0',
       git: 'src',
+      nodeName: 'my node',
     },
     memory: {
       heapMax: 5,
@@ -24,7 +25,7 @@ describe('status', () => {
       memFree: 4,
       memTotal: 10,
     },
-    miningDirector: { status: 'started', miners: 0, blocks: 0 },
+    miningDirector: { status: 'started', miners: 0, blocks: 0, blockGraffiti: 'my graffiti' },
     memPool: { size: 0 },
     blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0, progress: 0 } },
     telemetry: { status: 'stopped', pending: 0, submitted: 0 },
@@ -74,6 +75,8 @@ describe('status', () => {
       .it('logs out data for the chain, node, mempool, and syncer', (ctx) => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
+        expectCli(ctx.stdout).include('Node Name')
+        expectCli(ctx.stdout).include('Block Graffiti')
         expectCli(ctx.stdout).include('Memory')
         expectCli(ctx.stdout).include('P2P Network')
         expectCli(ctx.stdout).include('Mining')
