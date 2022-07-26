@@ -630,14 +630,16 @@ pub fn batch_verify_transactions(
     }
 
     if spend_verifier
-        .verify(&mut OsRng, &sapling.spend_params.vk)
+        // .verify(&mut OsRng, &sapling.spend_params.vk)
+        .verify_multicore(&sapling.spend_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());
     }
 
     if receipt_verifier
-        .verify(&mut OsRng, &sapling.receipt_params.vk)
+        // .verify(&mut OsRng, &sapling.receipt_params.vk)
+        .verify_multicore(&sapling.receipt_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());

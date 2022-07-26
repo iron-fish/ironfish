@@ -60,6 +60,8 @@ import {
 
 const DATABASE_VERSION = 10
 
+const START_TIMER = Date.now()
+
 export class Blockchain {
   db: IDatabase
   logger: Logger
@@ -579,6 +581,9 @@ export class Blockchain {
     const addTime = BenchUtils.end(start)
     this.addSpeed.add(addTime)
     this.updateSynced()
+    if (Number(block.header.sequence) % 250 === 0) {
+      console.log('TIME ELAPSED:', Date.now() - START_TIMER)
+    }
 
     if (this.logAllBlockAdd || Number(block.header.sequence) % 20 === 0) {
       this.logger.info(
