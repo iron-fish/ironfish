@@ -324,6 +324,12 @@ export class Blockchain {
     await this.db.close()
   }
 
+  /**
+   * This function will take a block and if valid will connect it to the chain.
+   *
+   * @param block  The block to add to the chain
+   * @returns the result of the connection
+   */
   async addBlock(block: Block): Promise<{
     isAdded: boolean
     isFork: boolean | null
@@ -433,7 +439,13 @@ export class Blockchain {
   /**
    * Iterate the main chain from left to right inclusive.
    * Start and end being included in the yielded blocks.
-   * */
+   * Safer method then iterateToHashes as this checks for re-orged of main chain.
+   *
+   * @param start  The hash of the first block to iterate from
+   * @param end  The hash of the first block to iterate to
+   * @param tx
+   * @param reachable
+   */
   async *iterateTo(
     start: BlockHeader,
     end?: BlockHeader,
