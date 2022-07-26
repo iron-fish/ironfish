@@ -3,7 +3,6 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
-      - "ironfish-rust-wasm/**"
       - "rust-toolchain"
   push:
     branches:
@@ -11,7 +10,6 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
-      - "ironfish-rust-wasm/**"
       - "rust-toolchain"
 
 name: Rust CI
@@ -107,47 +105,3 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ironfish-rust-nodejs/Cargo.toml -- -D warnings
-
-  ironfish_rust_wasm:
-    name: ironfish-rust-wasm
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
-        with:
-          sharedKey: wasm
-          working-directory: ironfish-rust-wasm
-
-      - name: Check for license headers
-        run: ./ci/lintHeaders.sh ./ironfish-rust-wasm/src *.rs
-
-      # Build & Run test & Collect Code coverage
-      - name: Run cargo-tarpaulin on ironfish-rust-wasm
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: "0.20.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-wasm/Cargo.toml --release -- --test-threads 1
-
-      # upload code coverage to Codecov
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2.1.0
-        with:
-          flags: ironfish-rust-wasm
-
-      # fmt
-      - uses: actions-rs/cargo@v1
-        name: "`cargo fmt` check on ironfish-rust-wasm"
-        with:
-          command: fmt
-          args: --manifest-path ironfish-rust-wasm/Cargo.toml --all -- --check
-
-      # clippy
-      - uses: actions-rs/cargo@v1
-        name: "Clippy check on ironfish-rust-wasm"
-        with:
-          command: clippy
-          args: --manifest-path ironfish-rust-wasm/Cargo.toml -- -D warnings

@@ -8,7 +8,7 @@ use bls12_381::{Bls12, Scalar};
 use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::primitives::ValueCommitment;
+use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::circuit::sapling::Output;
 
 use std::{io, sync::Arc};
@@ -195,7 +195,7 @@ mod test {
     fn test_receipt_round_trip() {
         let sapling = &*sapling_bls12::SAPLING;
         let spender_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, Memo([0; 32]));
+        let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
 
         let receipt = ReceiptParams::new(sapling.clone(), &spender_key, &note)
             .expect("should be able to create receipt proof");

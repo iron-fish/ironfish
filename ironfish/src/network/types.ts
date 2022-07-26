@@ -24,6 +24,8 @@ export enum NetworkMessageType {
   NewTransactionV2 = 16,
   NewBlockHashes = 17,
   NewBlockV2 = 18,
+  GetBlockTransactionsRequest = 19,
+  GetBlockTransactionsResponse = 20,
 }
 
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WSWebSocket

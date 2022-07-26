@@ -31,7 +31,6 @@ export async function makeBlockAfter(
   const graffiti = GraffitiUtils.fromString('fake block')
 
   const header = new BlockHeader(
-    chain.strategy,
     sequence,
     after.hash,
     after.noteCommitment,

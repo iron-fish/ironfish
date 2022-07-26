@@ -11,17 +11,22 @@ import net from 'net'
 import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
-import { useAccountFixture, useBlockWithTx } from '../testUtilities'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { BlockSerde } from '../primitives/block'
 import {
-  mockChain,
-  mockNode,
-  mockStrategy,
-  mockTransaction,
-  mockWorkerPool,
-} from '../testUtilities/mocks'
+  useAccountFixture,
+  useBlockWithTx,
+  useMinerBlockFixture,
+  useMinersTxFixture,
+} from '../testUtilities'
+import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { mockChain, mockNode, mockTransaction, mockWorkerPool } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
+import {
+  GetBlockTransactionsRequest,
+  GetBlockTransactionsResponse,
+} from './messages/getBlockTransactions'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
@@ -45,7 +50,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -63,7 +67,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -87,7 +90,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         minPeers: 1,
         hostsStore: mockHostsStore(),
       })
@@ -125,7 +127,6 @@ describe('PeerNetwork', () => {
         webSocket: wsActual,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         listen: true,
         port: 0,
         minPeers: 1,
@@ -163,6 +164,124 @@ describe('PeerNetwork', () => {
     })
   })
 
+  describe('handles requests for block transactions', () => {
+    const nodeTest = createNodeTest()
+
+    it('should respond to GetBlockTransactionsRequest', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+      const transaction1 = block.transactions[0]
+      const transaction2 = await useMinersTxFixture(node.accounts, account)
+      const transaction3 = await useMinersTxFixture(node.accounts, account)
+
+      await expect(node.chain).toAddBlock(block)
+
+      await node.chain.transactions.put(block.header.hash, {
+        transactions: [transaction1, transaction2, transaction3],
+      })
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockTransactionsRequest(block.header.hash, [0, 1], rpcId)
+      const response = new GetBlockTransactionsResponse(
+        block.header.hash,
+        [transaction1.serialize(), transaction3.serialize()],
+        rpcId,
+      )
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy when requesting transactions from an old block', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+      for (let i = 0; i < 11; i++) {
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+        await expect(node.chain).toAddBlock(block)
+      }
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockTransactionsRequest(node.chain.genesis.hash, [0], rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy on missing hash', async () => {
+      const { peerNetwork } = nodeTest
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockTransactionsRequest(Buffer.alloc(32, 1), [0, 1], rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy when requesting transactions past the end of the block', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const genesisBlock = await node.chain.getBlock(node.chain.genesis.hash)
+      Assert.isNotNull(genesisBlock)
+
+      const message = new GetBlockTransactionsRequest(
+        node.chain.genesis.hash,
+        [genesisBlock.transactions.length + 1],
+        rpcId,
+      )
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy when requesting transactions with negative indexes', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockTransactionsRequest(node.chain.genesis.hash, [-1], rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+  })
+
   describe('when enable syncing is true', () => {
     it('adds new blocks', async () => {
       const peerNetwork = new PeerNetwork({
@@ -171,7 +290,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
       })
 
@@ -227,7 +345,7 @@ describe('PeerNetwork', () => {
         peer1.knownPeers.set(peer2.getIdentityOrThrow(), peer2)
         peer2.knownPeers.set(peer1.getIdentityOrThrow(), peer1)
 
-        const newBlockMessage = new NewBlockMessage(strategy.blockSerde.serialize(blockA1))
+        const newBlockMessage = new NewBlockMessage(BlockSerde.serialize(blockA1))
 
         const peer1Send = jest.spyOn(peer1, 'send')
         const peer2Send = jest.spyOn(peer2, 'send')
@@ -290,7 +408,6 @@ describe('PeerNetwork', () => {
                 verifyNewTransaction: jest.fn(),
               },
             },
-            strategy: mockStrategy(),
             hostsStore: mockHostsStore(),
           })
 
@@ -329,7 +446,6 @@ describe('PeerNetwork', () => {
             webSocket: ws,
             node,
             chain,
-            strategy: mockStrategy(),
             hostsStore: mockHostsStore(),
           })
 
@@ -367,7 +483,6 @@ describe('PeerNetwork', () => {
             webSocket: ws,
             node,
             chain,
-            strategy: mockStrategy(),
             hostsStore: mockHostsStore(),
           })
 
@@ -439,7 +554,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
         enableSyncing: false,
       })
@@ -483,7 +597,6 @@ describe('PeerNetwork', () => {
         webSocket: ws,
         node: mockNode(),
         chain: mockChain(),
-        strategy: mockStrategy(),
         hostsStore: mockHostsStore(),
         enableSyncing: false,
       })

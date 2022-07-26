@@ -29,7 +29,7 @@ import {
   SequenceToHashesValueEncoding,
 } from './database/sequenceToHashes'
 
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 12
 const REMOVAL_KEY = 'accountsToRemove'
 
 const getMinedBlocksDBMetaDefaults = (): MinedBlocksDBMeta => ({
@@ -46,8 +46,8 @@ export class MinedBlocksIndexer {
   protected accountsToRemove: IDatabaseStore<{ key: string; value: AccountsToRemoveValue }>
 
   protected files: FileSystem
-  protected database: IDatabase
-  protected location: string
+  readonly database: IDatabase
+  readonly location: string
   protected readonly accounts: Accounts
   protected readonly logger: Logger
   protected isOpen: boolean
@@ -173,19 +173,17 @@ export class MinedBlocksIndexer {
     })
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.isOpen) {
       return
     }
 
     this.isOpen = true
-    await this.openDB(options)
 
-    if (options.load) {
-      await this.load()
-    }
+    await this.files.mkdir(this.location, { recursive: true })
+    await this.database.open()
+    await this.database.upgrade(DATABASE_VERSION)
+    await this.load()
   }
 
   async close(): Promise<void> {
@@ -194,19 +192,6 @@ export class MinedBlocksIndexer {
     }
 
     this.isOpen = false
-    await this.closeDB()
-  }
-
-  async openDB(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
-    await this.files.mkdir(this.location, { recursive: true })
-    await this.database.open()
-
-    if (options.upgrade) {
-      await this.database.upgrade(DATABASE_VERSION)
-    }
-  }
-
-  async closeDB(): Promise<void> {
     await this.database.close()
   }
 

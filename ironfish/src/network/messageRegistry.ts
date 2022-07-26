@@ -6,12 +6,17 @@ import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import {
+  GetBlockTransactionsRequest,
+  GetBlockTransactionsResponse,
+} from './messages/getBlockTransactions'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
+import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
@@ -45,6 +50,8 @@ const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetBlocksResponse,
     NetworkMessageType.PooledTransactionsRequest,
     NetworkMessageType.PooledTransactionsResponse,
+    NetworkMessageType.GetBlockTransactionsRequest,
+    NetworkMessageType.GetBlockTransactionsResponse,
   ].includes(type)
 }
 
@@ -73,6 +80,10 @@ const parseRpcNetworkMessage = (
       return PooledTransactionsRequest.deserialize(body, rpcId)
     case NetworkMessageType.PooledTransactionsResponse:
       return PooledTransactionsResponse.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsRequest:
+      return GetBlockTransactionsRequest.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsResponse:
+      return GetBlockTransactionsResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
@@ -112,6 +123,8 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return NewBlockHashesMessage.deserialize(body)
     case NetworkMessageType.NewBlockV2:
       return NewBlockV2Message.deserialize(body)
+    case NetworkMessageType.NewPooledTransactionHashes:
+      return NewPooledTransactionHashes.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }

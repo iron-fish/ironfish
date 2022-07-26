@@ -8,7 +8,7 @@ import { Account, Accounts, AccountsValue } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { getCurrentTestPath } from './utils'
@@ -177,10 +177,10 @@ export async function useBlockFixture(
       }
     },
     serialize: (block: Block): SerializedBlock => {
-      return chain.strategy.blockSerde.serialize(block)
+      return BlockSerde.serialize(block)
     },
     deserialize: (serialized: SerializedBlock): Block => {
-      return chain.strategy.blockSerde.deserialize(serialized)
+      return BlockSerde.deserialize(serialized)
     },
   })
 }
