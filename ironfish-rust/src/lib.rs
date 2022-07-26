@@ -7,6 +7,7 @@ extern crate lazy_static;
 
 use bellman::groth16;
 use bls12_381::Bls12;
+pub use rand::rngs::OsRng;
 
 mod serializing;
 

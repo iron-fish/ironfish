@@ -23,6 +23,12 @@ export interface Key {
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
+export interface BoxedMessage {
+  nonce: string
+  boxedMessage: string
+}
+export function rustBoxMessage(plainTextMessage: string, senderPrivateKey: Uint8Array, recipientPublicKey: Uint8Array): BoxedMessage
+export function rustUnboxMessage(boxedMessage: string, nonce: string, senderPublicKey: Uint8Array, recipientPrivateKey: Uint8Array): string
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)

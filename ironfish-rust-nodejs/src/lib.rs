@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crypto_box::aead::generic_array::GenericArray;
+use crypto_box::aead::Aead;
+use crypto_box::PublicKey;
+use crypto_box::SecretKey;
 use ironfish_rust::note::Memo;
 use ironfish_rust::sapling_bls12::SAPLING;
 use ironfish_rust::Note;
 use ironfish_rust::ProposedTransaction;
-use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
-use ironfish_rust::Transaction;
 use napi::bindgen_prelude::*;
 use napi::threadsafe_function::ErrorStrategy;
 use napi::threadsafe_function::ThreadsafeFunction;
@@ -201,4 +203,63 @@ impl NativeWorkerPool {
 
         Ok(())
     }
+}
+
+#[napi(object)]
+pub struct BoxedMessage {
+    pub nonce: String,
+    pub boxed_message: String,
+}
+
+#[napi]
+pub fn rust_box_message(
+    plain_text_message: String,
+    sender_private_key: Uint8Array,
+    recipient_public_key: Uint8Array,
+) -> BoxedMessage {
+    let mut rng = crypto_box::rand_core::OsRng;
+
+    let sender_key: [u8; 32] = sender_private_key.to_vec().try_into().unwrap();
+    let recipient_key: [u8; 32] = recipient_public_key.to_vec().try_into().unwrap();
+
+    let sender: SecretKey = SecretKey::from(sender_key);
+    let recipient: PublicKey = PublicKey::from(recipient_key);
+
+    let nonce = crypto_box::generate_nonce(&mut rng);
+
+    let c_box = crypto_box::Box::new(&recipient, &sender);
+
+    let ciphertext = c_box
+        .encrypt(&nonce, plain_text_message.as_bytes())
+        .unwrap();
+
+    BoxedMessage {
+        nonce: base64::encode(&nonce),
+        boxed_message: base64::encode(&ciphertext),
+    }
+}
+
+#[napi]
+pub fn rust_unbox_message(
+    boxed_message: String,
+    nonce: String,
+    sender_public_key: Uint8Array,
+    recipient_private_key: Uint8Array,
+) -> String {
+    let nonce = base64::decode(nonce).unwrap();
+    let nonce = GenericArray::from_slice(&nonce);
+
+    let boxed_message = base64::decode(boxed_message).unwrap();
+
+    let sender_key: [u8; 32] = sender_public_key.to_vec().try_into().unwrap();
+    let recipient_key: [u8; 32] = recipient_private_key.to_vec().try_into().unwrap();
+
+    let recipient: SecretKey = SecretKey::from(recipient_key);
+    let sender: PublicKey = PublicKey::from(sender_key);
+
+    let c_box = crypto_box::Box::new(&sender, &recipient);
+
+    let cleartext = c_box.decrypt(nonce, &boxed_message[..]).unwrap();
+
+    return String::from_utf8(cleartext).unwrap();
 }
