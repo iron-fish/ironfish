@@ -72,8 +72,8 @@ export default class Debug extends IronfishCommand {
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
-      ['Node Name', `${nodeName ? nodeName : 'NONE'}`],
-      ['Block Graffiti', `${blockGraffiti ? blockGraffiti : 'NONE'}`],
+      ['Node name', `${nodeName}`],
+      ['Block graffiti', `${blockGraffiti}`],
     ])
   }
 
