@@ -202,7 +202,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: node.started ? 'started' : 'stopped',
       version: node.pkg.version,
       git: node.pkg.git,
-      nodeName: node.config.get('nodeName').toString(),
+      nodeName: node.config.get('nodeName'),
     },
     memory: {
       heapMax: node.metrics.heapMax,
@@ -216,7 +216,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: 'started',
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
-      blockGraffiti: node.config.get('blockGraffiti').toString(),
+      blockGraffiti: node.config.get('blockGraffiti'),
     },
     memPool: {
       size: node.metrics.memPoolSize.value,
