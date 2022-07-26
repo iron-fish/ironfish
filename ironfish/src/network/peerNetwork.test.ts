@@ -12,7 +12,8 @@ import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
-import { BlockSerde } from '../primitives/block'
+import { BlockSerde, SerializedCompactBlock } from '../primitives/block'
+import { BlockHeaderSerde } from '../primitives/blockheader'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -28,6 +29,7 @@ import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
+import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
@@ -162,6 +164,85 @@ describe('PeerNetwork', () => {
       expect(typeof args).toEqual('string')
       const message = JSON.parse(args) as DisconnectingMessage
       expect(message.type).toEqual(NetworkMessageType.Disconnecting)
+    })
+  })
+
+  describe('handles requests for compact blocks', () => {
+    const nodeTest = createNodeTest()
+
+    it('should respond to GetCompactBlockRequest', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+      const transaction1 = block.transactions[0]
+      const transaction2 = await useMinersTxFixture(node.accounts, account)
+      const transaction3 = await useMinersTxFixture(node.accounts, account)
+
+      await expect(node.chain).toAddBlock(block)
+
+      await node.chain.transactions.put(block.header.hash, {
+        transactions: [transaction1, transaction2, transaction3],
+      })
+
+      const compactBlock: SerializedCompactBlock = {
+        header: BlockHeaderSerde.serialize(block.header),
+        transactions: [{ index: 0, transaction: transaction1.serialize() }],
+        transactionHashes: [transaction2.hash(), transaction3.hash()],
+      }
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetCompactBlockRequest(block.header.hash, rpcId)
+      const response = new GetCompactBlockResponse(compactBlock, rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy when requesting an old compact block', async () => {
+      const { peerNetwork, node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+      for (let i = 0; i < 6; i++) {
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+        await expect(node.chain).toAddBlock(block)
+      }
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetCompactBlockRequest(node.chain.genesis.hash, rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+
+    it('responds with CannotSatisfy on missing hash', async () => {
+      const { peerNetwork } = nodeTest
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetCompactBlockRequest(Buffer.alloc(32, 1), rpcId)
+      const response = new CannotSatisfyRequest(rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy).toHaveBeenCalledWith(response)
     })
   })
 

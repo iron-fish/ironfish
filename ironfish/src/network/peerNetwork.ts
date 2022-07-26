@@ -77,6 +77,7 @@ const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
 
 const MAX_GET_BLOCK_TRANSACTIONS_DEPTH = 10
+const MAX_GET_COMPACT_BLOCK_DEPTH = 5
 
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
@@ -585,7 +586,7 @@ export class PeerNetwork {
         } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
           responseMessage = await this.onGetBlockTransactionsRequest(peer, rpcMessage)
         } else if (rpcMessage instanceof GetCompactBlockRequest) {
-          responseMessage = this.onGetCompactBlockRequest()
+          responseMessage = await this.onGetCompactBlockRequest(rpcMessage)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -812,9 +813,41 @@ export class PeerNetwork {
     return new GetBlockTransactionsResponse(message.blockHash, transactions, message.rpcId)
   }
 
-  private onGetCompactBlockRequest(): GetCompactBlockResponse {
-    // TODO(IRO-2317): Implement a handler for compact block requests
-    throw new CannotSatisfyRequestError('Compact block requests are not yet supported.')
+  private async onGetCompactBlockRequest(
+    message: GetCompactBlockRequest,
+  ): Promise<GetCompactBlockResponse> {
+    const block = await this.chain.db.withTransaction(null, async (tx) => {
+      const header = await this.chain.getHeader(message.blockHash, tx)
+
+      if (header === null) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested compact block for block ${message.blockHash.toString(
+            'hex',
+          )} that isn't in the database`,
+        )
+      }
+
+      if (header.sequence < this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested compact block for ${message.blockHash.toString(
+            'hex',
+          )} with sequence ${header.sequence} while chain head is at sequence ${
+            this.chain.head.sequence
+          }`,
+        )
+      }
+
+      const block = await this.chain.getBlock(header, tx)
+
+      Assert.isNotNull(
+        block,
+        'Database should contain transactions if it contains block header',
+      )
+
+      return block
+    })
+
+    return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
   }
 
   private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
