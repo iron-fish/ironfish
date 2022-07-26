@@ -439,7 +439,8 @@ impl Transaction {
 
         // TODO: Try verify_multicore
         if spends_verifier
-            .verify(&mut OsRng, &self.sapling.spend_params.vk)
+            // .verify(&mut OsRng, &self.sapling.spend_params.vk)
+            .verify_multicore(&self.sapling.spend_params.vk)
             .is_err()
         {
             return Err(SaplingProofError::VerificationFailed.into());
@@ -456,7 +457,8 @@ impl Transaction {
 
         // TODO: Try verify_multicore
         if receipts_verifier
-            .verify(&mut OsRng, &self.sapling.receipt_params.vk)
+            // .verify(&mut OsRng, &self.sapling.receipt_params.vk)
+            .verify_multicore(&self.sapling.receipt_params.vk)
             .is_err()
         {
             return Err(SaplingProofError::VerificationFailed.into());
@@ -588,4 +590,58 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
     }
 
     Ok(value_balance.into())
+}
+
+pub fn batch_verify_transactions(
+    sapling: Arc<Sapling>,
+    transactions: Vec<Transaction>,
+) -> Result<(), TransactionError> {
+    let mut spend_verifier = Verifier::<Bls12>::new();
+    let mut receipt_verifier = Verifier::<Bls12>::new();
+
+    for transaction in transactions {
+        // Context to accumulate a signature of all the spends and outputs and
+        // guarantee they are part of this transaction, unmodified.
+        let mut binding_verification_key = ExtendedPoint::identity();
+
+        let hash_to_verify_signature = transaction.transaction_signature_hash();
+
+        for spend in transaction.spends.iter() {
+            spend.verify_value_commitment()?;
+
+            let public_inputs = spend.public_inputs();
+            spend_verifier.queue((&spend.proof, &public_inputs[..]));
+
+            binding_verification_key += spend.value_commitment;
+
+            spend.verify_signature(&hash_to_verify_signature)?;
+        }
+
+        for receipt in transaction.receipts.iter() {
+            receipt.verify_value_commitment()?;
+
+            let public_inputs = receipt.public_inputs();
+            receipt_verifier.queue((&receipt.proof, &public_inputs[..]));
+
+            binding_verification_key -= receipt.merkle_note.value_commitment;
+        }
+
+        transaction.verify_binding_signature(&binding_verification_key)?;
+    }
+
+    if spend_verifier
+        .verify(&mut OsRng, &sapling.spend_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    }
+
+    if receipt_verifier
+        .verify(&mut OsRng, &sapling.receipt_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    };
+
+    Ok(())
 }

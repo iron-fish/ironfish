@@ -14,6 +14,7 @@ export interface NativeSpendProof {
   rootHash: Buffer
   nullifier: Buffer
 }
+export function verifyTransactions(rawTransactions: Array<Buffer>): boolean
 export interface Key {
   spending_key: string
   incoming_view_key: string

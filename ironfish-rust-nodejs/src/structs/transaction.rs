@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -263,4 +264,20 @@ impl NativeTransaction {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
     }
+}
+
+#[napi]
+pub fn verify_transactions(raw_transactions: Vec<Buffer>) -> bool {
+    let mut transactions: Vec<Transaction> = vec![];
+
+    for tx_bytes in raw_transactions {
+        let mut cursor = std::io::Cursor::new(tx_bytes);
+
+        match Transaction::read(SAPLING.clone(), &mut cursor) {
+            Ok(tx) => transactions.push(tx),
+            Err(_) => return false,
+        }
+    }
+
+    batch_verify_transactions(SAPLING.clone(), transactions).is_ok()
 }
