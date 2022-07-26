@@ -17,6 +17,7 @@ export type GetStatusResponse = {
     status: 'started' | 'stopped' | 'error'
     version: string
     git: string
+    nodeName: string
   }
   memory: {
     heapMax: number
@@ -30,6 +31,7 @@ export type GetStatusResponse = {
     status: 'started'
     miners: number
     blocks: number
+    blockGraffiti: string
   }
   memPool: {
     size: number
@@ -82,6 +84,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         status: yup.string().oneOf(['started', 'stopped', 'error']).defined(),
         version: yup.string().defined(),
         git: yup.string().defined(),
+        nodeName: yup.string().defined(),
       })
       .defined(),
     memory: yup
@@ -99,6 +102,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         status: yup.string().oneOf(['started']).defined(),
         miners: yup.number().defined(),
         blocks: yup.number().defined(),
+        blockGraffiti: yup.string().defined(),
       })
       .defined(),
     memPool: yup
@@ -198,6 +202,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: node.started ? 'started' : 'stopped',
       version: node.pkg.version,
       git: node.pkg.git,
+      nodeName: node.config.get('nodeName'),
     },
     memory: {
       heapMax: node.metrics.heapMax,
@@ -211,6 +216,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       status: 'started',
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
+      blockGraffiti: node.config.get('blockGraffiti'),
     },
     memPool: {
       size: node.metrics.memPoolSize.value,
