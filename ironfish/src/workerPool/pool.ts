@@ -201,7 +201,6 @@ export class WorkerPool {
       : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
-  // TODO: verify fees?
   async verifyTransactions(transactions: Array<Transaction>): Promise<VerificationResult> {
     const txs = transactions.map((tx) => tx.serialize())
     const request: VerifyTransactionsRequest = new VerifyTransactionsRequest(txs)

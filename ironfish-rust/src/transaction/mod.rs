@@ -437,10 +437,8 @@ impl Transaction {
             binding_verification_key += spend.value_commitment;
         }
 
-        // TODO: Try verify_multicore
         if spends_verifier
-            // .verify(&mut OsRng, &self.sapling.spend_params.vk)
-            .verify_multicore(&self.sapling.spend_params.vk)
+            .verify(&mut OsRng, &self.sapling.spend_params.vk)
             .is_err()
         {
             return Err(SaplingProofError::VerificationFailed.into());
@@ -455,10 +453,8 @@ impl Transaction {
             binding_verification_key -= receipt.merkle_note.value_commitment;
         }
 
-        // TODO: Try verify_multicore
         if receipts_verifier
-            // .verify(&mut OsRng, &self.sapling.receipt_params.vk)
-            .verify_multicore(&self.sapling.receipt_params.vk)
+            .verify(&mut OsRng, &self.sapling.receipt_params.vk)
             .is_err()
         {
             return Err(SaplingProofError::VerificationFailed.into());
@@ -630,16 +626,14 @@ pub fn batch_verify_transactions(
     }
 
     if spend_verifier
-        // .verify(&mut OsRng, &sapling.spend_params.vk)
-        .verify_multicore(&sapling.spend_params.vk)
+        .verify(&mut OsRng, &sapling.spend_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());
     }
 
     if receipt_verifier
-        // .verify(&mut OsRng, &sapling.receipt_params.vk)
-        .verify_multicore(&sapling.receipt_params.vk)
+        .verify(&mut OsRng, &sapling.receipt_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());
