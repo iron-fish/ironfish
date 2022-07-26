@@ -10,7 +10,7 @@ export type Nullifier = Buffer
 export type NullifierHash = Buffer
 
 const NULLIFIER_KEY = Buffer.alloc(32, 'IRONFISH BLAKE3 NULLIFIER PRSNAL')
-const COMBINE_KEY = Buffer.alloc(32, 'IRONFISH NULLIFIER COMBINE HASHES')
+const COMBINE_KEY = Buffer.alloc(32, 'IRONFISH NULLIFIER COMBINE HASHS')
 
 export class NullifierHasher implements MerkleHasher<Nullifier, NullifierHash, string, string> {
   elementSerde(): BufferSerde {
