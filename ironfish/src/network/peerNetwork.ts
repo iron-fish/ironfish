@@ -116,6 +116,9 @@ export class PeerNetwork {
     boolean
   >(8192, null, BufferMap)
 
+  // A cache that keeps track of which peers have seen which transactions. This allows
+  // us to not send the same transaction to a peer more than once. TODO(daniel): We want to
+  // change this to use an RLU cache so that we don't get false positives
   private readonly knownTransactionFilter: RollingFilter = new RollingFilter(
     GOSSIP_FILTER_SIZE * 50,
     GOSSIP_FILTER_FP_RATE,
