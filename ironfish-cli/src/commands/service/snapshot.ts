@@ -8,13 +8,7 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import {
-  Assert,
-  AsyncUtils,
-  DEFAULT_SNAPSHOT_BUCKET_URL,
-  FileUtils,
-  SnapshotManifest,
-} from '@ironfish/sdk'
+import { Assert, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -23,8 +17,7 @@ import path from 'path'
 import tar from 'tar'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { LocalFlags } from '../../flags'
 
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
@@ -36,7 +29,7 @@ export default class CreateSnapshot extends IronfishCommand {
   static description = `Upload chain snapshot to a public bucket`
 
   static flags = {
-    ...RemoteFlags,
+    ...LocalFlags,
     upload: Flags.boolean({
       default: false,
       allowNo: true,
@@ -71,14 +64,6 @@ export default class CreateSnapshot extends IronfishCommand {
       required: false,
       description: 'The path where the snapshot should be saved',
     }),
-    maxBlocksPerChunk: Flags.integer({
-      char: 'm',
-      required: false,
-      default: isNaN(Number(process.env.MAX_BLOCKS_PER_SNAPSHOT_CHUNK))
-        ? 1000
-        : Number(process.env.MAX_BLOCKS_PER_SNAPSHOT_CHUNK),
-      description: 'The max number of blocks per file in the zipped snapshot',
-    }),
   }
 
   async start(): Promise<void> {
@@ -108,48 +93,23 @@ export default class CreateSnapshot extends IronfishCommand {
     }
     Assert.isNotUndefined(exportDir)
 
-    const blockExportPath = this.sdk.fileSystem.join(exportDir, 'blocks')
-    await this.sdk.fileSystem.mkdir(blockExportPath, { recursive: true })
-
-    this.log('Connecting to node...')
-
-    // TODO: There's a significant slowdown in the export process when running a
-    // full node. This may be due to CPU starvation or message formatting calls
-    // due to the use of node-ipc. We should revisit this in the future to allow
-    // for export without shutting down the node. -- deekerno
     const client = await this.sdk.connectRpc(true)
 
-    const response = client.snapshotChainStream({
-      maxBlocksPerChunk: flags.maxBlocksPerChunk,
-    })
+    const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
+    const databaseName = this.sdk.config.get('databaseName')
+    const databaseLockPath = this.sdk.fileSystem.join(databaseName, 'LOCK')
 
-    const { start, stop } = await AsyncUtils.first(response.contentStream())
-    this.log(`Retrieving blocks from ${start} -> ${stop} for snapshot generation`)
-
-    const progress = CliUx.ux.progress({
-      format: 'Retrieving blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
-    }) as ProgressBar
-
-    progress.start(stop - start + 1, 0)
-
-    for await (const result of response.contentStream()) {
-      if (result.buffer && result.seq) {
-        const blockFilePath = this.sdk.fileSystem.join(blockExportPath, `${result.seq}`)
-        await fsAsync.writeFile(blockFilePath, Buffer.from(result.buffer))
-        progress.update(result.seq || 0)
-      }
-    }
-
-    progress.stop()
+    const chainInfoResponse = await client.getChainInfo()
+    const blockHeight = Number(chainInfoResponse.content.currentBlockIdentifier.index)
 
     const timestamp = Date.now()
 
     const snapshotFileName = `ironfish_snapshot_${timestamp}.tar.gz`
     const snapshotPath = this.sdk.fileSystem.join(exportDir, snapshotFileName)
 
-    this.log(`Zipping\n    SRC ${blockExportPath}\n    DST ${snapshotPath}\n`)
-    CliUx.ux.action.start(`Zipping ${blockExportPath}`)
-    await this.zipDir(blockExportPath, snapshotPath)
+    this.log(`Zipping\n    SRC ${chainDatabasePath}\n    DST ${snapshotPath}\n`)
+    CliUx.ux.action.start(`Zipping ${chainDatabasePath}`)
+    await this.zipDir(chainDatabasePath, snapshotPath, [databaseLockPath])
     const stat = await fsAsync.stat(snapshotPath)
     const fileSize = stat.size
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
@@ -166,8 +126,6 @@ export default class CreateSnapshot extends IronfishCommand {
     CliUx.ux.action.stop(`done (${checksum})`)
 
     if (flags.upload) {
-      const blockHeight = stop
-
       CliUx.ux.action.start(`Uploading to ${bucketUrl}`)
       await this.uploadToBucket(
         snapshotPath,
@@ -206,10 +164,6 @@ export default class CreateSnapshot extends IronfishCommand {
       this.log('Snapshot upload complete. Uploaded the following manifest:')
       this.log(JSON.stringify(manifest, undefined, '  '))
     }
-
-    CliUx.ux.action.start('Removing intermediate block snapshot files...')
-    await fsAsync.rm(blockExportPath, { recursive: true })
-    CliUx.ux.action.stop('done')
   }
 
   async zipDir(source: string, dest: string, excludes: string[] = []): Promise<void> {

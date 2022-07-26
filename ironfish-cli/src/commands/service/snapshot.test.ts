@@ -21,22 +21,17 @@ describe('service:snapshot', () => {
     jest.doMock('@ironfish/sdk', () => {
       const originalModule = jest.requireActual('@ironfish/sdk')
 
-      const response = {
-        contentStream: jest.fn(async function* () {
-          const stream = [
-            { start: 1, stop: 3 },
-            { start: 1, stop: 3, seq: 3, buffer: Buffer.from('foo') },
-          ]
-
-          for await (const value of stream) {
-            yield value
-          }
-        }),
+      const mockChainInfo = {
+        content: {
+          currentBlockIdentifier: {
+            index: 3,
+          },
+        },
       }
 
       const client = {
         connect: jest.fn(),
-        snapshotChainStream: jest.fn().mockReturnValue(response),
+        getChainInfo: jest.fn().mockReturnValue(mockChainInfo),
       }
 
       const mockFileSystem = {
@@ -51,9 +46,13 @@ describe('service:snapshot', () => {
           init: jest.fn().mockReturnValue({
             connectRpc: jest.fn().mockResolvedValue(client),
             client,
+            dataDir: 'test',
             fileSystem: mockFileSystem,
+            config: {
+              get: () => 'default',
+              chainDatabasePath: 'test/databases/default',
+            },
           }),
-          response,
         },
       }
 
@@ -124,7 +123,7 @@ describe('service:snapshot', () => {
       .exit(0)
       .it('exports blocks and snapshot to correct path', (ctx) => {
         expectCli(ctx.stdout).include(
-          `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+          `Zipping\n    SRC test/databases/default\n    DST foobar/${manifestContent.file_name}\n\n`,
         )
       })
   })
@@ -138,7 +137,7 @@ describe('service:snapshot', () => {
         'exports blocks and snapshot to correct path, and outputs the contents of manifest.json',
         (ctx) => {
           expectCli(ctx.stdout).include(
-            `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+            `Zipping\n    SRC test/databases/default\n    DST foobar/${manifestContent.file_name}\n\n`,
           )
           expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
         },

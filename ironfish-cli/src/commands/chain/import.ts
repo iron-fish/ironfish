@@ -8,10 +8,12 @@ import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
+import * as stream from 'stream'
 import tar from 'tar'
+import { promisify } from 'util'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
 export default class ImportSnapshot extends IronfishCommand {
@@ -20,7 +22,7 @@ export default class ImportSnapshot extends IronfishCommand {
   static description = `Import chain snapshot`
 
   static flags = {
-    ...RemoteFlags,
+    ...LocalFlags,
     bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -55,7 +57,7 @@ export default class ImportSnapshot extends IronfishCommand {
         this.exit(1)
       }
 
-      const client = await this.sdk.connectRpc()
+      const client = await this.sdk.connectRpc(true)
       const status = await client.getChainInfo()
 
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
@@ -94,6 +96,7 @@ export default class ImportSnapshot extends IronfishCommand {
 
       const hasher = crypto.createHash('sha256')
       const writer = snapshotFile.createWriteStream()
+      const finished = promisify(stream.finished)
 
       const response = await axios({
         method: 'GET',
@@ -111,7 +114,9 @@ export default class ImportSnapshot extends IronfishCommand {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       response.data.pipe(writer)
-      hasher.update(response.data)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      response.data.pipe(hasher)
+      await finished(writer)
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
@@ -123,17 +128,17 @@ export default class ImportSnapshot extends IronfishCommand {
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
     await this.unzip(snapshotPath, tempDir)
     CliUx.ux.action.stop('...done')
-    const blockExportPath = this.sdk.fileSystem.join(tempDir, 'blocks')
 
-    const files = await fsAsync.readdir(blockExportPath)
-    files.sort((a, b) => Number(a) - Number(b))
+    const databaseName = this.sdk.config.get('databaseName')
 
-    const client = await this.sdk.connectRpc()
+    const snapshotDatabasePath = this.sdk.fileSystem.join(tempDir, databaseName)
+    const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
-    for (const file of files) {
-      const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
-      await client.importSnapshot({ blocks })
-    }
+    CliUx.ux.action.start(
+      `Copying snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+    )
+    await fsAsync.cp(snapshotDatabasePath, chainDatabasePath, { recursive: true, force: true })
+    CliUx.ux.action.stop('...done')
   }
 
   async unzip(source: string, dest: string): Promise<void> {
