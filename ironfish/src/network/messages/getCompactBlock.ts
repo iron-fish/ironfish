@@ -32,11 +32,7 @@ export class GetCompactBlockRequest extends RpcNetworkMessage {
   }
 
   getSize(): number {
-    let size = 0
-
-    size += 32
-
-    return size
+    return 32
   }
 }
 
@@ -65,10 +61,6 @@ export class GetCompactBlockResponse extends RpcNetworkMessage {
   }
 
   getSize(): number {
-    let size = 0
-
-    size += getCompactBlockSize(this.compactBlock)
-
-    return size
+    return getCompactBlockSize(this.compactBlock)
   }
 }

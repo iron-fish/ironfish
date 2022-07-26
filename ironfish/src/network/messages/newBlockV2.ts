@@ -32,10 +32,6 @@ export class NewBlockV2Message extends NetworkMessage {
   }
 
   getSize(): number {
-    let size = 0
-
-    size += getCompactBlockSize(this.compactBlock)
-
-    return size
+    return getCompactBlockSize(this.compactBlock)
   }
 }
