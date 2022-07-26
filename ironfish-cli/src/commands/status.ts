@@ -92,11 +92,9 @@ function renderStatus(content: GetStatusResponse): string {
     telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
 
-  const nodeName = `${content.node.nodeName ? content.node.nodeName : 'NONE'}`
+  const nodeName = `${content.node.nodeName}`
 
-  const blockGraffiti = `${
-    content.miningDirector.blockGraffiti ? content.miningDirector.blockGraffiti : 'NONE'
-  }`
+  const blockGraffiti = `${content.miningDirector.blockGraffiti}`
 
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
