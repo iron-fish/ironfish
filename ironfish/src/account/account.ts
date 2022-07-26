@@ -394,6 +394,7 @@ export class Account {
     fee: number
     notes: number
     spends: number
+    expiration: number
   }> {
     const transactions = []
 
@@ -420,6 +421,7 @@ export class Account {
           fee: Number(transaction.fee()),
           notes: transaction.notesLength(),
           spends: transaction.spendsLength(),
+          expiration: transaction.expirationSequence(),
         })
       }
     }
