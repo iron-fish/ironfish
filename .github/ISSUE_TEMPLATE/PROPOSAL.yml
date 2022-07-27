@@ -1,7 +1,7 @@
-name: Fish Improvement Proposal
+name: Feature Request
 description: Used to propose an improvement you would like to make
-title: "FIP: "
-labels: ["FIP"]
+title: "Feature: "
+labels: ["feature request"]
 assignees:
   - iron-fish/engineering
 body:
