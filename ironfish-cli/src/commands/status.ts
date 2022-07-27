@@ -92,6 +92,10 @@ function renderStatus(content: GetStatusResponse): string {
     telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
 
+  const nodeName = `${content.node.nodeName}`
+
+  const blockGraffiti = `${content.miningDirector.blockGraffiti}`
+
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
   } - In: ${FileUtils.formatFileSize(
@@ -135,6 +139,8 @@ function renderStatus(content: GetStatusResponse): string {
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
+Node Name            ${nodeName}
+Block Graffiti       ${blockGraffiti}
 Memory               ${memoryStatus}
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}

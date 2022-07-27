@@ -741,15 +741,6 @@ export class PeerManager {
     return !!peer.state.identity && this.banned.has(peer.state.identity)
   }
 
-  /**
-   * Send a message to all connected peers.
-   */
-  broadcast(message: NetworkMessage): void {
-    for (const peer of this.getConnectedPeers()) {
-      peer.send(message)
-    }
-  }
-
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)

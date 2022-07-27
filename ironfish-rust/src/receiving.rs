@@ -8,7 +8,7 @@ use bls12_381::{Bls12, Scalar};
 use group::Curve;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::primitives::ValueCommitment;
+use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::circuit::sapling::Output;
 
 use std::{io, sync::Arc};

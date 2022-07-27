@@ -17,6 +17,7 @@ import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
+import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
@@ -38,6 +39,7 @@ export class IronfishNode {
   miningManager: MiningManager
   metrics: MetricsMonitor
   memPool: MemPool
+  migrator: Migrator
   workerPool: WorkerPool
   files: FileSystem
   rpc: RpcServer
@@ -99,6 +101,8 @@ export class IronfishNode {
     this.pkg = pkg
     this.minedBlocksIndexer = minedBlocksIndexer
 
+    this.migrator = new Migrator({ node: this, logger })
+
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
       agent: Platform.getAgent(pkg),
@@ -115,7 +119,6 @@ export class IronfishNode {
       webSocket: webSocket,
       node: this,
       chain: chain,
-      strategy: strategy,
       metrics: this.metrics,
       hostsStore: hostsStore,
       logger: logger,
@@ -149,7 +152,6 @@ export class IronfishNode {
       logger,
       telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
-      strategy: this.strategy,
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
@@ -226,6 +228,7 @@ export class IronfishNode {
       metrics,
       autoSeed,
       workerPool,
+      files,
     })
 
     const memPool = new MemPool({ chain, metrics, logger })

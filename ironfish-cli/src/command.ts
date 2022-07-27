@@ -4,6 +4,7 @@
 import {
   ConfigOptions,
   createRootLogger,
+  DatabaseVersionError,
   ErrorUtils,
   IronfishSdk,
   Logger,
@@ -77,6 +78,9 @@ export abstract class IronfishCommand extends Command {
         this.log(error.codeMessage)
       } else if (error instanceof RpcConnectionError) {
         this.log(`Cannot connect to your node, start your node first.`)
+      } else if (error instanceof DatabaseVersionError) {
+        this.log(error.message)
+        this.exit(1)
       } else {
         throw error
       }
