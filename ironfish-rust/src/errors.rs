@@ -8,6 +8,17 @@ use std::io;
 
 use bellman::SynthesisError;
 
+#[derive(Debug)]
+pub struct GenericError(pub String);
+
+impl fmt::Display for GenericError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for GenericError {}
+
 /// Error raised if constructing a sapling key fails for any reason.
 #[derive(Debug)]
 pub enum SaplingKeyError {

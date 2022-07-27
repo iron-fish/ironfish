@@ -14,19 +14,21 @@ default = []
 native = ["bellman/multicore", "zcash_proofs/multicore"]
 
 [dependencies]
+base64 = "0.13.0"
 bellman = { version = "0.13.1", default-features = false, features = ["groth16"]}
 blake2b_simd = "1.0.0"
 blake2s_simd = "1.0.0"
 blake3 = "1.3.1"
 bls12_381 = "0.7.0"
 byteorder = "1.4.3"
+crypto_box = { version = "0.7.2", features = ["std"] }
 ff = "0.12.0"
 group = "0.12.0"
 jubjub = "0.9.0"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
-tiny-bip39 = "1.0.0"
+tiny-bip39 = "0.8"
 zcash_primitives = "0.7.0"
 zcash_proofs = "0.7.1"
 

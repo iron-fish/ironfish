@@ -149,7 +149,6 @@ export class PeerNetwork {
       options.agent || Platform.getAgent(IronfishPKG),
       VERSION_PROTOCOL,
       options.chain,
-      options.node.workerPool,
       options.webSocket,
     )
 

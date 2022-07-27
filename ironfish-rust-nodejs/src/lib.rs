@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::base64;
+use ironfish_rust::tweetnacl::{box_message, unbox_message};
 use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
 use napi::Error;
@@ -111,4 +113,66 @@ impl ThreadPoolHandler {
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
     }
+}
+
+#[napi(object)]
+pub struct BoxedMessage {
+    pub nonce: String,
+    pub boxed_message: String,
+}
+
+#[napi(js_name = "boxMessage")]
+pub fn native_box_message(
+    plaintext: String,
+    sender_secret_key: Uint8Array,
+    recipient_public_key: String,
+) -> Result<BoxedMessage> {
+    let sender: [u8; 32] = sender_secret_key
+        .to_vec()
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert sender secret key".to_owned()))?;
+
+    let decoded_recipient = base64::decode(recipient_public_key)
+        .map_err(|_| Error::from_reason("Unable to decode recipient public key".to_owned()))?;
+
+    let recipient: [u8; 32] = decoded_recipient
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert recipient public key".to_owned()))?;
+
+    let (nonce, ciphertext) = box_message(plaintext, sender, recipient)
+        .map_err(|_| Error::from_reason("Unable to box message".to_owned()))?;
+
+    Ok(BoxedMessage {
+        nonce: base64::encode(nonce),
+        boxed_message: base64::encode(ciphertext),
+    })
+}
+
+#[napi(js_name = "unboxMessage")]
+pub fn native_unbox_message(
+    boxed_message: String,
+    nonce: String,
+    sender_public_key: String,
+    recipient_secret_key: Uint8Array,
+) -> Result<String> {
+    let decoded_sender = base64::decode(sender_public_key)
+        .map_err(|_| Error::from_reason("Unable to decode sender public key".to_owned()))?;
+
+    let sender: [u8; 32] = decoded_sender
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert sender pubic key".to_owned()))?;
+
+    let recipient: [u8; 32] = recipient_secret_key
+        .to_vec()
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert recipient secret key".to_owned()))?;
+
+    let decoded_nonce = base64::decode(nonce)
+        .map_err(|_| Error::from_reason("Unable to decode nonce".to_owned()))?;
+
+    let decoded_ciphertext = base64::decode(boxed_message)
+        .map_err(|_| Error::from_reason("Unable to decode boxed_message".to_owned()))?;
+
+    unbox_message(&decoded_ciphertext, &decoded_nonce, sender, recipient)
+        .map_err(|e| Error::from_reason(format!("Unable to unbox message: {}", e)))
 }
