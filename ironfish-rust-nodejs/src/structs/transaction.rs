@@ -267,13 +267,11 @@ impl NativeTransaction {
 }
 
 #[napi]
-pub fn verify_transactions(raw_transactions: Vec<Buffer>) -> bool {
+pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
     let mut transactions: Vec<Transaction> = vec![];
 
-    for tx_bytes in raw_transactions {
-        let mut cursor = std::io::Cursor::new(tx_bytes);
-
-        match Transaction::read(SAPLING.clone(), &mut cursor) {
+    for tx_bytes in serialized_transactions {
+        match Transaction::read(SAPLING.clone(), &mut tx_bytes.as_ref()) {
             Ok(tx) => transactions.push(tx),
             Err(_) => return false,
         }
