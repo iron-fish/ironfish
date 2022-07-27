@@ -581,7 +581,7 @@ export class PeerManager {
 
   /**
    * This function puts a peer in the identified peers map and should be called once
-   * a peer is connected, meaning it has a connection tht has received an identity
+   * a peer is connected, meaning it has a connection that has received an identity
    */
   private updateIdentifiedPeerMap(peer: Peer): void {
     if (peer.state.identity === null) {

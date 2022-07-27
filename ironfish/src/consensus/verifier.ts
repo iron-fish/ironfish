@@ -260,7 +260,7 @@ export class Verifier {
   }
 
   /**
-   * Verify that the target of this block is correct aginst the block before it.
+   * Verify that the target of this block is correct against the block before it.
    */
   protected isValidTarget(header: BlockHeader, previous: BlockHeader): boolean {
     if (!this.enableVerifyTarget) {

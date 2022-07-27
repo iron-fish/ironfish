@@ -90,7 +90,7 @@ export default class Restore extends IronfishCommand {
     // We do this because the backup can be created with any datadir name
     // So anything could be inside of the zip file. We want it to match our
     // specified data dir though.
-    CliUx.ux.action.start(`Gettting backup name`)
+    CliUx.ux.action.start(`Getting backup name`)
     const backupName = (await fsAsync.readdir(unzipTo))[0]
     const unzipFrom = path.join(unzipTo, backupName)
     CliUx.ux.action.stop(`${backupName}\n`)

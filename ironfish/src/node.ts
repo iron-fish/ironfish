@@ -272,7 +272,7 @@ export class IronfishNode {
 
   /**
    * Load the databases and initialize node components.
-   * Set `upgrade` to change if the schema version is upgraded. Set `load` to false to tell components not to load data from the database. Useful if you don't want data loaded when performing a migration that might cause an incompatability crash.
+   * Set `upgrade` to change if the schema version is upgraded. Set `load` to false to tell components not to load data from the database. Useful if you don't want data loaded when performing a migration that might cause an incompatibility crash.
    */
   async openDB(
     options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },

@@ -359,7 +359,7 @@ describe('Database', () => {
         await barStore.del('hello', transaction)
         await bazStore.del(fooHash, transaction)
 
-        // Should not be commited until this function returns
+        // Should not be committed until this function returns
         expect(await fooStore.get('hello')).toMatchObject(foo)
         expect(await barStore.get('hello')).toEqual(fooHash)
         expect(await bazStore.get(fooHash)).toEqual('hello')
