@@ -1,4 +1,4 @@
-name: Report a general issue
+name: Questions + general issues
 description: In need of help or don't have a specific bug or feature? Use this!
 title: "[issue name]"
 labels: ['question']
