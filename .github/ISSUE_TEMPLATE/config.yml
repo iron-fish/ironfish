@@ -1,1 +1,8 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Iron Fish Github Discussions
+    url: https://github.com/iron-fish/ironfish/discussions
+    about: Ask and answer development questions here.
+  - name: Iron Fish Discord
+    url: https://discord.com/channels/771503434028941353/
+    about: Learn more about the project and meet our community.
