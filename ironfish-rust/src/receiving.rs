@@ -135,6 +135,19 @@ impl ReceiptProof {
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
     pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
+        self.verify_value_commitment()?;
+
+        match groth16::verify_proof(
+            &sapling.receipt_verifying_key,
+            &self.proof,
+            &self.public_inputs()[..],
+        ) {
+            Ok(()) => Ok(()),
+            _ => Err(errors::SaplingProofError::VerificationFailed),
+        }
+    }
+
+    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
@@ -142,26 +155,28 @@ impl ReceiptProof {
         {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
-        let mut public_input = [Scalar::zero(); 5];
+
+        Ok(())
+    }
+
+    /// Converts the values to appropriate inputs for verifying the bellman proof.
+    /// Demonstrates knowledge of a note containing the value_commitment, public_key
+    /// and note_commitment
+    pub fn public_inputs(&self) -> [Scalar; 5] {
+        let mut public_inputs = [Scalar::zero(); 5];
         let p = self.merkle_note.value_commitment.to_affine();
-        public_input[0] = p.get_u();
-        public_input[1] = p.get_v();
+        public_inputs[0] = p.get_u();
+        public_inputs[1] = p.get_v();
 
         let p = ExtendedPoint::from(self.merkle_note.ephemeral_public_key).to_affine();
-        public_input[2] = p.get_u();
-        public_input[3] = p.get_v();
+        public_inputs[2] = p.get_u();
+        public_inputs[3] = p.get_v();
 
-        public_input[4] = self.merkle_note.note_commitment;
+        public_inputs[4] = self.merkle_note.note_commitment;
 
-        match groth16::verify_proof(
-            &sapling.receipt_verifying_key,
-            &self.proof,
-            &public_input[..],
-        ) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
+        public_inputs
     }
+
     /// Get a MerkleNote, which can be used as a node in a Merkle Tree.
     pub fn merkle_note(&self) -> MerkleNote {
         self.merkle_note.clone()

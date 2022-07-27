@@ -333,34 +333,48 @@ impl SpendProof {
 
     /// Verify that the bellman proof confirms the randomized_public_key,
     /// commitment_value, nullifier, and anchor attached to this SpendProof.
-    ///
-    /// This entails converting all the values to appropriate inputs to the
-    /// bellman circuit and executing it.
     pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
+        self.verify_value_commitment()?;
+
+        match groth16::verify_proof(
+            &sapling.spend_verifying_key,
+            &self.proof,
+            &self.public_inputs()[..],
+        ) {
+            Ok(()) => Ok(()),
+            _ => Err(errors::SaplingProofError::VerificationFailed),
+        }
+    }
+
+    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
         if self.value_commitment.is_small_order().into() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 
-        let mut public_input = [Scalar::zero(); 7];
+        Ok(())
+    }
+
+    /// Converts the values to appropriate inputs for verifying the bellman proof.
+    /// Confirms the randomized_public_key, commitment_value, anchor (root hash),
+    /// and nullifier attached to this SpendProof.
+    pub fn public_inputs(&self) -> [Scalar; 7] {
+        let mut public_inputs = [Scalar::zero(); 7];
         let p = self.randomized_public_key.0.to_affine();
-        public_input[0] = p.get_u();
-        public_input[1] = p.get_v();
+        public_inputs[0] = p.get_u();
+        public_inputs[1] = p.get_v();
 
         let p = self.value_commitment.to_affine();
-        public_input[2] = p.get_u();
-        public_input[3] = p.get_v();
+        public_inputs[2] = p.get_u();
+        public_inputs[3] = p.get_v();
 
-        public_input[4] = self.root_hash;
+        public_inputs[4] = self.root_hash;
 
         let nullifier = multipack::bytes_to_bits_le(&self.nullifier.0);
         let nullifier = multipack::compute_multipacking(&nullifier);
-        public_input[5] = nullifier[0];
-        public_input[6] = nullifier[1];
+        public_inputs[5] = nullifier[0];
+        public_inputs[6] = nullifier[1];
 
-        match groth16::verify_proof(&sapling.spend_verifying_key, &self.proof, &public_input[..]) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
+        public_inputs
     }
 
     /// Serialize the fields that are needed in calculating a signature to

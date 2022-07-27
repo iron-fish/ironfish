@@ -45,11 +45,32 @@ export class Verifier {
     }
 
     // Verify the transactions
-    const verificationResults = await Promise.all(
-      block.transactions.map((t) =>
-        this.verifyTransactionContextual(t, block.header, { verifyFees: false }),
-      ),
-    )
+    const notesLimit = 10
+    const verificationPromises = []
+
+    let transactionBatch = []
+    let runningNotesCount = 0
+    for (const [idx, tx] of block.transactions.entries()) {
+      if (this.isExpiredSequence(tx.expirationSequence(), block.header.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
+
+      transactionBatch.push(tx)
+
+      runningNotesCount += tx.notesLength()
+
+      if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+
+        transactionBatch = []
+        runningNotesCount = 0
+      }
+    }
+
+    const verificationResults = await Promise.all(verificationPromises)
 
     const invalidResult = verificationResults.find((f) => !f.valid)
     if (invalidResult !== undefined) {
