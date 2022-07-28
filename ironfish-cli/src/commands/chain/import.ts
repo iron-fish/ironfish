@@ -61,16 +61,11 @@ export default class ImportSnapshot extends IronfishCommand {
       const status = await client.getChainInfo()
 
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
+      const fileSize = FileUtils.formatFileSize(manifest.file_size)
 
       if (!flags.confirm) {
         this.log(
-          `This snapshot (${
-            manifest.file_name
-          }) contains the Iron Fish blockchain up to block ${
-            manifest.block_height
-          }. The size of the latest snapshot file is ${FileUtils.formatFileSize(
-            manifest.file_size,
-          )}`,
+          `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_height}. The size of the latest snapshot file is ${fileSize}`,
         )
 
         this.log(
@@ -89,10 +84,12 @@ export default class ImportSnapshot extends IronfishCommand {
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
-        format: 'Downloading snapshot: [{bar}] {value}% | ETA: {eta}s',
+        format:
+          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | ETA: {eta}s',
       }) as ProgressBar
 
-      bar.start()
+      bar.start(manifest.file_size, 0, { fileSize })
+      let downloaded = 0
 
       const hasher = crypto.createHash('sha256')
       const writer = snapshotFile.createWriteStream()
@@ -102,16 +99,13 @@ export default class ImportSnapshot extends IronfishCommand {
         method: 'GET',
         responseType: 'stream',
         url: `${bucketUrl}/${manifest.file_name}`,
-        onDownloadProgress: (progressEvent: {
-          lengthComputable: number
-          loaded: number
-          total: number
-        }) => {
-          const percentage = Math.floor((progressEvent.loaded / progressEvent.total) * 100)
-          bar.update(percentage)
-        },
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      response.data.on('data', (chunk: { length: number }) => {
+        downloaded += chunk.length
+        bar.update(downloaded, { downloadedSize: FileUtils.formatFileSize(downloaded) })
+      })
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       response.data.pipe(writer)
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
