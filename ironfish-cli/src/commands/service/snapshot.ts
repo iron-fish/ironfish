@@ -8,7 +8,13 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import { Assert, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
+import {
+  Assert,
+  DEFAULT_SNAPSHOT_BUCKET_URL,
+  DEFAULT_SNAPSHOT_FILE_NAME,
+  FileUtils,
+  SnapshotManifest,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -40,6 +46,12 @@ export default class CreateSnapshot extends IronfishCommand {
       required: false,
       description: 'S3 bucket URL to upload snapshot to',
     }),
+    snapshotFileName: Flags.string({
+      char: 'f',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'File name for the snapshot',
+    }),
     accessKeyId: Flags.string({
       char: 'a',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -70,6 +82,7 @@ export default class CreateSnapshot extends IronfishCommand {
     const { flags } = await this.parse(CreateSnapshot)
 
     const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
+    const snapshotFileName = (flags.snapshotFileName || DEFAULT_SNAPSHOT_FILE_NAME).trim()
     const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
     const secretAccessKey = (
       flags.secretAccessKey ||
@@ -96,20 +109,17 @@ export default class CreateSnapshot extends IronfishCommand {
     const client = await this.sdk.connectRpc(true)
 
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
-    const databaseName = this.sdk.config.get('databaseName')
-    const databaseLockPath = this.sdk.fileSystem.join(databaseName, 'LOCK')
 
     const chainInfoResponse = await client.getChainInfo()
-    const blockHeight = Number(chainInfoResponse.content.currentBlockIdentifier.index)
+    const blockSequence = Number(chainInfoResponse.content.currentBlockIdentifier.index)
 
     const timestamp = Date.now()
 
-    const snapshotFileName = `ironfish_snapshot_${timestamp}.tar.gz`
     const snapshotPath = this.sdk.fileSystem.join(exportDir, snapshotFileName)
 
     this.log(`Zipping\n    SRC ${chainDatabasePath}\n    DST ${snapshotPath}\n`)
     CliUx.ux.action.start(`Zipping ${chainDatabasePath}`)
-    await this.zipDir(chainDatabasePath, snapshotPath, [databaseLockPath])
+    await this.zipDir(chainDatabasePath, snapshotPath)
     const stat = await fsAsync.stat(snapshotPath)
     const fileSize = stat.size
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)
@@ -139,7 +149,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
       const manifestPath = this.sdk.fileSystem.join(exportDir, 'manifest.json')
       const manifest: SnapshotManifest = {
-        block_height: blockHeight,
+        block_sequence: blockSequence,
         checksum,
         file_name: snapshotFileName,
         file_size: fileSize,

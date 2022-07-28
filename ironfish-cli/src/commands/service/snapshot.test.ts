@@ -10,9 +10,9 @@ describe('service:snapshot', () => {
   const mockedFileSize = 10 * 1024 * 1024
 
   const manifestContent = {
-    block_height: 3,
+    block_sequence: 3,
     checksum: 'e5b844cc57f57094ea4585e235f36c78c1cd222262bb89d53c94dcb4d6b3e55d',
-    file_name: `ironfish_snapshot_123456789.tar.gz`,
+    file_name: `ironfish_snapshot.tar.gz`,
     file_size: mockedFileSize,
     timestamp: 123456789,
   }
@@ -48,10 +48,6 @@ describe('service:snapshot', () => {
             client,
             dataDir: 'test',
             fileSystem: mockFileSystem,
-            config: {
-              get: () => 'default',
-              chainDatabasePath: 'test/databases/default',
-            },
           }),
         },
       }

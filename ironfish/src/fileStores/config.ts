@@ -16,6 +16,7 @@ export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_SNAPSHOT_BUCKET_URL =
   'https://ironfish-snapshots.s3.us-east-1.amazonaws.com'
+export const DEFAULT_SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true

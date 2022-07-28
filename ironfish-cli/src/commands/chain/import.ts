@@ -1,11 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
+import {
+  DEFAULT_SNAPSHOT_BUCKET_URL,
+  ErrorUtils,
+  FileUtils,
+  SnapshotManifest,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
+import { IncomingMessage } from 'http'
 import os from 'os'
 import path from 'path'
 import * as stream from 'stream'
@@ -65,7 +71,7 @@ export default class ImportSnapshot extends IronfishCommand {
 
       if (!flags.confirm) {
         this.log(
-          `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_height}. The size of the latest snapshot file is ${fileSize}`,
+          `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_sequence}. The size of the latest snapshot file is ${fileSize}`,
         )
 
         this.log(
@@ -95,22 +101,28 @@ export default class ImportSnapshot extends IronfishCommand {
       const writer = snapshotFile.createWriteStream()
       const finished = promisify(stream.finished)
 
-      const response = await axios({
+      await axios({
         method: 'GET',
         responseType: 'stream',
         url: `${bucketUrl}/${manifest.file_name}`,
       })
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      response.data.on('data', (chunk: { length: number }) => {
-        downloaded += chunk.length
-        bar.update(downloaded, { downloadedSize: FileUtils.formatFileSize(downloaded) })
-      })
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      response.data.pipe(writer)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      response.data.pipe(hasher)
-      await finished(writer)
+        .then(async (response: { data: IncomingMessage }) => {
+          response.data.on('data', (chunk: { length: number }) => {
+            downloaded += chunk.length
+            bar.update(downloaded, { downloadedSize: FileUtils.formatFileSize(downloaded) })
+          })
+          response.data.pipe(writer)
+          response.data.pipe(hasher)
+          await finished(writer)
+          bar.stop()
+        })
+        .catch((error: unknown) => {
+          bar.stop()
+          this.logger.error(
+            `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
+          )
+          this.exit(1)
+        })
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
@@ -129,9 +141,9 @@ export default class ImportSnapshot extends IronfishCommand {
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     CliUx.ux.action.start(
-      `Copying snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+      `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
     )
-    await fsAsync.cp(snapshotDatabasePath, chainDatabasePath, { recursive: true, force: true })
+    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('...done')
   }
 
