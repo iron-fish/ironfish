@@ -119,7 +119,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     this.log(`Zipping\n    SRC ${chainDatabasePath}\n    DST ${snapshotPath}\n`)
     CliUx.ux.action.start(`Zipping ${chainDatabasePath}`)
-    await this.zipDir(chainDatabasePath, snapshotPath)
+    await this.zipDir(chainDatabasePath + '/', snapshotPath)
     const stat = await fsAsync.stat(snapshotPath)
     const fileSize = stat.size
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(fileSize)})`)

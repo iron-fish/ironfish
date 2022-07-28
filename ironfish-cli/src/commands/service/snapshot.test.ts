@@ -48,6 +48,9 @@ describe('service:snapshot', () => {
             client,
             dataDir: 'test',
             fileSystem: mockFileSystem,
+            config: {
+              chainDatabasePath: 'test/databases/default',
+            },
           }),
         },
       }
