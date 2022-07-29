@@ -143,6 +143,7 @@ export default class ImportSnapshot extends IronfishCommand {
     CliUx.ux.action.start(
       `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
     )
+    await fsAsync.rm(chainDatabasePath, { recursive: true })
     await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('...done')
   }
