@@ -88,28 +88,6 @@ const renderSpan = (
   }
 
   return parts.join(' ')
-
-  // if (time < MS_PER_MIN) {
-  //   const seconds = Math.floor(time / MS_PER_SEC)
-  //   time -= seconds * MS_PER_SEC
-  //   const milliseconds = time
-  //   return `${seconds.toFixed(0)}s ${milliseconds.toFixed(0)}ms`
-  // }
-
-  // if (time < MS_PER_HOUR) {
-  //   const minutes = Math.floor(time / MS_PER_MIN)
-  //   time -= minutes * MS_PER_MIN
-  //   const seconds = time / MS_PER_SEC
-  //   return `${minutes.toFixed(0)}m ${seconds.toFixed(0)}s`
-  // }
-
-  // const hours = Math.floor(time / MS_PER_HOUR)
-  // time -= hours * MS_PER_HOUR
-  // const minutes = Math.floor(time / MS_PER_MIN)
-  // time -= minutes * MS_PER_MIN
-  // const seconds = Math.floor(time / MS_PER_SEC)
-
-  // return `${hours.toFixed(0)}h ${minutes.toFixed(0)}m ${seconds.toFixed(0)}s`
 }
 
 export const TimeUtils = { renderEstimate, renderSpan }
