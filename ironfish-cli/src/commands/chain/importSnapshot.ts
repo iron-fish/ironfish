@@ -62,7 +62,7 @@ export default class ImportSnapshot extends IronfishCommand {
     await fsAsync.mkdir(tempDir, { recursive: true })
 
     if (flags.path) {
-      snapshotPath = flags.path
+      snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
       const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
       if (!bucketUrl) {
@@ -150,13 +150,14 @@ export default class ImportSnapshot extends IronfishCommand {
       }
     }
 
+    // use a standard name, 'snapshot', for the unzipped database
+    const snapshotDatabasePath = this.sdk.fileSystem.join(tempDir, 'snapshot')
+    await this.sdk.fileSystem.mkdir(snapshotDatabasePath, { recursive: true })
+
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
-    await this.unzip(snapshotPath, tempDir)
+    await this.unzip(snapshotPath, snapshotDatabasePath)
     CliUx.ux.action.stop('...done')
 
-    const databaseName = this.sdk.config.get('databaseName')
-
-    const snapshotDatabasePath = this.sdk.fileSystem.join(tempDir, databaseName)
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     CliUx.ux.action.start(
@@ -174,6 +175,7 @@ export default class ImportSnapshot extends IronfishCommand {
     await tar.extract({
       file: source,
       C: dest,
+      strip: 1,
     })
   }
 }

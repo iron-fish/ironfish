@@ -84,6 +84,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     if (flags.path) {
       exportDir = this.sdk.fileSystem.resolve(flags.path)
+      await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
     } else {
       try {
         const tempDir = path.join(os.tmpdir(), uuid())
