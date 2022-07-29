@@ -11,7 +11,6 @@ import {
 import {
   Assert,
   DEFAULT_SNAPSHOT_BUCKET_URL,
-  DEFAULT_SNAPSHOT_FILE_NAME,
   FileUtils,
   SnapshotManifest,
 } from '@ironfish/sdk'
@@ -28,6 +27,7 @@ import { LocalFlags } from '../../flags'
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
 const MAX_MULTIPART_NUM = 10000
+const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
 
 export default class CreateSnapshot extends IronfishCommand {
   static hidden = true
@@ -45,12 +45,6 @@ export default class CreateSnapshot extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 bucket URL to upload snapshot to',
-    }),
-    snapshotFileName: Flags.string({
-      char: 'f',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      required: false,
-      description: 'File name for the snapshot',
     }),
     accessKeyId: Flags.string({
       char: 'a',
@@ -82,7 +76,6 @@ export default class CreateSnapshot extends IronfishCommand {
     const { flags } = await this.parse(CreateSnapshot)
 
     const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
-    const snapshotFileName = (flags.snapshotFileName || DEFAULT_SNAPSHOT_FILE_NAME).trim()
     const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
     const secretAccessKey = (
       flags.secretAccessKey ||
@@ -115,7 +108,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     const timestamp = Date.now()
 
-    const snapshotPath = this.sdk.fileSystem.join(exportDir, snapshotFileName)
+    const snapshotPath = this.sdk.fileSystem.join(exportDir, SNAPSHOT_FILE_NAME)
 
     this.log(`Zipping\n    SRC ${chainDatabasePath}\n    DST ${snapshotPath}\n`)
     CliUx.ux.action.start(`Zipping ${chainDatabasePath}`)
@@ -136,11 +129,14 @@ export default class CreateSnapshot extends IronfishCommand {
     CliUx.ux.action.stop(`done (${checksum})`)
 
     if (flags.upload) {
+      const snapshotBaseName = path.basename(SNAPSHOT_FILE_NAME, '.tar.gz')
+      const snapshotKeyName = `${snapshotBaseName}_${timestamp}.tar.gz`
       CliUx.ux.action.start(`Uploading to ${bucketUrl}`)
       await this.uploadToBucket(
         snapshotPath,
         'application/x-compressed-tar',
         bucketUrl,
+        snapshotKeyName,
         accessKeyId,
         secretAccessKey,
         region,
@@ -151,7 +147,7 @@ export default class CreateSnapshot extends IronfishCommand {
       const manifest: SnapshotManifest = {
         block_sequence: blockSequence,
         checksum,
-        file_name: snapshotFileName,
+        file_name: snapshotKeyName,
         file_size: fileSize,
         timestamp,
       }
@@ -164,6 +160,7 @@ export default class CreateSnapshot extends IronfishCommand {
             manifestPath,
             'application/json',
             bucketUrl,
+            manifestPath,
             accessKeyId,
             secretAccessKey,
             region,
@@ -202,6 +199,7 @@ export default class CreateSnapshot extends IronfishCommand {
     filePath: string,
     contentType: string,
     bucketUrl: string,
+    keyName: string,
     accessKeyId: string,
     secretAccessKey: string,
     region: string,
@@ -210,7 +208,6 @@ export default class CreateSnapshot extends IronfishCommand {
     // but the S3 client only requires the bucket name.
     const bucket = new URL(bucketUrl).hostname.split('.')[0]
 
-    const baseName = path.basename(filePath)
     const fileHandle = await fsAsync.open(filePath, 'r')
 
     const stat = await fsAsync.stat(filePath)
@@ -235,7 +232,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     const params = {
       Bucket: bucket,
-      Key: baseName,
+      Key: keyName,
       ContentType: contentType,
     }
 
@@ -271,7 +268,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
           const params = {
             Bucket: bucket,
-            Key: baseName,
+            Key: keyName,
             PartNumber: partNum,
             UploadId: uploadId,
             ContentType: contentType,
@@ -296,7 +293,7 @@ export default class CreateSnapshot extends IronfishCommand {
         if (acc) {
           const params = {
             Bucket: bucket,
-            Key: baseName,
+            Key: keyName,
             PartNumber: partNum,
             UploadId: uploadId,
             ContentType: contentType,
@@ -320,7 +317,7 @@ export default class CreateSnapshot extends IronfishCommand {
         this.logger.error(`Could not read file: ${err.message}; aborting upload to S3...`)
         const params = {
           Bucket: bucket,
-          Key: baseName,
+          Key: keyName,
           UploadId: uploadId,
         }
 
@@ -342,7 +339,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     const completionParams = {
       Bucket: bucket,
-      Key: baseName,
+      Key: keyName,
       UploadId: uploadId,
       MultipartUpload: partMap,
     }

@@ -12,7 +12,7 @@ describe('service:snapshot', () => {
   const manifestContent = {
     block_sequence: 3,
     checksum: 'e5b844cc57f57094ea4585e235f36c78c1cd222262bb89d53c94dcb4d6b3e55d',
-    file_name: `ironfish_snapshot.tar.gz`,
+    file_name: `ironfish_snapshot_123456789.tar.gz`,
     file_size: mockedFileSize,
     timestamp: 123456789,
   }
@@ -122,7 +122,7 @@ describe('service:snapshot', () => {
       .exit(0)
       .it('exports blocks and snapshot to correct path', (ctx) => {
         expectCli(ctx.stdout).include(
-          `Zipping\n    SRC test/databases/default\n    DST foobar/${manifestContent.file_name}\n\n`,
+          `Zipping\n    SRC test/databases/default\n    DST foobar/ironfish_snapshot.tar.gz\n\n`,
         )
       })
   })
@@ -136,7 +136,7 @@ describe('service:snapshot', () => {
         'exports blocks and snapshot to correct path, and outputs the contents of manifest.json',
         (ctx) => {
           expectCli(ctx.stdout).include(
-            `Zipping\n    SRC test/databases/default\n    DST foobar/${manifestContent.file_name}\n\n`,
+            `Zipping\n    SRC test/databases/default\n    DST foobar/ironfish_snapshot.tar.gz\n\n`,
           )
           expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
         },
