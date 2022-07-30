@@ -8,16 +8,19 @@ use std::io;
 
 use bellman::SynthesisError;
 
+/// Basic error wrapping a string. This should only really be used when
+/// passing errors to NAPI, since errors that get surfaced into the
+/// Javascript side are not "proper" errors in the Rust sense.
 #[derive(Debug)]
-pub struct GenericError(pub String);
+pub struct StringError(pub String);
 
-impl fmt::Display for GenericError {
+impl fmt::Display for StringError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl Error for GenericError {}
+impl Error for StringError {}
 
 /// Error raised if constructing a sapling key fails for any reason.
 #[derive(Debug)]

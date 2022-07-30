@@ -5,7 +5,7 @@ use crypto_box::{
     PublicKey, SecretKey,
 };
 
-use crate::errors::GenericError;
+use crate::errors::StringError;
 
 pub fn box_message(
     plaintext: String,
@@ -33,7 +33,7 @@ pub fn unbox_message(
     recipient_secret_key: [u8; 32],
 ) -> Result<String, Box<dyn Error>> {
     if nonce.len() != 24 {
-        return Err(Box::new(GenericError(
+        return Err(Box::new(StringError(
             "Nonce length is incorrect".to_owned(),
         )));
     }
