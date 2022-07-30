@@ -1098,6 +1098,12 @@ export class Accounts {
 
     const transactions = []
 
+    const heaviestHead = this.chain.head
+    if (heaviestHead === null) {
+      throw new ValidationError('You must have a genesis block to get transactions from')
+    }
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+
     for (const transactionMapValue of this.transactionMap.values()) {
       const transaction = transactionMapValue.transaction
 
@@ -1122,8 +1128,10 @@ export class Accounts {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
-          if (main) {
+          if (main && header.sequence + minimumBlockConfirmations < heaviestHead.sequence) {
             status = 'completed'
+          } else if (main) {
+            status = 'confirming'
           } else {
             status = 'forked'
           }
