@@ -182,4 +182,32 @@ describe('Accounts', () => {
       expect(accounts['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
   })
+
+  describe('importAccount', () => {
+    it('should not import accounts with duplicate name', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with the name',
+      )
+    })
+
+    it('should not import accounts with duplicate keys', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      account.name = 'Different name'
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with provided spending key',
+      )
+    })
+  })
 })
