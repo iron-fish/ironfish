@@ -1167,6 +1167,12 @@ export class Accounts {
     let transactionInfo = null
     const transactionNotes = []
 
+    const heaviestHead = this.chain.head
+    if (heaviestHead === null) {
+      throw new ValidationError('You must have a genesis block to get transactions from')
+    }
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+
     const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
 
     if (transactionMapValue) {
@@ -1194,11 +1200,19 @@ export class Accounts {
         }
 
         if (transactionNotes.length > 0) {
+          let status = 'pending'
+          if (transactionMapValue.blockHash && transactionMapValue.submittedSequence) {
+            if (
+              transactionMapValue.submittedSequence + minimumBlockConfirmations <
+              heaviestHead.sequence
+            ) {
+              status = 'completed'
+            } else {
+              status = 'confirming'
+            }
+          }
           transactionInfo = {
-            status:
-              transactionMapValue.blockHash && transactionMapValue.submittedSequence
-                ? 'completed'
-                : 'pending',
+            status,
             isMinersFee: transaction.isMinersFee(),
             fee: Number(transaction.fee()),
             notes: transaction.notesLength(),
