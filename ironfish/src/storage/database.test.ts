@@ -4,11 +4,13 @@
 
 import '../testUtilities/matchers/error'
 import leveldown from 'leveldown'
+import { v4 as uuid } from 'uuid'
 import { IJsonSerializable } from '../serde'
 import { PromiseUtils } from '../utils'
 import {
   ArrayEncoding,
   BufferEncoding,
+  DatabaseOpenError,
   DatabaseSchema,
   DatabaseVersionError,
   DuplicateKeyError,
@@ -90,6 +92,23 @@ describe('Database', () => {
 
   afterEach(async () => {
     await db.close()
+  })
+
+  it('should let you create stores with the same name', async () => {
+    await db.open()
+
+    const args = {
+      name: uuid(),
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new JsonEncoding(),
+    }
+
+    const storeA = db.addStore<TestSchema>(args)
+    expect(() => db.addStore<TestSchema>(args)).toThrowError('already exists')
+    const storeB = db.addStore<TestSchema>(args, false)
+
+    await storeA.put('key', 'foo')
+    await expect(storeB.get('key')).resolves.toEqual('foo')
   })
 
   it('should upgrade and throw upgrade error', async () => {
