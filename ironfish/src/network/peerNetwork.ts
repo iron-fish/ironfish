@@ -111,6 +111,7 @@ export class PeerNetwork {
   private readonly chain: Blockchain
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
+  private readonly enableUnsupportedNetworking: boolean
 
   private readonly transactionFetcher: TransactionFetcher
 
@@ -150,6 +151,7 @@ export class PeerNetwork {
     minPeers?: number
     targetPeers?: number
     enableSyncing?: boolean
+    enableUnsupportedNetworking?: boolean
     logPeerMessages?: boolean
     simulateLatency?: number
     logger?: Logger
@@ -161,6 +163,7 @@ export class PeerNetwork {
     const identity = options.identity || new BoxKeyPair()
 
     this.enableSyncing = options.enableSyncing ?? true
+    this.enableUnsupportedNetworking = options.enableUnsupportedNetworking ?? false
     this.node = options.node
     this.chain = options.chain
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
