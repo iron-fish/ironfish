@@ -25,7 +25,7 @@ type TxState =
     }
 
 /**
- * When a node receives a new transaction hash is needs to query the sender for
+ * When a node receives a new transaction hash it needs to query the sender for
  * the full transaction object. This class encapsulates logic for resolving transaction
  * hashes to full transactions from the network. It operates as a state machine. Each transaction
  * hash has it's own state which changes when peers are queried, requests timeout or a
