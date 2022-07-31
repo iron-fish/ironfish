@@ -112,6 +112,7 @@ export class IronfishNode {
       minPeers: config.get('minPeers'),
       listen: config.get('enableListenP2P'),
       enableSyncing: config.get('enableSyncing'),
+      enableUnsupportedNetworking: config.get('enableUnsupportedNetworking'),
       targetPeers: config.get('targetPeers'),
       logPeerMessages: config.get('logPeerMessages'),
       simulateLatency: config.get('p2pSimulateLatency'),
