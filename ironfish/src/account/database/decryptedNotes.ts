@@ -29,14 +29,13 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
 
     bw.writeVarString(accountId)
     bw.writeBytes(serializedNote)
+    bw.writeHash(transactionHash)
+
     if (noteIndex) {
       bw.writeU32(noteIndex)
     }
     if (nullifierHash) {
       bw.writeHash(nullifierHash)
-    }
-    if (transactionHash) {
-      bw.writeHash(transactionHash)
     }
 
     return bw.render()
@@ -52,6 +51,7 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
 
     const accountId = reader.readVarString()
     const serializedNote = reader.readBytes(NOTE_SIZE)
+    const transactionHash = reader.readHash()
 
     let noteIndex = null
     if (hasNoteIndex) {
@@ -63,19 +63,22 @@ export class DecryptedNotesValueEncoding implements IDatabaseEncoding<DecryptedN
       nullifierHash = reader.readHash('hex')
     }
 
-    const transactionHash = reader.readHash()
-
     return { accountId, noteIndex, nullifierHash, serializedNote, spent, transactionHash }
   }
 
   getSize(value: DecryptedNotesValue): number {
     let size = 1 + bufio.sizeVarString(value.accountId) + NOTE_SIZE
+
+    // transaction hash
+    size += 32
+
     if (value.noteIndex) {
       size += 4
     }
     if (value.nullifierHash) {
       size += 32
     }
-    return size + 32
+
+    return size
   }
 }
