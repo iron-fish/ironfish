@@ -365,51 +365,26 @@ describe('PeerNetwork', () => {
   })
 
   describe('when enable syncing is true', () => {
+    const nodeTest = createNodeTest()
+
     it('adds new blocks', async () => {
-      const peerNetwork = new PeerNetwork({
-        identity: mockPrivateIdentity('local'),
-        agent: 'sdk/1/cli',
-        webSocket: ws,
-        node: mockNode(),
-        chain: mockChain(),
-        hostsStore: mockHostsStore(),
-      })
+      const { peerNetwork, node } = nodeTest
+
+      const { accounts } = node
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { block } = await useBlockWithTx(node, accountA, accountB)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const serializedBlock = BlockSerde.serialize(block)
+      const addNewBlockSpy = jest.spyOn(node.syncer, 'addNewBlock')
 
-      const block = {
-        header: {
-          graffiti: 'chipotle',
-          minersFee: '0',
-          noteCommitment: {
-            commitment: Buffer.from('commitment'),
-            size: 1,
-          },
-          nullifierCommitment: {
-            commitment: 'commitment',
-            size: 2,
-          },
-          previousBlockHash: 'burrito',
-          randomness: '1',
-          sequence: 2,
-          target: 'icecream',
-          timestamp: 200000,
-          work: '123',
-          hash: 'ramen',
-        },
-        transactions: [],
-      }
-      await peerNetwork['handleGossipMessage'](
-        peer,
-        new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
-      )
+      await peerNetwork['handleGossipMessage'](peer, new NewBlockMessage(serializedBlock))
 
-      expect(peerNetwork['node']['syncer'].addNewBlock).toHaveBeenCalledWith(peer, block)
+      expect(addNewBlockSpy).toHaveBeenCalledWith(peer, serializedBlock)
     })
 
     describe('handle block gossip', () => {
-      const nodeTest = createNodeTest()
-
       it('should mark block hashes as known and known on peers', async () => {
         const { strategy, chain, peerNetwork, syncer } = nodeTest
 
@@ -450,8 +425,6 @@ describe('PeerNetwork', () => {
     })
 
     describe('handles requests for mempool transactions', () => {
-      const nodeTest = createNodeTest()
-
       it('should respond to PooledTransactionsRequest', async () => {
         const { peerNetwork, node } = nodeTest
 
@@ -476,7 +449,6 @@ describe('PeerNetwork', () => {
     })
 
     describe('handles new transactions', () => {
-      const nodeTest = createNodeTest()
       it('does not accept or sync transactions when the worker pool is saturated', async () => {
         const { peerNetwork, node } = nodeTest
 
@@ -666,13 +638,11 @@ describe('PeerNetwork', () => {
 
       jest.spyOn(node.syncer, 'addNewBlock')
 
-      const peerIdentity = peer.getIdentityOrThrow()
-      const gossip = await peerNetwork['onNewBlock']({
-        peerIdentity,
-        message: new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
-      })
+      await peerNetwork['onNewBlock'](
+        peer,
+        new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
+      )
 
-      expect(gossip).toBe(false)
       expect(node.syncer.addNewBlock).not.toHaveBeenCalled()
     })
 
