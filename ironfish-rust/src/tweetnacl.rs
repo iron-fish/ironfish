@@ -31,8 +31,8 @@ pub fn random_bytes(bytes_length: usize) -> Vec<u8> {
 
 pub fn box_message(
     plaintext: String,
-    sender_secret_key: [u8; 32],
-    recipient_public_key: [u8; 32],
+    sender_secret_key: [u8; KEY_LENGTH],
+    recipient_public_key: [u8; KEY_LENGTH],
 ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
     let mut rng = OsRng;
 
