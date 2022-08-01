@@ -58,7 +58,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 10
+export const VERSION_DATABASE_CHAIN = 10
 
 export class Blockchain {
   db: IDatabase
@@ -274,7 +274,7 @@ export class Blockchain {
 
     await this.files.mkdir(this.location, { recursive: true })
     await this.db.open()
-    await this.db.upgrade(DATABASE_VERSION)
+    await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
