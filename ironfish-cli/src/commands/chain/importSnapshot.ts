@@ -5,7 +5,9 @@ import {
   DEFAULT_SNAPSHOT_BUCKET_URL,
   ErrorUtils,
   FileUtils,
+  Meter,
   SnapshotManifest,
+  TimeUtils,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
@@ -92,10 +94,12 @@ export default class ImportSnapshot extends IronfishCommand {
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
         format:
-          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | ETA: {eta}s',
+          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
       }) as ProgressBar
+      const speed = new Meter()
 
       bar.start(manifest.file_size, 0, { fileSize })
+      speed.start()
       let downloaded = 0
 
       const hasher = crypto.createHash('sha256')
@@ -110,15 +114,22 @@ export default class ImportSnapshot extends IronfishCommand {
         .then(async (response: { data: IncomingMessage }) => {
           response.data.on('data', (chunk: { length: number }) => {
             downloaded += chunk.length
-            bar.update(downloaded, { downloadedSize: FileUtils.formatFileSize(downloaded) })
+            speed.add(chunk.length)
+            bar.update(downloaded, {
+              downloadedSize: FileUtils.formatFileSize(downloaded),
+              speed: FileUtils.formatFileSize(speed.rate1s),
+              estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
+            })
           })
           response.data.pipe(writer)
           response.data.pipe(hasher)
           await finished(writer)
           bar.stop()
+          speed.stop()
         })
         .catch((error: unknown) => {
           bar.stop()
+          speed.stop()
           this.logger.error(
             `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
           )
