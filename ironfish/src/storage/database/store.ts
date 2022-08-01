@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { UnwrapPromise } from '../../utils/types'
 import { IDatabaseTransaction } from './transaction'
 import { DatabaseSchema, IDatabaseEncoding, SchemaKey, SchemaValue } from './types'
 
@@ -180,3 +181,11 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
 
   abstract del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void>
 }
+
+export type DatabaseStoreValue<TStore> = TStore extends IDatabaseStore<infer _A>
+  ? Exclude<UnwrapPromise<ReturnType<TStore['get']>>, undefined>
+  : never
+
+export type DatabaseStoreKey<TStore> = TStore extends IDatabaseStore<infer _A>
+  ? Parameters<TStore['get']>[0]
+  : never
