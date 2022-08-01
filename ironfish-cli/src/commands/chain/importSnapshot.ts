@@ -50,6 +50,8 @@ export default class ImportSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(ImportSnapshot)
 
+    const client = await this.sdk.connectRpc(true)
+
     let snapshotPath
     const tempDir = path.join(os.tmpdir(), uuid())
     await fsAsync.mkdir(tempDir, { recursive: true })
@@ -63,7 +65,6 @@ export default class ImportSnapshot extends IronfishCommand {
         this.exit(1)
       }
 
-      const client = await this.sdk.connectRpc(true)
       const status = await client.getChainInfo()
 
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
@@ -143,7 +144,10 @@ export default class ImportSnapshot extends IronfishCommand {
     CliUx.ux.action.start(
       `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
     )
-    await fsAsync.rm(chainDatabasePath, { recursive: true })
+    if (await this.sdk.fileSystem.exists(chainDatabasePath)) {
+      // chainDatabasePath must be empty before renaming snapshot
+      await fsAsync.rm(chainDatabasePath, { recursive: true })
+    }
     await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('...done')
   }
