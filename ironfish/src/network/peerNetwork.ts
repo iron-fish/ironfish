@@ -18,7 +18,7 @@ import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
-import { BlockSerde, SerializedBlock } from '../primitives/block'
+import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { ArrayUtils, ErrorUtils } from '../utils'
@@ -555,6 +555,29 @@ export class PeerNetwork {
     return response.message.blocks
   }
 
+  async getBlockTransactions(
+    peer: Peer,
+    blockHash: Buffer,
+    transactionIndexes: number[],
+  ): Promise<SerializedTransaction[]> {
+    const message = new GetBlockTransactionsRequest(blockHash, transactionIndexes)
+    const response = await this.requestFrom(peer, message)
+
+    if (!(response.message instanceof GetBlockTransactionsResponse)) {
+      throw new Error(
+        `Invalid GetBlockTransactionsResponse: ${displayNetworkMessageType(message.type)}`,
+      )
+    }
+
+    if (!response.message.blockHash.equals(message.blockHash)) {
+      throw new Error(
+        `Invalid GetBlockTransactionsResponse: ${displayNetworkMessageType(message.type)}`,
+      )
+    }
+
+    return response.message.serializedTransactions
+  }
+
   private async handleMessage(
     peer: Peer,
     incomingMessage: IncomingPeerMessage<NetworkMessage>,
@@ -568,7 +591,7 @@ export class PeerNetwork {
     } else if (message instanceof NewBlockHashesMessage) {
       this.handleNewBlockHashesMessage(peer, message)
     } else if (message instanceof NewBlockV2Message) {
-      this.handleNewBlockV2Message(peer, message)
+      await this.handleNewBlockV2Message(peer, message)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
     } else if (message instanceof NewTransactionV2Message) {
@@ -673,11 +696,115 @@ export class PeerNetwork {
   }
 
   private handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+    if (!this.enableUnsupportedNetworking) {
+      this.logger.debug(`Received unimplemented message ${message.type}`)
+      return
+    }
+
+    if (!this.enableSyncing) {
+      return
+    }
   }
 
-  private handleNewBlockV2Message(peer: Peer, message: NewBlockV2Message) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+  private async handleNewBlockV2Message(peer: Peer, message: NewBlockV2Message) {
+    if (!this.enableUnsupportedNetworking) {
+      this.logger.debug(`Received unimplemented message ${message.type}`)
+      return
+    }
+
+    if (!this.enableSyncing) {
+      return
+    }
+
+    // deserialize the header
+    const header = BlockHeaderSerde.deserialize(message.compactBlock.header)
+
+    // check if hash is already marked as invalid
+    if (this.chain.isInvalid(header) !== null) {
+      return
+    }
+
+    // verify the header
+    // TODO: Make sure this isn't missing any verification steps
+    if (this.chain.verifier.verifyBlockHeader(header) !== null) {
+      return
+    }
+
+    // set values on the peer to indicate the peer has the block
+    if (!peer.sequence || header.sequence > peer.sequence) {
+      peer.sequence = header.sequence
+    }
+    // this might overwrite the existing value if we've already sent the
+    // block to the peer, but the value isn't important
+    peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
+
+    // check if we already have the block
+    if (!(await this.chain.hasBlock(header.hash))) {
+      // if we don't have the previous block, start syncing
+      if (!(await this.chain.hasBlock(header.previousBlockHash))) {
+        this.node.syncer.startSync(peer)
+        return
+      }
+
+      // check if we're missing transactions
+      let index = 1
+      const missingTransactions = []
+      const foundTransactions = []
+      for (const hash of message.compactBlock.transactionHashes) {
+        const transaction = this.node.memPool.get(hash)
+        if (!transaction) {
+          missingTransactions.push(index)
+        } else {
+          foundTransactions.push(transaction)
+        }
+        index++
+      }
+
+      // attempt to assemble the block
+      let block: Block
+      if (missingTransactions.length === 0) {
+        block = new Block(header, foundTransactions)
+      } else {
+        // TODO: fetch missing transactions
+        // if we're already assembling the block, drop the message
+        block = new Block(header, [])
+      }
+
+      // block is assembled! re-gossip the compact block
+
+      // verify the full block
+      // add the block to the chain
+    }
+
+    // build list of peers without the block
+    const candidatePeers = ArrayUtils.shuffle(
+      this.peerManager.getConnectedPeers().filter((p) => p.knownBlockHashes.has(header.hash)),
+    )
+    const divider = Math.round(Math.sqrt(candidatePeers.length)) + 1
+    const peersNeedingCompactBlock = candidatePeers.slice(0, divider)
+    const peersNeedingHash = candidatePeers.slice(divider)
+
+    // re-gossip to peers needing the full compact block
+    for (const peer of peersNeedingCompactBlock) {
+      if (peer.send(message)) {
+        peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
+      }
+    }
+
+    if (peersNeedingHash.length > 0) {
+      const hashMessage = new NewBlockHashesMessage([
+        {
+          hash: header.hash,
+          sequence: header.sequence,
+        },
+      ])
+
+      for (const peer of peersNeedingHash) {
+        if (peer.send(hashMessage)) {
+          peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
+        }
+      }
+    }
   }
 
   private handleNewPooledTransactionHashes(peer: Peer, message: NewPooledTransactionHashes) {
