@@ -15,6 +15,7 @@ describe('service:snapshot', () => {
     file_name: `ironfish_snapshot_123456789.tar.gz`,
     file_size: mockedFileSize,
     timestamp: 123456789,
+    database_version: 3,
   }
 
   beforeAll(() => {
@@ -26,6 +27,7 @@ describe('service:snapshot', () => {
           currentBlockIdentifier: {
             index: 3,
           },
+          databaseVersion: 3,
         },
       }
 

@@ -7,4 +7,5 @@ export type SnapshotManifest = {
   file_name: string
   file_size: number
   timestamp: number
+  database_version: number
 }

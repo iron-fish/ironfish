@@ -8,12 +8,7 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import {
-  Assert,
-  DEFAULT_SNAPSHOT_BUCKET_URL,
-  FileUtils,
-  SnapshotManifest,
-} from '@ironfish/sdk'
+import { Assert, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -105,6 +100,7 @@ export default class CreateSnapshot extends IronfishCommand {
 
     const chainInfoResponse = await client.getChainInfo()
     const blockSequence = Number(chainInfoResponse.content.currentBlockIdentifier.index)
+    const databaseVersion = chainInfoResponse.content.databaseVersion
 
     const timestamp = Date.now()
 
@@ -150,6 +146,7 @@ export default class CreateSnapshot extends IronfishCommand {
         file_name: snapshotKeyName,
         file_size: fileSize,
         timestamp,
+        database_version: databaseVersion,
       }
 
       await fsAsync

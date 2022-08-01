@@ -144,6 +144,10 @@ export class Blockchain {
     this._genesis = newGenesis
   }
 
+  get databaseVersion(): number {
+    return DATABASE_VERSION
+  }
+
   constructor(options: {
     location: string
     strategy: Strategy

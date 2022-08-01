@@ -70,6 +70,15 @@ export default class ImportSnapshot extends IronfishCommand {
       const status = await client.getChainInfo()
 
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
+
+      const databaseVersion = status.content.databaseVersion
+      if (manifest.database_version > databaseVersion) {
+        this.log(
+          `This snapshot is from a later database version (${manifest.database_version}) than your local chain ${databaseVersion}. Aborting import.`,
+        )
+        this.exit(0)
+      }
+
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
 
       if (!flags.confirm) {
