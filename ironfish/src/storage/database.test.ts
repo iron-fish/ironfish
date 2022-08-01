@@ -143,6 +143,27 @@ describe('Database', () => {
     expect(await barStore.get('hello')).toEqual(fooHash)
   })
 
+  it('should clear store in a transaction', async () => {
+    await db.open()
+
+    const tx = db.transaction()
+
+    await testStore.put('hello', 2)
+    await testStore.put('hello', 4, tx)
+
+    expect(await testStore.get('hello')).toEqual(2)
+    expect(await testStore.get('hello', tx)).toEqual(4)
+
+    await testStore.clear(tx)
+
+    expect(await testStore.get('hello')).toEqual(2)
+    expect(await testStore.get('hello', tx)).not.toBeDefined()
+
+    await tx.commit()
+
+    expect(await testStore.get('hello')).not.toBeDefined()
+  })
+
   it('should add values', async () => {
     await db.open()
     await db.metaStore.clear()

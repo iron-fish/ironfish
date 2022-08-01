@@ -60,7 +60,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
    *
    * @returns resolves when all keys have been deleted
    */
-  clear(): Promise<void>
+  clear(transaction?: IDatabaseTransaction): Promise<void>
 
   /**
    * Used to get a value from the store at a given key
