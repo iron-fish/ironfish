@@ -1118,12 +1118,18 @@ export class Accounts {
         const { blockHash } = transactionMapValue
 
         let status = 'pending'
+
         if (blockHash) {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
           Assert.isNotNull(header)
-          const main = await this.chain.isHeadChain(header)
-          if (main) {
-            status = 'completed'
+
+          if (await this.chain.isHeadChain(header)) {
+            if ((this.chain.head.sequence - header.sequence) < 
+                this.config.get('minimumBlockConfirmations')) {
+              status = 'completed and finanlized'
+            } else {
+              status = 'completed (not finalized)'
+            }
           } else {
             status = 'forked'
           }
@@ -1169,6 +1175,7 @@ export class Accounts {
 
     const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
 
+    const minimumBlockConfirmation = this.config.get('minimumBlockConfirmations')
     if (transactionMapValue) {
       const transaction = transactionMapValue.transaction
 
@@ -1197,7 +1204,10 @@ export class Accounts {
           transactionInfo = {
             status:
               transactionMapValue.blockHash && transactionMapValue.submittedSequence
-                ? 'completed'
+                ?  ((transactionMapValue.submittedSequence + minimumBlockConfirmation) <
+                     this.chain.head.sequence)
+                  ? 'completed and finalized'
+                  : 'completed (not finalized)'
                 : 'pending',
             isMinersFee: transaction.isMinersFee(),
             fee: Number(transaction.fee()),
