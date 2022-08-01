@@ -666,11 +666,10 @@ describe('PeerNetwork', () => {
 
       jest.spyOn(node.syncer, 'addNewBlock')
 
-      const peerIdentity = peer.getIdentityOrThrow()
-      const gossip = await peerNetwork['onNewBlock']({
-        peerIdentity,
-        message: new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
-      })
+      const gossip = await peerNetwork['onNewBlock'](
+        peer,
+        new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
+      )
 
       expect(gossip).toBe(false)
       expect(node.syncer.addNewBlock).not.toHaveBeenCalled()
