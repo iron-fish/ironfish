@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::base64;
-use ironfish_rust::tweetnacl::{box_message, unbox_message};
+use ironfish_rust::tweetnacl::{box_message, bytes_to_secret_key, new_secret_key, unbox_message};
 use ironfish_rust::SaplingKey;
+use ironfish_rust::{base64, tweetnacl};
 use napi::bindgen_prelude::*;
 use napi::Error;
 use napi_derive::napi;
@@ -113,6 +113,51 @@ impl ThreadPoolHandler {
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
     }
+}
+
+#[napi]
+pub const KEY_LENGTH: u32 = tweetnacl::KEY_LENGTH as u32;
+
+#[napi]
+pub const NONCE_LENGTH: u32 = tweetnacl::NONCE_LENGTH as u32;
+
+#[napi(object)]
+pub struct BoxKeyPair {
+    pub public_key: Uint8Array,
+    pub secret_key: Uint8Array,
+}
+
+#[napi]
+// TODO: Make BoxKeyPair a class and make this the constructor or a factory
+pub fn new_key_pair() -> BoxKeyPair {
+    let secret_key = new_secret_key();
+
+    BoxKeyPair {
+        public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+        secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+    }
+}
+
+#[napi]
+pub fn secret_hex_to_key_pair(secret_hex: String) -> Result<BoxKeyPair> {
+    let byte_vec = base64::decode(secret_hex)
+        .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
+
+    let bytes: [u8; tweetnacl::KEY_LENGTH] = byte_vec
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert secret key".to_owned()))?;
+
+    let secret_key = bytes_to_secret_key(bytes);
+
+    Ok(BoxKeyPair {
+        public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+        secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+    })
+}
+
+#[napi]
+pub fn random_bytes(bytes_length: u32) -> Uint8Array {
+    Uint8Array::new(tweetnacl::random_bytes(bytes_length as usize))
 }
 
 #[napi(object)]

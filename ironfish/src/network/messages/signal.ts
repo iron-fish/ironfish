@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { NONCE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Identity, identityLength } from '../identity'
-import { nonceLength } from '../peers/encryption'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
@@ -53,7 +53,7 @@ export class SignalMessage extends NetworkMessage {
     const reader = bufio.read(buffer, true)
     const destinationIdentity = reader.readBytes(identityLength).toString('base64')
     const sourceIdentity = reader.readBytes(identityLength).toString('base64')
-    const nonce = reader.readBytes(nonceLength).toString('base64')
+    const nonce = reader.readBytes(NONCE_LENGTH).toString('base64')
     const signal = reader.readBytes(reader.left()).toString('base64')
     return new SignalMessage({
       destinationIdentity,
@@ -65,7 +65,7 @@ export class SignalMessage extends NetworkMessage {
 
   getSize(): number {
     return (
-      identityLength + identityLength + nonceLength + Buffer.byteLength(this.signal, 'base64')
+      identityLength + identityLength + NONCE_LENGTH + Buffer.byteLength(this.signal, 'base64')
     )
   }
 }

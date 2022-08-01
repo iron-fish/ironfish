@@ -23,6 +23,15 @@ export interface Key {
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
+export const KEY_LENGTH: number
+export const NONCE_LENGTH: number
+export interface BoxKeyPair {
+  publicKey: Uint8Array
+  secretKey: Uint8Array
+}
+export function newKeyPair(): BoxKeyPair
+export function secretHexToKeyPair(secretHex: string): BoxKeyPair
+export function randomBytes(bytesLength: number): Uint8Array
 export interface BoxedMessage {
   nonce: string
   boxedMessage: string
