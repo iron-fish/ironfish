@@ -10,7 +10,6 @@ import { PromiseUtils } from '../utils'
 import {
   ArrayEncoding,
   BufferEncoding,
-  DatabaseOpenError,
   DatabaseSchema,
   DatabaseVersionError,
   DuplicateKeyError,
