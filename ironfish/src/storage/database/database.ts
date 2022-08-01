@@ -164,10 +164,12 @@ export abstract class Database implements IDatabase {
     options: IDatabaseStoreOptions<Schema>,
     requireUnique = true,
   ): IDatabaseStore<Schema> {
-    const existing = this.stores.find((s) => s.name === options.name)
+    if (requireUnique) {
+      const existing = this.stores.find((s) => s.name === options.name)
 
-    if (existing && requireUnique) {
-      throw new Error(`Store with name ${options.name} already exists`)
+      if (existing) {
+        throw new Error(`Store with name ${options.name} already exists`)
+      }
     }
 
     const store = this._createStore<Schema>(options)
