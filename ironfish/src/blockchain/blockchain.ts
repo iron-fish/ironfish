@@ -540,14 +540,14 @@ export class Blockchain {
     }
   }
 
-  isInvalid(block: Block): VerificationResultReason | null {
-    const invalid = this.invalid.get(block.header.hash)
+  isInvalid(header: BlockHeader): VerificationResultReason | null {
+    const invalid = this.invalid.get(header.hash)
     if (invalid) {
       return invalid
     }
 
-    if (this.invalid.has(block.header.previousBlockHash)) {
-      this.addInvalid(block.header, VerificationResultReason.INVALID_PARENT)
+    if (this.invalid.has(header.previousBlockHash)) {
+      this.addInvalid(header, VerificationResultReason.INVALID_PARENT)
       return VerificationResultReason.INVALID_PARENT
     }
 
