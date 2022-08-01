@@ -12,7 +12,7 @@ import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
-import { BlockSerde, SerializedBlock, SerializedCompactBlock } from '../primitives/block'
+import { BlockSerde, SerializedCompactBlock } from '../primitives/block'
 import { BlockHeaderSerde } from '../primitives/blockheader'
 import {
   useAccountFixture,
