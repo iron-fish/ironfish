@@ -45,11 +45,32 @@ export class Verifier {
     }
 
     // Verify the transactions
-    const verificationResults = await Promise.all(
-      block.transactions.map((t) =>
-        this.verifyTransactionContextual(t, block.header, { verifyFees: false }),
-      ),
-    )
+    const notesLimit = 10
+    const verificationPromises = []
+
+    let transactionBatch = []
+    let runningNotesCount = 0
+    for (const [idx, tx] of block.transactions.entries()) {
+      if (this.isExpiredSequence(tx.expirationSequence(), block.header.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
+
+      transactionBatch.push(tx)
+
+      runningNotesCount += tx.notesLength()
+
+      if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+
+        transactionBatch = []
+        runningNotesCount = 0
+      }
+    }
+
+    const verificationResults = await Promise.all(verificationPromises)
 
     const invalidResult = verificationResults.find((f) => !f.valid)
     if (invalidResult !== undefined) {
@@ -88,7 +109,7 @@ export class Verifier {
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
-    const miningReward = block.header.strategy.miningReward(block.header.sequence)
+    const miningReward = this.chain.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }

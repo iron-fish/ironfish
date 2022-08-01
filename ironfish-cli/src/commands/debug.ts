@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DatabaseIsLockedError, FileUtils, IronfishNode, IronfishPKG } from '@ironfish/sdk'
+import {
+  DatabaseIsLockedError,
+  DatabaseOpenError,
+  ErrorUtils,
+  FileUtils,
+  IronfishNode,
+  IronfishPKG,
+} from '@ironfish/sdk'
 import { execSync } from 'child_process'
 import os from 'os'
 import { getHeapStatistics } from 'v8'
@@ -23,11 +30,15 @@ export default class Debug extends IronfishCommand {
 
     let dbOpen = true
     try {
-      await node.openDB({ upgrade: false })
+      await node.openDB()
     } catch (err) {
       if (err instanceof DatabaseIsLockedError) {
         this.log('Database in use, skipping output that requires database.')
         this.log('Stop the node and run the debug command again to show full output.\n')
+        dbOpen = false
+      } else if (err instanceof DatabaseOpenError) {
+        this.log('Database cannot be opened, skipping output that requires database.\n')
+        this.log(ErrorUtils.renderError(err, true) + '\n')
         dbOpen = false
       }
     }
@@ -50,6 +61,9 @@ export default class Debug extends IronfishCommand {
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
 
+    const nodeName = this.sdk.config.get('nodeName').toString()
+    const blockGraffiti = this.sdk.config.get('blockGraffiti').toString()
+
     let cmdInPath: boolean
     try {
       execSync('ironfish --help', { stdio: 'ignore' })
@@ -68,7 +82,10 @@ export default class Debug extends IronfishCommand {
       ['Heap total', `${heapTotal}`],
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
+      ['Garbage Collector Exposed', `${String(!!global.gc)}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
+      ['Node name', `${nodeName}`],
+      ['Block graffiti', `${blockGraffiti}`],
     ])
   }
 

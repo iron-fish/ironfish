@@ -4,8 +4,6 @@
 
 import { zip } from 'lodash'
 import { Assert } from '../assert'
-import { Serde } from '../serde'
-import { Strategy } from '../strategy'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
@@ -70,13 +68,31 @@ export class Block {
   }
 
   equals(block: Block): boolean {
-    return block === this || this.header.strategy.blockSerde.equals(this, block)
+    return block === this || BlockSerde.equals(this, block)
   }
 
   get minersFee(): Transaction {
     const tx = this.transactions[0]
     Assert.isNotUndefined(tx, 'Block has no miners fee')
     return tx
+  }
+
+  toCompactBlock(): SerializedCompactBlock {
+    const header = BlockHeaderSerde.serialize(this.header)
+
+    const [minersFee, ...transactions] = this.transactions
+    const transactionHashes = transactions.map((t) => t.hash())
+
+    return {
+      header,
+      transactionHashes,
+      transactions: [
+        {
+          index: 0,
+          transaction: minersFee.serialize(),
+        },
+      ],
+    }
   }
 }
 
@@ -98,15 +114,9 @@ export type SerializedBlock = {
 
 export type SerializedCounts = { notes: number; nullifiers: number }
 
-export class BlockSerde implements Serde<Block, SerializedBlock> {
-  blockHeaderSerde: BlockHeaderSerde
-
-  constructor(readonly strategy: Strategy) {
-    this.blockHeaderSerde = new BlockHeaderSerde(strategy)
-  }
-
-  equals(block1: Block, block2: Block): boolean {
-    if (!this.blockHeaderSerde.equals(block1.header, block2.header)) {
+export class BlockSerde {
+  static equals(block1: Block, block2: Block): boolean {
+    if (!BlockHeaderSerde.equals(block1.header, block2.header)) {
       return false
     }
 
@@ -123,14 +133,14 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
     return true
   }
 
-  serialize(block: Block): SerializedBlock {
+  static serialize(block: Block): SerializedBlock {
     return {
-      header: this.blockHeaderSerde.serialize(block.header),
+      header: BlockHeaderSerde.serialize(block.header),
       transactions: block.transactions.map((t) => t.serialize()),
     }
   }
 
-  deserialize(data: SerializedBlock): Block {
+  static deserialize(data: SerializedBlock): Block {
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -138,7 +148,7 @@ export class BlockSerde implements Serde<Block, SerializedBlock> {
       'transactions' in data &&
       Array.isArray(data.transactions)
     ) {
-      const header = this.blockHeaderSerde.deserialize(data.header)
+      const header = BlockHeaderSerde.deserialize(data.header)
       const transactions = data.transactions.map((t) => new Transaction(t))
       return new Block(header, transactions)
     }

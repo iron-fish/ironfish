@@ -20,6 +20,10 @@ import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
+import {
+  VerifyTransactionsRequest,
+  VerifyTransactionsResponse,
+} from './tasks/verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
@@ -254,6 +258,8 @@ export class Worker {
         return UnboxMessageRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyTransactions:
+        return VerifyTransactionsRequest.deserialize(jobId, request)
     }
   }
 
@@ -285,6 +291,8 @@ export class Worker {
         return UnboxMessageResponse.deserialize(jobId, response)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.VerifyTransactions:
+        return VerifyTransactionsResponse.deserialize(jobId, response)
     }
   }
 }
