@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { FileSystem } from '../fileSystems'
+import { Logger } from '../logger'
 import { IronfishNode } from '../node'
 import { IDatabase, IDatabaseTransaction } from '../storage'
 
@@ -24,6 +25,18 @@ export abstract class Migration {
   }
 
   abstract prepare(node: IronfishNode): Promise<IDatabase> | IDatabase
-  abstract forward(node: IronfishNode, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
-  abstract backward(node: IronfishNode, db: IDatabase, tx: IDatabaseTransaction): Promise<void>
+
+  abstract forward(
+    node: IronfishNode,
+    db: IDatabase,
+    tx: IDatabaseTransaction,
+    logger: Logger,
+  ): Promise<void>
+
+  abstract backward(
+    node: IronfishNode,
+    db: IDatabase,
+    tx: IDatabaseTransaction,
+    logger: Logger,
+  ): Promise<void>
 }
