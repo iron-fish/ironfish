@@ -7,6 +7,7 @@ import { Assert } from '../../../assert'
 import { readBlock } from '../../../network/utils/block'
 import { IronfishNode } from '../../../node'
 import { Block } from '../../../primitives'
+import { BlockSerde } from '../../../primitives/block'
 import { ApiNamespace, router } from '../router'
 
 export type ImportSnapshotRequest =
@@ -74,7 +75,7 @@ function deserializeChunk(node: IronfishNode, reader: bufio.BufferReader): Block
   for (let i = 0; i < blocksLength; i++) {
     const blockReader = bufio.read(reader.readVarBytes(), true)
     const serializedBlock = readBlock(blockReader)
-    const block = node.chain.strategy.blockSerde.deserialize(serializedBlock)
+    const block = BlockSerde.deserialize(serializedBlock)
     blocks.push(block)
   }
 

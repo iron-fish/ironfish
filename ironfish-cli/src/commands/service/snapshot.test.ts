@@ -22,18 +22,15 @@ describe('service:snapshot', () => {
     jest.doMock('@ironfish/sdk', () => {
       const originalModule = jest.requireActual('@ironfish/sdk')
 
-      const mockChainInfo = {
-        content: {
-          currentBlockIdentifier: {
-            index: 3,
+      const node = {
+        chain: {
+          head: {
+            sequence: 3,
           },
-          databaseVersion: 3,
+          db: {
+            getVersion: jest.fn().mockResolvedValue(3),
+          },
         },
-      }
-
-      const client = {
-        connect: jest.fn(),
-        getChainInfo: jest.fn().mockReturnValue(mockChainInfo),
       }
 
       const mockFileSystem = {
@@ -46,14 +43,16 @@ describe('service:snapshot', () => {
         ...originalModule,
         IronfishSdk: {
           init: jest.fn().mockReturnValue({
-            connectRpc: jest.fn().mockResolvedValue(client),
-            client,
+            node: jest.fn().mockResolvedValue(node),
             dataDir: 'test',
             fileSystem: mockFileSystem,
             config: {
               chainDatabasePath: 'test/databases/default',
             },
           }),
+        },
+        NodeUtils: {
+          waitForOpen: jest.fn(),
         },
       }
 

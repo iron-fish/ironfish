@@ -14,7 +14,6 @@ export interface ChainInfo {
   genesisBlockIdentifier: BlockIdentifier
   oldestBlockIdentifier: BlockIdentifier
   currentBlockTimestamp: number
-  databaseVersion: number
 }
 
 export type GetChainInfoRequest = Record<string, never> | undefined
@@ -36,7 +35,6 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
       .object({ index: yup.string().defined(), hash: yup.string().defined() })
       .defined(),
     currentBlockTimestamp: yup.number().defined(),
-    databaseVersion: yup.number().defined(),
   })
   .defined()
 
@@ -51,8 +49,6 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
 
     const latestHeader = node.chain.latest
     const heaviestHeader = node.chain.head
-
-    const databaseVersion = node.chain.databaseVersion
 
     const oldestBlockIdentifier = {} as BlockIdentifier
     if (heaviestHeader) {
@@ -77,7 +73,6 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
       oldestBlockIdentifier,
       genesisBlockIdentifier,
       currentBlockTimestamp,
-      databaseVersion,
     })
   },
 )

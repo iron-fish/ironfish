@@ -6,8 +6,10 @@ import {
   ErrorUtils,
   FileUtils,
   Meter,
+  NodeUtils,
   SnapshotManifest,
   TimeUtils,
+  VERSION_DATABASE_CHAIN,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
@@ -52,7 +54,8 @@ export default class ImportSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(ImportSnapshot)
 
-    const client = await this.sdk.connectRpc(true)
+    const node = await this.sdk.node()
+    await NodeUtils.waitForOpen(node)
 
     let snapshotPath
     const tempDir = path.join(os.tmpdir(), uuid())
@@ -67,14 +70,11 @@ export default class ImportSnapshot extends IronfishCommand {
         this.exit(1)
       }
 
-      const status = await client.getChainInfo()
-
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
 
-      const databaseVersion = status.content.databaseVersion
-      if (manifest.database_version > databaseVersion) {
+      if (manifest.database_version > VERSION_DATABASE_CHAIN) {
         this.log(
-          `This snapshot is from a later database version (${manifest.database_version}) than your local chain ${databaseVersion}. Aborting import.`,
+          `This snapshot is from a later database version (${manifest.database_version}) than your node (${VERSION_DATABASE_CHAIN}). Aborting import.`,
         )
         this.exit(0)
       }
@@ -86,9 +86,7 @@ export default class ImportSnapshot extends IronfishCommand {
           `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_sequence}. The size of the latest snapshot file is ${fileSize}`,
         )
 
-        this.log(
-          `Current head sequence of your local chain: ${status.content.currentBlockIdentifier.index}`,
-        )
+        this.log(`Current head sequence of your local chain: ${node.chain.head.sequence}`)
 
         const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
         if (!confirm) {
