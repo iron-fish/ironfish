@@ -12,6 +12,9 @@ export class StartCommand extends IronfishCommand {
     ...LocalFlags,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
+    dry: Flags.boolean({
+      char: 'd',
+    }),
     quiet: Flags.boolean({
       char: 'q',
       default: false,
@@ -22,6 +25,6 @@ export class StartCommand extends IronfishCommand {
     const { flags } = await this.parse(StartCommand)
 
     const node = await this.sdk.node()
-    await node.migrator.migrate({ quiet: flags.quiet })
+    await node.migrator.migrate({ quiet: flags.quiet, dryRun: flags.dry })
   }
 }
