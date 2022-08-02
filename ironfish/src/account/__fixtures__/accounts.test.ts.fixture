@@ -830,5 +830,27 @@
         }
       ]
     }
+  ],
+  "Accounts importAccount should not import accounts with duplicate name": [
+    {
+      "name": "accountA",
+      "spendingKey": "9240d026aa875a1e554c4f4b9b3b794ca41fc746b08e78eeeca5a0afaf9b1fe1",
+      "incomingViewKey": "01f5e2f7abac51207ed30b038c9b3093fe7a72472b6e6b6c9deef934ebd2a905",
+      "outgoingViewKey": "3ccd54821ee5664f7f1b5b6b9d91b1e275b1d2d85293d824588f3789199c5791",
+      "publicAddress": "0721c505866ed4d5943159d278853a1ab70ae3a9351bfad183fa3f94333ef7e9c8dfeb62799b3cb94b7d28",
+      "rescan": null,
+      "displayName": "accountA (8696ea6)"
+    }
+  ],
+  "Accounts importAccount should not import accounts with duplicate keys": [
+    {
+      "name": "accountA",
+      "spendingKey": "bde02ada91666ab8bb2bf28a5fa949e746f08623a673ecc5a8e9a5342beafa6f",
+      "incomingViewKey": "cad6842815ae4462da832eb98a25a37eca7a1a1d9a0db69aa920b1086d387a03",
+      "outgoingViewKey": "12adcab8428605f5d3c180a13eee964984096cfee9a864ec47c6b9cb86da3f4b",
+      "publicAddress": "3f942976c90f97ed349bbb1dd0147a30a9e7f9dfa1ec700d2a374b16427ab06aec1cc04e97e3893d886200",
+      "rescan": null,
+      "displayName": "accountA (e383892)"
+    }
   ]
 }

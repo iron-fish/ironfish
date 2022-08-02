@@ -82,6 +82,7 @@ export default class Debug extends IronfishCommand {
       ['Heap total', `${heapTotal}`],
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
+      ['Garbage Collector Exposed', `${String(!!global.gc)}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
       ['Node name', `${nodeName}`],
       ['Block graffiti', `${blockGraffiti}`],

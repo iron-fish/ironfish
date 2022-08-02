@@ -63,7 +63,7 @@ describe('Verifier', () => {
     it('rejects a block with an invalid transaction', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      jest.spyOn(nodeTest.verifier, 'verifyTransactionContextual').mockResolvedValue({
+      jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
         valid: false,
         reason: VerificationResultReason.VERIFY_TRANSACTION,
       })

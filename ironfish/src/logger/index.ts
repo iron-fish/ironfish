@@ -35,8 +35,8 @@ export const ConsoleReporterInstance = new ConsoleReporter()
 export const setLogLevelFromConfig = (logLevelConfig: string): void => {
   const parsedConfig = parseLogLevelConfig(logLevelConfig)
 
-  for (const config of parsedConfig) {
-    ConsoleReporterInstance.setLogLevel(config[0], config[1])
+  for (const [tag, level] of parsedConfig) {
+    ConsoleReporterInstance.setLogLevel(tag, level)
   }
 }
 
