@@ -329,9 +329,10 @@ describe('Accounts', () => {
 
       expect(node.accounts.accountExists(account.name)).toEqual(true)
 
-      account.name = 'Different name'
+      const clone = { ...account }
+      clone.name = 'Different name'
 
-      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+      await expect(node.accounts.importAccount(clone)).rejects.toThrowError(
         'Account already exists with provided spending key',
       )
     })
