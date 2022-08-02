@@ -5,6 +5,7 @@ import bufio from 'bufio'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { getBlockSize, writeBlock } from '../../../network/utils/block'
+import { BlockSerde } from '../../../primitives/block'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { ApiNamespace, router } from '../router'
 
@@ -60,7 +61,7 @@ router.register<typeof SnapshotChainStreamRequestSchema, SnapshotChainStreamResp
       if (blockHeader) {
         const block = await node.chain.getBlock(blockHeader)
         if (block) {
-          const serializedBlock = node.chain.strategy.blockSerde.serialize(block)
+          const serializedBlock = BlockSerde.serialize(block)
           const blockWriter = bufio.write(getBlockSize(serializedBlock))
           const blockBuffer = writeBlock(blockWriter, serializedBlock).render()
           blocks.push(blockBuffer)

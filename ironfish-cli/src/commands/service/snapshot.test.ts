@@ -10,33 +10,27 @@ describe('service:snapshot', () => {
   const mockedFileSize = 10 * 1024 * 1024
 
   const manifestContent = {
-    block_height: 3,
+    block_sequence: 3,
     checksum: 'e5b844cc57f57094ea4585e235f36c78c1cd222262bb89d53c94dcb4d6b3e55d',
     file_name: `ironfish_snapshot_123456789.tar.gz`,
     file_size: mockedFileSize,
     timestamp: 123456789,
+    database_version: 3,
   }
 
   beforeAll(() => {
     jest.doMock('@ironfish/sdk', () => {
       const originalModule = jest.requireActual('@ironfish/sdk')
 
-      const response = {
-        contentStream: jest.fn(async function* () {
-          const stream = [
-            { start: 1, stop: 3 },
-            { start: 1, stop: 3, seq: 3, buffer: Buffer.from('foo') },
-          ]
-
-          for await (const value of stream) {
-            yield value
-          }
-        }),
-      }
-
-      const client = {
-        connect: jest.fn(),
-        snapshotChainStream: jest.fn().mockReturnValue(response),
+      const node = {
+        chain: {
+          head: {
+            sequence: 3,
+          },
+          db: {
+            getVersion: jest.fn().mockResolvedValue(3),
+          },
+        },
       }
 
       const mockFileSystem = {
@@ -49,11 +43,16 @@ describe('service:snapshot', () => {
         ...originalModule,
         IronfishSdk: {
           init: jest.fn().mockReturnValue({
-            connectRpc: jest.fn().mockResolvedValue(client),
-            client,
+            node: jest.fn().mockResolvedValue(node),
+            dataDir: 'test',
             fileSystem: mockFileSystem,
+            config: {
+              chainDatabasePath: 'test/databases/default',
+            },
           }),
-          response,
+        },
+        NodeUtils: {
+          waitForOpen: jest.fn(),
         },
       }
 
@@ -124,7 +123,7 @@ describe('service:snapshot', () => {
       .exit(0)
       .it('exports blocks and snapshot to correct path', (ctx) => {
         expectCli(ctx.stdout).include(
-          `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+          `Zipping\n    SRC test/databases/default\n    DST foobar/ironfish_snapshot.tar.gz\n\n`,
         )
       })
   })
@@ -138,7 +137,7 @@ describe('service:snapshot', () => {
         'exports blocks and snapshot to correct path, and outputs the contents of manifest.json',
         (ctx) => {
           expectCli(ctx.stdout).include(
-            `Zipping\n    SRC foobar/blocks\n    DST foobar/${manifestContent.file_name}\n\n`,
+            `Zipping\n    SRC test/databases/default\n    DST foobar/ironfish_snapshot.tar.gz\n\n`,
           )
           expectCli(ctx.stdout).include(JSON.stringify(manifestContent, undefined, '  '))
         },

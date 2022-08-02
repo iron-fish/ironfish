@@ -5,6 +5,7 @@
 import bufio from 'bufio'
 import { Assert } from '../../../assert'
 import { getBlockSize, writeBlock } from '../../../network/utils/block'
+import { BlockSerde } from '../../../primitives'
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
@@ -19,7 +20,7 @@ describe('Route chain/importSnapshot', () => {
     Assert.isNotNull(genesis)
 
     const blockA1 = await useMinerBlockFixture(chain, 2)
-    const serializedBlockA1 = strategy.blockSerde.serialize(blockA1)
+    const serializedBlockA1 = BlockSerde.serialize(blockA1)
     const bw = bufio.write(getBlockSize(serializedBlockA1))
     const blockA1Buffer = writeBlock(bw, serializedBlockA1).render()
 

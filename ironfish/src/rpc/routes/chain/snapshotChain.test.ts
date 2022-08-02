@@ -4,6 +4,7 @@
 import bufio from 'bufio'
 import { Assert } from '../../../assert'
 import { getBlockSize, writeBlock } from '../../../network/utils/block'
+import { BlockSerde } from '../../../primitives'
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { SnapshotChainStreamResponse } from './snapshotChain'
@@ -24,7 +25,7 @@ describe('Route chain/snapshotChainStream', () => {
       await expect(chain).toAddBlock(blockA1)
       expect(blockA1.transactions.length).toBe(1)
 
-      const serializedBlockA1 = strategy.blockSerde.serialize(blockA1)
+      const serializedBlockA1 = BlockSerde.serialize(blockA1)
       const bw2 = bufio.write(getBlockSize(serializedBlockA1))
       const blockA1Buffer = writeBlock(bw2, serializedBlockA1).render()
 
@@ -66,10 +67,10 @@ describe('Route chain/snapshotChainStream', () => {
       const blockA2 = await useMinerBlockFixture(chain, 3)
       await expect(chain).toAddBlock(blockA2)
 
-      const serializedBlockA1 = strategy.blockSerde.serialize(blockA1)
+      const serializedBlockA1 = BlockSerde.serialize(blockA1)
       const bw1 = bufio.write(getBlockSize(serializedBlockA1))
       const blockA1Buffer = writeBlock(bw1, serializedBlockA1).render()
-      const serializedBlockA2 = strategy.blockSerde.serialize(blockA2)
+      const serializedBlockA2 = BlockSerde.serialize(blockA2)
       const bw2 = bufio.write(getBlockSize(serializedBlockA2))
       const blockA2Buffer = writeBlock(bw2, serializedBlockA2).render()
 

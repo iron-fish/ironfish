@@ -1,18 +1,30 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, SnapshotManifest } from '@ironfish/sdk'
+import {
+  DEFAULT_SNAPSHOT_BUCKET_URL,
+  ErrorUtils,
+  FileUtils,
+  Meter,
+  NodeUtils,
+  TimeUtils,
+  VERSION_DATABASE_CHAIN,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
+import { IncomingMessage } from 'http'
 import os from 'os'
 import path from 'path'
+import * as stream from 'stream'
 import tar from 'tar'
+import { promisify } from 'util'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { SnapshotManifest } from '../../utils'
 
 export default class ImportSnapshot extends IronfishCommand {
   static hidden = false
@@ -20,7 +32,7 @@ export default class ImportSnapshot extends IronfishCommand {
   static description = `Import chain snapshot`
 
   static flags = {
-    ...RemoteFlags,
+    ...LocalFlags,
     bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -42,6 +54,9 @@ export default class ImportSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(ImportSnapshot)
 
+    const node = await this.sdk.node()
+    await NodeUtils.waitForOpen(node)
+
     let snapshotPath
     const tempDir = path.join(os.tmpdir(), uuid())
     await fsAsync.mkdir(tempDir, { recursive: true })
@@ -55,25 +70,23 @@ export default class ImportSnapshot extends IronfishCommand {
         this.exit(1)
       }
 
-      const client = await this.sdk.connectRpc()
-      const status = await client.getChainInfo()
-
       const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
+
+      if (manifest.database_version > VERSION_DATABASE_CHAIN) {
+        this.log(
+          `This snapshot is from a later database version (${manifest.database_version}) than your node (${VERSION_DATABASE_CHAIN}). Aborting import.`,
+        )
+        this.exit(1)
+      }
+
+      const fileSize = FileUtils.formatFileSize(manifest.file_size)
 
       if (!flags.confirm) {
         this.log(
-          `This snapshot (${
-            manifest.file_name
-          }) contains the Iron Fish blockchain up to block ${
-            manifest.block_height
-          }. The size of the latest snapshot file is ${FileUtils.formatFileSize(
-            manifest.file_size,
-          )}`,
+          `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_sequence}. The size of the latest snapshot file is ${fileSize}`,
         )
 
-        this.log(
-          `Current head sequence of your local chain: ${status.content.currentBlockIdentifier.index}`,
-        )
+        this.log(`Current head sequence of your local chain: ${node.chain.head.sequence}`)
 
         const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
         if (!confirm) {
@@ -87,31 +100,48 @@ export default class ImportSnapshot extends IronfishCommand {
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
-        format: 'Downloading snapshot: [{bar}] {value}% | ETA: {eta}s',
+        format:
+          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
       }) as ProgressBar
+      const speed = new Meter()
 
-      bar.start()
+      bar.start(manifest.file_size, 0, { fileSize })
+      speed.start()
+      let downloaded = 0
 
       const hasher = crypto.createHash('sha256')
       const writer = snapshotFile.createWriteStream()
+      const finished = promisify(stream.finished)
 
-      const response = await axios({
+      await axios({
         method: 'GET',
         responseType: 'stream',
         url: `${bucketUrl}/${manifest.file_name}`,
-        onDownloadProgress: (progressEvent: {
-          lengthComputable: number
-          loaded: number
-          total: number
-        }) => {
-          const percentage = Math.floor((progressEvent.loaded / progressEvent.total) * 100)
-          bar.update(percentage)
-        },
       })
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      response.data.pipe(writer)
-      hasher.update(response.data)
+        .then(async (response: { data: IncomingMessage }) => {
+          response.data.on('data', (chunk: { length: number }) => {
+            downloaded += chunk.length
+            speed.add(chunk.length)
+            bar.update(downloaded, {
+              downloadedSize: FileUtils.formatFileSize(downloaded),
+              speed: FileUtils.formatFileSize(speed.rate1s),
+              estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
+            })
+          })
+          response.data.pipe(writer)
+          response.data.pipe(hasher)
+          await finished(writer)
+          bar.stop()
+          speed.stop()
+        })
+        .catch((error: unknown) => {
+          bar.stop()
+          speed.stop()
+          this.logger.error(
+            `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
+          )
+          this.exit(1)
+        })
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
@@ -123,17 +153,21 @@ export default class ImportSnapshot extends IronfishCommand {
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
     await this.unzip(snapshotPath, tempDir)
     CliUx.ux.action.stop('...done')
-    const blockExportPath = this.sdk.fileSystem.join(tempDir, 'blocks')
 
-    const files = await fsAsync.readdir(blockExportPath)
-    files.sort((a, b) => Number(a) - Number(b))
+    const databaseName = this.sdk.config.get('databaseName')
 
-    const client = await this.sdk.connectRpc()
+    const snapshotDatabasePath = this.sdk.fileSystem.join(tempDir, databaseName)
+    const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
-    for (const file of files) {
-      const blocks = await fsAsync.readFile(path.join(blockExportPath, file))
-      await client.importSnapshot({ blocks })
+    CliUx.ux.action.start(
+      `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+    )
+    if (await this.sdk.fileSystem.exists(chainDatabasePath)) {
+      // chainDatabasePath must be empty before renaming snapshot
+      await fsAsync.rm(chainDatabasePath, { recursive: true })
     }
+    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
+    CliUx.ux.action.stop('...done')
   }
 
   async unzip(source: string, dest: string): Promise<void> {

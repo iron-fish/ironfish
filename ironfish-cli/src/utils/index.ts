@@ -3,5 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './editor'
 export * from './rpc'
+export * from './snapshot'
 export * from './terminal'
 export * from './types'
