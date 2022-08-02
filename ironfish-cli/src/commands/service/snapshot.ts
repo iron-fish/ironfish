@@ -8,13 +8,7 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import {
-  Assert,
-  DEFAULT_SNAPSHOT_BUCKET_URL,
-  FileUtils,
-  NodeUtils,
-  SnapshotManifest,
-} from '@ironfish/sdk'
+import { Assert, DEFAULT_SNAPSHOT_BUCKET_URL, FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
@@ -24,6 +18,7 @@ import tar from 'tar'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
+import { SnapshotManifest } from '../../utils'
 
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024

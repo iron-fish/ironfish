@@ -7,7 +7,6 @@ import {
   FileUtils,
   Meter,
   NodeUtils,
-  SnapshotManifest,
   TimeUtils,
   VERSION_DATABASE_CHAIN,
 } from '@ironfish/sdk'
@@ -25,6 +24,7 @@ import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { SnapshotManifest } from '../../utils'
 
 export default class ImportSnapshot extends IronfishCommand {
   static hidden = false
@@ -76,7 +76,7 @@ export default class ImportSnapshot extends IronfishCommand {
         this.log(
           `This snapshot is from a later database version (${manifest.database_version}) than your node (${VERSION_DATABASE_CHAIN}). Aborting import.`,
         )
-        this.exit(0)
+        this.exit(1)
       }
 
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
