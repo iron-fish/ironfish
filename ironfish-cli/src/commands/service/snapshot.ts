@@ -86,7 +86,6 @@ export default class CreateSnapshot extends IronfishCommand {
       exportDir = this.sdk.fileSystem.resolve(this.sdk.config.tempDir)
     }
 
-    Assert.isNotUndefined(exportDir)
     await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
 
     const node = await this.sdk.node()
