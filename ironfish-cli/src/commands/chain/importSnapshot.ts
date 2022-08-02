@@ -58,7 +58,7 @@ export default class ImportSnapshot extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
 
     let snapshotPath
-    const tempDir = path.join(os.tmpdir(), uuid())
+    const tempDir = this.sdk.fileSystem.resolve(this.sdk.config.tempDir)
     await fsAsync.mkdir(tempDir, { recursive: true })
 
     if (flags.path) {
