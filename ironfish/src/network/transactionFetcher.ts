@@ -2,16 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
-import { Blockchain } from '../blockchain'
-import { MemPool } from '../memPool'
-import { Block } from '../primitives'
 import { TransactionHash } from '../primitives/transaction'
 import { PooledTransactionsRequest } from './messages/pooledTransactions'
+import { PeerNetwork } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
 
-type TxState =
+type TransactionState =
   | {
       peer: Peer
       action: 'REQUEST_SCHEDULED'
@@ -23,6 +20,9 @@ type TxState =
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
     }
+  | {
+      action: 'PROCESSING'
+    }
 
 /**
  * When a node receives a new transaction hash it needs to query the sender for
@@ -31,29 +31,17 @@ type TxState =
  * hash has it's own state which changes when peers are queried, requests timeout or a
  * full transaction is received from the network
  */
-export class TxFetcher {
+export class TransactionFetcher {
   // State of the current requests for each transaction
-  private readonly pending = new BufferMap<TxState>()
+  private readonly pending = new BufferMap<TransactionState>()
 
   // Set of peers that also may be able to fetch the transaction
   private readonly sources = new BufferMap<Set<Peer>>()
 
-  private readonly memPool: MemPool
-  private readonly chain: Blockchain
+  private readonly peerNetwork: PeerNetwork
 
-  private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU(
-    1024,
-    null,
-    BufferMap,
-  )
-
-  constructor(memPool: MemPool, chain: Blockchain) {
-    this.memPool = memPool
-    this.chain = chain
-
-    this.chain.onConnectBlock.on((block) => {
-      this.onConnectBlock(block)
-    })
+  constructor(peerNetwork: PeerNetwork) {
+    this.peerNetwork = peerNetwork
   }
 
   /**
@@ -61,18 +49,18 @@ export class TxFetcher {
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
   hashReceived(hash: TransactionHash, peer: Peer): void {
-    if (this.isResolved(hash)) {
+    if (this.peerNetwork.alreadyHaveTransaction(hash)) {
       this.removeTransaction(hash)
       return
     }
 
     const currentState = this.pending.get(hash)
 
-    if (currentState && currentState.peer === peer) {
-      return
-    }
-
     if (currentState) {
+      if (currentState.action === 'PROCESSING' || currentState.peer === peer) {
+        return
+      }
+
       const sources = this.sources.get(hash) || new Set<Peer>()
       sources.add(peer)
       this.sources.set(hash, sources)
@@ -82,7 +70,7 @@ export class TxFetcher {
     /* Wait 500ms before requesting a new hash to see if we receive the full
      * transaction from the network first */
     const timeout = setTimeout(() => {
-      if (this.isResolved(hash)) {
+      if (this.peerNetwork.alreadyHaveTransaction(hash)) {
         this.removeTransaction(hash)
         return
       }
@@ -98,6 +86,20 @@ export class TxFetcher {
   }
 
   /**
+   * Called when a transaction has been received from the network
+   * but has not yet been processed (validated and added to mempool etc.) */
+  receivedTransaction(hash: TransactionHash): void {
+    const currentState = this.pending.get(hash)
+
+    if (currentState) {
+      this.cleanupCallbacks(currentState)
+      this.pending.set(hash, {
+        action: 'PROCESSING',
+      })
+    }
+  }
+
+  /**
    * Called when a transaction has been received and confirmed from the network
    * either in a block or in a gossiped transaction request */
   removeTransaction(hash: TransactionHash): void {
@@ -110,7 +112,7 @@ export class TxFetcher {
   }
 
   private requestFromNextPeer(hash: TransactionHash): void {
-    if (this.isResolved(hash)) {
+    if (this.peerNetwork.alreadyHaveTransaction(hash)) {
       this.removeTransaction(hash)
       return
     }
@@ -186,25 +188,12 @@ export class TxFetcher {
     return undefined
   }
 
-  private cleanupCallbacks(state: TxState) {
+  private cleanupCallbacks(state: TransactionState) {
     if (state.action === 'IN_FLIGHT') {
       clearTimeout(state.timeout)
       state.clearDisconnectHandler()
     } else if (state.action === 'REQUEST_SCHEDULED') {
       clearTimeout(state.timeout)
-    }
-  }
-
-  private isResolved(hash: TransactionHash): boolean {
-    return this.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)
-  }
-
-  private onConnectBlock(block: Block) {
-    for (const transaction of block.transactions) {
-      const hash = transaction.hash()
-
-      this.recentlyAddedToChain.set(hash, true)
-      this.removeTransaction(hash)
     }
   }
 }

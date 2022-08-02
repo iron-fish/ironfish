@@ -5,6 +5,7 @@
 import { RollingFilter } from '@ironfish/bfilter'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
+import { el } from 'date-fns/locale'
 import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -21,7 +22,7 @@ import { Transaction } from '../primitives'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
-import { ErrorUtils } from '../utils'
+import { ArrayUtils, AsyncUtils, ErrorUtils } from '../utils'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
@@ -62,6 +63,7 @@ import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
+import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
 import { VERSION_PROTOCOL } from './version'
@@ -110,12 +112,15 @@ export class PeerNetwork {
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
 
-  // A cache that keeps track of transactions we've synced to the wallet so we don't
-  // waste time verifying, validating and syncing them multiple times
-  private readonly syncedTransactionHashes: LRU<TransactionHash, boolean> = new LRU<
+  private readonly transactionFetcher: TransactionFetcher
+
+  // A cache that keeps track of transactions that are a part of recently confirmed blocks
+  // TODO(daniel): Consider replacing this with a nullifier check. This would filter out transactions
+  // that have overlapping nullifiers in the chain so we don't process those invalid transactions
+  private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU<
     TransactionHash,
     boolean
-  >(8192, null, BufferMap)
+  >(300 * 60, null, BufferMap)
 
   // A cache that keeps track of which peers have seen which transactions. This allows
   // us to not send the same transaction to a peer more than once. TODO(daniel): We want to
@@ -206,6 +211,20 @@ export class PeerNetwork {
     if (options.name && options.name.length > 32) {
       options.name = options.name.slice(32)
     }
+
+    this.transactionFetcher = new TransactionFetcher(this)
+
+    this.chain.onConnectBlock.on((block) => {
+      for (const transaction of block.transactions) {
+        this.recentlyAddedToChain.set(transaction.hash(), true)
+      }
+    })
+
+    this.chain.onDisconnectBlock.on((block) => {
+      for (const transaction of block.transactions) {
+        this.recentlyAddedToChain.remove(transaction.hash())
+      }
+    })
 
     this.node.miningManager.onNewBlock.on((block) => {
       const serializedBlock = BlockSerde.serialize(block)
@@ -361,13 +380,42 @@ export class PeerNetwork {
 
   private broadcastTransaction(
     message: NewTransactionMessage,
-    peersToSendTo: ReadonlyArray<Peer>,
+    peersToSendTo: Generator<Peer>,
   ): void {
-    for (const peer of peersToSendTo) {
+    const isUpgraded = (peer: Peer) => peer.version === null || peer.version < 17
+
+    const peersToSendToArray = [...peersToSendTo]
+    const sendHash: Peer[] = []
+    const sendFull: Peer[] = peersToSendToArray.filter((p) => !isUpgraded(p))
+
+    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
+      peersToSendToArray.filter((p) => isUpgraded(p)),
+    )
+
+    const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
+
+    for (const peer of upgradedPeers) {
+      if (sendFull.length < sqrtSize) {
+        sendFull.push(peer)
+      } else {
+        sendHash.push(peer)
+      }
+    }
+
+    for (const peer of sendHash) {
       if (peer.state.type !== 'CONNECTED') {
         continue
       }
+      if (peer.send(message)) {
+        const hash = new Transaction(message.transaction).hash()
+        this.markKnowsTransaction(hash, peer.state.identity)
+      }
+    }
 
+    for (const peer of sendFull) {
+      if (peer.state.type !== 'CONNECTED') {
+        continue
+      }
       if (peer.send(message)) {
         const hash = new Transaction(message.transaction).hash()
         this.markKnowsTransaction(hash, peer.state.identity)
@@ -385,10 +433,12 @@ export class PeerNetwork {
     this.knownTransactionFilter.add(toAdd)
   }
 
-  private connectedPeersWithoutTransaction(hash: TransactionHash): ReadonlyArray<Peer> {
-    return [...this.peerManager.identifiedPeers.values()].filter((p) => {
-      return p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)
-    })
+  private *connectedPeersWithoutTransaction(hash: TransactionHash): Generator<Peer> {
+    for (const p of this.peerManager.identifiedPeers.values()) {
+      if (p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)) {
+        yield p
+      }
+    }
   }
 
   /**
@@ -589,14 +639,35 @@ export class PeerNetwork {
         responseMessage = new CannotSatisfyRequest(rpcId)
       }
 
-      // TODO(daniel) if this is a response with transactions mark transaction hashes as seen by peer
-      peer.send(responseMessage)
+      const sent = peer.send(responseMessage)
+      if (
+        sent &&
+        responseMessage instanceof PooledTransactionsResponse &&
+        peer.state.identity
+      ) {
+        for (const serializedTransaction of responseMessage.transactions) {
+          const hash = new Transaction(serializedTransaction).hash()
+          this.markKnowsTransaction(hash, peer.state.identity)
+        }
+      }
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else {
         this.logger.debug(`Dropping response to unknown request ${rpcId}`)
+      }
+
+      if (rpcMessage instanceof PooledTransactionsResponse) {
+        for (const serializedTransaction of rpcMessage.transactions) {
+          const transaction = new Transaction(serializedTransaction)
+          this.transactionFetcher.receivedTransaction(transaction.hash())
+
+          const gossipMessage = new NewTransactionMessage(serializedTransaction)
+          await this.onNewTransaction(peer, gossipMessage)
+
+          this.transactionFetcher.removeTransaction(transaction.hash())
+        }
       }
     }
   }
@@ -610,7 +681,14 @@ export class PeerNetwork {
   }
 
   private handleNewPooledTransactionHashes(peer: Peer, message: NewPooledTransactionHashes) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+    if (!this.shouldProcessTransactions()) {
+      return
+    }
+
+    for (const hash of message.hashes) {
+      peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
+      this.transactionFetcher.hashReceived(hash, peer)
+    }
   }
 
   private updateIsReady(): void {
@@ -870,19 +948,7 @@ export class PeerNetwork {
     }
   }
 
-  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
-    const received = new Date()
-
-    // Mark the peer as knowing about the transaction as well as their known peers
-    // since they probably sent it to them. We will remove the known peers once we start
-    // gossiping message based on hash
-    const hash = new Transaction(message.transaction).hash()
-    peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
-
-    for (const [_, knownPeer] of peer.knownPeers) {
-      knownPeer.state.identity && this.markKnowsTransaction(hash, knownPeer.state.identity)
-    }
-
+  private shouldProcessTransactions(): boolean {
     if (!this.enableSyncing) {
       return false
     }
@@ -896,21 +962,52 @@ export class PeerNetwork {
       return false
     }
 
+    // TODO: We may want to remove this so that transactions still propagate
+    // even with a full worker pool
     if (this.node.workerPool.saturated) {
       return false
     }
 
-    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
+    return true
+  }
 
+  alreadyHaveTransaction(hash: TransactionHash): boolean {
     /*
      * When we receive a new transaction we want to (1) sync it to the wallet (2) add it to the mempool
      * and (3) send it to peers who haven't received it yet. If we've already done these 3 things then
      * return early and don't validate and verify the transaction again */
-    if (
-      this.syncedTransactionHashes.has(hash) &&
-      this.node.memPool.exists(hash) &&
-      peersToSendTo.length === 0
-    ) {
+    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
+    let peersToSendToLength = 0
+    while (peersToSendTo) {
+      peersToSendToLength++
+      peersToSendTo.next()
+    }
+
+    return (
+      (this.node.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)) &&
+      peersToSendToLength === 0
+      // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
+    )
+  }
+
+  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
+    const received = new Date()
+
+    // Mark the peer as knowing about the transaction as well as their known peers
+    // since they probably sent it to them. We will remove the known peers once we start
+    // gossiping message based on hash
+    const hash = new Transaction(message.transaction).hash()
+    peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
+
+    for (const [_, knownPeer] of peer.knownPeers) {
+      knownPeer.state.identity && this.markKnowsTransaction(hash, knownPeer.state.identity)
+    }
+
+    if (!this.shouldProcessTransactions()) {
+      return false
+    }
+
+    if (this.alreadyHaveTransaction(hash)) {
       return false
     }
 
@@ -933,18 +1030,13 @@ export class PeerNetwork {
     // The accounts need to know about the transaction since it could be
     // relevant to the accounts, despite coming from a different node.
     await this.node.accounts.syncTransaction(transaction, {})
-    this.syncedTransactionHashes.set(hash, true)
-
-    // If we know the mempool already has this transaction, we know that
-    // the mempool won't accept it, but it is still a valid transaction
-    // so we want to gossip it.
-    if (this.node.memPool.exists(transaction.hash())) {
-      this.broadcastTransaction(message, peersToSendTo)
-      return true
-    }
 
     if (await this.node.memPool.acceptTransaction(transaction, false)) {
       this.onTransactionAccepted.emit(transaction, received)
+    }
+
+    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
+    if (this.node.memPool.exists(transaction.hash())) {
       this.broadcastTransaction(message, peersToSendTo)
       return true
     }
