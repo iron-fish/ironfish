@@ -281,9 +281,18 @@ export class Telemetry {
   }
 
   submitNodeStarted(): void {
+    let fields: Field[] = [{ name: 'online', type: 'boolean', value: true }]
+
+    if (this.metrics) {
+      fields = fields.concat([
+        { name: 'cpu_cores', type: 'integer', value: this.metrics.cpuCores },
+        { name: 'memory_total', type: 'integer', value: this.metrics.memTotal },
+      ])
+    }
+
     this.submit({
       measurement: 'node_started',
-      fields: [{ name: 'online', type: 'boolean', value: true }],
+      fields,
       timestamp: new Date(),
     })
   }
