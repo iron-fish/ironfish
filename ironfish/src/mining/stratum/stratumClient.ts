@@ -27,7 +27,7 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from './messages'
-import { STRATUM_VERSION_PROTOCOL } from './version'
+import { VERSION_PROTOCOL_STRATUM } from './version'
 
 export class StratumClient {
   readonly socket: net.Socket
@@ -60,7 +60,7 @@ export class StratumClient {
     this.host = options.host
     this.port = options.port
     this.logger = options.logger
-    this.version = STRATUM_VERSION_PROTOCOL
+    this.version = VERSION_PROTOCOL_STRATUM
 
     this.started = false
     this.id = null
