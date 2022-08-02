@@ -31,6 +31,7 @@ export abstract class Migration {
     db: IDatabase,
     tx: IDatabaseTransaction,
     logger: Logger,
+    dryRun: boolean,
   ): Promise<void>
 
   abstract backward(
@@ -38,5 +39,6 @@ export abstract class Migration {
     db: IDatabase,
     tx: IDatabaseTransaction,
     logger: Logger,
+    dryRun: boolean,
   ): Promise<void>
 }

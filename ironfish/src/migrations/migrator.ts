@@ -6,6 +6,7 @@
 import { LogLevel } from 'consola'
 import { Logger } from '../logger'
 import { IronfishNode } from '../node'
+import { IDatabaseTransaction } from '../storage/database/transaction'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
 import { Migration } from './migration'
@@ -19,9 +20,9 @@ export class Migrator {
     this.node = options.node
     this.logger = options.logger.withTag('migrator')
 
-    this.migrations = MIGRATIONS.map((m) => new m().init(options.node.files)).sort(
-      (a, b) => a.id - b.id,
-    )
+    this.migrations = MIGRATIONS.map((m) => {
+      return new m().init(options.node.files)
+    }).sort((a, b) => a.id - b.id)
   }
 
   /**
@@ -63,7 +64,9 @@ export class Migrator {
     }
   }
 
-  async revert(): Promise<void> {
+  async revert(options?: { dryRun?: boolean }): Promise<void> {
+    const dryRun = options?.dryRun ?? false
+
     const migrations = Array.from(this.migrations).reverse()
 
     for (const migration of migrations) {
@@ -74,14 +77,20 @@ export class Migrator {
         const db = await migration.prepare(this.node)
 
         const childLogger = this.logger.withTag(migration.name)
+        let tx: IDatabaseTransaction | null = null
 
         try {
           await db.open()
+          tx = db.transaction()
 
-          await db.transaction(async (tx) => {
-            await migration.backward(this.node, db, tx, childLogger)
-            await db.putVersion(migration.id - 1, tx)
-          })
+          await migration.backward(this.node, db, tx, childLogger, dryRun)
+          await db.putVersion(migration.id - 1, tx)
+
+          if (dryRun) {
+            await tx.abort()
+          } else {
+            await tx.commit()
+          }
         } finally {
           await db.close()
         }
@@ -91,7 +100,12 @@ export class Migrator {
     }
   }
 
-  async migrate(options?: { quiet?: boolean; quietNoop?: boolean }): Promise<void> {
+  async migrate(options?: {
+    quiet?: boolean
+    quietNoop?: boolean
+    dryRun?: boolean
+  }): Promise<void> {
+    const dryRun = options?.dryRun ?? false
     const logger = this.logger.create({})
 
     if (options?.quiet) {
@@ -113,7 +127,7 @@ export class Migrator {
       return
     }
 
-    logger.info(`Applying ${unapplied.length} migrations:`)
+    logger.info(`Applying ${unapplied.length} migrations${dryRun ? ' in dry run mode' : ''}:`)
 
     for (const migration of unapplied) {
       logger.info(`  ${migration.name}`)
@@ -126,14 +140,21 @@ export class Migrator {
       const db = await migration.prepare(this.node)
 
       const childLogger = logger.withTag(migration.name)
+      let tx: IDatabaseTransaction | null = null
 
       try {
         await db.open()
+        tx = db.transaction()
 
-        await db.transaction(async (tx) => {
-          await migration.forward(this.node, db, tx, childLogger)
-          await db.putVersion(migration.id, tx)
-        })
+        await migration.forward(this.node, db, tx, childLogger, dryRun)
+        await db.putVersion(migration.id, tx)
+
+        if (dryRun) {
+          await tx.abort()
+          break
+        } else {
+          await tx.commit()
+        }
       } catch (e) {
         this.logger.error(`Error applying ${migration.name}`)
         this.logger.error(`${ErrorUtils.renderError(e, true)}`)
@@ -143,7 +164,7 @@ export class Migrator {
       }
     }
 
-    logger.info(`Successfully ran ${unapplied.length} migrations`)
+    logger.info(`Successfully ${dryRun ? 'dry ran' : 'applied'} ${unapplied.length} migrations`)
   }
 
   async check(): Promise<void> {
