@@ -3,19 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import jsonColorizer from 'json-colorizer'
-import { isFunction } from 'lodash'
 import { v4 as uuid } from 'uuid'
-import { DecryptedNotesValue } from '../../account/database/decryptedNotes'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
-import { loggers } from '../../logger/reporters'
 import { IronfishNode } from '../../node'
 import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { DatabaseStoreValue, IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { BenchUtils, HashUtils, PromiseUtils } from '../../utils'
+import { BenchUtils, HashUtils } from '../../utils'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
 import { loadOldStores, OldStores } from './013-wallet-2/old/stores'
@@ -51,7 +47,7 @@ export class Migration013 extends Migration {
     const noteToTransactionCache = await this.buildNoteToTransactionCache(
       stores.old.transactions,
       tx,
-      logger
+      logger,
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
@@ -74,19 +70,13 @@ export class Migration013 extends Migration {
       noteToTransactionCache,
       accounts,
       tx,
-      logger
+      logger,
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: balanaces')
     start = BenchUtils.startSegment()
-    await this.migrateBalances(
-      stores.new.balances,
-      unconfirmedBalances,
-      accounts,
-      tx,
-      logger,
-    )
+    await this.migrateBalances(stores.new.balances, unconfirmedBalances, accounts, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: nullifierToNoteHash')
@@ -101,24 +91,12 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: headHashes')
     start = BenchUtils.startSegment()
-    await this.migrateHeadHashes(
-      stores.old.meta,
-      stores.new.headHashes,
-      accounts,
-      tx,
-      logger,
-    )
+    await this.migrateHeadHashes(stores.old.meta, stores.new.headHashes, accounts, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: meta')
     start = BenchUtils.startSegment()
-    await this.migrateMeta(
-      stores.old.meta,
-      stores.new.meta,
-      accounts,
-      tx,
-      logger,
-    )
+    await this.migrateMeta(stores.old.meta, stores.new.meta, accounts, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: Deleting old store nullifierToNote')
