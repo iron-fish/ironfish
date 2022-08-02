@@ -82,17 +82,12 @@ export default class CreateSnapshot extends IronfishCommand {
 
     if (flags.path) {
       exportDir = this.sdk.fileSystem.resolve(flags.path)
-      await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
     } else {
-      try {
-        const tempDir = this.sdk.fileSystem.resolve(this.sdk.config.tempDir)
-        exportDir = await fsAsync.mkdir(tempDir, { recursive: true })
-      } catch (err) {
-        this.log(`Could not create temp folder for snapshot generation`)
-        this.exit(1)
-      }
+      exportDir = this.sdk.fileSystem.resolve(this.sdk.config.tempDir)
     }
+
     Assert.isNotUndefined(exportDir)
+    await this.sdk.fileSystem.mkdir(exportDir, { recursive: true })
 
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
