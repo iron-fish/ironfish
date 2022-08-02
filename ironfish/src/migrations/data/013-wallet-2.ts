@@ -74,7 +74,7 @@ export class Migration013 extends Migration {
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug('Migrating: balanaces')
+    logger.debug('Migrating: balances')
     start = BenchUtils.startSegment()
     await this.migrateBalances(stores.new.balances, unconfirmedBalances, accounts, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
