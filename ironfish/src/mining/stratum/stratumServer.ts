@@ -29,7 +29,7 @@ import {
 } from './messages'
 import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
-import { VERSION_PROTOCOL_STRATUM, VERSION_PROTOCOL_STRATUM_MIN } from './version'
+import { STRATUM_VERSION_PROTOCOL, STRATUM_VERSION_PROTOCOL_MIN } from './version'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
@@ -65,8 +65,8 @@ export class StratumServer {
     this.config = options.config
     this.logger = options.logger
 
-    this.version = VERSION_PROTOCOL_STRATUM
-    this.versionMin = VERSION_PROTOCOL_STRATUM_MIN
+    this.version = STRATUM_VERSION_PROTOCOL
+    this.versionMin = STRATUM_VERSION_PROTOCOL_MIN
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
