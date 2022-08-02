@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { LogLevel } from 'consola'
 import { Logger } from '../logger'
 import { IronfishNode } from '../node'
 import { ErrorUtils } from '../utils/error'
@@ -16,7 +17,7 @@ export class Migrator {
 
   constructor(options: { node: IronfishNode; logger: Logger }) {
     this.node = options.node
-    this.logger = options.logger
+    this.logger = options.logger.withTag('migrator')
 
     this.migrations = MIGRATIONS.map((m) => new m().init(options.node.files)).sort(
       (a, b) => a.id - b.id,
@@ -72,11 +73,13 @@ export class Migrator {
         this.logger.info(`Reverting ${migration.name}`)
         const db = await migration.prepare(this.node)
 
+        const childLogger = this.logger.withTag(migration.name)
+
         try {
           await db.open()
 
           await db.transaction(async (tx) => {
-            await migration.backward(this.node, db, tx)
+            await migration.backward(this.node, db, tx, childLogger)
             await db.putVersion(migration.id - 1, tx)
           })
         } finally {
@@ -89,8 +92,11 @@ export class Migrator {
   }
 
   async migrate(options?: { quiet?: boolean; quietNoop?: boolean }): Promise<void> {
-    const logger = options?.quiet ? null : this.logger
-    const writeOut = options?.quiet ? null : (t: string) => process.stdout.write(t)
+    const logger = this.logger.create({})
+
+    if (options?.quiet) {
+      logger.level = LogLevel.Silent
+    }
 
     const status = new Array<[Migration, boolean]>()
     for (const migration of this.migrations) {
@@ -102,37 +108,42 @@ export class Migrator {
 
     if (unapplied.length === 0) {
       if (!options?.quietNoop) {
-        logger?.info(`All ${this.migrations.length} migrations applied.`)
+        logger.info(`All ${this.migrations.length} migrations applied.`)
       }
       return
     }
 
-    logger?.info(`Running ${unapplied.length} migrations:`)
+    logger.info(`Applying ${unapplied.length} migrations:`)
 
     for (const migration of unapplied) {
-      writeOut?.(`  Applying ${migration.name}...`)
+      logger.info(`  ${migration.name}`)
+    }
 
+    logger.info(``)
+
+    for (const migration of unapplied) {
+      logger.info(`Running ${migration.name}...`)
       const db = await migration.prepare(this.node)
+
+      const childLogger = logger.withTag(migration.name)
 
       try {
         await db.open()
 
         await db.transaction(async (tx) => {
-          await migration.forward(this.node, db, tx)
+          await migration.forward(this.node, db, tx, childLogger)
           await db.putVersion(migration.id, tx)
         })
       } catch (e) {
-        writeOut?.(` ERROR\n`)
-        this.logger.error(ErrorUtils.renderError(e, true))
+        this.logger.error(`Error applying ${migration.name}`)
+        this.logger.error(`${ErrorUtils.renderError(e, true)}`)
         throw e
       } finally {
         await db.close()
       }
-
-      writeOut?.(` OK\n`)
     }
 
-    logger?.info(`Successfully ran ${unapplied.length} migrations`)
+    logger.info(`Successfully ran ${unapplied.length} migrations`)
   }
 
   async check(): Promise<void> {
