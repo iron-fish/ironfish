@@ -24,7 +24,7 @@ import {
 } from './database/noteToNullifiers'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
-const DATABASE_VERSION = 13
+const DATABASE_VERSION = 11
 
 export const AccountDefaults: AccountsValue = {
   name: '',
