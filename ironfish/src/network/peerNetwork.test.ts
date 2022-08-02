@@ -46,15 +46,9 @@ jest.useFakeTimers()
 
 describe('PeerNetwork', () => {
   describe('stop', () => {
+    const nodeTest = createNodeTest()
     it('stops the peer manager', async () => {
-      const peerNetwork = new PeerNetwork({
-        identity: mockPrivateIdentity('local'),
-        agent: 'sdk/1/cli',
-        webSocket: ws,
-        node: mockNode(),
-        chain: mockChain(),
-        hostsStore: mockHostsStore(),
-      })
+      const { peerNetwork } = nodeTest
 
       const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
       await peerNetwork.stop()
@@ -63,15 +57,10 @@ describe('PeerNetwork', () => {
   })
 
   describe('when validation fails', () => {
+    const nodeTest = createNodeTest()
+
     it('throws an exception', async () => {
-      const peerNetwork = new PeerNetwork({
-        identity: mockPrivateIdentity('local'),
-        agent: 'sdk/1/cli',
-        webSocket: ws,
-        node: mockNode(),
-        chain: mockChain(),
-        hostsStore: mockHostsStore(),
-      })
+      const { peerNetwork } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const message = new PeerListMessage([])

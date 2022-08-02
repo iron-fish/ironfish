@@ -378,13 +378,11 @@ export class PeerNetwork {
     }
   }
 
-  private broadcastTransaction(
-    message: NewTransactionMessage,
-    peersToSendTo: Generator<Peer>,
-  ): void {
+  private broadcastTransaction(message: NewTransactionMessage): void {
+    const hash = new Transaction(message.transaction).hash()
     const isUpgraded = (peer: Peer) => peer.version === null || peer.version < 17
 
-    const peersToSendToArray = [...peersToSendTo]
+    const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
     const sendHash: Peer[] = []
     const sendFull: Peer[] = peersToSendToArray.filter((p) => !isUpgraded(p))
 
@@ -973,19 +971,17 @@ export class PeerNetwork {
 
   alreadyHaveTransaction(hash: TransactionHash): boolean {
     /*
-     * When we receive a new transaction we want to (1) sync it to the wallet (2) add it to the mempool
-     * and (3) send it to peers who haven't received it yet. If we've already done these 3 things then
-     * return early and don't validate and verify the transaction again */
-    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
-    let peersToSendToLength = 0
-    while (peersToSendTo) {
-      peersToSendToLength++
-      peersToSendTo.next()
+     * When we receive a new transaction we want to test if we have already processed it yet
+     * meaning we have it in the mempool or we have it on a block. */
+
+    let peersToSendTo = 0
+    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
+      peersToSendTo++
     }
 
     return (
       (this.node.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)) &&
-      peersToSendToLength === 0
+      peersToSendTo === 0
       // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
     )
   }
@@ -1035,9 +1031,8 @@ export class PeerNetwork {
       this.onTransactionAccepted.emit(transaction, received)
     }
 
-    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
     if (this.node.memPool.exists(transaction.hash())) {
-      this.broadcastTransaction(message, peersToSendTo)
+      this.broadcastTransaction(message)
       return true
     }
 
