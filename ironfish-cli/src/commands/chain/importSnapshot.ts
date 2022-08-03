@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  DEFAULT_SNAPSHOT_BUCKET_URL,
   ErrorUtils,
   FileUtils,
   Meter,
@@ -22,7 +21,7 @@ import { promisify } from 'util'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
-import { SnapshotManifest } from '../../utils'
+import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../utils'
 
 export default class ImportSnapshot extends IronfishCommand {
   static hidden = false
@@ -62,7 +61,9 @@ export default class ImportSnapshot extends IronfishCommand {
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
-      const bucketUrl = (flags.bucketUrl || DEFAULT_SNAPSHOT_BUCKET_URL || '').trim()
+      const bucketUrl = (
+        flags.bucketUrl || `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.amazonaws.com`
+      ).trim()
       if (!bucketUrl) {
         this.log(`Cannot download snapshot without bucket URL`)
         this.exit(1)
