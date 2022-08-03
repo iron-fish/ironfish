@@ -428,7 +428,7 @@ export class Accounts {
       for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
         await this.db.database.transaction(async (tx) => {
           const account = this.accounts.get(accountId)
-          Assert.isNotUndefined(account)
+          Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
           await account.syncTransaction(transaction, decryptedNotes, params, tx)
         })
       }
@@ -470,7 +470,10 @@ export class Accounts {
     const endHash = this.chainProcessor.hash || this.chain.head.hash
 
     const endHeader = await this.chain.getHeader(endHash)
-    Assert.isNotNull(endHeader)
+    Assert.isNotNull(
+      endHeader,
+      `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
+    )
 
     // Accounts that need to be updated at the current scan sequence
     const accounts: Array<Account> = []
@@ -481,7 +484,10 @@ export class Accounts {
 
     for (const account of this.accounts.values()) {
       const headHash = this.headHashes.get(account.id)
-      Assert.isNotUndefined(headHash)
+      Assert.isNotUndefined(
+        headHash,
+        `scanTransactions: No head hash found for ${account.displayName}`,
+      )
 
       if (startHashHex === headHash) {
         accounts.push(account)
@@ -543,7 +549,10 @@ export class Accounts {
 
       for (const remainingAccount of remainingAccounts) {
         const headHash = this.headHashes.get(remainingAccount.id)
-        Assert.isNotUndefined(headHash)
+        Assert.isNotUndefined(
+          headHash,
+          `scanTransactions: No head hash found for remaining account ${remainingAccount.displayName}`,
+        )
 
         if (headHash === hashHex) {
           accounts.push(remainingAccount)
@@ -558,7 +567,7 @@ export class Accounts {
 
     if (this.chainProcessor.hash === null) {
       const latestHeadHash = await this.getLatestHeadHash()
-      Assert.isNotNull(latestHeadHash)
+      Assert.isNotNull(latestHeadHash, `scanTransactions: No latest head hash found`)
 
       this.chainProcessor.hash = latestHeadHash
     }
@@ -654,7 +663,7 @@ export class Accounts {
 
         if (blockHash) {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-          Assert.isNotNull(header)
+          Assert.isNotNull(header, `getUnspentNotes: No header found for ${blockHash}`)
           const main = await this.chain.isHeadChain(header)
           if (main) {
             const confirmations = this.chain.head.sequence - header.sequence
@@ -1148,8 +1157,6 @@ export class Accounts {
       if (!earliestHeader || earliestHeader.sequence > header.sequence) {
         earliestHeader = header
       }
-
-      // TODO: Check if any hashes are on known-forks
     }
 
     return earliestHeader ? earliestHeader.hash : null
@@ -1164,7 +1171,7 @@ export class Accounts {
       }
 
       const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
-      Assert.isNotNull(header)
+      Assert.isNotNull(header, `getLatestHeadHash: No header found for ${headHash}`)
 
       if (!latestHeader || latestHeader.sequence < header.sequence) {
         latestHeader = header
@@ -1188,7 +1195,10 @@ export class Accounts {
 
   isAccountUpToDate(account: Account): boolean {
     const headHash = this.headHashes.get(account.id)
-    Assert.isNotUndefined(headHash)
+    Assert.isNotUndefined(
+      headHash,
+      `isAccountUpToDate: No head hash found for ${account.displayName}`,
+    )
 
     const chainHeadHash = this.chainProcessor.hash
       ? this.chainProcessor.hash.toString('hex')
