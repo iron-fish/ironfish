@@ -62,8 +62,7 @@ export default class ImportSnapshot extends IronfishCommand {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
       const bucketUrl = (
-        flags.bucketUrl ||
-        `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.us-east-1.amazonaws.com`
+        flags.bucketUrl || `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.amazonaws.com`
       ).trim()
       if (!bucketUrl) {
         this.log(`Cannot download snapshot without bucket URL`)
