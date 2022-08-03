@@ -5,7 +5,6 @@
 import { RollingFilter } from '@ironfish/bfilter'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
-import { el } from 'date-fns/locale'
 import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
