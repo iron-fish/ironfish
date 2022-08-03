@@ -68,11 +68,6 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
-import { ImportSnapshotRequest, ImportSnapshotResponse } from '../routes/chain/importChain'
-import {
-  SnapshotChainStreamRequest,
-  SnapshotChainStreamResponse,
-} from '../routes/chain/snapshotChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   ExportMinedStreamRequest,
@@ -388,24 +383,6 @@ export abstract class RpcClient {
       `${ApiNamespace.chain}/followChainStream`,
       params,
     )
-  }
-
-  snapshotChainStream(
-    params: SnapshotChainStreamRequest = undefined,
-  ): RpcResponse<void, SnapshotChainStreamResponse> {
-    return this.request<void, SnapshotChainStreamResponse>(
-      `${ApiNamespace.chain}/snapshotChainStream`,
-      params,
-    )
-  }
-
-  importSnapshot(
-    params: ImportSnapshotRequest = undefined,
-  ): Promise<RpcResponseEnded<ImportSnapshotResponse>> {
-    return this.request<ImportSnapshotResponse>(
-      `${ApiNamespace.chain}/importSnapshot`,
-      params,
-    ).waitForEnd()
   }
 
   async getBlockInfo(
