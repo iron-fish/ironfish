@@ -44,6 +44,7 @@ import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionV2Message } from './messages/newTransactionV2'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -400,22 +401,32 @@ export class PeerNetwork {
       }
     }
 
+    const hashMessage = new NewPooledTransactionHashes([hash])
+
     for (const peer of sendHash) {
       if (peer.state.type !== 'CONNECTED') {
         continue
       }
-      if (peer.send(message)) {
-        const hash = new Transaction(message.transaction).hash()
+
+      if (peer.send(hashMessage)) {
         this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
 
+    const newTransactionMessage = new NewTransactionV2Message(message.transaction)
     for (const peer of sendFull) {
       if (peer.state.type !== 'CONNECTED') {
         continue
       }
-      if (peer.send(message)) {
-        const hash = new Transaction(message.transaction).hash()
+
+      let sent
+      if (isUpgraded(peer)) {
+        sent = peer.send(newTransactionMessage)
+      } else {
+        sent = peer.send(message)
+      }
+
+      if (sent) {
         this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
@@ -570,6 +581,10 @@ export class PeerNetwork {
       this.handleNewBlockV2Message(peer, message)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
+    } else if (message instanceof NewTransactionV2Message) {
+      const hash = new Transaction(message.transaction).hash()
+      const gossipMessage = new NewTransactionMessage(message.transaction, hash)
+      await this.onNewTransaction(peer, gossipMessage)
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
