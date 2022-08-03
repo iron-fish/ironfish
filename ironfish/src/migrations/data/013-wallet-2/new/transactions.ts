@@ -12,18 +12,21 @@ export type TransactionsStore = IDatabaseStore<{
 export interface TransactionsValue {
   transaction: Buffer
   blockHash: string | null
+  sequence: number | null
   submittedSequence: number | null
 }
 
 export class TransactionsValueEncoding implements IDatabaseEncoding<TransactionsValue> {
   serialize(value: TransactionsValue): Buffer {
-    const { transaction, blockHash, submittedSequence } = value
+    const { transaction, blockHash, sequence, submittedSequence } = value
+
     const bw = bufio.write(this.getSize(value))
     bw.writeVarBytes(transaction)
 
     let flags = 0
     flags |= Number(!!blockHash) << 0
     flags |= Number(!!submittedSequence) << 1
+    flags |= Number(!!sequence) << 2
     bw.writeU8(flags)
 
     if (blockHash) {
@@ -31,6 +34,9 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     }
     if (submittedSequence) {
       bw.writeU32(submittedSequence)
+    }
+    if (sequence) {
+      bw.writeU32(sequence)
     }
 
     return bw.render()
@@ -43,6 +49,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
     const hasSubmittedSequence = flags & (1 << 1)
+    const hasSequence = flags & (1 << 2)
 
     let blockHash = null
     if (hasBlockHash) {
@@ -54,7 +61,12 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
       submittedSequence = reader.readU32()
     }
 
-    return { transaction, blockHash, submittedSequence }
+    let sequence = null
+    if (hasSequence) {
+      sequence = reader.readU32()
+    }
+
+    return { transaction, blockHash, submittedSequence, sequence }
   }
 
   getSize(value: TransactionsValue): number {
@@ -64,6 +76,9 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
       size += 32
     }
     if (value.submittedSequence) {
+      size += 4
+    }
+    if (value.sequence) {
       size += 4
     }
     return size
