@@ -23,10 +23,10 @@ import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../utils'
 
-export default class ImportSnapshot extends IronfishCommand {
+export default class Download extends IronfishCommand {
   static hidden = false
 
-  static description = `Import chain snapshot`
+  static description = `Download and import a chain snapshot`
 
   static flags = {
     ...LocalFlags,
@@ -49,7 +49,7 @@ export default class ImportSnapshot extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(ImportSnapshot)
+    const { flags } = await this.parse(Download)
 
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
@@ -81,13 +81,10 @@ export default class ImportSnapshot extends IronfishCommand {
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
 
       if (!flags.confirm) {
-        this.log(
-          `This snapshot (${manifest.file_name}) contains the Iron Fish blockchain up to block ${manifest.block_sequence}. The size of the latest snapshot file is ${fileSize}`,
+        const confirm = await CliUx.ux.confirm(
+          `Download ${fileSize} snapshot to update chain head from block ${node.chain.head.sequence} to ${manifest.block_sequence}?`,
         )
 
-        this.log(`Current head sequence of your local chain: ${node.chain.head.sequence}`)
-
-        const confirm = await CliUx.ux.confirm('Do you wish to continue (Y/N)?')
         if (!confirm) {
           this.log('Snapshot download aborted.')
           this.exit(0)
