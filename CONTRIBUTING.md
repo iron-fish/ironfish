@@ -8,7 +8,7 @@ Thanks in advance for your help.
 
 # Verified Issues
 
-At the heart of the community contribution system is our issues list, and the idea of "verified" issues. These issues will have a green `verified` tag in Github, which indicates that the issue has been reviewed and confirmed by an IF core team member as an approved change for the product.
+At the heart of the community contribution system is our [verified issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified) list, and the idea of "verified" issues. These issues will have a green `verified` tag in Github, which indicates that the issue has been reviewed and confirmed by an IF core team member as an approved change for the product.
 
 All pull requests *must* reference a verified issue to be merged into the codebase. If the issue the PR solves does not link to a verified issue (or any issue at all), you must create that issue and get it verified before the PR can be reviewed.
 
