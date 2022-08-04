@@ -661,8 +661,6 @@ export class PeerNetwork {
       const request = this.requests.get(rpcId)
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
-      } else {
-        this.logger.debug(`Dropping response to unknown request ${rpcId}`)
       }
 
       if (rpcMessage instanceof PooledTransactionsResponse) {
