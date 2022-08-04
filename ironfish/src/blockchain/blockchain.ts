@@ -1315,16 +1315,11 @@ export class VerifyError extends Error {
 
     this.reason = reason
     this.score = score
-
     this.explaination = explaination;
   }
 
   override get message(): string {
-    if (this.explaination !== undefined) {
-      return this.explaination;
-    }
-
-    return this.reason;
+    return this.explaination ?? this.reason;
   }
 
   override toString(): string {
