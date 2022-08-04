@@ -33,8 +33,8 @@ export default class Download extends IronfishCommand {
     bucketUrl: Flags.string({
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
-      required: false,
       description: 'Bucket URL to download snapshot from',
+      default: `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.amazonaws.com`,
     }),
     path: Flags.string({
       char: 'p',
@@ -60,15 +60,13 @@ export default class Download extends IronfishCommand {
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
-      const bucketUrl = (
-        flags.bucketUrl || `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.amazonaws.com`
-      ).trim()
-      if (!bucketUrl) {
+      if (!flags.bucketUrl) {
         this.log(`Cannot download snapshot without bucket URL`)
         this.exit(1)
       }
 
-      const manifest = (await axios.get<SnapshotManifest>(`${bucketUrl}/manifest.json`)).data
+      const manifest = (await axios.get<SnapshotManifest>(`${flags.bucketUrl}/manifest.json`))
+        .data
 
       if (manifest.database_version > VERSION_DATABASE_CHAIN) {
         this.log(
@@ -111,7 +109,7 @@ export default class Download extends IronfishCommand {
       await axios({
         method: 'GET',
         responseType: 'stream',
-        url: `${bucketUrl}/${manifest.file_name}`,
+        url: `${flags.bucketUrl}/${manifest.file_name}`,
       })
         .then(async (response: { data: IncomingMessage }) => {
           response.data.on('data', (chunk: { length: number }) => {
