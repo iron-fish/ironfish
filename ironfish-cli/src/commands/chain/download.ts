@@ -151,7 +151,7 @@ export default class Download extends IronfishCommand {
 
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
     await this.unzip(snapshotPath, snapshotDatabasePath)
-    CliUx.ux.action.stop('...done')
+    CliUx.ux.action.stop('done')
 
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
@@ -163,7 +163,7 @@ export default class Download extends IronfishCommand {
       await fsAsync.rm(chainDatabasePath, { recursive: true })
     }
     await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
-    CliUx.ux.action.stop('...done')
+    CliUx.ux.action.stop('done')
   }
 
   async unzip(source: string, dest: string): Promise<void> {
