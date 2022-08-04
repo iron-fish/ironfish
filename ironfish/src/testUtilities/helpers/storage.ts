@@ -29,8 +29,14 @@ export function makeDbPath(name?: string): string {
   return `./testdbs/${name}`
 }
 
-export async function createDB(open = false): Promise<IDatabase> {
-  const location = path.join(os.tmpdir(), uuid())
+export async function createTestDB(
+  open = false,
+  location?: string,
+): Promise<{ db: IDatabase; location: string }> {
+  if (!location) {
+    location = path.join(os.tmpdir(), uuid())
+  }
+
   const database = createDBStorage({ location })
 
   afterEach(async () => database?.close())
@@ -39,5 +45,8 @@ export async function createDB(open = false): Promise<IDatabase> {
     await database.open()
   }
 
-  return database
+  return {
+    db: database,
+    location,
+  }
 }
