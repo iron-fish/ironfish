@@ -15,9 +15,8 @@ import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
-import { PeerNetwork } from './peerNetwork'
 import { Peer } from './peers/peer'
-import { getConnectedPeer } from './testUtilities'
+import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
 
 jest.mock('ws')
 jest.useFakeTimers()
@@ -27,15 +26,6 @@ const getValidTransactionOnBlock = async (node: IronfishNode) => {
   const accountB = await useAccountFixture(node.accounts, 'accountB')
   const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
   return { transaction, accountA, accountB, block }
-}
-
-const getConnectedPeersWithSpies = (peerNetwork: PeerNetwork, count: number) => {
-  return [...Array(count)].map((_) => {
-    const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const sendSpy = jest.spyOn(peer, 'send')
-
-    return { peer, sendSpy }
-  })
 }
 
 const newHashMessage = (
@@ -58,7 +48,7 @@ describe('TransactionFetcher', () => {
 
     const hash = blake3(uuid())
 
-    const peers = getConnectedPeersWithSpies(peerNetwork, 5)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     const messagesToSend = peers.map(({ peer, sendSpy }) => {
       return { peer, message: newHashMessage(peer, hash), peerSpy: sendSpy }
     })
@@ -91,7 +81,7 @@ describe('TransactionFetcher', () => {
     const hash = transaction.hash()
 
     // The hash is received from 5 peers
-    const peers = getConnectedPeersWithSpies(peerNetwork, 5)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     const messagesToSend = peers.map(({ peer, sendSpy }) => {
       return { peer, message: newHashMessage(peer, hash), peerSpy: sendSpy }
     })
@@ -130,7 +120,7 @@ describe('TransactionFetcher', () => {
     const hash = transaction.hash()
 
     // The hash is received from 5 peers
-    const peers = getConnectedPeersWithSpies(peerNetwork, 5)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     const messagesToSend = peers.map(({ peer, sendSpy }) => {
       return { peer, message: newHashMessage(peer, hash), peerSpy: sendSpy }
     })
@@ -326,7 +316,7 @@ describe('TransactionFetcher', () => {
     const hash = transaction.hash()
 
     // Create 2 peers and 2 hash messages to receive
-    const peers = getConnectedPeersWithSpies(peerNetwork, 2)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
     const messagesToSend = peers.map(({ peer, sendSpy }) => {
       return { peer, message: newHashMessage(peer, hash), peerSpy: sendSpy }
     })
@@ -367,7 +357,7 @@ describe('TransactionFetcher', () => {
     const { transaction } = await getValidTransactionOnBlock(node)
 
     // Create 2 peers and 2 hash messages to receive
-    const peers = getConnectedPeersWithSpies(peerNetwork, 2)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
     const messagesToSend = peers.map(({ peer, sendSpy }) => {
       return { peer, message: newHashMessage(peer, transaction.hash()), peerSpy: sendSpy }
     })
