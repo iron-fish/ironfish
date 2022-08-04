@@ -374,7 +374,7 @@ export class PeerNetwork {
 
   private broadcastTransaction(message: NewTransactionMessage): void {
     const hash = new Transaction(message.transaction).hash()
-    const isUpgraded = (peer: Peer) => peer.version === null || peer.version < 17
+    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 17
 
     const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
     const sendHash: Peer[] = []
