@@ -198,7 +198,7 @@ export class WorkerPool {
 
     return response.verified
       ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
+      : { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
   }
 
   async verifyTransactions(transactions: Array<Transaction>): Promise<VerificationResult> {
@@ -212,7 +212,7 @@ export class WorkerPool {
 
     return response.verified
       ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
+      : { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
   }
 
   async boxMessage(
