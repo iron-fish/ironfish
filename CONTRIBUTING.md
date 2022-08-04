@@ -12,6 +12,8 @@ At the heart of the community contribution system is our issues list, and the id
 
 All pull requests *must* reference a verified issue to be merged into the codebase. If the issue the PR solves does not link to a verified issue (or any issue at all), you must create that issue and get it verified before the PR can be reviewed.
 
+Verification review of new issues will happen multiple times per week, so new issues will be tagged generally within *3 business days*.
+
 # Contributor Workflow
 
 Pull requests are the best way to propose a new change to the codebase.
@@ -19,7 +21,8 @@ Pull requests are the best way to propose a new change to the codebase.
 - Fork the repo
 - Create a branch from `staging`
 - Find or create one or more issues that your change will fix, using our [new issue form](https://github.com/iron-fish/ironfish/issues/new/choose).
-  - ALL pull requests must refence a verified issue. If the issue is not verified, that has to happen first before the PR is reviewed.
+  - ALL pull requests must refence a verified issue. If the issue is not verified, that has to happen before the PR is reviewed.
+  - Note that team members looking at a PR will try to verify any issues referenced before doing the review. As long as the issue is solid, this should be a fast process!
 - Open a pull request against `staging`
 
 Once the PR is created, one of the maintainers will review it and merge it. Reference any bugs you're fixing with single lines of the form `Fix #123`
