@@ -455,21 +455,22 @@ export class MerkleTree<
     return this.db.withTransaction(tx, async (tx) => {
       const leafCount = await this.getCount('Leaves', tx)
 
-      Assert.isFalse(leafCount < 0);
+      Assert.isFalse(leafCount < 0)
+
+      const throwVerifyError = (reason: VerificationResultReason) => {
+        const explaination = `
+          Unable to get past size ${pastSize} for tree with ${leafCount} nodes
+        `
+
+        throw new VerifyError(reason, 0, explaination)
+      }
 
       if (leafCount == 0) {
-        throw new VerifyError(VerificationResultReason.EMPTY_MERKLE_TREE);
+        throwVerifyError(VerificationResultReason.EMPTY_MERKLE_TREE)
       }
 
       if (pastSize > leafCount || pastSize === 0) {
-        const explaination = `
-          Unable to get past size ${pastSize} for tree with ${leafCount} nodes
-        `;
-
-        throw new VerifyError(
-          VerificationResultReason.INVALID_SPEND,
-          0,
-          explaination);
+        throwVerifyError(VerificationResultReason.INVALID_SPEND)
       }
 
       const rootDepth = depthAtLeafCount(pastSize)
