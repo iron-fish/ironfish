@@ -235,17 +235,10 @@ export class PeerNetwork {
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = transaction.serialize()
 
-      const message = new NewTransactionMessage(serializedTransaction)
+      const nonce = Buffer.alloc(16, transaction.hash())
+      const message = new NewTransactionMessage(serializedTransaction, nonce)
 
-      for (const peer of this.peerManager.identifiedPeers.values()) {
-        if (peer.state.type !== 'CONNECTED') {
-          continue
-        }
-
-        if (peer.send(message)) {
-          this.markKnowsTransaction(transaction.hash(), peer.state.identity)
-        }
-      }
+      this.broadcastTransaction(message)
     })
   }
 
@@ -674,7 +667,8 @@ export class PeerNetwork {
 
       if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const serializedTransaction of rpcMessage.transactions) {
-          const gossipMessage = new NewTransactionMessage(serializedTransaction)
+          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
+          const gossipMessage = new NewTransactionMessage(serializedTransaction, nonce)
           await this.onNewTransaction(peer, gossipMessage)
         }
       }
