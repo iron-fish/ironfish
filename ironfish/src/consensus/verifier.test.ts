@@ -221,7 +221,7 @@ describe('Verifier', () => {
 
       expect(await nodeTest.verifier.verifyConnectedSpends(block)).toEqual({
         valid: false,
-        reason: VerificationResultReason.ERROR,
+        reason: VerificationResultReason.UNKNOWN_ERROR,
       })
     }, 60000)
 
@@ -417,18 +417,18 @@ describe('Verifier', () => {
       )
     })
 
-    it('returns any error from verifyConnectedSpends()', async () => {
+    it('returns empty merke tree error from verifyConnectedSpends()', async () => {
       const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
       Assert.isNotNull(genesisBlock)
 
       jest
         .spyOn(nodeTest.verifier, 'verifySpend')
-        .mockResolvedValue(VerificationResultReason.ERROR)
+        .mockResolvedValue(VerificationResultReason.EMPTY_MERKLE_TREE)
 
       await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
         {
           valid: false,
-          reason: VerificationResultReason.ERROR,
+          reason: VerificationResultReason.EMPTY_MERKLE_TREE,
         },
       )
     })
@@ -461,7 +461,7 @@ describe('Verifier', () => {
         jest.spyOn(nodeTest.workerPool, 'verify').mockImplementationOnce(() =>
           Promise.resolve({
             valid: false,
-            reason: VerificationResultReason.ERROR,
+            reason: VerificationResultReason.VERIFY_TRANSACTION,
           }),
         )
 
@@ -469,7 +469,7 @@ describe('Verifier', () => {
           nodeTest.verifier.verifyTransactionContextual(transaction, nodeTest.chain.head),
         ).resolves.toEqual({
           valid: false,
-          reason: VerificationResultReason.ERROR,
+          reason: VerificationResultReason.VERIFY_TRANSACTION,
         })
       }, 60000)
     })
