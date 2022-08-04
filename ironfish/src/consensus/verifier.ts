@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferSet } from 'buffer-map'
-import { Blockchain } from '../blockchain'
+import { Blockchain, VerifyError } from '../blockchain'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
@@ -438,6 +438,7 @@ export enum VerificationResultReason {
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
+  EMPTY_MERKLE_TREE = 'Empty merke tree',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
