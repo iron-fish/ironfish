@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { VerifyError } from '..'
 import { Assert } from '../assert'
+import { VerificationResultReason } from '../consensus'
 import { JsonSerializable } from '../serde'
 import {
   DatabaseKey,
@@ -453,8 +455,21 @@ export class MerkleTree<
     return this.db.withTransaction(tx, async (tx) => {
       const leafCount = await this.getCount('Leaves', tx)
 
-      if (leafCount === 0 || pastSize > leafCount || pastSize === 0) {
-        throw new Error(`Unable to get past size ${pastSize} for tree with ${leafCount} nodes`)
+      Assert.isFalse(leafCount < 0);
+
+      if (leafCount == 0) {
+        throw new VerifyError(VerificationResultReason.EMPTY_MERKLE_TREE);
+      }
+
+      if (pastSize > leafCount || pastSize === 0) {
+        const explaination = `
+          Unable to get past size ${pastSize} for tree with ${leafCount} nodes
+        `;
+
+        throw new VerifyError(
+          VerificationResultReason.INVALID_SPEND,
+          0,
+          explaination);
       }
 
       const rootDepth = depthAtLeafCount(pastSize)
