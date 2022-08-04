@@ -21,7 +21,7 @@ import { Transaction } from '../primitives'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
-import { ArrayUtils, AsyncUtils, ErrorUtils } from '../utils'
+import { ArrayUtils, ErrorUtils } from '../utils'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
@@ -357,6 +357,7 @@ export class PeerNetwork {
     await this.peerManager.stop()
     this.webSocketServer?.close()
     this.updateIsReady()
+    this.transactionFetcher.stop()
   }
 
   /**
@@ -581,8 +582,9 @@ export class PeerNetwork {
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
     } else if (message instanceof NewTransactionV2Message) {
-      const hash = new Transaction(message.transaction).hash()
-      const gossipMessage = new NewTransactionMessage(message.transaction, hash)
+      // Set the nonce to the hash of the transaction for older peers
+      const nonce = Buffer.alloc(16, new Transaction(message.transaction).hash())
+      const gossipMessage = new NewTransactionMessage(message.transaction, nonce)
       await this.onNewTransaction(peer, gossipMessage)
     } else {
       throw new Error(
@@ -672,13 +674,8 @@ export class PeerNetwork {
 
       if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const serializedTransaction of rpcMessage.transactions) {
-          const transaction = new Transaction(serializedTransaction)
-          this.transactionFetcher.receivedTransaction(transaction.hash())
-
           const gossipMessage = new NewTransactionMessage(serializedTransaction)
           await this.onNewTransaction(peer, gossipMessage)
-
-          this.transactionFetcher.removeTransaction(transaction.hash())
         }
       }
     }
@@ -1009,15 +1006,20 @@ export class PeerNetwork {
     const hash = new Transaction(message.transaction).hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
+    // Let the fetcher know that a transaction was received and we no longer have to query it
+    this.transactionFetcher.receivedTransaction(hash)
+
     for (const [_, knownPeer] of peer.knownPeers) {
       knownPeer.state.identity && this.markKnowsTransaction(hash, knownPeer.state.identity)
     }
 
     if (!this.shouldProcessTransactions()) {
+      this.transactionFetcher.removeTransaction(hash)
       return false
     }
 
     if (this.alreadyHaveTransaction(hash)) {
+      this.transactionFetcher.removeTransaction(hash)
       return false
     }
 
@@ -1034,6 +1036,7 @@ export class PeerNetwork {
       this.logger.debug(
         `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
       )
+      this.transactionFetcher.removeTransaction(hash)
       return false
     }
 
@@ -1047,9 +1050,11 @@ export class PeerNetwork {
 
     if (this.node.memPool.exists(transaction.hash())) {
       this.broadcastTransaction(message)
+      this.transactionFetcher.removeTransaction(hash)
       return true
     }
 
+    this.transactionFetcher.removeTransaction(hash)
     return false
   }
 }

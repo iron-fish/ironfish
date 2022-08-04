@@ -10,7 +10,6 @@ import { Peer, PeerState } from './peers/peer'
 
 type TransactionState =
   | {
-      peer: Peer
       action: 'REQUEST_SCHEDULED'
       timeout: NodeJS.Timeout
     }
@@ -56,33 +55,31 @@ export class TransactionFetcher {
 
     const currentState = this.pending.get(hash)
 
-    if (currentState) {
-      if (currentState.action === 'PROCESSING' || currentState.peer === peer) {
-        return
-      }
-
-      const sources = this.sources.get(hash) || new Set<Peer>()
-      sources.add(peer)
-      this.sources.set(hash, sources)
+    if (currentState && currentState.action === 'PROCESSING') {
       return
     }
 
-    /* Wait 500ms before requesting a new hash to see if we receive the full
-     * transaction from the network first */
-    const timeout = setTimeout(() => {
-      if (this.peerNetwork.alreadyHaveTransaction(hash)) {
-        this.removeTransaction(hash)
-        return
-      }
+    const sources = this.sources.get(hash) || new Set<Peer>()
+    sources.add(peer)
+    this.sources.set(hash, sources)
 
-      this.requestTransaction(hash)
-    }, 500)
+    if (!currentState) {
+      /* Wait 500ms before requesting a new hash to see if we receive the full
+       * transaction from the network first */
+      const timeout = setTimeout(() => {
+        if (this.peerNetwork.alreadyHaveTransaction(hash)) {
+          this.removeTransaction(hash)
+          return
+        }
 
-    this.pending.set(hash, {
-      peer,
-      action: 'REQUEST_SCHEDULED',
-      timeout,
-    })
+        this.requestTransaction(hash)
+      }, 500)
+
+      this.pending.set(hash, {
+        action: 'REQUEST_SCHEDULED',
+        timeout,
+      })
+    }
   }
 
   /**
@@ -122,6 +119,12 @@ export class TransactionFetcher {
     currentState && this.cleanupCallbacks(currentState)
 
     this.requestTransaction(hash)
+  }
+
+  stop(): void {
+    for (const [hash] of this.pending) {
+      this.removeTransaction(hash)
+    }
   }
 
   private requestTransaction(hash: TransactionHash): void {
