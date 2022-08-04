@@ -6,6 +6,8 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
 export default class ReAddBlock extends IronfishCommand {
+  static aliases = ['chain:readdblock']
+
   static description =
     'Remove and readd a block on the chain if it has no other blocks after it'
 
