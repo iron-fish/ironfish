@@ -28,30 +28,26 @@ export default class Debug extends IronfishCommand {
   async start(): Promise<void> {
     const node = await this.sdk.node({ autoSeed: false })
 
-    let dbOpen = true
     try {
       await node.openDB()
+
+      this.display(await this.fullOutput(node))
     } catch (err) {
       if (err instanceof DatabaseIsLockedError) {
         this.log('Database in use, skipping output that requires database.')
         this.log('Stop the node and run the debug command again to show full output.\n')
-        dbOpen = false
       } else if (err instanceof DatabaseOpenError) {
         this.log('Database cannot be opened, skipping output that requires database.\n')
         this.log(ErrorUtils.renderError(err, true) + '\n')
-        dbOpen = false
+      } else {
+        this.log(`An error occured while opening the database: ${err}`)
       }
-    }
 
-    let output = this.baseOutput(node)
-    if (dbOpen) {
-      output = new Map([...output, ...(await this.outputRequiringDB(node))])
+      this.display(this.basicOutput(node));
     }
-
-    this.display(output)
   }
 
-  baseOutput(node: IronfishNode): Map<string, string> {
+  basicOutput(node: IronfishNode): Map<string, string> {
     const cpus = os.cpus()
     const cpuNames = [...new Set(cpus.map((c) => c.model))]
     const cpuThreads = cpus.length
@@ -89,15 +85,17 @@ export default class Debug extends IronfishCommand {
     ])
   }
 
-  async outputRequiringDB(node: IronfishNode): Promise<Map<string, string>> {
+  async fullOutput(node: IronfishNode): Promise<Map<string, string>> {
+    const basicOutput = this.basicOutput(node);
+
     const accountsMeta = await node.accounts.db.loadAccountsMeta()
     const accountsHeadHash = accountsMeta.headHash !== null ? accountsMeta.headHash : ''
-
     const accountsBlockHeader = await node.chain.getHeader(Buffer.from(accountsHeadHash, 'hex'))
     const accountsHeadInChain = !!accountsBlockHeader
     const accountsHeadSequence = accountsBlockHeader?.sequence || 'null'
 
     return new Map<string, string>([
+      ...basicOutput,
       ['Accounts head hash', `${accountsHeadHash}`],
       ['Accounts head in chain', `${accountsHeadInChain.toString()}`],
       ['Accounts head sequence', `${accountsHeadSequence}`],
