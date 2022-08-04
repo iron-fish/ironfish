@@ -26,7 +26,7 @@ Pull requests are the best way to propose a new change to the codebase.
 - Open a pull request against `staging`
 
 Once the PR is created, one of the maintainers will review it and merge it. Reference any bugs you're fixing with single lines of the form `Fix #123`
-  - We aim to review any PR submitted within one week.
+  - We aim to review any PR submitted within *5 business days*. This SLA includes verifying any issues associated with the PR.
 
 **NOTE:** Read [You should open a Feature Request if](#you-should-open-a-feature-request-if) if you are thinking of working on a change in functionality.
 
