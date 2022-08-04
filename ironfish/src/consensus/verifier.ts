@@ -194,7 +194,11 @@ export class Verifier {
   ): Promise<VerificationResult> {
     try {
       return await this.workerPool.verify(transaction, options)
-    } catch {
+    } catch (err) {
+      if (err instanceof Error) {
+        this.chain.logger.error(err.toString())
+      }
+
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
   }
@@ -378,11 +382,17 @@ export class Verifier {
 
     try {
       const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+
       if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
-    } catch {
-      return VerificationResultReason.ERROR
+    } catch (err) {
+      if (err instanceof VerifyError) {
+        this.chain.logger.error(err.toString())
+        return err.reason
+      }
+
+      return VerificationResultReason.UNKNOWN_ERROR
     }
   }
 
@@ -437,7 +447,6 @@ export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
-  ERROR = 'Error',
   EMPTY_MERKLE_TREE = 'Empty merke tree',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
@@ -460,6 +469,7 @@ export enum VerificationResultReason {
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
+  UNKNOWN_ERROR = 'Unknown Error',
 }
 
 /**
