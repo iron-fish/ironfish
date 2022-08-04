@@ -54,5 +54,6 @@ If you are working on something in one of these categories, we will not accept y
 # Contact Us
 
 In case of problems with trying to contribute to Iron Fish, you can contact us:
+* on [Github Discussions](https://github.com/iron-fish/ironfish/discussions)
 * On [Discord](https://discord.gg/ironfish)
 * Via [email](mailto:contact@ironfish.network)
