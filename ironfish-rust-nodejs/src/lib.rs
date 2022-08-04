@@ -121,38 +121,40 @@ pub const KEY_LENGTH: u32 = tweetnacl::KEY_LENGTH as u32;
 #[napi]
 pub const NONCE_LENGTH: u32 = tweetnacl::NONCE_LENGTH as u32;
 
-#[napi(object)]
+#[napi]
 pub struct BoxKeyPair {
     pub public_key: Uint8Array,
     pub secret_key: Uint8Array,
 }
 
 #[napi]
-// TODO: Make BoxKeyPair a class and make this the constructor or a factory
-pub fn new_key_pair() -> BoxKeyPair {
-    let secret_key = new_secret_key();
+impl BoxKeyPair {
+    #[napi(constructor)]
+    pub fn new() -> BoxKeyPair {
+        let secret_key = new_secret_key();
 
-    BoxKeyPair {
-        public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
-        secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+        BoxKeyPair {
+            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+        }
     }
-}
 
-#[napi]
-pub fn secret_hex_to_key_pair(secret_hex: String) -> Result<BoxKeyPair> {
-    let byte_vec = base64::decode(secret_hex)
-        .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
+    #[napi(factory)]
+    pub fn from_hex(secret_hex: String) -> Result<BoxKeyPair> {
+        let byte_vec = base64::decode(secret_hex)
+            .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
 
-    let bytes: [u8; tweetnacl::KEY_LENGTH] = byte_vec
-        .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert secret key".to_owned()))?;
+        let bytes: [u8; tweetnacl::KEY_LENGTH] = byte_vec
+            .try_into()
+            .map_err(|_| Error::from_reason("Unable to convert secret key".to_owned()))?;
 
-    let secret_key = bytes_to_secret_key(bytes);
+        let secret_key = bytes_to_secret_key(bytes);
 
-    Ok(BoxKeyPair {
-        public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
-        secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
-    })
+        Ok(BoxKeyPair {
+            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+        })
+    }
 }
 
 #[napi]

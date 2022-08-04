@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RollingFilter } from '@ironfish/bfilter'
-import { newKeyPair } from '@ironfish/rust-nodejs'
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
@@ -135,7 +135,7 @@ export class PeerNetwork {
     chain: Blockchain
     hostsStore: HostsStore
   }) {
-    const identity = options.identity || newKeyPair()
+    const identity = options.identity || new BoxKeyPair()
 
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node

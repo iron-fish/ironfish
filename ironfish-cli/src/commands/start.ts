@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { secretHexToKeyPair } from '@ironfish/rust-nodejs'
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { v4 as uuid } from 'uuid'
@@ -284,7 +284,7 @@ export default class Start extends IronfishCommand {
       networkIdentity !== undefined &&
       networkIdentity.length > 31
     ) {
-      return secretHexToKeyPair(networkIdentity)
+      return BoxKeyPair.fromHex(networkIdentity)
     }
   }
 }

@@ -25,12 +25,6 @@ export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
 export const KEY_LENGTH: number
 export const NONCE_LENGTH: number
-export interface BoxKeyPair {
-  publicKey: Uint8Array
-  secretKey: Uint8Array
-}
-export function newKeyPair(): BoxKeyPair
-export function secretHexToKeyPair(secretHex: string): BoxKeyPair
 export function randomBytes(bytesLength: number): Uint8Array
 export interface BoxedMessage {
   nonce: string
@@ -50,9 +44,9 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, left: Buffer, right: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): Buffer | undefined | null
+  decryptNoteForOwner(incomingHexKey: string): Buffer | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
+  decryptNoteForSpender(outgoingHexKey: string): Buffer | null
 }
 export type NativeNote = Note
 export class Note {
@@ -131,6 +125,12 @@ export class ThreadPoolHandler {
   newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
   stop(): void
   pause(): void
-  getFoundBlock(): FoundBlockResult | undefined | null
+  getFoundBlock(): FoundBlockResult | null
   getHashRateSubmission(): number
+}
+export class BoxKeyPair {
+  publicKey: Uint8Array
+  secretKey: Uint8Array
+  constructor()
+  static fromHex(secretHex: string): BoxKeyPair
 }
