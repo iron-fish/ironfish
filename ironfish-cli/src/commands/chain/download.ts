@@ -55,8 +55,7 @@ export default class Download extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
 
     let snapshotPath
-    const tempDir = this.sdk.fileSystem.resolve(this.sdk.config.tempDir)
-    await fsAsync.mkdir(tempDir, { recursive: true })
+    await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
@@ -91,7 +90,7 @@ export default class Download extends IronfishCommand {
         }
       }
 
-      snapshotPath = path.join(tempDir, manifest.file_name)
+      snapshotPath = path.join(this.sdk.config.tempDir, manifest.file_name)
       const snapshotFile = await fsAsync.open(snapshotPath, 'w')
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
@@ -147,7 +146,7 @@ export default class Download extends IronfishCommand {
     }
 
     // use a standard name, 'snapshot', for the unzipped database
-    const snapshotDatabasePath = this.sdk.fileSystem.join(tempDir, 'snapshot')
+    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
     await this.sdk.fileSystem.mkdir(snapshotDatabasePath, { recursive: true })
 
     CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
