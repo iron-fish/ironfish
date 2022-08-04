@@ -10,24 +10,27 @@ Thanks in advance for your help.
 
 Pull requests are the best way to propose a new change to the codebase.
 
-1. Fork the repo
-1. Create a branch from `staging`
-1. Open a pull request against `staging`
+- Fork the repo
+- Create a branch from `staging`
+- Find or create one or more issues that your change will fix, using our [new issue form](https://github.com/iron-fish/ironfish/issues/new/choose).
+  - ALL pull requests must refence a verified issue.
+- Open a pull request against `staging`
 
-Once the PR is created, one of the maintainers will review it and merge it. Add the right labels to your pull request. Reference any bugs you're fixing with single lines of the form `Fix #123`
+Once the PR is created, one of the maintainers will review it and merge it. Reference any bugs you're fixing with single lines of the form `Fix #123`
 
-**NOTE:** Read [You should open a Feature Request if](#you-should-open-a-feature-request-if), if you are thinking of working on a complex change.
+**NOTE:** Read [You should open a Feature Request if](#you-should-open-a-feature-request-if) if you are thinking of working on a change in functionality.
 
 # Where to start
 
 Please read our [README.md](./README.md) first, to learn how to set up Iron Fish.
 
 If you don't know what contribution you can work on, here are a few suggestions:
-* Take a look at our current [list of issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified). Update the issue if you are interested in working on it.
-* Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
-* Help us add new tests. More testing allows everyone to ship quality code faster.
-* Write documentation or fix the existing documentation
-* If you still don't know what could be a good task for you, do not hesitate to contact us.
+- Start with our list of "good first issues", which can be [found here](https://github.com/iron-fish/ironfish/contribute), or take a look at our current [list of verified issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified). 
+  - Update the issue if you are interested in working on it.
+- Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
+- Help us add new tests. More testing allows everyone to ship quality code faster.
+- Write documentation or fix the existing documentation
+- If you still don't know what could be a good task for you, do not hesitate to contact us.
 
 # Feature Request
 
@@ -54,6 +57,6 @@ If you are working on something in one of these categories, we will not accept y
 # Contact Us
 
 In case of problems with trying to contribute to Iron Fish, you can contact us:
-* on [Github Discussions](https://github.com/iron-fish/ironfish/discussions)
-* On [Discord](https://discord.gg/ironfish)
-* Via [email](mailto:contact@ironfish.network)
+- On [Github Discussions](https://github.com/iron-fish/ironfish/discussions)
+- On [Discord](https://discord.gg/ironfish)
+- Via [email](mailto:contact@ironfish.network)
