@@ -44,7 +44,7 @@ export class TransactionFetcher {
   }
 
   /**
-   * Called when a new transaction hash is received from the newtork
+   * Called when a new transaction hash is received from the network
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
   hashReceived(hash: TransactionHash, peer: Peer): void {
