@@ -4,7 +4,6 @@
 export * from './editor'
 export * from './rpc'
 export * from './s3'
-export * from './snapshot'
 export * from './tar'
 export * from './terminal'
 export * from './types'

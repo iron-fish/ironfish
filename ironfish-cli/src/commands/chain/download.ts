@@ -20,8 +20,8 @@ import tar from 'tar'
 import { promisify } from 'util'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
+import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../snapshot'
 import { ProgressBar } from '../../types'
-import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../utils'
 
 export default class Download extends IronfishCommand {
   static hidden = false

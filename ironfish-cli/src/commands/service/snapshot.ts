@@ -9,8 +9,8 @@ import fsAsync from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { DEFAULT_SNAPSHOT_BUCKET, S3Utils, SnapshotManifest } from '../../utils'
-import { TarUtils } from '../../utils/tar'
+import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../snapshot'
+import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
 
