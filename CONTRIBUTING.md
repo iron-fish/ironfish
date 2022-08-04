@@ -6,6 +6,12 @@ Before you start, you should become familiar with pulling the code down locally,
 
 Thanks in advance for your help.
 
+# Verified Issues
+
+At the heart of the community contribution system is our issues list, and the idea of "verified" issues. These issues will have a green `verified` tag in Github, which indicates that the issue has been reviewed and confirmed by an IF core team member as an approved change for the product.
+
+All pull requests *must* reference a verified issue to be merged into the codebase. If the issue the PR solves does not link to a verified issue (or any issue at all), you must create that issue and get it verified before the PR can be reviewed.
+
 # Contributor Workflow
 
 Pull requests are the best way to propose a new change to the codebase.
@@ -13,10 +19,11 @@ Pull requests are the best way to propose a new change to the codebase.
 - Fork the repo
 - Create a branch from `staging`
 - Find or create one or more issues that your change will fix, using our [new issue form](https://github.com/iron-fish/ironfish/issues/new/choose).
-  - ALL pull requests must refence a verified issue.
+  - ALL pull requests must refence a verified issue. If the issue is not verified, that has to happen first before the PR is reviewed.
 - Open a pull request against `staging`
 
 Once the PR is created, one of the maintainers will review it and merge it. Reference any bugs you're fixing with single lines of the form `Fix #123`
+  - We aim to review any PR submitted within one week.
 
 **NOTE:** Read [You should open a Feature Request if](#you-should-open-a-feature-request-if) if you are thinking of working on a change in functionality.
 
@@ -26,7 +33,7 @@ Please read our [README.md](./README.md) first, to learn how to set up Iron Fish
 
 If you don't know what contribution you can work on, here are a few suggestions:
 - Start with our list of "good first issues", which can be [found here](https://github.com/iron-fish/ironfish/contribute), or take a look at our current [list of verified issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified). 
-  - Update the issue if you are interested in working on it.
+  - Claim the issue if you are interested in working on it.
 - Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
 - Help us add new tests. More testing allows everyone to ship quality code faster.
 - Write documentation or fix the existing documentation
