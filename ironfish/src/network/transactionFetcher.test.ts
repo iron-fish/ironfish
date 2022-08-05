@@ -67,7 +67,7 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it.only('does not send a request for a transaction if received NewTransactionMessage from another peer within 500ms', async () => {
+  it('does not send a request for a transaction if received NewTransactionMessage from another peer within 500ms', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
