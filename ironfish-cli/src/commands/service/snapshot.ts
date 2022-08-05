@@ -149,7 +149,7 @@ export default class CreateSnapshot extends IronfishCommand {
             manifestPath,
             'application/json',
             bucket,
-            manifestPath,
+            'manifest.json',
             this.logger.withTag('s3'),
           )
           CliUx.ux.action.stop(`done`)
