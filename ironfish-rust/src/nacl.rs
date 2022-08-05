@@ -130,6 +130,6 @@ mod test {
         );
 
         assert_eq!(plaintext, unboxed_message);
-        debug_assert!(failed_unbox.is_err());
+        assert!(failed_unbox.is_err());
     }
 }
