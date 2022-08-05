@@ -43,7 +43,7 @@ export default class Debug extends IronfishCommand {
         this.log(`An error occured while opening the database: ${err}`)
       }
 
-      this.display(this.basicOutput(node));
+      this.display(this.basicOutput(node))
     }
   }
 
@@ -86,7 +86,7 @@ export default class Debug extends IronfishCommand {
   }
 
   async fullOutput(node: IronfishNode): Promise<Map<string, string>> {
-    const basicOutput = this.basicOutput(node);
+    const basicOutput = this.basicOutput(node)
 
     const accountsMeta = await node.accounts.db.loadAccountsMeta()
     const accountsHeadHash = accountsMeta.headHash !== null ? accountsMeta.headHash : ''
