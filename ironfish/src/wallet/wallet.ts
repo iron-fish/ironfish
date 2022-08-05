@@ -444,20 +444,17 @@ export class Accounts {
   /**
    * Removes a transaction from the transaction map and updates
    * the related maps.
+   *
+   * Note: This function does not do any mutex locking on it's own, it is
+   * expected to be called from a function that manages the lock.
    */
   async removeTransaction(transaction: Transaction): Promise<void> {
     const transactionHash = transaction.unsignedHash()
 
-    const unlock = await this.transactionsMutex.lock()
-
-    try {
-      for (const account of this.accounts.values()) {
-        await this.db.database.transaction(async (tx) => {
-          await account.deleteTransaction(transactionHash, transaction, tx)
-        })
-      }
-    } finally {
-      unlock()
+    for (const account of this.accounts.values()) {
+      await this.db.database.transaction(async (tx) => {
+        await account.deleteTransaction(transactionHash, transaction, tx)
+      })
     }
   }
 
