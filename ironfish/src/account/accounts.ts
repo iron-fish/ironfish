@@ -1124,8 +1124,10 @@ export class Accounts {
           Assert.isNotNull(header)
 
           if (await this.chain.isHeadChain(header)) {
-            if ((this.chain.head.sequence - header.sequence) < 
-                this.config.get('minimumBlockConfirmations')) {
+            if (
+              this.chain.head.sequence - header.sequence <
+              this.config.get('minimumBlockConfirmations')
+            ) {
               status = 'completed and finanlized'
             } else {
               status = 'completed (not finalized)'
@@ -1204,8 +1206,8 @@ export class Accounts {
           transactionInfo = {
             status:
               transactionMapValue.blockHash && transactionMapValue.submittedSequence
-                ?  ((transactionMapValue.submittedSequence + minimumBlockConfirmation) <
-                     this.chain.head.sequence)
+                ? transactionMapValue.submittedSequence + minimumBlockConfirmation <
+                  this.chain.head.sequence
                   ? 'completed and finalized'
                   : 'completed (not finalized)'
                 : 'pending',
