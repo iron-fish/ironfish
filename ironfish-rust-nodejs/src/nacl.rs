@@ -1,0 +1,113 @@
+use ironfish_rust::nacl::{box_message, bytes_to_secret_key, new_secret_key, unbox_message};
+use ironfish_rust::{base64, nacl};
+use napi::bindgen_prelude::*;
+use napi_derive::napi;
+
+#[napi]
+pub const KEY_LENGTH: u32 = nacl::KEY_LENGTH as u32;
+
+#[napi]
+pub const NONCE_LENGTH: u32 = nacl::NONCE_LENGTH as u32;
+
+#[napi]
+pub struct BoxKeyPair {
+    pub public_key: Uint8Array,
+    pub secret_key: Uint8Array,
+}
+
+#[napi]
+impl BoxKeyPair {
+    #[napi(constructor)]
+    pub fn new() -> BoxKeyPair {
+        let secret_key = new_secret_key();
+
+        BoxKeyPair {
+            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+        }
+    }
+
+    #[napi(factory)]
+    pub fn from_hex(secret_hex: String) -> Result<BoxKeyPair> {
+        let byte_vec = base64::decode(secret_hex)
+            .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
+
+        let bytes: [u8; nacl::KEY_LENGTH] = byte_vec
+            .try_into()
+            .map_err(|_| Error::from_reason("Unable to convert secret key".to_owned()))?;
+
+        let secret_key = bytes_to_secret_key(bytes);
+
+        Ok(BoxKeyPair {
+            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
+            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+        })
+    }
+}
+
+#[napi]
+pub fn random_bytes(bytes_length: u32) -> Uint8Array {
+    Uint8Array::new(nacl::random_bytes(bytes_length as usize))
+}
+
+#[napi(object)]
+pub struct BoxedMessage {
+    pub nonce: String,
+    pub boxed_message: String,
+}
+
+#[napi(js_name = "boxMessage")]
+pub fn native_box_message(
+    plaintext: String,
+    sender_secret_key: Uint8Array,
+    recipient_public_key: String,
+) -> Result<BoxedMessage> {
+    let sender: [u8; 32] = sender_secret_key
+        .to_vec()
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert sender secret key".to_owned()))?;
+
+    let decoded_recipient = base64::decode(recipient_public_key)
+        .map_err(|_| Error::from_reason("Unable to decode recipient public key".to_owned()))?;
+
+    let recipient: [u8; 32] = decoded_recipient
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert recipient public key".to_owned()))?;
+
+    let (nonce, ciphertext) = box_message(plaintext, sender, recipient)
+        .map_err(|_| Error::from_reason("Unable to box message".to_owned()))?;
+
+    Ok(BoxedMessage {
+        nonce: base64::encode(nonce),
+        boxed_message: base64::encode(ciphertext),
+    })
+}
+
+#[napi(js_name = "unboxMessage")]
+pub fn native_unbox_message(
+    boxed_message: String,
+    nonce: String,
+    sender_public_key: String,
+    recipient_secret_key: Uint8Array,
+) -> Result<String> {
+    let decoded_sender = base64::decode(sender_public_key)
+        .map_err(|_| Error::from_reason("Unable to decode sender public key".to_owned()))?;
+
+    let sender: [u8; 32] = decoded_sender
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert sender pubic key".to_owned()))?;
+
+    let recipient: [u8; 32] = recipient_secret_key
+        .to_vec()
+        .try_into()
+        .map_err(|_| Error::from_reason("Unable to convert recipient secret key".to_owned()))?;
+
+    let decoded_nonce = base64::decode(nonce)
+        .map_err(|_| Error::from_reason("Unable to decode nonce".to_owned()))?;
+
+    let decoded_ciphertext = base64::decode(boxed_message)
+        .map_err(|_| Error::from_reason("Unable to decode boxed_message".to_owned()))?;
+
+    unbox_message(&decoded_ciphertext, &decoded_nonce, sender, recipient)
+        .map_err(|e| Error::from_reason(format!("Unable to unbox message: {}", e)))
+}

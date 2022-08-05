@@ -15,12 +15,12 @@ pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
 pub mod mining;
+pub mod nacl;
 pub mod note;
 pub mod receiving;
 pub mod sapling_bls12;
 pub mod spending;
 pub mod transaction;
-pub mod tweetnacl;
 pub mod witness;
 pub use {
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},

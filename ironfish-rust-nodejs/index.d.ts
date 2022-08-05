@@ -9,6 +9,15 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export const KEY_LENGTH: number
+export const NONCE_LENGTH: number
+export function randomBytes(bytesLength: number): Uint8Array
+export interface BoxedMessage {
+  nonce: string
+  boxedMessage: string
+}
+export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
+export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
 export interface NativeSpendProof {
   treeSize: number
   rootHash: Buffer
@@ -23,15 +32,12 @@ export interface Key {
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
-export const KEY_LENGTH: number
-export const NONCE_LENGTH: number
-export function randomBytes(bytesLength: number): Uint8Array
-export interface BoxedMessage {
-  nonce: string
-  boxedMessage: string
+export class BoxKeyPair {
+  publicKey: Uint8Array
+  secretKey: Uint8Array
+  constructor()
+  static fromHex(secretHex: string): BoxKeyPair
 }
-export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
-export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)
@@ -127,10 +133,4 @@ export class ThreadPoolHandler {
   pause(): void
   getFoundBlock(): FoundBlockResult | null
   getHashRateSubmission(): number
-}
-export class BoxKeyPair {
-  publicKey: Uint8Array
-  secretKey: Uint8Array
-  constructor()
-  static fromHex(secretHex: string): BoxKeyPair
 }
