@@ -159,6 +159,11 @@ export class Telemetry {
         value: this.metrics.heapTotal.value,
       },
       {
+        name: 'rss',
+        type: 'integer',
+        value: this.metrics.rss.value,
+      },
+      {
         name: 'inbound_traffic',
         type: 'float',
         value: this.metrics.p2p_InboundTraffic.rate5m,
