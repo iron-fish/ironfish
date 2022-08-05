@@ -991,7 +991,7 @@ export class PeerNetwork {
     )
   }
 
-  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
+  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<void> {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
@@ -1001,48 +1001,36 @@ export class PeerNetwork {
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
 
-    if (!this.shouldProcessTransactions()) {
-      this.transactionFetcher.removeTransaction(hash)
-      return false
-    }
+    if (this.shouldProcessTransactions() && !this.alreadyHaveTransaction(hash)) {
+      // Force lazy deserialization of the transaction as a first sanity check
+      const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
 
-    if (this.alreadyHaveTransaction(hash)) {
-      this.transactionFetcher.removeTransaction(hash)
-      return false
-    }
-
-    // Force lazy deserialization of the transaction as a first sanity check
-    const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
-
-    // Validate the transaction, so that the account and mempool do not receive
-    // an invalid transaction, and we do not gossip.
-    const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-      transaction,
-    )
-    if (!valid) {
-      Assert.isNotUndefined(reason)
-      this.logger.debug(
-        `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
+      // Validate the transaction, so that the account and mempool do not receive
+      // an invalid transaction, and we do not gossip.
+      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
+        transaction,
       )
-      this.transactionFetcher.removeTransaction(hash)
-      return false
-    }
+      if (!valid) {
+        Assert.isNotUndefined(reason)
+        this.logger.debug(
+          `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
+        )
+        return
+      }
 
-    // The accounts need to know about the transaction since it could be
-    // relevant to the accounts, despite coming from a different node.
-    await this.node.accounts.syncTransaction(transaction, {})
+      // The accounts need to know about the transaction since it could be
+      // relevant to the accounts, despite coming from a different node.
+      await this.node.accounts.syncTransaction(transaction, {})
 
-    if (await this.node.memPool.acceptTransaction(transaction, false)) {
-      this.onTransactionAccepted.emit(transaction, received)
-    }
+      if (await this.node.memPool.acceptTransaction(transaction, false)) {
+        this.onTransactionAccepted.emit(transaction, received)
+      }
 
-    if (this.node.memPool.exists(transaction.hash())) {
-      this.broadcastTransaction(message)
-      this.transactionFetcher.removeTransaction(hash)
-      return true
+      if (this.node.memPool.exists(transaction.hash())) {
+        this.broadcastTransaction(message)
+      }
     }
 
     this.transactionFetcher.removeTransaction(hash)
-    return false
   }
 }
