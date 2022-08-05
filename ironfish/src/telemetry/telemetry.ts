@@ -186,6 +186,9 @@ export class Telemetry {
     ]
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
+      if (!meter.rate5m) {
+        continue
+      }
       fields.push({
         name: 'inbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
@@ -194,6 +197,9 @@ export class Telemetry {
     }
 
     for (const [messageType, meter] of this.metrics.p2p_OutboundTrafficByMessage) {
+      if (!meter.rate5m) {
+        continue
+      }
       fields.push({
         name: 'outbound_traffic_' + NetworkMessageType[messageType].toLowerCase(),
         type: 'float',
