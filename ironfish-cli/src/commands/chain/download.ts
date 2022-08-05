@@ -20,7 +20,7 @@ import tar from 'tar'
 import { promisify } from 'util'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../snapshot'
+import { SnapshotManifest } from '../../snapshot'
 import { ProgressBar } from '../../types'
 import { UrlUtils } from '../../utils/url'
 
@@ -35,7 +35,7 @@ export default class Download extends IronfishCommand {
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Bucket URL to download snapshot from',
-      default: `https://${DEFAULT_SNAPSHOT_BUCKET}.s3-accelerate.amazonaws.com/manifest.json`,
+      default: 'https://d1kj1bottktsu0.cloudfront.net/manifest.json',
     }),
     path: Flags.string({
       char: 'p',
@@ -62,7 +62,7 @@ export default class Download extends IronfishCommand {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
       if (!flags.manifestUrl) {
-        this.log(`Cannot download snapshot without bucket URL`)
+        this.log(`Cannot download snapshot without manifest URL`)
         this.exit(1)
       }
 
