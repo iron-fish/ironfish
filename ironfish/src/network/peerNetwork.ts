@@ -406,7 +406,7 @@ export class PeerNetwork {
       }
     }
 
-    const newTransactionMessage = new NewTransactionV2Message(message.transaction)
+    const newTransactionMessage = new NewTransactionV2Message([message.transaction])
     for (const peer of sendFull) {
       if (peer.state.type !== 'CONNECTED') {
         continue
@@ -575,10 +575,12 @@ export class PeerNetwork {
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
     } else if (message instanceof NewTransactionV2Message) {
-      // Set the nonce to the hash of the transaction for older peers
-      const nonce = Buffer.alloc(16, new Transaction(message.transaction).hash())
-      const gossipMessage = new NewTransactionMessage(message.transaction, nonce)
-      await this.onNewTransaction(peer, gossipMessage)
+      for (const transaction of message.transactions) {
+        // Set the nonce to the hash of the transaction for older peers
+        const nonce = Buffer.alloc(16, new Transaction(transaction).hash())
+        const gossipMessage = new NewTransactionMessage(transaction, nonce)
+        await this.onNewTransaction(peer, gossipMessage)
+      }
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(

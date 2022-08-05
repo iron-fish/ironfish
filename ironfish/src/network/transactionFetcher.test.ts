@@ -67,7 +67,7 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('does not send a request for a transaction if received NewTransactionMessage from another peer within 500ms', async () => {
+  it.only('does not send a request for a transaction if received NewTransactionMessage from another peer within 500ms', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
@@ -84,8 +84,13 @@ describe('TransactionFetcher', () => {
 
     // Another peer send the full transaction
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
+    const peerIdentity = peer.getIdentityOrThrow()
+    const message = {
+      peerIdentity,
+      message: new NewTransactionMessage(transaction.serialize()),
+    }
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
     jest.runOnlyPendingTimers()
 
@@ -116,7 +121,7 @@ describe('TransactionFetcher', () => {
     const peerIdentity = peer.getIdentityOrThrow()
     const message = {
       peerIdentity,
-      message: new NewTransactionV2Message(transaction.serialize()),
+      message: new NewTransactionV2Message([transaction.serialize()]),
     }
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, message)

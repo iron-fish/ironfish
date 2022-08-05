@@ -7,26 +7,46 @@ import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
 export class NewTransactionV2Message extends NetworkMessage {
-  readonly transaction: SerializedTransaction
+  readonly transactions: SerializedTransaction[]
 
-  constructor(transaction: SerializedTransaction) {
+  constructor(transactions: SerializedTransaction[]) {
     super(NetworkMessageType.NewTransactionV2)
-    this.transaction = transaction
+    this.transactions = transactions
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarBytes(this.transaction)
+
+    bw.writeVarint(this.transactions.length)
+    for (const transaction of this.transactions) {
+      bw.writeVarBytes(transaction)
+    }
     return bw.render()
   }
 
   static deserialize(buffer: Buffer): NewTransactionV2Message {
     const reader = bufio.read(buffer, true)
-    const transaction = reader.readVarBytes()
-    return new NewTransactionV2Message(transaction)
+
+    const length = reader.readVarint()
+
+    const transactions = []
+    for (let i = 0; i < length; i++) {
+      const transaction = reader.readVarBytes()
+      transactions.push(transaction)
+    }
+
+    return new NewTransactionV2Message(transactions)
   }
 
   getSize(): number {
-    return bufio.sizeVarBytes(this.transaction)
+    let size = 0
+
+    size += bufio.sizeVarint(this.transactions.length)
+
+    for (const transaction of this.transactions) {
+      size += bufio.sizeVarBytes(transaction)
+    }
+
+    return size
   }
 }

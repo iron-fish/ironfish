@@ -6,9 +6,9 @@ import { NewTransactionV2Message } from './newTransactionV2'
 
 describe('NewTransactionV2Message', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
-    const transaction = randomBytes(randomInt(500, 10000))
+    const transactions = [...new Array(10)].map((_) => randomBytes(randomInt(500, 10000)))
 
-    const message = new NewTransactionV2Message(transaction)
+    const message = new NewTransactionV2Message(transactions)
 
     const buffer = message.serialize()
     const deserializedMessage = NewTransactionV2Message.deserialize(buffer)
