@@ -13,9 +13,11 @@ lazy_static! {
     pub static ref DEFAULT_ASSET: AssetType = AssetType::new(b"").unwrap();
 }
 
+pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
+
 #[derive(Copy, Clone, Debug)]
 pub struct AssetType {
-    identifier: [u8; ASSET_IDENTIFIER_LENGTH], // 32 byte asset type preimage
+    identifier: AssetIdentifier, // 32 byte asset type preimage
 }
 
 // Abstract type representing an asset
@@ -66,7 +68,7 @@ impl AssetType {
     }
 
     // Attempt to hash an identifier to a curve point
-    fn hash_to_point(identifier: &[u8; ASSET_IDENTIFIER_LENGTH]) -> Option<jubjub::ExtendedPoint> {
+    fn hash_to_point(identifier: &AssetIdentifier) -> Option<jubjub::ExtendedPoint> {
         // Check the personalization is acceptable length
         assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
 
@@ -101,14 +103,12 @@ impl AssetType {
     }
 
     /// Return the identifier of this asset type
-    pub fn get_identifier(&self) -> &[u8; ASSET_IDENTIFIER_LENGTH] {
+    pub fn get_identifier(&self) -> &AssetIdentifier {
         &self.identifier
     }
 
     /// Attempt to construct an asset type from an existing asset identifier
-    pub fn from_identifier(
-        identifier: &[u8; ASSET_IDENTIFIER_LENGTH],
-    ) -> Result<AssetType, AssetError> {
+    pub fn from_identifier(identifier: &AssetIdentifier) -> Result<AssetType, AssetError> {
         // Attempt to hash to point
         if AssetType::hash_to_point(identifier).is_some() {
             Ok(AssetType {

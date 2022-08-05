@@ -2,7 +2,12 @@
 // let tx = TransferTransaction::build(spends, outputs);
 // tx.verify();
 
-use std::{cmp::Ordering, io, sync::Arc};
+use std::{
+    cmp::Ordering,
+    collections::{hash_map, HashMap},
+    io,
+    sync::Arc,
+};
 
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -17,6 +22,7 @@ use zcash_primitives::{
 use crate::{
     errors::{SaplingProofError, TransactionError},
     note::Memo,
+    primitives::asset_type::AssetIdentifier,
     receiving::OutputSignature,
     spending::SpendSignature,
     witness::WitnessTrait,
@@ -26,6 +32,27 @@ use crate::{
 use super::{
     transaction_fee_to_point, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
 };
+
+#[derive(Default)]
+pub struct TransactionValue {
+    values: HashMap<AssetIdentifier, i64>,
+}
+
+impl TransactionValue {
+    pub fn add(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+        *current_value += value
+    }
+
+    pub fn subtract(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+        *current_value -= value
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<AssetIdentifier, i64> {
+        self.values.iter()
+    }
+}
 
 // TODO: Everything
 // TODO: Copy comments from transaction/mod.rs equivalent
@@ -57,53 +84,84 @@ impl TransferTransaction {
     ) -> Result<TransferTransaction, TransactionError> {
         let mut binding_signature_key = jubjub::Fr::zero();
         let mut binding_verification_key = ExtendedPoint::identity();
+        let mut values = TransactionValue::default();
 
         // Spends
-        let (spend_params, total_spend_value) = add_spends(
+        let spend_params = add_spends(
             sapling.clone(),
             &spends,
             &mut binding_signature_key,
             &mut binding_verification_key,
+            &mut values,
         )?;
 
         // Outputs
-        let (mut output_params, total_output_value) = add_outputs(
+        let mut output_params = add_outputs(
             sapling.clone(),
             &outputs,
             &mut binding_signature_key,
             &mut binding_verification_key,
+            &mut values,
         )?;
 
-        let change_amount = total_spend_value - total_output_value - transaction_fee;
+        let mut change_notes = vec![];
+        let spender_key = &spends[0].spender_key;
 
-        match change_amount.cmp(&0) {
-            Ordering::Less => {
+        for (asset_identifier, value) in values.iter() {
+            let is_base_asset = asset_identifier == AssetType::default().get_identifier();
+
+            let change_amount = match is_base_asset {
+                true => value - transaction_fee,
+                false => *value,
+            };
+
+            match change_amount.cmp(&0) {
+                Ordering::Less => {
+                    return Err(TransactionError::InvalidBalanceError);
+                }
+                Ordering::Greater => {
+                    let spender_key = spender_key.clone();
+                    let payout_address = spender_key.generate_public_address();
+                    // TODO: dont use unwrap
+                    let asset_type = AssetType::from_identifier(asset_identifier).unwrap();
+
+                    let change_note = Note::new(
+                        payout_address,
+                        change_amount as u64,
+                        Memo::default(),
+                        asset_type,
+                    );
+
+                    change_notes.push(change_note);
+                }
+                _ => {}
+            }
+        }
+
+        let change_outputs: Vec<Output> = change_notes
+            .iter()
+            .map(|note| Output {
+                spender_key: spender_key.clone(),
+                note,
+            })
+            .collect();
+
+        let mut change_output_params = add_outputs(
+            sapling.clone(),
+            &change_outputs,
+            &mut binding_signature_key,
+            &mut binding_verification_key,
+            &mut values,
+        )?;
+        output_params.append(&mut change_output_params);
+
+        // Confirm all assets have no remaining value
+        for (asset_identifier, value) in values.iter() {
+            let is_base_asset = asset_identifier == AssetType::default().get_identifier();
+
+            if (is_base_asset && value - transaction_fee != 0) || (!is_base_asset && *value != 0) {
                 return Err(TransactionError::InvalidBalanceError);
             }
-            Ordering::Greater => {
-                // Create change note
-                // TODO: AsRef or something?
-                let spender_key = spends[0].spender_key.clone();
-                let payout_address = spender_key.generate_public_address();
-                let change_note = Note::new(
-                    payout_address,
-                    change_amount as u64,
-                    Memo::default(),
-                    AssetType::default(),
-                );
-                // TODO: we should verify this output value change_amount - this = 0
-                let (mut change_output_params, _total_output_value) = add_outputs(
-                    sapling.clone(),
-                    &[Output {
-                        spender_key,
-                        note: &change_note,
-                    }],
-                    &mut binding_signature_key,
-                    &mut binding_verification_key,
-                )?;
-                output_params.append(&mut change_output_params);
-            }
-            _ => {}
         }
 
         let private_key = PrivateKey(binding_signature_key);
@@ -244,9 +302,9 @@ fn add_spends(
     spends: &[Spend],
     bsk: &mut jubjub::Fr,
     bvk: &mut ExtendedPoint,
-) -> Result<(Vec<SpendParams>, i64), SaplingProofError> {
+    values: &mut TransactionValue,
+) -> Result<Vec<SpendParams>, SaplingProofError> {
     let mut spend_params = Vec::with_capacity(spends.len());
-    let mut total_value = 0;
 
     for spend in spends {
         let params = SpendParams::new(
@@ -257,14 +315,17 @@ fn add_spends(
         )?;
 
         *bsk += params.value_commitment.randomness;
-        // (*bsk).add_assign(params.value_commitment.randomness);
         *bvk += params.value_commitment();
-        total_value += spend.note.value() as i64;
+
+        values.add(
+            spend.note.asset_type.get_identifier(),
+            spend.note.value() as i64,
+        );
 
         spend_params.push(params);
     }
 
-    Ok((spend_params, total_value))
+    Ok(spend_params)
 }
 
 fn add_outputs(
@@ -272,9 +333,9 @@ fn add_outputs(
     outputs: &[Output],
     bsk: &mut jubjub::Fr,
     bvk: &mut ExtendedPoint,
-) -> Result<(Vec<ReceiptParams>, i64), SaplingProofError> {
+    values: &mut TransactionValue,
+) -> Result<Vec<ReceiptParams>, SaplingProofError> {
     let mut output_params = Vec::with_capacity(outputs.len());
-    let mut total_value = 0;
 
     for output in outputs {
         // TODO: ReceiptParams and SpendParams need API alignment
@@ -282,12 +343,16 @@ fn add_outputs(
 
         *bsk -= params.value_commitment_randomness;
         *bvk -= params.merkle_note.value_commitment;
-        total_value += output.note.value() as i64;
+
+        values.subtract(
+            output.note.asset_type.get_identifier(),
+            output.note.value() as i64,
+        );
 
         output_params.push(params);
     }
 
-    Ok((output_params, total_value))
+    Ok(output_params)
 }
 
 fn transaction_signature_hash(
@@ -485,5 +550,77 @@ mod tests {
         assert_eq!(serialized_signature.len(), 64);
         Signature::read(&mut serialized_signature[..].as_ref())
             .expect("Can deserialize back into a valid Signature");
+    }
+
+    #[test]
+    fn test_multiple_assets() {
+        let sapling = sapling_bls12::SAPLING.clone();
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+        let spender_address = spender_key.generate_public_address();
+        let receiver_address = receiver_key.generate_public_address();
+
+        let in_note = Note::new(
+            spender_address.clone(),
+            42,
+            Memo::default(),
+            AssetType::default(),
+        );
+        let out_note = Note::new(
+            receiver_address.clone(),
+            40,
+            Memo::default(),
+            AssetType::default(),
+        );
+
+        let new_asset = AssetType::new(b"Foo bar baz").unwrap();
+
+        let in_note2 = Note::new(spender_address, 10, Memo::default(), new_asset);
+        let out_note2 = Note::new(receiver_address, 5, Memo::default(), new_asset);
+
+        let witness = make_fake_witness(&in_note);
+        let witness2 = make_fake_witness(&in_note2);
+
+        let spends = vec![
+            Spend::new(spender_key.clone(), &in_note, &witness),
+            Spend::new(spender_key.clone(), &in_note2, &witness2),
+        ];
+        let outputs = vec![
+            Output::new(spender_key.clone(), &out_note),
+            Output::new(spender_key, &out_note2),
+        ];
+
+        let transaction = TransferTransaction::build(sapling.clone(), 1, 0, spends, outputs)
+            .expect("should build");
+
+        // 1 input of default asset, 1 input of custom asset
+        assert_eq!(transaction.spends.len(), 2);
+        // 1 provided output, 1 change output for each asset type
+        assert_eq!(transaction.outputs.len(), 4);
+        assert_eq!(transaction.transaction_fee, 1);
+
+        transaction
+            .verify()
+            .expect("should be able to verify transaction");
+
+        // test serialization
+        let mut serialized_transaction = vec![];
+        transaction
+            .write(&mut serialized_transaction)
+            .expect("should be able to serialize transaction");
+
+        let read_back_transaction: TransferTransaction =
+            TransferTransaction::read(sapling, &mut serialized_transaction.as_slice())
+                .expect("should be able to deserialize");
+
+        assert_eq!(
+            transaction.transaction_fee,
+            read_back_transaction.transaction_fee
+        );
+        assert_eq!(transaction.spends.len(), read_back_transaction.spends.len());
+        assert_eq!(
+            transaction.outputs.len(),
+            read_back_transaction.outputs.len()
+        );
     }
 }

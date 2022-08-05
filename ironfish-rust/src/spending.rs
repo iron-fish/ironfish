@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{
-    primitives::{asset_type::AssetType, sapling::ValueCommitment},
-    proofs::circuit::sapling::Spend,
-};
+use crate::{primitives::sapling::ValueCommitment, proofs::circuit::sapling::Spend};
 
 use super::{
     errors,
@@ -104,10 +101,9 @@ impl<'a> SpendParams {
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
 
-        let asset_type = AssetType::default();
-
-        let value_commitment =
-            asset_type.value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
+        let value_commitment = note
+            .asset_type
+            .value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
@@ -117,7 +113,7 @@ impl<'a> SpendParams {
 
         let spend_circuit = Spend {
             value_commitment: Some(value_commitment.clone()),
-            asset_type: Some(asset_type),
+            asset_type: Some(note.asset_type),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
             auth_path: sapling_auth_path(witness),
