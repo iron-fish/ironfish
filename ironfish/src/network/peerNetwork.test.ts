@@ -8,7 +8,6 @@ jest.mock('ws')
 import type WSWebSocket from 'ws'
 import http from 'http'
 import net from 'net'
-import { v4 as uuid } from 'uuid'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
@@ -30,7 +29,6 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
@@ -41,7 +39,6 @@ import {
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
-import { Peer } from './peers/peer'
 import {
   getConnectedPeer,
   getConnectedPeersWithSpies,
