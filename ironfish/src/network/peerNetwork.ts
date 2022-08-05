@@ -412,14 +412,9 @@ export class PeerNetwork {
         continue
       }
 
-      let sent
-      if (isUpgraded(peer)) {
-        sent = peer.send(newTransactionMessage)
-      } else {
-        sent = peer.send(message)
-      }
+      const messageToSend = isUpgraded(peer) ? newTransactionMessage : message
 
-      if (sent) {
+      if (peer.send(messageToSend)) {
         this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
