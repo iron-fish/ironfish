@@ -84,13 +84,8 @@ describe('TransactionFetcher', () => {
 
     // Another peer send the full transaction
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const peerIdentity = peer.getIdentityOrThrow()
-    const message = {
-      peerIdentity,
-      message: new NewTransactionMessage(transaction.serialize()),
-    }
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
 
     jest.runOnlyPendingTimers()
 
