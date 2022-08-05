@@ -992,18 +992,12 @@ export class PeerNetwork {
   private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
     const received = new Date()
 
-    // Mark the peer as knowing about the transaction as well as their known peers
-    // since they probably sent it to them. We will remove the known peers once we start
-    // gossiping message based on hash
+    // Mark the peer as knowing about the transaction
     const hash = new Transaction(message.transaction).hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
-
-    for (const [_, knownPeer] of peer.knownPeers) {
-      knownPeer.state.identity && this.markKnowsTransaction(hash, knownPeer.state.identity)
-    }
 
     if (!this.shouldProcessTransactions()) {
       this.transactionFetcher.removeTransaction(hash)
