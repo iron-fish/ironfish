@@ -9,7 +9,7 @@ import fsAsync from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { DEFAULT_SNAPSHOT_BUCKET, SnapshotManifest } from '../../snapshot'
+import { SnapshotManifest } from '../../snapshot'
 import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
@@ -30,6 +30,7 @@ export default class CreateSnapshot extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 bucket to upload snapshot to',
+      default: 'ironfish-snapshots',
     }),
     accessKeyId: Flags.string({
       char: 'a',
