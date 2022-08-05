@@ -23,7 +23,7 @@ pub fn bytes_to_secret_key(bytes: [u8; KEY_LENGTH]) -> SecretKey {
 }
 
 pub fn random_bytes(bytes_length: usize) -> Vec<u8> {
-    let mut rand_bytes = Vec::with_capacity(bytes_length);
+    let mut rand_bytes = vec![0; bytes_length];
     OsRng.fill_bytes(&mut rand_bytes);
 
     rand_bytes
@@ -70,4 +70,66 @@ pub fn unbox_message(
     let cleartext_bytes = key_box.decrypt(nonce, boxed_message)?;
 
     String::from_utf8(cleartext_bytes).map_err(Into::into)
+}
+
+#[cfg(test)]
+mod test {
+    use super::{box_message, bytes_to_secret_key, new_secret_key, random_bytes, unbox_message};
+
+    #[test]
+    fn test_secret_key() {
+        let key = new_secret_key();
+        let key2 = bytes_to_secret_key(*key.as_bytes());
+
+        assert_eq!(key.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_random_bytes() {
+        let byte_length = 10;
+        let empty_bytes = vec![0; byte_length];
+        let bytes1 = random_bytes(byte_length);
+        let bytes2 = random_bytes(byte_length);
+
+        assert_eq!(bytes1.len(), byte_length);
+        assert_eq!(bytes2.len(), byte_length);
+        assert_ne!(bytes1, bytes2);
+        assert_ne!(empty_bytes, bytes1);
+        assert_ne!(empty_bytes, bytes2);
+    }
+
+    #[test]
+    fn test_box_unbox() {
+        let plaintext = "Hello hello hello".to_owned();
+
+        let secret1 = new_secret_key();
+        let public1 = secret1.public_key();
+
+        let secret2 = new_secret_key();
+        let public2 = secret2.public_key();
+
+        let secret3 = new_secret_key();
+
+        let (nonce, boxed_message) =
+            box_message(plaintext.clone(), *secret1.as_bytes(), *public2.as_bytes())
+                .expect("Can box message");
+
+        let unboxed_message = unbox_message(
+            &boxed_message,
+            &nonce,
+            *public1.as_bytes(),
+            *secret2.as_bytes(),
+        )
+        .expect("Can unbox message");
+
+        let failed_unbox = unbox_message(
+            &boxed_message,
+            &nonce,
+            *public1.as_bytes(),
+            *secret3.as_bytes(),
+        );
+
+        assert_eq!(plaintext, unboxed_message);
+        debug_assert!(failed_unbox.is_err());
+    }
 }
