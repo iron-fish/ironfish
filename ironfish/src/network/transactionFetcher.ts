@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { TransactionHash } from '../primitives/transaction'
+import { ArrayUtils } from '../utils'
+import { Identity } from './identity'
 import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
@@ -35,7 +38,7 @@ export class TransactionFetcher {
   private readonly pending = new BufferMap<TransactionState>()
 
   // Set of peers that also may be able to fetch the transaction
-  private readonly sources = new BufferMap<Set<Peer>>()
+  private readonly sources = new BufferMap<Set<Identity>>()
 
   private readonly peerNetwork: PeerNetwork
 
@@ -53,14 +56,19 @@ export class TransactionFetcher {
       return
     }
 
+    // If the peer is not connected or identified, don't add them as a source
+    if (!peer.state.identity) {
+      return
+    }
+
     const currentState = this.pending.get(hash)
 
     if (currentState && currentState.action === 'PROCESSING') {
       return
     }
 
-    const sources = this.sources.get(hash) || new Set<Peer>()
-    sources.add(peer)
+    const sources = this.sources.get(hash) || new Set<Identity>()
+    sources.add(peer.state.identity)
     this.sources.set(hash, sources)
 
     if (!currentState) {
@@ -169,26 +177,28 @@ export class TransactionFetcher {
     })
   }
 
-  private popRandomPeer(hash: TransactionHash): Peer | undefined {
+  private popRandomPeer(hash: TransactionHash): Peer | null {
     const sources = this.sources.get(hash)
 
     if (!sources) {
-      return undefined
+      return null
     }
 
-    const nextSourceIndex = Math.floor(Math.random() * sources.size)
+    const random = ArrayUtils.shuffle([...sources])
 
-    let currIndex = 0
-    for (const source of sources) {
-      if (nextSourceIndex === currIndex) {
-        const nextSource = source
-        sources.delete(source)
-        return nextSource
-      }
-      currIndex++
+    let nextPeer = null
+    let nextPeerId = null
+    while (nextPeer === null && random.length > 0) {
+      nextPeerId = random.pop()
+      Assert.isNotUndefined(nextPeerId) // random.length > 0 in the while loop
+
+      nextPeer = this.peerNetwork.peerManager.getPeer(nextPeerId)
     }
 
-    return undefined
+    // remove the peer from sources if we have one
+    nextPeerId && sources.delete(nextPeerId)
+
+    return nextPeer
   }
 
   private cleanupCallbacks(state: TransactionState) {
