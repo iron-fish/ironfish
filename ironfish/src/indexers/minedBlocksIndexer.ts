@@ -29,7 +29,7 @@ import {
   SequenceToHashesValueEncoding,
 } from './database/sequenceToHashes'
 
-const DATABASE_VERSION = 12
+export const VERSION_DATABASE_INDEXER = 12
 const REMOVAL_KEY = 'accountsToRemove'
 
 const getMinedBlocksDBMetaDefaults = (): MinedBlocksDBMeta => ({
@@ -182,7 +182,7 @@ export class MinedBlocksIndexer {
 
     await this.files.mkdir(this.location, { recursive: true })
     await this.database.open()
-    await this.database.upgrade(DATABASE_VERSION)
+    await this.database.upgrade(VERSION_DATABASE_INDEXER)
     await this.load()
   }
 

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { LogLevel } from 'consola'
 import { Logger } from '../logger'
 import { IronfishNode } from '../node'
+import { IDatabaseTransaction } from '../storage/database/transaction'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
 import { Migration } from './migration'
@@ -16,11 +18,11 @@ export class Migrator {
 
   constructor(options: { node: IronfishNode; logger: Logger }) {
     this.node = options.node
-    this.logger = options.logger
+    this.logger = options.logger.withTag('migrator')
 
-    this.migrations = MIGRATIONS.map((m) => new m().init(options.node.files)).sort(
-      (a, b) => a.id - b.id,
-    )
+    this.migrations = MIGRATIONS.map((m) => {
+      return new m().init(options.node.files)
+    }).sort((a, b) => a.id - b.id)
   }
 
   /**
@@ -62,7 +64,9 @@ export class Migrator {
     }
   }
 
-  async revert(): Promise<void> {
+  async revert(options?: { dryRun?: boolean }): Promise<void> {
+    const dryRun = options?.dryRun ?? false
+
     const migrations = Array.from(this.migrations).reverse()
 
     for (const migration of migrations) {
@@ -72,13 +76,21 @@ export class Migrator {
         this.logger.info(`Reverting ${migration.name}`)
         const db = await migration.prepare(this.node)
 
+        const childLogger = this.logger.withTag(migration.name)
+        let tx: IDatabaseTransaction | null = null
+
         try {
           await db.open()
+          tx = db.transaction()
 
-          await db.transaction(async (tx) => {
-            await migration.backward(this.node, db, tx)
-            await db.putVersion(migration.id - 1, tx)
-          })
+          await migration.backward(this.node, db, tx, childLogger, dryRun)
+          await db.putVersion(migration.id - 1, tx)
+
+          if (dryRun) {
+            await tx.abort()
+          } else {
+            await tx.commit()
+          }
         } finally {
           await db.close()
         }
@@ -88,9 +100,17 @@ export class Migrator {
     }
   }
 
-  async migrate(options?: { quiet?: boolean; quietNoop?: boolean }): Promise<void> {
-    const logger = options?.quiet ? null : this.logger
-    const writeOut = options?.quiet ? null : (t: string) => process.stdout.write(t)
+  async migrate(options?: {
+    quiet?: boolean
+    quietNoop?: boolean
+    dryRun?: boolean
+  }): Promise<void> {
+    const dryRun = options?.dryRun ?? false
+    const logger = this.logger.create({})
+
+    if (options?.quiet) {
+      logger.level = LogLevel.Silent
+    }
 
     const status = new Array<[Migration, boolean]>()
     for (const migration of this.migrations) {
@@ -102,37 +122,49 @@ export class Migrator {
 
     if (unapplied.length === 0) {
       if (!options?.quietNoop) {
-        logger?.info(`All ${this.migrations.length} migrations applied.`)
+        logger.info(`All ${this.migrations.length} migrations applied.`)
       }
       return
     }
 
-    logger?.info(`Running ${unapplied.length} migrations:`)
+    logger.info(`Applying ${unapplied.length} migrations${dryRun ? ' in dry run mode' : ''}:`)
 
     for (const migration of unapplied) {
-      writeOut?.(`  Applying ${migration.name}...`)
+      logger.info(`  ${migration.name}`)
+    }
 
+    logger.info(``)
+
+    for (const migration of unapplied) {
+      logger.info(`Running ${migration.name}...`)
       const db = await migration.prepare(this.node)
+
+      const childLogger = logger.withTag(migration.name)
+      let tx: IDatabaseTransaction | null = null
 
       try {
         await db.open()
+        tx = db.transaction()
 
-        await db.transaction(async (tx) => {
-          await migration.forward(this.node, db, tx)
-          await db.putVersion(migration.id, tx)
-        })
+        await migration.forward(this.node, db, tx, childLogger, dryRun)
+        await db.putVersion(migration.id, tx)
+
+        if (dryRun) {
+          await tx.abort()
+          break
+        } else {
+          await tx.commit()
+        }
       } catch (e) {
-        writeOut?.(` ERROR\n`)
-        this.logger.error(ErrorUtils.renderError(e, true))
+        this.logger.error(`Error applying ${migration.name}`)
+        this.logger.error(`${ErrorUtils.renderError(e, true)}`)
         throw e
       } finally {
         await db.close()
       }
-
-      writeOut?.(` OK\n`)
     }
 
-    logger?.info(`Successfully ran ${unapplied.length} migrations`)
+    logger.info(`Successfully ${dryRun ? 'dry ran' : 'applied'} ${unapplied.length} migrations`)
   }
 
   async check(): Promise<void> {

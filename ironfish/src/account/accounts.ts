@@ -1228,6 +1228,10 @@ export class Accounts {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
+    if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+      throw new Error(`Account already exists with provided spending key`)
+    }
+
     const serializedAccount: AccountsValue = {
       ...AccountDefaults,
       ...toImport,
