@@ -61,7 +61,7 @@ export default class CreateSnapshot extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSnapshot)
 
-    const bucket = (flags.bucket || DEFAULT_SNAPSHOT_BUCKET).trim()
+    const bucket = flags.bucket
     const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
     const secretAccessKey = (
       flags.secretAccessKey ||
