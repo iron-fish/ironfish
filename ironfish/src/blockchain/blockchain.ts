@@ -1304,25 +1304,25 @@ export class Blockchain {
 export class VerifyError extends Error {
   reason: VerificationResultReason
   score: number
-  explaination: string | undefined
+  explanation: string | undefined
 
-  constructor(reason: VerificationResultReason, score = 0, explaination?: string) {
+  constructor(reason: VerificationResultReason, score = 0, explanation?: string) {
     super()
 
     this.reason = reason
     this.score = score
-    this.explaination = explaination
+    this.explanation = explanation
   }
 
   override get message(): string {
-    return this.explaination ?? this.reason
+    return this.explanation ?? this.reason
   }
 
   override toString(): string {
     const message = `Verify error (score ${this.score}) this.reason`
 
-    if (this.explaination !== undefined) {
-      return message + `\n\tExplaination: ${this.explaination}`
+    if (this.explanation !== undefined) {
+      return message + `\n\tExplanation: ${this.explanation}`
     }
 
     return message

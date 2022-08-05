@@ -458,11 +458,11 @@ export class MerkleTree<
       Assert.isFalse(leafCount < 0)
 
       const throwVerifyError = (reason: VerificationResultReason) => {
-        const explaination = `
+        const explanation = `
           Unable to get past size ${pastSize} for tree with ${leafCount} nodes
         `
 
-        throw new VerifyError(reason, 0, explaination)
+        throw new VerifyError(reason, 0, explanation)
       }
 
       if (leafCount === 0) {
