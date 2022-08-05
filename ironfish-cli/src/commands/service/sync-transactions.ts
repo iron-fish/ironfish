@@ -18,6 +18,7 @@ const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class SyncTransactions extends IronfishCommand {
+  static aliases = ['service:syncTransactions']
   static hidden = true
 
   static description = 'Upload transactions to an HTTP API using IronfishApi'
