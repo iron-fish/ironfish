@@ -979,14 +979,14 @@ export class PeerNetwork {
      * When we receive a new transaction we want to test if we have already processed it yet
      * meaning we have it in the mempool or we have it on a block. */
 
-    let peersToSendTo = 0
+    let peersToSendTo = false
     for (const _ of this.connectedPeersWithoutTransaction(hash)) {
-      peersToSendTo++
+      peersToSendTo = true
+      break
     }
 
     return (
-      (this.node.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)) &&
-      peersToSendTo === 0
+      (this.node.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)) && !peersToSendTo
       // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
     )
   }
