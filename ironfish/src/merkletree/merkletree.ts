@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { VerifyError } from '..'
+import { VerifyError } from '../blockchain'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { JsonSerializable } from '../serde'
@@ -465,7 +465,7 @@ export class MerkleTree<
         throw new VerifyError(reason, 0, explaination)
       }
 
-      if (leafCount == 0) {
+      if (leafCount === 0) {
         throwVerifyError(VerificationResultReason.EMPTY_MERKLE_TREE)
       }
 
