@@ -188,8 +188,7 @@ mod tests {
             AssetType::default(),
         );
 
-        let transaction =
-            MinersFeeTransaction::build(sapling.clone(), receiver_key, out_note).unwrap();
+        let transaction = MinersFeeTransaction::build(sapling, receiver_key, out_note).unwrap();
 
         let mut serialized_signature = vec![];
         transaction
