@@ -5,7 +5,6 @@
 import ws from 'ws'
 import { Identity, isIdentity } from '../identity'
 import { NetworkMessage } from '../messages/networkMessage'
-import { PeerNetwork } from '../peerNetwork'
 import {
   Connection,
   ConnectionDirection,
