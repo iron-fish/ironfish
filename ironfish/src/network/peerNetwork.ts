@@ -19,7 +19,7 @@ import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { ErrorUtils } from '../utils'
 import { Identity, PrivateIdentity } from './identity'
@@ -107,7 +107,6 @@ export class PeerNetwork {
   private readonly metrics: MetricsMonitor
   private readonly node: IronfishNode
   private readonly chain: Blockchain
-  private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
 
@@ -202,7 +201,6 @@ export class PeerNetwork {
     this.minPeers = options.minPeers || 1
     this.listen = options.listen === undefined ? true : options.listen
 
-    this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.requests = new Map<RpcId, RpcRequest>()
 
     if (options.name && options.name.length > 32) {
@@ -346,19 +344,17 @@ export class PeerNetwork {
    * Send a block to all connected peers who haven't yet received the block.
    */
   private broadcastBlock(message: NewBlockMessage): void {
-    this.seenGossipFilter.add(message.nonce)
-
     // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
-    const block = BlockSerde.deserialize(message.block)
+    const header = BlockHeaderSerde.deserialize(message.block.header)
 
     for (const peer of this.peerManager.getConnectedPeers()) {
       // Don't send the block to peers who already know about it
-      if (peer.knownBlockHashes.has(block.header.hash)) {
+      if (peer.knownBlockHashes.has(header.hash)) {
         continue
       }
 
       if (peer.send(message)) {
-        peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Sent)
+        peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
       }
     }
   }
@@ -539,17 +535,8 @@ export class PeerNetwork {
     peer: Peer,
     gossipMessage: GossipNetworkMessage,
   ): Promise<void> {
-    const peerIdentity = peer.getIdentityOrThrow()
-
     if (gossipMessage instanceof NewBlockMessage) {
-      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
-        return
-      }
-      const gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
-
-      if (gossip) {
-        this.broadcastBlock(gossipMessage)
-      }
+      await this.onNewBlock(peer, gossipMessage)
     } else if (gossipMessage instanceof NewTransactionMessage) {
       await this.onNewTransaction(peer, gossipMessage)
     } else {
@@ -850,22 +837,28 @@ export class PeerNetwork {
     return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
   }
 
-  private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
+  private async onNewBlock(peer: Peer, message: NewBlockMessage): Promise<void> {
     if (!this.enableSyncing) {
-      return false
-    }
-
-    const block = message.message.block
-    const peer = this.peerManager.getPeer(message.peerIdentity)
-    if (!peer) {
-      return false
+      return
     }
 
     // Hashes sent by the network are untrusted. Future messages should remove this field.
-    block.header.hash = undefined
+    message.block.header.hash = undefined
+
+    const block = message.block
+    const header = BlockHeaderSerde.deserialize(message.block.header)
+
+    peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
+    for (const knownPeer of peer.knownPeers.values()) {
+      knownPeer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
+    }
 
     try {
-      return await this.node.syncer.addNewBlock(peer, block)
+      const result = await this.node.syncer.addNewBlock(peer, block)
+      if (result) {
+        this.broadcastBlock(message)
+      }
+      return
     } catch (error) {
       this.logger.error(
         `Error when adding new block ${block.header.sequence} from ${
@@ -873,7 +866,7 @@ export class PeerNetwork {
         }: ${ErrorUtils.renderError(error, true)}`,
       )
 
-      return false
+      return
     }
   }
 

@@ -24,6 +24,7 @@ ff = "0.12.0"
 group = "0.12.0"
 jubjub = "0.9.0"
 lazy_static = "1.4.0"
+libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789 
 rand = "0.8.5"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 tiny-bip39 = "1.0.0"
