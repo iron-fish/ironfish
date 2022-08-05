@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { NotEnoughFundsError } from '../../../account/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
@@ -120,20 +121,27 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       }
     })
 
-    const transactionPosted = await node.accounts.pay(
-      node.memPool,
-      account,
-      receives,
-      BigInt(transaction.fee),
-      transaction.expirationSequenceDelta ??
-        node.config.get('defaultTransactionExpirationSequenceDelta'),
-      transaction.expirationSequence,
-    )
+    try {
+      const transactionPosted = await node.accounts.pay(
+        node.memPool,
+        account,
+        receives,
+        BigInt(transaction.fee),
+        transaction.expirationSequenceDelta ??
+          node.config.get('defaultTransactionExpirationSequenceDelta'),
+        transaction.expirationSequence,
+      )
 
-    request.end({
-      receives: transaction.receives,
-      fromAccountName: account.name,
-      hash: transactionPosted.unsignedHash().toString('hex'),
-    })
+      request.end({
+        receives: transaction.receives,
+        fromAccountName: account.name,
+        hash: transactionPosted.unsignedHash().toString('hex'),
+      })
+    } catch (e) {
+      if (e instanceof NotEnoughFundsError) {
+        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
+      }
+      throw e
+    }
   },
 )

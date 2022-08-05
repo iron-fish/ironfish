@@ -23,6 +23,7 @@ import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
+import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 
 type SyncTransactionParams =
@@ -924,7 +925,7 @@ export class Accounts {
       }
 
       if (amountNeeded > 0) {
-        throw new Error('Insufficient funds')
+        throw new NotEnoughFundsError('Insufficient funds')
       }
 
       return this.workerPool.createTransaction(

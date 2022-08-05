@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
+import { ERROR_CODES } from '../rpc/adapters/errors'
+import { RpcRequestError } from '../rpc/clients/errors'
 import { RpcSocketClient } from '../rpc/clients/socketClient'
 import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
@@ -178,8 +180,14 @@ export class MiningPoolShares {
         ),
       )
     } catch (e) {
-      this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
-      this.webhooks.map((w) => w.poolPayoutError(e))
+      if (e instanceof RpcRequestError && e.code === ERROR_CODES.INSUFFICIENT_BALANCE) {
+        this.logger.info(`There was not enough funds to create a payout.`)
+      } else {
+        this.logger.error(
+          `There was an error with the transaction ${ErrorUtils.renderError(e)}`,
+        )
+        this.webhooks.map((w) => w.poolPayoutError(e))
+      }
     }
   }
 
