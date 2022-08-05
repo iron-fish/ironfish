@@ -153,7 +153,7 @@ export default class Download extends IronfishCommand {
           reject(e)
         })
 
-        writer.on('end', () => {
+        writer.on('close', () => {
           resolve()
         })
 
