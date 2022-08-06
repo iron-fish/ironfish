@@ -18,6 +18,10 @@ import { JobError, JobErrorMessage } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
+import {
+  VerifyTransactionsRequest,
+  VerifyTransactionsResponse,
+} from './tasks/verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 export class Worker {
@@ -248,6 +252,8 @@ export class Worker {
         return SubmitTelemetryRequest.deserialize(jobId, request)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.VerifyTransactions:
+        return VerifyTransactionsRequest.deserialize(jobId, request)
     }
   }
 
@@ -275,6 +281,8 @@ export class Worker {
         return SubmitTelemetryResponse.deserialize(jobId)
       case WorkerMessageType.VerifyTransaction:
         return VerifyTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.VerifyTransactions:
+        return VerifyTransactionsResponse.deserialize(jobId, response)
     }
   }
 }

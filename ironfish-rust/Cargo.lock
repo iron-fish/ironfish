@@ -631,6 +631,7 @@ dependencies = [
  "hex 0.4.3",
  "jubjub",
  "lazy_static",
+ "libc",
  "rand 0.8.5",
  "rust-crypto-wasm",
  "tiny-bip39",

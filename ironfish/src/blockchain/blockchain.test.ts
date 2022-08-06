@@ -585,7 +585,7 @@ describe('Blockchain', () => {
   it('newBlock throws an error if the provided transactions are invalid', async () => {
     const minersFee = await useMinersTxFixture(nodeTest.accounts)
 
-    jest.spyOn(nodeTest.verifier, 'verifyTransactionContextual').mockResolvedValue({
+    jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
       valid: false,
       reason: VerificationResultReason.INVALID_MINERS_FEE,
     })

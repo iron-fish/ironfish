@@ -11,6 +11,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...CliUx.ux.table.flags(),
     account: Flags.string({
       char: 'a',
       description: 'account transactions',
@@ -29,7 +30,7 @@ export class TransactionsCommand extends IronfishCommand {
     if (hash) {
       await this.getTransaction(account, hash)
     } else {
-      await this.getTransactions(account)
+      await this.getTransactions(account, flags)
     }
   }
 
@@ -76,7 +77,21 @@ export class TransactionsCommand extends IronfishCommand {
     this.log(`\n`)
   }
 
-  async getTransactions(account: string | undefined): Promise<void> {
+  async getTransactions(
+    account: string | undefined,
+    flags: {
+      columns: string | undefined
+      'no-truncate': boolean | undefined
+      output: string | undefined
+      filter: string | undefined
+      'no-header': boolean | undefined
+      sort: string | undefined
+      account: string | undefined
+      extended: boolean | undefined
+      hash: string | undefined
+      csv: boolean | undefined
+    },
+  ): Promise<void> {
     const client = await this.sdk.connectRpc()
 
     const response = await client.getAccountTransactions({ account })
@@ -85,35 +100,43 @@ export class TransactionsCommand extends IronfishCommand {
 
     this.log(`\n ${String(accountResponse)} - Account transactions\n`)
 
-    CliUx.ux.table(transactions, {
-      status: {
-        header: 'Status',
+    CliUx.ux.table(
+      transactions,
+      {
+        status: {
+          header: 'Status',
+        },
+        creator: {
+          header: 'Creator',
+          get: (row) => (row.creator ? `✔` : `x`),
+        },
+        hash: {
+          header: 'Hash',
+        },
+        isMinersFee: {
+          header: 'Miner Fee',
+          get: (row) => (row.isMinersFee ? `✔` : `x`),
+        },
+        fee: {
+          header: 'Fee ($ORE)',
+          get: (row) => row.fee,
+        },
+        notes: {
+          header: 'Notes',
+        },
+        spends: {
+          header: 'Spends',
+        },
+        expiration: {
+          header: 'Expiration',
+          extended: true,
+        },
       },
-      creator: {
-        header: 'Creator',
-        get: (row) => (row.creator ? `✔` : `x`),
+      {
+        printLine: this.log.bind(this),
+        ...flags,
       },
-      hash: {
-        header: 'Hash',
-      },
-      isMinersFee: {
-        header: 'Miner Fee',
-        get: (row) => (row.isMinersFee ? `✔` : `x`),
-      },
-      fee: {
-        header: 'Fee ($ORE)',
-        get: (row) => row.fee,
-      },
-      notes: {
-        header: 'Notes',
-      },
-      spends: {
-        header: 'Spends',
-      },
-      expiration: {
-        header: 'Expiration',
-      },
-    })
+    )
 
     this.log(`\n`)
   }

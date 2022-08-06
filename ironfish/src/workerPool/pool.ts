@@ -29,6 +29,10 @@ import {
   VerifyTransactionRequest,
   VerifyTransactionResponse,
 } from './tasks/verifyTransaction'
+import {
+  VerifyTransactionsRequest,
+  VerifyTransactionsResponse,
+} from './tasks/verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
 
@@ -57,6 +61,7 @@ export class WorkerPool {
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.VerifyTransactions, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
   get saturated(): boolean {
@@ -183,6 +188,20 @@ export class WorkerPool {
 
     const response = await this.execute(request).result()
     if (!(response instanceof VerifyTransactionResponse)) {
+      throw new Error('Invalid response')
+    }
+
+    return response.verified
+      ? { valid: true }
+      : { valid: false, reason: VerificationResultReason.ERROR }
+  }
+
+  async verifyTransactions(transactions: Array<Transaction>): Promise<VerificationResult> {
+    const txs = transactions.map((tx) => tx.serialize())
+    const request: VerifyTransactionsRequest = new VerifyTransactionsRequest(txs)
+
+    const response = await this.execute(request).result()
+    if (!(response instanceof VerifyTransactionsResponse)) {
       throw new Error('Invalid response')
     }
 
