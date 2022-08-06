@@ -8,19 +8,19 @@ use std::io;
 
 use bellman::SynthesisError;
 
-/// Basic error wrapping a string. This should only really be used when
-/// passing errors to NAPI, since errors that get surfaced into the
-/// Javascript side are not "proper" errors in the Rust sense.
+/// Errors not tied to any one specific task
 #[derive(Debug)]
-pub struct StringError(pub String);
+pub enum IronfishError {
+    InvalidNonceLength,
+}
 
-impl fmt::Display for StringError {
+impl fmt::Display for IronfishError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-impl Error for StringError {}
+impl Error for IronfishError {}
 
 /// Error raised if constructing a sapling key fails for any reason.
 #[derive(Debug)]
