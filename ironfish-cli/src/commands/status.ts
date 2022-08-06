@@ -31,7 +31,7 @@ export default class Status extends IronfishCommand {
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
       const nodeResponse = await client.status()
-      const accountResponse = await client.accountStatus({ account: undefined })
+      const accountResponse = await client.accountStatus({})
       this.log(renderStatus(nodeResponse.content, accountResponse.content))
       this.exit(0)
     }
@@ -57,20 +57,35 @@ export default class Status extends IronfishCommand {
 
       const nodeResponse = this.sdk.client.statusStream()
       const accountResponse = this.sdk.client.accountStatusStream({
-        account: undefined,
         stream: true,
       })
 
+      let scanIsRunning = true
+      let accountStatusBackup: GetAccountStatusResponse = {
+        sequence: 0,
+        endSequence: -1,
+        startedAt: 0,
+        head: '',
+      }
+
       for await (const value of nodeResponse.contentStream()) {
         let accountStatusCount = 0
-        for await (const account of accountResponse.contentStream()) {
-          accountStatusCount += 1
-          statusText.clearBaseLine(0)
-          statusText.setContent(renderStatus(value, account))
-          screen.render()
-          if (accountStatusCount === 100) {
-            break
+        if (scanIsRunning) {
+          for await (const account of accountResponse.contentStream()) {
+            accountStatusCount += 1
+            statusText.clearBaseLine(0)
+            statusText.setContent(renderStatus(value, account))
+            screen.render()
+            if (accountStatusCount === 100 || Number(account.endSequence) === -1) {
+              accountStatusBackup = account
+              scanIsRunning = false
+              break
+            }
           }
+        } else {
+          statusText.clearBaseLine(0)
+          statusText.setContent(renderStatus(value, accountStatusBackup))
+          screen.render()
         }
       }
     }
@@ -154,20 +169,20 @@ function renderStatus(content: GetStatusResponse, account: GetAccountStatusRespo
   ).toFixed(1)}%)`
 
   let accountStatus
-  if (account.scanStatus.endSequence === -1) {
-    accountStatus = 'Scan completed ( 100% )'
+  if (account.endSequence === -1) {
+    accountStatus = 'Scan completed (100%) '
   } else {
-    const { endSequence, sequence } = account.scanStatus
+    const { endSequence, sequence } = account
     accountStatus = `Scanning: ${sequence} / ${endSequence} (${(
       (sequence * 100) /
       endSequence
     ).toFixed(1)}%)`
   }
+  accountStatus += account.head
 
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
-Account Status       ${accountStatus}
 Node Name            ${nodeName}
 Block Graffiti       ${blockGraffiti}
 Memory               ${memoryStatus}
@@ -176,6 +191,7 @@ Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
 Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
+Account              ${accountStatus}
 Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}`
 }

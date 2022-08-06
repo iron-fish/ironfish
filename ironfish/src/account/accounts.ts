@@ -67,7 +67,7 @@ export class Accounts {
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
-  protected chainProcessor: ChainProcessor
+  chainProcessor: ChainProcessor
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
