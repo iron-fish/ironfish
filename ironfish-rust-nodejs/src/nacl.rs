@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use ironfish_rust::nacl::{box_message, bytes_to_secret_key, new_secret_key, unbox_message};
 use ironfish_rust::{base64, hex, nacl};
 use napi::bindgen_prelude::*;
