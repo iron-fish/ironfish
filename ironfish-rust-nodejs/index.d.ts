@@ -51,9 +51,9 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, left: Buffer, right: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): Buffer | null
+  decryptNoteForOwner(incomingHexKey: string): Buffer | undefined | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): Buffer | null
+  decryptNoteForSpender(outgoingHexKey: string): Buffer | undefined | null
 }
 export type NativeNote = Note
 export class Note {
@@ -132,6 +132,6 @@ export class ThreadPoolHandler {
   newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
   stop(): void
   pause(): void
-  getFoundBlock(): FoundBlockResult | null
+  getFoundBlock(): FoundBlockResult | undefined | null
   getHashRateSubmission(): number
 }
