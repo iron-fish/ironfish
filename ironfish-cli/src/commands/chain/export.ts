@@ -4,7 +4,6 @@
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
-import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -25,14 +24,14 @@ export default class Export extends IronfishCommand {
   static args = [
     {
       name: 'start',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'the sequence to end at (inclusive)',
     },
@@ -40,6 +39,17 @@ export default class Export extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Export)
+
+    // Regular expression that accepts only english numbers
+    const regex = new RegExp('[^0-9]')
+
+    if (args.start !== undefined && regex.test(args.start as string)) {
+      this.error(`Invalid block start sequence: ${args.start as string}`)
+    }
+
+    if (args.stop !== undefined && regex.test(args.stop as string)) {
+      this.error(`Invalid block stop sequence: ${args.stop as string}`)
+    }
 
     const exportDir = flags.path
       ? this.sdk.fileSystem.resolve(flags.path)
