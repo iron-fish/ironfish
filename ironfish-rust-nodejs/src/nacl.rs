@@ -1,5 +1,5 @@
 use ironfish_rust::nacl::{box_message, bytes_to_secret_key, new_secret_key, unbox_message};
-use ironfish_rust::{base64, nacl};
+use ironfish_rust::{base64, hex, nacl};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -18,6 +18,7 @@ pub struct BoxKeyPair {
 #[napi]
 impl BoxKeyPair {
     #[napi(constructor)]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> BoxKeyPair {
         let secret_key = new_secret_key();
 
@@ -28,8 +29,8 @@ impl BoxKeyPair {
     }
 
     #[napi(factory)]
-    pub fn from_hex(secret_hex: String) -> Result<BoxKeyPair> {
-        let byte_vec = base64::decode(secret_hex)
+    pub fn from_hex(secret_hex: String) -> napi::Result<BoxKeyPair> {
+        let byte_vec = hex::decode(secret_hex)
             .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
 
         let bytes: [u8; nacl::KEY_LENGTH] = byte_vec

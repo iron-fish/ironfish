@@ -32,8 +32,9 @@ pub use {
     transaction::{ProposedTransaction, Transaction},
 };
 
-// Re-export base64 crate
+// Re-exports for napi
 pub use base64;
+pub use hex;
 
 #[cfg(test)]
 pub(crate) mod test_util; // I'm not sure if this is the right way to publish the utility library.

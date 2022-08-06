@@ -675,6 +675,7 @@ dependencies = [
  "crypto_box",
  "ff",
  "group",
+ "hex 0.4.3",
  "jubjub",
  "lazy_static",
  "rand 0.8.5",
