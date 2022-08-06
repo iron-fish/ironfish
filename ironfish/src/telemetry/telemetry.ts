@@ -159,6 +159,11 @@ export class Telemetry {
         value: this.metrics.heapTotal.value,
       },
       {
+        name: 'rss',
+        type: 'integer',
+        value: this.metrics.rss.value,
+      },
+      {
         name: 'inbound_traffic',
         type: 'float',
         value: this.metrics.p2p_InboundTraffic.rate5m,
@@ -281,9 +286,18 @@ export class Telemetry {
   }
 
   submitNodeStarted(): void {
+    let fields: Field[] = [{ name: 'online', type: 'boolean', value: true }]
+
+    if (this.metrics) {
+      fields = fields.concat([
+        { name: 'cpu_cores', type: 'integer', value: this.metrics.cpuCores },
+        { name: 'memory_total', type: 'integer', value: this.metrics.memTotal },
+      ])
+    }
+
     this.submit({
       measurement: 'node_started',
-      fields: [{ name: 'online', type: 'boolean', value: true }],
+      fields,
       timestamp: new Date(),
     })
   }
