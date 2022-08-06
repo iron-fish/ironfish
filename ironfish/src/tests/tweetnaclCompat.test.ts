@@ -65,7 +65,7 @@ describe('Tweetnacl compatibility with rust bindings', () => {
       tweetBoxed,
       Buffer.from(tweetNonce).toString('base64'),
       Buffer.from(tweetPair.publicKey).toString('base64'),
-      Buffer.from(rustPair.secretKey),
+      rustPair.secretKey,
     )
 
     const rustUnboxed = Buffer.from(

@@ -15,8 +15,8 @@ pub const NONCE_LENGTH: u32 = nacl::NONCE_LENGTH as u32;
 
 #[napi]
 pub struct BoxKeyPair {
-    pub public_key: Uint8Array,
-    pub secret_key: Uint8Array,
+    public_key: Vec<u8>,
+    secret_key: Vec<u8>,
 }
 
 #[napi]
@@ -27,8 +27,8 @@ impl BoxKeyPair {
         let secret_key = new_secret_key();
 
         BoxKeyPair {
-            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
-            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+            public_key: secret_key.public_key().as_bytes().to_vec(),
+            secret_key: secret_key.as_bytes().to_vec(),
         }
     }
 
@@ -44,9 +44,19 @@ impl BoxKeyPair {
         let secret_key = bytes_to_secret_key(bytes);
 
         Ok(BoxKeyPair {
-            public_key: Uint8Array::new(secret_key.public_key().as_bytes().to_vec()),
-            secret_key: Uint8Array::new(secret_key.as_bytes().to_vec()),
+            public_key: secret_key.public_key().as_bytes().to_vec(),
+            secret_key: secret_key.as_bytes().to_vec(),
         })
+    }
+
+    #[napi(getter)]
+    pub fn public_key(&self) -> Uint8Array {
+        Uint8Array::new(self.public_key.to_vec())
+    }
+
+    #[napi(getter)]
+    pub fn secret_key(&self) -> Uint8Array {
+        Uint8Array::new(self.secret_key.to_vec())
     }
 }
 

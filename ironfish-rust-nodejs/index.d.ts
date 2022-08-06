@@ -34,10 +34,10 @@ export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
 export class BoxKeyPair {
-  publicKey: Uint8Array
-  secretKey: Uint8Array
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
+  get publicKey(): Uint8Array
+  get secretKey(): Uint8Array
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
