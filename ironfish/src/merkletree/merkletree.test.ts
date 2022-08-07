@@ -50,37 +50,45 @@ describe('Merkle tree', function () {
     )
   })
 
-  it.only('testing...', async () => {
+  it('testing...', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
-    await tree.rehashTree()
-    expect(tree.lastHashIndex).toBe(0)
-    await expect(tree).toHaveLeaves('a', [0])
-    await expect(tree).toHaveNodes([])
-
     await tree.add('b')
-    await tree.rehashTree()
-    expect(tree.lastHashIndex).toBe(1)
-    await expect(tree).toHaveLeaves('ab', [1, 1])
-    await expect(tree).toHaveNodes([[1, Side.Left, 0, '<a|b-0>']])
-
     await tree.add('c')
     await tree.rehashTree()
-    expect(tree.lastHashIndex).toBe(2)
-    console.log('nodes')
-    for await (const [k, v] of tree.nodes.getAllIter()) {
-      console.log(k, v)
-    }
-    console.log('leaves')
-    for await (const [k, v] of tree.leaves.getAllIter()) {
-      console.log(k, v)
-    }
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|c-0>'],
       [2, Side.Right, 1, '<a|b-0>'],
       [3, Side.Left, 0, '<<a|b-0>|<c|c-0>-1>'],
+    ])
+
+    await tree.add('d')
+    await tree.add('e')
+    await tree.add('f')
+    await tree.add('g')
+    await tree.add('h')
+    await tree.add('i')
+    await tree.rehashTree()
+    await expect(tree).toHaveLeaves('abcdefghi', [1, 1, 2, 2, 4, 4, 7, 7, 8])
+    await expect(tree).toHaveNodes([
+      [1, Side.Left, 3, '<c|d-0>'],
+      [2, Side.Right, 1, '<a|b-0>'],
+      [3, Side.Left, 6, '<<e|f-0>|<g|h-0>-1>'],
+      [4, Side.Left, 5, '<g|h-0>'],
+      [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
+      [6, Side.Left, 11, '<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>'],
+      [7, Side.Right, 4, '<e|f-0>'],
+      [8, Side.Left, 9, '<i|i-0>'],
+      [9, Side.Left, 10, '<<i|i-0>|<i|i-0>-1>'],
+      [10, Side.Right, 6, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
+      [
+        11,
+        Side.Left,
+        0,
+        '<<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>|<<<i|i-0>|<i|i-0>-1>|<<i|i-0>|<i|i-0>-1>-2>-3>',
+      ],
     ])
   })
 
@@ -141,6 +149,18 @@ describe('Merkle tree', function () {
 
     await tree.add('g')
     await tree.rehashTree()
+
+    console.log('Leaves')
+
+    for await (const [k, v] of tree.leaves.getAllIter()) {
+      console.log(k, v)
+    }
+    console.log('Nodes')
+
+    for await (const [k, v] of tree.nodes.getAllIter()) {
+      console.log(k, v)
+    }
+
     await expect(tree).toHaveLeaves('abcdefg', [1, 1, 2, 2, 4, 4, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -187,7 +207,6 @@ describe('Merkle tree', function () {
       ],
     ])
 
-
     await tree.add('j')
     await tree.add('k')
     await tree.add('l')
@@ -206,6 +225,7 @@ describe('Merkle tree', function () {
     await tree.add('y')
     await tree.add('z')
     await tree.rehashTree()
+
     await expect(tree).toHaveLeaves(
       'abcdefghijklmnopqrstuvwxyz',
       [

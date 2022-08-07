@@ -607,11 +607,38 @@ export class MerkleTree<
     })
   }
 
+  private async findParentNode(
+    index: number,
+    tx: IDatabaseTransaction,
+  ): Promise<{ index: number; node: SchemaValue<NodesSchema<H>> }> {
+    let parentIndex
+    let parentNode
+
+    for await (const [k, v] of this.nodes.getAllIter(tx)) {
+      if (v.leftIndex === index) {
+        parentIndex = k
+        parentNode = v
+        break
+      }
+    }
+
+    if (parentIndex === undefined || parentNode === undefined) {
+      parentIndex = index
+      parentNode = await this.getNode(parentIndex, tx)
+      if (!isEmpty(parentNode.leftIndex)) {
+        parentIndex = parentNode.leftIndex
+        parentNode = await this.getNode(parentIndex, tx)
+      }
+    }
+
+    return { index: parentIndex, node: parentNode }
+  }
+
   async rehashTree(tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       const leavesCount = await this.getCount('Leaves', tx)
 
-      const hashStack: H[] = []
+      const hashStack: { hash: H; index: number; depth: number }[] = []
       let seenRight = false
 
       let leafIndex = leavesCount - 1
@@ -664,7 +691,9 @@ export class MerkleTree<
 
         seenRight = true
 
-        hashStack.unshift(hash)
+        if (leftNode.parentIndex !== 0) {
+          hashStack.unshift({ hash, index: leftIndex, depth })
+        }
 
         leafIndex--
       }
@@ -713,44 +742,23 @@ export class MerkleTree<
           tx,
         )
 
-        hashStack.unshift(hash)
-
-        // console.log('entering loop with node', index, 'parent', node.parentIndex)
+        if (siblingNode.parentIndex !== 0) {
+          hashStack.unshift({ hash, index, depth })
+        }
 
         while (!isEmpty(node.parentIndex)) {
           depth++
 
-          let parentIndex
-          let parentNode
-
-          // console.log('looking for node with leftIndex', node.parentIndex)
-
-          for await (const [k, v] of this.nodes.getAllIter(tx)) {
-            if (v.leftIndex === node.parentIndex) {
-              parentIndex = k
-              parentNode = v
-              break
-            }
-          }
-
-          if (parentIndex === undefined || parentNode === undefined) {
-            // console.log('not found, taking node', node.parentIndex)
-            parentIndex = node.parentIndex
-            parentNode = await this.getNode(parentIndex, tx)
-            if (!isEmpty(parentNode.leftIndex)) {
-              // console.log('node has a leftIndex', parentNode.leftIndex)
-              parentIndex = parentNode.leftIndex
-              parentNode = await this.getNode(parentIndex, tx)
-            }
-          } else {
-            // console.log('found', parentIndex)
-          }
+          const { index: parentIndex, node: parentNode } = await this.findParentNode(
+            node.parentIndex,
+            tx,
+          )
 
           const leftHash = hashStack.shift()
           const rightHash = hashStack.length === 0 ? leftHash : hashStack.shift()
           Assert.isNotUndefined(leftHash)
           Assert.isNotUndefined(rightHash)
-          const hash = this.hasher.combineHash(depth, leftHash, rightHash)
+          const hash = this.hasher.combineHash(depth, leftHash.hash, rightHash.hash)
 
           console.log('putting hash', hash, 'at', parentIndex)
 
@@ -763,16 +771,74 @@ export class MerkleTree<
             tx,
           )
 
-          hashStack.unshift(hash)
+          if (parentNode.parentIndex !== 0) {
+            hashStack.unshift({ hash, index: parentIndex, depth })
+          }
 
           node = await this.getNode(node.parentIndex, tx)
         }
       }
 
-      this.lastHashIndex = leavesCount - 1
+      console.log('hash stack', hashStack)
 
-      // TODO: It should be possible to optimize this down
-      await this.rehashRightPath(tx)
+      // The first element should be the deepest, and all others should be dependent
+      while (hashStack.length > 1) {
+        hashStack.pop()
+      }
+
+      while (hashStack.length > 0 && leavesCount > 2) {
+        // we have leftover hashes that need to be added
+        const hash = hashStack.shift()
+        Assert.isNotUndefined(hash)
+
+        const node = await this.getNode(hash.index, tx)
+
+        let siblingNode
+
+        if (node.side === 'Right') {
+          Assert.isNotUndefined(node.leftIndex)
+          siblingNode = await this.getNode(node.leftIndex, tx)
+        } else {
+          for await (const [k, v] of this.nodes.getAllIter(tx)) {
+            if (v.leftIndex === hash.index) {
+              siblingNode = v
+            }
+          }
+        }
+
+        Assert.isNotUndefined(siblingNode)
+
+        const nodeParentIndex: number | undefined = node.parentIndex ?? siblingNode.parentIndex
+
+        Assert.isNotUndefined(nodeParentIndex)
+
+        const { index: parentIndex, node: parentNode } = await this.findParentNode(
+          nodeParentIndex,
+          tx,
+        )
+
+        const newHash =
+          node.side === 'Left'
+            ? this.hasher.combineHash(hash.depth + 1, siblingNode.hashOfSibling, hash.hash)
+            : this.hasher.combineHash(hash.depth + 1, hash.hash, siblingNode.hashOfSibling)
+
+        console.log('putting hash', newHash, 'at', parentIndex)
+
+        await this.nodes.put(
+          parentIndex,
+          {
+            ...parentNode,
+            hashOfSibling: newHash,
+          },
+          tx,
+        )
+
+        if (parentNode.parentIndex !== 0) {
+          hashStack.unshift({ hash: newHash, index: parentIndex, depth: hash.depth + 1 })
+        }
+      }
+
+      this.lastHashIndex = leavesCount - 1
     })
   }
 
