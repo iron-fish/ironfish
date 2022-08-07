@@ -151,13 +151,13 @@ export default class Download extends IronfishCommand {
       await new Promise<void>((resolve, reject) => {
         const onWriterError = (e: unknown) => {
           writer.removeListener('close', onWriterClose)
-          writer.removeListener('onWriterError', onWriterError)
+          writer.removeListener('error', onWriterError)
           reject(e)
         }
 
         const onWriterClose = () => {
           writer.removeListener('close', onWriterClose)
-          writer.removeListener('onWriterError', onWriterError)
+          writer.removeListener('error', onWriterError)
           resolve()
         }
 
