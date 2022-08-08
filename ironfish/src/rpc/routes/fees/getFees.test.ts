@@ -15,13 +15,13 @@ describe('Route chain.getFees', () => {
     ).rejects.toThrow('numOfBlocks must be less than the current head sequence')
   })
 
-  it ('ignores miners fee from calculations', async () => {
+  it('ignores miners fee from calculations', async () => {
     const node = routeTest.node
 
     const block = await useMinerBlockFixture(node.chain)
     await expect(node.chain).toAddBlock(block)
 
-    let response = await routeTest.client
+    const response = await routeTest.client
       .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 1 })
       .waitForEnd()
 
@@ -40,7 +40,7 @@ describe('Route chain.getFees', () => {
     const { block, transaction } = await useBlockWithTx(node)
     await expect(node.chain).toAddBlock(block)
 
-    let response = await routeTest.client
+    const response = await routeTest.client
       .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 1 })
       .waitForEnd()
 
