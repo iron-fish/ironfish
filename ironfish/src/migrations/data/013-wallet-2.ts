@@ -171,7 +171,6 @@ export class Migration013 extends Migration {
     let count = 0
 
     for await (const [nullifier, noteHash] of nullifierToNoteOld.getAllIter(tx)) {
-      logger.debug(`\tMigrating note's nullifier: ${HashUtils.renderHashHex(noteHash)}`)
       await nullifierToNoteHashNew.put(nullifier, noteHash, tx)
       count++
     }
