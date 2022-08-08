@@ -232,7 +232,7 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('sends request when node has transaction, but a peer does not', async () => {
+  it('sends request when node has transaction in mempool, but a peer does not', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
@@ -240,35 +240,18 @@ describe('TransactionFetcher', () => {
 
     const hash = transaction.hash()
 
-    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
+    expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
-    const { peer: peerWithTransaction, sendSpy: sendSpyWithTransaction } = peers[0]
-    const { peer: peerWithoutTransaction } = peers[1]
+    const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)[0]
+    const peerIdentity = peer.getIdentityOrThrow()
 
-    const message = newHashMessage(peerWithTransaction, hash)
-
-    await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, message)
-
-    jest.runOnlyPendingTimers()
-
-    expect(peerNetwork.knowsTransaction(hash, peerWithTransaction.getIdentityOrThrow())).toBe(
-      true,
-    )
-    expect(
-      peerNetwork.knowsTransaction(hash, peerWithoutTransaction.getIdentityOrThrow()),
-    ).toBe(false)
-    expect(sendSpyWithTransaction.mock.calls.length).toBe(1)
-
-    // More peers join after the transaction is processed
-    const peers2 = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
-
-    const { peer, sendSpy } = peers2[0]
+    expect(peerNetwork.knowsTransaction(hash, peerIdentity)).toBe(false)
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
 
     jest.runOnlyPendingTimers()
 
-    expect(sendSpy.mock.calls.length).toBe(1)
+    expect(sendSpy.mock.calls).toHaveLength(1)
 
     await peerNetwork.stop()
   })
