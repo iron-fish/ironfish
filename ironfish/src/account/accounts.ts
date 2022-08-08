@@ -1145,10 +1145,10 @@ export class Accounts {
     return transactions
   }
 
-  getTransaction(
+  async getTransaction(
     account: Account,
     hash: string,
-  ): {
+  ): Promise<{
     transactionInfo: {
       status: string
       isMinersFee: boolean
@@ -1161,7 +1161,7 @@ export class Accounts {
       amount: number
       memo: string
     }[]
-  } {
+  }> {
     this.assertHasAccount(account)
 
     let transactionInfo = null
@@ -1200,15 +1200,19 @@ export class Accounts {
         }
 
         if (transactionNotes.length > 0) {
+          const { blockHash } = transactionMapValue
+
           let status = 'pending'
-          if (transactionMapValue.blockHash && transactionMapValue.submittedSequence) {
-            if (
-              transactionMapValue.submittedSequence + minimumBlockConfirmations <
-              heaviestHead.sequence
-            ) {
+          if (blockHash) {
+            const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+            Assert.isNotNull(header)
+            const main = await this.chain.isHeadChain(header)
+            if (main && header.sequence + minimumBlockConfirmations < heaviestHead.sequence) {
               status = 'completed'
-            } else {
+            } else if (main) {
               status = 'confirming'
+            } else {
+              status = 'forked'
             }
           }
           transactionInfo = {
