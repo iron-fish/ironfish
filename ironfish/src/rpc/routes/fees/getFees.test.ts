@@ -12,7 +12,7 @@ describe('Route chain.getFees', () => {
   it('should fail if no block is found', async () => {
     await expect(
       routeTest.client.request('fees/getFees', { numOfBlocks: 1 }).waitForEnd(),
-    ).rejects.toThrow('No block found')
+    ).rejects.toThrow('numOfBlocks must be less than the current head sequence')
   })
 
   it ('ignores miners fee from calculations', async () => {

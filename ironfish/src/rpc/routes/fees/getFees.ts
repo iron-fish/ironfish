@@ -48,9 +48,8 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
     Assert.isNotNull(latestBlock, 'No block found')
 
     const fees: number[] = []
-
-    let startBlock: number = latestBlockHeader.sequence
-    const endBlock: number = latestBlockHeader.sequence
+    const endBlock = latestBlockHeader.sequence
+    const startBlock = endBlock - numOfBlocks
 
     latestBlock.transactions.forEach((transaction) => {
       if (!transaction.isMinersFee()) {
@@ -61,8 +60,6 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
     for (let i = 0; i < numOfBlocks; i++) {
       latestBlock = await node.chain.getBlock(latestBlock.header.previousBlockHash)
       Assert.isNotNull(latestBlock, 'No block found')
-
-      startBlock = latestBlock.header.sequence
 
       latestBlock.transactions.forEach((transaction) => {
         if (!transaction.isMinersFee()) {
