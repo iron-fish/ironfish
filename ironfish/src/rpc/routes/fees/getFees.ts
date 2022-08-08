@@ -10,7 +10,6 @@ export type GetFeesRequest = { numOfBlocks: number }
 export type GetFeesResponse = {
   startBlock: number
   endBlock: number
-  fees: string
   p25: number | null
   p50: number | null
   p75: number | null
@@ -26,7 +25,6 @@ export const GetFeesResponseSchema: yup.ObjectSchema<GetFeesResponse> = yup
   .object({
     startBlock: yup.number().defined(),
     endBlock: yup.number().defined(),
-    fees: yup.string(),
     p25: yup.number().nullable().defined(),
     p50: yup.number().nullable().defined(),
     p75: yup.number().nullable().defined(),
@@ -38,6 +36,12 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
   GetFeesRequestSchema,
   async (request, node): Promise<void> => {
     const numOfBlocks = request.data.numOfBlocks
+
+    Assert.isGreaterThan(
+      node.chain.head.sequence,
+      numOfBlocks,
+      'numOfBlocks must be less than the current head sequence',
+    )
 
     const latestBlockHeader = node.chain.latest
     let latestBlock = await node.chain.getBlock(latestBlockHeader.hash)
@@ -70,7 +74,6 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
     request.end({
       startBlock,
       endBlock,
-      fees: JSON.stringify(fees),
       p25: percentile(fees, 25),
       p50: percentile(fees, 50),
       p75: percentile(fees, 75),
