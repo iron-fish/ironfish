@@ -981,7 +981,7 @@ export class PeerNetwork {
     }
 
     return (
-      (this.node.memPool.exists(hash) || this.recentlyAddedToChain.has(hash)) && !peersToSendTo
+      this.recentlyAddedToChain.has(hash) || (this.node.memPool.exists(hash) && !peersToSendTo)
       // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
     )
   }
