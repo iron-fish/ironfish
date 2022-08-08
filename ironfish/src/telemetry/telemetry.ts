@@ -401,18 +401,7 @@ export class Telemetry {
           value: hash.toString('hex'),
         },
       ],
-      fields: [
-        {
-          name: 'notes',
-          type: 'integer',
-          value: transaction.notesLength(),
-        },
-        {
-          name: 'spends',
-          type: 'integer',
-          value: transaction.spendsLength(),
-        },
-      ],
+      fields: [],
     })
   }
 
