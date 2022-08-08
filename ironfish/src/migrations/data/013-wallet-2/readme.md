@@ -48,7 +48,7 @@
   1. Delete store `nullifierToNote`
 
 # Potential issues:
-  - What happens if we cant decrypt a note?
+  - What happens if we can't decrypt a note?
     - We drop it.
     - Probably was decrypted previously with an account that hasd been since removed.
     - Worse case they can rescan
