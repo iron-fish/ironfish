@@ -139,8 +139,7 @@ export class TransactionFetcher {
     // Get the next peer randomly to distribute load more evenly
     const peer = this.popRandomPeer(hash)
     if (!peer) {
-      this.pending.delete(hash)
-      this.sources.delete(hash)
+      this.removeTransaction(hash)
       return
     }
 
