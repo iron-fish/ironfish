@@ -39,8 +39,10 @@ export default class Debug extends IronfishCommand {
       } else if (err instanceof DatabaseOpenError) {
         this.log('Database cannot be opened, skipping output that requires database.\n')
         this.log(ErrorUtils.renderError(err, true) + '\n')
+      } else if (err instanceof Error) {
+        this.log(`An error occured while opening the database: "${err.message}"`)
       } else {
-        this.log(`An error occured while opening the database: "${err}"`)
+        this.log(`Unknown error occured while opening the database"`)
       }
 
       this.display(this.basicOutput(node))
