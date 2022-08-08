@@ -50,7 +50,7 @@
 # Potential issues:
   - What happens if we can't decrypt a note?
     - We drop it.
-    - Probably was decrypted previously with an account that hasd been since removed.
+    - Probably was decrypted previously with an account that has been since removed.
     - Worse case they can rescan
   - Could there be memory issues?
     - Yes, we load all transactions, notes, and nullifier into memory during the migration and don't unload them until the migration has finished.
