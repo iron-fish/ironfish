@@ -236,11 +236,9 @@ describe('TransactionFetcher', () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
-    const { block, transaction } = await getValidTransactionOnBlock(node)
+    const { transaction } = await getValidTransactionOnBlock(node)
 
     const hash = transaction.hash()
-
-    await expect(node.chain).toAddBlock(block)
 
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
 
@@ -260,6 +258,17 @@ describe('TransactionFetcher', () => {
       peerNetwork.knowsTransaction(hash, peerWithoutTransaction.getIdentityOrThrow()),
     ).toBe(false)
     expect(sendSpyWithTransaction.mock.calls.length).toBe(1)
+
+    // More peers join after the transaction is processed
+    const peers2 = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)
+
+    const { peer, sendSpy } = peers2[0]
+
+    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+
+    jest.runOnlyPendingTimers()
+
+    expect(sendSpy.mock.calls.length).toBe(1)
 
     await peerNetwork.stop()
   })
