@@ -918,10 +918,10 @@ export class Accounts {
     await this.updateHeadHash(account, this.chainProcessor.hash)
   }
 
-  getTransaction(
+  async getTransactionWithMetadata(
     account: Account,
     hash: string,
-  ): {
+  ): Promise<{
     transactionInfo: {
       status: string
       isMinersFee: boolean
@@ -929,12 +929,12 @@ export class Accounts {
       notes: number
       spends: number
     } | null
-    transactionNotes: {
+    transactionNotes: Array<{
       spender: boolean
       amount: number
       memo: string
-    }[]
-  } {
+    }>
+  }> {
     this.assertHasAccount(account)
 
     let transactionInfo = null
@@ -968,10 +968,11 @@ export class Accounts {
 
         if (transactionNotes.length > 0) {
           transactionInfo = {
-            status:
-              transactionValue.blockHash && transactionValue.submittedSequence
-                ? 'completed'
-                : 'pending',
+            status: await this.getTransactionStatus(
+              transactionValue.submittedSequence,
+              transaction.expirationSequence(),
+              transactionValue.blockHash,
+            ),
             isMinersFee: transaction.isMinersFee(),
             fee: Number(transaction.fee()),
             notes: transaction.notesLength(),
@@ -982,6 +983,84 @@ export class Accounts {
     }
 
     return { transactionInfo, transactionNotes }
+  }
+
+  async getTransactionsWithMetadata(account: Account): Promise<
+    Array<{
+      creator: boolean
+      status: string
+      hash: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+      expiration: number
+    }>
+  > {
+    this.assertHasAccount(account)
+
+    const transactions = []
+
+    for (const { transaction, blockHash, submittedSequence } of account.getTransactions()) {
+      // check if account created transaction
+      let transactionCreator = false
+      let transactionRecipient = false
+
+      for (const note of transaction.notes()) {
+        if (note.decryptNoteForSpender(account.outgoingViewKey)) {
+          transactionCreator = true
+          break
+        } else if (note.decryptNoteForOwner(account.incomingViewKey)) {
+          transactionRecipient = true
+        }
+      }
+
+      if (transactionCreator || transactionRecipient) {
+        transactions.push({
+          creator: transactionCreator,
+          status: await this.getTransactionStatus(
+            submittedSequence,
+            transaction.expirationSequence(),
+            blockHash,
+          ),
+          hash: transaction.unsignedHash().toString('hex'),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+          expiration: transaction.expirationSequence(),
+        })
+      }
+    }
+
+    return transactions
+  }
+
+  private async getTransactionStatus(
+    submittedSequence: number | null,
+    expirationSequence: number,
+    blockHash: string | null,
+  ): Promise<string> {
+    let status = 'unknown'
+
+    if (blockHash) {
+      const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+      Assert.isNotNull(header)
+      const main = await this.chain.isHeadChain(header)
+      if (main) {
+        status = 'completed'
+      } else {
+        status = 'forked'
+      }
+    } else {
+      if (this.chain.head.sequence > expirationSequence) {
+        status = 'expired'
+      } else if (submittedSequence) {
+        status = 'submitted'
+      }
+    }
+
+    return status
   }
 
   async importAccount(toImport: Omit<AccountsValue, 'rescan'>): Promise<Account> {

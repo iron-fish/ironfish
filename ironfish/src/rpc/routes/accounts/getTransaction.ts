@@ -63,12 +63,11 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
 router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
   `${ApiNamespace.account}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { transactionInfo, transactionNotes } = node.accounts.getTransaction(
-      account,
-      request.data.hash,
-    )
+    const { transactionInfo, transactionNotes } =
+      await node.accounts.getTransactionWithMetadata(account, request.data.hash)
+
     request.end({
       account: account.displayName,
       transactionHash: request.data.hash,

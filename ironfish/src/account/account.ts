@@ -420,49 +420,6 @@ export class Account {
     return this.transactions.values()
   }
 
-  getTransactionsWithMetadata(): Array<{
-    creator: boolean
-    status: string
-    hash: string
-    isMinersFee: boolean
-    fee: number
-    notes: number
-    spends: number
-    expiration: number
-  }> {
-    const transactions = []
-
-    for (const { blockHash, submittedSequence, transaction } of this.transactions.values()) {
-      // check if account created transaction
-      let transactionCreator = false
-      let transactionRecipient = false
-
-      for (const note of transaction.notes()) {
-        if (note.decryptNoteForSpender(this.outgoingViewKey)) {
-          transactionCreator = true
-          break
-        } else if (note.decryptNoteForOwner(this.incomingViewKey)) {
-          transactionRecipient = true
-        }
-      }
-
-      if (transactionCreator || transactionRecipient) {
-        transactions.push({
-          creator: transactionCreator,
-          status: blockHash && submittedSequence ? 'completed' : 'pending',
-          hash: transaction.unsignedHash().toString('hex'),
-          isMinersFee: transaction.isMinersFee(),
-          fee: Number(transaction.fee()),
-          notes: transaction.notesLength(),
-          spends: transaction.spendsLength(),
-          expiration: transaction.expirationSequence(),
-        })
-      }
-    }
-
-    return transactions
-  }
-
   async deleteTransaction(
     hash: Buffer,
     transaction: Transaction,
