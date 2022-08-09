@@ -24,10 +24,20 @@ export default class Backup extends IronfishCommand {
       allowNo: true,
       description: 'wait for the database to stop being used',
     }),
+    chain: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'export the chain DB',
+    }),
     accounts: Flags.boolean({
       default: false,
       allowNo: true,
       description: 'export the accounts',
+    }),
+    mined: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'export the mined block index',
     }),
   }
 
@@ -62,11 +72,21 @@ export default class Backup extends IronfishCommand {
     this.log(`Zipping\n    SRC ${source}\n    DST ${dest}\n`)
     CliUx.ux.action.start(`Zipping ${source}`)
 
-    await TarUtils.zipDir(
-      source,
-      dest,
-      flags.accounts ? [] : [path.basename(path.dirname(this.sdk.config.accountDatabasePath))],
-    )
+    const excludes = [path.basename(this.sdk.config.tempDir)]
+
+    if (!flags.chain) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.chainDatabasePath)))
+    }
+
+    if (!flags.accounts) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.accountDatabasePath)))
+    }
+
+    if (!flags.mined) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.indexDatabasePath)))
+    }
+
+    await TarUtils.zipDir(source, dest, excludes)
 
     const stat = await fsAsync.stat(dest)
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
