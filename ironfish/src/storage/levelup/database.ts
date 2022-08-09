@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AbstractLevelDOWN } from 'abstract-leveldown'
 import levelErrors from 'level-errors'
+import LevelDOWN from 'leveldown'
 import levelup, { LevelUp } from 'levelup'
 import { Assert } from '../../assert'
 import { Mutex } from '../../mutex'
@@ -10,6 +11,7 @@ import { IJsonSerializable } from '../../serde'
 import {
   BatchOperation,
   Database,
+  DATABASE_ALL_KEY_RANGE,
   DatabaseSchema,
   IDatabaseStore,
   IDatabaseStoreOptions,
@@ -110,6 +112,18 @@ export class LevelupDatabase extends Database {
     if (current !== version) {
       throw new DatabaseVersionError(current, version)
     }
+  }
+
+  compact(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (this.levelup instanceof LevelDOWN) {
+        this.levelup.compactRange(
+          DATABASE_ALL_KEY_RANGE.gte,
+          DATABASE_ALL_KEY_RANGE.lte,
+          (err) => (err ? reject(err) : resolve()),
+        )
+      }
+    })
   }
 
   transaction<TResult>(
