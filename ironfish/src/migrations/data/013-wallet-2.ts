@@ -301,7 +301,12 @@ export class Migration013 extends Migration {
       await transactionsStoreNew.put(transactionHash, migrated, tx)
     }
 
-    logger.debug(`\tMigrated ${countMigrated} and dropped ${countDropped} transactions`)
+    logger.debug(`\tMigrated ${countMigrated} transactions`)
+
+    if (countDropped) {
+      logger.warn(`\tDropped ${countDropped} transactions with missing blocks`)
+    }
+
     return dropped
   }
 
@@ -400,7 +405,7 @@ export class Migration013 extends Migration {
 
     if (countMissingAccount) {
       logger.warn(
-        `\tDropped ${countMissingAccount} notes that were not decryptable by any accounts we have and dropped ${countMissingTx} notes from TX that were dropped because their blocks were missing.`,
+        `\tDropped ${countMissingAccount} notes that were not decryptable by any accounts we have and dropped ${countMissingTx} notes from transactions that were dropped because their blocks were missing.`,
       )
     }
 
