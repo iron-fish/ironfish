@@ -245,7 +245,7 @@ export class Migration013 extends Migration {
 
       logger.debug(`\tAssigned account id ${accountName}: ${accountId}`)
 
-      await accountsStoreNew.put(uuid(), accountValue, tx)
+      await accountsStoreNew.put(accountId, accountValue, tx)
       await accountsStoreOld.del(accountName, tx)
 
       accounts.push({ id: accountId, account: accountValue })
