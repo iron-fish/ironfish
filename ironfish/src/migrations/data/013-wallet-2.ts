@@ -24,8 +24,7 @@ type Stores = {
 export class Migration013 extends Migration {
   path = __filename
 
-  async prepare(node: IronfishNode): Promise<IDatabase> {
-    await node.files.mkdir(node.accounts.db.location, { recursive: true })
+  prepare(node: IronfishNode): IDatabase {
     return createDB({ location: node.accounts.db.location })
   }
 
@@ -37,8 +36,11 @@ export class Migration013 extends Migration {
   ): Promise<void> {
     const startTotal = BenchUtils.startSegment()
 
+    const chainDb = createDB({ location: node.config.chainDatabasePath })
+    await chainDb.open()
+
     const stores: Stores = {
-      old: loadOldStores(db),
+      old: loadOldStores(db, chainDb),
       new: loadNewStores(db),
     }
 
@@ -121,6 +123,7 @@ export class Migration013 extends Migration {
     await stores.old.noteToNullifier.clear(tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
+    await chainDb.close()
     logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
 

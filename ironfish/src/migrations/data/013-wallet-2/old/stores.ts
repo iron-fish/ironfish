@@ -24,7 +24,7 @@ export type OldStores = {
   headers: HeadersStore
 }
 
-export function loadOldStores(db: IDatabase): OldStores {
+export function loadOldStores(db: IDatabase, chainDb: IDatabase): OldStores {
   const meta: MetaStore = db.addStore(
     {
       name: 'meta',
@@ -70,11 +70,14 @@ export function loadOldStores(db: IDatabase): OldStores {
     false,
   )
 
-  const headers: HeadersStore = db.addStore({
-    name: 'bh',
-    keyEncoding: BUFFER_ENCODING,
-    valueEncoding: new HeaderEncoding(),
-  })
+  const headers: HeadersStore = chainDb.addStore(
+    {
+      name: 'bh',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new HeaderEncoding(),
+    },
+    false,
+  )
 
   return { meta, accounts, noteToNullifier, nullifierToNote, transactions, headers }
 }
