@@ -153,6 +153,40 @@ export class Account {
     return unspentNotes
   }
 
+  getNotes(): Array<{
+    spender: boolean
+    amount: number
+    memo: string
+    noteTxHash: string
+  }> {
+    const notes = []
+
+    for (const { transaction } of this.getTransactions()) {
+      for (const note of transaction.notes()) {
+        // Try decrypting the note as the owner
+        let decryptedNote = note.decryptNoteForOwner(this.incomingViewKey)
+        let spender = false
+
+        if (!decryptedNote) {
+          // Try decrypting the note as the spender
+          decryptedNote = note.decryptNoteForSpender(this.outgoingViewKey)
+          spender = true
+        }
+
+        if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+          notes.push({
+            spender,
+            amount: Number(decryptedNote.value()),
+            memo: decryptedNote.memo().replace(/\x00/g, ''),
+            noteTxHash: transaction.unsignedHash().toString('hex'),
+          })
+        }
+      }
+    }
+
+    return notes
+  }
+
   getDecryptedNote(hash: string): DecryptedNotesValue | undefined {
     return this.decryptedNotes.get(hash)
   }
