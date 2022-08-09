@@ -79,10 +79,13 @@ export class MiningPoolShares {
   }
 
   async start(): Promise<void> {
-    if (this.enablePayouts) {
-      this.startPayoutInterval()
-    }
     await this.db.start()
+
+    if (this.enablePayouts) {
+      this.payoutInterval = setTimeout(() => {
+        this.startPayoutInterval()
+      }, this.attemptPayoutInterval * 1000)
+    }
   }
 
   async stop(): Promise<void> {
@@ -217,9 +220,11 @@ export class MiningPoolShares {
   }
 
   private startPayoutInterval() {
-    this.payoutInterval = setInterval(() => {
-      void this.createPayout()
-    }, this.attemptPayoutInterval * 1000)
+    void this.createPayout().finally(() => {
+      this.payoutInterval = setTimeout(() => {
+        this.startPayoutInterval()
+      }, this.attemptPayoutInterval * 1000)
+    })
   }
 
   private stopPayoutInterval() {
