@@ -123,6 +123,7 @@ export class Migration013 extends Migration {
     await stores.old.noteToNullifier.clear(tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
+    await chainDb.close()
     logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
 
