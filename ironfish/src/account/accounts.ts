@@ -1041,6 +1041,7 @@ export class Accounts {
     expirationSequence: number,
     blockHash: string | null,
   ): Promise<string> {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     let status = 'unknown'
 
     if (blockHash) {
@@ -1048,7 +1049,13 @@ export class Accounts {
       Assert.isNotNull(header)
       const main = await this.chain.isHeadChain(header)
       if (main) {
-        status = 'completed'
+        const confirmations = this.chain.head.sequence - header.sequence
+
+        if (confirmations >= minimumBlockConfirmations) {
+          status = 'completed'
+        } else {
+          status = 'confirming'
+        }
       } else {
         status = 'forked'
       }
