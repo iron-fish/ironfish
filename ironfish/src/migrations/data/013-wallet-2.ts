@@ -11,7 +11,7 @@ import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { DatabaseStoreValue, IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { BenchUtils, HashUtils } from '../../utils'
+import { BenchUtils } from '../../utils'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
 import { loadOldStores, OldStores } from './013-wallet-2/old/stores'
@@ -61,14 +61,26 @@ export class Migration013 extends Migration {
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
+    logger.debug('Migrating: transactions')
+    start = BenchUtils.startSegment()
+    const droppedTransactions = await this.migrateTransactions(
+      stores.old.transactions,
+      stores.new.transactions,
+      stores.old.headers,
+      tx,
+      logger,
+    )
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
     logger.debug('Migrating: decryptedNotes')
     start = BenchUtils.startSegment()
     const { unconfirmedBalances } = await this.migrateDecryptedNotes(
       stores.old.noteToNullifier,
-      stores.old.transactions,
+      stores.new.transactions,
       stores.new.decryptedNotes,
       noteToTransactionCache,
       accounts,
+      droppedTransactions,
       tx,
       logger,
     )
@@ -117,15 +129,17 @@ export class Migration013 extends Migration {
   }
 
   async buildNoteToTransactionCache(
-    transactions: Stores['old']['transactions'],
+    transactionsStoreOld: Stores['old']['transactions'],
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<BufferMap<Buffer>> {
     const noteToTransaction = new BufferMap<Buffer>()
     let tranactionCount = 0
 
-    for await (const [transactionHash, transactionEntry] of transactions.getAllIter(tx)) {
-      const transaction = new Transaction(transactionEntry.transaction)
+    for await (const [transactionHash, transactionValue] of transactionsStoreOld.getAllIter(
+      tx,
+    )) {
+      const transaction = new Transaction(transactionValue.transaction)
 
       for (const note of transaction.notes()) {
         const noteHash = note.merkleHash()
@@ -242,17 +256,69 @@ export class Migration013 extends Migration {
     return accounts
   }
 
+  async migrateTransactions(
+    transactionsStoreOld: Stores['old']['transactions'],
+    transactionsStoreNew: Stores['new']['transactions'],
+    headersStoreOld: Stores['old']['headers'],
+    tx: IDatabaseTransaction,
+    logger: Logger,
+  ): Promise<BufferMap<true>> {
+    const dropped = new BufferMap<true>()
+
+    let countMigrated = 0
+    let countDropped = 0
+
+    for await (const [transactionHash, transactionValue] of transactionsStoreOld.getAllIter(
+      tx,
+    )) {
+      const transactionHashHex = transactionHash.toString('hex')
+      await transactionsStoreOld.del(transactionHash, tx)
+
+      const migrated: DatabaseStoreValue<typeof transactionsStoreNew> = {
+        ...transactionValue,
+        sequence: null,
+      }
+
+      if (transactionValue.blockHash) {
+        const blockHash = Buffer.from(transactionValue.blockHash, 'hex')
+        const header = await headersStoreOld.get(blockHash)
+
+        if (header) {
+          migrated.sequence = header.header.sequence
+          countMigrated++
+        } else {
+          logger.debug(
+            `\tDropping TX ${transactionHashHex}: block not found ${transactionValue.blockHash}`,
+          )
+          await transactionsStoreOld.del(transactionHash, tx)
+          dropped.set(transactionHash, true)
+          countDropped++
+          continue
+        }
+      }
+
+      await transactionsStoreOld.del(transactionHash, tx)
+      await transactionsStoreNew.put(transactionHash, migrated, tx)
+    }
+
+    logger.debug(`\tMigrated ${countMigrated} and dropped ${countDropped} transactions`)
+    return dropped
+  }
+
   async migrateDecryptedNotes(
     noteToNullifierStoreOld: Stores['old']['noteToNullifier'],
-    transactionStoreOld: Stores['old']['transactions'],
+    transactionStoreNew: Stores['old']['transactions'],
     decryptedNoteStoreNew: Stores['new']['decryptedNotes'],
     noteToTransactionCache: BufferMap<Buffer>,
     accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
+    droppedTransactions: BufferMap<true>,
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<{ unconfirmedBalances: Map<string, bigint> }> {
     const decryptedNotes: DatabaseStoreValue<NewStores['decryptedNotes']>[] = []
-    let missingCount = 0
+
+    let countMissingAccount = 0
+    let countMissingTx = 0
 
     const unconfirmedBalances = new Map<string, bigint>()
 
@@ -262,7 +328,12 @@ export class Migration013 extends Migration {
       const transactionHash = noteToTransactionCache.get(noteHash)
       Assert.isNotUndefined(transactionHash)
 
-      const transactionEntry = await transactionStoreOld.get(transactionHash)
+      if (droppedTransactions.has(transactionHash)) {
+        countMissingTx++
+        continue
+      }
+
+      const transactionEntry = await transactionStoreNew.get(transactionHash)
       Assert.isNotUndefined(transactionEntry)
 
       const transaction = new Transaction(transactionEntry.transaction)
@@ -301,7 +372,7 @@ export class Migration013 extends Migration {
         logger.warn(
           `\tCould not find the original account that the note ${noteHashHex} was decrypted with, discarding. Tried ${accounts.length} accounts.`,
         )
-        missingCount++
+        countMissingAccount++
         continue
       }
 
@@ -325,12 +396,18 @@ export class Migration013 extends Migration {
       decryptedNotes.push(decryptedNote)
     }
 
-    if (missingCount) {
+    logger.debug(`\tMigrated ${decryptedNotes.length} notes.`)
+
+    if (countMissingAccount) {
       logger.warn(
-        `\tMigrated ${decryptedNotes.length} but dropped ${missingCount} notes that were not decryptable by any accounts we have.`,
+        `\tDropped ${countMissingAccount} notes that were not decryptable by any accounts we have and dropped ${countMissingTx} notes from TX that were dropped because their blocks were missing.`,
       )
-    } else {
-      logger.debug(`\tMigrated ${decryptedNotes.length} notes.`)
+    }
+
+    if (countMissingTx) {
+      logger.warn(
+        `\tDropped ${countMissingTx} notes from TX that were dropped because their blocks were missing.`,
+      )
     }
 
     return { unconfirmedBalances }

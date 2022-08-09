@@ -9,6 +9,7 @@ import {
   StringHashEncoding,
 } from '../../../../storage'
 import { AccountsStore, AccountsValueEncoding } from './accounts'
+import { HeaderEncoding, HeadersStore } from './headers'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NoteToNullifierStore, NoteToNullifiersValueEncoding } from './noteToNullifier'
 import { NullifierToNoteStore } from './nullifierToNote'
@@ -20,6 +21,7 @@ export type OldStores = {
   noteToNullifier: NoteToNullifierStore
   nullifierToNote: NullifierToNoteStore
   transactions: TransactionsStore
+  headers: HeadersStore
 }
 
 export function loadOldStores(db: IDatabase): OldStores {
@@ -68,5 +70,11 @@ export function loadOldStores(db: IDatabase): OldStores {
     false,
   )
 
-  return { meta, accounts, noteToNullifier, nullifierToNote, transactions }
+  const headers: HeadersStore = db.addStore({
+    name: 'bh',
+    keyEncoding: BUFFER_ENCODING,
+    valueEncoding: new HeaderEncoding(),
+  })
+
+  return { meta, accounts, noteToNullifier, nullifierToNote, transactions, headers }
 }
