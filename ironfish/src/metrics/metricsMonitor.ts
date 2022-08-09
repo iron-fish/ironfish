@@ -37,6 +37,8 @@ export class MetricsMonitor {
   readonly memTotal: number
   readonly heapMax: number
 
+  readonly cpuCores: number
+
   private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
 
@@ -66,6 +68,8 @@ export class MetricsMonitor {
     this.memoryInterval = null
 
     this.heapMax = getHeapStatistics().total_available_size
+
+    this.cpuCores = os.cpus().length
   }
 
   get started(): boolean {
