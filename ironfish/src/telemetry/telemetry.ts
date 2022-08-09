@@ -33,6 +33,7 @@ export class Telemetry {
   private readonly localPeerIdentity: Identity
 
   private started: boolean
+  private startTime: number | undefined
   private flushInterval: SetIntervalToken | null
   private metricsInterval: SetIntervalToken | null
   private points: Metric[]
@@ -79,6 +80,7 @@ export class Telemetry {
       return
     }
 
+    this.startTime = Date.now()
     this.started = true
     void this.flushLoop()
 
@@ -94,6 +96,7 @@ export class Telemetry {
       return
     }
 
+    this.startTime = undefined
     this.started = false
 
     if (this.flushInterval) {
@@ -189,6 +192,13 @@ export class Telemetry {
         value: this.chain.head.sequence,
       },
     ]
+
+    this.startTime &&
+      fields.push({
+        name: 'start_time',
+        type: 'integer',
+        value: this.startTime,
+      })
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
       fields.push({
