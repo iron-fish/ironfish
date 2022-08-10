@@ -10,7 +10,7 @@ import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
-import { Account, Accounts, AccountsValue } from '../wallet'
+import { Account, Accounts, AccountValue } from '../wallet'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -126,11 +126,11 @@ export async function useAccountFixture(
   }
 
   return useFixture(generate, {
-    serialize: (account: Account): AccountsValue => {
+    serialize: (account: Account): AccountValue => {
       return account.serialize()
     },
 
-    deserialize: async (accountData: AccountsValue): Promise<Account> => {
+    deserialize: async (accountData: AccountValue): Promise<Account> => {
       return accounts.importAccount(accountData)
     },
   })

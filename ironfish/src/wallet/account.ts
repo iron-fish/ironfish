@@ -7,8 +7,8 @@ import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
-import { AccountsValue } from './database/accounts'
 import { AccountsDB } from './database/accountsdb'
+import { AccountValue } from './database/accountValue'
 import { DecryptedNotesValue } from './database/decryptedNotes'
 import { SyncTransactionParams } from './wallet'
 
@@ -84,7 +84,7 @@ export class Account {
     this.nonChainNoteHashes = new Set<string>()
   }
 
-  serialize(): AccountsValue {
+  serialize(): AccountValue {
     return {
       name: this.name,
       spendingKey: this.spendingKey,
