@@ -277,5 +277,5 @@ pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
         }
     }
 
-    batch_verify_transactions(SAPLING.clone(), transactions).is_ok()
+    batch_verify_transactions(SAPLING.clone(), transactions.iter()).is_ok()
 }
