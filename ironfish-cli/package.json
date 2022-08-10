@@ -45,6 +45,7 @@
     "start:dev": "node start",
     "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc bin/run",
+    "start:debug": "yarn build && cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --inspect bin/run",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
