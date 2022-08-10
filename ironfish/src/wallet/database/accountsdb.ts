@@ -321,15 +321,14 @@ export class AccountsDB {
     })
   }
 
-  async *loadDecryptedNotes(): AsyncGenerator<{
-    hash: string
-    decryptedNote: DecryptedNoteValue
-  }> {
+  async loadDecryptedNotes(
+    map: Map<
+      string,
+      { nullifierHash: string | null; noteIndex: number | null; spent: boolean }
+    >,
+  ): Promise<void> {
     for await (const [hash, decryptedNote] of this.decryptedNotes.getAllIter()) {
-      yield {
-        hash,
-        decryptedNote,
-      }
+      map.set(hash, decryptedNote)
     }
   }
 

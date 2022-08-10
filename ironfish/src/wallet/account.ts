@@ -97,25 +97,7 @@ export class Account {
   async load(): Promise<void> {
     await this.accountsDb.loadNullifierToNoteHash(this.nullifierToNoteHash)
     await this.accountsDb.loadTransactions(this.transactions)
-    await this.loadDecryptedNotesAndBalance()
-  }
-
-  private async loadDecryptedNotesAndBalance(): Promise<void> {
-    let unconfirmedBalance = BigInt(0)
-
-    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
-      if (decryptedNote.accountId === this.id) {
-        this.decryptedNotes.set(hash, decryptedNote)
-
-        if (!decryptedNote.spent) {
-          unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
-        }
-
-        this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
-      }
-    }
-
-    await this.saveUnconfirmedBalance(unconfirmedBalance)
+    await this.accountsDb.loadDecryptedNotes(this.decryptedNotes)
   }
 
   async save(): Promise<void> {
