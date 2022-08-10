@@ -7,6 +7,11 @@ import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
 import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
 
+export const DATABASE_ALL_KEY_RANGE = {
+  gte: Buffer.alloc(0, 0),
+  lte: Buffer.alloc(256, 255),
+}
+
 /**
  * A database interface to represent a wrapper for a key value store database. The database is the entry point for creating stores, batches, transactions.
  *
@@ -33,6 +38,9 @@ export interface IDatabase {
 
   /** Closes the database and does not handle any open transactions */
   close(): Promise<void>
+
+  /** Internal book keeping function to clean up unused space by the database */
+  compact(): Promise<void>
 
   /**
    * Check if the database needs to be upgraded
@@ -135,6 +143,7 @@ export abstract class Database implements IDatabase {
   abstract upgrade(version: number): Promise<void>
   abstract getVersion(): Promise<number>
   abstract putVersion(version: number): Promise<void>
+  abstract compact(): Promise<void>
 
   abstract transaction(): IDatabaseTransaction
 
