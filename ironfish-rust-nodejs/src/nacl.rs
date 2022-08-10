@@ -110,7 +110,7 @@ pub fn native_unbox_message(
 
     let sender: [u8; 32] = decoded_sender
         .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert sender pubic key".to_owned()))?;
+        .map_err(|_| Error::from_reason("Unable to convert sender public key".to_owned()))?;
 
     let recipient: [u8; 32] = recipient_secret_key
         .to_vec()
