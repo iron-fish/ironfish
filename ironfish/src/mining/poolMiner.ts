@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
-import { isValidPublicAddress } from '../account/validator'
 import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
 import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
+import { isValidPublicAddress } from '../wallet/validator'
 import { StratumClient } from './stratum/stratumClient'
 
 export class MiningPoolMiner {

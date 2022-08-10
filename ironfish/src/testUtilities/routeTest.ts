@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
@@ -11,6 +10,7 @@ import { RpcMemoryAdapter } from '../rpc/adapters'
 import { RpcMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { Accounts } from '../wallet'
 import { WorkerPool } from '../workerPool'
 import { NodeTest } from './nodeTest'
 import { TestStrategy } from './strategy'

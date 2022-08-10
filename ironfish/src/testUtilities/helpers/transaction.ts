@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Account } from '../../account'
 import { Transaction } from '../../primitives/transaction'
+import { Account } from '../../wallet'
 
 export function isTransactionMine(transaction: Transaction, account: Account): boolean {
   for (const note of transaction.notes()) {

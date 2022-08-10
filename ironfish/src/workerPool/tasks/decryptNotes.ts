@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { ACCOUNT_KEY_LENGTH } from '../../account'
 import { NOTE_LENGTH } from '../../primitives/note'
 import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from '../../primitives/noteEncrypted'
+import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
