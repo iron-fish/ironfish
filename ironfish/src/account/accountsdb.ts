@@ -24,7 +24,7 @@ import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './database/dec
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
 import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
 
-export const VERSION_DATABASE_ACCOUNTS = 11
+export const VERSION_DATABASE_ACCOUNTS = 13
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,

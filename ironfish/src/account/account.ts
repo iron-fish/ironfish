@@ -188,7 +188,7 @@ export class Account {
 
     const { sequence, blockHash } = transaction
     if (blockHash) {
-      Assert.isNotNull(sequence)
+      Assert.isNotNull(sequence, `sequence required when submitting block hash`)
       const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? new Set<string>()
       decryptedNotes.add(noteHash)
       this.noteHashesBySequence.set(sequence, decryptedNotes)
