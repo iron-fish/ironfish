@@ -11,6 +11,10 @@ import { PooledTransactionsRequest } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
 
+/* Wait 1s before requesting a new hash to see if we receive the full
+ * transaction from the network first */
+const WAIT_BEFORE_REQUEST_MS = 1000
+
 type TransactionState =
   | {
       action: 'REQUEST_SCHEDULED'
@@ -72,8 +76,6 @@ export class TransactionFetcher {
     this.sources.set(hash, sources)
 
     if (!currentState) {
-      /* Wait 500ms before requesting a new hash to see if we receive the full
-       * transaction from the network first */
       const timeout = setTimeout(() => {
         if (this.peerNetwork.alreadyHaveTransaction(hash)) {
           this.removeTransaction(hash)
@@ -81,7 +83,7 @@ export class TransactionFetcher {
         }
 
         this.requestTransaction(hash)
-      }, 500)
+      }, WAIT_BEFORE_REQUEST_MS)
 
       this.pending.set(hash, {
         action: 'REQUEST_SCHEDULED',
