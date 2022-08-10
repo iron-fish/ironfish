@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "@ironfish/bfilter": "0.0.1",
-    "@ironfish/rust-nodejs": "0.1.9",
+    "@ironfish/rust-nodejs": "0.1.10",
     "@napi-rs/blake-hash": "1.3.1",
     "axios": "0.21.4",
     "blru": "0.1.6",
@@ -85,9 +85,6 @@
     "ts-jest": "26.5.5",
     "tweetnacl": "1.0.3",
     "typescript": "4.3.4"
-  },
-  "resolutions": {
-    "highlight.js": "10.4.1"
   },
   "bugs": {
     "url": "https://github.com/iron-fish/ironfish/issues"
