@@ -35,8 +35,8 @@ describe('Tweetnacl compatibility with rust bindings', () => {
     const tweetPair = tweetnacl.box.keyPair.fromSecretKey(hexArray)
     const rustPair = BoxKeyPair.fromHex(networkIdentity)
 
-    expect(tweetPair.secretKey).toEqual(rustPair.secretKey)
-    expect(tweetPair.publicKey).toEqual(rustPair.publicKey)
+    expect(Buffer.from(tweetPair.secretKey)).toEqual(rustPair.secretKey)
+    expect(Buffer.from(tweetPair.publicKey)).toEqual(rustPair.publicKey)
   })
 
   it('box and unbox messages', () => {

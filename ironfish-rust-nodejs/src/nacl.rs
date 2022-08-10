@@ -49,13 +49,13 @@ impl BoxKeyPair {
     }
 
     #[napi(getter)]
-    pub fn public_key(&self) -> Uint8Array {
-        Uint8Array::new(self.public_key.to_vec())
+    pub fn public_key(&self) -> Buffer {
+        Buffer::from(self.public_key.as_ref())
     }
 
     #[napi(getter)]
-    pub fn secret_key(&self) -> Uint8Array {
-        Uint8Array::new(self.secret_key.to_vec())
+    pub fn secret_key(&self) -> Buffer {
+        Buffer::from(self.secret_key.as_ref())
     }
 }
 

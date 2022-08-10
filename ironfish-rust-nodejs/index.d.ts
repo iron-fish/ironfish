@@ -36,8 +36,8 @@ export function initializeSapling(): void
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
-  get publicKey(): Uint8Array
-  get secretKey(): Uint8Array
+  get publicKey(): Buffer
+  get secretKey(): Buffer
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
