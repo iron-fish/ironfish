@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import tweetnacl from 'tweetnacl'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
@@ -284,7 +284,8 @@ export default class Start extends IronfishCommand {
       networkIdentity !== undefined &&
       networkIdentity.length > 31
     ) {
-      return BoxKeyPair.fromHex(networkIdentity)
+      const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
+      return tweetnacl.box.keyPair.fromSecretKey(hex)
     }
   }
 }

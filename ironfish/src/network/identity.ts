@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair, KEY_LENGTH } from '@ironfish/rust-nodejs'
+import tweetnacl, { BoxKeyPair } from 'tweetnacl'
 
 /**
  * Types and helper functions related to a peer's identity.
@@ -21,12 +21,12 @@ export type Identity = string
 /**
  * Length of the identity in bytes.
  */
-export const identityLength = KEY_LENGTH
+export const identityLength = tweetnacl.box.publicKeyLength
 
 /**
  * Length of the secret key from PrivateIdentity in bytes.
  */
-export const secretKeyLength = KEY_LENGTH
+export const secretKeyLength = tweetnacl.box.secretKeyLength
 
 /**
  * Length of the identity as a base64-encoded string.

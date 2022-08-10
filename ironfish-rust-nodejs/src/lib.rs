@@ -10,7 +10,6 @@ use napi_derive::napi;
 use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
 
-pub mod nacl;
 pub mod structs;
 
 #[napi(object)]

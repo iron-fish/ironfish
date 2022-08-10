@@ -2,7 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import * as encryption from './encryption'
+
 jest.mock('ws')
+jest.mock('./encryption', () => {
+  const originalModule = jest.requireActual<typeof encryption>('./encryption')
+
+  return {
+    ...originalModule,
+    boxMessage: jest
+      .fn()
+      .mockReturnValue({ nonce: 'boxMessageNonce', boxedMessage: 'boxMessageMessage' }),
+    unboxMessage: jest.fn().mockReturnValue(JSON.stringify({ type: 'offer' })),
+  }
+})
 
 import ws from 'ws'
 import { createRootLogger } from '../../logger'

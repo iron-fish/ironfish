@@ -14,6 +14,7 @@ export default class Prune extends IronfishCommand {
   static flags = {
     ...LocalFlags,
     dry: Flags.boolean({
+      char: 'd',
       default: false,
       description: 'Dry run prune first',
     }),

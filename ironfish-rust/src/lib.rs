@@ -15,10 +15,8 @@ pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
 pub mod mining;
-pub mod nacl;
 pub mod note;
 pub mod receiving;
-pub mod sapling_bls12;
 pub mod spending;
 pub mod transaction;
 pub mod witness;
@@ -31,6 +29,7 @@ pub use {
     spending::{SpendParams, SpendProof},
     transaction::{ProposedTransaction, Transaction},
 };
+pub mod sapling_bls12;
 
 #[cfg(test)]
 pub(crate) mod test_util; // I'm not sure if this is the right way to publish the utility library.

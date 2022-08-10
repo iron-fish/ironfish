@@ -13,8 +13,7 @@ export class StartCommand extends IronfishCommand {
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
     dry: Flags.boolean({
-      default: false,
-      description: 'Dry run migrations first',
+      char: 'd',
     }),
     quiet: Flags.boolean({
       char: 'q',

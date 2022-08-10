@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Event } from '../event'
-import { Block } from '../primitives/block'
-import { IDatabaseTransaction } from '../storage'
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
@@ -41,8 +37,6 @@ export function mockChain(): any {
     verifier: mockVerifier(),
     head: { hash: 'mockhash', sequence: 1, work: BigInt(0) },
     synced: true,
-    onConnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
-    onDisconnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
   }
 }
 

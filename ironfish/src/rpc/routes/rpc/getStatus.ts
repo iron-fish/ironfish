@@ -25,7 +25,7 @@ export type GetRpcStatusResponse = {
     readBytes: number
     writtenBytes: number
     clients: number
-    pending: string[]
+    pending: number
   }[]
 }
 
@@ -51,7 +51,7 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
             readBytes: yup.number().defined(),
             writtenBytes: yup.number().defined(),
             clients: yup.number().defined(),
-            pending: yup.array(yup.string().defined()).defined(),
+            pending: yup.number().defined(),
           })
           .defined(),
       )
@@ -103,7 +103,7 @@ function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
       readBytes: 0,
       writtenBytes: 0,
       clients: 0,
-      pending: new Array<string>(),
+      pending: 0,
     }
 
     if (adapter instanceof RpcIpcAdapter) {
@@ -121,7 +121,7 @@ function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
       }
 
       for (const pending of adapter.pending.values()) {
-        formatted.pending.push(...pending.flatMap((request) => request.route))
+        formatted.pending += pending.length
       }
 
       formatted.inbound = Math.max(adapter.inboundTraffic.rate1s, 0)
@@ -135,7 +135,7 @@ function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
         formatted.writableBytes += client.socket.writableLength
         formatted.readBytes += client.socket.bytesRead
         formatted.writtenBytes += client.socket.bytesWritten
-        client.requests.forEach((r) => formatted.pending.push(r.route))
+        formatted.pending += client.requests.size
       }
 
       formatted.inbound = Math.max(adapter.inboundTraffic.rate1s, 0)
