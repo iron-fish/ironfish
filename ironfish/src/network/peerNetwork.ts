@@ -688,7 +688,7 @@ export class PeerNetwork {
 
       // If the transaction is already in the mempool the only thing we have to do is broadcast
       const transaction = this.node.memPool.get(hash)
-      if (transaction) {
+      if (transaction && !this.alreadyHaveTransaction(hash)) {
         const nonce = Buffer.alloc(16, transaction.hash())
         const gossipMessage = new NewTransactionMessage(transaction.serialize(), nonce)
         this.broadcastTransaction(gossipMessage)
