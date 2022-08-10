@@ -9,7 +9,7 @@ import tar from 'tar'
 async function zipDir(source: string, dest: string, excludes: string[] = []): Promise<void> {
   const sourceDir = path.dirname(source)
   const sourceFile = path.basename(source)
-  const excludeSet = new Set(excludes)
+  const patterns = excludes.map((e) => new RegExp(e))
 
   await tar.create(
     {
@@ -17,7 +17,7 @@ async function zipDir(source: string, dest: string, excludes: string[] = []): Pr
       file: dest,
       C: sourceDir,
       filter: function (path) {
-        if (excludeSet.has(path)) {
+        if (patterns.find((p) => p.test(path))) {
           return false
         } else {
           return true

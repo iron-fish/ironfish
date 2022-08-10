@@ -41,6 +41,7 @@ export class Accounts {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
+  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -841,6 +842,7 @@ export class Accounts {
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     await memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
+    this.onTransactionCreated.emit(transaction)
 
     return transaction
   }
