@@ -4,6 +4,7 @@
 
 import ws from 'ws'
 import { Identity, isIdentity } from '../identity'
+import { NetworkMessage } from '../messages/networkMessage'
 import {
   Connection,
   ConnectionDirection,
@@ -73,6 +74,21 @@ export function getWaitingForIdentityPeer(
 
   expect(peer.state.type).toBe('CONNECTING')
   return { peer, connection: connection }
+}
+
+export const getConnectedPeersWithSpies = (
+  peerManager: PeerManager,
+  count: number,
+): {
+  peer: Peer
+  sendSpy: jest.SpyInstance<Connection | null, [message: NetworkMessage]>
+}[] => {
+  return [...Array<null>(count)].map((_) => {
+    const { peer } = getConnectedPeer(peerManager)
+    const sendSpy = jest.spyOn(peer, 'send')
+
+    return { peer, sendSpy }
+  })
 }
 
 export function getConnectedPeer(
