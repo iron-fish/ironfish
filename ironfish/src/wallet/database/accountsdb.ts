@@ -8,6 +8,7 @@ import { FileSystem } from '../../fileSystems'
 import { Transaction } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
+  BufferEncoding,
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
@@ -58,7 +59,7 @@ export class AccountsDB {
     value: DecryptedNoteValue
   }>
 
-  nullifierToNoteHash: IDatabaseStore<{ key: string; value: string }>
+  nullifierToNoteHash: IDatabaseStore<{ key: Buffer; value: string }>
 
   transactions: IDatabaseStore<{
     key: Buffer
@@ -118,9 +119,9 @@ export class AccountsDB {
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
-    this.nullifierToNoteHash = this.database.addStore<{ key: string; value: string }>({
+    this.nullifierToNoteHash = this.database.addStore<{ key: Buffer; value: string }>({
       name: 'nullifierToNoteHash',
-      keyEncoding: new StringHashEncoding(),
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new StringEncoding(),
     })
 
@@ -272,18 +273,18 @@ export class AccountsDB {
   }
 
   async saveNullifierNoteHash(
-    nullifier: string,
+    nullifier: Buffer,
     note: string,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.nullifierToNoteHash.put(nullifier, note, tx)
   }
 
-  async deleteNullifier(nullifier: string, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     await this.nullifierToNoteHash.del(nullifier, tx)
   }
 
-  async replaceNullifierToNoteHash(map: Map<string, string>): Promise<void> {
+  async replaceNullifierToNoteHash(map: BufferMap<string>): Promise<void> {
     await this.nullifierToNoteHash.clear()
 
     await this.database.transaction(async (tx) => {
@@ -293,7 +294,7 @@ export class AccountsDB {
     })
   }
 
-  async loadNullifierToNoteHash(map: Map<string, string>): Promise<void> {
+  async loadNullifierToNoteHash(map: BufferMap<string>): Promise<void> {
     for await (const [key, value] of this.nullifierToNoteHash.getAllIter()) {
       map.set(key, value)
     }

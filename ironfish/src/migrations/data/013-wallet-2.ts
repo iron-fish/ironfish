@@ -187,7 +187,8 @@ export class Migration013 extends Migration {
   ): Promise<void> {
     let count = 0
 
-    for await (const [nullifier, noteHash] of nullifierToNoteOld.getAllIter(tx)) {
+    for await (const [nullifierHex, noteHash] of nullifierToNoteOld.getAllIter(tx)) {
+      const nullifier = Buffer.from(nullifierHex)
       await nullifierToNoteHashNew.put(nullifier, noteHash, tx)
       count++
     }

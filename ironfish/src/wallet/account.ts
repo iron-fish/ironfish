@@ -17,7 +17,7 @@ export const ACCOUNT_KEY_LENGTH = 32
 export class Account {
   private readonly accountsDb: AccountsDB
   private readonly decryptedNotes: Map<string, DecryptedNoteValue>
-  private readonly nullifierToNoteHash: Map<string, string>
+  private readonly nullifierToNoteHash: BufferMap<string>
   private readonly transactions: BufferMap<
     Readonly<{
       transaction: Transaction
@@ -72,7 +72,7 @@ export class Account {
 
     this.accountsDb = accountsDb
     this.decryptedNotes = new Map<string, DecryptedNoteValue>()
-    this.nullifierToNoteHash = new Map<string, string>()
+    this.nullifierToNoteHash = new BufferMap<string>()
     this.transactions = new BufferMap<{
       transaction: Transaction
       blockHash: string | null
@@ -272,7 +272,7 @@ export class Account {
       if (!decryptedNote.forSpender) {
         if (decryptedNote.nullifier !== null) {
           await this.updateNullifierNoteHash(
-            decryptedNote.nullifier,
+            Buffer.from(decryptedNote.nullifier, 'hex'),
             decryptedNote.merkleHash,
             tx,
           )
@@ -300,8 +300,7 @@ export class Account {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends()) {
-      const nullifier = spend.nullifier.toString('hex')
-      const noteHash = this.getNoteHash(nullifier)
+      const noteHash = this.getNoteHash(spend.nullifier)
 
       if (noteHash) {
         const decryptedNote = this.getDecryptedNote(noteHash)
@@ -355,12 +354,12 @@ export class Account {
     await this.accountsDb.deleteDecryptedNote(noteHash, tx)
   }
 
-  getNoteHash(nullifier: string): string | undefined {
+  getNoteHash(nullifier: Buffer): string | undefined {
     return this.nullifierToNoteHash.get(nullifier)
   }
 
   async updateNullifierNoteHash(
-    nullifier: string,
+    nullifier: Buffer,
     noteHash: string,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -368,7 +367,7 @@ export class Account {
     await this.accountsDb.saveNullifierNoteHash(nullifier, noteHash, tx)
   }
 
-  async deleteNullifier(nullifier: string, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     this.nullifierToNoteHash.delete(nullifier)
     await this.accountsDb.deleteNullifier(nullifier, tx)
   }
@@ -451,14 +450,14 @@ export class Account {
         await this.deleteDecryptedNote(merkleHash, hash, tx)
 
         if (decryptedNote.nullifierHash) {
-          await this.deleteNullifier(decryptedNote.nullifierHash, tx)
+          const nullifier = Buffer.from(decryptedNote.nullifierHash, 'hex')
+          await this.deleteNullifier(nullifier, tx)
         }
       }
     }
 
     for (const spend of transaction.spends()) {
-      const nullifier = spend.nullifier.toString('hex')
-      const noteHash = this.getNoteHash(nullifier)
+      const noteHash = this.getNoteHash(spend.nullifier)
 
       if (noteHash) {
         const decryptedNote = this.getDecryptedNote(noteHash)
