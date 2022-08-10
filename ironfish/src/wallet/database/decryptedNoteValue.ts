@@ -8,11 +8,12 @@ export const NOTE_SIZE = 43 + 8 + 32 + 32
 
 export interface DecryptedNoteValue {
   accountId: string
-  noteIndex: number | null
-  nullifierHash: string | null
   serializedNote: Buffer
   spent: boolean
   transactionHash: Buffer
+  // These fields are populated once the note's transaction is on the main chain
+  noteIndex: number | null
+  nullifierHash: string | null
 }
 
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
