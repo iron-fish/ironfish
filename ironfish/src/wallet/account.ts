@@ -7,10 +7,10 @@ import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
-import { SyncTransactionParams } from './accounts'
 import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
 import { DecryptedNotesValue } from './database/decryptedNotes'
+import { SyncTransactionParams } from './wallet'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
