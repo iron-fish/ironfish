@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferMap } from 'buffer-map'
+import { de } from 'date-fns/locale'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -129,6 +130,27 @@ export class Account {
     this.nullifierToNoteHash.clear()
     this.transactions.clear()
     await this.saveUnconfirmedBalance(BigInt(0))
+  }
+
+  getNotes(): {
+    amount: number
+    memo: string
+    noteTxHash: string
+    spent: boolean
+  }[] {
+    const notes = []
+
+    for (const decryptedNote of this.decryptedNotes.values()) {
+      const note = new Note(decryptedNote.serializedNote)
+      notes.push({
+        amount: Number(note.value()),
+        memo: note.memo().replace(/\x00/g, ''),
+        noteTxHash: decryptedNote.transactionHash.toString('hex'),
+        spent: decryptedNote.spent,
+      })
+    }
+
+    return notes
   }
 
   getUnspentNotes(): ReadonlyArray<{

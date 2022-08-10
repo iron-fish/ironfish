@@ -582,49 +582,6 @@ export class Accounts {
     this.scan = null
   }
 
-  getNotes(account: Account): {
-    notes: {
-      spender: boolean
-      amount: number
-      memo: string
-      noteTxHash: string
-    }[]
-  } {
-    this.assertHasAccount(account)
-
-    const notes = []
-
-    for (const { transaction } of account.getTransactions()) {
-      for (const note of transaction.notes()) {
-        let decryptedNote
-        let spender = false
-
-        // Try loading the decrypted note from the account
-        const storedDecryptedNote = account.getDecryptedNote(note.merkleHash().toString('hex'))
-        if (storedDecryptedNote) {
-          decryptedNote = new Note(storedDecryptedNote.serializedNote)
-        }
-
-        if (!decryptedNote) {
-          // Try decrypting the note as the spender
-          decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
-          spender = true
-        }
-
-        if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
-          notes.push({
-            spender,
-            amount: Number(decryptedNote.value()),
-            memo: decryptedNote.memo().replace(/\x00/g, ''),
-            noteTxHash: transaction.unsignedHash().toString('hex'),
-          })
-        }
-      }
-    }
-
-    return { notes }
-  }
-
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     this.assertHasAccount(account)
     const headHash = await account.getHeadHash()
