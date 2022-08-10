@@ -4,15 +4,15 @@
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
 
-export interface TransactionsValue {
+export interface TransactionValue {
   transaction: Buffer
   blockHash: string | null
   sequence: number | null
   submittedSequence: number | null
 }
 
-export class TransactionsValueEncoding implements IDatabaseEncoding<TransactionsValue> {
-  serialize(value: TransactionsValue): Buffer {
+export class TransactionValueEncoding implements IDatabaseEncoding<TransactionValue> {
+  serialize(value: TransactionValue): Buffer {
     const { transaction, blockHash, sequence, submittedSequence } = value
 
     const bw = bufio.write(this.getSize(value))
@@ -37,7 +37,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): TransactionsValue {
+  deserialize(buffer: Buffer): TransactionValue {
     const reader = bufio.read(buffer, true)
     const transaction = reader.readVarBytes()
 
@@ -64,7 +64,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     return { transaction, blockHash, submittedSequence, sequence }
   }
 
-  getSize(value: TransactionsValue): number {
+  getSize(value: TransactionValue): number {
     let size = bufio.sizeVarBytes(value.transaction)
     size += 1
     if (value.blockHash) {

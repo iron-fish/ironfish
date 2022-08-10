@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { TransactionsValue, TransactionsValueEncoding } from './transactions'
+import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-describe('TransactionsValueEncoding', () => {
+describe('TransactionValueEncoding', () => {
   describe('with a null block hash and sequence', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new TransactionsValueEncoding()
+      const encoder = new TransactionValueEncoding()
 
-      const value: TransactionsValue = {
+      const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: null,
         sequence: null,
@@ -22,9 +22,9 @@ describe('TransactionsValueEncoding', () => {
 
   describe('with a null block hash', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new TransactionsValueEncoding()
+      const encoder = new TransactionValueEncoding()
 
-      const value: TransactionsValue = {
+      const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: null,
         sequence: null,
@@ -38,9 +38,9 @@ describe('TransactionsValueEncoding', () => {
 
   describe('with a null sequence', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new TransactionsValueEncoding()
+      const encoder = new TransactionValueEncoding()
 
-      const value: TransactionsValue = {
+      const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: Buffer.alloc(32, 1).toString('hex'),
         sequence: 124,
@@ -54,9 +54,9 @@ describe('TransactionsValueEncoding', () => {
 
   describe('with all fields defined', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new TransactionsValueEncoding()
+      const encoder = new TransactionValueEncoding()
 
-      const value: TransactionsValue = {
+      const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
         blockHash: Buffer.alloc(32, 1).toString('hex'),
         sequence: 124,
