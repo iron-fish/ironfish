@@ -20,7 +20,7 @@ import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
-import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './decryptedNotes'
+import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './meta'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
@@ -55,7 +55,7 @@ export class AccountsDB {
 
   decryptedNotes: IDatabaseStore<{
     key: string
-    value: DecryptedNotesValue
+    value: DecryptedNoteValue
   }>
 
   nullifierToNoteHash: IDatabaseStore<{ key: string; value: string }>
@@ -111,11 +111,11 @@ export class AccountsDB {
 
     this.decryptedNotes = this.database.addStore<{
       key: string
-      value: DecryptedNotesValue
+      value: DecryptedNoteValue
     }>({
       name: 'decryptedNotes',
       keyEncoding: new StringHashEncoding(),
-      valueEncoding: new DecryptedNotesValueEncoding(),
+      valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
     this.nullifierToNoteHash = this.database.addStore<{ key: string; value: string }>({
@@ -301,7 +301,7 @@ export class AccountsDB {
 
   async saveDecryptedNote(
     noteHash: string,
-    note: Readonly<DecryptedNotesValue>,
+    note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.decryptedNotes.put(noteHash, note, tx)
@@ -311,7 +311,7 @@ export class AccountsDB {
     await this.decryptedNotes.del(noteHash, tx)
   }
 
-  async replaceDecryptedNotes(map: Map<string, DecryptedNotesValue>): Promise<void> {
+  async replaceDecryptedNotes(map: Map<string, DecryptedNoteValue>): Promise<void> {
     await this.decryptedNotes.clear()
 
     await this.database.transaction(async (tx) => {
@@ -323,7 +323,7 @@ export class AccountsDB {
 
   async *loadDecryptedNotes(): AsyncGenerator<{
     hash: string
-    decryptedNote: DecryptedNotesValue
+    decryptedNote: DecryptedNoteValue
   }> {
     for await (const [hash, decryptedNote] of this.decryptedNotes.getAllIter()) {
       yield {

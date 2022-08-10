@@ -9,14 +9,14 @@ import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
 import { AccountsDB } from './database/accountsdb'
 import { AccountValue } from './database/accountValue'
-import { DecryptedNotesValue } from './database/decryptedNotes'
+import { DecryptedNoteValue } from './database/decryptedNoteValue'
 import { SyncTransactionParams } from './wallet'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-  private readonly decryptedNotes: Map<string, DecryptedNotesValue>
+  private readonly decryptedNotes: Map<string, DecryptedNoteValue>
   private readonly nullifierToNoteHash: Map<string, string>
   private readonly transactions: BufferMap<
     Readonly<{
@@ -71,7 +71,7 @@ export class Account {
     this.displayName = `${this.name} (${hashSlice})`
 
     this.accountsDb = accountsDb
-    this.decryptedNotes = new Map<string, DecryptedNotesValue>()
+    this.decryptedNotes = new Map<string, DecryptedNoteValue>()
     this.nullifierToNoteHash = new Map<string, string>()
     this.transactions = new BufferMap<{
       transaction: Transaction
@@ -153,13 +153,13 @@ export class Account {
     return unspentNotes
   }
 
-  getDecryptedNote(hash: string): DecryptedNotesValue | undefined {
+  getDecryptedNote(hash: string): DecryptedNoteValue | undefined {
     return this.decryptedNotes.get(hash)
   }
 
   async updateDecryptedNote(
     noteHash: string,
-    note: Readonly<DecryptedNotesValue>,
+    note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const existingNote = this.decryptedNotes.get(noteHash)
