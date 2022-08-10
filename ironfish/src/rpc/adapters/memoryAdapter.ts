@@ -32,6 +32,7 @@ export class RpcMemoryAdapter {
 
     const request = new RpcRequest(
       data,
+      route,
       (status: number, data?: unknown) => {
         response.status = status
         stream.close()
