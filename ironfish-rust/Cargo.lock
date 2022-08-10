@@ -58,12 +58,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "base64"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
 name = "base64ct"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -618,7 +612,6 @@ dependencies = [
 name = "ironfish_rust"
 version = "0.1.0"
 dependencies = [
- "base64 0.13.0",
  "bellman",
  "blake2b_simd",
  "blake2s_simd",
@@ -628,7 +621,6 @@ dependencies = [
  "crypto_box",
  "ff",
  "group",
- "hex 0.4.3",
  "jubjub",
  "lazy_static",
  "libc",
@@ -1095,7 +1087,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9dcf11edbc9a0effb4a99ddbe909dd26fb2e71459064879218c27b0add1cb6ec"
 dependencies = [
- "base64 0.5.2",
+ "base64",
  "gcc",
  "hex 0.2.0",
  "libc",
