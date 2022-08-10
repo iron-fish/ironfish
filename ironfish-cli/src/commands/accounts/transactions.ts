@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { oreToIron } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class TransactionsCommand extends IronfishCommand {
@@ -26,6 +26,11 @@ export class TransactionsCommand extends IronfishCommand {
     const { flags } = await this.parse(TransactionsCommand)
     const account = flags.account?.trim()
     const hash = flags.hash?.trim()
+
+    // validates account name
+    if (InputValidator.accountName.test(account as string)) {
+      this.error('Invalid account name')
+    }
 
     if (hash) {
       await this.getTransaction(account, hash)

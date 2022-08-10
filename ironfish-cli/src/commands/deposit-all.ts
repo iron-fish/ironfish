@@ -16,7 +16,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
-import { IronfishCommand } from '../command'
+import { InputValidator, IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
@@ -67,6 +67,11 @@ export default class DepositAll extends IronfishCommand {
 
     const accountName =
       flags.account || (await this.client.getDefaultAccount()).content.account?.name
+
+    // validates account name
+    if (InputValidator.accountName.test(accountName as string)) {
+      this.error('Invalid account name')
+    }
 
     if (!accountName) {
       this.log(

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { displayIronAmountWithCurrency, oreToIron } from '@ironfish/sdk'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class BalanceCommand extends IronfishCommand {
@@ -28,6 +28,11 @@ export class BalanceCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(BalanceCommand)
     const account = args.account as string | undefined
+
+    // validates account name
+    if (InputValidator.accountName.test(account as string)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc()
 

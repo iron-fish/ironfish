@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class UseCommand extends IronfishCommand {
@@ -22,6 +22,11 @@ export class UseCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(UseCommand)
     const name = (args.name as string).trim()
+
+    // validates account name
+    if (InputValidator.accountName.test(name)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc()
     await client.useAccount({ name })

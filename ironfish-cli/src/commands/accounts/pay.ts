@@ -11,7 +11,7 @@ import {
   oreToIron,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
@@ -65,6 +65,11 @@ export class Pay extends IronfishCommand {
     let from = flags.account?.trim()
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
+
+    // validates account name
+    if (InputValidator.accountName.test(from as string)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc()
 

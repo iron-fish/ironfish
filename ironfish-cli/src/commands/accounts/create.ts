@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { CliUx } from '@oclif/core'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class CreateCommand extends IronfishCommand {
@@ -26,10 +26,19 @@ export class CreateCommand extends IronfishCommand {
     const { args } = await this.parse(CreateCommand)
     let name = args.name as string
 
+    // validates account name
+    if (InputValidator.accountName.test(name)) {
+      this.error('Invalid account name')
+    }
+
     if (!name) {
       name = (await CliUx.ux.prompt('Enter the name of the account', {
         required: true,
       })) as string
+      // validates account name
+      if (InputValidator.accountName.test(name)) {
+        this.error('Invalid account name')
+      }
     }
 
     const client = await this.sdk.connectRpc()

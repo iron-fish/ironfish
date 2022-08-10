@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class RemoveCommand extends IronfishCommand {
@@ -28,6 +28,11 @@ export class RemoveCommand extends IronfishCommand {
     const { args, flags } = await this.parse(RemoveCommand)
     const confirm = flags.confirm
     const name = (args.name as string).trim()
+
+    // validates account name
+    if (InputValidator.accountName.test(name)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc()
 

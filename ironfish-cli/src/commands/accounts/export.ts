@@ -6,7 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
 
 export class ExportCommand extends IronfishCommand {
@@ -41,6 +41,11 @@ export class ExportCommand extends IronfishCommand {
     const { color, local } = flags
     const account = args.account as string
     const exportPath = args.path as string | undefined
+
+    // validates account name
+    if (InputValidator.accountName.test(account)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })

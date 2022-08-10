@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { oreToIron } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
-import { IronfishCommand } from '../../command'
+import { InputValidator, IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class NotesCommand extends IronfishCommand {
@@ -25,6 +25,11 @@ export class NotesCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(NotesCommand)
     const account = args.account as string | undefined
+
+    // validates account name
+    if (InputValidator.accountName.test(account as string)) {
+      this.error('Invalid account name')
+    }
 
     const client = await this.sdk.connectRpc()
 

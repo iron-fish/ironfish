@@ -13,7 +13,7 @@ import {
   WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../command'
+import { InputValidator, IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 import { ProgressBar } from '../types'
 
@@ -60,6 +60,11 @@ export default class Bank extends IronfishCommand {
 
     const accountName =
       flags.account || (await this.client.getDefaultAccount()).content.account?.name
+
+    // validates account name
+    if (InputValidator.accountName.test(accountName as string)) {
+      this.error('Invalid account name')
+    }
 
     if (!accountName) {
       this.log(

@@ -193,3 +193,9 @@ function getFlag(flags: unknown, flag: FLAGS): unknown | null {
       (flags as any)[flag]
     : null
 }
+
+export abstract class InputValidator {
+  public static readonly accountName = new RegExp('[^a-z^A-Z^0-9^_]')
+
+  // Other input validation goes here
+}
