@@ -10,7 +10,7 @@ import {
   StringEncoding,
   StringHashEncoding,
 } from '../../../../storage'
-import { AccountsStore, AccountsValue, AccountsValueEncoding } from './accounts'
+import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
 import { BalancesStore } from './balances'
 import { DecryptedNotesStore, DecryptedNotesValueEncoding } from './decryptedNotes'
 import { HeadHashesStore } from './headHashes'
@@ -47,11 +47,11 @@ export function loadNewStores(db: IDatabase): NewStores {
     false,
   )
 
-  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountsValue }>(
+  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>(
     {
       name: 'accounts',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountsValueEncoding(),
+      valueEncoding: new AccountValueEncoding(),
     },
     false,
   )

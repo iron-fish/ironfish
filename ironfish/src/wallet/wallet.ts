@@ -19,8 +19,8 @@ import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
-import { AccountsValue } from './database/accounts'
 import { AccountsDB } from './database/accountsdb'
+import { AccountValue } from './database/accountValue'
 import { validateAccount } from './validator'
 
 export type SyncTransactionParams =
@@ -1022,7 +1022,7 @@ export class Accounts {
     return { transactionInfo, transactionNotes }
   }
 
-  async importAccount(toImport: Omit<AccountsValue, 'rescan'>): Promise<Account> {
+  async importAccount(toImport: Omit<AccountValue, 'rescan'>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.getAccountByName(toImport.name)) {

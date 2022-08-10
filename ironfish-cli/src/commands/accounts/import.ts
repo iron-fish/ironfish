@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AccountsValue, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import { AccountValue, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -33,7 +33,7 @@ export class ImportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account: AccountsValue | null = null
+    let account: AccountValue | null = null
     if (importPath) {
       account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
@@ -62,13 +62,13 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  async importFile(path: string): Promise<AccountsValue> {
+  async importFile(path: string): Promise<AccountValue> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return JSONUtils.parse<AccountsValue>(data)
+    return JSONUtils.parse<AccountValue>(data)
   }
 
-  async importPipe(): Promise<AccountsValue> {
+  async importPipe(): Promise<AccountValue> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -84,10 +84,10 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return JSONUtils.parse<AccountsValue>(data)
+    return JSONUtils.parse<AccountValue>(data)
   }
 
-  async importTTY(): Promise<AccountsValue> {
+  async importTTY(): Promise<AccountValue> {
     const accountName = (await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })) as string
