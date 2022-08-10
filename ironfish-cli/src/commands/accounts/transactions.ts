@@ -129,7 +129,6 @@ export class TransactionsCommand extends IronfishCommand {
         },
         expiration: {
           header: 'Expiration',
-          extended: true,
         },
       },
       {
