@@ -19,8 +19,8 @@ import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
-import { AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
+import { AccountsDB } from './database/accountsdb'
 import { validateAccount } from './validator'
 
 export type SyncTransactionParams =
