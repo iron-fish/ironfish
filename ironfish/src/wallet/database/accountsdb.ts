@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import { Assert } from '../assert'
-import { FileSystem } from '../fileSystems'
-import { Transaction } from '../primitives/transaction'
+import { Assert } from '../../assert'
+import { FileSystem } from '../../fileSystems'
+import { Transaction } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
   BUFFER_ENCODING,
@@ -15,14 +15,14 @@ import {
   NullableStringEncoding,
   StringEncoding,
   StringHashEncoding,
-} from '../storage'
-import { createDB } from '../storage/utils'
-import { WorkerPool } from '../workerPool'
-import { Account } from './account'
-import { AccountsValue, AccountsValueEncoding } from './database/accounts'
-import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './database/decryptedNotes'
-import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './database/meta'
-import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
+} from '../../storage'
+import { createDB } from '../../storage/utils'
+import { WorkerPool } from '../../workerPool'
+import { Account } from '../account'
+import { AccountsValue, AccountsValueEncoding } from './accounts'
+import { DecryptedNotesValue, DecryptedNotesValueEncoding } from './decryptedNotes'
+import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './meta'
+import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
 export const VERSION_DATABASE_ACCOUNTS = 13
 
