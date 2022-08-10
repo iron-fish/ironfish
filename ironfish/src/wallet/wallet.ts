@@ -418,7 +418,10 @@ export class Accounts {
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
-    const unlock = await this.transactionsMutex.lock()
+    const { unlock, msWaited } = await this.transactionsMutex.lockWithTime()
+    if (msWaited > 500) {
+      this.logger.warn(`WARNING: syncTransaction waited ${msWaited} ms for lock`)
+    }
 
     try {
       await transaction.withReference(async () => {
@@ -732,7 +735,10 @@ export class Accounts {
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
-    const unlock = await this.transactionsMutex.lock()
+    const { unlock, msWaited } = await this.transactionsMutex.lockWithTime()
+    if (msWaited > 500) {
+      this.logger.warn(`WARNING: createTransaction waited ${msWaited} ms for lock`)
+    }
 
     try {
       this.assertHasAccount(sender)
@@ -848,7 +854,10 @@ export class Accounts {
       return
     }
 
-    const unlock = await this.transactionsMutex.lock()
+    const { unlock, msWaited } = await this.transactionsMutex.lockWithTime()
+    if (msWaited > 500) {
+      this.logger.warn(`WARNING: rebroadcastTransactions waited ${msWaited} ms for lock`)
+    }
 
     try {
       for (const account of this.accounts.values()) {
@@ -919,7 +928,10 @@ export class Accounts {
       return
     }
 
-    const unlock = await this.transactionsMutex.lock()
+    const { unlock, msWaited } = await this.transactionsMutex.lockWithTime()
+    if (msWaited > 500) {
+      this.logger.warn(`WARNING: expireTransactions waited ${msWaited} ms for lock`)
+    }
 
     try {
       for (const account of this.accounts.values()) {

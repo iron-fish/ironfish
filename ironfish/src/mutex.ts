@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { BenchUtils } from './utils/bench'
+
 export type MutexUnlockFunction = () => void
+
+type MutexUnlockWithTime = {
+  unlock: MutexUnlockFunction
+  msWaited: number
+}
 
 export class Mutex {
   private mutex = Promise.resolve()
@@ -17,6 +24,19 @@ export class Mutex {
     return new Promise<MutexUnlockFunction>((resolve) => {
       begin = resolve
     })
+  }
+
+  async lockWithTime(): Promise<MutexUnlockWithTime> {
+    const start = BenchUtils.start()
+
+    const unlock = await this.lock()
+
+    const msWaited = BenchUtils.end(start)
+
+    return {
+      unlock,
+      msWaited,
+    }
   }
 
   async dispatch<T>(fn: (() => T) | (() => PromiseLike<T>)): Promise<T> {

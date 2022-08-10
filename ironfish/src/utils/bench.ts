@@ -31,6 +31,7 @@ function endTime(start: HRTime): number {
   const [sec, nanosec] = process.hrtime(start)
   return sec * 1000 + nanosec / 1e6
 }
+
 function diffTime(startTime: HRTime, endTime: HRTime): number {
   const [secStart, nanosecStart] = startTime
   const [secEnd, nanosecEnd] = endTime
