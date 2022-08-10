@@ -47,6 +47,17 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   (request, node): void => {
     const account = getAccount(node, request.data.account)
     const notes = account.getNotes()
-    request.end({ account: account.displayName, notes })
+    const responseNotes = []
+
+    for (const note of notes) {
+      responseNotes.push({
+        amount: Number(note.note.value()),
+        memo: note.note.memo().replace(/\x00/g, ''),
+        noteTxHash: note.transactionHash.toString('hex'),
+        spent: note.spent,
+      })
+    }
+
+    request.end({ account: account.displayName, notes: responseNotes })
   },
 )
