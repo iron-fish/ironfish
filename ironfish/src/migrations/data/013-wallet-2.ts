@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
@@ -265,8 +265,8 @@ export class Migration013 extends Migration {
     headersStoreOld: Stores['old']['headers'],
     tx: IDatabaseTransaction,
     logger: Logger,
-  ): Promise<BufferMap<true>> {
-    const dropped = new BufferMap<true>()
+  ): Promise<BufferSet> {
+    const dropped = new BufferSet()
 
     let countMigrated = 0
     let countDropped = 0
@@ -294,7 +294,7 @@ export class Migration013 extends Migration {
             `\tDropping TX ${transactionHashHex}: block not found ${transactionValue.blockHash}`,
           )
           await transactionsStoreOld.del(transactionHash, tx)
-          dropped.set(transactionHash, true)
+          dropped.add(transactionHash)
           countDropped++
           continue
         }
@@ -319,7 +319,7 @@ export class Migration013 extends Migration {
     decryptedNoteStoreNew: Stores['new']['decryptedNotes'],
     noteToTransactionCache: BufferMap<Buffer>,
     accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
-    droppedTransactions: BufferMap<true>,
+    droppedTransactions: BufferSet,
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<{ unconfirmedBalances: Map<string, bigint> }> {

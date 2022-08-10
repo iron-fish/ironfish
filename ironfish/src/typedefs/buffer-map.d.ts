@@ -25,7 +25,7 @@ declare module 'buffer-map' {
     toArray(): T[]
   }
 
-  export class BufferSet<T> implements Iterable<Buffer> {
+  export class BufferSet<T = Buffer> implements Iterable<Buffer> {
     constructor(iterable: Iterable<T> | null | undefined = null)
 
     readonly size: number
