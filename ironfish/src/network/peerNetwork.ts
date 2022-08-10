@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RollingFilter } from '@ironfish/bfilter'
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
-import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { MAX_REQUESTED_BLOCKS } from '../consensus'
@@ -158,7 +158,7 @@ export class PeerNetwork {
     chain: Blockchain
     hostsStore: HostsStore
   }) {
-    const identity = options.identity || tweetnacl.box.keyPair()
+    const identity = options.identity || new BoxKeyPair()
 
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
@@ -172,7 +172,6 @@ export class PeerNetwork {
       options.agent || Platform.getAgent(IronfishPKG),
       VERSION_PROTOCOL,
       options.chain,
-      options.node.workerPool,
       options.webSocket,
     )
 
