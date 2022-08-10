@@ -22,7 +22,7 @@ import { Account } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './meta'
-import { TransactionsValue, TransactionsValueEncoding } from './transactions'
+import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
 export const VERSION_DATABASE_ACCOUNTS = 13
 
@@ -62,7 +62,7 @@ export class AccountsDB {
 
   transactions: IDatabaseStore<{
     key: Buffer
-    value: TransactionsValue
+    value: TransactionValue
   }>
 
   constructor({
@@ -126,11 +126,11 @@ export class AccountsDB {
 
     this.transactions = this.database.addStore<{
       key: Buffer
-      value: TransactionsValue
+      value: TransactionValue
     }>({
       name: 'transactions',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
+      valueEncoding: new TransactionValueEncoding(),
     })
   }
 
