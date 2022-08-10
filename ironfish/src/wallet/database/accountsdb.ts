@@ -21,7 +21,7 @@ import { WorkerPool } from '../../workerPool'
 import { Account } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
-import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './meta'
+import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
 export const VERSION_DATABASE_ACCOUNTS = 13
