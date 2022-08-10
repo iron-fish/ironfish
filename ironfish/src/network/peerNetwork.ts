@@ -685,7 +685,16 @@ export class PeerNetwork {
 
     for (const hash of message.hashes) {
       peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
-      this.transactionFetcher.hashReceived(hash, peer)
+
+      // If the transaction is already in the mempool the only thing we have to do is broadcast
+      const transaction = this.node.memPool.get(hash)
+      if (transaction) {
+        const nonce = Buffer.alloc(16, transaction.hash())
+        const gossipMessage = new NewTransactionMessage(transaction.serialize(), nonce)
+        this.broadcastTransaction(gossipMessage)
+      } else {
+        this.transactionFetcher.hashReceived(hash, peer)
+      }
     }
   }
 

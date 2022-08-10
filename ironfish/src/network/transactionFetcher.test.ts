@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { IronfishNode } from '../node'
 import { TransactionHash } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
-import { IncomingPeerMessage } from './messages/networkMessage'
+import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
@@ -17,6 +17,7 @@ import {
 } from './messages/pooledTransactions'
 import { Peer } from './peers/peer'
 import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
+import { VERSION_PROTOCOL } from './version'
 
 jest.mock('ws')
 jest.useFakeTimers()
@@ -232,7 +233,7 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('sends request when node has transaction in mempool, but a peer does not', async () => {
+  it('gossips transaction but does not request again when node has transaction in mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
@@ -242,16 +243,35 @@ describe('TransactionFetcher', () => {
 
     expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
-    const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)[0]
+    // Get 5 peers on the most recent version
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
+    for (const { peer } of peers) {
+      peer.version = VERSION_PROTOCOL
+    }
+    const { peer, sendSpy } = peers[0]
     const peerIdentity = peer.getIdentityOrThrow()
 
     expect(peerNetwork.knowsTransaction(hash, peerIdentity)).toBe(false)
 
+    // The first peer sends us the transaction hash
     await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
 
     jest.runOnlyPendingTimers()
 
-    expect(sendSpy.mock.calls).toHaveLength(1)
+    // We should not request the full transaction from the peer since we already have it in the mempool
+    expect(sendSpy.mock.calls).toHaveLength(0)
+
+    const peersWithoutTransaction = peers.slice(1)
+
+    const isTransactionGossip = (m: NetworkMessage) => {
+      return m instanceof NewTransactionV2Message || m instanceof NewPooledTransactionHashes
+    }
+
+    // We should still gossip the transaction to other peers who have not seen it yet
+    for (const { sendSpy } of peersWithoutTransaction) {
+      expect(sendSpy.mock.calls).toHaveLength(1)
+      expect(isTransactionGossip(sendSpy.mock.calls[0][0])).toBe(true)
+    }
 
     await peerNetwork.stop()
   })
