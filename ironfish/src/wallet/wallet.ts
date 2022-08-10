@@ -596,9 +596,14 @@ export class Accounts {
 
     for (const { transaction } of account.getTransactions()) {
       for (const note of transaction.notes()) {
-        // Try decrypting the note as the owner
-        let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+        let decryptedNote
         let spender = false
+
+        // Try loading the decrypted note from the account
+        const storedDecryptedNote = account.getDecryptedNote(note.merkleHash().toString('hex'))
+        if (storedDecryptedNote) {
+          decryptedNote = new Note(storedDecryptedNote.serializedNote)
+        }
 
         if (!decryptedNote) {
           // Try decrypting the note as the spender
