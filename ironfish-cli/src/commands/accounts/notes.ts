@@ -46,7 +46,7 @@ export class NotesCommand extends IronfishCommand {
       memo: {
         header: 'Memo',
       },
-      noteTxHash: {
+      transactionHash: {
         header: 'From Transaction',
       },
     })

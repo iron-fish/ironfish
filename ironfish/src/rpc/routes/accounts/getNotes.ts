@@ -12,7 +12,7 @@ export type GetAccountNotesResponse = {
   notes: {
     amount: number
     memo: string
-    noteTxHash: string
+    transactionHash: string
     spent: boolean
   }[]
 }
@@ -32,7 +32,7 @@ export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResp
           .object({
             amount: yup.number().defined(),
             memo: yup.string().trim().defined(),
-            noteTxHash: yup.string().defined(),
+            transactionHash: yup.string().defined(),
             spent: yup.boolean().defined(),
           })
           .defined(),
@@ -53,7 +53,7 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
       responseNotes.push({
         amount: Number(note.note.value()),
         memo: note.note.memo().replace(/\x00/g, ''),
-        noteTxHash: note.transactionHash.toString('hex'),
+        transactionHash: note.transactionHash.toString('hex'),
         spent: note.spent,
       })
     }
