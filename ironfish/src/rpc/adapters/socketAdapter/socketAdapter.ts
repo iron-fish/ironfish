@@ -185,6 +185,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       const requestId = uuid()
       const request = new RpcRequest(
         message.data,
+        message.type,
         (status: number, data?: unknown) => {
           this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
         },
