@@ -12,7 +12,7 @@ import {
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
 import { BalancesStore } from './balances'
-import { DecryptedNotesStore, DecryptedNotesValueEncoding } from './decryptedNotes'
+import { DecryptedNotesStore, DecryptedNoteValueEncoding } from './decryptedNotes'
 import { HeadHashesStore } from './headHashes'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NullifierToNoteHashStore } from './nullifierToNoteHash'
@@ -69,7 +69,7 @@ export function loadNewStores(db: IDatabase): NewStores {
     {
       name: 'decryptedNotes',
       keyEncoding: new StringHashEncoding(),
-      valueEncoding: new DecryptedNotesValueEncoding(),
+      valueEncoding: new DecryptedNoteValueEncoding(),
     },
     false,
   )

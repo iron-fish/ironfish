@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DecryptedNotesValue, DecryptedNotesValueEncoding, NOTE_SIZE } from './decryptedNotes'
+import { DecryptedNoteValue, DecryptedNoteValueEncoding, NOTE_SIZE } from './decryptedNoteValue'
 
-describe('DecryptedNotesValueEncoding', () => {
+describe('DecryptedNoteValueEncoding', () => {
   describe('with a null note index and nullifier hash', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new DecryptedNotesValueEncoding()
+      const encoder = new DecryptedNoteValueEncoding()
 
-      const value: DecryptedNotesValue = {
+      const value: DecryptedNoteValue = {
         accountId: 'uuid',
         noteIndex: null,
         nullifierHash: null,
@@ -24,9 +24,9 @@ describe('DecryptedNotesValueEncoding', () => {
 
   describe('with all fields defined', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
-      const encoder = new DecryptedNotesValueEncoding()
+      const encoder = new DecryptedNoteValueEncoding()
 
-      const value: DecryptedNotesValue = {
+      const value: DecryptedNoteValue = {
         accountId: 'uuid',
         spent: true,
         noteIndex: 40,
