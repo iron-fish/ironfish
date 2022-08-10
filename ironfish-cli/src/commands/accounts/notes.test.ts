@@ -9,10 +9,10 @@ describe('accounts:notes', () => {
     account: 'default',
     notes: [
       {
-        spender: true,
         amount: 1,
         memo: 'foo',
-        noteTxHash: '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1',
+        transactionHash: '1fa5f38c446e52f8842d8c861507744fc3f354992610e1661e033ef316e2d3d1',
+        spent: true,
       },
     ],
   }
@@ -50,10 +50,10 @@ describe('accounts:notes', () => {
       .exit(0)
       .it('logs the notes for the given account', (ctx) => {
         expectCli(ctx.stdout).include(responseContent.account)
-        expectCli(ctx.stdout).include(responseContent.notes[0].spender ? `✔` : `x`)
+        expectCli(ctx.stdout).include(responseContent.notes[0].spent ? `✔` : `x`)
         expectCli(ctx.stdout).include(responseContent.notes[0].amount)
         expectCli(ctx.stdout).include(responseContent.notes[0].memo)
-        expectCli(ctx.stdout).include(responseContent.notes[0].noteTxHash)
+        expectCli(ctx.stdout).include(responseContent.notes[0].transactionHash)
       })
   })
 })

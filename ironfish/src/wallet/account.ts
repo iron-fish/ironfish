@@ -131,26 +131,35 @@ export class Account {
     await this.saveUnconfirmedBalance(BigInt(0))
   }
 
+  getNotes(): ReadonlyArray<{
+    hash: string
+    index: number | null
+    note: Note
+    transactionHash: Buffer
+    spent: boolean
+  }> {
+    const notes = []
+
+    for (const [hash, decryptedNote] of this.decryptedNotes) {
+      notes.push({
+        hash,
+        index: decryptedNote.noteIndex,
+        note: new Note(decryptedNote.serializedNote),
+        transactionHash: decryptedNote.transactionHash,
+        spent: decryptedNote.spent,
+      })
+    }
+
+    return notes
+  }
+
   getUnspentNotes(): ReadonlyArray<{
     hash: string
     index: number | null
     note: Note
     transactionHash: Buffer
   }> {
-    const unspentNotes = []
-
-    for (const [hash, decryptedNote] of this.decryptedNotes) {
-      if (!decryptedNote.spent) {
-        unspentNotes.push({
-          hash,
-          index: decryptedNote.noteIndex,
-          note: new Note(decryptedNote.serializedNote),
-          transactionHash: decryptedNote.transactionHash,
-        })
-      }
-    }
-
-    return unspentNotes
+    return this.getNotes().filter((note) => !note.spent)
   }
 
   getDecryptedNote(hash: string): DecryptedNoteValue | undefined {

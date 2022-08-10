@@ -10,10 +10,10 @@ export type GetAccountNotesRequest = { account?: string }
 export type GetAccountNotesResponse = {
   account: string
   notes: {
-    spender: boolean
     amount: number
     memo: string
-    noteTxHash: string
+    transactionHash: string
+    spent: boolean
   }[]
 }
 
@@ -30,10 +30,10 @@ export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResp
       .array(
         yup
           .object({
-            spender: yup.boolean().defined(),
             amount: yup.number().defined(),
             memo: yup.string().trim().defined(),
-            noteTxHash: yup.string().defined(),
+            transactionHash: yup.string().defined(),
+            spent: yup.boolean().defined(),
           })
           .defined(),
       )
@@ -46,7 +46,18 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   GetAccountNotesRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { notes } = node.accounts.getNotes(account)
-    request.end({ account: account.displayName, notes })
+    const notes = account.getNotes()
+    const responseNotes = []
+
+    for (const note of notes) {
+      responseNotes.push({
+        amount: Number(note.note.value()),
+        memo: note.note.memo().replace(/\x00/g, ''),
+        transactionHash: note.transactionHash.toString('hex'),
+        spent: note.spent,
+      })
+    }
+
+    request.end({ account: account.displayName, notes: responseNotes })
   },
 )
