@@ -12,6 +12,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import crypto from 'crypto'
+import fs from 'fs'
 import fsAsync from 'fs/promises'
 import { IncomingMessage } from 'http'
 import path from 'path'
@@ -101,7 +102,6 @@ export default class Download extends IronfishCommand {
       this.log(`Downloading snapshot from ${snapshotUrl}`)
 
       snapshotPath = path.join(this.sdk.config.tempDir, manifest.file_name)
-      const snapshotFile = await fsAsync.open(snapshotPath, 'w')
 
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
@@ -123,7 +123,7 @@ export default class Download extends IronfishCommand {
       let downloaded = 0
 
       const hasher = crypto.createHash('sha256')
-      const writer = snapshotFile.createWriteStream()
+      const writer = fs.createWriteStream(snapshotPath, { flags: 'w' })
 
       const idleTimeout = 30000
       let idleLastChunk = Date.now()

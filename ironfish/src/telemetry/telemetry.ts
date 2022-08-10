@@ -354,7 +354,7 @@ export class Telemetry {
     })
   }
 
-  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+  submitNewTransactionCreated(transaction: Transaction, seenAt: Date): void {
     const hash = transaction.hash()
 
     if (!this.shouldSubmitTransaction(hash)) {
@@ -362,7 +362,7 @@ export class Telemetry {
     }
 
     this.submit({
-      measurement: 'transaction_propagation',
+      measurement: 'transaction_created',
       timestamp: seenAt,
       tags: [
         {
@@ -382,6 +382,26 @@ export class Telemetry {
           value: transaction.spendsLength(),
         },
       ],
+    })
+  }
+
+  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+    const hash = transaction.hash()
+
+    if (!this.shouldSubmitTransaction(hash)) {
+      return
+    }
+
+    this.submit({
+      measurement: 'transaction_propagation',
+      timestamp: seenAt,
+      tags: [
+        {
+          name: 'hash',
+          value: hash.toString('hex'),
+        },
+      ],
+      fields: [],
     })
   }
 
