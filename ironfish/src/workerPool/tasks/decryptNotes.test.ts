@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_KEY_LENGTH } from '../../account'
 import { NOTE_LENGTH } from '../../primitives/note'
 import { ENCRYPTED_NOTE_LENGTH } from '../../primitives/noteEncrypted'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
+import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
 
 describe('DecryptNotesRequest', () => {
