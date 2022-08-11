@@ -580,7 +580,7 @@ describe('PeerNetwork', () => {
         expect(syncTransaction).toHaveBeenCalledTimes(1)
       })
 
-      it('does not syncs or gossip invalid transactions', async () => {
+      it('does not sync or gossip double-spent transactions', async () => {
         const { peerNetwork, node } = nodeTest
         const { accounts, memPool, chain } = node
 
@@ -590,10 +590,8 @@ describe('PeerNetwork', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
-
-        const verifyTransactionContextual = jest
-          .spyOn(node.chain.verifier, 'verifyTransactionNoncontextual')
+        const verifyTransactionSpendsSpy = jest
+          .spyOn(node.chain.verifier, 'verifyTransactionSpends')
           .mockResolvedValueOnce({
             valid: false,
             reason: VerificationResultReason.DOUBLE_SPEND,
@@ -616,8 +614,71 @@ describe('PeerNetwork', () => {
           expect(sendSpy).not.toHaveBeenCalled()
         }
 
+        expect(verifyTransactionSpendsSpy).toHaveBeenCalledTimes(1)
+
+        expect(memPool.exists(transaction.hash())).toBe(false)
+        expect(acceptTransaction).not.toHaveBeenCalled()
+
+        expect(syncTransaction).not.toHaveBeenCalled()
+
+        // Peer that were not sent transaction should not be marked
+        for (const { peer } of peersWithoutTransaction) {
+          expect(peer.state.identity).not.toBeNull()
+          peer.state.identity &&
+            expect(peerNetwork.knowsTransaction(transaction.hash(), peer.state.identity)).toBe(
+              false,
+            )
+        }
+
+        // Peer that sent the transaction should have it marked
+        expect(peerWithTransaction.state.identity).not.toBeNull()
+        peerWithTransaction.state.identity &&
+          expect(
+            peerNetwork.knowsTransaction(
+              transaction.hash(),
+              peerWithTransaction.state.identity,
+            ),
+          ).toBe(true)
+      })
+
+      it('does not sync or gossip invalid transactions', async () => {
+        const { peerNetwork, node } = nodeTest
+        const { accounts, memPool, chain } = node
+
+        chain.synced = true
+
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
+
+        const verifyTransactionNoncontextualSpy = jest
+          .spyOn(node.chain.verifier, 'verifyTransactionNoncontextual')
+          .mockResolvedValueOnce({
+            valid: false,
+            reason: VerificationResultReason.VERIFY_TRANSACTION,
+          })
+
+        const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
+        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+
+        const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
+        const { peer: peerWithTransaction } = peers[0]
+        const peersWithoutTransaction = peers.slice(1)
+
+        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
+          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
+          message: new NewTransactionMessage(transaction.serialize()),
+        })
+
+        // Peers should not be sent invalid transaction
+        for (const { sendSpy } of peers) {
+          expect(sendSpy).not.toHaveBeenCalled()
+        }
+
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
-        expect(verifyTransactionContextual).toHaveBeenCalledTimes(1)
+        expect(verifyTransactionNoncontextualSpy).toHaveBeenCalledTimes(1)
 
         expect(memPool.exists(transaction.hash())).toBe(false)
         expect(acceptTransaction).not.toHaveBeenCalled()

@@ -1008,6 +1008,23 @@ export class PeerNetwork {
       // Force lazy deserialization of the transaction as a first sanity check
       const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
 
+      // Next, check the spends are valid and not already in the chain
+      const spendVerificationResult = await this.chain.verifier.verifyTransactionSpends(
+        transaction,
+      )
+      if (!spendVerificationResult.valid) {
+        Assert.isNotUndefined(spendVerificationResult.reason)
+        // Opting not to log unsignedHash because it's slow
+        this.logger.debug(
+          `Invalid transaction '${hash.toString('hex')}': ${spendVerificationResult.reason}`,
+        )
+        // TODO: It might be more accurate to put the transaction in a map of invalid transactions,
+        // since it may not be added to the chain.
+        this.recentlyAddedToChain.set(hash, true)
+        this.transactionFetcher.removeTransaction(hash)
+        return
+      }
+
       // Validate the transaction, so that the account and mempool do not receive
       // an invalid transaction, and we do not gossip.
       const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
@@ -1018,6 +1035,7 @@ export class PeerNetwork {
         this.logger.debug(
           `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
         )
+        this.transactionFetcher.removeTransaction(hash)
         return
       }
 
