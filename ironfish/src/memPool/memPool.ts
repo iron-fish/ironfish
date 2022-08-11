@@ -18,7 +18,11 @@ interface MempoolEntry {
 
 export class MemPool {
   private readonly transactions = new BufferMap<Transaction>()
+  /* Keep track of number of bytes stored in the transaction map */
+  private transactionsBytes = 0
   private readonly nullifiers = new BufferMap<Buffer>()
+  /* Keep track of number of bytes stored in the nullifiers map */
+  private nullifiersBytes = 0
   private readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
@@ -52,6 +56,11 @@ export class MemPool {
 
   size(): number {
     return this.transactions.size
+  }
+
+  sizeBytes(): number {
+    const queueSize = this.size() * 32 // estimate the queue size
+    return this.transactionsBytes + this.nullifiersBytes + queueSize
   }
 
   exists(hash: TransactionHash): boolean {
@@ -195,10 +204,16 @@ export class MemPool {
 
   private addTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
-    this.transactions.set(hash, transaction)
+    if (!this.transactions.has(hash)) {
+      this.transactions.set(hash, transaction)
+      this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
+    }
 
     for (const spend of transaction.spends()) {
-      this.nullifiers.set(spend.nullifier, hash)
+      if (!this.nullifiers.has(spend.nullifier)) {
+        this.nullifiers.set(spend.nullifier, hash)
+        this.nullifiersBytes += spend.nullifier.byteLength + hash.byteLength
+      }
     }
 
     this.queue.add({ fee: transaction.fee(), hash })
@@ -207,10 +222,14 @@ export class MemPool {
 
   private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
-    this.transactions.delete(hash)
+    if (this.transactions.delete(hash)) {
+      this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
+    }
 
     for (const spend of transaction.spends()) {
-      this.nullifiers.delete(spend.nullifier)
+      if (this.nullifiers.delete(spend.nullifier)) {
+        this.nullifiersBytes -= spend.nullifier.byteLength + hash.byteLength
+      }
     }
 
     const entry = this.queue.removeOne((t) => t.hash.equals(hash))
