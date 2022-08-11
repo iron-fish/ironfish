@@ -2,30 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import * as encryption from './encryption'
-
 jest.mock('ws')
-
-jest.mock('./encryption', () => {
-  const originalModule = jest.requireActual<typeof encryption>('./encryption')
-
-  return {
-    ...originalModule,
-    boxMessage: jest
-      .fn()
-      .mockReturnValue({ nonce: 'boxMessageNonce', boxedMessage: 'boxMessageMessage' }),
-    unboxMessage: jest.fn().mockReturnValue(
-      JSON.stringify({
-        type: 'candidate',
-        candidate: {
-          candidate: '',
-          sdpMLineIndex: 0,
-          sdpMid: '0',
-        },
-      }),
-    ),
-  }
-})
 
 import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
@@ -63,6 +40,11 @@ import { PeerManager } from './peerManager'
 jest.useFakeTimers()
 
 describe('PeerManager', () => {
+  const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
+  jest
+    .spyOn(localPeer, 'boxMessage')
+    .mockReturnValue({ nonce: 'boxMessageNonce', boxedMessage: 'boxMessageMessage' })
+
   describe('Dispose peers', () => {
     it('Should not dispose of peers that have a CONNECTED peer', () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
@@ -315,10 +297,7 @@ describe('PeerManager', () => {
     it('Encrypts signaling data', async () => {
       const brokeringIdentity = mockIdentity('brokering')
 
-      const pm = new PeerManager(
-        mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
-      )
+      const pm = new PeerManager(localPeer, mockHostsStore())
       const { connection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringIdentity,
@@ -399,10 +378,7 @@ describe('PeerManager', () => {
     })
 
     it('Can establish a WebRTC connection to a peer using an existing WebSocket connection to the same peer', async () => {
-      const pm = new PeerManager(
-        mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
-      )
+      const pm = new PeerManager(localPeer, mockHostsStore())
 
       const { peer, connection } = getConnectedPeer(pm, webRtcCanInitiateIdentity())
 
@@ -1240,10 +1216,18 @@ describe('PeerManager', () => {
     it('Decrypts signaling data intended for local peer', async () => {
       const brokeringPeerIdentity = mockPrivateIdentity('brokering')
 
-      const pm = new PeerManager(
-        mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
-      )
+      jest.spyOn(localPeer, 'unboxMessage').mockReturnValueOnce({
+        message: JSON.stringify({
+          type: 'candidate',
+          candidate: {
+            candidate: '',
+            sdpMLineIndex: 0,
+            sdpMid: '0',
+          },
+        }),
+      })
+
+      const pm = new PeerManager(localPeer, mockHostsStore())
 
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
@@ -1276,13 +1260,9 @@ describe('PeerManager', () => {
     it('Disconnects if decrypting signaling data fails', async () => {
       const brokeringPeerIdentity = mockIdentity('brokering')
 
-      // Return null from the unboxMessage function
-      mocked(encryption.unboxMessage).mockReturnValueOnce(null)
+      jest.spyOn(localPeer, 'unboxMessage').mockReturnValueOnce({ message: null })
 
-      const pm = new PeerManager(
-        mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
-      )
+      const pm = new PeerManager(localPeer, mockHostsStore())
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringPeerIdentity,
@@ -1309,12 +1289,9 @@ describe('PeerManager', () => {
       const brokeringPeerIdentity = mockIdentity('brokering')
 
       // Return something that's not JSON from the unboxMessage function
-      mocked(encryption.unboxMessage).mockReturnValueOnce('test')
+      jest.spyOn(localPeer, 'unboxMessage').mockReturnValueOnce({ message: 'test' })
 
-      const pm = new PeerManager(
-        mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
-      )
+      const pm = new PeerManager(localPeer, mockHostsStore())
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringPeerIdentity,

@@ -138,6 +138,10 @@ export class IronfishNode {
       ],
     })
 
+    this.accounts.onTransactionCreated.on((transaction) => {
+      this.telemetry.submitNewTransactionCreated(transaction, new Date())
+    })
+
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })
