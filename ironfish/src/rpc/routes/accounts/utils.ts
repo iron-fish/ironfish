@@ -24,3 +24,25 @@ export function getAccount(node: IronfishNode, name?: string): Account {
       `Use ironfish accounts:create <name> to first create an account`,
   )
 }
+
+export async function getTransactionStatus(
+  node: IronfishNode,
+  blockHash: string | null,
+  sequence: number | null,
+  expirationSequence: number,
+): Promise<string> {
+  const headSequence = node.chain.head.sequence
+
+  if (sequence && blockHash) {
+    const sequenceHash = await node.chain.getHashAtSequence(sequence)
+    if (blockHash === sequenceHash?.toString('hex')) {
+      const confirmations = headSequence - sequence
+      const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
+      return confirmations >= minimumBlockConfirmations ? 'completed' : 'confirming'
+    } else {
+      return 'forked'
+    }
+  } else {
+    return headSequence > expirationSequence ? 'expired' : 'pending'
+  }
+}

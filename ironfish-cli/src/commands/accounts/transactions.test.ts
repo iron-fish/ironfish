@@ -36,7 +36,7 @@ describe('accounts:transactions', () => {
     },
     transactionNotes: [
       {
-        spender: true,
+        spent: true,
         amount: 1,
         memo: 'foo',
       },
@@ -114,7 +114,7 @@ describe('accounts:transactions', () => {
 
         // transaction notes
         expectCli(ctx.stdout).include(
-          responseContentTransaction.transactionNotes[0].spender ? `✔` : `x`,
+          responseContentTransaction.transactionNotes[0].spent ? `✔` : `x`,
         )
         expectCli(ctx.stdout).include(responseContentTransaction.transactionNotes[0].amount)
         expectCli(ctx.stdout).include(responseContentTransaction.transactionNotes[0].memo)

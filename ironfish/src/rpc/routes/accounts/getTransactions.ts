@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount } from './utils'
+import { getAccount, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionsRequest = { account?: string }
 
@@ -54,12 +54,43 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
 router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.account}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
+    const transactions = account.getTransactions()
+    const responseTransactions = []
+
+    for (const { transaction, blockHash, sequence } of transactions) {
+      let transactionCreator = false
+
+      for (const spend of transaction.spends()) {
+        if (account.getNoteHash(spend.nullifier)) {
+          transactionCreator = true
+          break
+        }
+      }
+
+      const status = await getTransactionStatus(
+        node,
+        blockHash,
+        sequence,
+        transaction.expirationSequence(),
+      )
+
+      responseTransactions.push({
+        creator: transactionCreator,
+        status,
+        hash: transaction.unsignedHash().toString('hex'),
+        isMinersFee: transaction.isMinersFee(),
+        fee: Number(transaction.fee()),
+        notes: transaction.notesLength(),
+        spends: transaction.spendsLength(),
+        expiration: transaction.expirationSequence(),
+      })
+    }
 
     request.end({
       account: account.displayName,
-      transactions: account.getTransactionsWithMetadata(),
+      transactions: responseTransactions,
     })
   },
 )
