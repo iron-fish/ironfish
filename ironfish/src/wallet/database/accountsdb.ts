@@ -59,7 +59,7 @@ export class AccountsDB {
     value: DecryptedNoteValue
   }>
 
-  nullifierToNoteHash: IDatabaseStore<{ key: Buffer; value: string }>
+  nullifierToNoteHash: IDatabaseStore<{ key: Buffer; value: Buffer }>
 
   transactions: IDatabaseStore<{
     key: Buffer
@@ -119,10 +119,10 @@ export class AccountsDB {
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
-    this.nullifierToNoteHash = this.database.addStore<{ key: Buffer; value: string }>({
+    this.nullifierToNoteHash = this.database.addStore<{ key: Buffer; value: Buffer }>({
       name: 'nullifierToNoteHash',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new StringEncoding(),
+      valueEncoding: new BufferEncoding(),
     })
 
     this.transactions = this.database.addStore<{
@@ -274,17 +274,17 @@ export class AccountsDB {
 
   async saveNullifierNoteHash(
     nullifier: Buffer,
-    note: string,
+    noteHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nullifierToNoteHash.put(nullifier, note, tx)
+    await this.nullifierToNoteHash.put(nullifier, noteHash, tx)
   }
 
   async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     await this.nullifierToNoteHash.del(nullifier, tx)
   }
 
-  async replaceNullifierToNoteHash(map: BufferMap<string>): Promise<void> {
+  async replaceNullifierToNoteHash(map: BufferMap<Buffer>): Promise<void> {
     await this.nullifierToNoteHash.clear()
 
     await this.database.transaction(async (tx) => {
@@ -294,7 +294,7 @@ export class AccountsDB {
     })
   }
 
-  async loadNullifierToNoteHash(map: BufferMap<string>): Promise<void> {
+  async loadNullifierToNoteHash(map: BufferMap<Buffer>): Promise<void> {
     for await (const [key, value] of this.nullifierToNoteHash.getAllIter()) {
       map.set(key, value)
     }

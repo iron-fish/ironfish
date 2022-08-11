@@ -79,7 +79,7 @@ export function loadNewStores(db: IDatabase): NewStores {
     {
       name: 'nullifierToNoteHash',
       keyEncoding: new BufferEncoding(),
-      valueEncoding: new StringEncoding(),
+      valueEncoding: new BufferEncoding(),
     },
     false,
   )
