@@ -8,8 +8,8 @@ import { FileSystem } from '../../fileSystems'
 import { Transaction } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
-  BufferEncoding,
   BUFFER_ENCODING,
+  BufferEncoding,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,

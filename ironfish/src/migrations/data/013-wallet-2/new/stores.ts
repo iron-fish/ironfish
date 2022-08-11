@@ -4,8 +4,8 @@
 
 import {
   BigIntLEEncoding,
-  BufferEncoding,
   BUFFER_ENCODING,
+  BufferEncoding,
   IDatabase,
   NullableStringEncoding,
   StringEncoding,
