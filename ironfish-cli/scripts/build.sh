@@ -62,7 +62,8 @@ echo "Copying node_modules"
 rsync -L -avrq --exclude 'ironfish' --exclude 'fsevents' ../../../node_modules ./
 # Copy node_modules from ironfish-cli folder into the production node_modules folder
 # yarn --production seems to split some packages into different folders for some reason
-rsync -L -avrq --ignore-missing-args ../../node_modules/* ./node_modules
+# if ../../node_modules/ is empty then the cp command will error so skip copying
+cp -R ../../node_modules/* ./node_modules || true
 
 echo ""
 if ! ./bin/run --version > /dev/null; then
