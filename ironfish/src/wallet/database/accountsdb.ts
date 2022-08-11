@@ -8,7 +8,6 @@ import { FileSystem } from '../../fileSystems'
 import { Transaction } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
-  BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
   IDatabaseStore,
@@ -130,7 +129,7 @@ export class AccountsDB {
       value: TransactionValue
     }>({
       name: 'transactions',
-      keyEncoding: BUFFER_ENCODING,
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new TransactionValueEncoding(),
     })
   }
