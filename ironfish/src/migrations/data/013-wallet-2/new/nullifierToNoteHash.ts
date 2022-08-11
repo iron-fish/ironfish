@@ -4,4 +4,4 @@
 
 import { IDatabaseStore } from '../../../../storage'
 
-export type NullifierToNoteHashStore = IDatabaseStore<{ key: string; value: string }>
+export type NullifierToNoteHashStore = IDatabaseStore<{ key: Buffer; value: Buffer }>

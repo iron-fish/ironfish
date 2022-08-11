@@ -5,6 +5,7 @@
 import {
   BigIntLEEncoding,
   BUFFER_ENCODING,
+  BufferEncoding,
   IDatabase,
   NullableStringEncoding,
   StringEncoding,
@@ -77,8 +78,8 @@ export function loadNewStores(db: IDatabase): NewStores {
   const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore(
     {
       name: 'nullifierToNoteHash',
-      keyEncoding: new StringHashEncoding(),
-      valueEncoding: new StringEncoding(),
+      keyEncoding: new BufferEncoding(),
+      valueEncoding: new BufferEncoding(),
     },
     false,
   )
