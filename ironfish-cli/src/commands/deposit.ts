@@ -105,12 +105,13 @@ export default class Bank extends IronfishCommand {
 
     const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
 
+    const displayConfirmedBalance = displayIronAmountWithCurrency(confirmedBalance, true)
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
     const displayFee = displayIronAmountWithCurrency(feeInIron, true)
     const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
 
     this.log(`
-Your balance is ${confirmedBalance}.
+Your balance is ${displayConfirmedBalance}.
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
