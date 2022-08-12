@@ -115,7 +115,7 @@ Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
 
 * This action is NOT reversible *
-      `)
+    `)
 
     if (!flags.confirm) {
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
