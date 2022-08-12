@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "0.0.18",
+  "version": "0.0.21",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "@ironfish/bfilter": "0.0.1",
-    "@ironfish/rust-nodejs": "0.1.8",
+    "@ironfish/rust-nodejs": "0.1.11",
     "@napi-rs/blake-hash": "1.3.1",
     "axios": "0.21.4",
     "blru": "0.1.6",
@@ -42,7 +42,6 @@
     "parse-json": "5.2.0",
     "sqlite": "4.0.23",
     "sqlite3": "5.0.4",
-    "tweetnacl": "1.0.3",
     "uuid": "8.3.2",
     "ws": "7.5.1",
     "yup": "0.29.3"
@@ -84,10 +83,8 @@
     "jest": "26.6.3",
     "prettier": "2.3.2",
     "ts-jest": "26.5.5",
+    "tweetnacl": "1.0.3",
     "typescript": "4.3.4"
-  },
-  "resolutions": {
-    "highlight.js": "10.4.1"
   },
   "bugs": {
     "url": "https://github.com/iron-fish/ironfish/issues"

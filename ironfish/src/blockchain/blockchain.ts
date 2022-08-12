@@ -58,7 +58,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 10
+export const VERSION_DATABASE_CHAIN = 10
 
 export class Blockchain {
   db: IDatabase
@@ -274,7 +274,7 @@ export class Blockchain {
 
     await this.files.mkdir(this.location, { recursive: true })
     await this.db.open()
-    await this.db.upgrade(DATABASE_VERSION)
+    await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
@@ -1018,8 +1018,11 @@ export class Blockchain {
   /**
    * Gets the hash of the block at the sequence on the head chain
    */
-  async getHashAtSequence(sequence: number): Promise<BlockHash | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+  async getHashAtSequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | null> {
+    const hash = await this.sequenceToHash.get(sequence, tx)
     return hash || null
   }
 
@@ -1057,8 +1060,8 @@ export class Blockchain {
     return headers
   }
 
-  async isHeadChain(header: BlockHeader): Promise<boolean> {
-    const hash = await this.getHashAtSequence(header.sequence)
+  async isHeadChain(header: BlockHeader, tx?: IDatabaseTransaction): Promise<boolean> {
+    const hash = await this.getHashAtSequence(header.sequence, tx)
 
     if (!hash) {
       return false
@@ -1078,10 +1081,12 @@ export class Blockchain {
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
-    this.logger.info(`Deleting block ${hash.toString('hex')}`)
-
     await this.db.transaction(async (tx) => {
-      if (!(await this.hasBlock(hash, tx))) {
+      this.logger.info(`Deleting block ${hash.toString('hex')}`)
+
+      const exists = await this.hasBlock(hash, tx)
+
+      if (!exists) {
         this.logger.warn(`No block exists at ${hash.toString('hex')}`)
         return
       }
@@ -1091,6 +1096,12 @@ export class Blockchain {
 
       const block = await this.getBlock(hash, tx)
       Assert.isNotNull(block)
+
+      const main = await this.isHeadChain(header, tx)
+
+      if (main && !this.head.hash.equals(hash)) {
+        throw new Error(`Cannot remove main chain block that is not the head`)
+      }
 
       const next = await this.getHeadersAtSequence(header.sequence + 1, tx)
       if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {

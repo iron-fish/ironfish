@@ -169,7 +169,7 @@ describe('Accounts', () => {
       const block2 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block2)
 
-      // Should only scan up to the current procesor head block1
+      // Should only scan up to the current processor head block1
       await accounts.scanTransactions()
       expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
 
@@ -180,6 +180,34 @@ describe('Accounts', () => {
       // This should carry the chain processor to block2
       await accounts.scanTransactions()
       expect(accounts['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
+    })
+  })
+
+  describe('importAccount', () => {
+    it('should not import accounts with duplicate name', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with the name',
+      )
+    })
+
+    it('should not import accounts with duplicate keys', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      account.name = 'Different name'
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with provided spending key',
+      )
     })
   })
 })

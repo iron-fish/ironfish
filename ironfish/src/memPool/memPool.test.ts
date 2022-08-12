@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import { Transaction } from '../primitives'
 import {
   createNodeTest,
   useAccountFixture,
@@ -23,6 +24,52 @@ describe('MemPool', () => {
       await memPool.acceptTransaction(transaction)
 
       expect(memPool.size()).toBe(1)
+    }, 60000)
+  })
+
+  describe('sizeBytes', () => {
+    const nodeTest = createNodeTest()
+
+    it('returns the size of memory usage for transactions and nullifiers', async () => {
+      const { node } = nodeTest
+      const { accounts, memPool } = node
+      const accountA = await useAccountFixture(accounts, 'accountA')
+      const accountB = await useAccountFixture(accounts, 'accountB')
+      const accountC = await useAccountFixture(accounts, 'accountC')
+      const accountD = await useAccountFixture(accounts, 'accountD')
+      const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
+
+      await memPool.acceptTransaction(transaction)
+
+      const size = (tx: Transaction) => {
+        const spendSize = [...tx.spends()].reduce((sum, spend) => {
+          return sum + spend.nullifier.byteLength + tx.hash().byteLength
+        }, 0)
+        return tx.serialize().byteLength + tx.hash().byteLength + spendSize + 32 + 8
+      }
+
+      expect(memPool.sizeBytes()).toBe(size(transaction))
+
+      // If we accept the same transaction it should not add to the memory size
+      await memPool.acceptTransaction(transaction)
+
+      expect(memPool.sizeBytes()).toBe(size(transaction))
+
+      // If we add another it should include that in size
+      await memPool.acceptTransaction(transaction2)
+
+      expect(memPool.sizeBytes()).toBe(size(transaction) + size(transaction2))
+
+      // If we remove the first transaction it should reflect that
+      memPool.onConnectBlock(block)
+
+      expect(memPool.sizeBytes()).toBe(size(transaction2))
+
+      // If we remove the first transaction a second time it should not reduce the size again
+      memPool.onConnectBlock(block)
+
+      expect(memPool.sizeBytes()).toBe(size(transaction2))
     }, 60000)
   })
 

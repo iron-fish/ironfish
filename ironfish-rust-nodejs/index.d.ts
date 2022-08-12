@@ -9,6 +9,15 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export const KEY_LENGTH: number
+export const NONCE_LENGTH: number
+export function randomBytes(bytesLength: number): Uint8Array
+export interface BoxedMessage {
+  nonce: string
+  boxedMessage: string
+}
+export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
+export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
 export interface NativeSpendProof {
   treeSize: number
   rootHash: Buffer
@@ -24,6 +33,13 @@ export interface Key {
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
+export function isValidPublicAddress(hexAddress: string): boolean
+export class BoxKeyPair {
+  constructor()
+  static fromHex(secretHex: string): BoxKeyPair
+  get publicKey(): Buffer
+  get secretKey(): Buffer
+}
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(bytes: Buffer)

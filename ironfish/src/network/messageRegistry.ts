@@ -19,6 +19,7 @@ import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionV2Message } from './messages/newTransactionV2'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
 import {
@@ -126,12 +127,14 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return SignalMessage.deserialize(body)
     case NetworkMessageType.SignalRequest:
       return SignalRequestMessage.deserialize(body)
+    case NetworkMessageType.NewPooledTransactionHashes:
+      return NewPooledTransactionHashes.deserialize(body)
+    case NetworkMessageType.NewTransactionV2:
+      return NewTransactionV2Message.deserialize(body)
     case NetworkMessageType.NewBlockHashes:
       return NewBlockHashesMessage.deserialize(body)
     case NetworkMessageType.NewBlockV2:
       return NewBlockV2Message.deserialize(body)
-    case NetworkMessageType.NewPooledTransactionHashes:
-      return NewPooledTransactionHashes.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }

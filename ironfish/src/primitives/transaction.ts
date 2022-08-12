@@ -185,8 +185,8 @@ export class Transaction {
   }
 
   /**
-   * Genereate the hash of a transaction that includes the witness (signature) data.
-   * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
+   * Generate the hash of a transaction that includes the witness (signature) data.
+   * Used for cases where a signature needs to be committed to in the hash like P2P transaction gossip
    */
   hash(): TransactionHash {
     this._hash = this._hash || blake3(this.transactionPostedSerialized)
