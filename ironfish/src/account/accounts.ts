@@ -732,8 +732,11 @@ export class Accounts {
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
           if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
+            confirmed = this.isBlockConfirmed(
+              this.chain.head.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
           }
         }
 
@@ -1084,6 +1087,15 @@ export class Accounts {
     await this.scanTransactions()
   }
 
+  isBlockConfirmed(
+    chainHeadSequence: number,
+    blockSequence: number,
+    minimumBlockConfirmations: number,
+  ): boolean {
+    const confirmations = chainHeadSequence - blockSequence
+    return confirmations >= minimumBlockConfirmations
+  }
+
   async getTransactions(account: Account): Promise<
     Array<{
       creator: boolean
@@ -1099,6 +1111,12 @@ export class Accounts {
     this.assertHasAccount(account)
 
     const transactions = []
+
+    const heaviestHead = this.chain.head
+    if (heaviestHead === null) {
+      throw new ValidationError('You must have a genesis block to get transactions from')
+    }
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
 
     for (const transactionMapValue of this.transactionMap.values()) {
       const transaction = transactionMapValue.transaction
@@ -1124,8 +1142,17 @@ export class Accounts {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
-          if (main) {
+          if (
+            main &&
+            this.isBlockConfirmed(
+              heaviestHead.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
+          ) {
             status = 'completed'
+          } else if (main) {
+            status = 'confirming'
           } else {
             status = 'forked'
           }
