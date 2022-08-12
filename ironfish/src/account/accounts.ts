@@ -731,8 +731,11 @@ export class Accounts {
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
           if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
+            confirmed = this.isBlockConfirmed(
+              this.chain.head.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
           }
         }
 
@@ -1082,6 +1085,15 @@ export class Accounts {
     await this.scanTransactions()
   }
 
+  isBlockConfirmed(
+    chainHeadSequence: number,
+    blockSequence: number,
+    minimumBlockConfirmations: number,
+  ): boolean {
+    const confirmations = chainHeadSequence - blockSequence
+    return confirmations >= minimumBlockConfirmations
+  }
+
   async getTransactions(account: Account): Promise<
     Array<{
       creator: boolean
@@ -1128,7 +1140,14 @@ export class Accounts {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
-          if (main && header.sequence + minimumBlockConfirmations < heaviestHead.sequence) {
+          if (
+            main &&
+            this.isBlockConfirmed(
+              heaviestHead.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
+          ) {
             status = 'completed'
           } else if (main) {
             status = 'confirming'
