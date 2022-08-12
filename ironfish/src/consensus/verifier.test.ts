@@ -6,7 +6,7 @@ jest.mock('ws')
 
 import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
-import { BlockHeader } from '../primitives'
+import { BlockHeader, Transaction } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -23,25 +23,15 @@ describe('Verifier', () => {
   describe('Transaction', () => {
     const nodeTest = createNodeTest()
 
-    it('rejects if the transaction cannot be deserialized', () => {
-      expect(() =>
-        nodeTest.chain.verifier.verifyNewTransaction(Buffer.alloc(32, 'hello')),
-      ).toThrowError('Transaction cannot deserialize')
-
-      expect(() =>
-        nodeTest.chain.verifier.verifyNewTransaction(
-          Buffer.from(JSON.stringify({ not: 'valid' })),
-        ),
-      ).toThrowError('Transaction cannot deserialize')
-    })
-
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
       const serialized = tx.serialize()
 
-      const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
+      const result = await nodeTest.chain.verifier.verifyNewTransaction(
+        new Transaction(serialized),
+      )
 
-      expect(tx.equals(transaction)).toBe(true)
+      expect(result).toEqual({ valid: true })
     }, 60000)
   })
 

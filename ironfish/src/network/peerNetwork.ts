@@ -998,43 +998,24 @@ export class PeerNetwork {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
-    const hash = new Transaction(message.transaction).hash()
+    const transaction = new Transaction(message.transaction)
+    const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
 
     if (this.shouldProcessTransactions() && !this.alreadyHaveTransaction(hash)) {
-      // Force lazy deserialization of the transaction as a first sanity check
-      const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
+      // Check that the transaction is valid
+      const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
 
-      // Next, check the spends are valid and not already in the chain
-      const spendVerificationResult = await this.chain.verifier.verifyTransactionSpends(
-        transaction,
-      )
-      if (!spendVerificationResult.valid) {
-        Assert.isNotUndefined(spendVerificationResult.reason)
-        // Opting not to log unsignedHash because it's slow
-        this.logger.debug(
-          `Invalid transaction '${hash.toString('hex')}': ${spendVerificationResult.reason}`,
-        )
-        // TODO: It might be more accurate to put the transaction in a map of invalid transactions,
-        // since it may not be added to the chain.
-        this.recentlyAddedToChain.set(hash, true)
-        this.transactionFetcher.removeTransaction(hash)
-        return
-      }
-
-      // Validate the transaction, so that the account and mempool do not receive
-      // an invalid transaction, and we do not gossip.
-      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-        transaction,
-      )
       if (!valid) {
         Assert.isNotUndefined(reason)
-        this.logger.debug(
-          `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
-        )
+        // Logging hash because unsignedHash is slow
+        this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+        // TODO: It might be more accurate to have a separate map of invalid transactions,
+        // but it accomplishes the same outcome of discarding the transaction in the future.
+        this.recentlyAddedToChain.set(hash, true)
         this.transactionFetcher.removeTransaction(hash)
         return
       }

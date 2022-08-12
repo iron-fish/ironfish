@@ -8,7 +8,7 @@ import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
@@ -148,29 +148,53 @@ export class Verifier {
   }
 
   /**
-   * Verify that a new transaction received over the network has valid proofs
-   * before forwarding it to the network.
-   *
-   * @params payload an unknown message payload that peerNetwork has received from the network.
-   *
-   * @returns deserialized transaction to be processed by the main handler.
+   * Verify that a new transaction received over the network can be accepted into
+   * the mempool and rebroadcasted to the network.
    */
-  verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
+  async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
     try {
-      const transaction = new Transaction(serializedTransaction)
-
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
       transaction.takeReference()
-
-      return transaction
+      transaction.returnReference()
     } catch (e) {
-      let message = 'Transaction cannot deserialize.'
-      if (e instanceof Error) {
-        message += ` Message: ${e.message}`
-      }
-      throw new Error(message)
+      return { valid: false, reason: VerificationResultReason.DESERIALIZATION }
     }
+
+    // Next, check the spends are valid and not already in the chain
+    const reason = await this.chain.db.withTransaction(null, async (tx) => {
+      const nullifierSize = await this.chain.nullifiers.size(tx)
+      const notesSize = await this.chain.notes.size(tx)
+
+      for (const spend of transaction.spends()) {
+        if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
+          return VerificationResultReason.DOUBLE_SPEND
+        }
+
+        // If the spend references a larger tree size, allow it, so it's possible to
+        // store transactions made while the node is a few blocks behind
+        if (spend.size > notesSize) {
+          continue
+        }
+
+        try {
+          const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+
+          if (!spend.commitment.equals(realSpendRoot)) {
+            return VerificationResultReason.INVALID_SPEND
+          }
+        } catch {
+          return VerificationResultReason.ERROR
+        }
+      }
+    })
+
+    if (reason) {
+      return { valid: false, reason }
+    }
+
+    // Verify the transaction data itself
+    return await this.verifyTransactionNoncontextual(transaction)
   }
 
   async verifyTransactionContextual(
@@ -435,6 +459,7 @@ export class Verifier {
 
 export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
+  DESERIALIZATION = 'Failed to deserialize',
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
