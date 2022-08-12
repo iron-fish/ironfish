@@ -46,7 +46,7 @@ describe('MemPool', () => {
         const spendSize = [...tx.spends()].reduce((sum, spend) => {
           return sum + spend.nullifier.byteLength + tx.hash().byteLength
         }, 0)
-        return tx.serialize().byteLength + tx.hash().byteLength + spendSize + 32
+        return tx.serialize().byteLength + tx.hash().byteLength + spendSize + 32 + 8
       }
 
       expect(memPool.sizeBytes()).toBe(size(transaction))

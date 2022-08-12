@@ -59,7 +59,7 @@ export class MemPool {
   }
 
   sizeBytes(): number {
-    const queueSize = this.size() * 32 // estimate the queue size
+    const queueSize = this.queue.size * (32 + 8) // estimate the queue size hash (32b) fee (8b)
     return this.transactionsBytes + this.nullifiersBytes + queueSize
   }
 
