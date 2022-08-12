@@ -824,9 +824,6 @@ export class Accounts {
     expirationSequence?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new ValidationError('You must have a genesis block to create a transaction')
-    }
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
@@ -1113,9 +1110,6 @@ export class Accounts {
     const transactions = []
 
     const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new ValidationError('You must have a genesis block to get transactions from')
-    }
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
 
     for (const transactionMapValue of this.transactionMap.values()) {
@@ -1197,9 +1191,6 @@ export class Accounts {
     const transactionNotes = []
 
     const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new ValidationError('You must have a genesis block to get transactions from')
-    }
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
 
     const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
@@ -1236,7 +1227,14 @@ export class Accounts {
             const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
             Assert.isNotNull(header)
             const main = await this.chain.isHeadChain(header)
-            if (main && header.sequence + minimumBlockConfirmations < heaviestHead.sequence) {
+            if (
+              main &&
+              this.isBlockConfirmed(
+                heaviestHead.sequence,
+                header.sequence,
+                minimumBlockConfirmations,
+              )
+            ) {
               status = 'completed'
             } else if (main) {
               status = 'confirming'
