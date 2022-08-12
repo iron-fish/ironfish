@@ -1013,9 +1013,6 @@ export class PeerNetwork {
         Assert.isNotUndefined(reason)
         // Logging hash because unsignedHash is slow
         this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
-        // TODO: It might be more accurate to have a separate map of invalid transactions,
-        // but it accomplishes the same outcome of discarding the transaction in the future.
-        this.recentlyAddedToChain.set(hash, true)
         this.transactionFetcher.removeTransaction(hash)
         return
       }
