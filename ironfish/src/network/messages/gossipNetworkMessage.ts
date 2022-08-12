@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { randomBytes } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import tweetnacl from 'tweetnacl'
 import { Assert } from '../../assert'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
@@ -13,7 +13,7 @@ export abstract class GossipNetworkMessage extends NetworkMessage {
   constructor(type: NetworkMessageType, nonce?: Buffer) {
     super(type)
 
-    this.nonce = nonce ?? Buffer.from(tweetnacl.randomBytes(16))
+    this.nonce = nonce ?? Buffer.from(randomBytes(16))
 
     Assert.isEqual(this.nonce.byteLength, 16)
   }

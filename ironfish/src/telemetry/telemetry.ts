@@ -228,16 +228,16 @@ export class Telemetry {
       return
     }
 
-    if (metric.fields.length === 0) {
-      throw new Error('Cannot submit metrics without fields')
-    }
-
     let tags = this.defaultTags
     if (metric.tags) {
       tags = tags.concat(metric.tags)
     }
 
     const fields = this.defaultFields.concat(metric.fields)
+
+    if (fields.length === 0) {
+      throw new Error('Cannot submit metrics without fields')
+    }
 
     // TODO(jason): RollingAverage can produce a negative number which seems
     // like it should be a bug. Investigate then delete this TODO. Negative
