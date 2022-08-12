@@ -88,7 +88,7 @@ export default class Start extends IronfishCommand {
     }),
     generateNewIdentity: Flags.boolean({
       default: false,
-      description: 'genereate new identity for each new start',
+      description: 'generate new identity for each new start',
       hidden: true,
     }),
     upgrade: Flags.boolean({
