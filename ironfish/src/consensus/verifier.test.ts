@@ -41,7 +41,10 @@ describe('Verifier', () => {
         new Transaction(serialized),
       )
 
-      expect(result).toEqual({ valid: false })
+      expect(result).toEqual({
+        reason: VerificationResultReason.ERROR,
+        valid: false,
+      })
     }, 60000)
   })
 
