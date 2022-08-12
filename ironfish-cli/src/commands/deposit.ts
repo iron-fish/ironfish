@@ -110,7 +110,8 @@ export default class Bank extends IronfishCommand {
     const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
 
     this.log(`
-Your balance is ${confirmedBalance} and you are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
+Your balance is ${confirmedBalance}.
+You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
 
