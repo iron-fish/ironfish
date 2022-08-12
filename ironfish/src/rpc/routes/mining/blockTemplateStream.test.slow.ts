@@ -91,7 +91,7 @@ describe('Block template stream', () => {
     const response = routeTest.client.request('miner/blockTemplateStream')
 
     // Add the transaction to the route mempool
-    await routeTest.node.memPool.acceptTransaction(tx)
+    routeTest.node.memPool.acceptTransaction(tx)
 
     // Add both blocks to the route node
     await expect(chain).toAddBlock(block2)

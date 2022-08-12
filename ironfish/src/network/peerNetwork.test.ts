@@ -428,7 +428,7 @@ describe('PeerNetwork', () => {
         const accountA = await useAccountFixture(accounts, 'accountA')
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
-        await memPool.acceptTransaction(transaction)
+        memPool.acceptTransaction(transaction)
 
         const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 
@@ -513,11 +513,6 @@ describe('PeerNetwork', () => {
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        const verifyTransactionContextual = jest.spyOn(
-          node.chain.verifier,
-          'verifyTransactionNoncontextual',
-        )
-
         const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
@@ -541,7 +536,6 @@ describe('PeerNetwork', () => {
         }
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
-        expect(verifyTransactionContextual).toHaveBeenCalledTimes(1)
 
         expect(memPool.exists(transaction.hash())).toBe(true)
 
@@ -574,7 +568,6 @@ describe('PeerNetwork', () => {
         }
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
-        expect(verifyTransactionContextual).toHaveBeenCalledTimes(1)
 
         expect(memPool.exists(transaction.hash())).toBe(true)
 

@@ -840,7 +840,7 @@ export class Accounts {
     )
 
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
-    await memPool.acceptTransaction(transaction)
+    memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
 

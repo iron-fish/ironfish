@@ -96,7 +96,7 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  async acceptTransaction(transaction: Transaction, shouldVerify = true): Promise<boolean> {
+  acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
 
@@ -112,18 +112,6 @@ export class MemPool {
     if (isExpiredSequence) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
       return false
-    }
-
-    if (shouldVerify) {
-      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-        transaction,
-      )
-
-      if (!valid) {
-        Assert.isNotUndefined(reason)
-        this.logger.debug(`Invalid transaction '${hash}': ${reason}`)
-        return false
-      }
     }
 
     for (const spend of transaction.spends()) {

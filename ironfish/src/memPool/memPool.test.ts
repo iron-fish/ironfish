@@ -3,12 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
-import {
-  createNodeTest,
-  useAccountFixture,
-  useBlockWithTx,
-  useMinersTxFixture,
-} from '../testUtilities'
+import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -21,7 +16,7 @@ describe('MemPool', () => {
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-      await memPool.acceptTransaction(transaction)
+      memPool.acceptTransaction(transaction)
 
       expect(memPool.size()).toBe(1)
     }, 60000)
@@ -40,7 +35,7 @@ describe('MemPool', () => {
       const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
 
-      await memPool.acceptTransaction(transaction)
+      memPool.acceptTransaction(transaction)
 
       const size = (tx: Transaction) => {
         const spendSize = [...tx.spends()].reduce((sum, spend) => {
@@ -52,12 +47,12 @@ describe('MemPool', () => {
       expect(memPool.sizeBytes()).toBe(size(transaction))
 
       // If we accept the same transaction it should not add to the memory size
-      await memPool.acceptTransaction(transaction)
+      memPool.acceptTransaction(transaction)
 
       expect(memPool.sizeBytes()).toBe(size(transaction))
 
       // If we add another it should include that in size
-      await memPool.acceptTransaction(transaction2)
+      memPool.acceptTransaction(transaction2)
 
       expect(memPool.sizeBytes()).toBe(size(transaction) + size(transaction2))
 
@@ -120,9 +115,9 @@ describe('MemPool', () => {
       jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
       jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(3))
 
-      await memPool.acceptTransaction(transactionA)
-      await memPool.acceptTransaction(transactionB)
-      await memPool.acceptTransaction(transactionC)
+      memPool.acceptTransaction(transactionA)
+      memPool.acceptTransaction(transactionB)
+      memPool.acceptTransaction(transactionC)
 
       const transactions = Array.from(memPool.orderedTransactions())
       expect(transactions).toEqual([transactionB, transactionC, transactionA])
@@ -139,8 +134,8 @@ describe('MemPool', () => {
       jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
       jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
 
-      await memPool.acceptTransaction(transactionA)
-      await memPool.acceptTransaction(transactionB)
+      memPool.acceptTransaction(transactionA)
+      memPool.acceptTransaction(transactionB)
 
       const generator = memPool.orderedTransactions()
       const result = generator.next()
@@ -155,19 +150,6 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
-    describe('with a coinbase transaction', () => {
-      const nodeTest = createNodeTest()
-
-      it('returns false', async () => {
-        const { node } = nodeTest
-        const { memPool } = node
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
-
-        expect(await memPool.acceptTransaction(transaction)).toBe(false)
-      }, 60000)
-    })
-
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 
@@ -178,9 +160,9 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await memPool.acceptTransaction(transaction)
+        memPool.acceptTransaction(transaction)
 
-        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+        expect(memPool.acceptTransaction(transaction)).toBe(false)
       }, 60000)
     })
 
@@ -198,7 +180,7 @@ describe('MemPool', () => {
           .spyOn(chain.verifier, 'isExpiredSequence')
           .mockReturnValue(true)
 
-        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+        expect(memPool.acceptTransaction(transaction)).toBe(false)
         expect(isExpiredSequenceSpy).toHaveBeenCalledTimes(1)
         expect(isExpiredSequenceSpy).lastReturnedWith(true)
       })
@@ -217,9 +199,9 @@ describe('MemPool', () => {
 
         expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
 
-        await memPool.acceptTransaction(transaction)
+        memPool.acceptTransaction(transaction)
 
-        expect(await memPool.acceptTransaction(transaction2)).toBe(false)
+        expect(memPool.acceptTransaction(transaction2)).toBe(false)
       }, 60000)
 
       it('returns true with a higher fee', async () => {
@@ -238,9 +220,9 @@ describe('MemPool', () => {
 
         expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
 
-        await memPool.acceptTransaction(transaction)
+        memPool.acceptTransaction(transaction)
 
-        expect(await memPool.acceptTransaction(transaction2)).toBe(true)
+        expect(memPool.acceptTransaction(transaction2)).toBe(true)
       }, 60000)
     })
 
@@ -254,7 +236,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(await memPool.acceptTransaction(transaction)).toBe(true)
+        expect(memPool.acceptTransaction(transaction)).toBe(true)
       }, 60000)
 
       it('sets the transaction hash in the mempool map and priority queue', async () => {
@@ -264,63 +246,11 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await memPool.acceptTransaction(transaction)
+        memPool.acceptTransaction(transaction)
 
         expect(memPool.exists(transaction.hash())).toBe(true)
         expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
       }, 60000)
-    })
-
-    describe('verification', () => {
-      const nodeTest = createNodeTest()
-
-      it('should default to verify the transaction', async () => {
-        const { node } = nodeTest
-        const { memPool } = node
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
-
-        const verifyTransactionSpy = jest.spyOn(
-          node.chain.verifier,
-          'verifyTransactionNoncontextual',
-        )
-
-        await memPool.acceptTransaction(transaction)
-
-        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
-      })
-
-      it('should verify when explicitly passed the parameter', async () => {
-        const { node } = nodeTest
-        const { memPool } = node
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
-
-        const verifyTransactionSpy = jest.spyOn(
-          node.chain.verifier,
-          'verifyTransactionNoncontextual',
-        )
-
-        await memPool.acceptTransaction(transaction, true)
-
-        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
-      })
-
-      it('should be skippable', async () => {
-        const { node } = nodeTest
-        const { memPool } = node
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
-
-        const verifyTransactionSpy = jest.spyOn(
-          node.chain.verifier,
-          'verifyTransactionNoncontextual',
-        )
-
-        await memPool.acceptTransaction(transaction, false)
-
-        expect(verifyTransactionSpy).toHaveBeenCalledTimes(0)
-      })
     })
   })
 
@@ -339,8 +269,8 @@ describe('MemPool', () => {
         accountA,
       )
 
-      await memPool.acceptTransaction(transactionA)
-      await memPool.acceptTransaction(transactionB)
+      memPool.acceptTransaction(transactionA)
+      memPool.acceptTransaction(transactionB)
       expect(memPool.exists(transactionA.hash())).toBe(true)
       expect(memPool.exists(transactionB.hash())).toBe(true)
 

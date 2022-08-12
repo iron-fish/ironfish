@@ -1024,7 +1024,7 @@ export class PeerNetwork {
       // relevant to the accounts, despite coming from a different node.
       await this.node.accounts.syncTransaction(transaction, {})
 
-      if (await this.node.memPool.acceptTransaction(transaction, false)) {
+      if (this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)
       }
 
