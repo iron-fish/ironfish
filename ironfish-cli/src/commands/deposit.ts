@@ -110,16 +110,16 @@ export default class Bank extends IronfishCommand {
     const displayFee = displayIronAmountWithCurrency(feeInIron, true)
     const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
 
-    this.log(`
+    if (!flags.confirm) {
+      this.log(`
 Your balance is ${displayConfirmedBalance}.
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
 
 * This action is NOT reversible *
-    `)
+      `)
 
-    if (!flags.confirm) {
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
@@ -170,12 +170,12 @@ The memo will contain the graffiti "${graffiti}".
 
       const transaction = result.content
       this.log(`
-Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
+Depositing ${displayAmount} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
-
+Transaction fee: ${displayFee}
+New Balance: ${displayNewBalance}
 Find the transaction on https://explorer.ironfish.network/transaction/${
         transaction.hash
       } (it can take a few minutes before the transaction appears in the Explorer)`)
