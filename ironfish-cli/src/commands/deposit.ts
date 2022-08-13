@@ -171,13 +171,13 @@ The memo will contain the graffiti "${graffiti}".
       const transaction = result.content
       this.log(`
 Depositing ${displayAmount} from ${
-        transaction.fromAccountName
+      transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
 Transaction fee: ${displayFee}
 New Balance: ${displayNewBalance}
 Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
+      transaction.hash
       } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
