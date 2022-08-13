@@ -105,11 +105,14 @@ export default class Bank extends IronfishCommand {
 
     const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
 
+    const displayConfirmedBalance = displayIronAmountWithCurrency(confirmedBalance, true)
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
     const displayFee = displayIronAmountWithCurrency(feeInIron, true)
     const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
+
     if (!flags.confirm) {
       this.log(`
+Your balance is ${displayConfirmedBalance}.
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
@@ -167,14 +170,14 @@ The memo will contain the graffiti "${graffiti}".
 
       const transaction = result.content
       this.log(`
-Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
-        transaction.fromAccountName
+Depositing ${displayAmount} from ${
+      transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
-
+Transaction fee: ${displayFee}
+New Balance: ${displayNewBalance}
 Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
+      transaction.hash
       } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
