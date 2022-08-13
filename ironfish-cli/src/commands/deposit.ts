@@ -171,9 +171,9 @@ The memo will contain the graffiti "${graffiti}".
       const transaction = result.content
       this.log(`
 Depositing ${displayAmount} from ${transaction.fromAccountName}
-
 Transaction Hash: ${transaction.hash}
 Transaction fee: ${displayFee}
+
 New Balance: ${displayNewBalance}
 
 Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} 
