@@ -169,7 +169,7 @@ describe('Accounts', () => {
       const block2 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block2)
 
-      // Should only scan up to the current procesor head block1
+      // Should only scan up to the current processor head block1
       await accounts.scanTransactions()
       expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
 

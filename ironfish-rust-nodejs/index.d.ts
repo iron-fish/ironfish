@@ -33,6 +33,7 @@ export interface Key {
 export function generateKey(): Key
 export function generateNewPublicAddress(privateKey: string): Key
 export function initializeSapling(): void
+export function isValidPublicAddress(hexAddress: string): boolean
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
