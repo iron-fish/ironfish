@@ -36,9 +36,9 @@ export class FeeCommand extends IronfishCommand {
       this.log(
         `Fee distribution for last ${numOfBlocks} block${numOfBlocks > 1 ? 's' : ''}: (${
           response.content.startBlock
-        } - ${response.content.endBlock})\np25: ${response.content.p25 || '-'} ORE\np50: ${
-          response.content.p50 || '-'
-        } ORE\np75: ${response.content.p75 || '-'} ORE`,
+        } - ${response.content.endBlock})\np25: ${response.content.p25} ORE\np50: ${
+          response.content.p50
+        } ORE\np75: ${response.content.p75} ORE`,
       )
     } catch (error: unknown) {
       if (error instanceof Error) {
