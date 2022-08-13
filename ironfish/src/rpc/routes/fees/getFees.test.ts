@@ -11,7 +11,7 @@ describe('Route chain.getFees', () => {
 
   it('should fail if no block is found', async () => {
     await expect(
-      routeTest.client.request('fees/getFees', { numOfBlocks: 1 }).waitForEnd(),
+      routeTest.client.request('fees/getFees', { numOfBlocks: 2 }).waitForEnd(),
     ).rejects.toThrow('numOfBlocks must be less than the current head sequence')
   })
 
@@ -22,7 +22,7 @@ describe('Route chain.getFees', () => {
     await expect(node.chain).toAddBlock(block)
 
     const response = await routeTest.client
-      .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 1 })
+      .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 2 })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -41,7 +41,7 @@ describe('Route chain.getFees', () => {
     await expect(node.chain).toAddBlock(block)
 
     const response = await routeTest.client
-      .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 1 })
+      .request<GetFeesResponse>('fees/getFees', { numOfBlocks: 2 })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
