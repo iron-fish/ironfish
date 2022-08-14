@@ -50,7 +50,7 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
 
     Assert.isGreaterThan(
       node.chain.head.sequence,
-      numOfBlocks,
+      numOfBlocks - 1,
       'numOfBlocks must be less than the current head sequence',
     )
 
