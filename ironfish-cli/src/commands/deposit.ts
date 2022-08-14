@@ -170,6 +170,8 @@ The memo will contain the graffiti "${graffiti}".
 
       const transaction = result.content
       this.log(`
+Old Balance: ${displayConfirmedBalance}.
+
 Depositing ${displayAmount} from ${transaction.fromAccountName}
 Transaction Hash: ${transaction.hash}
 Transaction fee: ${displayFee}
