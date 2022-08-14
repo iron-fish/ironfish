@@ -46,7 +46,7 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
   `${ApiNamespace.fees}/getFees`,
   GetFeesRequestSchema,
   async (request, node): Promise<void> => {
-    const numOfBlocks = request.data.numOfBlocks - 1
+    const numOfBlocks = request.data.numOfBlocks
 
     Assert.isGreaterThan(
       node.chain.head.sequence,
@@ -56,11 +56,11 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
 
     const fees: number[] = []
     const endBlock = node.chain.latest.sequence
-    const startBlock = endBlock - numOfBlocks
+    const startBlock = endBlock - numOfBlocks + 1
 
     let nextBlockHash = node.chain.latest.hash
 
-    for (let i = 0; i <= numOfBlocks; i++) {
+    for (let i = 0; i < numOfBlocks; i++) {
       const latestBlock = await node.chain.getBlock(nextBlockHash)
       Assert.isNotNull(latestBlock, 'No block found')
       nextBlockHash = latestBlock.header.previousBlockHash
