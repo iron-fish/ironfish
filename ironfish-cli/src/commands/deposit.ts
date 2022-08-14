@@ -112,6 +112,7 @@ export default class Bank extends IronfishCommand {
     if (!flags.confirm) {
       this.log(`
 Your balance is ${displayConfirmedBalance}.
+
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
