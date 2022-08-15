@@ -386,6 +386,58 @@ export class Verifier {
     }
   }
 
+  async verifyBlockCommitments(block: Block): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(null, async (tx) => {
+      const header = block.header
+
+      const prevBlockHeader = await this.chain.getHeader(header.hash, tx)
+
+      if (prevBlockHeader === null) {
+        return { valid: false, reason: VerificationResultReason.ORPHAN }
+      }
+
+      let notesIndex = prevBlockHeader.noteCommitment.size
+      let nullifiersIndex = prevBlockHeader.nullifierCommitment.size
+
+      await this.chain.notes.truncate(notesIndex, tx)
+      await this.chain.nullifiers.truncate(nullifiersIndex, tx)
+
+      for (const note of block.allNotes()) {
+        await this.chain.addNote(notesIndex, note, tx)
+        notesIndex++
+      }
+
+      for (const spend of block.spends()) {
+        await this.chain.addNullifier(nullifiersIndex, spend.nullifier, tx)
+        nullifiersIndex++
+      }
+
+      const actualNotesSize = await this.chain.notes.size(tx)
+      const actualNullifiersSize = await this.chain.nullifiers.size(tx)
+
+      if (header.noteCommitment.size !== actualNotesSize) {
+        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
+      }
+
+      if (header.nullifierCommitment.size !== actualNullifiersSize) {
+        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
+      }
+
+      const pastNoteRoot = await this.chain.notes.rootHash(tx)
+      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
+        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
+      }
+
+      const pastNullifierRoot = await this.chain.nullifiers.rootHash(tx)
+      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
+        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
+      }
+
+      await tx.abort()
+      return { valid: true }
+    })
+  }
+
   /**
    * Determine whether our trees match the commitment in the provided block.
    *

@@ -80,7 +80,8 @@ export class Blockchain {
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
   addSpeed: Meter
-  invalid: LRU<Buffer, VerificationResultReason>
+  invalid: LRU<BlockHash, VerificationResultReason>
+  orphans: LRU<BlockHash, BlockHeader>
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
@@ -165,6 +166,7 @@ export class Blockchain {
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
+    this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
 
@@ -364,7 +366,7 @@ export class Blockchain {
 
         const connectResult = await this.connect(block, previous, tx)
 
-        await this.resolveOrphans(block)
+        this.resolveOrphans(block)
 
         return connectResult
       })
@@ -776,12 +778,20 @@ export class Blockchain {
     )
   }
 
-  private addOrphan(_block: Block): void {
-    // TODO: not implemented yet
+  addOrphan(header: BlockHeader): void {
+    this.orphans.set(header.hash, header)
   }
 
-  private async resolveOrphans(_block: Block): Promise<void> {
-    // TODO: not implemented yet
+  private resolveOrphans(block: Block): void {
+    this.orphans.remove(block.header.hash)
+
+    for (const [hash, header] of this.orphans.map.entries()) {
+      if (header.previousBlockHash.equals(block.header.hash)) {
+        // TODO: we could probably store the whole block and add it in
+        // this case, but it adds complexity
+        this.orphans.remove(hash)
+      }
+    }
   }
 
   /**

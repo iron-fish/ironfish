@@ -18,7 +18,12 @@ import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
+import {
+  BlockHash,
+  BlockHeader,
+  BlockHeaderSerde,
+  SerializedBlockHeader,
+} from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
 import { ArrayUtils } from '../utils'
@@ -87,6 +92,11 @@ type RpcRequest = {
   reject: (e: unknown) => void
   peer: Peer
 }
+
+type TransactionOrHash = (
+  | { type: 'TRANSACTION'; value: Transaction }
+  | { type: 'HASH'; value: TransactionHash }
+)
 
 /**
  * Entry point for the peer-to-peer network. Manages connections to other peers on the network
@@ -746,7 +756,7 @@ export class PeerNetwork {
           await this.onNewTransaction(peer, gossipMessage)
         }
       } else if (rpcMessage instanceof GetBlockTransactionsResponse) {
-        this.onNewBlockTransactions(peer, rpcMessage)
+        await this.onNewBlockTransactions(peer, rpcMessage)
       } else if (rpcMessage instanceof GetCompactBlockResponse) {
         await this.onNewCompactBlock(peer, rpcMessage.compactBlock)
       }
@@ -773,8 +783,13 @@ export class PeerNetwork {
         peer.sequence = sequence
       }
 
-      // only request blocks that can likely be added to the head of the chain.
-      if (sequence === this.chain.head.sequence + 1) {
+      // Request blocks that can likely be added to the head of the chain or are
+      // can be compact blocks, and that we don't already have
+      if (
+        sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
+        sequence <= this.chain.head.sequence + 1 &&
+        !(await this.shouldIgnoreBlock(hash))
+      ) {
         hashesToRequest.push(hash)
       } else if (sequence > this.chain.head.sequence + 1) {
         shouldSync = true
@@ -785,8 +800,80 @@ export class PeerNetwork {
     if (shouldSync) {
       this.node.syncer.startSync(peer)
     } else {
-      await Promise.all(hashesToRequest.map((h) => this.blockFetcher.hashReceived(h, peer)))
+      await Promise.all(hashesToRequest.map((h) => this.blockFetcher.receivedHash(h, peer)))
     }
+  }
+
+  private assembleBlockTransactions(block: SerializedCompactBlock):
+    | {
+        type: 'SUCCESS'
+        partialTransactions: TransactionOrHash[]
+      }
+    | { type: 'ERROR' } {
+    let hashesConsumed = 0
+    let fullTransactionsConsumed = 0
+    let nextTransactionPosition = block.transactions.length ? block.transactions[0].index : null
+
+    const partialTransactions: TransactionOrHash[] = []
+
+    while (
+      hashesConsumed < block.transactionHashes.length &&
+      fullTransactionsConsumed < block.transactions.length
+    ) {
+      const currPosition = hashesConsumed + fullTransactionsConsumed
+      if (currPosition === nextTransactionPosition) {
+        if (fullTransactionsConsumed >= block.transactions.length) {
+          // TODO: Something else went wrong
+          return { type: 'ERROR' }
+        }
+        const nextFullTransaction = new Transaction(
+          block.transactions[fullTransactionsConsumed].transaction,
+        )
+        partialTransactions.push({ type: 'TRANSACTION', value: nextFullTransaction })
+
+        fullTransactionsConsumed++
+
+        nextTransactionPosition =
+          block.transactions.length < fullTransactionsConsumed
+            ? nextTransactionPosition + block.transactions[fullTransactionsConsumed].index
+            : 0
+      } else if (hashesConsumed >= block.transactionHashes.length) {
+        // The transaction position is incorrect and we've consumed all of our block hashes
+        return { type: 'ERROR' }
+      } else {
+        partialTransactions.push({
+          type: 'HASH',
+          value: block.transactionHashes[hashesConsumed],
+        })
+        hashesConsumed++
+      }
+    }
+
+    return { type: 'SUCCESS', partialTransactions }
+  }
+
+  private fillTransactionsFromMempool(block: SerializedCompactBlock):
+    | { type: 'ERROR' }
+    | { type: 'MISSING_TRANSACTIONS'; missingTransactions: number[], filledTransactions: TransactionOrHash[] }
+    | { type: 'SUCCESS'; block: Block } {
+    const result = this.assembleBlockTransactions(block)
+    if(result.type === 'ERROR') {
+      return result
+    }
+
+    const missingTransactions: number[] = []
+    result.partialTransactions.forEach(({type, value}, i) => {
+      if (type === 'HASH') {
+        const fromMempool = this.node.memPool.get(value)
+        if (fromMempool) {
+          result.partialTransactions[i] = {type: 'TRANSACTION', value: fromMempool }
+        } else {
+          missingTransactions.push(i)
+        }
+      }
+    })
+
+    missingTransactions.forEach((, i))
   }
 
   private assembleBlock(
@@ -796,6 +883,24 @@ export class PeerNetwork {
     | { type: 'ERROR' }
     | { type: 'MISSING_TRANSACTIONS'; missingTransactions: number[] }
     | { type: 'SUCCESS'; block: Block } {
+    const result = this.assembleBlockTransactions(block)
+
+    const missingTransactions: number[] = []
+    if (result.type === 'SUCCESS') {
+      const filledTransactions = result.partialTransactions.map(({ type, value }) => {
+        if (type === 'HASH') {
+          return this.node.memPool.get(value) || value
+        } else {
+          missingTransactions.push(i)
+          return value
+        }
+      })
+
+      return {filledTransactions
+    } else {
+      return result
+    }
+
     const missingTransactions: number[] = []
     const blockTransactions = new Array(
       block.transactionHashes.length + block.transactions.length,
@@ -810,7 +915,7 @@ export class PeerNetwork {
         return { type: 'ERROR' }
       }
 
-      blockTransactions[nextIndex] = transaction.transaction
+      blockTransactions[nextIndex] = new Transaction(transaction.transaction)
       lastIndex = nextIndex
     }
 
@@ -822,6 +927,7 @@ export class PeerNetwork {
         index++
       }
 
+      // TODO: Cache transactions on the block fetcher
       let transaction = this.node.memPool.get(hash)
 
       if (!transaction && extraTransactionsIndex < extraTransactions.length) {
@@ -847,6 +953,7 @@ export class PeerNetwork {
       return { type: 'MISSING_TRANSACTIONS', missingTransactions }
     } else {
       const fullBlock = new Block(BlockHeaderSerde.deserialize(block.header), blockTransactions)
+
       return { type: 'SUCCESS', block: fullBlock }
     }
   }
@@ -854,7 +961,7 @@ export class PeerNetwork {
   private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
     // TODO: Verify transactions received match transactions requested
 
-    const compactBlock = this.blockFetcher.blockTransactionsReceived(message.blockHash)
+    const compactBlock = this.blockFetcher.receivedBlockTransactions(message.blockHash)
 
     if (!compactBlock) {
       return
@@ -873,7 +980,7 @@ export class PeerNetwork {
       // if we don't have the previous block, start syncing
       const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
       if (prevHeader === null) {
-        // TODO: Track orphans so we don't keep reprocessing them?
+        this.chain.addOrphan(block.header)
         this.node.syncer.startSync(peer)
         return
       }
@@ -891,7 +998,7 @@ export class PeerNetwork {
     const header = BlockHeaderSerde.deserialize(compactBlock.header)
 
     // mark the block as received in the block fetcher
-    this.blockFetcher.receivedBlock(header.hash)
+    this.blockFetcher.receivedCompactBlock(compactBlock, peer)
 
     // check if hash or previous hash is already marked as invalid
     if (this.chain.isInvalid(header) !== null) {
@@ -925,7 +1032,7 @@ export class PeerNetwork {
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
     if (prevHeader === null) {
-      // TODO: Track orphans so we don't keep reprocessing them?
+      this.chain.addOrphan(header)
       this.node.syncer.startSync(peer)
       return
     }
@@ -933,7 +1040,21 @@ export class PeerNetwork {
     // check if we're missing transactions
     const assembleResult = this.assembleBlock(compactBlock, [])
 
-    // TODO: Log telemetry with number of block fill rate
+    // log telemetry on how many transactions we already had in our the mempool
+    // or on the compact block's transactions field
+    const missingTransactionsCount =
+      assembleResult.type === 'MISSING_TRANSACTIONS'
+        ? assembleResult.missingTransactions.length
+        : 0
+    const foundTransactionsCount =
+      compactBlock.transactionHashes.length +
+      compactBlock.transactions.length -
+      missingTransactionsCount
+    this.telemetry.submitCompactBlockAssembled(
+      header,
+      missingTransactionsCount,
+      foundTransactionsCount,
+    )
 
     // if missing transactions, fetch them
     if (assembleResult.type === 'MISSING_TRANSACTIONS') {
@@ -1096,7 +1217,7 @@ export class PeerNetwork {
     peer: Peer,
     message: GetBlockTransactionsRequest,
   ): Promise<GetBlockTransactionsResponse> {
-    let block = this.blockFetcher.getAssembledBlock(message.blockHash)
+    let block = this.blockFetcher.getFullBlock(message.blockHash)
 
     if (block === null) {
       block = await this.chain.db.withTransaction(null, async (tx) => {
@@ -1209,7 +1330,7 @@ export class PeerNetwork {
 
     const block = BlockSerde.deserialize(message.block)
 
-    if (await this.alreadyHaveBlock(block.header.hash)) {
+    if (await this.shouldIgnoreBlock(block.header.hash)) {
       return
     }
 
@@ -1232,7 +1353,7 @@ export class PeerNetwork {
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
-      // TODO: Track orphans so we don't keep reprocessing them?
+      this.chain.addOrphan(block.header)
       this.node.syncer.startSync(peer)
       return
     }
@@ -1253,8 +1374,15 @@ export class PeerNetwork {
     // TODO: Move this somewhere earlier?
     const seenAt = new Date()
 
-    // Mark the block as assembled in the block fetcher
-    this.blockFetcher.assembledBlock(block)
+    const verificationResult = await this.chain.verifier.verifyBlockCommitments(block)
+    if (!verificationResult.valid) {
+      // Don't mark the block's hash as invalid, the user could have sent us bad transactions
+      // TODO: attempt to fetch the block from someone else, or give up and sync?
+      return
+    }
+
+    // Mark that we've assembled a full block in the block fetcher
+    this.blockFetcher.receivedFullBlock(block, peer)
 
     // Re-gossip the full block
     const serializedBlock = BlockSerde.serialize(block)
@@ -1264,6 +1392,10 @@ export class PeerNetwork {
     )
 
     this.broadcastBlock(newBlockMessage)
+
+    // log that we've validated the block enough to gossip it
+    this.onBlockGossipReceived.emit(block)
+    this.telemetry.submitNewBlockSeen(block, seenAt)
 
     // verify the full block
     const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
@@ -1280,11 +1412,7 @@ export class PeerNetwork {
     // chain should have added the block to the invalid set.
     if (result.added) {
       this.broadcastBlockHash(block.header)
-      this.telemetry.submitNewBlockSeen(block, seenAt)
     }
-
-    // TODO: Move this somewhere earlier?
-    this.onBlockGossipReceived.emit(block)
   }
 
   private shouldProcessNewBlocks(): boolean {
@@ -1340,12 +1468,14 @@ export class PeerNetwork {
     )
   }
 
-  async alreadyHaveBlock(hash: BlockHash): Promise<boolean> {
+  async shouldIgnoreBlock(hash: BlockHash): Promise<boolean> {
     if (this.chain.invalid.has(hash)) {
       return true
     }
 
-    // TODO: Filter orphans so we don't re-request them
+    if (this.chain.orphans.has(hash)) {
+      return true
+    }
 
     return await this.chain.hasBlock(hash)
   }
