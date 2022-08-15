@@ -60,9 +60,9 @@ export class TransactionsCommand extends IronfishCommand {
       this.log(`---Notes---\n`)
 
       CliUx.ux.table(transactionNotes, {
-        isSpender: {
-          header: 'Spender',
-          get: (row) => (row.spender ? `✔` : `x`),
+        isSpent: {
+          header: 'Spent',
+          get: (row) => (row.spent ? `✔` : `x`),
         },
         amount: {
           header: 'Amount ($IRON)',
