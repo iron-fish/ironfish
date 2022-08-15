@@ -8,7 +8,7 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
-import { Transaction } from '../primitives'
+import { BlockHeader, Transaction } from '../primitives'
 import { Block } from '../primitives/block'
 import { TransactionHash } from '../primitives/transaction'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
@@ -349,6 +349,43 @@ export class Telemetry {
           name: 'sequence',
           type: 'integer',
           value: block.header.sequence,
+        },
+      ],
+    })
+  }
+
+  submitCompactBlockAssembled(
+    header: BlockHeader,
+    missingTransactionCount: number,
+    foundTransactionCount: number,
+  ): void {
+    const totalTransactions = missingTransactionCount + foundTransactionCount
+    const foundPercent = foundTransactionCount / totalTransactions
+
+    this.submit({
+      measurement: 'block_assembled',
+      timestamp: new Date(),
+      tags: [
+        {
+          name: 'hash',
+          value: header.hash.toString('hex'),
+        },
+      ],
+      fields: [
+        {
+          name: 'missing_transactions',
+          type: 'integer',
+          value: missingTransactionCount,
+        },
+        {
+          name: 'found_transactions',
+          type: 'integer',
+          value: foundTransactionCount,
+        },
+        {
+          name: 'found_percent',
+          type: 'float',
+          value: foundPercent,
         },
       ],
     })
