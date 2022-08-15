@@ -716,14 +716,14 @@ describe('Blockchain', () => {
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })
 
-    expect(node.chain.isInvalid(block)).toBe(null)
+    expect(node.chain.isInvalid(block.header)).toBe(null)
 
     await expect(node.chain.addBlock(block)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })
 
-    expect(node.chain.isInvalid(block)).toBe(VerificationResultReason.BLOCK_TOO_OLD)
+    expect(node.chain.isInvalid(block.header)).toBe(VerificationResultReason.BLOCK_TOO_OLD)
 
     await expect(node.chain.addBlock(block)).resolves.toMatchObject({
       isAdded: false,

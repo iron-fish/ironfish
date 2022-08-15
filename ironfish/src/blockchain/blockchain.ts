@@ -339,7 +339,7 @@ export class Blockchain {
           return await this.connect(block, null, tx)
         }
 
-        const invalid = this.isInvalid(block)
+        const invalid = this.isInvalid(block.header)
         if (invalid) {
           throw new VerifyError(invalid, BAN_SCORE.MAX)
         }
