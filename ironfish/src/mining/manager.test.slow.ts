@@ -48,7 +48,7 @@ describe('Mining manager', () => {
     const transaction = await useTxFixture(node.accounts, account, account)
 
     expect(node.memPool.size()).toBe(0)
-    await node.memPool.acceptTransaction(transaction)
+    node.memPool.acceptTransaction(transaction)
     expect(node.memPool.size()).toBe(1)
 
     const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
@@ -95,7 +95,7 @@ describe('Mining manager', () => {
     // G -> A1
     //   -> B2 -> B3
 
-    const added = await nodeA.memPool.acceptTransaction(invalidTx)
+    const added = nodeA.memPool.acceptTransaction(invalidTx)
     expect(added).toBe(true)
 
     const { blockTransactions } = await nodeA.miningManager.getNewBlockTransactions(

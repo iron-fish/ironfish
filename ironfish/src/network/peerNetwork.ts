@@ -998,26 +998,22 @@ export class PeerNetwork {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
-    const hash = new Transaction(message.transaction).hash()
+    const transaction = new Transaction(message.transaction)
+    const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
 
     if (this.shouldProcessTransactions() && !this.alreadyHaveTransaction(hash)) {
-      // Force lazy deserialization of the transaction as a first sanity check
-      const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
+      // Check that the transaction is valid
+      const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
 
-      // Validate the transaction, so that the account and mempool do not receive
-      // an invalid transaction, and we do not gossip.
-      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-        transaction,
-      )
       if (!valid) {
         Assert.isNotUndefined(reason)
-        this.logger.debug(
-          `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
-        )
+        // Logging hash because unsignedHash is slow
+        this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+        this.transactionFetcher.removeTransaction(hash)
         return
       }
 
@@ -1025,7 +1021,7 @@ export class PeerNetwork {
       // relevant to the accounts, despite coming from a different node.
       await this.node.accounts.syncTransaction(transaction, {})
 
-      if (await this.node.memPool.acceptTransaction(transaction, false)) {
+      if (this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)
       }
 
