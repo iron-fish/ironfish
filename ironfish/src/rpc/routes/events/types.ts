@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Block } from '../../../primitives'
+import { BufferUtils } from '../../../utils'
 
 export type RpcBlock = {
   hash: string
@@ -22,7 +23,7 @@ export function serializeRpcBlock(block: Block): RpcBlock {
     timestamp: block.header.timestamp.valueOf(),
     transactions: [],
     difficulty: block.header.target.toDifficulty().toString(),
-    graffiti: block.header.graffiti.toString('hex'),
+    graffiti: BufferUtils.toHuman(block.header.graffiti),
   }
 }
 

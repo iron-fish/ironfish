@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Metric } from '../../telemetry'
-import { GraffitiUtils } from '../../utils/graffiti'
+import { BufferUtils, GraffitiUtils } from '../../utils'
 import { WebApi } from '../../webApi'
 import {
   SubmitTelemetryRequest,
@@ -76,7 +76,7 @@ describe('SubmitTelemetryTask', () => {
       }
       const points = [mockMetric]
       const graffitiBuffer = GraffitiUtils.fromString('testgraffiti')
-      const graffiti = GraffitiUtils.toHuman(graffitiBuffer)
+      const graffiti = BufferUtils.toHuman(graffitiBuffer)
       const task = new SubmitTelemetryTask()
       const request = new SubmitTelemetryRequest(points, graffitiBuffer)
 
