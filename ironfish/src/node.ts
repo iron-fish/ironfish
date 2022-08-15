@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Accounts, AccountsDB } from './account'
@@ -19,7 +20,7 @@ import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
-import { PeerNetwork, PrivateIdentity } from './network'
+import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { Package } from './package'
 import { Platform } from './platform'
@@ -103,8 +104,24 @@ export class IronfishNode {
 
     this.migrator = new Migrator({ node: this, logger })
 
+    const identity = privateIdentity || new BoxKeyPair()
+
+    this.telemetry = new Telemetry({
+      chain,
+      logger,
+      config,
+      metrics,
+      workerPool,
+      localPeerIdentity: privateIdentityToIdentity(identity),
+      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
+      ],
+    })
+
     this.peerNetwork = new PeerNetwork({
-      identity: privateIdentity,
+      identity: identity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
       name: config.get('nodeName'),
@@ -123,20 +140,7 @@ export class IronfishNode {
       metrics: this.metrics,
       hostsStore: hostsStore,
       logger: logger,
-    })
-
-    this.telemetry = new Telemetry({
-      chain,
-      logger,
-      config,
-      metrics,
-      workerPool,
-      localPeerIdentity: this.peerNetwork.localPeer.publicIdentity,
-      defaultTags: [{ name: 'version', value: pkg.version }],
-      defaultFields: [
-        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', type: 'string', value: uuid() },
-      ],
+      telemetry: this.telemetry,
     })
 
     this.accounts.onTransactionCreated.on((transaction) => {

@@ -5,7 +5,6 @@
 import { Assert } from './assert'
 import { Blockchain } from './blockchain'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
-import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
@@ -35,8 +34,6 @@ export class Syncer {
   eventLoopTimeout: SetTimeoutToken | null
   loader: Peer | null = null
   blocksPerMessage: number
-
-  onGossip = new Event<[Block]>()
 
   constructor(options: {
     peerNetwork: PeerNetwork
@@ -137,7 +134,6 @@ export class Syncer {
 
     Assert.isNotNull(peer.sequence)
     Assert.isNotNull(peer.work)
-    Assert.isNotNull(this.chain.head)
 
     this.logger.info(
       `Starting sync from ${peer.displayName}. work: +${(
@@ -216,7 +212,6 @@ export class Syncer {
   ): Promise<{ sequence: number; ancestor: Buffer; requests: number }> {
     Assert.isNotNull(peer.head, 'peer.head')
     Assert.isNotNull(peer.sequence, 'peer.sequence')
-    Assert.isNotNull(this.chain.head, 'chain.head')
 
     let requests = 0
 
@@ -422,8 +417,6 @@ export class Syncer {
     block: Block
     reason: VerificationResultReason | null
   }> {
-    Assert.isNotNull(this.chain.head)
-
     const block = BlockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
@@ -467,30 +460,6 @@ export class Syncer {
 
     Assert.isTrue(isAdded)
     return { added: true, block, reason: reason || null }
-  }
-
-  async addNewBlock(peer: Peer, newBlock: SerializedBlock): Promise<boolean> {
-    // We drop blocks when we are still initially syncing as they
-    // will become loose blocks and we can't verify them
-    if (!this.chain.synced && this.loader) {
-      return false
-    }
-
-    const seenAt = new Date()
-
-    const { added, block } = await this.addBlock(peer, newBlock)
-
-    if (!peer.sequence || block.header.sequence > peer.sequence) {
-      peer.sequence = block.header.sequence
-    }
-
-    this.onGossip.emit(block)
-
-    if (added) {
-      this.telemetry.submitNewBlockSeen(block, seenAt)
-    }
-
-    return added
   }
 
   /**
