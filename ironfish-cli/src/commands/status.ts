@@ -76,7 +76,10 @@ export default class Status extends IronfishCommand {
             statusText.clearBaseLine(0)
             statusText.setContent(renderStatus(value, account))
             screen.render()
-            if (accountStatusCount === 100 || Number(account.endSequence) === -1) {
+            if (accountStatusCount === 100) {
+              accountStatusBackup = account
+              break
+            } else if (Number(account.endSequence) === -1) {
               accountStatusBackup = account
               scanIsRunning = false
               break

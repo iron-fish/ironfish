@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GetStatusResponse } from '@ironfish/sdk'
+import { GetAccountStatusResponse, GetStatusResponse } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
 
 describe('status', () => {
@@ -39,6 +39,12 @@ describe('status', () => {
       speed: 0,
     },
   }
+  const accountResponse: GetAccountStatusResponse = {
+    sequence: 0,
+    startedAt: 0,
+    endSequence: -1,
+    head: 'Scan completed (100%)@ 69e263e931fa1a2a4b0437a8eff79ffb7a353b6384a7aeac9f90ac12ae4811ef (1)',
+  }
 
   beforeAll(() => {
     jest.doMock('@ironfish/sdk', () => {
@@ -47,6 +53,9 @@ describe('status', () => {
         connect: jest.fn(),
         status: jest.fn().mockImplementation(() => ({
           content: responseContent,
+        })),
+        accountStatus: jest.fn().mockImplementation(() => ({
+          content: accountResponse,
         })),
       }
       const module: typeof jest = {
@@ -72,7 +81,7 @@ describe('status', () => {
       .stdout()
       .command(['status'])
       .exit(0)
-      .it('logs out data for the chain, node, mempool, and syncer', (ctx) => {
+      .it('logs out data for the chain, node, mempool, account, and syncer', (ctx) => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
         expectCli(ctx.stdout).include('Node Name')
@@ -83,6 +92,7 @@ describe('status', () => {
         expectCli(ctx.stdout).include('Mem Pool')
         expectCli(ctx.stdout).include('Syncer')
         expectCli(ctx.stdout).include('Blockchain')
+        expectCli(ctx.stdout).include('Account')
         expectCli(ctx.stdout).include('Telemetry')
         expectCli(ctx.stdout).include('Workers')
       })
