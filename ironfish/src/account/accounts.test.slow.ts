@@ -69,7 +69,7 @@ describe('Accounts', () => {
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
-  }, 600000)
+  })
 
   it('Saves and restores transactions from accounts db', async () => {
     // Initialize the database and chain
@@ -125,7 +125,7 @@ describe('Accounts', () => {
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
-  }, 600000)
+  })
 
   it('Lowers the balance after using pay to spend a note', async () => {
     // Initialize the database and chain
@@ -193,7 +193,7 @@ describe('Accounts', () => {
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
-  }, 600000)
+  })
 
   it('Creates valid transactions when the worker pool is enabled', async () => {
     // Initialize the database and chain
@@ -264,7 +264,7 @@ describe('Accounts', () => {
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
-  }, 600000)
+  })
 
   it('creates valid transactions with multiple outputs', async () => {
     // Initialize the database and chain
@@ -344,7 +344,7 @@ describe('Accounts', () => {
       confirmed: BigInt(1999999994),
       unconfirmed: BigInt(1999999994),
     })
-  }, 600000)
+  })
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
     const node = nodeTest.node
@@ -367,7 +367,7 @@ describe('Accounts', () => {
         1,
       ),
     ).rejects.toThrowError(ValidationError)
-  }, 60000)
+  })
 
   it('Expires transactions when calling expireTransactions', async () => {
     // Initialize the database and chain
@@ -451,7 +451,7 @@ describe('Accounts', () => {
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
-  }, 600000)
+  })
 
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
     const nodeA = nodeTest.node
@@ -520,7 +520,7 @@ describe('Accounts', () => {
         0,
       ),
     ).resolves.toBeTruthy()
-  }, 600000)
+  })
 
   it('Removes notes when rolling back a fork', async () => {
     // Create a block A1 that gives account A money
@@ -582,7 +582,7 @@ describe('Accounts', () => {
       confirmed: BigInt(4000000000),
       unconfirmed: BigInt(4000000000),
     })
-  }, 60000)
+  })
 
   it('Keeps spends created by the node when rolling back a fork', async () => {
     // Create a block 1 that gives account A money
@@ -680,7 +680,7 @@ describe('Accounts', () => {
       confirmed: BigInt(0),
       unconfirmed: BigInt(2),
     })
-  }, 600000)
+  })
 
   it('Undoes spends created by another node when rolling back a fork', async () => {
     // Create a block 1 that gives account A money
@@ -791,5 +791,5 @@ describe('Accounts', () => {
       confirmed: BigInt(0),
       unconfirmed: BigInt(2),
     })
-  }, 600000)
+  })
 })

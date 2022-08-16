@@ -46,5 +46,5 @@ describe('Mining manager', () => {
     results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
       .blockTransactions
     expect(results).toHaveLength(0)
-  }, 10000)
+  })
 })
