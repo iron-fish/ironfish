@@ -93,10 +93,13 @@ type RpcRequest = {
   peer: Peer
 }
 
-type TransactionOrHash = (
-  | { type: 'TRANSACTION'; value: Transaction }
+export type TransactionOrHash =
+  | { type: 'FULL'; value: Transaction }
   | { type: 'HASH'; value: TransactionHash }
-)
+
+interface Indexable {
+  index: number
+}
 
 /**
  * Entry point for the peer-to-peer network. Manages connections to other peers on the network
@@ -804,189 +807,138 @@ export class PeerNetwork {
     }
   }
 
-  private assembleBlockTransactions(block: SerializedCompactBlock):
+  private *fromRelativeIndex<T extends Indexable>(list: T[]): Generator<T> {
+    let previousPos = 0
+    for (const elem of list) {
+      const absolutePos = previousPos + elem.index
+      yield { ...elem, index: absolutePos }
+      previousPos = absolutePos
+    }
+  }
+
+  private tryResolveFromMempool(hash: TransactionHash): TransactionOrHash {
+    const fromMempool = this.node.memPool.get(hash)
+    return fromMempool
+      ? {
+          type: 'FULL',
+          value: fromMempool,
+        }
+      : {
+          type: 'HASH',
+          value: hash,
+        }
+  }
+
+  private assembleTransactionsFromMempool(block: SerializedCompactBlock):
     | {
-        type: 'SUCCESS'
+        ok: true
         partialTransactions: TransactionOrHash[]
+        missingTransactions: number[]
       }
-    | { type: 'ERROR' } {
+    | { ok: false } {
+    const absoluteIndexTransactions = this.fromRelativeIndex(block.transactions)
+
+    const numHashes = block.transactionHashes.length
     let hashesConsumed = 0
     let fullTransactionsConsumed = 0
-    let nextTransactionPosition = block.transactions.length ? block.transactions[0].index : null
+    let nextFullTransaction = absoluteIndexTransactions.next()
 
     const partialTransactions: TransactionOrHash[] = []
+    const missingTransactions: number[] = []
 
-    while (
-      hashesConsumed < block.transactionHashes.length &&
-      fullTransactionsConsumed < block.transactions.length
-    ) {
+    while (hashesConsumed < numHashes || !nextFullTransaction.done) {
       const currPosition = hashesConsumed + fullTransactionsConsumed
-      if (currPosition === nextTransactionPosition) {
-        if (fullTransactionsConsumed >= block.transactions.length) {
-          // TODO: Something else went wrong
-          return { type: 'ERROR' }
+
+      // If we have no more full transactions or a transaction doesn't belong in this position
+      if (nextFullTransaction.done || currPosition !== nextFullTransaction.value.index) {
+        if (hashesConsumed === numHashes) {
+          // We ran out of hashes to populate
+          return { ok: false }
         }
-        const nextFullTransaction = new Transaction(
-          block.transactions[fullTransactionsConsumed].transaction,
-        )
-        partialTransactions.push({ type: 'TRANSACTION', value: nextFullTransaction })
 
-        fullTransactionsConsumed++
+        const hash = block.transactionHashes[hashesConsumed]
+        const resolved = this.tryResolveFromMempool(hash)
+        if (resolved.type === 'HASH') {
+          missingTransactions.push(currPosition)
+        }
 
-        nextTransactionPosition =
-          block.transactions.length < fullTransactionsConsumed
-            ? nextTransactionPosition + block.transactions[fullTransactionsConsumed].index
-            : 0
-      } else if (hashesConsumed >= block.transactionHashes.length) {
-        // The transaction position is incorrect and we've consumed all of our block hashes
-        return { type: 'ERROR' }
-      } else {
-        partialTransactions.push({
-          type: 'HASH',
-          value: block.transactionHashes[hashesConsumed],
-        })
+        partialTransactions.push(resolved)
         hashesConsumed++
+        continue
       }
-    }
 
-    return { type: 'SUCCESS', partialTransactions }
-  }
-
-  private fillTransactionsFromMempool(block: SerializedCompactBlock):
-    | { type: 'ERROR' }
-    | { type: 'MISSING_TRANSACTIONS'; missingTransactions: number[], filledTransactions: TransactionOrHash[] }
-    | { type: 'SUCCESS'; block: Block } {
-    const result = this.assembleBlockTransactions(block)
-    if(result.type === 'ERROR') {
-      return result
-    }
-
-    const missingTransactions: number[] = []
-    result.partialTransactions.forEach(({type, value}, i) => {
-      if (type === 'HASH') {
-        const fromMempool = this.node.memPool.get(value)
-        if (fromMempool) {
-          result.partialTransactions[i] = {type: 'TRANSACTION', value: fromMempool }
-        } else {
-          missingTransactions.push(i)
-        }
-      }
-    })
-
-    missingTransactions.forEach((, i))
-  }
-
-  private assembleBlock(
-    block: SerializedCompactBlock,
-    extraTransactions: readonly SerializedTransaction[],
-  ):
-    | { type: 'ERROR' }
-    | { type: 'MISSING_TRANSACTIONS'; missingTransactions: number[] }
-    | { type: 'SUCCESS'; block: Block } {
-    const result = this.assembleBlockTransactions(block)
-
-    const missingTransactions: number[] = []
-    if (result.type === 'SUCCESS') {
-      const filledTransactions = result.partialTransactions.map(({ type, value }) => {
-        if (type === 'HASH') {
-          return this.node.memPool.get(value) || value
-        } else {
-          missingTransactions.push(i)
-          return value
-        }
+      partialTransactions.push({
+        type: 'FULL',
+        value: new Transaction(nextFullTransaction.value.transaction),
       })
-
-      return {filledTransactions
-    } else {
-      return result
+      nextFullTransaction = absoluteIndexTransactions.next()
+      fullTransactionsConsumed++
     }
 
-    const missingTransactions: number[] = []
-    const blockTransactions = new Array(
-      block.transactionHashes.length + block.transactions.length,
-    )
+    return { ok: true, partialTransactions, missingTransactions }
+  }
 
-    let lastIndex = -1
-    for (const transaction of block.transactions) {
-      const nextIndex = lastIndex + transaction.index + 1
+  private assembleBlockFromResponse(
+    partialTransactions: TransactionOrHash[],
+    responseTransactions: readonly SerializedTransaction[],
+  ): { ok: false } | { ok: true; transactions: Transaction[] } {
+    const transactions: Transaction[] = []
+    let currResponseIndex = 0
 
-      if (nextIndex >= blockTransactions.length) {
-        // TODO: punish peer or clean up block fetching?
-        return { type: 'ERROR' }
-      }
-
-      blockTransactions[nextIndex] = new Transaction(transaction.transaction)
-      lastIndex = nextIndex
-    }
-
-    let index = 0
-    let lastMissingIndex = null
-    let extraTransactionsIndex = 0
-    for (const hash of block.transactionHashes) {
-      while (blockTransactions[index]) {
-        index++
-      }
-
-      // TODO: Cache transactions on the block fetcher
-      let transaction = this.node.memPool.get(hash)
-
-      if (!transaction && extraTransactionsIndex < extraTransactions.length) {
-        const extraTransaction = new Transaction(extraTransactions[extraTransactionsIndex])
-        if (extraTransaction.hash().equals(hash)) {
-          transaction = extraTransaction
-          extraTransactionsIndex++
-        }
-      }
-
-      if (!transaction) {
-        const encodedIndex = lastMissingIndex === null ? index : index - lastMissingIndex - 1
-        missingTransactions.push(encodedIndex)
-        lastMissingIndex = index
+    for (const { type, value } of partialTransactions) {
+      if (type === 'FULL') {
+        transactions.push(value)
+      } else if (currResponseIndex >= responseTransactions.length) {
+        // did not respond with enough transactions
+        return { ok: false }
       } else {
-        blockTransactions[index] = transaction
+        const next = new Transaction(responseTransactions[currResponseIndex])
+        if (!next.hash().equals(value)) {
+          // hashes are mismatched
+          return { ok: false }
+        }
+        transactions.push(next)
+        currResponseIndex++
       }
-
-      index++
     }
 
-    if (missingTransactions.length > 0) {
-      return { type: 'MISSING_TRANSACTIONS', missingTransactions }
-    } else {
-      const fullBlock = new Block(BlockHeaderSerde.deserialize(block.header), blockTransactions)
-
-      return { type: 'SUCCESS', block: fullBlock }
-    }
+    return { ok: true, transactions }
   }
 
   private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
     // TODO: Verify transactions received match transactions requested
 
-    const compactBlock = this.blockFetcher.receivedBlockTransactions(message.blockHash)
+    const partialBlock = this.blockFetcher.receivedBlockTransactions(message.blockHash)
 
-    if (!compactBlock) {
+    if (!partialBlock) {
       return
     }
+
+    const { header, partialTransactions } = partialBlock
 
     // check if we're missing transactions
-    const assembleResult = this.assembleBlock(compactBlock, message.serializedTransactions)
+    const assembleResult = this.assembleBlockFromResponse(
+      partialTransactions,
+      message.serializedTransactions,
+    )
 
-    if (assembleResult.type === 'MISSING_TRANSACTIONS') {
+    if (!assembleResult.ok) {
+      // Either mismatched hashes or missing transactions
       // TODO: Request full block or sync?
       return
-    } else if (assembleResult.type === 'ERROR') {
-      return
-    } else if (assembleResult.type === 'SUCCESS') {
-      const block = assembleResult.block
-      // if we don't have the previous block, start syncing
-      const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
-      if (prevHeader === null) {
-        this.chain.addOrphan(block.header)
-        this.node.syncer.startSync(peer)
-        return
-      }
-
-      await this.onNewFullBlock(peer, block, prevHeader)
     }
+
+    const block = new Block(BlockHeaderSerde.deserialize(header), assembleResult.transactions)
+
+    // if we don't have the previous block, start syncing
+    const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
+    if (prevHeader === null) {
+      this.chain.addOrphan(block.header)
+      this.node.syncer.startSync(peer)
+      return
+    }
+
+    await this.onNewFullBlock(peer, block, prevHeader)
   }
 
   private async onNewCompactBlock(peer: Peer, compactBlock: SerializedCompactBlock) {
@@ -1038,38 +990,43 @@ export class PeerNetwork {
     }
 
     // check if we're missing transactions
-    const assembleResult = this.assembleBlock(compactBlock, [])
+    const result = this.assembleTransactionsFromMempool(compactBlock)
+
+    if (!result.ok) {
+      // TODO: Punish peer?
+      return
+    }
+
+    const { missingTransactions, partialTransactions } = result
 
     // log telemetry on how many transactions we already had in our the mempool
     // or on the compact block's transactions field
-    const missingTransactionsCount =
-      assembleResult.type === 'MISSING_TRANSACTIONS'
-        ? assembleResult.missingTransactions.length
-        : 0
-    const foundTransactionsCount =
-      compactBlock.transactionHashes.length +
-      compactBlock.transactions.length -
-      missingTransactionsCount
     this.telemetry.submitCompactBlockAssembled(
       header,
-      missingTransactionsCount,
-      foundTransactionsCount,
+      missingTransactions.length,
+      compactBlock.transactionHashes.length - missingTransactions.length, // number populated from mempool
     )
 
-    // if missing transactions, fetch them
-    if (assembleResult.type === 'MISSING_TRANSACTIONS') {
+    if (result.missingTransactions) {
       this.blockFetcher.requestTransactions(
         peer,
-        compactBlock,
-        assembleResult.missingTransactions,
+        compactBlock.header,
+        partialTransactions,
+        missingTransactions,
       )
       return
-    } else if (assembleResult.type === 'ERROR') {
-      // TODO: Punish peer?
-    } else {
-      // otherwise, we have all transactions, so assemble the block
-      await this.onNewFullBlock(peer, assembleResult.block, prevHeader)
     }
+
+    const fullTransactions: Transaction[] = []
+    for (const { type, value } of partialTransactions) {
+      type === 'FULL' && fullTransactions.push(value)
+    }
+
+    const fullBlock = new Block(
+      BlockHeaderSerde.deserialize(compactBlock.header),
+      fullTransactions,
+    )
+    await this.onNewFullBlock(peer, fullBlock, prevHeader)
   }
 
   private handleNewPooledTransactionHashes(peer: Peer, message: NewPooledTransactionHashes) {
@@ -1477,6 +1434,7 @@ export class PeerNetwork {
       return true
     }
 
+    // TODO: we call this a lot, should we consider not calling a db access every time we receive a hash
     return await this.chain.hasBlock(hash)
   }
 

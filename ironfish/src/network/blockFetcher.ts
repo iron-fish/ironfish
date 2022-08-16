@@ -5,12 +5,12 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Block, SerializedCompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeaderSerde } from '../primitives/blockheader'
+import { BlockHash, BlockHeaderSerde, SerializedBlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { Identity } from './identity'
 import { GetBlockTransactionsRequest } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest } from './messages/getCompactBlock'
-import { PeerNetwork } from './peerNetwork'
+import { PeerNetwork, TransactionOrHash } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
 
 /* Wait 1s before requesting a new hash to see if we receive the
@@ -29,14 +29,21 @@ type BlockState =
       clearDisconnectHandler: () => void
     }
   | {
+      action: 'RECEIVED_COMPACT_BLOCK'
+      block: SerializedCompactBlock
+    }
+  | {
       peer: Peer
       action: 'TRANSACTION_REQUEST_IN_FLIGHT'
-      partialBlock: SerializedCompactBlock
+      header: SerializedBlockHeader
+      partialTransactions: TransactionOrHash[]
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
     }
   | {
       action: 'PROCESSING_COMPACT_BLOCK'
+      header: SerializedBlockHeader
+      partialTransactions: TransactionOrHash[]
     }
   | {
       action: 'PROCESSING_FULL_BLOCK'
@@ -98,21 +105,29 @@ export class BlockFetcher {
     }
   }
 
-  receivedBlockTransactions(hash: BlockHash): SerializedCompactBlock | null {
+  receivedBlockTransactions(hash: BlockHash): {
+    header: SerializedBlockHeader
+    partialTransactions: TransactionOrHash[]
+  } | null {
     const currentState = this.pending.get(hash)
 
     if (!currentState || currentState.action !== 'TRANSACTION_REQUEST_IN_FLIGHT') {
       return null
     }
 
-    const block = currentState.partialBlock
-
     this.cleanupCallbacks(currentState)
+
+    const partialBlock = {
+      header: currentState.header,
+      partialTransactions: currentState.partialTransactions,
+    }
+
     this.pending.set(hash, {
       action: 'PROCESSING_COMPACT_BLOCK',
+      ...partialBlock,
     })
 
-    return block
+    return partialBlock
   }
 
   /**
@@ -137,7 +152,8 @@ export class BlockFetcher {
     ) {
       currentState && this.cleanupCallbacks(currentState)
       this.pending.set(hash, {
-        action: 'PROCESSING_COMPACT_BLOCK',
+        action: 'RECEIVED_COMPACT_BLOCK',
+        block: compactBlock,
       })
     }
   }
@@ -162,7 +178,8 @@ export class BlockFetcher {
       currentState.action === 'BLOCK_REQUEST_SCHEDULED' ||
       currentState.action === 'BLOCK_REQUEST_IN_FLIGHT' ||
       currentState.action === 'TRANSACTION_REQUEST_IN_FLIGHT' ||
-      currentState.action === 'PROCESSING_COMPACT_BLOCK'
+      currentState.action === 'PROCESSING_COMPACT_BLOCK' ||
+      currentState.action === 'RECEIVED_COMPACT_BLOCK'
     ) {
       currentState && this.cleanupCallbacks(currentState)
       this.pending.set(hash, {
@@ -217,15 +234,30 @@ export class BlockFetcher {
 
   requestTransactions(
     peer: Peer,
-    block: SerializedCompactBlock,
+    header: SerializedBlockHeader,
+    partialTransactions: TransactionOrHash[],
     missingTransactions: number[],
-  ): boolean {
-    const hash = BlockHeaderSerde.deserialize(block.header).hash
+  ): void {
+    const hash = BlockHeaderSerde.deserialize(header).hash
     const message = new GetBlockTransactionsRequest(hash, missingTransactions)
 
     if (!peer.send(message)) {
-      // TODO: Cleanup state
-      return false
+      const currentState = this.pending.get(hash)
+      currentState && this.cleanupCallbacks(currentState)
+
+      // Get the next peer randomly to distribute load more evenly
+      const nextPeer = this.popRandomPeer(hash)
+      if (!nextPeer) {
+        this.removeBlock(hash)
+        return
+      }
+
+      return this.requestTransactions(
+        nextPeer,
+        header,
+        partialTransactions,
+        missingTransactions,
+      )
     }
 
     const currentState = this.pending.get(hash)
@@ -252,12 +284,13 @@ export class BlockFetcher {
     this.pending.set(hash, {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT',
       peer,
-      partialBlock: block,
+      header,
+      partialTransactions,
       timeout,
       clearDisconnectHandler,
     })
 
-    return true
+    return
   }
 
   private async requestBlock(hash: BlockHash): Promise<void> {
