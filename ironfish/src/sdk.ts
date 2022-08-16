@@ -188,8 +188,6 @@ export class IronfishSdk {
       dataDir: this.dataDir,
     })
 
-
-
     if (this.config.get('enableRpcIpc')) {
       const namespaces = ALL_API_NAMESPACES
 
@@ -207,7 +205,9 @@ export class IronfishSdk {
 
     if (this.config.get('enableRpcTcp')) {
       const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
-      const namespaces = ALL_API_NAMESPACES.filter(namespace => !protectedNamespaces.includes(namespace))
+      const namespaces = ALL_API_NAMESPACES.filter(
+        (namespace) => !protectedNamespaces.includes(namespace),
+      )
 
       if (this.config.get('rpcTcpSecure')) {
         namespaces.push(...protectedNamespaces)

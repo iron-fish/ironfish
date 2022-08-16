@@ -113,8 +113,8 @@ describe('IronfishSdk', () => {
         const sdk = await IronfishSdk.init({
           configOverrides: {
             enableRpcTcp: true,
-            rpcTcpSecure: true
-          }
+            rpcTcpSecure: true,
+          },
         })
 
         const connect = jest.spyOn(sdk.client, 'connect').mockImplementationOnce(async () => {})

@@ -25,8 +25,8 @@ describe('TcpAdapter', () => {
       configOverrides: {
         enableRpcTcp: true,
         enableRpcIpc: false,
-        enableRpcTls: false
-      }
+        enableRpcTls: false,
+      },
     })
 
     const node = await sdk.node()
@@ -123,7 +123,9 @@ describe('TcpAdapter', () => {
 
   it('handles only some RPC namespaces by default', async () => {
     const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
-    const allowedNamespaces = ALL_API_NAMESPACES.filter(namespace => !protectedNamespaces.includes(namespace))
+    const allowedNamespaces = ALL_API_NAMESPACES.filter(
+      (namespace) => !protectedNamespaces.includes(namespace),
+    )
     const loadedNamespaces = [...(tcp.router?.routes.keys() || [])]
     expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
