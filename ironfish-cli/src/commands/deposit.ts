@@ -51,8 +51,7 @@ export default class Bank extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Bank)
 
-    await this.sdk.client.connect()
-    this.client = this.sdk.client
+    this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
     const fee = flags.fee
