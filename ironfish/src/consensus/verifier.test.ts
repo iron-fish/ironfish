@@ -31,7 +31,7 @@ describe('Verifier', () => {
       )
 
       expect(result).toEqual({ valid: true })
-    }, 60000)
+    })
 
     it('returns false on miners transactions', async () => {
       const tx = await useMinersTxFixture(nodeTest.accounts)
@@ -45,7 +45,7 @@ describe('Verifier', () => {
         reason: VerificationResultReason.ERROR,
         valid: false,
       })
-    }, 60000)
+    })
   })
 
   describe('Block', () => {
@@ -188,7 +188,7 @@ describe('Verifier', () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
       expect(Array.from(block.spends())).toHaveLength(1)
-    }, 60000)
+    })
 
     it('is invalid with DOUBLE_SPEND as the reason', async () => {
       const { chain } = nodeTest
@@ -206,7 +206,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
-    }, 60000)
+    })
 
     it('is invalid with ERROR as the reason', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
@@ -226,7 +226,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.ERROR,
       })
-    }, 60000)
+    })
 
     it('a block that spends a note in a previous block is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
@@ -251,7 +251,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
-    }, 60000)
+    })
 
     it('a block that spends a note never in the tree is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
@@ -266,7 +266,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.INVALID_SPEND,
       })
-    }, 60000)
+    })
   })
 
   describe('validAgainstPrevious', () => {
@@ -280,7 +280,7 @@ describe('Verifier', () => {
       ).toMatchObject({
         valid: true,
       })
-    }, 30000)
+    })
 
     it('is invalid when the target is wrong', async () => {
       nodeTest.verifier.enableVerifyTarget = true
@@ -293,7 +293,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.INVALID_TARGET,
       })
-    }, 30000)
+    })
 
     it("is invalid when the note commitments aren't the same size", async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
@@ -305,7 +305,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
       })
-    }, 30000)
+    })
 
     it("is invalid when the nullifier commitments aren't the same size", async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
@@ -317,7 +317,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
       })
-    }, 30000)
+    })
 
     it('Is invalid when the timestamp is in past', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
@@ -329,7 +329,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.BLOCK_TOO_OLD,
       })
-    }, 30000)
+    })
 
     it('Is invalid when the sequence is wrong', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
@@ -341,7 +341,7 @@ describe('Verifier', () => {
         valid: false,
         reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER,
       })
-    }, 30000)
+    })
   })
 
   describe('blockMatchesTree', () => {
