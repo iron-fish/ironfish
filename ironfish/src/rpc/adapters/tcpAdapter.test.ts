@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
-import os from 'os'
-import * as yup from 'yup'
-import { IronfishSdk } from '../../sdk'
-import { RpcRequestError, RpcSocketClient } from '../clients'
-import { ALL_API_NAMESPACES } from '../routes'
-import { ERROR_CODES, ValidationError } from './errors'
-import { RpcTcpAdapter } from './tcpAdapter'
-import { ApiNamespace } from '../routes'
+import os from 'os';
+import * as yup from 'yup';
+
+import { IronfishSdk } from '../../sdk';
+import { RpcRequestError, RpcSocketClient } from '../clients';
+import { ALL_API_NAMESPACES, ApiNamespace } from '../routes';
+import { ERROR_CODES, ValidationError } from './errors';
+import { RpcTcpAdapter } from './tcpAdapter';
 
 describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter
@@ -121,7 +121,7 @@ describe('TcpAdapter', () => {
     }
   })
 
-  it('handles only some RPC namespaces by default', async () => {
+  it('handles only some RPC namespaces by default', () => {
     const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
     const allowedNamespaces = ALL_API_NAMESPACES.filter(
       (namespace) => !protectedNamespaces.includes(namespace),
