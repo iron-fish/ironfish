@@ -124,7 +124,7 @@ describe('TcpAdapter', () => {
   it('handles only some RPC namespaces by default', async () => {
     const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
     const allowedNamespaces = ALL_API_NAMESPACES.filter(namespace => !protectedNamespaces.includes(namespace))
-    const loadedNamespaces = [...tcp.router?.routes.keys() || []]
+    const loadedNamespaces = [...(tcp.router?.routes.keys() || [])]
     expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
 
@@ -134,7 +134,7 @@ describe('TcpAdapter', () => {
     const tcp = node.rpc.adapters[0] as RpcTcpAdapter
 
     const allowedNamespaces = ALL_API_NAMESPACES
-    const loadedNamespaces = [...tcp.router?.routes.keys() || []]
+    const loadedNamespaces = [...(tcp.router?.routes.keys() || [])]
     expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
 })
