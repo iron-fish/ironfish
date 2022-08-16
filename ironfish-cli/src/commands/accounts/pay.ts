@@ -66,7 +66,8 @@ export class Pay extends IronfishCommand {
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
 
-    const client = await this.sdk.connectRpc()
+    await this.sdk.client.connect()
+    const client = this.sdk.client
 
     const status = await client.status()
 
