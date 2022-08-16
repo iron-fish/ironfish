@@ -40,14 +40,11 @@ export default class Export extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Export)
 
-    // Regular expression that accepts only english numbers
-    const regex = new RegExp('[^0-9]')
-
-    if (args.start !== undefined && regex.test(args.start as string)) {
+    if (args.start !== undefined && isNaN(Number(args.start))) {
       this.error(`Invalid block start sequence: ${args.start as string}`)
     }
 
-    if (args.stop !== undefined && regex.test(args.stop as string)) {
+    if (args.stop !== undefined && isNaN(Number(args.stop))) {
       this.error(`Invalid block stop sequence: ${args.stop as string}`)
     }
 
