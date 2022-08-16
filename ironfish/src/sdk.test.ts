@@ -8,6 +8,8 @@ import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
 import { RpcClient, RpcMemoryClient } from './rpc'
+import { RpcIpcClient } from './rpc/clients/ipcClient'
+import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
@@ -94,13 +96,33 @@ describe('IronfishSdk', () => {
     })
 
     describe('when local is false', () => {
-      it('connects to and returns `client`', async () => {
+      it('connects to and returns `RpcIpcClient`', async () => {
         const sdk = await IronfishSdk.init()
         const connect = jest.spyOn(sdk.client, 'connect').mockImplementationOnce(async () => {})
 
         const client = await sdk.connectRpc(false)
 
         expect(connect).toHaveBeenCalledTimes(1)
+        expect(client).toBeInstanceOf(RpcIpcClient)
+        expect(client).toMatchObject(sdk.client)
+      })
+    })
+
+    describe('when local is false and enableRpcTcp is true', () => {
+      it('connects to and returns `RpcTcpClient`', async () => {
+        const sdk = await IronfishSdk.init({
+          configOverrides: {
+            enableRpcTcp: true,
+            rpcTcpSecure: true
+          }
+        })
+
+        const connect = jest.spyOn(sdk.client, 'connect').mockImplementationOnce(async () => {})
+
+        const client = await sdk.connectRpc(false)
+
+        expect(connect).toHaveBeenCalledTimes(1)
+        expect(client).toBeInstanceOf(RpcTcpClient)
         expect(client).toMatchObject(sdk.client)
       })
     })
