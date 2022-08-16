@@ -9,7 +9,6 @@ import { IronfishSdk } from '../../sdk'
 import { RpcRequestError, RpcSocketClient } from '../clients'
 import { ALL_API_NAMESPACES } from '../routes'
 import { ERROR_CODES, ValidationError } from './errors'
-import { RpcIpcAdapter } from './ipcAdapter'
 import { RpcTcpAdapter } from './tcpAdapter'
 import { ApiNamespace } from '../routes'
 
@@ -42,18 +41,8 @@ describe('TcpAdapter', () => {
     await tcp.stop()
   })
 
-  xit('should start and stop', async () => {
-    expect(tcp).toBeInstanceOf(RpcTcpAdapter)
-    expect(tcp.started).toBe(false)
-
-    await tcp.start()
-    expect(tcp.started).toBe(true)
-
-    await tcp.stop()
-    expect(tcp.started).toBe(true)
-  })
-
   it('should send and receive message', async () => {
+    expect(tcp).toBeInstanceOf(RpcTcpAdapter)
     tcp.router?.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
