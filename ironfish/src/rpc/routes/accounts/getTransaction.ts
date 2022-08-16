@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount, getTransactionStatus } from './utils'
+import { getAccount, getTransactionNotes, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
 
@@ -88,7 +88,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         spends: transaction.spendsLength(),
       }
 
-      transactionNotes.push(...account.getTransactionNotes(transaction))
+      transactionNotes.push(...getTransactionNotes(account, transaction))
     }
 
     request.end({

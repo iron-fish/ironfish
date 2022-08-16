@@ -486,44 +486,4 @@ export class Account {
   async getHeadHash(): Promise<string | null> {
     return this.accountsDb.getHeadHash(this)
   }
-
-  getTransactionNotes(transaction: Transaction): ReadonlyArray<{
-    owner: boolean
-    amount: number
-    memo: string
-    transactionHash: string
-    spent: boolean | undefined
-  }> {
-    const transactionNotes = []
-
-    for (const note of transaction.notes()) {
-      let decryptedNote
-      let owner
-
-      // Try loading the decrypted note from the account
-      const decryptedNoteValue = this.getDecryptedNote(note.merkleHash().toString('hex'))
-
-      if (decryptedNoteValue) {
-        decryptedNote = new Note(decryptedNoteValue.serializedNote)
-        owner = true
-      } else {
-        // Try decrypting the note using the outgoingViewKey
-        decryptedNote = note.decryptNoteForSpender(this.outgoingViewKey)
-        owner = false
-      }
-      if (decryptedNote) {
-        if (decryptedNote.value() !== BigInt(0)) {
-          transactionNotes.push({
-            owner,
-            amount: Number(decryptedNote.value()),
-            memo: decryptedNote.memo().replace(/\x00/g, ''),
-            transactionHash: transaction.hash().toString('hex'),
-            spent: decryptedNoteValue?.spent,
-          })
-        }
-      }
-    }
-
-    return transactionNotes
-  }
 }
