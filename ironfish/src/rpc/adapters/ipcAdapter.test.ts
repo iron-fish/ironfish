@@ -122,7 +122,7 @@ describe('IpcAdapter', () => {
     }
   })
 
-  it('handles all RPC namespaces', async () => {
+  it('handles all RPC namespaces', () => {
     const allowedNamespaces = ALL_API_NAMESPACES
     const loadedNamespaces = [...(ipc.router?.routes.keys() || [])]
     expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
