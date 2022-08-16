@@ -113,8 +113,8 @@ describe('Accounts', () => {
       await node.accounts.updateHeadHashes(newHeadHash)
 
       expect(saveHeadHashSpy).toHaveBeenCalledTimes(2)
-      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(1, accountA, newHeadHashHex)
-      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(2, accountB, newHeadHashHex)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(1, accountA, newHeadHashHex, undefined)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(2, accountB, newHeadHashHex, undefined)
     })
   })
 
