@@ -28,9 +28,8 @@ export default class Bank extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.integer({
+    fee: Flags.string({
       char: 'f',
-      default: 1,
       description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
     expirationSequenceDelta: Flags.integer({
@@ -54,7 +53,17 @@ export default class Bank extends IronfishCommand {
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
 
-    const fee = flags.fee
+    let fee = flags.fee ? Number(flags.fee) : undefined
+
+    if (fee == null || Number.isNaN(fee)) {
+      try {
+        // fees p25 of last 100 blocks
+        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+      } catch {
+        fee = 1
+      }
+    }
+
     const feeInIron = oreToIron(fee)
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
@@ -87,7 +96,7 @@ export default class Bank extends IronfishCommand {
     }
     Assert.isNotUndefined(graffiti)
 
-    const { canSend, errorReason } = await this.verifyCanSend(flags, graffiti)
+    const { canSend, errorReason } = await this.verifyCanSend(flags, fee, graffiti)
     if (!canSend) {
       Assert.isNotNull(errorReason)
       this.log(errorReason)
@@ -192,6 +201,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
 
   private async verifyCanSend(
     flags: Record<string, unknown>,
+    fee: number,
     graffiti: string,
   ): Promise<{ canSend: boolean; errorReason: string | null }> {
     Assert.isNotNull(this.client)
@@ -241,7 +251,6 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
       }
     }
 
-    const fee = flags.fee as number
     if (!isValidAmount(fee)) {
       return {
         canSend: false,

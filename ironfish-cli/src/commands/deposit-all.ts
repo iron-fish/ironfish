@@ -31,9 +31,8 @@ export default class DepositAll extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.integer({
+    fee: Flags.string({
       char: 'f',
-      default: 1,
       description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
     expirationSequenceDelta: Flags.integer({
@@ -61,7 +60,17 @@ export default class DepositAll extends IronfishCommand {
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
 
-    const fee = flags.fee
+    let fee = flags.fee ? Number(flags.fee) : undefined
+
+    if (fee == null || Number.isNaN(fee)) {
+      try {
+        // fees p25 of last 100 blocks
+        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+      } catch {
+        fee = 1
+      }
+    }
+
     const terminate = flags.terminate
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
@@ -94,7 +103,7 @@ export default class DepositAll extends IronfishCommand {
     }
     Assert.isNotUndefined(graffiti)
 
-    const { canSend, errorReason } = await this.verifyCanSend(flags, graffiti)
+    const { canSend, errorReason } = await this.verifyCanSend(flags, fee, graffiti)
     if (!canSend) {
       Assert.isNotNull(errorReason)
       this.log(errorReason)
@@ -102,8 +111,11 @@ export default class DepositAll extends IronfishCommand {
     }
 
     if (!flags.confirm) {
+      const feeInIron = oreToIron(fee)
+      const displayFee = displayIronAmountWithCurrency(feeInIron, true)
+
       this.log(
-        `You are about to deposit all your $IRON to the Iron Fish deposit account. The memos will contain the graffiti "${graffiti}".`,
+        `You are about to deposit all your $IRON to the Iron Fish deposit account. Each transaction will use a fee of ${displayFee}. The memos will contain the graffiti "${graffiti}".`,
       )
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -216,6 +228,7 @@ export default class DepositAll extends IronfishCommand {
 
   private async verifyCanSend(
     flags: Record<string, unknown>,
+    fee: number,
     graffiti: string,
   ): Promise<{ canSend: boolean; errorReason: string | null }> {
     Assert.isNotNull(this.client)
@@ -265,7 +278,6 @@ export default class DepositAll extends IronfishCommand {
       }
     }
 
-    const fee = flags.fee as number
     if (!isValidAmount(fee)) {
       return {
         canSend: false,
