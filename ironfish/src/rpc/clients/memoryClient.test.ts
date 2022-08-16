@@ -10,6 +10,9 @@ describe('MemoryClient', () => {
   it('handles all RPC namespaces', async () => {
     const sdk = await IronfishSdk.init()
     const client = new RpcMemoryClient(createRootLogger(), await sdk.node())
-    expect(client.router?.routes.keys() == ALL_API_NAMESPACES.values())
+
+    const allowedNamespaces = ALL_API_NAMESPACES
+    const loadedNamespaces = [...client.router?.routes.keys() || []]
+    expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
 })
