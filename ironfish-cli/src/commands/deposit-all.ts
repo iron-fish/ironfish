@@ -58,7 +58,7 @@ export default class DepositAll extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DepositAll)
 
-    this.client = await this.sdk.connectRpc()
+    this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
     const fee = flags.fee
