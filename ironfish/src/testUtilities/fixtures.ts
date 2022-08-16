@@ -23,7 +23,7 @@ type FixtureSerialize<T, TSerialized> = (fixture: T) => Promise<TSerialized> | T
 const fixtureIds = new Map<string, { id: number; disabled: boolean }>()
 const fixtureCache = new Map<string, Map<string, unknown[]>>()
 
-export function shouldUpateFixtures(): boolean {
+export function shouldUpdateFixtures(): boolean {
   // Use the same parameters as jest snapshots for usability
   return process.argv.indexOf('--updateSnapshot') !== -1 || process.argv.indexOf('-u') !== -1
 }
@@ -57,7 +57,7 @@ export async function useFixture<TFixture, TSerialized = unknown>(
   const fixtureName = `${testFile}.fixture`
   const fixturePath = path.join(fixtureDir, fixtureName)
 
-  const updateFixtures = shouldUpateFixtures()
+  const updateFixtures = shouldUpdateFixtures()
 
   let fixtures = fixtureCache.get(testPath)
 

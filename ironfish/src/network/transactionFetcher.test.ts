@@ -193,7 +193,7 @@ describe('TransactionFetcher', () => {
 
     const hash = transaction.hash()
 
-    expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
+    expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
     const peerIdentity = peer.getIdentityOrThrow()
@@ -241,7 +241,7 @@ describe('TransactionFetcher', () => {
 
     const hash = transaction.hash()
 
-    expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
+    expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
     // Get 5 peers on the most recent version
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)

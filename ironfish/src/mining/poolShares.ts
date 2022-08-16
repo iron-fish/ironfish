@@ -157,6 +157,9 @@ export class MiningPoolShares {
     )
 
     try {
+      this.logger.debug(
+        `Creating payout ${payoutId}, shares: ${shareCounts.totalShares}, outputs: ${transactionReceives.length}`,
+      )
       this.webhooks.map((w) =>
         w.poolPayoutStarted(payoutId, transactionReceives, shareCounts.totalShares),
       )
@@ -169,6 +172,7 @@ export class MiningPoolShares {
 
       await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)
 
+      this.logger.debug(`Payout ${payoutId} succeeded`)
       this.webhooks.map((w) =>
         w.poolPayoutSuccess(
           payoutId,

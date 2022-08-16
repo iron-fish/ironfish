@@ -674,7 +674,7 @@ export class Accounts {
     )
 
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
-    await memPool.acceptTransaction(transaction)
+    memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
 
@@ -821,7 +821,7 @@ export class Accounts {
         }
 
         // TODO: This algorithm suffers a deanonymization attack where you can
-        // watch to see what transactions node continously send out, then you can
+        // watch to see what transactions node continuously send out, then you can
         // know those transactions are theres. This should be randomized and made
         // less, predictable later to help prevent that attack.
         if (head.sequence - submittedSequence < this.rebroadcastAfter) {

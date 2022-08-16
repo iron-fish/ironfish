@@ -252,7 +252,7 @@ export class MiningSoloMiner {
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch((e: unknown) => {
-      this.logger.error('Fatal error occured while processing blocks from node:')
+      this.logger.error('Fatal error occurred while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
       this.stop()
     })

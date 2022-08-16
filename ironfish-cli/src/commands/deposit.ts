@@ -95,21 +95,24 @@ export default class Bank extends IronfishCommand {
     }
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = Number(balanceResp.content.confirmed)
-    if (confirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
-      const balance = oreToIron(confirmedBalance)
-      const required = IRON_TO_SEND + feeInIron
-      this.log(`Insufficient balance: ${balance}. Required: ${required}`)
+    const confirmedBalance = oreToIron(Number(balanceResp.content.confirmed))
+    const requiredBalance = IRON_TO_SEND + feeInIron
+    if (confirmedBalance < requiredBalance) {
+      this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
       this.exit(1)
     }
 
-    const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
+    const newBalance = confirmedBalance - requiredBalance
 
+    const displayConfirmedBalance = displayIronAmountWithCurrency(confirmedBalance, true)
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
     const displayFee = displayIronAmountWithCurrency(feeInIron, true)
     const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
+
     if (!flags.confirm) {
       this.log(`
+Your balance is ${displayConfirmedBalance}.
+
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
@@ -167,15 +170,16 @@ The memo will contain the graffiti "${graffiti}".
 
       const transaction = result.content
       this.log(`
-Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
-        transaction.fromAccountName
-      }
-Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
+Old Balance: ${displayConfirmedBalance}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+Depositing ${displayAmount} from ${transaction.fromAccountName}
+Transaction Hash: ${transaction.hash}
+Transaction fee: ${displayFee}
+
+New Balance: ${displayNewBalance}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} 
+(it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while sending the transaction.`)
