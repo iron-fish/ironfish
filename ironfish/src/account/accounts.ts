@@ -1150,6 +1150,8 @@ export class Accounts {
           } else {
             status = 'forked'
           }
+        } else if (transaction.isMinersFee()) {
+          status = 'forked'
         }
 
         transactions.push({
@@ -1241,6 +1243,8 @@ export class Accounts {
             } else {
               status = 'forked'
             }
+          } else if (transaction.isMinersFee()) {
+            status = 'forked'
           }
           transactionInfo = {
             status,
