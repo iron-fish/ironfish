@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  displayIronAmount,
   displayIronAmountWithCurrency,
   ironToOre,
   isValidAmount,
@@ -77,15 +78,46 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
-    if (amount == null || Number.isNaN(amount)) {
-      const response = await client.getAccountBalance({ account: from })
+    if (fee == null || Number.isNaN(fee)) {
+      let dynamicFee: string | null
+
+      try {
+        // fees p25 of last 100 blocks
+        dynamicFee = displayIronAmount(
+          oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25),
+        )
+      } catch {
+        dynamicFee = null
+      }
 
       const input = Number(
         await CliUx.ux.prompt(
-          `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
+          `Enter the fee amount in $IRON (min: 0.00000001${
+            dynamicFee ? `, dynamic: ${dynamicFee}` : ''
+          })`,
+          {
+            required: true,
+          },
+        ),
+      )
+
+      if (Number.isNaN(input)) {
+        this.error(`A valid fee amount is required`)
+      }
+
+      fee = input
+    }
+
+    if (amount == null || Number.isNaN(amount)) {
+      const response = await client.getAccountBalance({ account: from })
+
+      const maxToSend = oreToIron(Number(response.content.confirmed)) - fee
+
+      const input = Number(
+        await CliUx.ux.prompt(
+          `Enter the amount in $IRON (balance available: ${displayIronAmount(
             oreToIron(Number(response.content.confirmed)),
-            false,
-          )})`,
+          )}, max: ${displayIronAmount(maxToSend)})`,
           {
             required: true,
           },
@@ -97,21 +129,6 @@ export class Pay extends IronfishCommand {
       }
 
       amount = input
-    }
-
-    if (fee == null || Number.isNaN(fee)) {
-      const input = Number(
-        await CliUx.ux.prompt('Enter the fee amount in $IRON', {
-          required: true,
-          default: '0.00000001',
-        }),
-      )
-
-      if (Number.isNaN(input)) {
-        this.error(`A valid fee amount is required`)
-      }
-
-      fee = input
     }
 
     if (!to) {
