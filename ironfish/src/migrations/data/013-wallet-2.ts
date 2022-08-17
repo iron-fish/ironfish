@@ -281,6 +281,7 @@ export class Migration013 extends Migration {
 
       const migrated: DatabaseStoreValue<typeof transactionsStoreNew> = {
         ...transactionValue,
+        blockHash: null,
         sequence: null,
       }
 
@@ -289,6 +290,7 @@ export class Migration013 extends Migration {
         const header = await headersStoreOld.get(blockHash)
 
         if (header) {
+          migrated.blockHash = blockHash
           migrated.sequence = header.header.sequence
           countMigrated++
         } else {
@@ -317,7 +319,7 @@ export class Migration013 extends Migration {
 
   async migrateDecryptedNotes(
     noteToNullifierStoreOld: Stores['old']['noteToNullifier'],
-    transactionStoreNew: Stores['old']['transactions'],
+    transactionStoreNew: Stores['new']['transactions'],
     decryptedNoteStoreNew: Stores['new']['decryptedNotes'],
     noteToTransactionCache: BufferMap<Buffer>,
     accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],

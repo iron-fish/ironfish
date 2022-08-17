@@ -28,7 +28,7 @@ export function getAccount(node: IronfishNode, name?: string): Account {
 
 export async function getTransactionStatus(
   node: IronfishNode,
-  blockHash: string | null,
+  blockHash: Buffer | null,
   sequence: number | null,
   expirationSequence: number,
 ): Promise<string> {
@@ -36,7 +36,7 @@ export async function getTransactionStatus(
 
   if (sequence && blockHash) {
     const sequenceHash = await node.chain.getHashAtSequence(sequence)
-    if (blockHash === sequenceHash?.toString('hex')) {
+    if (sequenceHash && blockHash.equals(sequenceHash)) {
       const confirmations = headSequence - sequence
       const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
       return confirmations >= minimumBlockConfirmations ? 'completed' : 'confirming'

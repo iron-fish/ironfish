@@ -27,7 +27,7 @@ import { validateAccount } from './validator'
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
-  | { blockHash: string; initialNoteIndex: number; sequence: number }
+  | { blockHash: Buffer; initialNoteIndex: number; sequence: number }
   // Used if the transaction is not yet part of the chain
   | { submittedSequence: number }
   | Record<string, never>
@@ -97,7 +97,7 @@ export class Accounts {
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
-          blockHash: blockHash.toString('hex'),
+          blockHash,
           initialNoteIndex,
           sequence,
         })
@@ -537,7 +537,7 @@ export class Accounts {
         await this.syncTransaction(
           transaction,
           {
-            blockHash: blockHash.toString('hex'),
+            blockHash,
             initialNoteIndex,
             sequence,
           },
@@ -633,8 +633,11 @@ export class Accounts {
         const { blockHash } = transaction
 
         if (blockHash) {
-          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
-          Assert.isNotNull(header, `getUnspentNotes: No header found for ${blockHash}`)
+          const header = await this.chain.getHeader(blockHash)
+          Assert.isNotNull(
+            header,
+            `getUnspentNotes: No header found for hash ${blockHash.toString('hex')}`,
+          )
           const main = await this.chain.isHeadChain(header)
           if (main) {
             const confirmations = this.chain.head.sequence - header.sequence

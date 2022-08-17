@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
+import { BufferUtils } from '../utils'
 import { AccountsDB } from './database/accountsdb'
 import { AccountValue } from './database/accountValue'
 import { DecryptedNoteValue } from './database/decryptedNoteValue'
@@ -21,7 +22,7 @@ export class Account {
   private readonly transactions: BufferMap<
     Readonly<{
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     }>
@@ -75,7 +76,7 @@ export class Account {
     this.nullifierToNoteHash = new BufferMap<Buffer>()
     this.transactions = new BufferMap<{
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     }>()
@@ -235,11 +236,12 @@ export class Account {
         submittedSequence = record.submittedSequence
       }
 
-      if (
+      const shouldUpdateTransaction =
         !record ||
         !record.transaction.equals(transaction) ||
-        record.blockHash !== blockHash
-      ) {
+        !BufferUtils.equalsNullable(record.blockHash, blockHash)
+
+      if (shouldUpdateTransaction) {
         await this.updateTransaction(
           transactionHash,
           { transaction, blockHash, sequence, submittedSequence },
@@ -257,7 +259,7 @@ export class Account {
     hash: Buffer,
     transactionValue: {
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     },
@@ -389,7 +391,7 @@ export class Account {
   getTransaction(hash: Buffer):
     | Readonly<{
         transaction: Transaction
-        blockHash: string | null
+        blockHash: Buffer | null
         sequence: number | null
         submittedSequence: number | null
       }>
@@ -400,7 +402,7 @@ export class Account {
   getTransactions(): Generator<
     Readonly<{
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     }>

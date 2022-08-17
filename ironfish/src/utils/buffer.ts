@@ -9,6 +9,11 @@ function toHuman(buffer: Buffer): string {
     .trim()
 }
 
+function equalsNullable(a: Buffer | null | undefined, b: Buffer | null | undefined): boolean {
+  return a == null || b == null ? a === b : a.equals(b)
+}
+
 export const BufferUtils = {
   toHuman,
+  equalsNullable,
 }

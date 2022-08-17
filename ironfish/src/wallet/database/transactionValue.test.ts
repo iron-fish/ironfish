@@ -42,7 +42,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
-        blockHash: Buffer.alloc(32, 1).toString('hex'),
+        blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: null,
       }
@@ -58,7 +58,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction: Buffer.from('mock-transaction'),
-        blockHash: Buffer.alloc(32, 1).toString('hex'),
+        blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: 123,
       }
