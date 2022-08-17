@@ -228,10 +228,8 @@ export default class Download extends IronfishCommand {
     CliUx.ux.action.start(
       `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
     )
-    if (await this.sdk.fileSystem.exists(chainDatabasePath)) {
-      // chainDatabasePath must be empty before renaming snapshot
-      await fsAsync.rm(chainDatabasePath, { recursive: true })
-    }
+    // chainDatabasePath must be empty before renaming snapshot
+    await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
     await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('done')
   }
