@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
-import os from 'os';
-import * as yup from 'yup';
-
-import { IronfishSdk } from '../../sdk';
-import { RpcRequestError, RpcSocketClient } from '../clients';
-import { ALL_API_NAMESPACES, ApiNamespace } from '../routes';
-import { ERROR_CODES, ValidationError } from './errors';
-import { RpcTcpAdapter } from './tcpAdapter';
+import os from 'os'
+import * as yup from 'yup'
+import { IronfishSdk } from '../../sdk'
+import { RpcRequestError, RpcSocketClient } from '../clients'
+import { ALL_API_NAMESPACES, ApiNamespace } from '../routes'
+import { ERROR_CODES, ValidationError } from './errors'
+import { RpcTcpAdapter } from './tcpAdapter'
 
 describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter
