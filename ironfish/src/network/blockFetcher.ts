@@ -19,6 +19,9 @@ import { Peer, PeerState } from './peers/peer'
  * block from the network first */
 const WAIT_BEFORE_REQUEST_MS = 1000
 
+// Whether the peer sent us a block hash or a compact block
+type SourceType = 'HASH' | 'COMPACT'
+
 type BlockState =
   | {
       action: 'BLOCK_REQUEST_SCHEDULED'
@@ -38,7 +41,7 @@ type BlockState =
       action: 'PROCESSING_COMPACT_BLOCK'
       peer: Identity
       compactBlock: SerializedCompactBlock
-      sources: Map<Identity, 'HASH' | 'COMPACT'> // Set of peers that have sent us the hash or compact block
+      sources: Map<Identity, SourceType> // Set of peers that have sent us the hash or compact block
     }
   | {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT'
@@ -47,7 +50,16 @@ type BlockState =
       partialTransactions: TransactionOrHash[]
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
-      sources: Map<Identity, 'HASH' | 'COMPACT'> // Set of peers that have sent us the hash or compact block
+      sources: Map<Identity, SourceType> // Set of peers that have sent us the hash or compact block
+    }
+  | {
+      action: 'FULL_BLOCK_REQUEST_IN_FLIGHT'
+      peer: Identity
+      header: SerializedBlockHeader
+      partialTransactions: TransactionOrHash[]
+      timeout: NodeJS.Timeout
+      clearDisconnectHandler: () => void
+      sources: Map<Identity, SourceType> // Set of peers that have sent us the hash or compact block
     }
   | {
       action: 'PROCESSING_FULL_BLOCK'
@@ -143,7 +155,7 @@ export class BlockFetcher {
         action: 'PROCESSING_COMPACT_BLOCK',
         peer: peer.state.identity,
         compactBlock,
-        sources: new Map<Identity, 'HASH' | 'COMPACT'>(),
+        sources: new Map<Identity, SourceType>(),
       })
       // Return to PeerNetwork to fill from mempool and request missing transactions
       return true
@@ -161,30 +173,30 @@ export class BlockFetcher {
     return false
   }
 
-  // receivedBlockTransactions(hash: BlockHash): {
-  //   header: SerializedBlockHeader
-  //   partialTransactions: TransactionOrHash[]
-  // } | null {
-  //   const currentState = this.pending.get(hash)
+  receivedBlockTransactions(hash: BlockHash): {
+    header: SerializedBlockHeader
+    partialTransactions: TransactionOrHash[]
+  } | null {
+    const currentState = this.pending.get(hash)
 
-  //   if (!currentState || currentState.action !== 'TRANSACTION_REQUEST_IN_FLIGHT') {
-  //     return null
-  //   }
+    if (!currentState || currentState.action !== 'TRANSACTION_REQUEST_IN_FLIGHT') {
+      return null
+    }
 
-  //   this.cleanupCallbacks(currentState)
+    this.cleanupCallbacks(currentState)
 
-  //   const partialBlock = {
-  //     header: currentState.header,
-  //     partialTransactions: currentState.partialTransactions,
-  //   }
+    const partialBlock = {
+      header: currentState.header,
+      partialTransactions: currentState.partialTransactions,
+    }
 
-  //   this.pending.set(hash, {
-  //     action: 'PROCESSING_COMPACT_BLOCK',
-  //     ...partialBlock,
-  //   })
+    this.pending.set(hash, {
+      action: 'PROCESSING_COMPACT_BLOCK',
+      ...partialBlock,
+    })
 
-  //   return partialBlock
-  // }
+    return partialBlock
+  }
 
   // /**
   //  * Called when a block has been assembled from a compact block
@@ -246,16 +258,23 @@ export class BlockFetcher {
     }
   }
 
-  requestTransactions(
+  async requestTransactions(
     peer: Peer,
     header: SerializedBlockHeader,
     partialTransactions: TransactionOrHash[],
     missingTransactions: number[],
   ): void {
     const hash = BlockHeaderSerde.deserialize(header).hash
+    const currentState = this.pending.get(hash)
+
+    if (!currentState || currentState.action !== 'PROCESSING_COMPACT_BLOCK') {
+      return
+    }
+
     const message = new GetBlockTransactionsRequest(hash, missingTransactions)
 
     if (!peer.send(message)) {
+      await this.requestFullBlock(hash)
       const currentState = this.pending.get(hash)
       currentState && this.cleanupCallbacks(currentState)
 
@@ -283,7 +302,7 @@ export class BlockFetcher {
         const currentState = this.pending.get(hash)
         currentState && this.cleanupCallbacks(currentState)
 
-        if (await this.peerNetwork.alreadyHaveBlock(hash)) {
+        if (!(await this.peerNetwork.alreadyHaveBlock(hash))) {
           await this.requestFullBlock(hash)
         }
       }
@@ -297,8 +316,6 @@ export class BlockFetcher {
 
     const timeout = setTimeout(() => {
       await this.requestFullBlock(hash)
-      // TODO: Abort and fetch full block
-      return
     }, 5000)
 
     this.pending.set(hash, {
@@ -315,8 +332,8 @@ export class BlockFetcher {
 
   async requestFullBlock(hash: BlockHash): Promise<void> {
     // Get the next peer randomly to distribute load more evenly
-    const peer = this.popRandomPeer(hash)
-    if (!peer) {
+    const peerInfo = this.popRandomPeer(hash)
+    if (!peerInfo) {
       this.removeBlock(hash)
       return
     }
@@ -374,11 +391,13 @@ export class BlockFetcher {
     this.cleanupCallbacks(currentState)
 
     // Get the next peer randomly to distribute load more evenly
-    const peer = this.popRandomPeer<'HASH' | 'COMPACT'>(currentState.sources)
-    if (!peer) {
+    const peerInfo = this.popRandomPeer(currentState.sources)
+    if (!peerInfo) {
       this.removeBlock(hash)
       return
     }
+
+    const { peer } = peerInfo
 
     const sent = peer.send(new GetCompactBlockRequest(hash))
 
@@ -436,11 +455,13 @@ export class BlockFetcher {
     this.cleanupCallbacks(currentState)
 
     // Get the next peer randomly to distribute load more evenly
-    const peer = this.popRandomPeer<'HASH'>(currentState.sources)
-    if (!peer) {
+    const peerInfo = this.popRandomPeer(currentState.sources)
+    if (!peerInfo) {
       this.removeBlock(hash)
       return
     }
+
+    const peer = peerInfo.peer
 
     const sent = peer.send(new GetCompactBlockRequest(hash))
 
@@ -481,7 +502,9 @@ export class BlockFetcher {
 
   // Get the next peer to request from. Returns peers that have sent compact blocks first
   // then returns peers who have sent hashes
-  private popRandomPeer<T extends string>(sources: Map<Identity, T>): [Peer, T] | null {
+  private popRandomPeer(
+    sources: Map<Identity, SourceType>,
+  ): { peer: Peer; source: SourceType } | null {
     const compactSources: [string, 'COMPACT'][] = []
     const hashSources: [string, 'HASH'][] = []
     for (const [peer, type] of sources) {
@@ -491,26 +514,31 @@ export class BlockFetcher {
         compactSources.push([peer, 'COMPACT'])
       }
     }
-    const random: [string, 'COMPACT' | 'HASH'][] = [
+    const random: [string, SourceType][] = [
       ...ArrayUtils.shuffle(hashSources),
       ...ArrayUtils.shuffle(compactSources),
     ]
 
-    // TODO: (daniel) ended here
-    let nextPeer: Identity | null = null
-    let nextPeerType = null
+    let nextPeer: Peer | null = null
+    let nextPeerIdentity: string | null = null
+    let nextPeerType: SourceType | null = null
     while (nextPeer === null && random.length > 0) {
       const nextPeerInfo = random.pop()
       Assert.isNotUndefined(nextPeerInfo) // random.length > 0 in the while loop
-      const nextPeer = nextPeerInfo[0]
-      nextPeer = this.peerNetwork.peerManager.getPeer(nextPeerInfo[0])
+
+      nextPeerIdentity = nextPeerInfo[0]
       nextPeerType = nextPeerInfo[1]
+      nextPeer = this.peerNetwork.peerManager.getPeer(nextPeerInfo[0])
+    }
+
+    if (nextPeerIdentity === null || nextPeer === null || nextPeerType === null) {
+      return null
     }
 
     // remove the peer from sources if we have one
-    nextPeerId && sources.delete(nextPeerId)
+    sources.delete(nextPeerIdentity)
 
-    return [nextPeer]
+    return { peer: nextPeer, source: nextPeerType }
   }
 
   private cleanupCallbacks(state: BlockState) {
