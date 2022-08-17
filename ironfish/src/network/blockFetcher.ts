@@ -258,7 +258,7 @@ export class BlockFetcher {
     }
   }
 
-  async requestTransactions(
+  requestTransactions(
     peer: Peer,
     header: SerializedBlockHeader,
     partialTransactions: TransactionOrHash[],
@@ -267,30 +267,14 @@ export class BlockFetcher {
     const hash = BlockHeaderSerde.deserialize(header).hash
     const currentState = this.pending.get(hash)
 
-    if (!currentState || currentState.action !== 'PROCESSING_COMPACT_BLOCK') {
+    if (!currentState || currentState.action === 'PROCESSING_FULL_BLOCK') {
       return
     }
 
     const message = new GetBlockTransactionsRequest(hash, missingTransactions)
 
     if (!peer.send(message)) {
-      await this.requestFullBlock(hash)
-      const currentState = this.pending.get(hash)
-      currentState && this.cleanupCallbacks(currentState)
-
-      // Get the next peer randomly to distribute load more evenly
-      const nextPeer = this.popRandomPeer(hash)
-      if (!nextPeer) {
-        this.removeBlock(hash)
-        return
-      }
-
-      return this.requestTransactions(
-        nextPeer,
-        header,
-        partialTransactions,
-        missingTransactions,
-      )
+      
     }
 
     const currentState = this.pending.get(hash)
@@ -330,50 +314,55 @@ export class BlockFetcher {
     return
   }
 
-  async requestFullBlock(hash: BlockHash): Promise<void> {
-    // Get the next peer randomly to distribute load more evenly
-    const peerInfo = this.popRandomPeer(hash)
-    if (!peerInfo) {
-      this.removeBlock(hash)
-      return
-    }
+  // async requestFullBlock(hash: BlockHash): Promise<void> {
+  //   const currentState = this.pending.get(hash)
 
-    const message = new GetBlocksRequest(hash, 1)
+  //   if (!currentState || currentState.action !== 'PROCESSING_COMPACT_BLOCK') {
+  //     return
+  //   }
 
-    const sent = peer.send(message)
+  //   const peerInfo = this.popRandomPeer(currentState.sources)
+  //   if (!peerInfo) {
+  //     this.removeBlock(hash)
+  //     return
+  //   }
 
-    if (!sent) {
-      await this.requestFullBlock(hash)
-      return
-    }
+  //   const message = new GetBlocksRequest(hash, 1)
 
-    const onPeerDisconnect = async ({ peer, state }: { peer: Peer; state: PeerState }) => {
-      if (state.type === 'DISCONNECTED') {
-        peer.onStateChanged.off(onPeerDisconnect)
-        await this.requestFullBlock(hash)
-      }
-    }
-    peer.onStateChanged.on(onPeerDisconnect)
+  //   const sent = peer.send(message)
 
-    const clearDisconnectHandler = () => {
-      peer.onStateChanged.off(onPeerDisconnect)
-    }
+  //   if (!sent) {
+  //     await this.requestFullBlock(hash)
+  //     return
+  //   }
 
-    const timeout = setTimeout(() => {
-      const timeoutFn = async () => {
-        await this.requestFullBlock(hash)
-      }
+  //   const onPeerDisconnect = async ({ peer, state }: { peer: Peer; state: PeerState }) => {
+  //     if (state.type === 'DISCONNECTED') {
+  //       peer.onStateChanged.off(onPeerDisconnect)
+  //       await this.requestFullBlock(hash)
+  //     }
+  //   }
+  //   peer.onStateChanged.on(onPeerDisconnect)
 
-      void timeoutFn()
-    }, 5000)
+  //   const clearDisconnectHandler = () => {
+  //     peer.onStateChanged.off(onPeerDisconnect)
+  //   }
 
-    this.pending.set(hash, {
-      peer,
-      action: 'BLOCK_REQUEST_IN_FLIGHT',
-      timeout,
-      clearDisconnectHandler,
-    })
-  }
+  //   const timeout = setTimeout(() => {
+  //     const timeoutFn = async () => {
+  //       await this.requestFullBlock(hash)
+  //     }
+
+  //     void timeoutFn()
+  //   }, 5000)
+
+  //   this.pending.set(hash, {
+  //     peer,
+  //     action: 'BLOCK_REQUEST_IN_FLIGHT',
+  //     timeout,
+  //     clearDisconnectHandler,
+  //   })
+  // }
 
   private async requestFromNextPeer(hash: BlockHash): Promise<void> {
     const currentState = this.pending.get(hash)

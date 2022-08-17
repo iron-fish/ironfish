@@ -227,9 +227,14 @@ export class PeerNetwork {
     this.transactionFetcher = new TransactionFetcher(this)
 
     this.chain.onConnectBlock.on((block) => {
+      this.blockFetcher.removeBlock(block.header.hash)
       for (const transaction of block.transactions) {
         this.recentlyAddedToChain.set(transaction.hash(), true)
       }
+    })
+
+    this.chain.onForkBlock.on((block) => {
+      this.blockFetcher.removeBlock(block.header.hash)
     })
 
     this.chain.onDisconnectBlock.on((block) => {
@@ -725,10 +730,12 @@ export class PeerNetwork {
       } else if (rpcMessage instanceof GetCompactBlockResponse) {
         await this.onNewCompactBlock(peer, rpcMessage.compactBlock)
       } else if (rpcMessage instanceof GetBlocksResponse) {
+        // Should happen when block is requested directly by the block fetcher
         for (const block of rpcMessage.blocks) {
-          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
-
-          const message = new
+          const header = BlockHeaderSerde.deserialize(block.header)
+          const nonce = Buffer.alloc(16, header.hash)
+          const message = new NewBlockMessage(block, nonce)
+          await this.handleNewBlockMessage(peer, message)
         }
       }
     }
@@ -766,7 +773,9 @@ export class PeerNetwork {
     if (shouldSync) {
       this.node.syncer.startSync(peer)
     } else {
-      await Promise.all(hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)))
+      await Promise.all(
+        hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)),
+      )
     }
   }
 
@@ -909,7 +918,7 @@ export class PeerNetwork {
     // mark the block as received in the block fetcher and decide whether to continue
     // processing this compact block or not
     const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
-    if(!shouldProcess) {
+    if (!shouldProcess) {
       return
     }
 
