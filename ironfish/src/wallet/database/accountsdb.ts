@@ -14,7 +14,6 @@ import {
   IDatabaseTransaction,
   NullableStringEncoding,
   StringEncoding,
-  StringHashEncoding,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
@@ -54,7 +53,7 @@ export class AccountsDB {
   }>
 
   decryptedNotes: IDatabaseStore<{
-    key: string
+    key: Buffer
     value: DecryptedNoteValue
   }>
 
@@ -110,11 +109,11 @@ export class AccountsDB {
     })
 
     this.decryptedNotes = this.database.addStore<{
-      key: string
+      key: Buffer
       value: DecryptedNoteValue
     }>({
       name: 'decryptedNotes',
-      keyEncoding: new StringHashEncoding(),
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
@@ -337,7 +336,7 @@ export class AccountsDB {
   }
 
   async saveDecryptedNote(
-    noteHash: string,
+    noteHash: Buffer,
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -346,14 +345,14 @@ export class AccountsDB {
     })
   }
 
-  async deleteDecryptedNote(noteHash: string, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteDecryptedNote(noteHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
       await this.decryptedNotes.del(noteHash, tx)
     })
   }
 
   async replaceDecryptedNotes(
-    map: Map<string, DecryptedNoteValue>,
+    map: BufferMap<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
@@ -366,7 +365,7 @@ export class AccountsDB {
   }
 
   async *loadDecryptedNotes(tx?: IDatabaseTransaction): AsyncGenerator<{
-    hash: string
+    hash: Buffer
     decryptedNote: DecryptedNoteValue
   }> {
     for await (const [hash, decryptedNote] of this.decryptedNotes.getAllIter(tx)) {

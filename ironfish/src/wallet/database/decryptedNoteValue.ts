@@ -13,7 +13,7 @@ export interface DecryptedNoteValue {
   transactionHash: Buffer
   // These fields are populated once the note's transaction is on the main chain
   noteIndex: number | null
-  nullifierHash: string | null
+  nullifierHash: Buffer | null
 }
 
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
@@ -61,7 +61,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
 
     let nullifierHash = null
     if (hasNullifierHash) {
-      nullifierHash = reader.readHash('hex')
+      nullifierHash = reader.readHash()
     }
 
     return { accountId, noteIndex, nullifierHash, serializedNote, spent, transactionHash }

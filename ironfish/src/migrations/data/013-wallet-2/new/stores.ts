@@ -9,7 +9,6 @@ import {
   IDatabase,
   NullableStringEncoding,
   StringEncoding,
-  StringHashEncoding,
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
 import { BalancesStore } from './balances'
@@ -69,7 +68,7 @@ export function loadNewStores(db: IDatabase): NewStores {
   const decryptedNotes: DecryptedNotesStore = db.addStore(
     {
       name: 'decryptedNotes',
-      keyEncoding: new StringHashEncoding(),
+      keyEncoding: new BufferEncoding(),
       valueEncoding: new DecryptedNoteValueEncoding(),
     },
     false,

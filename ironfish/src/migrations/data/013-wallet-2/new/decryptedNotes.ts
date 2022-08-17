@@ -7,14 +7,14 @@ import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 export const NOTE_SIZE = 43 + 8 + 32 + 32
 
 export type DecryptedNotesStore = IDatabaseStore<{
-  key: string
+  key: Buffer
   value: DecryptedNoteValue
 }>
 
 export interface DecryptedNoteValue {
   accountId: string
   noteIndex: number | null
-  nullifierHash: string | null
+  nullifierHash: Buffer | null
   serializedNote: Buffer
   spent: boolean
   transactionHash: Buffer
@@ -66,7 +66,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
 
     let nullifierHash = null
     if (hasNullifierHash) {
-      nullifierHash = reader.readHash('hex')
+      nullifierHash = reader.readHash()
     }
 
     return { accountId, noteIndex, nullifierHash, serializedNote, spent, transactionHash }
