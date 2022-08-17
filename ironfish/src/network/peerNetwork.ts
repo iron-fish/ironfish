@@ -18,12 +18,7 @@ import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../primitives/block'
-import {
-  BlockHash,
-  BlockHeader,
-  BlockHeaderSerde,
-  SerializedBlockHeader,
-} from '../primitives/blockheader'
+import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
 import { ArrayUtils } from '../utils'
@@ -127,7 +122,6 @@ export class PeerNetwork {
   private readonly chain: Blockchain
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
-  private readonly enableUnsupportedNetworking: boolean
 
   private readonly blockFetcher: BlockFetcher
   private readonly transactionFetcher: TransactionFetcher
@@ -168,7 +162,6 @@ export class PeerNetwork {
     minPeers?: number
     targetPeers?: number
     enableSyncing?: boolean
-    enableUnsupportedNetworking?: boolean
     logPeerMessages?: boolean
     simulateLatency?: number
     logger?: Logger
@@ -179,7 +172,6 @@ export class PeerNetwork {
     hostsStore: HostsStore
   }) {
     this.enableSyncing = options.enableSyncing ?? true
-    this.enableUnsupportedNetworking = options.enableUnsupportedNetworking ?? false
     this.node = options.node
     this.chain = options.chain
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
@@ -614,35 +606,7 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
-    // Hashes sent by the network are untrusted. Future messages should remove this field.
-    for (const block of response.message.blocks) {
-      block.header.hash = undefined
-    }
-
     return response.message.blocks
-  }
-
-  async getBlockTransactions(
-    peer: Peer,
-    blockHash: Buffer,
-    transactionIndexes: number[],
-  ): Promise<SerializedTransaction[]> {
-    const message = new GetBlockTransactionsRequest(blockHash, transactionIndexes)
-    const response = await this.requestFrom(peer, message)
-
-    if (!(response.message instanceof GetBlockTransactionsResponse)) {
-      throw new Error(
-        `Invalid GetBlockTransactionsResponse: ${displayNetworkMessageType(message.type)}`,
-      )
-    }
-
-    if (!response.message.blockHash.equals(message.blockHash)) {
-      throw new Error(
-        `Invalid GetBlockTransactionsResponse: ${displayNetworkMessageType(message.type)}`,
-      )
-    }
-
-    return response.message.serializedTransactions
   }
 
   private async handleMessage(
@@ -750,9 +714,7 @@ export class PeerNetwork {
       const request = this.requests.get(rpcId)
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
-      }
-
-      if (rpcMessage instanceof PooledTransactionsResponse) {
+      } else if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const serializedTransaction of rpcMessage.transactions) {
           const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
           const gossipMessage = new NewTransactionMessage(serializedTransaction, nonce)
@@ -762,16 +724,17 @@ export class PeerNetwork {
         await this.onNewBlockTransactions(peer, rpcMessage)
       } else if (rpcMessage instanceof GetCompactBlockResponse) {
         await this.onNewCompactBlock(peer, rpcMessage.compactBlock)
+      } else if (rpcMessage instanceof GetBlocksResponse) {
+        for (const block of rpcMessage.blocks) {
+          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
+
+          const message = new
+        }
       }
     }
   }
 
   private async handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
-    if (!this.enableUnsupportedNetworking) {
-      this.logger.debug(`Received unimplemented message ${message.type}`)
-      return
-    }
-
     if (!this.shouldProcessNewBlocks()) {
       return
     }
@@ -791,9 +754,9 @@ export class PeerNetwork {
       if (
         sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
         sequence <= this.chain.head.sequence + 1 &&
-        !(await this.shouldIgnoreBlock(hash))
+        !(await this.alreadyHaveBlock(hash))
       ) {
-        hashesToRequest.push(hash)
+        hashesToRequest.push({ hash, sequence })
       } else if (sequence > this.chain.head.sequence + 1) {
         shouldSync = true
         // continue looping to make sure peer.sequence is updated
@@ -803,30 +766,17 @@ export class PeerNetwork {
     if (shouldSync) {
       this.node.syncer.startSync(peer)
     } else {
-      await Promise.all(hashesToRequest.map((h) => this.blockFetcher.receivedHash(h, peer)))
+      await Promise.all(hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)))
     }
   }
 
-  private *fromRelativeIndex<T extends Indexable>(list: T[]): Generator<T> {
-    let previousPos = 0
+  private *fromDifferentialIndex<T extends Indexable>(list: T[]): Generator<T> {
+    let previousPos = -1
     for (const elem of list) {
-      const absolutePos = previousPos + elem.index
+      const absolutePos = previousPos + elem.index + 1
       yield { ...elem, index: absolutePos }
       previousPos = absolutePos
     }
-  }
-
-  private tryResolveFromMempool(hash: TransactionHash): TransactionOrHash {
-    const fromMempool = this.node.memPool.get(hash)
-    return fromMempool
-      ? {
-          type: 'FULL',
-          value: fromMempool,
-        }
-      : {
-          type: 'HASH',
-          value: hash,
-        }
   }
 
   private assembleTransactionsFromMempool(block: SerializedCompactBlock):
@@ -836,7 +786,7 @@ export class PeerNetwork {
         missingTransactions: number[]
       }
     | { ok: false } {
-    const absoluteIndexTransactions = this.fromRelativeIndex(block.transactions)
+    const absoluteIndexTransactions = this.fromDifferentialIndex(block.transactions)
 
     const numHashes = block.transactionHashes.length
     let hashesConsumed = 0
@@ -857,7 +807,16 @@ export class PeerNetwork {
         }
 
         const hash = block.transactionHashes[hashesConsumed]
-        const resolved = this.tryResolveFromMempool(hash)
+        const transaction = this.node.memPool.get(hash)
+        const resolved: TransactionOrHash = transaction
+          ? {
+              type: 'FULL',
+              value: transaction,
+            }
+          : {
+              type: 'HASH',
+              value: hash,
+            }
         if (resolved.type === 'HASH') {
           missingTransactions.push(currPosition)
         }
@@ -906,8 +865,6 @@ export class PeerNetwork {
   }
 
   private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
-    // TODO: Verify transactions received match transactions requested
-
     const partialBlock = this.blockFetcher.receivedBlockTransactions(message.blockHash)
 
     if (!partialBlock) {
@@ -924,7 +881,7 @@ export class PeerNetwork {
 
     if (!assembleResult.ok) {
       // Either mismatched hashes or missing transactions
-      // TODO: Request full block or sync?
+      this.blockFetcher.requestFullBlock(message.blockHash)
       return
     }
 
@@ -949,8 +906,12 @@ export class PeerNetwork {
     // deserialize the header
     const header = BlockHeaderSerde.deserialize(compactBlock.header)
 
-    // mark the block as received in the block fetcher
-    this.blockFetcher.receivedCompactBlock(compactBlock, peer)
+    // mark the block as received in the block fetcher and decide whether to continue
+    // processing this compact block or not
+    const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
+    if(!shouldProcess) {
+      return
+    }
 
     // check if hash or previous hash is already marked as invalid
     if (this.chain.isInvalid(header) !== null) {
@@ -993,7 +954,8 @@ export class PeerNetwork {
     const result = this.assembleTransactionsFromMempool(compactBlock)
 
     if (!result.ok) {
-      // TODO: Punish peer?
+      peer.punish(BAN_SCORE.MAX)
+      this.blockFetcher.requestFullBlock(header.hash)
       return
     }
 
@@ -1282,12 +1244,9 @@ export class PeerNetwork {
       return
     }
 
-    // Hashes sent by the network are untrusted. Future messages should remove this field.
-    message.block.header.hash = undefined
-
     const block = BlockSerde.deserialize(message.block)
 
-    if (await this.shouldIgnoreBlock(block.header.hash)) {
+    if (await this.alreadyHaveBlock(block.header.hash)) {
       return
     }
 
@@ -1328,13 +1287,10 @@ export class PeerNetwork {
       return
     }
 
-    // TODO: Move this somewhere earlier?
-    const seenAt = new Date()
-
     const verificationResult = await this.chain.verifier.verifyBlockCommitments(block)
     if (!verificationResult.valid) {
       // Don't mark the block's hash as invalid, the user could have sent us bad transactions
-      // TODO: attempt to fetch the block from someone else, or give up and sync?
+      this.blockFetcher.requestFullBlock(block.header.hash)
       return
     }
 
@@ -1352,7 +1308,7 @@ export class PeerNetwork {
 
     // log that we've validated the block enough to gossip it
     this.onBlockGossipReceived.emit(block)
-    this.telemetry.submitNewBlockSeen(block, seenAt)
+    this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block
     const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
@@ -1425,7 +1381,7 @@ export class PeerNetwork {
     )
   }
 
-  async shouldIgnoreBlock(hash: BlockHash): Promise<boolean> {
+  async alreadyHaveBlock(hash: BlockHash): Promise<boolean> {
     if (this.chain.invalid.has(hash)) {
       return true
     }
@@ -1434,7 +1390,6 @@ export class PeerNetwork {
       return true
     }
 
-    // TODO: we call this a lot, should we consider not calling a db access every time we receive a hash
     return await this.chain.hasBlock(hash)
   }
 
