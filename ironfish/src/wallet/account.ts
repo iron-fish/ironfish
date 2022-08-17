@@ -118,17 +118,19 @@ export class Account {
     await this.saveUnconfirmedBalance(unconfirmedBalance)
   }
 
-  async save(): Promise<void> {
-    await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes)
-    await this.accountsDb.replaceNullifierToNoteHash(this.nullifierToNoteHash)
-    await this.accountsDb.replaceTransactions(this.transactions)
+  async save(tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes, tx)
+      await this.accountsDb.replaceNullifierToNoteHash(this.nullifierToNoteHash, tx)
+      await this.accountsDb.replaceTransactions(this.transactions, tx)
+    })
   }
 
-  async reset(): Promise<void> {
+  async reset(tx?: IDatabaseTransaction): Promise<void> {
     this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
     this.transactions.clear()
-    await this.saveUnconfirmedBalance(BigInt(0))
+    await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
 
   getNotes(): ReadonlyArray<{
@@ -171,21 +173,23 @@ export class Account {
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const existingNote = this.decryptedNotes.get(noteHash)
-    if (!existingNote || existingNote.spent !== note.spent) {
-      const value = new Note(note.serializedNote).value()
-      const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      const existingNote = this.decryptedNotes.get(noteHash)
+      if (!existingNote || existingNote.spent !== note.spent) {
+        const value = new Note(note.serializedNote).value()
+        const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
 
-      if (note.spent) {
-        await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
-      } else {
-        await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
+        if (note.spent) {
+          await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
+        } else {
+          await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
+        }
       }
-    }
 
-    this.saveDecryptedNoteSequence(note.transactionHash, noteHash)
-    this.decryptedNotes.set(noteHash, note)
-    await this.accountsDb.saveDecryptedNote(noteHash, note, tx)
+      this.saveDecryptedNoteSequence(note.transactionHash, noteHash)
+      this.decryptedNotes.set(noteHash, note)
+      await this.accountsDb.saveDecryptedNote(noteHash, note, tx)
+    })
   }
 
   private saveDecryptedNoteSequence(transactionHash: Buffer, noteHash: string): void {
@@ -218,29 +222,35 @@ export class Account {
       serializedNote: Buffer
     }>,
     params: SyncTransactionParams,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     const transactionHash = transaction.unsignedHash()
     const blockHash = 'blockHash' in params ? params.blockHash : null
     const sequence = 'sequence' in params ? params.sequence : null
     let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
 
-    const record = this.transactions.get(transactionHash)
-    if (record) {
-      submittedSequence = record.submittedSequence
-    }
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      const record = this.transactions.get(transactionHash)
+      if (record) {
+        submittedSequence = record.submittedSequence
+      }
 
-    if (!record || !record.transaction.equals(transaction) || record.blockHash !== blockHash) {
-      await this.updateTransaction(
-        transactionHash,
-        { transaction, blockHash, sequence, submittedSequence },
-        tx,
-      )
-    }
+      if (
+        !record ||
+        !record.transaction.equals(transaction) ||
+        record.blockHash !== blockHash
+      ) {
+        await this.updateTransaction(
+          transactionHash,
+          { transaction, blockHash, sequence, submittedSequence },
+          tx,
+        )
+      }
 
-    const isRemovingTransaction = submittedSequence === null && blockHash === null
-    await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
-    await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+      const isRemovingTransaction = submittedSequence === null && blockHash === null
+      await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
+      await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+    })
   }
 
   async updateTransaction(
@@ -266,38 +276,40 @@ export class Account {
       forSpender: boolean
       serializedNote: Buffer
     }>,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ) {
-    for (const decryptedNote of decryptedNotes) {
-      if (!decryptedNote.forSpender) {
-        if (decryptedNote.nullifier !== null) {
-          await this.updateNullifierNoteHash(
-            Buffer.from(decryptedNote.nullifier, 'hex'),
-            Buffer.from(decryptedNote.merkleHash, 'hex'),
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      for (const decryptedNote of decryptedNotes) {
+        if (!decryptedNote.forSpender) {
+          if (decryptedNote.nullifier !== null) {
+            await this.updateNullifierNoteHash(
+              Buffer.from(decryptedNote.nullifier, 'hex'),
+              Buffer.from(decryptedNote.merkleHash, 'hex'),
+              tx,
+            )
+          }
+
+          await this.updateDecryptedNote(
+            decryptedNote.merkleHash,
+            {
+              accountId: this.id,
+              nullifierHash: decryptedNote.nullifier,
+              noteIndex: decryptedNote.noteIndex,
+              serializedNote: decryptedNote.serializedNote,
+              spent: false,
+              transactionHash,
+            },
             tx,
           )
         }
-
-        await this.updateDecryptedNote(
-          decryptedNote.merkleHash,
-          {
-            accountId: this.id,
-            nullifierHash: decryptedNote.nullifier,
-            noteIndex: decryptedNote.noteIndex,
-            serializedNote: decryptedNote.serializedNote,
-            spent: false,
-            transactionHash,
-          },
-          tx,
-        )
       }
-    }
+    })
   }
 
   private async processTransactionSpends(
     transaction: Transaction,
     isRemovingTransaction: boolean,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends()) {
       const noteHash = this.getNoteHash(spend.nullifier)
@@ -326,32 +338,34 @@ export class Account {
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const existingNote = this.decryptedNotes.get(noteHash)
-    if (existingNote) {
-      const note = new Note(existingNote.serializedNote)
-      const value = note.value()
-      const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      const existingNote = this.decryptedNotes.get(noteHash)
+      if (existingNote) {
+        const note = new Note(existingNote.serializedNote)
+        const value = note.value()
+        const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
 
-      if (existingNote.spent) {
-        await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
-      } else {
-        await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
+        if (existingNote.spent) {
+          await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
+        } else {
+          await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
+        }
       }
-    }
 
-    const record = this.transactions.get(transactionHash)
-    if (record && record.sequence) {
-      const { sequence } = record
-      const noteHashes = this.noteHashesBySequence.get(sequence)
-      if (noteHashes) {
-        noteHashes.delete(noteHash)
-        this.noteHashesBySequence.set(sequence, noteHashes)
+      const record = this.transactions.get(transactionHash)
+      if (record && record.sequence) {
+        const { sequence } = record
+        const noteHashes = this.noteHashesBySequence.get(sequence)
+        if (noteHashes) {
+          noteHashes.delete(noteHash)
+          this.noteHashesBySequence.set(sequence, noteHashes)
+        }
       }
-    }
 
-    this.nonChainNoteHashes.delete(noteHash)
-    this.decryptedNotes.delete(noteHash)
-    await this.accountsDb.deleteDecryptedNote(noteHash, tx)
+      this.nonChainNoteHashes.delete(noteHash)
+      this.decryptedNotes.delete(noteHash)
+      await this.accountsDb.deleteDecryptedNote(noteHash, tx)
+    })
   }
 
   getNoteHash(nullifier: Buffer): Buffer | undefined {
@@ -399,50 +413,53 @@ export class Account {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    for (const note of transaction.notes()) {
-      const merkleHash = note.merkleHash().toString('hex')
-      const decryptedNote = this.getDecryptedNote(merkleHash)
+    await this.accountsDb.database.withTransaction(tx, async (tx) => {
+      for (const note of transaction.notes()) {
+        const merkleHash = note.merkleHash().toString('hex')
+        const decryptedNote = this.getDecryptedNote(merkleHash)
 
-      if (decryptedNote) {
-        await this.deleteDecryptedNote(merkleHash, hash, tx)
+        if (decryptedNote) {
+          await this.deleteDecryptedNote(merkleHash, hash, tx)
 
-        if (decryptedNote.nullifierHash) {
-          const nullifier = Buffer.from(decryptedNote.nullifierHash, 'hex')
-          await this.deleteNullifier(nullifier, tx)
+          if (decryptedNote.nullifierHash) {
+            const nullifier = Buffer.from(decryptedNote.nullifierHash, 'hex')
+            await this.deleteNullifier(nullifier, tx)
+          }
         }
       }
-    }
 
-    for (const spend of transaction.spends()) {
-      const noteHash = this.getNoteHash(spend.nullifier)
+      for (const spend of transaction.spends()) {
+        const noteHash = this.getNoteHash(spend.nullifier)
 
-      if (noteHash) {
-        const decryptedNote = this.getDecryptedNote(noteHash.toString('hex'))
-        Assert.isNotUndefined(
-          decryptedNote,
-          'nullifierToNote mappings must have a corresponding decryptedNote',
-        )
+        if (noteHash) {
+          const decryptedNote = this.getDecryptedNote(noteHash.toString('hex'))
+          Assert.isNotUndefined(
+            decryptedNote,
+            'nullifierToNote mappings must have a corresponding decryptedNote',
+          )
 
-        await this.updateDecryptedNote(
-          noteHash.toString('hex'),
-          {
-            ...decryptedNote,
-            spent: false,
-          },
-          tx,
-        )
+          await this.updateDecryptedNote(
+            noteHash.toString('hex'),
+            {
+              ...decryptedNote,
+              spent: false,
+            },
+            tx,
+          )
+        }
       }
-    }
 
-    this.transactions.delete(hash)
-    await this.accountsDb.deleteTransaction(hash, tx)
+      this.transactions.delete(hash)
+      await this.accountsDb.deleteTransaction(hash, tx)
+    })
   }
 
   async getBalance(
     unconfirmedSequenceStart: number,
     headSequence: number,
+    tx?: IDatabaseTransaction,
   ): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
-    const unconfirmed = await this.getUnconfirmedBalance()
+    const unconfirmed = await this.getUnconfirmedBalance(tx)
     let confirmed = unconfirmed
 
     for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
@@ -472,8 +489,8 @@ export class Account {
     }
   }
 
-  async getUnconfirmedBalance(): Promise<bigint> {
-    return this.accountsDb.getUnconfirmedBalance(this)
+  async getUnconfirmedBalance(tx?: IDatabaseTransaction): Promise<bigint> {
+    return this.accountsDb.getUnconfirmedBalance(this, tx)
   }
 
   private async saveUnconfirmedBalance(
@@ -483,7 +500,7 @@ export class Account {
     await this.accountsDb.saveUnconfirmedBalance(this, balance, tx)
   }
 
-  async getHeadHash(): Promise<string | null> {
-    return this.accountsDb.getHeadHash(this)
+  async getHeadHash(tx?: IDatabaseTransaction): Promise<string | null> {
+    return this.accountsDb.getHeadHash(this, tx)
   }
 }

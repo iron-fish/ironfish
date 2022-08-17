@@ -15,6 +15,7 @@ import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
+import { IDatabaseTransaction } from '../storage/database/transaction'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -232,8 +233,10 @@ export class Accounts {
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
     if (this.db.database.isOpen) {
-      await this.saveAccountsToDb()
-      await this.updateHeadHashes(this.chainProcessor.hash)
+      await this.db.database.transaction(async (tx) => {
+        await this.saveAccountsToDb(tx)
+        await this.updateHeadHashes(this.chainProcessor.hash, tx)
+      })
     }
   }
 
@@ -257,13 +260,13 @@ export class Accounts {
     }
   }
 
-  async saveAccountsToDb(): Promise<void> {
+  async saveAccountsToDb(tx?: IDatabaseTransaction): Promise<void> {
     for (const account of this.accounts.values()) {
-      await account.save()
+      await account.save(tx)
     }
   }
 
-  async updateHeadHashes(headHash: Buffer | null): Promise<void> {
+  async updateHeadHashes(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
     let accounts
     if (headHash) {
       accounts = this.listAccounts().filter((a) => this.isAccountUpToDate(a))
@@ -272,28 +275,34 @@ export class Accounts {
     }
 
     for (const account of accounts) {
-      await this.updateHeadHash(account, headHash)
+      await this.updateHeadHash(account, headHash, tx)
     }
   }
 
-  async updateHeadHash(account: Account, headHash: Buffer | null): Promise<void> {
+  async updateHeadHash(
+    account: Account,
+    headHash: Buffer | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     const hash = headHash ? headHash.toString('hex') : null
 
     this.headHashes.set(account.id, hash)
 
-    await this.db.saveHeadHash(account, hash)
+    await this.db.saveHeadHash(account, hash, tx)
   }
 
   async reset(): Promise<void> {
-    await this.resetAccounts()
-    this.chainProcessor.hash = null
-    await this.saveAccountsToDb()
-    await this.updateHeadHashes(null)
+    await this.db.database.transaction(async (tx) => {
+      await this.resetAccounts(tx)
+      this.chainProcessor.hash = null
+      await this.saveAccountsToDb(tx)
+      await this.updateHeadHashes(null, tx)
+    })
   }
 
-  private async resetAccounts(): Promise<void> {
+  private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
     for (const account of this.accounts.values()) {
-      await account.reset()
+      await account.reset(tx)
     }
   }
 
@@ -427,11 +436,9 @@ export class Accounts {
       )
 
       for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
-        await this.db.database.transaction(async (tx) => {
-          const account = this.accounts.get(accountId)
-          Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
-          await account.syncTransaction(transaction, decryptedNotes, params, tx)
-        })
+        const account = this.accounts.get(accountId)
+        Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+        await account.syncTransaction(transaction, decryptedNotes, params)
       }
     })
   }
@@ -444,9 +451,7 @@ export class Accounts {
     const transactionHash = transaction.unsignedHash()
 
     for (const account of this.accounts.values()) {
-      await this.db.database.transaction(async (tx) => {
-        await account.deleteTransaction(transactionHash, transaction, tx)
-      })
+      await account.deleteTransaction(transactionHash, transaction)
     }
   }
 
@@ -584,19 +589,22 @@ export class Accounts {
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
-    this.assertHasAccount(account)
-    const headHash = await account.getHeadHash()
-    if (!headHash) {
-      return {
-        unconfirmed: BigInt(0),
-        confirmed: BigInt(0),
+    return await this.db.database.transaction(async (tx) => {
+      this.assertHasAccount(account)
+      const headHash = await account.getHeadHash(tx)
+      if (!headHash) {
+        return {
+          unconfirmed: BigInt(0),
+          confirmed: BigInt(0),
+        }
       }
-    }
-    const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
-    Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
-    const headSequence = header.sequence
-    const unconfirmedSequenceStart = headSequence - this.config.get('minimumBlockConfirmations')
-    return account.getBalance(unconfirmedSequenceStart, headSequence)
+      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'), tx)
+      Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
+      const headSequence = header.sequence
+      const unconfirmedSequenceStart =
+        headSequence - this.config.get('minimumBlockConfirmations')
+      return account.getBalance(unconfirmedSequenceStart, headSequence, tx)
+    })
   }
 
   private async getUnspentNotes(account: Account): Promise<
@@ -804,8 +812,8 @@ export class Accounts {
     }
 
     for (const account of this.accounts.values()) {
-      for (const tx of account.getTransactions()) {
-        const { transaction, blockHash, submittedSequence } = tx
+      for (const transactionInfo of account.getTransactions()) {
+        const { transaction, blockHash, submittedSequence } = transactionInfo
         const transactionHash = transaction.unsignedHash()
 
         // Skip transactions that are already added to a block
@@ -828,26 +836,35 @@ export class Accounts {
           continue
         }
 
-        const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
+        let isValid = true
+        await this.db.database.transaction(async (tx) => {
+          const verify = await this.chain.verifier.verifyTransactionAdd(transaction, tx)
 
-        // We still update this even if it's not valid to prevent constantly
-        // reprocessing valid transaction every block. Give them a few blocks to
-        // try to become valid.
-        await account.updateTransaction(transactionHash, {
-          ...tx,
-          submittedSequence: head.sequence,
-        })
-
-        if (!verify.valid) {
-          this.logger.debug(
-            `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
-              'hex',
-            )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+          // We still update this even if it's not valid to prevent constantly
+          // reprocessing valid transaction every block. Give them a few blocks to
+          // try to become valid.
+          await account.updateTransaction(
+            transactionHash,
+            {
+              ...transactionInfo,
+              submittedSequence: head.sequence,
+            },
+            tx,
           )
 
+          if (!verify.valid) {
+            isValid = false
+            this.logger.debug(
+              `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
+                'hex',
+              )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+            )
+          }
+        })
+
+        if (!isValid) {
           continue
         }
-
         this.broadcastTransaction(transaction)
       }
     }
@@ -904,14 +921,16 @@ export class Accounts {
       accountsDb: this.db,
     })
 
-    this.accounts.set(account.id, account)
-    await this.db.setAccount(account)
+    await this.db.database.transaction(async (tx) => {
+      this.accounts.set(account.id, account)
+      await this.db.setAccount(account, tx)
 
-    await this.updateHeadHash(account, this.chainProcessor.hash)
+      await this.updateHeadHash(account, this.chainProcessor.hash, tx)
 
-    if (setDefault) {
-      await this.setDefaultAccount(account.name)
-    }
+      if (setDefault) {
+        await this.setDefaultAccount(account.name, tx)
+      }
+    })
 
     return account
   }
@@ -937,10 +956,12 @@ export class Accounts {
       accountsDb: this.db,
     })
 
-    this.accounts.set(account.id, account)
-    await this.db.setAccount(account)
+    await this.db.database.transaction(async (tx) => {
+      this.accounts.set(account.id, account)
+      await this.db.setAccount(account, tx)
 
-    await this.updateHeadHash(account, null)
+      await this.updateHeadHash(account, null, tx)
+    })
 
     this.onAccountImported.emit(account)
 
@@ -956,21 +977,24 @@ export class Accounts {
   }
 
   async removeAccount(name: string): Promise<void> {
-    const account = this.getAccountByName(name)
-    if (!account) {
-      return
-    }
+    await this.db.database.transaction(async (tx) => {
+      const account = this.getAccountByName(name)
+      if (!account) {
+        return
+      }
 
-    if (account.id === this.defaultAccount) {
-      await this.db.setDefaultAccount(null)
+      if (account.id === this.defaultAccount) {
+        await this.db.setDefaultAccount(null, tx)
 
-      this.defaultAccount = null
-    }
+        this.defaultAccount = null
+      }
 
-    this.accounts.delete(account.id)
-    await this.db.removeAccount(account.id)
-    await this.db.removeHeadHash(account)
-    this.onAccountRemoved.emit(account)
+      this.accounts.delete(account.id)
+      await this.db.removeAccount(account.id, tx)
+      await this.db.removeHeadHash(account, tx)
+
+      this.onAccountRemoved.emit(account)
+    })
   }
 
   get hasDefaultAccount(): boolean {
@@ -978,7 +1002,7 @@ export class Accounts {
   }
 
   /** Set or clear the default account */
-  async setDefaultAccount(name: string | null): Promise<void> {
+  async setDefaultAccount(name: string | null, tx?: IDatabaseTransaction): Promise<void> {
     let next = null
 
     if (name) {
@@ -994,7 +1018,7 @@ export class Accounts {
     }
 
     const nextId = next ? next.id : null
-    await this.db.setDefaultAccount(nextId)
+    await this.db.setDefaultAccount(nextId, tx)
     this.defaultAccount = nextId
   }
 
