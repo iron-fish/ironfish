@@ -876,14 +876,14 @@ describe('PeerNetwork', () => {
         transactions: [],
       }
 
-      jest.spyOn(node.syncer, 'addNewBlock')
+      jest.spyOn(node.syncer, 'addBlock')
 
-      await peerNetwork['onNewBlock'](
+      await peerNetwork['handleNewBlockMessage'](
         peer,
         new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
       )
 
-      expect(node.syncer.addNewBlock).not.toHaveBeenCalled()
+      expect(node.syncer.addBlock).not.toHaveBeenCalled()
     })
 
     it('does not handle transactions', async () => {
