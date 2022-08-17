@@ -86,6 +86,10 @@ impl PublicAddress {
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
+        if value.len() != 86 {
+            return Err(errors::SaplingKeyError::InvalidPublicAddress);
+        }
+
         match hex_to_bytes(value) {
             Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
             Ok(bytes) => {
@@ -186,5 +190,21 @@ impl std::fmt::Debug for PublicAddress {
 impl std::cmp::PartialEq for PublicAddress {
     fn eq(&self, other: &Self) -> bool {
         self.hex_public_address() == other.hex_public_address()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::PublicAddress;
+
+    #[test]
+    fn public_address_validation() {
+        let bad_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab5";
+        let good_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab8";
+
+        let bad_result = PublicAddress::from_hex(bad_address);
+        assert!(bad_result.is_err());
+
+        PublicAddress::from_hex(good_address).expect("returns a valid public address");
     }
 }

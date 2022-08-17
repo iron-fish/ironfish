@@ -6,7 +6,7 @@ import { Database } from 'sqlite'
 import { Migration } from '../migration'
 
 export default class Migration001 extends Migration {
-  name = '001-inital'
+  name = '001-initial'
 
   async forward(db: Database): Promise<void> {
     await db.run(`

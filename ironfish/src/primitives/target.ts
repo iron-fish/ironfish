@@ -58,7 +58,7 @@ export class Target {
 
   /**
    * Calculate the target for the current block given the timestamp in that
-   * block's header, the pervious block's timestamp and previous block's target.
+   * block's header, the previous block's timestamp and previous block's target.
    *
    * To verify whether a target on a block is correct, pass in the timestamp in its header,
    * its previous block's timestamp, and its previous block's target
@@ -101,7 +101,7 @@ export class Target {
    * .. and so on
    *
    * Returns the difficulty for a block given it timestamp for that block and its parent.
-   * @param time the block's timestamp for which the target is calcualted for
+   * @param time the block's timestamp for which the target is calculated for
    * @param previousBlockTimestamp the block's previous block header's timestamp
    * @param previousBlockTarget the block's previous block header's target
    */
@@ -154,7 +154,7 @@ export class Target {
   }
 
   /**
-   * Add the given amout to the target's value. A negative amount makes the target
+   * Add the given amount to the target's value. A negative amount makes the target
    * harder to achieve, a positive one makes it easier.
    *
    * If adjustment would make target negative or higher than max allowed value,

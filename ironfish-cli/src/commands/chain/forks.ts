@@ -76,12 +76,12 @@ export default class ForksCommand extends IronfishCommand {
         }
 
         const renderedAge = (age / 1000).toFixed(0).padStart(3)
-        const renderdDiff = (highest - block.sequence).toString().padStart(6)
+        const renderedDiff = (highest - block.sequence).toString().padStart(6)
         const renderedMined = mined.toString().padStart(3)
         const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(block.graffiti, 'hex'))
 
         list.pushLine(
-          `${block.hash} | ${renderdDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
+          `${block.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
         )
         count++
       }

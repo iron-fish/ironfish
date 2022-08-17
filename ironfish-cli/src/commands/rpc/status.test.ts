@@ -17,7 +17,7 @@ describe('rpc:status', () => {
         readBytes: 3072,
         writtenBytes: 4096,
         clients: 10,
-        pending: 5,
+        pending: ['test/route'],
       },
     ],
   }
@@ -57,7 +57,8 @@ describe('rpc:status', () => {
         expectCli(stdout).include('STARTED: true')
         expectCli(stdout).include('[adapter1]')
         expectCli(stdout).include('Clients: 10')
-        expectCli(stdout).include('Requests Pending: 5')
+        expectCli(stdout).include('Requests Pending: 1')
+        expectCli(stdout).include('Routes Pending: test/route')
         expectCli(stdout).include('Inbound Traffic: 1 B/s')
         expectCli(stdout).include('Outbound Traffic: 2 B/s')
         expectCli(stdout).include('Outbound Total: 4.00 KiB')

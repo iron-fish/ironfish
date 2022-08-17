@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from '@ironfish/rust-nodejs'
-import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
-import { privateIdentityToIdentity } from '../network/identity'
 import { createNodeTest } from '../testUtilities/nodeTest'
 
 describe('Worker Pool', () => {
@@ -38,28 +36,5 @@ describe('Worker Pool', () => {
 
     expect(result.valid).toBe(true)
     expect(workerPool.completed).toBe(1)
-  }, 60000)
-
-  it('boxMessage and unboxMessage', async () => {
-    const { workerPool } = nodeTest
-    workerPool.start()
-
-    expect(workerPool.workers.length).toBe(1)
-    expect(workerPool.completed).toBe(0)
-
-    const message = 'hello world'
-    const identityPrivate = tweetnacl.box.keyPair()
-    const identityPublic = privateIdentityToIdentity(identityPrivate)
-    const boxed = await workerPool.boxMessage(message, identityPrivate, identityPublic)
-
-    const unboxed = await workerPool.unboxMessage(
-      boxed.boxedMessage,
-      boxed.nonce,
-      identityPublic,
-      identityPrivate,
-    )
-
-    expect(unboxed.message).toEqual(message)
-    expect(workerPool.completed).toBe(2)
   }, 60000)
 })
