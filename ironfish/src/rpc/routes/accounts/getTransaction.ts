@@ -97,7 +97,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
           if (decryptedNote.value() !== BigInt(0)) {
             transactionNotes.push({
               amount: Number(decryptedNote.value()),
-              memo: decryptedNote.memo().replace(/\x00/g, ''),
+              memo: decryptedNote.memo(),
               spent: decryptedNoteValue?.spent,
             })
           }

@@ -4,6 +4,7 @@
 
 import { Note as NativeNote } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { BufferUtils } from '../utils/buffer'
 
 export const NOTE_LENGTH = 43 + 8 + 32 + 32
 
@@ -56,7 +57,7 @@ export class Note {
   }
 
   memo(): string {
-    return this._memo.toString('utf8')
+    return BufferUtils.toHuman(this._memo)
   }
 
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {

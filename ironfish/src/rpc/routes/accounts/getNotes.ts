@@ -52,7 +52,7 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
     for (const note of notes) {
       responseNotes.push({
         amount: Number(note.note.value()),
-        memo: note.note.memo().replace(/\x00/g, ''),
+        memo: note.note.memo(),
         transactionHash: note.transactionHash.toString('hex'),
         spent: note.spent,
       })

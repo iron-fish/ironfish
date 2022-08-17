@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHeader } from '../../../primitives'
+import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -140,7 +141,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
     request.end({
       block: {
-        graffiti: header.graffiti.toString('hex'),
+        graffiti: BufferUtils.toHuman(header.graffiti),
         difficulty: header.target.toDifficulty().toString(),
         hash: header.hash.toString('hex'),
         previousBlockHash: header.previousBlockHash.toString('hex'),

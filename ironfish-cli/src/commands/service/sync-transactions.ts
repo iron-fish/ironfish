@@ -4,7 +4,6 @@
 import {
   ApiDepositUpload,
   GetTransactionStreamResponse,
-  MemoUtils,
   Meter,
   TimeUtils,
   WebApi,
@@ -154,7 +153,7 @@ function serializeDeposit(data: GetTransactionStreamResponse): ApiDepositUpload 
       ...tx,
       notes: tx.notes.map((note) => ({
         ...note,
-        memo: MemoUtils.toHuman(note.memo),
+        memo: note.memo,
         amount: Number(note.amount),
       })),
     })),

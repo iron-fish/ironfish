@@ -10,14 +10,6 @@ function fromString(graffiti: string): Buffer {
   return result
 }
 
-function toHuman(graffiti: Buffer): string {
-  return graffiti
-    .toString('utf8')
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-    .trim()
-}
-
 export const GraffitiUtils = {
   fromString,
-  toHuman,
 }
