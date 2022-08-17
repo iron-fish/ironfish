@@ -65,7 +65,7 @@ export function getTransactionNotes(
     let owner
 
     // Try loading the decrypted note from the account
-    const decryptedNoteValue = account.getDecryptedNote(note.merkleHash().toString('hex'))
+    const decryptedNoteValue = account.getDecryptedNote(note.merkleHash())
 
     if (decryptedNoteValue) {
       decryptedNote = new Note(decryptedNoteValue.serializedNote)

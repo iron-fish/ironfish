@@ -315,8 +315,8 @@ export class Accounts {
       string,
       Array<{
         noteIndex: number | null
-        nullifier: string | null
-        merkleHash: string
+        nullifier: Buffer | null
+        merkleHash: Buffer
         forSpender: boolean
         account: Account
         serializedNote: Buffer
@@ -330,8 +330,8 @@ export class Accounts {
       string,
       Array<{
         noteIndex: number | null
-        nullifier: string | null
-        merkleHash: string
+        nullifier: Buffer | null
+        merkleHash: Buffer
         forSpender: boolean
         account: Account
         serializedNote: Buffer
@@ -389,8 +389,8 @@ export class Accounts {
   ): Promise<
     Array<{
       noteIndex: number | null
-      nullifier: string | null
-      merkleHash: string
+      nullifier: Buffer | null
+      merkleHash: Buffer
       forSpender: boolean
       account: Account
       serializedNote: Buffer
@@ -404,9 +404,9 @@ export class Accounts {
         decryptedNotes.push({
           account,
           forSpender: decryptedNote.forSpender,
-          merkleHash: decryptedNote.merkleHash.toString('hex'),
+          merkleHash: decryptedNote.merkleHash,
           noteIndex: decryptedNote.index,
-          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
+          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier : null,
           serializedNote: decryptedNote.serializedNote,
         })
       }
@@ -609,7 +609,7 @@ export class Accounts {
 
   private async getUnspentNotes(account: Account): Promise<
     ReadonlyArray<{
-      hash: string
+      hash: Buffer
       note: Note
       index: number | null
       confirmed: boolean
@@ -754,9 +754,9 @@ export class Accounts {
 
           // Otherwise, push the note into the list of notes to spend
           this.logger.debug(
-            `Accounts: spending note ${unspentNote.index} ${
-              unspentNote.hash
-            } ${unspentNote.note.value()}`,
+            `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
+              'hex',
+            )} ${unspentNote.note.value()}`,
           )
           notesToSpend.push({ note: unspentNote.note, witness: witness })
           amountNeeded -= unspentNote.note.value()

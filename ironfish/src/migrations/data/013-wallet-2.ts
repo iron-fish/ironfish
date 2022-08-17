@@ -389,7 +389,9 @@ export class Migration013 extends Migration {
       const decryptedNote: DatabaseStoreValue<NewStores['decryptedNotes']> = {
         accountId: account.id,
         noteIndex: nullifierEntry.noteIndex,
-        nullifierHash: nullifierEntry.nullifierHash,
+        nullifierHash: nullifierEntry.nullifierHash
+          ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
+          : null,
         serializedNote: note.serialize(),
         spent: nullifierEntry.spent,
         transactionHash: transactionHash,
@@ -401,7 +403,7 @@ export class Migration013 extends Migration {
         unconfirmedBalances.set(account.id, balance)
       }
 
-      await decryptedNoteStoreNew.put(noteHashHex, decryptedNote, tx)
+      await decryptedNoteStoreNew.put(noteHash, decryptedNote, tx)
 
       decryptedNotes.push(decryptedNote)
     }

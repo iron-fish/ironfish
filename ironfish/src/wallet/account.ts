@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -16,7 +16,7 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-  private readonly decryptedNotes: Map<string, DecryptedNoteValue>
+  private readonly decryptedNotes: BufferMap<DecryptedNoteValue>
   private readonly nullifierToNoteHash: BufferMap<Buffer>
   private readonly transactions: BufferMap<
     Readonly<{
@@ -27,8 +27,8 @@ export class Account {
     }>
   >
 
-  private readonly noteHashesBySequence: Map<number, Set<string>>
-  private readonly nonChainNoteHashes: Set<string>
+  private readonly noteHashesBySequence: Map<number, BufferSet>
+  private readonly nonChainNoteHashes: BufferSet
 
   readonly id: string
   readonly displayName: string
@@ -71,7 +71,7 @@ export class Account {
     this.displayName = `${this.name} (${hashSlice})`
 
     this.accountsDb = accountsDb
-    this.decryptedNotes = new Map<string, DecryptedNoteValue>()
+    this.decryptedNotes = new BufferMap<DecryptedNoteValue>()
     this.nullifierToNoteHash = new BufferMap<Buffer>()
     this.transactions = new BufferMap<{
       transaction: Transaction
@@ -80,8 +80,8 @@ export class Account {
       submittedSequence: number | null
     }>()
 
-    this.noteHashesBySequence = new Map<number, Set<string>>()
-    this.nonChainNoteHashes = new Set<string>()
+    this.noteHashesBySequence = new Map<number, BufferSet>()
+    this.nonChainNoteHashes = new BufferSet()
   }
 
   serialize(): AccountValue {
@@ -134,7 +134,7 @@ export class Account {
   }
 
   getNotes(): ReadonlyArray<{
-    hash: string
+    hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
@@ -156,7 +156,7 @@ export class Account {
   }
 
   getUnspentNotes(): ReadonlyArray<{
-    hash: string
+    hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
@@ -164,12 +164,12 @@ export class Account {
     return this.getNotes().filter((note) => !note.spent)
   }
 
-  getDecryptedNote(hash: string): DecryptedNoteValue | undefined {
+  getDecryptedNote(hash: Buffer): DecryptedNoteValue | undefined {
     return this.decryptedNotes.get(hash)
   }
 
   async updateDecryptedNote(
-    noteHash: string,
+    noteHash: Buffer,
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -192,7 +192,7 @@ export class Account {
     })
   }
 
-  private saveDecryptedNoteSequence(transactionHash: Buffer, noteHash: string): void {
+  private saveDecryptedNoteSequence(transactionHash: Buffer, noteHash: Buffer): void {
     const transaction = this.transactions.get(transactionHash)
     Assert.isNotUndefined(
       transaction,
@@ -202,7 +202,7 @@ export class Account {
     const { sequence, blockHash } = transaction
     if (blockHash) {
       Assert.isNotNull(sequence, `sequence required when submitting block hash`)
-      const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? new Set<string>()
+      const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? new BufferSet()
       decryptedNotes.add(noteHash)
       this.noteHashesBySequence.set(sequence, decryptedNotes)
       this.nonChainNoteHashes.delete(noteHash)
@@ -215,8 +215,8 @@ export class Account {
     transaction: Transaction,
     decryptedNotes: Array<{
       noteIndex: number | null
-      nullifier: string | null
-      merkleHash: string
+      nullifier: Buffer | null
+      merkleHash: Buffer
       forSpender: boolean
       account: Account
       serializedNote: Buffer
@@ -271,8 +271,8 @@ export class Account {
     transactionHash: Buffer,
     decryptedNotes: Array<{
       noteIndex: number | null
-      nullifier: string | null
-      merkleHash: string
+      nullifier: Buffer | null
+      merkleHash: Buffer
       forSpender: boolean
       serializedNote: Buffer
     }>,
@@ -283,8 +283,8 @@ export class Account {
         if (!decryptedNote.forSpender) {
           if (decryptedNote.nullifier !== null) {
             await this.updateNullifierNoteHash(
-              Buffer.from(decryptedNote.nullifier, 'hex'),
-              Buffer.from(decryptedNote.merkleHash, 'hex'),
+              decryptedNote.nullifier,
+              decryptedNote.merkleHash,
               tx,
             )
           }
@@ -315,14 +315,14 @@ export class Account {
       const noteHash = this.getNoteHash(spend.nullifier)
 
       if (noteHash) {
-        const decryptedNote = this.getDecryptedNote(noteHash.toString('hex'))
+        const decryptedNote = this.getDecryptedNote(noteHash)
         Assert.isNotUndefined(
           decryptedNote,
           'nullifierToNote mappings must have a corresponding decryptedNote',
         )
 
         await this.updateDecryptedNote(
-          noteHash.toString('hex'),
+          noteHash,
           {
             ...decryptedNote,
             spent: !isRemovingTransaction,
@@ -334,7 +334,7 @@ export class Account {
   }
 
   private async deleteDecryptedNote(
-    noteHash: string,
+    noteHash: Buffer,
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -415,14 +415,14 @@ export class Account {
   ): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes()) {
-        const merkleHash = note.merkleHash().toString('hex')
+        const merkleHash = note.merkleHash()
         const decryptedNote = this.getDecryptedNote(merkleHash)
 
         if (decryptedNote) {
           await this.deleteDecryptedNote(merkleHash, hash, tx)
 
           if (decryptedNote.nullifierHash) {
-            const nullifier = Buffer.from(decryptedNote.nullifierHash, 'hex')
+            const nullifier = decryptedNote.nullifierHash
             await this.deleteNullifier(nullifier, tx)
           }
         }
@@ -432,14 +432,14 @@ export class Account {
         const noteHash = this.getNoteHash(spend.nullifier)
 
         if (noteHash) {
-          const decryptedNote = this.getDecryptedNote(noteHash.toString('hex'))
+          const decryptedNote = this.getDecryptedNote(noteHash)
           Assert.isNotUndefined(
             decryptedNote,
             'nullifierToNote mappings must have a corresponding decryptedNote',
           )
 
           await this.updateDecryptedNote(
-            noteHash.toString('hex'),
+            noteHash,
             {
               ...decryptedNote,
               spent: false,
@@ -475,7 +475,7 @@ export class Account {
       }
     }
 
-    for (const noteHash of this.nonChainNoteHashes.values()) {
+    for (const noteHash of this.nonChainNoteHashes) {
       const note = this.decryptedNotes.get(noteHash)
       Assert.isNotUndefined(note)
       if (!note.spent) {
