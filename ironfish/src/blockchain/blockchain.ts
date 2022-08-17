@@ -359,7 +359,7 @@ export class Blockchain {
         const previous = await this.getPrevious(block.header, tx)
 
         if (!previous) {
-          this.addOrphan(block)
+          this.addOrphan(block.header)
 
           throw new VerifyError(VerificationResultReason.ORPHAN)
         }

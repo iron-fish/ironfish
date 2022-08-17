@@ -174,12 +174,6 @@ export default class Start extends IronfishCommand {
     if (upgrade !== undefined && upgrade !== this.sdk.config.get('databaseMigrate')) {
       this.sdk.config.setOverride('databaseMigrate', upgrade)
     }
-    if (
-      unsupportedNetworking !== undefined &&
-      unsupportedNetworking !== this.sdk.config.get('enableUnsupportedNetworking')
-    ) {
-      this.sdk.config.setOverride('enableUnsupportedNetworking', unsupportedNetworking)
-    }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
