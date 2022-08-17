@@ -465,7 +465,7 @@ export class Account {
     for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
       const noteHashes = this.noteHashesBySequence.get(i)
       if (noteHashes) {
-        for (const hash of noteHashes.toKeys()) {
+        for (const hash of noteHashes) {
           const note = this.decryptedNotes.get(hash)
           Assert.isNotUndefined(note)
           if (!note.spent) {
@@ -475,7 +475,7 @@ export class Account {
       }
     }
 
-    for (const noteHash of this.nonChainNoteHashes.toKeys()) {
+    for (const noteHash of this.nonChainNoteHashes) {
       const note = this.decryptedNotes.get(noteHash)
       Assert.isNotUndefined(note)
       if (!note.spent) {

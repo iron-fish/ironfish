@@ -35,7 +35,7 @@ declare module 'buffer-map' {
     delete(key: Buffer): boolean
     clear(): void
 
-    [Symbol.iterator](): Iterator<[Buffer, T]>
+    [Symbol.iterator](): Iterator<Buffer>
 
     *entries(): Generator<[Buffer, Bufferd]>
     keys(): Iterator<Buffer>
