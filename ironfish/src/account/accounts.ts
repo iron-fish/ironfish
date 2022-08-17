@@ -732,8 +732,11 @@ export class Accounts {
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
           if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
+            confirmed = this.isBlockConfirmed(
+              this.chain.head.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
           }
         }
 
@@ -821,9 +824,6 @@ export class Accounts {
     expirationSequence?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new ValidationError('You must have a genesis block to create a transaction')
-    }
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
@@ -985,7 +985,7 @@ export class Accounts {
       }
 
       // TODO: This algorithm suffers a deanonymization attack where you can
-      // watch to see what transactions node continously send out, then you can
+      // watch to see what transactions node continuously send out, then you can
       // know those transactions are theres. This should be randomized and made
       // less, predictable later to help prevent that attack.
       if (head.sequence - submittedSequence < this.rebroadcastAfter) {
@@ -1084,6 +1084,15 @@ export class Accounts {
     await this.scanTransactions()
   }
 
+  isBlockConfirmed(
+    chainHeadSequence: number,
+    blockSequence: number,
+    minimumBlockConfirmations: number,
+  ): boolean {
+    const confirmations = chainHeadSequence - blockSequence
+    return confirmations >= minimumBlockConfirmations
+  }
+
   async getTransactions(account: Account): Promise<
     Array<{
       creator: boolean
@@ -1099,6 +1108,9 @@ export class Accounts {
     this.assertHasAccount(account)
 
     const transactions = []
+
+    const heaviestHead = this.chain.head
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
 
     for (const transactionMapValue of this.transactionMap.values()) {
       const transaction = transactionMapValue.transaction
@@ -1124,8 +1136,17 @@ export class Accounts {
           const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
           Assert.isNotNull(header)
           const main = await this.chain.isHeadChain(header)
-          if (main) {
+          if (
+            main &&
+            this.isBlockConfirmed(
+              heaviestHead.sequence,
+              header.sequence,
+              minimumBlockConfirmations,
+            )
+          ) {
             status = 'completed'
+          } else if (main) {
+            status = 'confirming'
           } else {
             status = 'forked'
           }
@@ -1147,10 +1168,10 @@ export class Accounts {
     return transactions
   }
 
-  getTransaction(
+  async getTransaction(
     account: Account,
     hash: string,
-  ): {
+  ): Promise<{
     transactionInfo: {
       status: string
       isMinersFee: boolean
@@ -1163,11 +1184,14 @@ export class Accounts {
       amount: number
       memo: string
     }[]
-  } {
+  }> {
     this.assertHasAccount(account)
 
     let transactionInfo = null
     const transactionNotes = []
+
+    const heaviestHead = this.chain.head
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
 
     const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
 
@@ -1196,11 +1220,30 @@ export class Accounts {
         }
 
         if (transactionNotes.length > 0) {
+          const { blockHash } = transactionMapValue
+
+          let status = 'pending'
+          if (blockHash) {
+            const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+            Assert.isNotNull(header)
+            const main = await this.chain.isHeadChain(header)
+            if (
+              main &&
+              this.isBlockConfirmed(
+                heaviestHead.sequence,
+                header.sequence,
+                minimumBlockConfirmations,
+              )
+            ) {
+              status = 'completed'
+            } else if (main) {
+              status = 'confirming'
+            } else {
+              status = 'forked'
+            }
+          }
           transactionInfo = {
-            status:
-              transactionMapValue.blockHash && transactionMapValue.submittedSequence
-                ? 'completed'
-                : 'pending',
+            status,
             isMinersFee: transaction.isMinersFee(),
             fee: Number(transaction.fee()),
             notes: transaction.notesLength(),

@@ -26,7 +26,7 @@ use zcash_primitives::{
     sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
-use std::{io, slice::Iter, sync::Arc};
+use std::{io, iter, slice::Iter, sync::Arc};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -323,7 +323,7 @@ impl ProposedTransaction {
     }
 
     /// Helper method to encapsulate the verboseness around incrementing the
-    /// binding verificaiton key
+    /// binding verification key
     fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
         let mut tmp = *value;
         if negate {
@@ -420,55 +420,7 @@ impl Transaction {
     ///     containing those proofs (and only those proofs)
     ///
     pub fn verify(&self) -> Result<(), TransactionError> {
-        // Context to accumulate a signature of all the spends and outputs and
-        // guarantee they are part of this transaction, unmodified.
-        let mut binding_verification_key = ExtendedPoint::identity();
-
-        // Batch proof verifiers
-        let mut spends_verifier = Verifier::<Bls12>::new();
-        let mut receipts_verifier = Verifier::<Bls12>::new();
-
-        for spend in self.spends.iter() {
-            spend.verify_value_commitment()?;
-
-            let public_inputs = spend.public_inputs();
-            spends_verifier.queue((&spend.proof, &public_inputs[..]));
-
-            binding_verification_key += spend.value_commitment;
-        }
-
-        if spends_verifier
-            .verify(&mut OsRng, &self.sapling.spend_params.vk)
-            .is_err()
-        {
-            return Err(SaplingProofError::VerificationFailed.into());
-        }
-
-        for receipt in self.receipts.iter() {
-            receipt.verify_value_commitment()?;
-
-            let public_inputs = receipt.public_inputs();
-            receipts_verifier.queue((&receipt.proof, &public_inputs[..]));
-
-            binding_verification_key -= receipt.merkle_note.value_commitment;
-        }
-
-        if receipts_verifier
-            .verify(&mut OsRng, &self.sapling.receipt_params.vk)
-            .is_err()
-        {
-            return Err(SaplingProofError::VerificationFailed.into());
-        }
-
-        let hash_to_verify_signature = self.transaction_signature_hash();
-
-        for spend in self.spends.iter() {
-            spend.verify_signature(&hash_to_verify_signature)?;
-        }
-
-        self.verify_binding_signature(&binding_verification_key)?;
-
-        Ok(())
+        batch_verify_transactions(self.sapling.clone(), iter::once(self))
     }
 
     /// Get an iterator over the spends in this transaction. Each spend
@@ -588,9 +540,9 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
     Ok(value_balance.into())
 }
 
-pub fn batch_verify_transactions(
+pub fn batch_verify_transactions<'a>(
     sapling: Arc<Sapling>,
-    transactions: Vec<Transaction>,
+    transactions: impl IntoIterator<Item = &'a Transaction>,
 ) -> Result<(), TransactionError> {
     let mut spend_verifier = Verifier::<Bls12>::new();
     let mut receipt_verifier = Verifier::<Bls12>::new();
