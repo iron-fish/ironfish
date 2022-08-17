@@ -232,7 +232,7 @@ export class AccountsDB {
     transactionHash: Buffer,
     transaction: {
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     },
@@ -256,7 +256,7 @@ export class AccountsDB {
   async replaceTransactions(
     map: BufferMap<{
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     }>,
@@ -270,6 +270,7 @@ export class AccountsDB {
           ...value,
           transaction: value.transaction.serialize(),
         }
+
         await this.transactions.put(key, serialized, tx)
       }
     })
@@ -278,7 +279,7 @@ export class AccountsDB {
   async loadTransactions(
     map: BufferMap<{
       transaction: Transaction
-      blockHash: string | null
+      blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
     }>,

@@ -7,7 +7,7 @@ import bufio from 'bufio'
 export interface TransactionValue {
   transaction: Buffer
   // These fields are populated once the transaction is on the main chain
-  blockHash: string | null
+  blockHash: Buffer | null
   sequence: number | null
   // This is populated when we create a transaction to track when we should
   // rebroadcast. This can be null if we created it on another node, or the
@@ -52,7 +52,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     let blockHash = null
     if (hasBlockHash) {
-      blockHash = reader.readHash('hex')
+      blockHash = reader.readHash()
     }
 
     let submittedSequence = null

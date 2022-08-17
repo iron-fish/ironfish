@@ -11,7 +11,7 @@ export type TransactionsStore = IDatabaseStore<{
 
 export interface TransactionsValue {
   transaction: Buffer
-  blockHash: string | null
+  blockHash: Buffer | null
   sequence: number | null
   submittedSequence: number | null
 }
@@ -53,7 +53,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
 
     let blockHash = null
     if (hasBlockHash) {
-      blockHash = reader.readHash('hex')
+      blockHash = reader.readHash()
     }
 
     let submittedSequence = null
