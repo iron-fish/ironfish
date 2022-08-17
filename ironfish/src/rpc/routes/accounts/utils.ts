@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishNode } from '../../../node'
+import { Note, Transaction } from '../../../primitives'
 import { Account } from '../../../wallet'
 import { ValidationError } from '../../adapters'
 
@@ -45,4 +46,47 @@ export async function getTransactionStatus(
   } else {
     return headSequence > expirationSequence ? 'expired' : 'pending'
   }
+}
+
+export function getTransactionNotes(
+  account: Account,
+  transaction: Transaction,
+): ReadonlyArray<{
+  owner: boolean
+  amount: number
+  memo: string
+  transactionHash: string
+  spent: boolean | undefined
+}> {
+  const transactionNotes = []
+
+  for (const note of transaction.notes()) {
+    let decryptedNote
+    let owner
+
+    // Try loading the decrypted note from the account
+    const decryptedNoteValue = account.getDecryptedNote(note.merkleHash().toString('hex'))
+
+    if (decryptedNoteValue) {
+      decryptedNote = new Note(decryptedNoteValue.serializedNote)
+      owner = true
+    } else {
+      // Try decrypting the note using the outgoingViewKey
+      decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+      owner = false
+    }
+    if (decryptedNote) {
+      if (decryptedNote.value() !== BigInt(0)) {
+        transactionNotes.push({
+          owner,
+          amount: Number(decryptedNote.value()),
+          memo: decryptedNote.memo(),
+          transactionHash: transaction.hash().toString('hex'),
+          spent: decryptedNoteValue?.spent,
+        })
+      }
+    }
+  }
+
+  return transactionNotes
 }

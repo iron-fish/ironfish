@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Note } from '../../../primitives/note'
 import { ApiNamespace, router } from '../router'
-import { getAccount, getTransactionStatus } from './utils'
+import { getAccount, getTransactionNotes, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
 
@@ -19,9 +18,10 @@ export type GetAccountTransactionResponse = {
     spends: number
   } | null
   transactionNotes: {
+    owner: boolean
     amount: number
     memo: string
-    spent: boolean
+    spent: boolean | undefined
   }[]
 }
 
@@ -51,9 +51,10 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
         .array(
           yup
             .object({
+              owner: yup.boolean().defined(),
               amount: yup.number().defined(),
               memo: yup.string().trim().defined(),
-              spent: yup.boolean().defined(),
+              spent: yup.boolean(),
             })
             .defined(),
         )
@@ -68,8 +69,8 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const account = getAccount(node, request.data.account)
 
     let transactionInfo = null
-    const transactionNotes = []
     const transactionValue = account.getTransaction(Buffer.from(request.data.hash, 'hex'))
+    const transactionNotes = []
 
     if (transactionValue) {
       const { transaction, blockHash, sequence } = transactionValue
@@ -87,22 +88,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         spends: transaction.spendsLength(),
       }
 
-      for (const note of transaction.notes()) {
-        // Try loading the note from the account
-        const decryptedNoteValue = account.getDecryptedNote(note.merkleHash().toString('hex'))
-
-        if (decryptedNoteValue) {
-          const decryptedNote = new Note(decryptedNoteValue.serializedNote)
-
-          if (decryptedNote.value() !== BigInt(0)) {
-            transactionNotes.push({
-              amount: Number(decryptedNote.value()),
-              memo: decryptedNote.memo(),
-              spent: decryptedNoteValue?.spent,
-            })
-          }
-        }
-      }
+      transactionNotes.push(...getTransactionNotes(account, transaction))
     }
 
     request.end({

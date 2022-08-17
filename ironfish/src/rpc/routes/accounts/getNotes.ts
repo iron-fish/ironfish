@@ -3,17 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount } from './utils'
+import { getAccount, getTransactionNotes } from './utils'
 
 export type GetAccountNotesRequest = { account?: string }
 
 export type GetAccountNotesResponse = {
   account: string
   notes: {
+    owner: boolean
     amount: number
     memo: string
     transactionHash: string
-    spent: boolean
+    spent: boolean | undefined
   }[]
 }
 
@@ -30,10 +31,11 @@ export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResp
       .array(
         yup
           .object({
+            owner: yup.boolean().defined(),
             amount: yup.number().defined(),
             memo: yup.string().trim().defined(),
             transactionHash: yup.string().defined(),
-            spent: yup.boolean().defined(),
+            spent: yup.boolean(),
           })
           .defined(),
       )
@@ -46,16 +48,10 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   GetAccountNotesRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const notes = account.getNotes()
-    const responseNotes = []
 
-    for (const note of notes) {
-      responseNotes.push({
-        amount: Number(note.note.value()),
-        memo: note.note.memo(),
-        transactionHash: note.transactionHash.toString('hex'),
-        spent: note.spent,
-      })
+    const responseNotes = []
+    for (const { transaction } of account.getTransactions()) {
+      responseNotes.push(...getTransactionNotes(account, transaction))
     }
 
     request.end({ account: account.displayName, notes: responseNotes })
