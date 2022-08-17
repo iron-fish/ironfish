@@ -846,7 +846,7 @@ export class PeerNetwork {
     return { ok: true, partialTransactions, missingTransactions }
   }
 
-  private assembleBlockFromResponse(
+  assembleBlockFromResponse(
     partialTransactions: TransactionOrHash[],
     responseTransactions: readonly SerializedTransaction[],
   ): { ok: false } | { ok: true; transactions: Transaction[] } {
@@ -874,27 +874,11 @@ export class PeerNetwork {
   }
 
   private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
-    const partialBlock = this.blockFetcher.receivedBlockTransactions(message.blockHash)
+    const block = this.blockFetcher.receivedBlockTransactions(message)
 
-    if (!partialBlock) {
+    if (!block) {
       return
     }
-
-    const { header, partialTransactions } = partialBlock
-
-    // check if we're missing transactions
-    const assembleResult = this.assembleBlockFromResponse(
-      partialTransactions,
-      message.serializedTransactions,
-    )
-
-    if (!assembleResult.ok) {
-      // Either mismatched hashes or missing transactions
-      this.blockFetcher.requestFullBlock(message.blockHash)
-      return
-    }
-
-    const block = new Block(BlockHeaderSerde.deserialize(header), assembleResult.transactions)
 
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
@@ -1304,7 +1288,7 @@ export class PeerNetwork {
     }
 
     // Mark that we've assembled a full block in the block fetcher
-    this.blockFetcher.receivedFullBlock(block, peer)
+    this.blockFetcher.receivedFullBlock(block)
 
     // Re-gossip the full block
     const serializedBlock = BlockSerde.serialize(block)
