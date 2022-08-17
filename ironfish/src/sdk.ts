@@ -26,7 +26,7 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ApiNamespace } from './rpc/routes/router'
+import { ALL_API_NAMESPACES, ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
@@ -189,20 +189,7 @@ export class IronfishSdk {
     })
 
     if (this.config.get('enableRpcIpc')) {
-      const namespaces = [
-        ApiNamespace.account,
-        ApiNamespace.chain,
-        ApiNamespace.config,
-        ApiNamespace.event,
-        ApiNamespace.faucet,
-        ApiNamespace.miner,
-        ApiNamespace.node,
-        ApiNamespace.peer,
-        ApiNamespace.transaction,
-        ApiNamespace.telemetry,
-        ApiNamespace.worker,
-        ApiNamespace.rpc,
-      ]
+      const namespaces = ALL_API_NAMESPACES
 
       await node.rpc.mount(
         new RpcIpcAdapter(
@@ -217,21 +204,13 @@ export class IronfishSdk {
     }
 
     if (this.config.get('enableRpcTcp')) {
-      const namespaces = [
-        ApiNamespace.chain,
-        ApiNamespace.event,
-        ApiNamespace.faucet,
-        ApiNamespace.miner,
-        ApiNamespace.node,
-        ApiNamespace.peer,
-        ApiNamespace.transaction,
-        ApiNamespace.telemetry,
-        ApiNamespace.worker,
-        ApiNamespace.rpc,
-      ]
+      const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
+      const namespaces = ALL_API_NAMESPACES.filter(
+        (namespace) => !protectedNamespaces.includes(namespace),
+      )
 
       if (this.config.get('rpcTcpSecure')) {
-        namespaces.push(ApiNamespace.account, ApiNamespace.config)
+        namespaces.push(...protectedNamespaces)
       }
 
       if (this.config.get('enableRpcTls')) {

@@ -21,7 +21,6 @@ export enum ApiNamespace {
   node = 'node',
   peer = 'peer',
   transaction = 'transaction',
-  telemetry = 'telemetry',
   worker = 'worker',
   rpc = 'rpc',
 }
