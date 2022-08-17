@@ -31,7 +31,7 @@ export default class DepositAll extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.string({
+    fee: Flags.integer({
       char: 'f',
       description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
@@ -60,7 +60,7 @@ export default class DepositAll extends IronfishCommand {
     this.client = await this.sdk.connectRpc()
     this.api = new WebApi()
 
-    let fee = flags.fee ? Number(flags.fee) : undefined
+    let fee = flags.fee
 
     if (fee == null || Number.isNaN(fee)) {
       try {
