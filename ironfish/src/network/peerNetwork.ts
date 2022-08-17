@@ -746,16 +746,26 @@ export class PeerNetwork {
       return
     }
 
-    const hashesToRequest = []
-    let shouldSync = false
-
+    // Update the peer's sequence to the largest sequence seen
     for (const { hash, sequence } of message.blockHashInfos) {
       peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Received)
 
       if (peer.sequence === null || sequence > peer.sequence) {
         peer.sequence = sequence
       }
+    }
 
+    // If the peer has blocks that we know don't connect to our chain head,
+    // start syncing from that peer
+    if (peer.sequence !== null && peer.sequence > this.chain.head.sequence + 1) {
+      this.node.syncer.startSync(peer)
+      return
+    }
+
+    // Otherwise, request compact blocks for hashes we're missing
+    const hashesToRequest = []
+
+    for (const { hash, sequence } of message.blockHashInfos) {
       // Request blocks that can likely be added to the head of the chain or are
       // can be compact blocks, and that we don't already have
       if (
@@ -764,19 +774,10 @@ export class PeerNetwork {
         !(await this.alreadyHaveBlock(hash))
       ) {
         hashesToRequest.push({ hash, sequence })
-      } else if (sequence > this.chain.head.sequence + 1) {
-        shouldSync = true
-        // continue looping to make sure peer.sequence is updated
       }
     }
 
-    if (shouldSync) {
-      this.node.syncer.startSync(peer)
-    } else {
-      await Promise.all(
-        hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)),
-      )
-    }
+    await Promise.all(hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)))
   }
 
   private *fromDifferentialIndex<T extends Indexable>(list: T[]): Generator<T> {
@@ -853,15 +854,15 @@ export class PeerNetwork {
     const transactions: Transaction[] = []
     let currResponseIndex = 0
 
-    for (const { type, value } of partialTransactions) {
-      if (type === 'FULL') {
-        transactions.push(value)
+    for (const partial of partialTransactions) {
+      if (partial.type === 'FULL') {
+        transactions.push(partial.value)
       } else if (currResponseIndex >= responseTransactions.length) {
         // did not respond with enough transactions
         return { ok: false }
       } else {
         const next = new Transaction(responseTransactions[currResponseIndex])
-        if (!next.hash().equals(value)) {
+        if (!next.hash().equals(partial.value)) {
           // hashes are mismatched
           return { ok: false }
         }
@@ -973,8 +974,8 @@ export class PeerNetwork {
     }
 
     const fullTransactions: Transaction[] = []
-    for (const { type, value } of partialTransactions) {
-      type === 'FULL' && fullTransactions.push(value)
+    for (const partial of partialTransactions) {
+      partial.type === 'FULL' && fullTransactions.push(partial.value)
     }
 
     const fullBlock = new Block(
@@ -1326,8 +1327,8 @@ export class PeerNetwork {
       return false
     }
 
-    // Ignore new blocks if the node is still syncing
-    if (!this.chain.synced && this.node.syncer.loader) {
+    // Ignore new blocks if the chain is unsynced, or is currently syncing
+    if (!this.chain.synced) {
       return false
     }
 

@@ -88,7 +88,6 @@ describe('GetBlocksResponse', () => {
           target: '12',
           timestamp: 200000,
           work: '123',
-          hash: 'ramen',
         },
         transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
       },
@@ -110,7 +109,6 @@ describe('GetBlocksResponse', () => {
           target: '13',
           timestamp: 200000,
           work: '123',
-          hash: 'noodles',
         },
         transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
       },
@@ -120,8 +118,6 @@ describe('GetBlocksResponse', () => {
     const buffer = message.serialize()
     const deserializedMessage = GetBlocksResponse.deserialize(buffer, rpcId)
 
-    delete serializedBlocks[0].header.hash
-    delete serializedBlocks[1].header.hash
     delete serializedBlocks[0].header.work
     delete serializedBlocks[1].header.work
 
