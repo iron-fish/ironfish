@@ -78,6 +78,28 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
+    if (amount == null || Number.isNaN(amount)) {
+      const response = await client.getAccountBalance({ account: from })
+
+      const input = Number(
+        await CliUx.ux.prompt(
+          `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
+            oreToIron(Number(response.content.confirmed)),
+            false,
+          )})`,
+          {
+            required: true,
+          },
+        ),
+      )
+
+      if (Number.isNaN(input)) {
+        this.error(`A valid amount is required`)
+      }
+
+      amount = input
+    }
+
     if (fee == null || Number.isNaN(fee)) {
       let dynamicFee: string | null
 
@@ -106,29 +128,6 @@ export class Pay extends IronfishCommand {
       }
 
       fee = input
-    }
-
-    if (amount == null || Number.isNaN(amount)) {
-      const response = await client.getAccountBalance({ account: from })
-
-      const maxToSend = oreToIron(Number(response.content.confirmed)) - fee
-
-      const input = Number(
-        await CliUx.ux.prompt(
-          `Enter the amount in $IRON (balance available: ${displayIronAmount(
-            oreToIron(Number(response.content.confirmed)),
-          )}, max: ${displayIronAmount(maxToSend)})`,
-          {
-            required: true,
-          },
-        ),
-      )
-
-      if (Number.isNaN(input)) {
-        this.error(`A valid amount is required`)
-      }
-
-      amount = input
     }
 
     if (!to) {
