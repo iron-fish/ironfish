@@ -101,7 +101,7 @@ export default class Bank extends IronfishCommand {
     const { canSend, errorReason } = await verifyCanSend(
       this.client,
       this.api,
-      flags,
+      expirationSequenceDelta,
       fee,
       graffiti,
     )

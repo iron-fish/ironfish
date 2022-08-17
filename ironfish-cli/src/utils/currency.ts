@@ -15,7 +15,7 @@ const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 export async function verifyCanSend(
   client: RpcClient,
   api: WebApi,
-  flags: Record<string, unknown>,
+  expirationSequenceDelta: number | undefined,
   fee: number,
   graffiti: string,
 ): Promise<{ canSend: boolean; errorReason: string | null }> {
@@ -51,7 +51,6 @@ export async function verifyCanSend(
     }
   }
 
-  const expirationSequenceDelta = flags.expirationSequenceDelta as number | undefined
   if (expirationSequenceDelta !== undefined && expirationSequenceDelta < 0) {
     return {
       canSend: false,
