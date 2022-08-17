@@ -80,7 +80,7 @@ export function getTransactionNotes(
         transactionNotes.push({
           owner,
           amount: Number(decryptedNote.value()),
-          memo: decryptedNote.memo().replace(/\x00/g, ''),
+          memo: decryptedNote.memo(),
           transactionHash: transaction.hash().toString('hex'),
           spent: decryptedNoteValue?.spent,
         })
