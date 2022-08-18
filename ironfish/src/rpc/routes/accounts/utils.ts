@@ -81,7 +81,7 @@ export function getTransactionNotes(
           owner,
           amount: Number(decryptedNote.value()),
           memo: decryptedNote.memo(),
-          transactionHash: transaction.hash().toString('hex'),
+          transactionHash: transaction.unsignedHash().toString('hex'),
           spent: decryptedNoteValue?.spent,
         })
       }
