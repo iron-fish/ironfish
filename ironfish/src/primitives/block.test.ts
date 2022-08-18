@@ -4,6 +4,7 @@
 import {
   useAccountFixture,
   useBlockWithTx,
+  useMinerBlockFixture,
   useMinersTxFixture,
 } from '../testUtilities/fixtures'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -92,5 +93,18 @@ describe('Block', () => {
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
     expect(() => block.minersFee).toThrowError('Block has no miners fee')
+  })
+
+  it(`serializes a miner's fee as a compact block`, async () => {
+    const block = await useMinerBlockFixture(nodeTest.chain)
+
+    const compactBlock = block.toCompactBlock()
+
+    expect(compactBlock.transactionHashes).toHaveLength(0)
+
+    expect(compactBlock.transactions).toHaveLength(1)
+    const transaction = compactBlock.transactions[0]
+    expect(transaction.index).toBe(0)
+    expect(transaction.transaction).toEqual(block.minersFee.serialize())
   })
 })
