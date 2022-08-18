@@ -121,7 +121,6 @@ export default class Backup extends IronfishCommand {
       region,
     })
 
-
     await S3Utils.uploadToBucket(
       s3,
       dest,
