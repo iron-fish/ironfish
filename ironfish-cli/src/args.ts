@@ -3,6 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export function parseNumber(input: string): number | null {
-  const parsed = Number(input)
-  return isNaN(parsed) ? null : parsed
+  return Number(input.trim()) ?? null
+}
+
+export function parseNumberChecked(input: string, name?: string): number {
+  const parsed = Number(input.trim())
+
+  if (!parsed) {
+    throw TypeError(`Invalid ${name ?? 'value'} "${input}", expected a number`)
+  }
+
+  return parsed
 }
