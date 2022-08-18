@@ -28,7 +28,7 @@ describe('Block', () => {
 
     const notes = Array.from(block.allNotes())
     expect(notes).toHaveLength(3)
-  }, 60000)
+  })
 
   it('serializes and deserializes a block', async () => {
     nodeTest.strategy.disableMiningReward()
@@ -79,18 +79,18 @@ describe('Block', () => {
     block4.transactions.pop()
     block4.transactions.push(tx)
     expect(block1.equals(block4)).toBe(false)
-  }, 60000)
+  })
 
   it('validate get minersFee returns the first transaction in a block', async () => {
     const { block } = await useBlockWithTx(nodeTest.node)
     // Miners Fee should be the first transaction in the block
     expect(block.minersFee).toBe(block.transactions[0])
-  }, 60000)
+  })
 
   it('validate get minersFee when no miners fee', async () => {
     nodeTest.strategy.disableMiningReward()
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
     expect(() => block.minersFee).toThrowError('Block has no miners fee')
-  }, 60000)
+  })
 })

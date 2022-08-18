@@ -8,9 +8,10 @@ import { MetricsMonitor } from '../../../metrics'
 import { SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
 import { NetworkMessage } from '../../messages/networkMessage'
-import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
 import { NetworkMessageType } from '../../types'
 import { HandshakeTimeoutError } from './errors'
+
+const CONNECTION_TIMEOUT_MILLIS = 10000
 
 /**
  * The type of peer connection. This should only be used for information
@@ -135,7 +136,7 @@ export abstract class Connection {
         state.type === 'SIGNALING' ||
         state.type === 'WAITING_FOR_IDENTITY'
       ) {
-        const timeout = RPC_TIMEOUT_MILLIS
+        const timeout = CONNECTION_TIMEOUT_MILLIS
 
         this.handshakeTimeout = setTimeout(() => {
           const error = `Closing ${this.type} connection because handshake timed out in state ${state.type} after ${timeout}ms`
