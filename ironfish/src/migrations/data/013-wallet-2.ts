@@ -139,14 +139,12 @@ export class Migration013 extends Migration {
     const noteToTransaction = new BufferMap<Buffer>()
     let tranactionCount = 0
 
-    for await (const [transactionHash, transactionValue] of transactionsStoreOld.getAllIter(
-      tx,
-    )) {
+    for await (const transactionValue of transactionsStoreOld.getAllValuesIter(tx)) {
       const transaction = new Transaction(transactionValue.transaction)
 
       for (const note of transaction.notes()) {
         const noteHash = note.merkleHash()
-        noteToTransaction.set(noteHash, transactionHash)
+        noteToTransaction.set(noteHash, transaction.hash())
       }
 
       tranactionCount++
@@ -276,6 +274,7 @@ export class Migration013 extends Migration {
     for await (const [transactionHash, transactionValue] of transactionsStoreOld.getAllIter(
       tx,
     )) {
+      const transaction = new Transaction(transactionValue.transaction)
       const transactionHashHex = transactionHash.toString('hex')
       await transactionsStoreOld.del(transactionHash, tx)
 
@@ -297,15 +296,13 @@ export class Migration013 extends Migration {
           logger.debug(
             `\tDropping TX ${transactionHashHex}: block not found ${transactionValue.blockHash}`,
           )
-          await transactionsStoreOld.del(transactionHash, tx)
-          dropped.add(transactionHash)
+          dropped.add(transaction.hash())
           countDropped++
           continue
         }
       }
 
-      await transactionsStoreOld.del(transactionHash, tx)
-      await transactionsStoreNew.put(transactionHash, migrated, tx)
+      await transactionsStoreNew.put(transaction.hash(), migrated, tx)
     }
 
     logger.debug(`\tMigrated ${countMigrated} transactions`)
@@ -345,7 +342,7 @@ export class Migration013 extends Migration {
         continue
       }
 
-      const transactionEntry = await transactionStoreNew.get(transactionHash)
+      const transactionEntry = await transactionStoreNew.get(transactionHash, tx)
       Assert.isNotUndefined(transactionEntry)
 
       const transaction = new Transaction(transactionEntry.transaction)
@@ -396,7 +393,7 @@ export class Migration013 extends Migration {
           : null,
         serializedNote: note.serialize(),
         spent: nullifierEntry.spent,
-        transactionHash: transactionHash,
+        transactionHash: transaction.hash(),
       }
 
       if (!decryptedNote.spent) {
