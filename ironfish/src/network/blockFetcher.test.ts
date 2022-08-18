@@ -2,19 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { blake3 } from '@napi-rs/blake-hash'
-import { v4 as uuid } from 'uuid'
 import { VerificationResultReason } from '../consensus'
-import { IronfishNode } from '../node'
 import { Block, BlockSerde } from '../primitives/block'
-import { BlockHash } from '../primitives/blockheader'
-import { TransactionHash } from '../primitives/transaction'
-import {
-  createNodeTest,
-  useAccountFixture,
-  useBlockWithTx,
-  useMinerBlockFixture,
-} from '../testUtilities'
+import { createNodeTest, useBlockWithTx, useMinerBlockFixture } from '../testUtilities'
+import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -24,16 +15,8 @@ import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
-import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
-import { NewTransactionV2Message } from './messages/newTransactionV2'
-import {
-  PooledTransactionsRequest,
-  PooledTransactionsResponse,
-} from './messages/pooledTransactions'
 import { Peer } from './peers/peer'
 import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
-import { VERSION_PROTOCOL } from './version'
 
 jest.mock('ws')
 jest.useFakeTimers()
@@ -210,7 +193,7 @@ describe('BlockFetcher', () => {
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
 
     // We receive the transaction in our mempool
-    await node.memPool.acceptTransaction(transaction)
+    node.memPool.acceptTransaction(transaction)
 
     // Create 5 connected peers
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
@@ -304,6 +287,75 @@ describe('BlockFetcher', () => {
     await peerNetwork.stop()
   })
 
+  it('requests full block if transaction request fails', async () => {
+    const { peerNetwork, chain, node } = nodeTest
+
+    chain.synced = true
+    const { block, transaction } = await useBlockWithTx(node)
+
+    // Block should be one ahead of our current chain
+    expect(block.header.sequence - chain.head.sequence).toEqual(1)
+
+    // Connect to 5 peers and send newBlock messages
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
+    for (const { peer } of peers) {
+      await peerNetwork.peerManager.onMessage.emitAsync(
+        ...messageEvent(peer, new NewBlockV2Message(block.toCompactBlock())),
+      )
+    }
+
+    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+
+    // We should have sent a transaction request to one random peer
+    const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
+    expect(sentPeers).toHaveLength(1)
+    const sentPeer = sentPeers[0].peer
+    const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0]
+    expect(sentMessage).toBeInstanceOf(GetBlockTransactionsRequest)
+    const getBlockTransactionsRequest = sentMessage as GetBlockTransactionsRequest
+    expect(getBlockTransactionsRequest.blockHash).toEqual(block.header.hash)
+    expect(getBlockTransactionsRequest.transactionIndexes).toEqual([1])
+
+    // Run timers to time out the transaction request
+    jest.runOnlyPendingTimers()
+
+    // A full block request should be sent to a different peer
+    const sentPeers3 = peers.filter(
+      ({ sendSpy }) =>
+        sendSpy.mock.calls.length > 0 && sendSpy.mock.calls[0][0] instanceof GetBlocksRequest,
+    )
+    expect(sentPeers3).toHaveLength(1)
+    const { peer: otherSentPeer, sendSpy: otherSendSpy } = sentPeers3[0]
+    expect(sentPeer).not.toBe(otherSentPeer)
+    expect(otherSendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksRequest)
+    const getBlocksRequest = otherSendSpy.mock.calls[0][0] as GetBlocksRequest
+    expect(getBlocksRequest.start).toEqual(block.header.hash)
+    expect(getBlocksRequest.limit).toEqual(1)
+
+    // The peer should respond with a GetBlocksResponse
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...messageEvent(
+        otherSentPeer,
+        new GetBlocksResponse([BlockSerde.serialize(block)], getBlocksRequest.rpcId),
+      ),
+    )
+
+    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
+
+    // Reset mocks and run timers to time out any other potential requests
+    for (const { sendSpy } of peers) {
+      sendSpy.mockClear()
+    }
+
+    jest.runOnlyPendingTimers()
+
+    // No more messages should be sent
+    const sentPeers4 = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
+    expect(sentPeers4).toHaveLength(0)
+
+    await peerNetwork.stop()
+  })
+
   it('does not request compact block when node has block in blockchain', async () => {
     const { peerNetwork, chain } = nodeTest
 
@@ -335,8 +387,6 @@ describe('BlockFetcher', () => {
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 
-    expect(peer.knownBlockHashes.has(block.header.hash)).toBe(false)
-
     await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
 
     jest.runOnlyPendingTimers()
@@ -349,14 +399,27 @@ describe('BlockFetcher', () => {
   it('does not request compact block when block was previously marked as an orphan', async () => {
     const { peerNetwork, chain } = nodeTest
 
-    chain.synced = true
-    const block = await useMinerBlockFixture(chain)
+    const addedBlocks = await Promise.all(
+      [...new Array(5)].map(async (_) => {
+        const block = await useMinerBlockFixture(chain)
+        await chain.addBlock(block)
+        return block
+      }),
+    )
 
-    chain.addOrphan(block.header)
+    addedBlocks.reverse()
+
+    for (const block of addedBlocks) {
+      await chain.removeBlock(block.header.hash)
+    }
+
+    chain.synced = true
+
+    // Get the block that is now 4 ahead of the chain head
+    const block = addedBlocks[0]
+    expect(block.header.sequence - chain.head.sequence).toBe(4)
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
-
-    expect(peer.knownBlockHashes.has(block.header.hash)).toBe(false)
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
 

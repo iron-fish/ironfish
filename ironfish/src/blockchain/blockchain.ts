@@ -609,7 +609,7 @@ export class Blockchain {
       'You cannot disconnect the genesisBlock',
     )
 
-    const prev = await this.getPrevious(block.header)
+    const prev = await this.getPrevious(block.header, tx)
     Assert.isNotNull(prev)
 
     await this.saveDisconnect(block, prev, tx)
