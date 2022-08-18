@@ -97,6 +97,12 @@ export function mockLogger(): any {
   }
 }
 
+export function mockTelemetry(): any {
+  return {
+
+  }
+}
+
 export function mockWorkerPool(): any {
   return {
     saturated: jest.fn(),

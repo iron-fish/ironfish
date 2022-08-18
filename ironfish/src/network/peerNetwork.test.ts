@@ -21,7 +21,7 @@ import {
   useMinersTxFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { mockChain, mockNode } from '../testUtilities/mocks'
+import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
@@ -91,6 +91,7 @@ describe('PeerNetwork', () => {
         chain: mockChain(),
         minPeers: 1,
         hostsStore: mockHostsStore(),
+        telemetry: mockTelemetry(),
       })
 
       expect(peerNetwork.isReady).toBe(false)
@@ -131,6 +132,7 @@ describe('PeerNetwork', () => {
         minPeers: 1,
         maxPeers: 0,
         hostsStore: mockHostsStore(),
+        telemetry: mockTelemetry(),
       })
 
       const rejectSpy = jest
@@ -373,11 +375,11 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const serializedBlock = BlockSerde.serialize(block)
-      const addNewBlockSpy = jest.spyOn(node.syncer, 'addNewBlock')
+      const addBlockSpy = jest.spyOn(node.syncer, 'addBlock')
 
       await peerNetwork['handleGossipMessage'](peer, new NewBlockMessage(serializedBlock))
 
-      expect(addNewBlockSpy).toHaveBeenCalledWith(peer, serializedBlock)
+      expect(addBlockSpy).toHaveBeenCalledWith(peer, serializedBlock)
     })
 
     describe('handle block gossip', () => {

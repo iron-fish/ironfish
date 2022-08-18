@@ -963,7 +963,7 @@ export class PeerNetwork {
       compactBlock.transactionHashes.length - missingTransactions.length, // number populated from mempool
     )
 
-    if (result.missingTransactions) {
+    if (result.missingTransactions.length > 0) {
       this.blockFetcher.requestTransactions(
         peer,
         compactBlock.header,
@@ -1278,13 +1278,6 @@ export class PeerNetwork {
     nonce?: Buffer,
   ): Promise<void> {
     if (!this.shouldProcessNewBlocks()) {
-      return
-    }
-
-    const verificationResult = await this.chain.verifier.verifyBlockCommitments(block)
-    if (!verificationResult.valid) {
-      // Don't mark the block's hash as invalid, the user could have sent us bad transactions
-      this.blockFetcher.requestFullBlock(block.header.hash)
       return
     }
 
