@@ -21,6 +21,7 @@ export class Transaction {
   private readonly _notes: NoteEncrypted[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
+  private _unsignedHash?: TransactionHash
 
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
@@ -181,7 +182,8 @@ export class Transaction {
    * is signed when the transaction is created
    */
   unsignedHash(): TransactionHash {
-    return this.withReference((t) => t.hash())
+    this._unsignedHash = this._unsignedHash || this.withReference((t) => t.hash())
+    return this._unsignedHash
   }
 
   /**

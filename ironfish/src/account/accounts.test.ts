@@ -23,7 +23,7 @@ describe('Accounts', () => {
 
     await node.accounts.start()
     expect(resetSpy).toBeCalledTimes(1)
-  }, 8000)
+  })
 
   it('should handle transaction created on fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -96,7 +96,7 @@ describe('Accounts', () => {
     // It should now be planned to be processed at head + 1
     invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.unsignedHash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
-  }, 120000)
+  })
 
   describe('getBalance', () => {
     it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {

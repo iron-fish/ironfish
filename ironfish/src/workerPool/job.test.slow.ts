@@ -20,7 +20,7 @@ describe('Worker Pool', () => {
     expect(minersFee.serialize()).toBeInstanceOf(Buffer)
 
     expect(workerPool.completed).toBe(1)
-  }, 60000)
+  })
 
   it('verify', async () => {
     const { workerPool } = nodeTest
@@ -36,5 +36,5 @@ describe('Worker Pool', () => {
 
     expect(result.valid).toBe(true)
     expect(workerPool.completed).toBe(1)
-  }, 60000)
+  })
 })
