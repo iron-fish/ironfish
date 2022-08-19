@@ -16,23 +16,10 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { Peer } from './peers/peer'
-import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
+import { getConnectedPeer, getConnectedPeersWithSpies, peerMessage } from './testUtilities'
 
 jest.mock('ws')
 jest.useFakeTimers()
-
-function peerMessage<T extends NetworkMessage>(
-  peer: Peer,
-  message: T,
-): [Peer, IncomingPeerMessage<T>] {
-  return [
-    peer,
-    {
-      peerIdentity: peer.getIdentityOrThrow(),
-      message,
-    },
-  ]
-}
 
 const newHashMessageEvent = (peer: Peer, block: Block) =>
   peerMessage(
@@ -83,13 +70,9 @@ describe('BlockFetcher', () => {
 
     // Another peer send the full block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const peerIdentity = peer.getIdentityOrThrow()
-    const message = {
-      peerIdentity,
-      message: new NewBlockMessage(BlockSerde.serialize(block)),
-    }
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+    const message = peerMessage(peer, new NewBlockMessage(BlockSerde.serialize(block)))
+    await peerNetwork.peerManager.onMessage.emitAsync(...message)
 
     jest.runOnlyPendingTimers()
 

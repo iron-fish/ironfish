@@ -300,7 +300,7 @@ describe('Verifier', () => {
       block.header.noteCommitment.size = 1000
 
       expect(
-        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
+        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
@@ -312,7 +312,7 @@ describe('Verifier', () => {
       block.header.nullifierCommitment.size = 1000
 
       expect(
-        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
+        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
