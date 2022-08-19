@@ -3,10 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BatchOperation, IDatabaseBatch } from './batch'
-import { DatabaseIsOpenError } from './errors'
 import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
 import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
+
+export const DATABASE_ALL_KEY_RANGE = {
+  gte: Buffer.alloc(0, 0),
+  lte: Buffer.alloc(256, 255),
+}
 
 /**
  * A database interface to represent a wrapper for a key value store database. The database is the entry point for creating stores, batches, transactions.
@@ -35,10 +39,16 @@ export interface IDatabase {
   /** Closes the database and does not handle any open transactions */
   close(): Promise<void>
 
+  /** Internal book keeping function to clean up unused space by the database */
+  compact(): Promise<void>
+
   /**
-   * Check if the database needs to be upgraded and warn the use
+   * Check if the database needs to be upgraded
    */
   upgrade(version: number): Promise<void>
+
+  getVersion(): Promise<number>
+  putVersion(version: number, transaction?: IDatabaseTransaction): Promise<void>
 
   /**
    * Add an {@link IDatabaseStore} to the database
@@ -49,6 +59,7 @@ export interface IDatabase {
    */
   addStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
+    requireUnique?: boolean,
   ): IDatabaseStore<Schema>
 
   /** Get all the stores added with [[`IDatabase.addStore`]] */
@@ -123,13 +134,16 @@ export interface IDatabase {
 }
 
 export abstract class Database implements IDatabase {
-  stores = new Map<string, IDatabaseStore<DatabaseSchema>>()
+  stores = new Array<IDatabaseStore<DatabaseSchema>>()
 
   abstract get isOpen(): boolean
 
   abstract open(options?: DatabaseOptions): Promise<void>
   abstract close(): Promise<void>
   abstract upgrade(version: number): Promise<void>
+  abstract getVersion(): Promise<number>
+  abstract putVersion(version: number): Promise<void>
+  abstract compact(): Promise<void>
 
   abstract transaction(): IDatabaseTransaction
 
@@ -152,24 +166,23 @@ export abstract class Database implements IDatabase {
   ): IDatabaseStore<Schema>
 
   getStores(): Array<IDatabaseStore<DatabaseSchema>> {
-    return Array.from(this.stores.values())
+    return Array.from(this.stores)
   }
 
   addStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
+    requireUnique = true,
   ): IDatabaseStore<Schema> {
-    if (this.isOpen) {
-      throw new DatabaseIsOpenError(
-        `Cannot add store ${options.name} while the database is open`,
-      )
-    }
-    const existing = this.stores.get(options.name)
-    if (existing) {
-      return existing as IDatabaseStore<Schema>
+    if (requireUnique) {
+      const existing = this.stores.find((s) => s.name === options.name)
+
+      if (existing) {
+        throw new Error(`Store with name ${options.name} already exists`)
+      }
     }
 
     const store = this._createStore<Schema>(options)
-    this.stores.set(options.name, store)
+    this.stores.push(store)
     return store
   }
 

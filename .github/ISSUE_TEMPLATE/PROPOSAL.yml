@@ -1,0 +1,15 @@
+name: Feature Request
+description: Propose an improvement you would like to make
+title: "Feature: "
+labels: ["feature request"]
+assignees:
+  - iron-fish/engineering
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What change do you want to make?
+      placeholder:
+    validations:
+      required: true

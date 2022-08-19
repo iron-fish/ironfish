@@ -11,9 +11,7 @@
     "config/eslint-config-ironfish",
     "config/eslint-plugin-ironfish",
     "ironfish",
-    "ironfish-rust-nodejs",
-    "ironfish-rust-wasm/nodejs",
-    "ironfish-rust-wasm/web"
+    "ironfish-rust-nodejs"
   ],
   "scripts": {
     "build": "lerna run build",
@@ -60,7 +58,6 @@
   "resolutions": {
     "axios": "0.21.4",
     "handlebars": "4.7.7",
-    "node-notifier": "8.0.1",
-    "set-getter": "0.1.1"
+    "node-notifier": "8.0.1"
   }
 }

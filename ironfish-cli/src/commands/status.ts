@@ -33,7 +33,7 @@ export default class Status extends IronfishCommand {
     // Console log will create display issues with Blessed
     this.logger.pauseLogs()
 
-    const screen = blessed.screen({ smartCSR: true })
+    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
     const statusText = blessed.text()
     screen.append(statusText)
 
@@ -78,7 +78,7 @@ function renderStatus(content: GetStatusResponse): string {
     blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
   }
 
-  if (content.blockSyncer.status === 'syncing') {
+  if (!content.blockchain.synced) {
     blockSyncerStatusDetails.push(
       `progress: ${(content.blockSyncer.syncing.progress * 100).toFixed(2)}%`,
     )
@@ -91,6 +91,10 @@ function renderStatus(content: GetStatusResponse): string {
   if (content.telemetry.status === 'started') {
     telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
+
+  const nodeName = `${content.node.nodeName}`
+
+  const blockGraffiti = `${content.miningDirector.blockGraffiti}`
 
   const peerNetworkStatus = `${
     content.peerNetwork.isReady ? 'CONNECTED' : 'WAITING'
@@ -117,11 +121,12 @@ function renderStatus(content: GetStatusResponse): string {
 
   const heapTotal = FileUtils.formatMemorySize(content.memory.heapTotal)
   const heapUsed = FileUtils.formatMemorySize(content.memory.heapUsed)
+  const heapMax = FileUtils.formatMemorySize(content.memory.heapMax)
   const rss = FileUtils.formatMemorySize(content.memory.rss)
   const memFree = FileUtils.formatMemorySize(content.memory.memFree)
 
-  const memoryStatus = `Heap: ${heapUsed} / ${heapTotal} (${(
-    (content.memory.heapUsed / content.memory.heapTotal) *
+  const memoryStatus = `Heap: ${heapUsed} -> ${heapTotal} / ${heapMax} (${(
+    (content.memory.heapUsed / content.memory.heapMax) *
     100
   ).toFixed(1)}%), RSS: ${rss} (${(
     (content.memory.rss / content.memory.memTotal) *
@@ -134,6 +139,8 @@ function renderStatus(content: GetStatusResponse): string {
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
+Node Name            ${nodeName}
+Block Graffiti       ${blockGraffiti}
 Memory               ${memoryStatus}
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}

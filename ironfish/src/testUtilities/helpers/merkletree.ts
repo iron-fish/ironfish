@@ -8,7 +8,7 @@ import { NodeValue } from '../../merkletree/database/nodes'
 import { StructureHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
 import { IDatabase, IDatabaseEncoding, StringEncoding } from '../../storage'
-import { createDB } from '../helpers/storage'
+import { createTestDB } from '../helpers/storage'
 
 type StructureLeafValue = {
   element: string
@@ -90,16 +90,19 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
 export async function makeTree({
   name,
   db,
+  location,
   depth,
   leaves,
 }: {
   name?: string
   db?: IDatabase
+  location?: string
   depth?: number
   leaves?: string
 } = {}): Promise<MerkleTree<string, string, string, string>> {
   if (!db) {
-    db = await createDB()
+    const { db: database } = await createTestDB(undefined, location)
+    db = database
   }
 
   const tree = new MerkleTree({
@@ -113,7 +116,6 @@ export async function makeTree({
   })
 
   await db.open()
-  await tree.upgrade()
 
   if (leaves) {
     for (const i of leaves) {

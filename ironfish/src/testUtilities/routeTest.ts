@@ -7,8 +7,8 @@ import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
-import { MemoryAdapter } from '../rpc/adapters'
-import { IronfishMemoryClient } from '../rpc/clients'
+import { RpcMemoryAdapter } from '../rpc/adapters'
+import { RpcMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { WorkerPool } from '../workerPool'
@@ -21,8 +21,8 @@ import { TestStrategy } from './strategy'
  * the RouteTest
  */
 export class RouteTest extends NodeTest {
-  adapter!: MemoryAdapter
-  client!: IronfishMemoryClient
+  adapter!: RpcMemoryAdapter
+  client!: RpcMemoryClient
 
   async createSetup(): Promise<{
     sdk: IronfishSdk
@@ -34,12 +34,12 @@ export class RouteTest extends NodeTest {
     peerNetwork: PeerNetwork
     syncer: Syncer
     workerPool: WorkerPool
-    client: IronfishMemoryClient
+    client: RpcMemoryClient
   }> {
     const setup = await super.createSetup()
 
     const logger = createRootLogger().withTag('memoryclient')
-    const client = new IronfishMemoryClient(logger, setup.node)
+    const client = new RpcMemoryClient(logger, setup.node)
 
     return { ...setup, client }
   }

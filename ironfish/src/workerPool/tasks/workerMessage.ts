@@ -6,16 +6,16 @@ import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 
 export enum WorkerMessageType {
-  BoxMessage = 0,
-  CreateMinersFee = 1,
-  CreateTransaction = 2,
+  CreateMinersFee = 0,
+  CreateTransaction = 1,
+  DecryptNotes = 2,
   GetUnspentNotes = 3,
   JobAborted = 4,
   JobError = 5,
   Sleep = 6,
   SubmitTelemetry = 7,
-  UnboxMessage = 8,
-  VerifyTransaction = 9,
+  VerifyTransaction = 8,
+  VerifyTransactions = 9,
 }
 
 export abstract class WorkerMessage implements Serializable {

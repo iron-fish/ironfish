@@ -1,6 +1,6 @@
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=PCSVEVEW5V&flag=serde)](https://codecov.io/gh/iron-fish/ironfish)
 
-Typescript interface for objects that can be serialized and deserialized to json
+Typescript interface for objects that can be serialized and deserialized to JSON
 as well as compared for equality.
 
 Also includes implementations of that interface for some standard structures:

@@ -7,6 +7,8 @@ import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
+export const ENCRYPTED_NOTE_LENGTH = 32 + 32 + 32 + 83 + 16 + 64 + 16
+
 export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
 export type SerializedNoteEncrypted = Buffer
@@ -84,6 +86,10 @@ export class NoteEncrypted {
   merkleHash(): Buffer {
     return this._noteCommitment
   }
+
+  equals(other: NoteEncrypted): boolean {
+    return this.serialize().equals(other.serialize())
+  }
 }
 
 /**
@@ -91,7 +97,7 @@ export class NoteEncrypted {
  */
 export class NoteEncryptedSerde implements Serde<NoteEncrypted, SerializedNoteEncrypted> {
   equals(note1: NoteEncrypted, note2: NoteEncrypted): boolean {
-    return note1.serialize().equals(note2.serialize())
+    return note1.equals(note2)
   }
 
   serialize(note: NoteEncrypted): SerializedNoteEncrypted {

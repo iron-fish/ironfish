@@ -10,13 +10,11 @@ import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
-import { Strategy } from '../strategy'
 import { WorkerPool } from '../workerPool'
 import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
-  strategy: Strategy
   chain: Blockchain
   private readonly workerPool: WorkerPool
 
@@ -26,7 +24,6 @@ export class Verifier {
   enableVerifyTarget = true
 
   constructor(chain: Blockchain, workerPool: WorkerPool) {
-    this.strategy = chain.strategy
     this.chain = chain
     this.workerPool = workerPool
   }
@@ -48,11 +45,32 @@ export class Verifier {
     }
 
     // Verify the transactions
-    const verificationResults = await Promise.all(
-      block.transactions.map((t) =>
-        this.verifyTransaction(t, block.header, { verifyFees: false }),
-      ),
-    )
+    const notesLimit = 10
+    const verificationPromises = []
+
+    let transactionBatch = []
+    let runningNotesCount = 0
+    for (const [idx, tx] of block.transactions.entries()) {
+      if (this.isExpiredSequence(tx.expirationSequence(), block.header.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
+
+      transactionBatch.push(tx)
+
+      runningNotesCount += tx.notesLength()
+
+      if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+
+        transactionBatch = []
+        runningNotesCount = 0
+      }
+    }
+
+    const verificationResults = await Promise.all(verificationPromises)
 
     const invalidResult = verificationResults.find((f) => !f.valid)
     if (invalidResult !== undefined) {
@@ -91,7 +109,7 @@ export class Verifier {
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
-    const miningReward = block.header.strategy.miningReward(block.header.sequence)
+    const miningReward = this.chain.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
@@ -139,7 +157,7 @@ export class Verifier {
    */
   verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
     try {
-      const transaction = this.strategy.transactionSerde.deserialize(serializedTransaction)
+      const transaction = new Transaction(serializedTransaction)
 
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
@@ -155,7 +173,7 @@ export class Verifier {
     }
   }
 
-  async verifyTransaction(
+  async verifyTransactionContextual(
     transaction: Transaction,
     block: BlockHeader,
     options?: VerifyTransactionOptions,
@@ -167,6 +185,13 @@ export class Verifier {
       }
     }
 
+    return await this.verifyTransactionNoncontextual(transaction, options)
+  }
+
+  async verifyTransactionNoncontextual(
+    transaction: Transaction,
+    options?: VerifyTransactionOptions,
+  ): Promise<VerificationResult> {
     try {
       return await this.workerPool.verify(transaction, options)
     } catch {

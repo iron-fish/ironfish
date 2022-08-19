@@ -61,6 +61,21 @@ export class PoolDatabase {
     )
   }
 
+  async getSharesCountForPayout(publicAddress?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL'
+
+    if (publicAddress) {
+      sql += ' AND publicAddress = ?'
+    }
+
+    const result = await this.db.get<{ count: number }>(sql, publicAddress)
+    if (result === undefined) {
+      return 0
+    }
+
+    return result.count
+  }
+
   async newPayout(timestamp: number): Promise<number | null> {
     // Create a payout row if the most recent succesful payout was greater than the payout interval
     // and the most recent payout was greater than the attempt interval, in case of failed or long
@@ -83,8 +98,16 @@ export class PoolDatabase {
     return null
   }
 
-  async markPayoutSuccess(id: number, timestamp: number): Promise<void> {
-    await this.db.run('UPDATE payout SET succeeded = TRUE WHERE id = ?', id)
+  async markPayoutSuccess(
+    id: number,
+    timestamp: number,
+    transactionHash: string,
+  ): Promise<void> {
+    await this.db.run(
+      'UPDATE payout SET succeeded = TRUE, transactionHash = ? WHERE id = ?',
+      id,
+      transactionHash,
+    )
     await this.db.run(
       "UPDATE share SET payoutId = ? WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
       id,
@@ -92,14 +115,18 @@ export class PoolDatabase {
     )
   }
 
-  async shareCountSince(timestamp: number): Promise<number> {
-    const result = await this.db.get<{ count: number }>(
-      "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')",
-      timestamp,
-    )
-    if (result == null) {
+  async shareCountSince(timestamp: number, publicAddress?: string): Promise<number> {
+    let sql = "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')"
+
+    if (publicAddress) {
+      sql += ' AND publicAddress = ?'
+    }
+
+    const result = await this.db.get<{ count: number }>(sql, timestamp, publicAddress)
+    if (result === undefined) {
       return 0
     }
+
     return result.count
   }
 }

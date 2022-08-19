@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
-interface Note {
+export interface UnspentNote {
   account: string
   hash: string
   note: Buffer
@@ -65,9 +65,9 @@ export class GetUnspentNotesRequest extends WorkerMessage {
 }
 
 export class GetUnspentNotesResponse extends WorkerMessage {
-  readonly notes: Note[]
+  readonly notes: UnspentNote[]
 
-  constructor(notes: Note[], jobId: number) {
+  constructor(notes: UnspentNote[], jobId: number) {
     super(WorkerMessageType.GetUnspentNotes, jobId)
     this.notes = notes
   }

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 jest.mock('ws')
-jest.mock('../network')
 
 import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
@@ -38,7 +37,7 @@ describe('Verifier', () => {
 
     it('extracts a valid transaction', async () => {
       const { transaction: tx } = await useTxSpendsFixture(nodeTest.node)
-      const serialized = nodeTest.strategy.transactionSerde.serialize(tx)
+      const serialized = tx.serialize()
 
       const transaction = nodeTest.chain.verifier.verifyNewTransaction(serialized)
 
@@ -64,7 +63,7 @@ describe('Verifier', () => {
     it('rejects a block with an invalid transaction', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      jest.spyOn(nodeTest.verifier, 'verifyTransaction').mockResolvedValue({
+      jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
         valid: false,
         reason: VerificationResultReason.VERIFY_TRANSACTION,
       })
@@ -435,7 +434,7 @@ describe('Verifier', () => {
     })
   })
 
-  describe('verifyTransaction', () => {
+  describe('verifyTransactionContextual', () => {
     const nodeTest = createNodeTest()
 
     describe('with an invalid expiration sequence', () => {
@@ -446,7 +445,7 @@ describe('Verifier', () => {
         jest.spyOn(transaction, 'expirationSequence').mockImplementationOnce(() => 1)
 
         expect(
-          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+          await nodeTest.verifier.verifyTransactionContextual(transaction, nodeTest.chain.head),
         ).toEqual({
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -467,7 +466,7 @@ describe('Verifier', () => {
         )
 
         await expect(
-          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+          nodeTest.verifier.verifyTransactionContextual(transaction, nodeTest.chain.head),
         ).resolves.toEqual({
           valid: false,
           reason: VerificationResultReason.ERROR,
@@ -487,7 +486,7 @@ describe('Verifier', () => {
         )
 
         expect(
-          await nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+          await nodeTest.verifier.verifyTransactionContextual(transaction, nodeTest.chain.head),
         ).toEqual({
           valid: true,
         })
@@ -504,7 +503,7 @@ describe('Verifier', () => {
         })
 
         await expect(
-          nodeTest.verifier.verifyTransaction(transaction, nodeTest.chain.head),
+          nodeTest.verifier.verifyTransactionContextual(transaction, nodeTest.chain.head),
         ).resolves.toEqual({
           valid: false,
           reason: VerificationResultReason.VERIFY_TRANSACTION,

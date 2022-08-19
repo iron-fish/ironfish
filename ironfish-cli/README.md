@@ -27,6 +27,8 @@ Interact with the node in a new terminal window:
    - Request a small amount of $IRON for testing payments
 - `yarn start accounts:pay`
    - Send $IRON to another account
+- `yarn start accounts:transactions [account]`
+   - Display transactions from and to your account
 
 ### Start a node and start mining
 Run these commands in two different terminals:
@@ -51,7 +53,7 @@ Run these commands in two different terminals:
 You should see messages in the second terminal indicating that the miner is running:
    - `Starting to mine with 8 threads`
    - `Mining block 6261 on request 1264... \ 1105974 H/s`
-      - The H/s number corresponds to the hash rate power of your machine with the given number of mining threads. 
+      - The H/s number corresponds to the hashrate power of your machine with the given number of mining threads. 
       - Performance reference: 8-core 3.8+ GHz AMD Ryzen 7 4700G with 8 threads gave the above 1.1 M H/s.
 
 When a block is mined, you will see a status line in the node's terminal (the first terminal):

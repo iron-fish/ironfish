@@ -10,9 +10,8 @@ import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block, SerializedBlock } from './primitives/block'
+import { Block, BlockSerde, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
-import { Strategy } from './strategy'
 import { Telemetry } from './telemetry'
 import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
@@ -26,7 +25,6 @@ class AbortSyncingError extends Error {}
 export class Syncer {
   readonly peerNetwork: PeerNetwork
   readonly chain: Blockchain
-  readonly strategy: Strategy
   readonly metrics: MetricsMonitor
   readonly telemetry: Telemetry
   readonly logger: Logger
@@ -34,7 +32,7 @@ export class Syncer {
 
   state: 'stopped' | 'idle' | 'stopping' | 'syncing'
   stopping: Promise<void> | null
-  cancelLoop: SetTimeoutToken | null
+  eventLoopTimeout: SetTimeoutToken | null
   loader: Peer | null = null
   blocksPerMessage: number
 
@@ -43,7 +41,6 @@ export class Syncer {
   constructor(options: {
     peerNetwork: PeerNetwork
     chain: Blockchain
-    strategy: Strategy
     telemetry: Telemetry
     metrics?: MetricsMonitor
     logger?: Logger
@@ -53,7 +50,6 @@ export class Syncer {
 
     this.peerNetwork = options.peerNetwork
     this.chain = options.chain
-    this.strategy = options.strategy
     this.logger = logger.withTag('syncer')
     this.telemetry = options.telemetry
 
@@ -62,7 +58,7 @@ export class Syncer {
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
     this.stopping = null
-    this.cancelLoop = null
+    this.eventLoopTimeout = null
 
     this.blocksPerMessage = options.blocksPerMessage ?? REQUEST_BLOCKS_PER_MESSAGE
   }
@@ -89,8 +85,8 @@ export class Syncer {
 
     this.state = 'stopping'
 
-    if (this.cancelLoop) {
-      clearTimeout(this.cancelLoop)
+    if (this.eventLoopTimeout) {
+      clearTimeout(this.eventLoopTimeout)
     }
 
     if (this.loader) {
@@ -110,7 +106,7 @@ export class Syncer {
       this.findPeer()
     }
 
-    setTimeout(() => this.eventLoop(), SYNCER_TICK_MS)
+    this.eventLoopTimeout = setTimeout(() => this.eventLoop(), SYNCER_TICK_MS)
   }
 
   findPeer(): void {
@@ -428,7 +424,7 @@ export class Syncer {
   }> {
     Assert.isNotNull(this.chain.head)
 
-    const block = this.chain.strategy.blockSerde.deserialize(serialized)
+    const block = BlockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     this.speed.add(1)
@@ -437,11 +433,14 @@ export class Syncer {
       this.logger.info(
         `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
           block.header,
-        )} (${block.header.sequence}), syncing orphan chain.`,
+        )} (${block.header.sequence})`,
       )
 
       if (!this.loader) {
+        this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
         this.startSync(peer)
+      } else {
+        this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
       }
 
       return { added: false, block, reason: VerificationResultReason.ORPHAN }

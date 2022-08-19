@@ -12,7 +12,9 @@ use super::{
     witness::WitnessTrait,
     Sapling,
 };
+use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::GroupEncoding;
@@ -21,10 +23,10 @@ use rand::rngs::OsRng;
 
 use zcash_primitives::{
     constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
-use std::{io, slice::Iter, sync::Arc};
+use std::{io, iter, slice::Iter, sync::Arc};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -165,7 +167,7 @@ impl ProposedTransaction {
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
-                Memo([0; 32]),
+                Memo::default(),
             );
             self.receive(spender_key, &change_note)?;
         }
@@ -211,11 +213,11 @@ impl ProposedTransaction {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
-        let mut spend_proofs = vec![];
+        let mut spend_proofs = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             spend_proofs.push(spend.post(&data_to_sign)?);
         }
-        let mut receipt_proofs = vec![];
+        let mut receipt_proofs = Vec::with_capacity(self.receipts.len());
         for receipt in &self.receipts {
             receipt_proofs.push(receipt.post()?);
         }
@@ -372,8 +374,8 @@ impl Transaction {
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
-        let mut spends = vec![];
-        let mut receipts = vec![];
+        let mut spends = Vec::with_capacity(num_spends as usize);
+        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_spends {
             spends.push(SpendProof::read(&mut reader)?);
         }
@@ -418,34 +420,7 @@ impl Transaction {
     ///     containing those proofs (and only those proofs)
     ///
     pub fn verify(&self) -> Result<(), TransactionError> {
-        // Context to accumulate a signature of all the spends and outputs and
-        // guarantee they are part of this transaction, unmodified.
-        let mut binding_verification_key = ExtendedPoint::identity();
-
-        for spend in self.spends.iter() {
-            spend.verify_proof(&self.sapling)?;
-            let mut tmp = spend.value_commitment;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
-        }
-
-        for receipt in self.receipts.iter() {
-            receipt.verify_proof(&self.sapling)?;
-            let mut tmp = receipt.merkle_note.value_commitment;
-            tmp = -tmp;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
-        }
-
-        let hash_to_verify_signature = self.transaction_signature_hash();
-
-        for spend in self.spends.iter() {
-            spend.verify_signature(&hash_to_verify_signature)?;
-        }
-
-        self.verify_binding_signature(&binding_verification_key)?;
-
-        Ok(())
+        batch_verify_transactions(self.sapling.clone(), iter::once(self))
     }
 
     /// Get an iterator over the spends in this transaction. Each spend
@@ -563,4 +538,58 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
     }
 
     Ok(value_balance.into())
+}
+
+pub fn batch_verify_transactions<'a>(
+    sapling: Arc<Sapling>,
+    transactions: impl IntoIterator<Item = &'a Transaction>,
+) -> Result<(), TransactionError> {
+    let mut spend_verifier = Verifier::<Bls12>::new();
+    let mut receipt_verifier = Verifier::<Bls12>::new();
+
+    for transaction in transactions {
+        // Context to accumulate a signature of all the spends and outputs and
+        // guarantee they are part of this transaction, unmodified.
+        let mut binding_verification_key = ExtendedPoint::identity();
+
+        let hash_to_verify_signature = transaction.transaction_signature_hash();
+
+        for spend in transaction.spends.iter() {
+            spend.verify_value_commitment()?;
+
+            let public_inputs = spend.public_inputs();
+            spend_verifier.queue((&spend.proof, &public_inputs[..]));
+
+            binding_verification_key += spend.value_commitment;
+
+            spend.verify_signature(&hash_to_verify_signature)?;
+        }
+
+        for receipt in transaction.receipts.iter() {
+            receipt.verify_value_commitment()?;
+
+            let public_inputs = receipt.public_inputs();
+            receipt_verifier.queue((&receipt.proof, &public_inputs[..]));
+
+            binding_verification_key -= receipt.merkle_note.value_commitment;
+        }
+
+        transaction.verify_binding_signature(&binding_verification_key)?;
+    }
+
+    if spend_verifier
+        .verify(&mut OsRng, &sapling.spend_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    }
+
+    if receipt_verifier
+        .verify(&mut OsRng, &sapling.receipt_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    };
+
+    Ok(())
 }

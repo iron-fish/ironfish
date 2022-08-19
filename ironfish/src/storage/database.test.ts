@@ -2,13 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import '../testUtilities/matchers/error'
 import leveldown from 'leveldown'
+import { v4 as uuid } from 'uuid'
 import { IJsonSerializable } from '../serde'
 import { PromiseUtils } from '../utils'
 import {
   ArrayEncoding,
   BufferEncoding,
   DatabaseSchema,
+  DatabaseVersionError,
   DuplicateKeyError,
   JsonEncoding,
   StringEncoding,
@@ -90,14 +93,33 @@ describe('Database', () => {
     await db.close()
   })
 
+  it('should let you create stores with the same name', async () => {
+    await db.open()
+
+    const args = {
+      name: uuid(),
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new JsonEncoding(),
+    }
+
+    const storeA = db.addStore<TestSchema>(args)
+    expect(() => db.addStore<TestSchema>(args)).toThrowError('already exists')
+    const storeB = db.addStore<TestSchema>(args, false)
+
+    await storeA.put('key', 'foo')
+    await expect(storeB.get('key')).resolves.toEqual('foo')
+  })
+
   it('should upgrade and throw upgrade error', async () => {
     await db.open()
     expect(await db.metaStore.get('version')).toBe(undefined)
+    expect(await db.getVersion()).toBe(0)
 
-    await db.upgrade(1)
+    await expect(db.upgrade(1)).toRejectErrorInstance(DatabaseVersionError)
+
+    await db.putVersion(1)
     expect(await db.metaStore.get('version')).toBe(1)
-
-    await expect(db.upgrade(3)).rejects.toThrowError('You are running a newer')
+    expect(await db.getVersion()).toBe(1)
   })
 
   it('should store and get values', async () => {
@@ -137,6 +159,27 @@ describe('Database', () => {
 
     expect(await fooStore.get('hello')).not.toBeDefined()
     expect(await barStore.get('hello')).toEqual(fooHash)
+  })
+
+  it('should clear store in a transaction', async () => {
+    await db.open()
+
+    const tx = db.transaction()
+
+    await testStore.put('hello', 2)
+    await testStore.put('hello', 4, tx)
+
+    expect(await testStore.get('hello')).toEqual(2)
+    expect(await testStore.get('hello', tx)).toEqual(4)
+
+    await testStore.clear(tx)
+
+    expect(await testStore.get('hello')).toEqual(2)
+    expect(await testStore.get('hello', tx)).not.toBeDefined()
+
+    await tx.commit()
+
+    expect(await testStore.get('hello')).not.toBeDefined()
   })
 
   it('should add values', async () => {

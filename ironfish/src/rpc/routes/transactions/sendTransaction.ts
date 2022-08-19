@@ -133,7 +133,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     request.end({
       receives: transaction.receives,
       fromAccountName: account.name,
-      hash: transactionPosted.hash().toString('hex'),
+      hash: transactionPosted.unsignedHash().toString('hex'),
     })
   },
 )

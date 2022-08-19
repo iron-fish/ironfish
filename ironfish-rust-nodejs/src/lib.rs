@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
 use napi::Error;
 use napi_derive::napi;
@@ -9,6 +10,7 @@ use napi_derive::napi;
 use ironfish_rust::mining;
 use ironfish_rust::sapling_bls12;
 
+pub mod nacl;
 pub mod structs;
 
 #[napi(object)]
@@ -25,7 +27,7 @@ pub struct Key {
 
 #[napi]
 pub fn generate_key() -> Key {
-    let sapling_key = sapling_bls12::Key::generate_key();
+    let sapling_key = SaplingKey::generate_key();
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
@@ -37,8 +39,8 @@ pub fn generate_key() -> Key {
 
 #[napi]
 pub fn generate_new_public_address(private_key: String) -> Result<Key> {
-    let sapling_key = sapling_bls12::Key::from_hex(&private_key)
-        .map_err(|err| Error::from_reason(err.to_string()))?;
+    let sapling_key =
+        SaplingKey::from_hex(&private_key).map_err(|err| Error::from_reason(err.to_string()))?;
 
     Ok(Key {
         spending_key: sapling_key.hex_spending_key(),

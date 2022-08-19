@@ -6,7 +6,11 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class BalanceCommand extends IronfishCommand {
-  static description = `Display the account balance`
+  static description =
+    'Display the account balance\n\
+  What is the difference between available to spend balance, and balance?\n\
+  Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
+  Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.'
 
   static flags = {
     ...RemoteFlags,

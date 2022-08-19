@@ -66,7 +66,7 @@ export class ListCommand extends IronfishCommand {
     // Console log will create display issues with Blessed
     this.logger.pauseLogs()
 
-    const screen = blessed.screen({ smartCSR: true })
+    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
     const text = blessed.text()
     screen.append(text)
 

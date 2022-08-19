@@ -3,8 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import os from 'os'
+import { getHeapStatistics } from 'v8'
 import { createRootLogger, Logger } from '../logger'
-import { SetIntervalToken } from '../utils'
+import { Identity } from '../network'
+import { NetworkMessageType } from '../network/types'
+import { NumberEnumUtils, SetIntervalToken } from '../utils'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -19,7 +22,12 @@ export class MetricsMonitor {
   readonly p2p_OutboundTraffic: Meter
   readonly p2p_OutboundTraffic_WS: Meter
   readonly p2p_OutboundTraffic_WebRTC: Meter
+  readonly p2p_InboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
+  readonly p2p_OutboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_PeersCount: Gauge
+
+  // Elements of this map are managed by Peer and PeerNetwork
+  p2p_OutboundMessagesByPeer: Map<Identity, Meter> = new Map()
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
@@ -27,6 +35,9 @@ export class MetricsMonitor {
   readonly rss: Gauge
   readonly memFree: Gauge
   readonly memTotal: number
+  readonly heapMax: number
+
+  readonly cpuCores: number
 
   private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
@@ -40,6 +51,12 @@ export class MetricsMonitor {
     this.p2p_OutboundTraffic = this.addMeter()
     this.p2p_OutboundTraffic_WS = this.addMeter()
     this.p2p_OutboundTraffic_WebRTC = this.addMeter()
+
+    for (const value of NumberEnumUtils.getNumValues(NetworkMessageType)) {
+      this.p2p_InboundTrafficByMessage.set(value, this.addMeter())
+      this.p2p_OutboundTrafficByMessage.set(value, this.addMeter())
+    }
+
     this.p2p_PeersCount = new Gauge()
 
     this.heapTotal = new Gauge()
@@ -49,6 +66,10 @@ export class MetricsMonitor {
     this.memTotal = os.totalmem()
     this.memPoolSize = new Gauge()
     this.memoryInterval = null
+
+    this.heapMax = getHeapStatistics().total_available_size
+
+    this.cpuCores = os.cpus().length
   }
 
   get started(): boolean {

@@ -1,15 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { S3Client } from '@aws-sdk/client-s3'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { spawn } from 'child_process'
 import fsAsync from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
+import { S3Utils, TarUtils } from '../utils'
 
 export default class Backup extends IronfishCommand {
   static hidden = true
@@ -23,10 +24,20 @@ export default class Backup extends IronfishCommand {
       allowNo: true,
       description: 'wait for the database to stop being used',
     }),
+    chain: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'export the chain DB',
+    }),
     accounts: Flags.boolean({
       default: false,
       allowNo: true,
       description: 'export the accounts',
+    }),
+    mined: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'export the mined block index',
     }),
   }
 
@@ -55,75 +66,45 @@ export default class Backup extends IronfishCommand {
 
     const source = this.sdk.config.dataDir
     const destDir = await fsAsync.mkdtemp(path.join(os.tmpdir(), `ironfish.backup`))
-    const dest = path.join(destDir, `node.${id}.tar.gz`)
+    const destName = `node.${id}.tar.gz`
+    const dest = path.join(destDir, destName)
 
     this.log(`Zipping\n    SRC ${source}\n    DST ${dest}\n`)
     CliUx.ux.action.start(`Zipping ${source}`)
 
-    await this.zipDir(
-      source,
-      dest,
-      flags.accounts ? [] : [path.basename(path.dirname(this.sdk.config.accountDatabasePath))],
-    )
+    const excludes = [path.basename(this.sdk.config.tempDir)]
+
+    if (!flags.chain) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.chainDatabasePath)))
+    }
+
+    if (!flags.accounts) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.accountDatabasePath)))
+    }
+
+    if (!flags.mined) {
+      excludes.push(path.basename(path.dirname(this.sdk.config.indexDatabasePath)))
+    }
+
+    await TarUtils.zipDir(source, dest, excludes)
 
     const stat = await fsAsync.stat(dest)
     CliUx.ux.action.stop(`done (${FileUtils.formatFileSize(stat.size)})`)
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
-    await this.uploadToS3(dest, bucket)
+    const s3 = new S3Client({ region: 'us-east-1' })
+    await S3Utils.uploadToBucket(
+      s3,
+      dest,
+      'application/x-compressed-tar',
+      bucket,
+      destName,
+      this.logger.withTag('s3'),
+    )
     CliUx.ux.action.stop(`done`)
-  }
 
-  zipDir(source: string, dest: string, excludes: string[] = []): Promise<number | null> {
-    return new Promise<number | null>((resolve, reject) => {
-      const sourceDir = path.dirname(source)
-      const sourceFile = path.basename(source)
-
-      const args = ['-zcf', dest, '-C', sourceDir, sourceFile]
-
-      for (const exclude of excludes) {
-        args.unshift(exclude)
-        args.unshift('--exclude')
-      }
-
-      const process = spawn('tar', args)
-      process.on('exit', (code) => resolve(code))
-      process.on('close', (code) => resolve(code))
-      process.on('error', (error) => reject(error))
-    })
-  }
-
-  uploadToS3(dest: string, bucket: string): Promise<number | null> {
-    return new Promise<number | null>((resolve, reject) => {
-      const date = new Date().toISOString()
-      const host = `${bucket}.s3.amazonaws.com`
-      const file = path.basename(dest)
-      const contentType = 'application/x-compressed-tar'
-      const acl = 'bucket-owner-full-control'
-
-      const process = spawn(
-        `curl`,
-        [
-          '-X',
-          `PUT`,
-          `-T`,
-          `${dest}`,
-          `-H`,
-          `Host: ${host}`,
-          `-H`,
-          `Date: ${date}`,
-          `-H`,
-          `Content-Type: ${contentType}`,
-          `-H`,
-          `x-amz-acl: ${acl}`,
-          `https://${host}/${file}`,
-        ],
-        { stdio: 'inherit' },
-      )
-
-      process.on('message', (m) => this.log(String(m)))
-      process.on('exit', (code) => resolve(code))
-      process.on('error', (error) => reject(error))
-    })
+    CliUx.ux.action.start(`Removing backup dir ${destDir}`)
+    await fsAsync.rm(destDir, { recursive: true })
+    CliUx.ux.action.stop(`done`)
   }
 }

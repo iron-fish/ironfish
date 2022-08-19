@@ -3,7 +3,7 @@
 module.exports = {
   root: true,
 
-  ignorePatterns: ['openapi.d.ts'],
+  ignorePatterns: [],
 
   env: {
     es6: true,
@@ -59,6 +59,12 @@ module.exports = {
   rules: {
     'ironfish/no-vague-imports': 'error',
     'ironfish/no-buffer-cmp': 'error',
+
+    // Catches expressions that aren't assigned
+    '@typescript-eslint/no-unused-expressions': [
+      'error',
+      { allowShortCircuit: true, allowTernary: true },
+    ],
 
     // Seems to be needed to allow for custom jest matchers
     '@typescript-eslint/no-namespace': [

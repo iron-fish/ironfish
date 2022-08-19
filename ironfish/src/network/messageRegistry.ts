@@ -6,13 +6,26 @@ import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
+import {
+  GetBlockTransactionsRequest,
+  GetBlockTransactionsResponse,
+} from './messages/getBlockTransactions'
+import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockMessage } from './messages/newBlock'
+import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewBlockV2Message } from './messages/newBlockV2'
+import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionV2Message } from './messages/newTransactionV2'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
+import {
+  PooledTransactionsRequest,
+  PooledTransactionsResponse,
+} from './messages/pooledTransactions'
 import { RpcNetworkMessage } from './messages/rpcNetworkMessage'
 import { SignalMessage } from './messages/signal'
 import { SignalRequestMessage } from './messages/signalRequest'
@@ -37,6 +50,12 @@ const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetBlockHashesResponse,
     NetworkMessageType.GetBlocksRequest,
     NetworkMessageType.GetBlocksResponse,
+    NetworkMessageType.PooledTransactionsRequest,
+    NetworkMessageType.PooledTransactionsResponse,
+    NetworkMessageType.GetBlockTransactionsRequest,
+    NetworkMessageType.GetBlockTransactionsResponse,
+    NetworkMessageType.GetCompactBlockRequest,
+    NetworkMessageType.GetCompactBlockResponse,
   ].includes(type)
 }
 
@@ -61,6 +80,18 @@ const parseRpcNetworkMessage = (
       return GetBlocksRequest.deserialize(body, rpcId)
     case NetworkMessageType.GetBlocksResponse:
       return GetBlocksResponse.deserialize(body, rpcId)
+    case NetworkMessageType.PooledTransactionsRequest:
+      return PooledTransactionsRequest.deserialize(body, rpcId)
+    case NetworkMessageType.PooledTransactionsResponse:
+      return PooledTransactionsResponse.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsRequest:
+      return GetBlockTransactionsRequest.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockTransactionsResponse:
+      return GetBlockTransactionsResponse.deserialize(body, rpcId)
+    case NetworkMessageType.GetCompactBlockRequest:
+      return GetCompactBlockRequest.deserialize(body, rpcId)
+    case NetworkMessageType.GetCompactBlockResponse:
+      return GetCompactBlockResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
@@ -96,6 +127,14 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return SignalMessage.deserialize(body)
     case NetworkMessageType.SignalRequest:
       return SignalRequestMessage.deserialize(body)
+    case NetworkMessageType.NewPooledTransactionHashes:
+      return NewPooledTransactionHashes.deserialize(body)
+    case NetworkMessageType.NewTransactionV2:
+      return NewTransactionV2Message.deserialize(body)
+    case NetworkMessageType.NewBlockHashes:
+      return NewBlockHashesMessage.deserialize(body)
+    case NetworkMessageType.NewBlockV2:
+      return NewBlockV2Message.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }

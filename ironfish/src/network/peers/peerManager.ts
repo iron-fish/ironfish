@@ -147,7 +147,7 @@ export class PeerManager {
     this.metrics = metrics || new MetricsMonitor({ logger: this.logger })
     this.localPeer = localPeer
     this.maxPeers = maxPeers
-    this.targetPeers = targetPeers
+    this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
     this.addressManager = new AddressManager(hostsStore)
   }
@@ -318,7 +318,7 @@ export class PeerManager {
       simulateLatency: this.localPeer.simulateLatency,
     })
 
-    connection.onSignal.on(async (data) => {
+    connection.onSignal.on((data) => {
       let errorMessage
       if (peer.state.identity === null) {
         errorMessage = 'Cannot establish a WebRTC connection without a peer identity'
@@ -337,7 +337,7 @@ export class PeerManager {
       }
 
       // Create the message only once, since this is a time-consuming operation
-      const { nonce, boxedMessage } = await this.localPeer.boxMessage(
+      const { nonce, boxedMessage } = this.localPeer.boxMessage(
         JSON.stringify(data),
         peer.getIdentityOrThrow(),
       )
@@ -679,6 +679,7 @@ export class PeerManager {
     const peer = new Peer(identity, {
       logger: this.logger,
       shouldLogMessages: this.logPeerMessages,
+      metrics: this.metrics,
     })
 
     // Add the peer to peers. It's new, so it shouldn't exist there already
@@ -699,8 +700,8 @@ export class PeerManager {
     }
 
     // Bind Peer events to PeerManager events
-    peer.onMessage.on(async (message, connection) => {
-      await this.handleMessage(peer, connection, message)
+    peer.onMessage.on((message, connection) => {
+      this.handleMessage(peer, connection, message)
     })
 
     peer.onStateChanged.on(({ prevState }) => {
@@ -738,15 +739,6 @@ export class PeerManager {
 
   isBanned(peer: Peer): boolean {
     return !!peer.state.identity && this.banned.has(peer.state.identity)
-  }
-
-  /**
-   * Send a message to all connected peers.
-   */
-  broadcast(message: NetworkMessage): void {
-    for (const peer of this.getConnectedPeers()) {
-      peer.send(message)
-    }
   }
 
   start(): void {
@@ -853,7 +845,7 @@ export class PeerManager {
    * Note that the identity on IncomingPeerMessage is the identity of the
    * peer that sent it to us, not the original source.
    */
-  private async handleMessage(peer: Peer, connection: Connection, message: NetworkMessage) {
+  private handleMessage(peer: Peer, connection: Connection, message: NetworkMessage) {
     if (connection.state.type === 'WAITING_FOR_IDENTITY') {
       this.handleMessageInWaitingForIdentityState(peer, connection, message)
     } else if (message instanceof IdentifyMessage) {
@@ -861,7 +853,7 @@ export class PeerManager {
     } else if (message instanceof DisconnectingMessage) {
       this.handleDisconnectingMessage(peer, connection, message)
     } else if (message instanceof SignalMessage) {
-      await this.handleSignalMessage(peer, connection, message)
+      this.handleSignalMessage(peer, connection, message)
     } else if (message instanceof SignalRequestMessage) {
       this.handleSignalRequestMessage(peer, connection, message)
     } else if (message instanceof PeerListMessage) {
@@ -1260,7 +1252,7 @@ export class PeerManager {
    * Handle a signal message relayed by another peer.
    * @param message An incoming Signal message from a peer.
    */
-  private async handleSignalMessage(
+  private handleSignalMessage(
     messageSender: Peer,
     connection: Connection,
     message: SignalMessage,
@@ -1359,7 +1351,7 @@ export class PeerManager {
     }
 
     // Try decrypting the message
-    const { message: result } = await this.localPeer.unboxMessage(
+    const { message: result } = this.localPeer.unboxMessage(
       message.signal,
       message.nonce,
       message.sourceIdentity,
@@ -1406,10 +1398,6 @@ export class PeerManager {
 
     for (const p of this.identifiedPeers.values()) {
       if (p.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      if (peer.knownPeers.has(p.state.identity)) {
         continue
       }
 

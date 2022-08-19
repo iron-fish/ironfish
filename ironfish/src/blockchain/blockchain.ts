@@ -13,14 +13,16 @@ import {
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
+import { FileSystem } from '../fileSystems'
 import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
 import { NodeEncoding } from '../merkletree/database/nodes'
+import { NoteHasher } from '../merkletree/hasher'
 import { Meter, MetricsMonitor } from '../metrics'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, SerializedBlock } from '../primitives/block'
+import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
 import {
   NoteEncrypted,
@@ -28,10 +30,10 @@ import {
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
-import { Nullifier, NullifierHash } from '../primitives/nullifier'
+import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
+import { IJSON, NullifierSerdeInstance } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -56,7 +58,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-const DATABASE_VERSION = 6
+export const VERSION_DATABASE_CHAIN = 10
 
 export class Blockchain {
   db: IDatabase
@@ -64,6 +66,8 @@ export class Blockchain {
   strategy: Strategy
   verifier: Verifier
   metrics: MetricsMonitor
+  location: string
+  files: FileSystem
 
   synced = false
   opened = false
@@ -104,6 +108,7 @@ export class Blockchain {
   onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
 
   private _head: BlockHeader | null = null
+
   get head(): BlockHeader {
     Assert.isNotNull(
       this._head,
@@ -147,10 +152,13 @@ export class Blockchain {
     metrics?: MetricsMonitor
     logAllBlockAdd?: boolean
     autoSeed?: boolean
+    files: FileSystem
   }) {
     const logger = options.logger || createRootLogger()
 
+    this.location = options.location
     this.strategy = options.strategy
+    this.files = options.files
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this, options.workerPool)
@@ -171,7 +179,7 @@ export class Blockchain {
     this.headers = this.db.addStore({
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new HeaderEncoding(this.strategy),
+      valueEncoding: new HeaderEncoding(),
     })
 
     // BlockHash -> Transaction[]
@@ -202,7 +210,7 @@ export class Blockchain {
     })
 
     this.notes = new MerkleTree({
-      hasher: this.strategy.noteHasher,
+      hasher: new NoteHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NoteLeafEncoding(),
       nodeEncoding: new NodeEncoding(),
@@ -212,7 +220,7 @@ export class Blockchain {
     })
 
     this.nullifiers = new MerkleTree({
-      hasher: this.strategy.nullifierHasher,
+      hasher: new NullifierHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NullifierLeafEncoding(),
       nodeEncoding: new NodeEncoding(),
@@ -243,7 +251,7 @@ export class Blockchain {
 
   private async seed() {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = this.strategy.blockSerde.deserialize(serialized)
+    const genesis = BlockSerde.deserialize(serialized)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -258,21 +266,15 @@ export class Blockchain {
     return genesisHeader
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.opened) {
       return
     }
-
     this.opened = true
-    await this.db.open()
 
-    if (options.upgrade) {
-      await this.db.upgrade(DATABASE_VERSION)
-      await this.notes.upgrade()
-      await this.nullifiers.upgrade()
-    }
+    await this.files.mkdir(this.location, { recursive: true })
+    await this.db.open()
+    await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
@@ -917,7 +919,6 @@ export class Blockchain {
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
       const header = new BlockHeader(
-        this.strategy,
         previousSequence + 1,
         previousBlockHash,
         noteCommitment,
@@ -956,7 +957,7 @@ export class Blockchain {
       if (index < noteCount) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oldNote = (await this.notes.get(index, tx))!
-        if (!this.strategy.noteSerde.equals(note, oldNote)) {
+        if (!note.equals(oldNote)) {
           const message = `Tried to insert a note, but a different note already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
@@ -983,7 +984,7 @@ export class Blockchain {
       if (index < nullifierCount) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oldNullifier = (await this.nullifiers.get(index, tx))!
-        if (!this.strategy.nullifierHasher.elementSerde().equals(nullifier, oldNullifier)) {
+        if (!NullifierSerdeInstance.equals(nullifier, oldNullifier)) {
           const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
           this.logger.error(message)
           throw new Error(message)
@@ -1017,8 +1018,11 @@ export class Blockchain {
   /**
    * Gets the hash of the block at the sequence on the head chain
    */
-  async getHashAtSequence(sequence: number): Promise<BlockHash | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+  async getHashAtSequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | null> {
+    const hash = await this.sequenceToHash.get(sequence, tx)
     return hash || null
   }
 
@@ -1056,8 +1060,8 @@ export class Blockchain {
     return headers
   }
 
-  async isHeadChain(header: BlockHeader): Promise<boolean> {
-    const hash = await this.getHashAtSequence(header.sequence)
+  async isHeadChain(header: BlockHeader, tx?: IDatabaseTransaction): Promise<boolean> {
+    const hash = await this.getHashAtSequence(header.sequence, tx)
 
     if (!hash) {
       return false
@@ -1077,10 +1081,12 @@ export class Blockchain {
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
-    this.logger.info(`Deleting block ${hash.toString('hex')}`)
-
     await this.db.transaction(async (tx) => {
-      if (!(await this.hasBlock(hash, tx))) {
+      this.logger.info(`Deleting block ${hash.toString('hex')}`)
+
+      const exists = await this.hasBlock(hash, tx)
+
+      if (!exists) {
         this.logger.warn(`No block exists at ${hash.toString('hex')}`)
         return
       }
@@ -1090,6 +1096,12 @@ export class Blockchain {
 
       const block = await this.getBlock(hash, tx)
       Assert.isNotNull(block)
+
+      const main = await this.isHeadChain(header, tx)
+
+      if (main && !this.head.hash.equals(hash)) {
+        throw new Error(`Cannot remove main chain block that is not the head`)
+      }
 
       const next = await this.getHeadersAtSequence(header.sequence + 1, tx)
       if (next && next.some((h) => h.previousBlockHash.equals(header.hash))) {
@@ -1129,7 +1141,13 @@ export class Blockchain {
     tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<
-    { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
+    {
+      transaction: Transaction
+      initialNoteIndex: number
+      sequence: number
+      blockHash: Buffer
+      previousBlockHash: Buffer
+    },
     void,
     unknown
   > {
@@ -1161,7 +1179,13 @@ export class Blockchain {
     header: BlockHeader,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
-    { transaction: Transaction; initialNoteIndex: number; sequence: number; blockHash: string },
+    {
+      transaction: Transaction
+      initialNoteIndex: number
+      sequence: number
+      blockHash: Buffer
+      previousBlockHash: Buffer
+    },
     void,
     unknown
   > {
@@ -1182,8 +1206,9 @@ export class Blockchain {
       yield {
         transaction,
         initialNoteIndex: noteIndex,
-        blockHash: header.hash.toString('hex'),
+        blockHash: header.hash,
         sequence: header.sequence,
+        previousBlockHash: header.previousBlockHash,
       }
     }
   }

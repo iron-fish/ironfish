@@ -10,8 +10,10 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+base64 = "0.13.0"
+hex = "0.4.3"
+ironfish_rust = { path = "../ironfish-rust", features = ["native"] }
 napi-derive = "2.2.0"
-ironfish_rust= { path = "../ironfish-rust", features = ["native"] }
 
 [dependencies.napi]
 version = "2.2.0"
@@ -20,5 +22,6 @@ features = ["napi6"]
 [build-dependencies]
 napi-build = "1.2.1"
 
+# Note: Any changes here must also exist in ../ironfish-rust/Cargo.toml
 [patch.crates-io]
-bellman = { git = "https://github.com/iron-fish/bellman", rev = "368a62fb1821eaae495c60ada82d85faaea8b616" }
+bellman = { git = "https://github.com/iron-fish/bellman", rev = "1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec" }

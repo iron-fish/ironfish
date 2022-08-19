@@ -83,7 +83,7 @@ describe('Accounts', () => {
     })
 
     // Check that it was last broadcast at its added height
-    let invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
+    let invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.unsignedHash())
     expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
@@ -94,7 +94,120 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     // It should now be planned to be processed at head + 1
-    invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.hash())
+    invalidTxEntry = nodeA.accounts['transactionMap'].get(invalidTx.unsignedHash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
   }, 120000)
+
+  describe('getBalance', () => {
+    it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {
+      const { node: nodeA } = await nodeTest.createSetup({
+        config: { minimumBlockConfirmations: 2 },
+      })
+      const { node: nodeB } = await nodeTest.createSetup()
+      const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
+      const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
+
+      // G -> A1 -> A2 -> A3 -> A4 -> A5
+      //   -> B1 -> B2 -> B3 -> B4
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      await nodeA.chain.addBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
+      await nodeA.chain.addBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(nodeA.chain, 4, accountA)
+      await nodeA.chain.addBlock(blockA3)
+      const blockA4 = await useMinerBlockFixture(nodeA.chain, 5, accountA)
+      await nodeA.chain.addBlock(blockA4)
+      const blockA5 = await useMinerBlockFixture(nodeA.chain, 6, accountA)
+      await nodeA.chain.addBlock(blockA5)
+
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+      await nodeB.chain.addBlock(blockB1)
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+      await nodeB.chain.addBlock(blockB2)
+      const blockB3 = await useMinerBlockFixture(nodeB.chain, 4, accountB)
+      await nodeB.chain.addBlock(blockB3)
+      const blockB4 = await useMinerBlockFixture(nodeB.chain, 5, accountB)
+      await nodeB.chain.addBlock(blockB4)
+
+      expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+      expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
+
+      await nodeB.chain.addBlock(blockA1)
+      await nodeB.chain.addBlock(blockA2)
+      await nodeB.chain.addBlock(blockA3)
+      await nodeB.chain.addBlock(blockA4)
+      await nodeB.chain.addBlock(blockA5)
+
+      await nodeA.accounts.updateHead()
+      await nodeB.accounts.updateHead()
+
+      expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+      expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
+
+      expect(await nodeA.accounts.getBalance(accountA)).toEqual({
+        confirmed: BigInt(6000000000),
+        unconfirmed: BigInt(10000000000),
+      })
+      expect(await nodeB.accounts.getBalance(accountB)).toEqual({
+        confirmed: BigInt(0),
+        unconfirmed: BigInt(0),
+      })
+    })
+  })
+
+  describe('scanTransaction', () => {
+    it('should rescan and update chain processor', async () => {
+      const { chain, accounts } = await nodeTest.createSetup()
+
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
+
+      // Test this works even if processor is not reset
+      await accounts.updateHead()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      const block2 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block2)
+
+      // Should only scan up to the current procesor head block1
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      // Now with a reset chain processor should go to end of chain
+      await accounts.reset()
+      expect(accounts['chainProcessor']['hash']).toBe(null)
+
+      // This should carry the chain processor to block2
+      await accounts.scanTransactions()
+      expect(accounts['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
+    })
+  })
+
+  describe('importAccount', () => {
+    it('should not import accounts with duplicate name', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with the name',
+      )
+    })
+
+    it('should not import accounts with duplicate keys', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.accounts, 'accountA')
+
+      expect(node.accounts.accountExists(account.name)).toEqual(true)
+
+      account.name = 'Different name'
+
+      await expect(node.accounts.importAccount(account)).rejects.toThrowError(
+        'Account already exists with provided spending key',
+      )
+    })
+  })
 })

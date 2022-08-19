@@ -17,13 +17,15 @@ describe('Accounts', () => {
   let targetMeetsSpy: jest.SpyInstance
   let targetSpy: jest.SpyInstance
 
-  beforeAll(() => {
+  beforeAll(async () => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
-
     targetSpy = jest.spyOn(Target, 'calculateTarget').mockImplementation(acceptsAllTarget)
+
+    await nodeTest.setup()
+    nodeTest.workerPool.start()
   })
 
-  afterEach(async () => {
+  afterAll(async () => {
     await nodeTest.node.workerPool.stop()
   })
 
@@ -198,7 +200,6 @@ describe('Accounts', () => {
     const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
-    node.accounts['workerPool'].start()
 
     const account = await node.accounts.createAccount('test', true)
 
@@ -270,7 +271,6 @@ describe('Accounts', () => {
     const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
-    node.accounts['workerPool'].start()
 
     const account = await node.accounts.createAccount('test', true)
 
@@ -348,8 +348,6 @@ describe('Accounts', () => {
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
     const node = nodeTest.node
-    node.accounts['workerPool'].start()
-
     const account = await node.accounts.createAccount('test', true)
 
     // Spend the balance with an invalid expiration

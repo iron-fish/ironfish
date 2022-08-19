@@ -30,25 +30,33 @@ describe('MemPool', () => {
     describe('with a missing hash', () => {
       const nodeTest = createNodeTest()
 
-      it('returns false', () => {
+      it('returns false', async () => {
         const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(node.memPool.exists(Buffer.from('fake-hash'))).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
       })
     })
 
     describe('with a valid hash', () => {
       const nodeTest = createNodeTest()
 
-      it('returns true', () => {
+      it('returns true', async () => {
         const { node } = nodeTest
+        const { accounts, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        expect(node.memPool.exists(Buffer.from('fake-hash'))).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
       })
     })
   })
 
-  describe('get', () => {
+  describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
     it('returns transactions from the node mempool sorted by fees', async () => {
@@ -69,7 +77,7 @@ describe('MemPool', () => {
       await memPool.acceptTransaction(transactionB)
       await memPool.acceptTransaction(transactionC)
 
-      const transactions = Array.from(memPool.get())
+      const transactions = Array.from(memPool.orderedTransactions())
       expect(transactions).toEqual([transactionB, transactionC, transactionA])
     }, 60000)
 
@@ -87,7 +95,7 @@ describe('MemPool', () => {
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
 
-      const generator = memPool.get()
+      const generator = memPool.orderedTransactions()
       const result = generator.next()
       expect(result.done).toBe(false)
 
@@ -127,6 +135,26 @@ describe('MemPool', () => {
 
         expect(await memPool.acceptTransaction(transaction)).toBe(false)
       }, 60000)
+    })
+
+    describe('with an expired sequence', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { accounts, chain, memPool } = node
+        const accountA = await useAccountFixture(accounts, 'accountA')
+        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        const isExpiredSequenceSpy = jest
+          .spyOn(chain.verifier, 'isExpiredSequence')
+          .mockReturnValue(true)
+
+        expect(await memPool.acceptTransaction(transaction)).toBe(false)
+        expect(isExpiredSequenceSpy).toHaveBeenCalledTimes(1)
+        expect(isExpiredSequenceSpy).lastReturnedWith(true)
+      })
     })
 
     describe('with an existing nullifier in a transaction in the mempool', () => {
@@ -185,21 +213,67 @@ describe('MemPool', () => {
       it('sets the transaction hash in the mempool map and priority queue', async () => {
         const { node } = nodeTest
         const { accounts, memPool } = node
-        const { queue, transactions } = memPool
-        const add = jest.spyOn(queue, 'add')
-        const set = jest.spyOn(transactions, 'set')
         const accountA = await useAccountFixture(accounts, 'accountA')
         const accountB = await useAccountFixture(accounts, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         await memPool.acceptTransaction(transaction)
 
-        const hash = transaction.hash()
-        expect(add).toHaveBeenCalledTimes(1)
-        expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
-        expect(set).toHaveBeenCalledTimes(1)
-        expect(set).toHaveBeenCalledWith(hash, transaction)
+        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
       }, 60000)
+    })
+
+    describe('verification', () => {
+      const nodeTest = createNodeTest()
+
+      it('should default to verify the transaction', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should verify when explicitly passed the parameter', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction, true)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should be skippable', async () => {
+        const { node } = nodeTest
+        const { memPool } = node
+        const account = await useAccountFixture(nodeTest.accounts)
+        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+
+        const verifyTransactionSpy = jest.spyOn(
+          node.chain.verifier,
+          'verifyTransactionNoncontextual',
+        )
+
+        await memPool.acceptTransaction(transaction, false)
+
+        expect(verifyTransactionSpy).toHaveBeenCalledTimes(0)
+      })
     })
   })
 
@@ -209,8 +283,6 @@ describe('MemPool', () => {
     it('removes the block transactions and expired transactions from the mempool', async () => {
       const { node, chain } = nodeTest
       const { accounts, memPool } = node
-      const { queue, transactions } = memPool
-      const removeOne = jest.spyOn(queue, 'removeOne')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
@@ -219,20 +291,19 @@ describe('MemPool', () => {
         accountB,
         accountA,
       )
-      const hashA = transactionA.hash()
-      const hashB = transactionB.hash()
 
       await memPool.acceptTransaction(transactionA)
       await memPool.acceptTransaction(transactionB)
-      expect(transactions.get(hashA)).not.toBeUndefined()
-      expect(transactions.get(hashB)).not.toBeUndefined()
+      expect(memPool.exists(transactionA.hash())).toBe(true)
+      expect(memPool.exists(transactionB.hash())).toBe(true)
 
       jest.spyOn(transactionA, 'expirationSequence').mockImplementation(() => 1)
       await chain.addBlock(block)
 
-      expect(transactions.get(hashA)).toBeUndefined()
-      expect(transactions.get(hashB)).toBeUndefined()
-      expect(removeOne).toHaveBeenCalled()
+      expect(memPool.exists(transactionA.hash())).toBe(false)
+      expect(memPool.exists(transactionB.hash())).toBe(false)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionB)
     }, 60000)
   })
 
@@ -242,23 +313,11 @@ describe('MemPool', () => {
     it('adds the block transactions to the mempool', async () => {
       const { node, chain } = nodeTest
       const { accounts, memPool } = node
-      const { queue, transactions } = memPool
-      const add = jest.spyOn(queue, 'add')
       const accountA = await useAccountFixture(accounts, 'accountA')
       const accountB = await useAccountFixture(accounts, 'accountB')
-      const { block } = await useBlockWithTx(node, accountA, accountB)
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+      const minersFee = block.transactions[0]
 
-      // TODO: Remove this and use return value of useBlockWithTx when miners
-      // miners fee is always first on the block
-      let minersFee
-      let transaction
-      for (const tx of block.transactions) {
-        if (tx.isMinersFee()) {
-          minersFee = tx
-        } else {
-          transaction = tx
-        }
-      }
       Assert.isNotUndefined(minersFee)
       Assert.isNotUndefined(transaction)
 
@@ -266,16 +325,11 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      const hash = transaction.hash()
-      expect(transactions.get(hash)).not.toBeUndefined()
-      expect(add).toHaveBeenCalledWith({ fee: transaction.fee(), hash })
+      expect(memPool.exists(transaction.hash())).toBe(true)
+      expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
 
-      const minersHash = minersFee.hash()
-      expect(transactions.get(minersHash)).toBeUndefined()
-      expect(add).not.toHaveBeenCalledWith({
-        fee: block.minersFee.fee(),
-        hash: minersHash,
-      })
+      expect(memPool.exists(minersFee.hash())).toBe(false)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(minersFee)
     }, 60000)
   })
 })

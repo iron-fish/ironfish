@@ -9,6 +9,7 @@ import {
   MiningPool,
   parseUrl,
   StringUtils,
+  WebhookNotifier,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import dns from 'dns'
@@ -42,6 +43,10 @@ export class StartPool extends IronfishCommand {
     balancePercentPayout: Flags.integer({
       description: 'whether the pool should payout or not. useful for solo miners',
     }),
+    banning: Flags.boolean({
+      description: 'whether the pool should ban peers for errors or bad behavior',
+      allowNo: true,
+    }),
   }
 
   pool: MiningPool | null = null
@@ -62,26 +67,32 @@ export class StartPool extends IronfishCommand {
 
     this.log(`Starting pool with name ${poolName}`)
 
-    let discord: Discord | undefined = undefined
+    const webhooks: WebhookNotifier[] = []
 
     const discordWebhook = flags.discord ?? this.sdk.config.get('poolDiscordWebhook')
     if (discordWebhook) {
-      discord = new Discord({
-        webhook: discordWebhook,
-        logger: this.logger,
-      })
+      webhooks.push(
+        new Discord({
+          webhook: discordWebhook,
+          logger: this.logger,
+          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
+          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
+        }),
+      )
 
       this.log(`Discord enabled: ${discordWebhook}`)
     }
 
-    let lark: Lark | undefined = undefined
-
     const larkWebhook = flags.lark ?? this.sdk.config.get('poolLarkWebhook')
     if (larkWebhook) {
-      lark = new Lark({
-        webhook: larkWebhook,
-        logger: this.logger,
-      })
+      webhooks.push(
+        new Lark({
+          webhook: larkWebhook,
+          logger: this.logger,
+          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
+          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
+        }),
+      )
 
       this.log(`Lark enabled: ${larkWebhook}`)
     }
@@ -107,11 +118,11 @@ export class StartPool extends IronfishCommand {
       logger: this.logger,
       rpc,
       enablePayouts: flags.payouts,
-      discord,
-      lark,
+      webhooks: webhooks,
       host: host,
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,
+      banning: flags.banning,
     })
 
     await this.pool.start()

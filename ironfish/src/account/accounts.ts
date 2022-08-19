@@ -3,18 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
+import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
+import { UnspentNote } from '../workerPool/tasks/getUnspentNotes'
 import { Account } from './account'
 import { AccountDefaults, AccountsDB } from './accountsdb'
 import { AccountsValue } from './database/accounts'
@@ -36,6 +41,7 @@ export class Accounts {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
+  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -55,9 +61,10 @@ export class Accounts {
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
-  protected readonly logger: Logger
+  readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
+  private readonly config: Config
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -65,25 +72,30 @@ export class Accounts {
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
+  private readonly createTransactionMutex: Mutex
 
   constructor({
     chain,
-    workerPool,
+    config,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
+    workerPool,
   }: {
     chain: Blockchain
-    workerPool: WorkerPool
+    config: Config
     database: AccountsDB
     logger?: Logger
     rebroadcastAfter?: number
+    workerPool: WorkerPool
   }) {
     this.chain = chain
+    this.config = config
     this.logger = logger.withTag('accounts')
     this.db = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
+    this.createTransactionMutex = new Mutex()
 
     this.chainProcessor = new ChainProcessor({
       logger: this.logger,
@@ -100,7 +112,7 @@ export class Accounts {
         initialNoteIndex,
       } of this.chain.iterateBlockTransactions(header)) {
         await this.syncTransaction(transaction, {
-          blockHash: blockHash,
+          blockHash: blockHash.toString('hex'),
           initialNoteIndex: initialNoteIndex,
         })
       }
@@ -124,11 +136,12 @@ export class Accounts {
       return
     }
 
-    this.updateHeadState = new ScanState()
+    const scan = new ScanState()
+    this.updateHeadState = scan
 
     try {
       const { hashChanged } = await this.chainProcessor.update({
-        signal: this.updateHeadState.abortController.signal,
+        signal: scan.abortController.signal,
       })
 
       if (hashChanged) {
@@ -137,7 +150,7 @@ export class Accounts {
         )
       }
     } finally {
-      this.updateHeadState.signalComplete()
+      scan.signalComplete()
       this.updateHeadState = null
     }
   }
@@ -156,19 +169,14 @@ export class Accounts {
     return false
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.isOpen) {
       return
     }
 
     this.isOpen = true
-    await this.db.open(options)
-
-    if (options.load) {
-      await this.load()
-    }
+    await this.db.open()
+    await this.load()
   }
 
   async load(): Promise<void> {
@@ -228,13 +236,7 @@ export class Accounts {
       clearTimeout(this.eventLoopTimeout)
     }
 
-    if (this.scan) {
-      await this.scan.abort()
-    }
-
-    if (this.updateHeadState) {
-      await this.updateHeadState.abort()
-    }
+    await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
     if (this.db.database.isOpen) {
       await this.saveTransactionsToDb()
@@ -334,18 +336,20 @@ export class Accounts {
     await this.updateHeadHash(null)
   }
 
-  private decryptNotes(
+  private async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
-  ): Array<{
-    noteIndex: number | null
-    nullifier: string | null
-    merkleHash: string
-    forSpender: boolean
-    account: Account
-  }> {
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
     const accounts = this.listAccounts()
-    const notes = new Array<{
+    const decryptedNotes = new Array<{
       noteIndex: number | null
       nullifier: string | null
       merkleHash: string
@@ -353,58 +357,74 @@ export class Accounts {
       account: Account
     }>()
 
-    // Decrement the note index before starting so we can
-    // pre-increment it in the loop rather than post-incrementing it
-    let currentNoteIndex = initialNoteIndex
-    if (currentNoteIndex !== null) {
-      currentNoteIndex--
-    }
+    const batchSize = 20
+    for (const account of accounts) {
+      let decryptNotesPayloads = []
+      let currentNoteIndex = initialNoteIndex
 
-    for (const note of transaction.notes()) {
-      // Increment the note index if it is set
-      if (currentNoteIndex !== null) {
-        currentNoteIndex++
+      for (const note of transaction.notes()) {
+        decryptNotesPayloads.push({
+          serializedNote: note.serialize(),
+          incomingViewKey: account.incomingViewKey,
+          outgoingViewKey: account.outgoingViewKey,
+          spendingKey: account.spendingKey,
+          currentNoteIndex,
+        })
+
+        if (currentNoteIndex) {
+          currentNoteIndex++
+        }
+
+        if (decryptNotesPayloads.length >= batchSize) {
+          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+            account,
+            decryptNotesPayloads,
+          )
+          decryptedNotes.push(...decryptedNotesBatch)
+          decryptNotesPayloads = []
+        }
       }
 
-      for (const account of accounts) {
-        // Try decrypting the note as the owner
-        const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
-        if (receivedNote) {
-          if (receivedNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: false,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier:
-                currentNoteIndex !== null
-                  ? Buffer.from(
-                      receivedNote.nullifier(account.spendingKey, BigInt(currentNoteIndex)),
-                    ).toString('hex')
-                  : null,
-              account: account,
-            })
-          }
-          continue
-        }
-
-        // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(account.outgoingViewKey)
-        if (spentNote) {
-          if (spentNote.value() !== BigInt(0)) {
-            notes.push({
-              noteIndex: currentNoteIndex,
-              forSpender: true,
-              merkleHash: note.merkleHash().toString('hex'),
-              nullifier: null,
-              account: account,
-            })
-          }
-          continue
-        }
+      if (decryptNotesPayloads.length) {
+        const decryptedNotesBatch = await this.decryptNotesFromTransaction(
+          account,
+          decryptNotesPayloads,
+        )
+        decryptedNotes.push(...decryptedNotesBatch)
       }
     }
 
-    return notes
+    return decryptedNotes
+  }
+
+  private async decryptNotesFromTransaction(
+    account: Account,
+    decryptNotesPayloads: Array<DecryptNoteOptions>,
+  ): Promise<
+    Array<{
+      noteIndex: number | null
+      nullifier: string | null
+      merkleHash: string
+      forSpender: boolean
+      account: Account
+    }>
+  > {
+    const decryptedNotes = []
+    const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
+
+    for (const decryptedNote of response) {
+      if (decryptedNote) {
+        decryptedNotes.push({
+          account,
+          forSpender: decryptedNote.forSpender,
+          merkleHash: decryptedNote.merkleHash.toString('hex'),
+          noteIndex: decryptedNote.index,
+          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier.toString('hex') : null,
+        })
+      }
+    }
+
+    return decryptedNotes
   }
 
   /**
@@ -423,12 +443,12 @@ export class Accounts {
 
     let newSequence = submittedSequence
 
-    await transaction.withReference(() => {
-      const notes = this.decryptNotes(transaction, initialNoteIndex)
+    await transaction.withReference(async () => {
+      const notes = await this.decryptNotes(transaction, initialNoteIndex)
 
       return this.db.database.transaction(async (tx) => {
         if (notes.length > 0) {
-          const transactionHash = transaction.hash()
+          const transactionHash = transaction.unsignedHash()
 
           const existingT = this.transactionMap.get(transactionHash)
           // If we passed in a submittedSequence, set submittedSequence to that value.
@@ -506,7 +526,7 @@ export class Accounts {
    * the related maps.
    */
   async removeTransaction(transaction: Transaction): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
 
     await this.db.database.transaction(async (tx) => {
       await this.updateTransactionMap(transactionHash, null, tx)
@@ -551,13 +571,12 @@ export class Accounts {
   }
 
   async scanTransactions(): Promise<void> {
-    if (this.scan) {
-      this.logger.info('Skipping Scan, already scanning.')
-      return
+    if (!this.isOpen) {
+      throw new Error('Cannot start a scan if accounts are not loaded')
     }
 
-    if (this.chainProcessor.hash === null) {
-      this.logger.debug('Skipping scan, there is no blocks to scan')
+    if (this.scan) {
+      this.logger.info('Skipping Scan, already scanning.')
       return
     }
 
@@ -568,17 +587,32 @@ export class Accounts {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const accountHeadHash = this.chainProcessor.hash
+    if (scan.isAborted) {
+      scan.signalComplete()
+      this.scan = null
+      return
+    }
 
     const scanFor = Array.from(this.accounts.values())
       .filter((a) => a.rescan !== null && a.rescan <= scan.startedAt)
       .map((a) => a.displayName)
       .join(', ')
 
+    const accountHeadHash = this.chainProcessor?.hash
+      ? this.chainProcessor.hash
+      : this.chain.head.hash
+
+    const accountHead = await this.chain.getHeader(accountHeadHash)
+    Assert.isNotNull(accountHead)
+
     this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
+
+    let syncChainProcessor = false
+    let lastBlockHash: Buffer | null = null
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const {
+      previousBlockHash,
       blockHash,
       transaction,
       initialNoteIndex,
@@ -590,8 +624,30 @@ export class Accounts {
         return
       }
 
-      await this.syncTransaction(transaction, { blockHash, initialNoteIndex: initialNoteIndex })
-      scan.onTransaction.emit(sequence)
+      const chainProcessorHash: Buffer =
+        this.chainProcessor.hash ?? this.chain.genesis.previousBlockHash
+
+      if (!syncChainProcessor && chainProcessorHash.equals(previousBlockHash)) {
+        syncChainProcessor = true
+      }
+
+      if (syncChainProcessor && !chainProcessorHash.equals(previousBlockHash)) {
+        this.chainProcessor.hash = previousBlockHash
+        await this.updateHeadHash(previousBlockHash)
+      }
+
+      await this.syncTransaction(transaction, {
+        blockHash: blockHash.toString('hex'),
+        initialNoteIndex: initialNoteIndex,
+      })
+
+      scan.onTransaction.emit(sequence, accountHead.sequence)
+      lastBlockHash = blockHash
+    }
+
+    if (syncChainProcessor) {
+      this.chainProcessor.hash = lastBlockHash
+      await this.updateHeadHash(lastBlockHash)
     }
 
     for (const account of this.accounts.values()) {
@@ -611,35 +667,128 @@ export class Accounts {
     this.scan = null
   }
 
-  private async getUnspentNotes(
-    account: Account,
-  ): Promise<ReadonlyArray<{ hash: string; note: Note; index: number | null }>> {
-    const unspentNotes = []
+  getNotes(account: Account): {
+    notes: {
+      spender: boolean
+      amount: number
+      memo: string
+      noteTxHash: string
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    const notes = []
 
     for (const transactionMapValue of this.transactionMap.values()) {
-      const result = await this.workerPool.getUnspentNotes(
-        transactionMapValue.transaction.serialize(),
-        [account.incomingViewKey],
-      )
+      const transaction = transactionMapValue.transaction
 
-      for (const note of result.notes) {
-        const map = this.noteToNullifier.get(note.hash)
+      for (const note of transaction.notes()) {
+        // Try decrypting the note as the owner
+        let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+        let spender = false
 
-        if (!map) {
-          throw new Error('All decryptable notes should be in the noteToNullifier map')
+        if (!decryptedNote) {
+          // Try decrypting the note as the spender
+          decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+          spender = true
         }
 
-        if (!map.spent) {
-          unspentNotes.push({
-            hash: note.hash,
-            note: new Note(note.note),
-            index: map.noteIndex,
+        if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+          notes.push({
+            spender,
+            amount: Number(decryptedNote.value()),
+            memo: decryptedNote.memo().replace(/\x00/g, ''),
+            noteTxHash: transaction.unsignedHash().toString('hex'),
           })
         }
       }
     }
 
+    return { notes }
+  }
+
+  private async getUnspentNotes(account: Account): Promise<
+    ReadonlyArray<{
+      hash: string
+      note: Note
+      index: number | null
+      confirmed: boolean
+    }>
+  > {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const unspentNotes = []
+
+    for await (const { blockHash, note } of this.unspentNotesGenerator(account)) {
+      const map = this.noteToNullifier.get(note.hash)
+      if (!map) {
+        throw new Error('All decryptable notes should be in the noteToNullifier map')
+      }
+
+      if (!map.spent) {
+        let confirmed = false
+
+        if (blockHash) {
+          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+          Assert.isNotNull(header)
+          const main = await this.chain.isHeadChain(header)
+          if (main) {
+            const confirmations = this.chain.head.sequence - header.sequence
+            confirmed = confirmations >= minimumBlockConfirmations
+          }
+        }
+
+        unspentNotes.push({
+          hash: note.hash,
+          note: new Note(note.note),
+          index: map.noteIndex,
+          confirmed,
+        })
+      }
+    }
+
     return unspentNotes
+  }
+
+  private async *unspentNotesGenerator(account: Account): AsyncGenerator<{
+    blockHash: string | null
+    note: UnspentNote
+  }> {
+    const batchSize = 20
+    const incomingViewKeys = [account.incomingViewKey]
+    let jobs = []
+
+    const getUnspentNotes = async (transaction: Transaction, blockHash: string | null) => {
+      return {
+        ...(await this.workerPool.getUnspentNotes(transaction.serialize(), incomingViewKeys)),
+        blockHash,
+      }
+    }
+
+    for (const { transaction, blockHash } of this.transactionMap.values()) {
+      jobs.push(getUnspentNotes(transaction, blockHash))
+
+      if (jobs.length >= batchSize) {
+        const responses = await Promise.all(jobs)
+
+        for (const { blockHash, notes } of responses) {
+          for (const note of notes) {
+            yield { blockHash, note }
+          }
+
+          jobs = []
+        }
+      }
+    }
+
+    if (jobs.length) {
+      const responses = await Promise.all(jobs)
+
+      for (const { blockHash, notes } of responses) {
+        for (const note of notes) {
+          yield { blockHash, note }
+        }
+      }
+    }
   }
 
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
@@ -655,7 +804,7 @@ export class Accounts {
 
       unconfirmed += value
 
-      if (note.index !== null) {
+      if (note.index !== null && note.confirmed) {
         confirmed += value
       }
     }
@@ -693,6 +842,7 @@ export class Accounts {
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     await memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
+    this.onTransactionCreated.emit(transaction)
 
     return transaction
   }
@@ -703,91 +853,97 @@ export class Accounts {
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
-    this.assertHasAccount(sender)
+    const unlock = await this.createTransactionMutex.lock()
 
-    // TODO: If we're spending from multiple accounts, we need to figure out a
-    // way to split the transaction fee. - deekerno
-    let amountNeeded =
-      receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
+    try {
+      this.assertHasAccount(sender)
 
-    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-    const unspentNotes = await this.getUnspentNotes(sender)
+      // TODO: If we're spending from multiple accounts, we need to figure out a
+      // way to split the transaction fee. - deekerno
+      let amountNeeded =
+        receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
-    for (const unspentNote of unspentNotes) {
-      // Skip unconfirmed notes
-      if (unspentNote.index === null) {
-        continue
-      }
+      const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+      const unspentNotes = await this.getUnspentNotes(sender)
 
-      if (unspentNote.note.value() > BigInt(0)) {
-        // Double-check that the nullifier for the note isn't in the tree already
-        // This would indicate a bug in the account transaction stores
-        const nullifier = Buffer.from(
-          unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
-        )
+      for (const unspentNote of unspentNotes) {
+        // Skip unconfirmed notes
+        if (unspentNote.index === null || !unspentNote.confirmed) {
+          continue
+        }
 
-        if (await this.chain.nullifiers.contains(nullifier)) {
-          this.logger.debug(
-            `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
-              'hex',
-            )}`,
+        if (unspentNote.note.value() > BigInt(0)) {
+          // Double-check that the nullifier for the note isn't in the tree already
+          // This would indicate a bug in the account transaction stores
+          const nullifier = Buffer.from(
+            unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
           )
 
-          // Update our map so this doesn't happen again
-          const noteMapValue = this.noteToNullifier.get(unspentNote.hash)
-          if (noteMapValue) {
-            this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
-            await this.updateNoteToNullifierMap(unspentNote.hash, {
-              ...noteMapValue,
-              spent: true,
-            })
+          if (await this.chain.nullifiers.contains(nullifier)) {
+            this.logger.debug(
+              `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
+                'hex',
+              )}`,
+            )
+
+            // Update our map so this doesn't happen again
+            const noteMapValue = this.noteToNullifier.get(unspentNote.hash)
+            if (noteMapValue) {
+              this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
+              await this.updateNoteToNullifierMap(unspentNote.hash, {
+                ...noteMapValue,
+                spent: true,
+              })
+            }
+
+            // Move on to the next note
+            continue
           }
 
-          // Move on to the next note
-          continue
-        }
+          // Try creating a witness from the note
+          const witness = await this.chain.notes.witness(unspentNote.index)
 
-        // Try creating a witness from the note
-        const witness = await this.chain.notes.witness(unspentNote.index)
+          if (witness === null) {
+            this.logger.debug(
+              `Could not create a witness for note with index ${unspentNote.index}`,
+            )
+            continue
+          }
 
-        if (witness === null) {
+          // Otherwise, push the note into the list of notes to spend
           this.logger.debug(
-            `Could not create a witness for note with index ${unspentNote.index}`,
+            `Accounts: spending note ${unspentNote.index} ${
+              unspentNote.hash
+            } ${unspentNote.note.value()}`,
           )
-          continue
+          notesToSpend.push({ note: unspentNote.note, witness: witness })
+          amountNeeded -= unspentNote.note.value()
         }
 
-        // Otherwise, push the note into the list of notes to spend
-        this.logger.debug(
-          `Accounts: spending note ${unspentNote.index} ${
-            unspentNote.hash
-          } ${unspentNote.note.value()}`,
-        )
-        notesToSpend.push({ note: unspentNote.note, witness: witness })
-        amountNeeded -= unspentNote.note.value()
+        if (amountNeeded <= 0) {
+          break
+        }
       }
 
-      if (amountNeeded <= 0) {
-        break
+      if (amountNeeded > 0) {
+        throw new Error('Insufficient funds')
       }
-    }
 
-    if (amountNeeded > 0) {
-      throw new Error('Insufficient funds')
+      return this.workerPool.createTransaction(
+        sender.spendingKey,
+        transactionFee,
+        notesToSpend.map((n) => ({
+          note: n.note,
+          treeSize: n.witness.treeSize(),
+          authPath: n.witness.authenticationPath,
+          rootHash: n.witness.rootHash,
+        })),
+        receives,
+        expirationSequence,
+      )
+    } finally {
+      unlock()
     }
-
-    return this.workerPool.createTransaction(
-      sender.spendingKey,
-      transactionFee,
-      notesToSpend.map((n) => ({
-        note: n.note,
-        treeSize: n.witness.treeSize(),
-        authPath: n.witness.authenticationPath,
-        rootHash: n.witness.rootHash,
-      })),
-      receives,
-      expirationSequence,
-    )
   }
 
   broadcastTransaction(transaction: Transaction): void {
@@ -928,11 +1084,144 @@ export class Accounts {
     await this.scanTransactions()
   }
 
+  async getTransactions(account: Account): Promise<
+    Array<{
+      creator: boolean
+      status: string
+      hash: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+      expiration: number
+    }>
+  > {
+    this.assertHasAccount(account)
+
+    const transactions = []
+
+    for (const transactionMapValue of this.transactionMap.values()) {
+      const transaction = transactionMapValue.transaction
+
+      // check if account created transaction
+      let transactionCreator = false
+      let transactionRecipient = false
+
+      for (const note of transaction.notes()) {
+        if (note.decryptNoteForSpender(account.outgoingViewKey)) {
+          transactionCreator = true
+          break
+        } else if (note.decryptNoteForOwner(account.incomingViewKey)) {
+          transactionRecipient = true
+        }
+      }
+
+      if (transactionCreator || transactionRecipient) {
+        const { blockHash } = transactionMapValue
+
+        let status = 'pending'
+        if (blockHash) {
+          const header = await this.chain.getHeader(Buffer.from(blockHash, 'hex'))
+          Assert.isNotNull(header)
+          const main = await this.chain.isHeadChain(header)
+          if (main) {
+            status = 'completed'
+          } else {
+            status = 'forked'
+          }
+        }
+
+        transactions.push({
+          creator: transactionCreator,
+          status,
+          hash: transaction.unsignedHash().toString('hex'),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+          expiration: transaction.expirationSequence(),
+        })
+      }
+    }
+
+    return transactions
+  }
+
+  getTransaction(
+    account: Account,
+    hash: string,
+  ): {
+    transactionInfo: {
+      status: string
+      isMinersFee: boolean
+      fee: number
+      notes: number
+      spends: number
+    } | null
+    transactionNotes: {
+      spender: boolean
+      amount: number
+      memo: string
+    }[]
+  } {
+    this.assertHasAccount(account)
+
+    let transactionInfo = null
+    const transactionNotes = []
+
+    const transactionMapValue = this.transactionMap.get(Buffer.from(hash, 'hex'))
+
+    if (transactionMapValue) {
+      const transaction = transactionMapValue.transaction
+
+      if (transaction.unsignedHash().toString('hex') === hash) {
+        for (const note of transaction.notes()) {
+          // Try decrypting the note as the owner
+          let decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
+          let spender = false
+
+          if (!decryptedNote) {
+            // Try decrypting the note as the spender
+            decryptedNote = note.decryptNoteForSpender(account.outgoingViewKey)
+            spender = true
+          }
+
+          if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
+            transactionNotes.push({
+              spender,
+              amount: Number(decryptedNote.value()),
+              memo: decryptedNote.memo().replace(/\x00/g, ''),
+            })
+          }
+        }
+
+        if (transactionNotes.length > 0) {
+          transactionInfo = {
+            status:
+              transactionMapValue.blockHash && transactionMapValue.submittedSequence
+                ? 'completed'
+                : 'pending',
+            isMinersFee: transaction.isMinersFee(),
+            fee: Number(transaction.fee()),
+            notes: transaction.notesLength(),
+            spends: transaction.spendsLength(),
+          }
+        }
+      }
+    }
+
+    return { transactionInfo, transactionNotes }
+  }
+
   async importAccount(toImport: Partial<AccountsValue>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.accounts.has(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
+    }
+
+    if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+      throw new Error(`Account already exists with provided spending key`)
     }
 
     const serializedAccount: AccountsValue = {
@@ -1036,7 +1325,7 @@ export class Accounts {
 }
 
 export class ScanState {
-  onTransaction = new Event<[sequence: number]>()
+  onTransaction = new Event<[sequence: number, endSequence: number]>()
 
   readonly startedAt: number
   readonly abortController: AbortController

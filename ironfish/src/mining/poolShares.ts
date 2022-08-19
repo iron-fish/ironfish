@@ -3,20 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
-import { IronfishRpcClient } from '../rpc/clients/rpcClient'
+import { RpcSocketClient } from '../rpc/clients/socketClient'
+import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { SetTimeoutToken } from '../utils/types'
-import { Discord } from './discord'
-import { Lark } from './lark'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
+import { WebhookNotifier } from './webhooks'
 
 export class MiningPoolShares {
-  readonly rpc: IronfishRpcClient
+  readonly rpc: RpcSocketClient
   readonly config: Config
   readonly logger: Logger
-  readonly discord: Discord | null
-  readonly lark: Lark | null
+  readonly webhooks: WebhookNotifier[]
 
   private readonly db: PoolDatabase
   private enablePayouts: boolean
@@ -31,11 +30,10 @@ export class MiningPoolShares {
 
   private constructor(options: {
     db: PoolDatabase
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }) {
@@ -43,8 +41,7 @@ export class MiningPoolShares {
     this.rpc = options.rpc
     this.config = options.config
     this.logger = options.logger
-    this.discord = options.discord ?? null
-    this.lark = options.lark ?? null
+    this.webhooks = options.webhooks ?? []
     this.enablePayouts = options.enablePayouts ?? true
 
     this.poolName = this.config.get('poolName')
@@ -58,11 +55,10 @@ export class MiningPoolShares {
   }
 
   static async init(options: {
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
     config: Config
     logger: Logger
-    discord?: Discord
-    lark?: Lark
+    webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
   }): Promise<MiningPoolShares> {
@@ -76,8 +72,7 @@ export class MiningPoolShares {
       rpc: options.rpc,
       config: options.config,
       logger: options.logger,
-      discord: options.discord,
-      lark: options.lark,
+      webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
@@ -162,32 +157,29 @@ export class MiningPoolShares {
     )
 
     try {
+      this.webhooks.map((w) =>
+        w.poolPayoutStarted(payoutId, transactionReceives, shareCounts.totalShares),
+      )
+
       const transaction = await this.rpc.sendTransaction({
         fromAccountName: this.accountName,
         receives: transactionReceives,
         fee: transactionReceives.length.toString(),
-        expirationSequenceDelta: 20,
       })
 
-      await this.db.markPayoutSuccess(payoutId, timestamp)
+      await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)
 
-      this.discord?.poolPayoutSuccess(
-        payoutId,
-        transaction.content.hash,
-        transactionReceives,
-        shareCounts.totalShares,
-      )
-
-      this.lark?.poolPayoutSuccess(
-        payoutId,
-        transaction.content.hash,
-        transactionReceives,
-        shareCounts.totalShares,
+      this.webhooks.map((w) =>
+        w.poolPayoutSuccess(
+          payoutId,
+          transaction.content.hash,
+          transactionReceives,
+          shareCounts.totalShares,
+        ),
       )
     } catch (e) {
-      this.logger.error('There was an error with the transaction', e)
-      this.discord?.poolPayoutError(e)
-      this.lark?.poolPayoutError(e)
+      this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
+      this.webhooks.map((w) => w.poolPayoutError(e))
     }
   }
 
@@ -214,13 +206,14 @@ export class MiningPoolShares {
     }
   }
 
-  async shareRate(): Promise<number> {
-    return (await this.recentShareCount()) / this.recentShareCutoff
+  async shareRate(publicAddress?: string): Promise<number> {
+    return (await this.recentShareCount(publicAddress)) / this.recentShareCutoff
   }
 
-  private async recentShareCount(): Promise<number> {
+  private async recentShareCount(publicAddress?: string): Promise<number> {
     const timestamp = Math.floor(new Date().getTime() / 1000) - this.recentShareCutoff
-    return await this.db.shareCountSince(timestamp)
+
+    return await this.db.shareCountSince(timestamp, publicAddress)
   }
 
   private startPayoutInterval() {
@@ -233,5 +226,9 @@ export class MiningPoolShares {
     if (this.payoutInterval) {
       clearInterval(this.payoutInterval)
     }
+  }
+
+  async sharesPendingPayout(publicAddress?: string): Promise<number> {
+    return await this.db.getSharesCountForPayout(publicAddress)
   }
 }

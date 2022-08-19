@@ -8,7 +8,7 @@ import { RpcServer } from '../server'
  * An adapter represents a network transport that accepts incoming requests
  * and routes them into the router.
  */
-export interface IAdapter {
+export interface IRpcAdapter {
   /**
    * Called when the adapter has been added to an RpcServer.
    * This lets you get access to both the RpcServer, and the

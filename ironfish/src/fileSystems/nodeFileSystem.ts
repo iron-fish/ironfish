@@ -53,6 +53,28 @@ export class NodeFileProvider extends FileSystem {
     return this.path.join(...paths)
   }
 
+  dirname(path: string): string {
+    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
+    return this.path.dirname(path)
+  }
+
+  basename(path: string, ext?: string | undefined): string {
+    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
+    return this.path.basename(path, ext)
+  }
+
+  extname(path: string): string {
+    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
+    return this.path.extname(path)
+  }
+
+  async exists(path: string): Promise<boolean> {
+    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
+    return await this.access(path)
+      .then(() => true)
+      .catch(() => false)
+  }
+
   /**
    * Expands a path out using known unix shell shortcuts
    * ~ expands to your home directory

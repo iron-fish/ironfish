@@ -1,0 +1,17 @@
+{
+  "DecryptNotesTask execute posts the miners fee transaction": [
+    {
+      "name": "test",
+      "spendingKey": "7e4311d2d61fe05587816d10193c60e98b2085dfb0ecbdb42639e09f7811d48f",
+      "incomingViewKey": "4b418a76a156199bc160a6d0b4c647177f2535a96cdf57e5fa3f24963ed80203",
+      "outgoingViewKey": "82c5d61ff38c3c651200e8610016683d4cc3a37eec533c11810d6e13f1754099",
+      "publicAddress": "433c13f7f1a89a2dbcc0e9a4c16ee89dfc80050a5a7abe4ff78308a2317ca9645cc344b9e77f82f44bdfab",
+      "rescan": null,
+      "displayName": "test (e18c3e4)"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAKxFAxjseyN6tbSvSA1vpDAS7hqhvxkJXUCIIR19E6jZW2X5zBWk9tRvqo8oBcCfBpncqwMSReNVwfa2B16FY7wlWeotVuiitIAStwgvZQui7YpY/DP9E+zP1L/eWEK3axbLD7CdgHNnHfYlg46+H77B1wns/7SPSMgN72pFK7Z9wWea5qd4ewfAouVGPlKcY4XBGAFVViy/fxSygO3PAdmdHRd0Dj4+sBJnes47aKIbVWkSo2q83zLIMXRazcs5zoPIGgFGo3Gk5MoDVw7hyIHvI8g68uiwd25iYsaoDERxWKudu7GJLhR/Ngz/CHSCKWmE/mBBnc90gexUQA+STWcz6JlySpFECW58DfXFqcoYADGyzipIAWeYzF12aX0In1XiCUy6uhIXBypivn7kDYRdHcuIVmTDGCNGN+u45eaOCTaSWuWJ6PB5uG5tn85ZPQxBfR0yagKx1yVrxkEIuJNU71Cr6hY0iJ6L+g74f2IlyeOjGUWEhyF0gh59RGU6jsPzbEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwnrNSQFABAWtSbSfXnM/U6b7bZ6Alcp93UXzhSv3rdr52sS0AR2uyLi69PQbx8jtU6IroaSbQm+lXqIbhujOfBg=="
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
 import { Platform } from './platform'
-import { IronfishMemoryClient, IronfishRpcClient } from './rpc'
+import { RpcClient, RpcMemoryClient } from './rpc'
 import { IronfishSdk } from './sdk'
 
 describe('IronfishSdk', () => {
@@ -25,7 +25,7 @@ describe('IronfishSdk', () => {
       })
 
       expect(sdk.config).toBeInstanceOf(Config)
-      expect(sdk.client).toBeInstanceOf(IronfishRpcClient)
+      expect(sdk.client).toBeInstanceOf(RpcClient)
       expect(sdk.fileSystem).toBe(fileSystem)
 
       expect(sdk.config.storage.dataDir).toBe(dataDir)
@@ -88,8 +88,8 @@ describe('IronfishSdk', () => {
         const client = await sdk.connectRpc(true)
 
         expect(openDb).toHaveBeenCalledTimes(1)
-        expect(client).toBeInstanceOf(IronfishMemoryClient)
-        expect((client as IronfishMemoryClient).node).toBe(node)
+        expect(client).toBeInstanceOf(RpcMemoryClient)
+        expect((client as RpcMemoryClient).node).toBe(node)
       })
     })
 

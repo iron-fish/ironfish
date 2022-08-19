@@ -2,18 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
-import { Blockchain } from '../blockchain'
-import { SerializedBlock } from '../primitives/block'
+import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
-import { Strategy } from '../strategy'
 import { createNodeTest } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { makeDbPath } from '../testUtilities/helpers/storage'
-import { WorkerPool } from '../workerPool'
 import { makeGenesisBlock } from './makeGenesisBlock'
 
 describe('Read genesis block', () => {
+  const nodeTest = createNodeTest()
+
   let targetMeetsSpy: jest.SpyInstance
   let targetSpy: jest.SpyInstance
 
@@ -28,19 +26,14 @@ describe('Read genesis block', () => {
   })
 
   it('Can start a chain with the existing genesis block', async () => {
-    const workerPool = new WorkerPool()
-    const strategy = new Strategy(workerPool)
-    const chain = new Blockchain({ location: makeDbPath(), strategy, workerPool })
-    await chain.open()
-
     // We should also be able to create new blocks after the genesis block
     // has been added
-    const minersfee = await strategy.createMinersFee(
+    const minersfee = await nodeTest.strategy.createMinersFee(
       BigInt(0),
-      chain.head.sequence + 1,
+      nodeTest.chain.head.sequence + 1,
       generateKey().spending_key,
     )
-    const newBlock = await chain.newBlock([], minersfee)
+    const newBlock = await nodeTest.chain.newBlock([], minersfee)
     expect(newBlock).toBeTruthy()
   }, 60000)
 })
@@ -101,7 +94,6 @@ describe('Create genesis block', () => {
     const addBlock = await chain.addBlock(block)
     expect(addBlock.isAdded).toBeTruthy()
 
-    // TODO: this should happen automatically in addBlock
     await node.accounts.updateHead()
 
     // Check that the balance is what's expected
@@ -120,7 +112,7 @@ describe('Create genesis block', () => {
     expect(additionalBlock).toBeTruthy()
 
     // Next, serialize it in the same way that the genesis command serializes it
-    const serialized = strategy.blockSerde.serialize(block)
+    const serialized = BlockSerde.serialize(block)
     const jsonedBlock = IJSON.stringify(serialized, '  ')
 
     // Now start from scratch with a clean database and make sure the block
@@ -129,7 +121,7 @@ describe('Create genesis block', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = strategy.blockSerde.deserialize(result)
+    const deserializedBlock = BlockSerde.deserialize(result)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 

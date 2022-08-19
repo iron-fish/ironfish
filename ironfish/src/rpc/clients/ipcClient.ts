@@ -7,12 +7,12 @@ import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { IpcRequest } from '../adapters'
-import { ConnectionLostError, ConnectionRefusedError } from './errors'
-import { IronfishRpcClient, RpcClientConnectionInfo } from './rpcClient'
+import { RpcConnectionLostError, RpcConnectionRefusedError } from './errors'
+import { RpcClientConnectionInfo, RpcSocketClient } from './socketClient'
 
 const CONNECT_RETRY_MS = 2000
 
-export class IronfishIpcClient extends IronfishRpcClient {
+export class RpcIpcClient extends RpcSocketClient {
   ipc: IPC | null = null
   ipcPath: string | null = null
   client: IpcClient | null = null
@@ -76,9 +76,9 @@ export class IronfishIpcClient extends IronfishRpcClient {
           client.off('connect', onConnect)
 
           if (ErrorUtils.isConnectRefusedError(error)) {
-            reject(new ConnectionRefusedError())
+            reject(new RpcConnectionRefusedError())
           } else if (ErrorUtils.isNoEntityError(error)) {
-            reject(new ConnectionRefusedError())
+            reject(new RpcConnectionRefusedError())
           } else {
             reject(error)
           }
@@ -136,7 +136,7 @@ export class IronfishIpcClient extends IronfishRpcClient {
     this.client = null
 
     for (const request of this.pending.values()) {
-      request.reject(new ConnectionLostError(request.type))
+      request.reject(new RpcConnectionLostError(request.type))
     }
     this.pending.clear()
 

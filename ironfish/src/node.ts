@@ -17,6 +17,7 @@ import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { MetricsMonitor } from './metrics'
+import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
@@ -38,6 +39,7 @@ export class IronfishNode {
   miningManager: MiningManager
   metrics: MetricsMonitor
   memPool: MemPool
+  migrator: Migrator
   workerPool: WorkerPool
   files: FileSystem
   rpc: RpcServer
@@ -64,7 +66,6 @@ export class IronfishNode {
     workerPool,
     logger,
     webSocket,
-    telemetry,
     privateIdentity,
     hostsStore,
     minedBlocksIndexer,
@@ -81,7 +82,6 @@ export class IronfishNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
-    telemetry: Telemetry
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     minedBlocksIndexer: MinedBlocksIndexer
@@ -93,14 +93,15 @@ export class IronfishNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
-    this.miningManager = new MiningManager({ chain, memPool, node: this, telemetry })
+    this.miningManager = new MiningManager({ chain, memPool, node: this })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
-    this.telemetry = telemetry
     this.minedBlocksIndexer = minedBlocksIndexer
+
+    this.migrator = new Migrator({ node: this, logger })
 
     this.peerNetwork = new PeerNetwork({
       identity: privateIdentity,
@@ -118,19 +119,43 @@ export class IronfishNode {
       webSocket: webSocket,
       node: this,
       chain: chain,
-      strategy: strategy,
       metrics: this.metrics,
       hostsStore: hostsStore,
       logger: logger,
+    })
+
+    this.telemetry = new Telemetry({
+      chain,
+      logger,
+      config,
+      metrics,
+      workerPool,
+      localPeerIdentity: this.peerNetwork.localPeer.publicIdentity,
+      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
+      ],
+    })
+
+    this.accounts.onTransactionCreated.on((transaction) => {
+      this.telemetry.submitNewTransactionCreated(transaction, new Date())
+    })
+
+    this.miningManager.onNewBlock.on((block) => {
+      this.telemetry.submitBlockMined(block)
+    })
+
+    this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
+      this.telemetry.submitNewTransactionSeen(transaction, received)
     })
 
     this.syncer = new Syncer({
       chain,
       metrics,
       logger,
-      telemetry,
+      telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
-      strategy: this.strategy,
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
@@ -207,19 +232,7 @@ export class IronfishNode {
       metrics,
       autoSeed,
       workerPool,
-    })
-
-    const telemetry = new Telemetry({
-      chain,
-      logger,
-      config,
-      metrics,
-      workerPool,
-      defaultTags: [{ name: 'version', value: pkg.version }],
-      defaultFields: [
-        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', type: 'string', value: uuid() },
-      ],
+      files,
     })
 
     const memPool = new MemPool({ chain, metrics, logger })
@@ -231,9 +244,10 @@ export class IronfishNode {
     })
 
     const accounts = new Accounts({
+      chain,
+      config,
       database: accountDB,
-      workerPool: workerPool,
-      chain: chain,
+      workerPool,
     })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({
@@ -257,26 +271,24 @@ export class IronfishNode {
       workerPool,
       logger,
       webSocket,
-      telemetry,
       privateIdentity,
       hostsStore,
       minedBlocksIndexer,
     })
   }
 
-  /**
-   * Load the databases and initialize node components.
-   * Set `upgrade` to change if the schema version is upgraded. Set `load` to false to tell components not to load data from the database. Useful if you don't want data loaded when performing a migration that might cause an incompatability crash.
-   */
-  async openDB(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
-    await this.files.mkdir(this.config.chainDatabasePath, { recursive: true })
+  async openDB(): Promise<void> {
+    const migrate = this.config.get('databaseMigrate')
+    const initial = await this.migrator.isInitial()
+
+    if (migrate || initial) {
+      await this.migrator.migrate({ quiet: !migrate, quietNoop: true })
+    }
 
     try {
-      await this.chain.open(options)
-      await this.accounts.open(options)
-      await this.minedBlocksIndexer.open(options)
+      await this.chain.open()
+      await this.accounts.open()
+      await this.minedBlocksIndexer.open()
     } catch (e) {
       await this.chain.close()
       await this.accounts.close()
@@ -329,9 +341,11 @@ export class IronfishNode {
       this.rpc.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
-      this.workerPool.stop(),
       this.minedBlocksIndexer.stop(),
     ])
+
+    // Do after to avoid unhandled error from aborted jobs
+    await Promise.allSettled([this.workerPool.stop()])
 
     if (this.shutdownResolve) {
       this.shutdownResolve()

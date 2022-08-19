@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   ConfigOptions,
-  ConnectionError,
   createRootLogger,
+  DatabaseVersionError,
   ErrorUtils,
   IronfishSdk,
   Logger,
+  RpcConnectionError,
 } from '@ironfish/sdk'
 import { Command, Config } from '@oclif/core'
 import {
@@ -19,6 +20,8 @@ import {
   RpcTcpPortFlagKey,
   RpcTcpSecureFlag,
   RpcTcpSecureFlagKey,
+  RpcTcpTlsFlag,
+  RpcTcpTlsFlagKey,
   RpcUseIpcFlag,
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
@@ -40,6 +43,7 @@ export type FLAGS =
   | typeof RpcTcpHostFlagKey
   | typeof RpcTcpPortFlagKey
   | typeof RpcTcpSecureFlagKey
+  | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
 
 export abstract class IronfishCommand extends Command {
@@ -72,8 +76,11 @@ export abstract class IronfishCommand extends Command {
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
-      } else if (error instanceof ConnectionError) {
+      } else if (error instanceof RpcConnectionError) {
         this.log(`Cannot connect to your node, start your node first.`)
+      } else if (error instanceof DatabaseVersionError) {
+        this.log(error.message)
+        this.exit(1)
       } else {
         throw error
       }
@@ -125,6 +132,11 @@ export abstract class IronfishCommand extends Command {
       rpcTcpSecureFlag !== RpcTcpSecureFlag.default
     ) {
       configOverrides.rpcTcpSecure = rpcTcpSecureFlag
+    }
+
+    const rpcTcpTlsFlag = getFlag(flags, RpcTcpTlsFlagKey)
+    if (typeof rpcTcpTlsFlag === 'boolean' && rpcTcpTlsFlag !== RpcTcpTlsFlag.default) {
+      configOverrides.enableRpcTls = rpcTcpTlsFlag
     }
 
     const verboseFlag = getFlag(flags, VerboseFlagKey)

@@ -17,9 +17,9 @@ interface MempoolEntry {
 }
 
 export class MemPool {
-  readonly transactions = new BufferMap<Transaction>()
-  readonly nullifiers = new BufferMap<Buffer>()
-  readonly queue: FastPriorityQueue<MempoolEntry>
+  private readonly transactions = new BufferMap<Transaction>()
+  private readonly nullifiers = new BufferMap<Buffer>()
+  private readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
   private readonly chain: Blockchain
@@ -54,11 +54,19 @@ export class MemPool {
     return this.transactions.size
   }
 
-  exists(transactionHash: Buffer): boolean {
-    return this.transactions.has(transactionHash)
+  exists(hash: TransactionHash): boolean {
+    return this.transactions.has(hash)
   }
 
-  *get(): Generator<Transaction, void, unknown> {
+  /*
+   * Returns a transaction if the transaction with that hash exists in the mempool
+   * Otherwise, returns undefined
+   */
+  get(hash: TransactionHash): Transaction | undefined {
+    return this.transactions.get(hash)
+  }
+
+  *orderedTransactions(): Generator<Transaction, void, unknown> {
     const clone = this.queue.clone()
 
     while (!clone.isEmpty()) {
@@ -79,22 +87,34 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  async acceptTransaction(transaction: Transaction): Promise<boolean> {
-    const hash = transaction.hash()
+  async acceptTransaction(transaction: Transaction, shouldVerify = true): Promise<boolean> {
+    const hash = transaction.hash().toString('hex')
+    const sequence = transaction.expirationSequence()
 
-    if (this.exists(hash)) {
+    if (this.exists(transaction.hash())) {
       return false
     }
 
-    const { valid, reason } = await this.chain.verifier.verifyTransaction(
-      transaction,
-      this.chain.head,
+    const isExpiredSequence = this.chain.verifier.isExpiredSequence(
+      sequence,
+      this.chain.head.sequence,
     )
 
-    if (!valid) {
-      Assert.isNotUndefined(reason)
-      this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+    if (isExpiredSequence) {
+      this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
       return false
+    }
+
+    if (shouldVerify) {
+      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
+        transaction,
+      )
+
+      if (!valid) {
+        Assert.isNotUndefined(reason)
+        this.logger.debug(`Invalid transaction '${hash}': ${reason}`)
+        return false
+      }
     }
 
     for (const spend of transaction.spends()) {
@@ -117,7 +137,7 @@ export class MemPool {
 
     this.addTransaction(transaction)
 
-    this.logger.debug(`Accepted tx ${hash.toString('hex')}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
     return true
   }
 
@@ -156,9 +176,7 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      const hash = transaction.hash()
-
-      if (this.transactions.has(hash)) {
+      if (this.exists(transaction.hash())) {
         continue
       }
 

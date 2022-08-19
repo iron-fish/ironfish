@@ -78,6 +78,7 @@ export class NodeTest {
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
     sdk.config.setOverride('enableTelemetry', false)
+    sdk.config.setOverride('minimumBlockConfirmations', 0)
 
     // Allow tests to override default settings
     if (options?.config) {

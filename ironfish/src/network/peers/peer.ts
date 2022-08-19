@@ -1,9 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { BlockHash } from '../../primitives/blockheader'
+import LRU from 'blru'
+import { BufferMap } from 'buffer-map'
 import colors from 'colors/safe'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
+import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
@@ -60,9 +64,16 @@ export type PeerState =
       connections: Readonly<PeerConnectionState>
     }
 
+export enum KnownBlockHashesValue {
+  Received = 1,
+  Sent = 2,
+}
+
 export class Peer {
   readonly pendingRPCMax: number
   readonly logger: Logger
+
+  metrics?: MetricsMonitor
 
   /**
    * The current state of the peer.
@@ -191,6 +202,15 @@ export class Peer {
   loggedMessages: Array<LoggedMessage> = []
 
   /**
+   * Blocks that have been sent or received from this peer. Value is set to true if the block was received
+   * from the peer, and false if the block was sent to the peer.
+   */
+  readonly knownBlockHashes: LRU<BlockHash, KnownBlockHashesValue> = new LRU<
+    BlockHash,
+    KnownBlockHashesValue
+  >(1024, null, BufferMap)
+
+  /**
    * Event fired for every new incoming message that needs to be processed
    * by the application layer. Includes the connection from which the message
    * was received.
@@ -216,16 +236,19 @@ export class Peer {
       maxPending = 5,
       maxBanScore = BAN_SCORE.MAX,
       shouldLogMessages = false,
+      metrics,
     }: {
       logger?: Logger
       maxPending?: number
       maxBanScore?: number
       shouldLogMessages?: boolean
+      metrics?: MetricsMonitor
     } = {},
   ) {
     this.logger = logger.withTag('Peer')
     this.pendingRPCMax = maxPending
     this.maxBanScore = maxBanScore
+    this.metrics = metrics
     this.shouldLogMessages = shouldLogMessages
     this._error = null
     this._state = {
@@ -417,6 +440,28 @@ export class Peer {
   }
 
   /**
+   * Records number messages sent using a rolling average
+   */
+  private recordMessageSent() {
+    // don't start the meter until we actually want to record a message to save resources
+    if (this.state.identity && this.metrics) {
+      let meter = this.metrics.p2p_OutboundMessagesByPeer.get(this.state.identity)
+      if (!meter) {
+        meter = this.metrics.addMeter()
+        this.metrics.p2p_OutboundMessagesByPeer.set(this.state.identity, meter)
+      }
+      meter.add(1)
+    }
+  }
+
+  private disposeMessageMeter() {
+    if (this.state.identity && this.metrics) {
+      this.metrics.p2p_OutboundMessagesByPeer.get(this.state.identity)?.stop()
+      this.metrics.p2p_OutboundMessagesByPeer.delete(this.state.identity)
+    }
+  }
+
+  /**
    * Sends a message over the peer's connection if CONNECTED, else drops it.
    * @param message The message to send.
    */
@@ -442,6 +487,7 @@ export class Peer {
           timestamp: Date.now(),
           type: ConnectionType.WebRtc,
         })
+        this.recordMessageSent()
         return this.state.connections.webRtc
       }
     }
@@ -459,6 +505,7 @@ export class Peer {
           timestamp: Date.now(),
           type: ConnectionType.WebSocket,
         })
+        this.recordMessageSent()
         return this.state.connections.webSocket
       }
     }
@@ -661,6 +708,7 @@ export class Peer {
     this.onStateChanged.clear()
     this.onMessage.clear()
     this.onBanned.clear()
+    this.disposeMessageMeter()
   }
 
   punish(score: number, reason?: string): boolean {

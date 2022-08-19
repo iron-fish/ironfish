@@ -129,7 +129,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
       transactions.push({
         signature: tx.transactionSignature().toString('hex'),
-        hash: tx.hash().toString('hex'),
+        hash: tx.unsignedHash().toString('hex'),
         fee: fee.toString(),
         spends: tx.spendsLength(),
         notes: tx.notesLength(),

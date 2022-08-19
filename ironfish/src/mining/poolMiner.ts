@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
+import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
 import { StratumClient } from './stratum/stratumClient'
 
@@ -21,6 +22,7 @@ export class MiningPoolMiner {
   private stopResolve: (() => void) | null
 
   private readonly publicAddress: string
+  private readonly name: string | undefined
 
   graffiti: Buffer | null
   miningRequestId: number
@@ -34,9 +36,11 @@ export class MiningPoolMiner {
     publicAddress: string
     host: string
     port: number
+    name?: string
   }) {
     this.logger = options.logger
     this.graffiti = null
+    this.name = options.name
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
       throw new Error(`Invalid public address: ${this.publicAddress}`)
@@ -46,12 +50,17 @@ export class MiningPoolMiner {
     this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
 
     this.stratum = new StratumClient({
-      miner: this,
-      publicAddress: this.publicAddress,
       host: options.host,
       port: options.port,
       logger: options.logger,
     })
+    this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
+    this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
+    this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
+    this.stratum.onNotify.on((m) =>
+      this.newWork(m.miningRequestId, Buffer.from(m.header, 'hex')),
+    )
+    this.stratum.onWaitForWork.on(() => this.waitForWork())
 
     this.hashRate = new Meter()
     this.miningRequestId = 0
