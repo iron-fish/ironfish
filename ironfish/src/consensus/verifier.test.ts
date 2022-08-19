@@ -269,14 +269,14 @@ describe('Verifier', () => {
     })
   })
 
-  describe('validAgainstPrevious', () => {
+  describe('verifyBlockHeaderContextual', () => {
     const nodeTest = createNodeTest()
 
     it('is valid', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: true,
       })
@@ -288,7 +288,7 @@ describe('Verifier', () => {
       block.header.target = Target.minTarget()
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.INVALID_TARGET,
@@ -300,7 +300,7 @@ describe('Verifier', () => {
       block.header.noteCommitment.size = 1000
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
@@ -312,7 +312,7 @@ describe('Verifier', () => {
       block.header.nullifierCommitment.size = 1000
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
@@ -324,7 +324,7 @@ describe('Verifier', () => {
       block.header.timestamp = new Date(0)
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.BLOCK_TOO_OLD,
@@ -336,7 +336,7 @@ describe('Verifier', () => {
       block.header.sequence = 9999
 
       expect(
-        nodeTest.verifier.isValidAgainstPrevious(block, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER,

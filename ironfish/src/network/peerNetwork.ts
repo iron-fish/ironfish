@@ -901,23 +901,17 @@ export class PeerNetwork {
       return
     }
 
-    // deserialize the header
-    const header = BlockHeaderSerde.deserialize(compactBlock.header)
-
     // mark the block as received in the block fetcher and decide whether to continue
-    // processing this compact block or not
+    // to validate this compact block or not
     const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
     if (!shouldProcess) {
       return
     }
 
-    // check if hash or previous hash is already marked as invalid
-    if (this.chain.isInvalid(header) !== null) {
-      return
-    }
+    // deserialize the header
+    const header = BlockHeaderSerde.deserialize(compactBlock.header)
 
     // verify the header
-    // TODO: Make sure this isn't missing any verification steps
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
       this.chain.addInvalid(header, verifyHeaderResult.reason ?? VerificationResultReason.ERROR)
@@ -925,22 +919,14 @@ export class PeerNetwork {
       return
     }
 
-    // set values on the peer to indicate the peer has the block
-    // TODO: We may want to check that work is greater instead of sequence being greater
-    if (peer.sequence === null || header.sequence > peer.sequence) {
-      peer.sequence = header.sequence
-      peer.work = header.work
+    if ((await this.alreadyHaveBlock(header.hash)) || this.chain.isInvalid(header) !== null) {
+      this.blockFetcher.removeBlock(header.hash)
+      return
     }
 
     // this might overwrite the existing value if we've already sent the
     // block to the peer, but the value isn't important
     peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
-
-    // check if we already have the block
-    if (await this.chain.hasBlock(header.hash)) {
-      this.blockFetcher.removeBlock(header.hash)
-      return
-    }
 
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
@@ -948,6 +934,22 @@ export class PeerNetwork {
       this.chain.addOrphan(header)
       this.node.syncer.startSync(peer)
       return
+    }
+
+    // since we have the previous block, do contextual verification
+    const { valid, reason } = this.chain.verifier.verifyBlockHeaderContextual(
+      header,
+      prevHeader,
+    )
+    if (!valid) {
+      this.chain.addInvalid(header, reason ?? VerificationResultReason.ERROR)
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
+    // set values on the peer to indicate the peer has the block
+    if (peer.sequence === null || header.sequence > peer.sequence) {
+      peer.sequence = header.sequence
     }
 
     // check if we're missing transactions

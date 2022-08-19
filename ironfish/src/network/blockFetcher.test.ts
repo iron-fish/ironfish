@@ -114,13 +114,9 @@ describe('BlockFetcher', () => {
 
     // Another peer send the full block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const peerIdentity = peer.getIdentityOrThrow()
-    const message = {
-      peerIdentity,
-      message: new NewBlockV2Message(block.toCompactBlock()),
-    }
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+    const message = peerMessage(peer, new NewBlockV2Message(block.toCompactBlock()))
+    await peerNetwork.peerManager.onMessage.emitAsync(...message)
 
     jest.runOnlyPendingTimers()
 
@@ -392,12 +388,13 @@ describe('BlockFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it.only('does not request compact block when block was previously marked as an orphan', async () => {
-    const { peerNetwork, chain } = nodeTest
+  it('ignores new messages when the block was previously marked as an orphan', async () => {
+    const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
 
     // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
+    // We want to have an orphan that is also not ahead of the current chain
     const addedBlocks: Block[] = []
     for (const _ of [...new Array(5)]) {
       const block = await useMinerBlockFixture(chain)
@@ -417,14 +414,36 @@ describe('BlockFetcher', () => {
       await chain.addBlock(block)
     }
 
-    const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
+    const syncSpy = jest.spyOn(node.syncer, 'startSync')
 
-    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, orphanBlock))
-    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, orphanBlock))
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 4)
 
+    // The first peer sends a orphaned compact block
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...peerMessage(peers[0].peer, new NewBlockV2Message(orphanBlock.toCompactBlock())),
+    )
+
+    expect(chain.orphans.has(orphanBlock.header.hash)).toBe(true)
+    expect(syncSpy).toHaveBeenCalledTimes(1)
+
+    // The second peer sends a hash of the orphaned block
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...newHashMessageEvent(peers[1].peer, orphanBlock),
+    )
+
+    // Advance timers in case of peer waiting to send out a request for the compact block
     jest.runOnlyPendingTimers()
 
-    expect(sendSpy.mock.calls).toHaveLength(0)
+    expect(peers[1].sendSpy).not.toHaveBeenCalled()
+    expect(syncSpy).toHaveBeenCalledTimes(1)
+
+    // The third peer sends the compact block as well, we should ignore it as an orphan
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...peerMessage(peers[2].peer, new NewBlockV2Message(orphanBlock.toCompactBlock())),
+    )
+
+    expect(peers[2].sendSpy).not.toHaveBeenCalled()
+    expect(syncSpy).toHaveBeenCalledTimes(1)
 
     await peerNetwork.stop()
   })

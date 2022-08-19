@@ -133,12 +133,12 @@ export class Syncer {
     }
 
     Assert.isNotNull(peer.sequence)
-    Assert.isNotNull(peer.work)
 
+    const work = peer.work ? ` work: +${(peer.work - this.chain.head.work).toString()},` : ''
     this.logger.info(
-      `Starting sync from ${peer.displayName}. work: +${(
-        peer.work - this.chain.head.work
-      ).toString()}, ours: ${this.chain.head.sequence.toString()}, theirs: ${peer.sequence.toString()}`,
+      `Starting sync from ${
+        peer.displayName
+      }.${work} ours: ${this.chain.head.sequence.toString()}, theirs: ${peer.sequence.toString()}`,
     )
 
     this.state = 'syncing'
