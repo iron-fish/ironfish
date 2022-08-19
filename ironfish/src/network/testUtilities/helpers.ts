@@ -90,6 +90,7 @@ export function peerMessage<T extends NetworkMessage>(
   ]
 }
 
+/* Add new peers to the PeerManager and spy on peer.send() */
 export const getConnectedPeersWithSpies = (
   peerManager: PeerManager,
   count: number,

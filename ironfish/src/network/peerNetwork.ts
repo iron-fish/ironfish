@@ -924,6 +924,11 @@ export class PeerNetwork {
       return
     }
 
+    // set values on the peer to indicate the peer has the block
+    if (peer.sequence === null || header.sequence > peer.sequence) {
+      peer.sequence = header.sequence
+    }
+
     // this might overwrite the existing value if we've already sent the
     // block to the peer, but the value isn't important
     peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
@@ -945,11 +950,6 @@ export class PeerNetwork {
       this.chain.addInvalid(header, reason ?? VerificationResultReason.ERROR)
       this.blockFetcher.removeBlock(header.hash)
       return
-    }
-
-    // set values on the peer to indicate the peer has the block
-    if (peer.sequence === null || header.sequence > peer.sequence) {
-      peer.sequence = header.sequence
     }
 
     // check if we're missing transactions
