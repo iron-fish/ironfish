@@ -131,6 +131,7 @@ export class MiningManager {
       blockTransactions,
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+      currentBlock,
     )
 
     this.node.logger.debug(

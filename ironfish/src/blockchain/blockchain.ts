@@ -864,6 +864,7 @@ export class Blockchain {
     userTransactions: Transaction[],
     minersFee: Transaction,
     graffiti?: Buffer,
+    headBlock?: Block
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
     return await this.db.transaction(async (tx) => {
@@ -880,7 +881,7 @@ export class Blockchain {
         previousSequence = 0
         target = Target.maxTarget()
       } else {
-        const heaviestHead = this.head
+        const heaviestHead = headBlock ? headBlock.header : this.head
         if (
           originalNoteSize !== heaviestHead.noteCommitment.size ||
           originalNullifierSize !== heaviestHead.nullifierCommitment.size
