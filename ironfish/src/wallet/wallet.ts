@@ -448,7 +448,7 @@ export class Accounts {
    * the related maps.
    */
   async removeTransaction(transaction: Transaction): Promise<void> {
-    const transactionHash = transaction.unsignedHash()
+    const transactionHash = transaction.hash()
 
     for (const account of this.accounts.values()) {
       await account.deleteTransaction(transactionHash, transaction)
@@ -817,7 +817,7 @@ export class Accounts {
     for (const account of this.accounts.values()) {
       for (const transactionInfo of account.getTransactions()) {
         const { transaction, blockHash, submittedSequence } = transactionInfo
-        const transactionHash = transaction.unsignedHash()
+        const transactionHash = transaction.hash()
 
         // Skip transactions that are already added to a block
         if (blockHash) {

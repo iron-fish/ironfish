@@ -67,28 +67,29 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
   GetAccountTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
+    const unsignedTransactionHash = Buffer.from(request.data.hash, 'hex')
 
     let transactionInfo = null
-    const transactionValue = account.getTransaction(Buffer.from(request.data.hash, 'hex'))
     const transactionNotes = []
 
-    if (transactionValue) {
-      const { transaction, blockHash, sequence } = transactionValue
+    for (const { transaction, blockHash, sequence } of account.getTransactions()) {
+      if (unsignedTransactionHash.equals(transaction.unsignedHash())) {
+        transactionInfo = {
+          status: await getTransactionStatus(
+            node,
+            blockHash,
+            sequence,
+            transaction.expirationSequence(),
+          ),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+        }
 
-      transactionInfo = {
-        status: await getTransactionStatus(
-          node,
-          blockHash,
-          sequence,
-          transaction.expirationSequence(),
-        ),
-        isMinersFee: transaction.isMinersFee(),
-        fee: Number(transaction.fee()),
-        notes: transaction.notesLength(),
-        spends: transaction.spendsLength(),
+        transactionNotes.push(...getTransactionNotes(account, transaction))
+        break
       }
-
-      transactionNotes.push(...getTransactionNotes(account, transaction))
     }
 
     request.end({
