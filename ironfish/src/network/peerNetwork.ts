@@ -757,7 +757,11 @@ export class PeerNetwork {
 
     // If the peer has blocks that we know don't connect to our chain head,
     // start syncing from that peer
-    if (peer.sequence !== null && peer.sequence > this.chain.head.sequence + 1) {
+    if (
+      peer.work !== null &&
+      peer.sequence !== null &&
+      peer.sequence > this.chain.head.sequence + 1
+    ) {
       this.node.syncer.startSync(peer)
       return
     }
@@ -922,8 +926,10 @@ export class PeerNetwork {
     }
 
     // set values on the peer to indicate the peer has the block
+    // TODO: We may want to check that work is greater instead of sequence being greater
     if (peer.sequence === null || header.sequence > peer.sequence) {
       peer.sequence = header.sequence
+      peer.work = header.work
     }
 
     // this might overwrite the existing value if we've already sent the

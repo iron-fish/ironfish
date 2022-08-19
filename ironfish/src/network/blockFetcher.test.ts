@@ -21,17 +21,7 @@ import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
 jest.mock('ws')
 jest.useFakeTimers()
 
-const newHashMessage = (
-  peer: Peer,
-  block: Block,
-): IncomingPeerMessage<NewBlockHashesMessage> => {
-  return messageEvent(
-    peer,
-    new NewBlockHashesMessage([{ hash: block.header.hash, sequence: block.header.sequence }]),
-  )[1]
-}
-
-function messageEvent<T extends NetworkMessage>(
+function peerMessage<T extends NetworkMessage>(
   peer: Peer,
   message: T,
 ): [Peer, IncomingPeerMessage<T>] {
@@ -43,6 +33,12 @@ function messageEvent<T extends NetworkMessage>(
     },
   ]
 }
+
+const newHashMessageEvent = (peer: Peer, block: Block) =>
+  peerMessage(
+    peer,
+    new NewBlockHashesMessage([{ hash: block.header.hash, sequence: block.header.sequence }]),
+  )
 
 describe('BlockFetcher', () => {
   const nodeTest = createNodeTest()
@@ -57,7 +53,7 @@ describe('BlockFetcher', () => {
     const hash = newBlock.header.hash
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, newBlock))
+      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, newBlock))
     }
 
     jest.runOnlyPendingTimers()
@@ -82,7 +78,7 @@ describe('BlockFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
     // Another peer send the full block
@@ -113,7 +109,7 @@ describe('BlockFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
     // Another peer send the full block
@@ -145,7 +141,7 @@ describe('BlockFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
     // We wait 500ms and then send the request for the block to a random peer
@@ -198,7 +194,7 @@ describe('BlockFetcher', () => {
     // Create 5 connected peers
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
-    const compactBlockMessage = messageEvent(
+    const compactBlockMessage = peerMessage(
       peers[0].peer,
       new NewBlockV2Message(block.toCompactBlock()),
     )
@@ -231,7 +227,7 @@ describe('BlockFetcher', () => {
     // Connect to 5 peers and send hash messages of the block
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
     // We wait 500ms and then send the request for the block to a random peer
@@ -244,7 +240,7 @@ describe('BlockFetcher', () => {
     const sentPeer = sentPeers[0].peer
     const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0] as GetCompactBlockRequest
     expect(sentMessage).toBeInstanceOf(GetCompactBlockRequest)
-    const compactBlockResponse = messageEvent(
+    const compactBlockResponse = peerMessage(
       sentPeer,
       new GetCompactBlockResponse(block.toCompactBlock(), sentMessage.rpcId),
     )
@@ -273,7 +269,7 @@ describe('BlockFetcher', () => {
       getBlockTransactionsRequest.rpcId,
     )
 
-    await peerNetwork.peerManager.onMessage.emitAsync(...messageEvent(sentPeer, response))
+    await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(sentPeer, response))
 
     // The block should now be in the chain
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
@@ -291,7 +287,7 @@ describe('BlockFetcher', () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
-    const { block, transaction } = await useBlockWithTx(node)
+    const { block } = await useBlockWithTx(node)
 
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
@@ -300,7 +296,7 @@ describe('BlockFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     for (const { peer } of peers) {
       await peerNetwork.peerManager.onMessage.emitAsync(
-        ...messageEvent(peer, new NewBlockV2Message(block.toCompactBlock())),
+        ...peerMessage(peer, new NewBlockV2Message(block.toCompactBlock())),
       )
     }
 
@@ -334,7 +330,7 @@ describe('BlockFetcher', () => {
 
     // The peer should respond with a GetBlocksResponse
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...messageEvent(
+      ...peerMessage(
         otherSentPeer,
         new GetBlocksResponse([BlockSerde.serialize(block)], getBlocksRequest.rpcId),
       ),
@@ -368,7 +364,7 @@ describe('BlockFetcher', () => {
 
     expect(peer.knownBlockHashes.has(block.header.hash)).toBe(false)
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
 
     jest.runOnlyPendingTimers()
 
@@ -387,7 +383,7 @@ describe('BlockFetcher', () => {
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
 
     jest.runOnlyPendingTimers()
 
@@ -396,32 +392,35 @@ describe('BlockFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('does not request compact block when block was previously marked as an orphan', async () => {
+  it.only('does not request compact block when block was previously marked as an orphan', async () => {
     const { peerNetwork, chain } = nodeTest
-
-    const addedBlocks = await Promise.all(
-      [...new Array(5)].map(async (_) => {
-        const block = await useMinerBlockFixture(chain)
-        await chain.addBlock(block)
-        return block
-      }),
-    )
-
-    addedBlocks.reverse()
-
-    for (const block of addedBlocks) {
-      await chain.removeBlock(block.header.hash)
-    }
 
     chain.synced = true
 
-    // Get the block that is now 4 ahead of the chain head
-    const block = addedBlocks[0]
-    expect(block.header.sequence - chain.head.sequence).toBe(4)
+    // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
+    const addedBlocks: Block[] = []
+    for (const _ of [...new Array(5)]) {
+      const block = await useMinerBlockFixture(chain)
+      await chain.addBlock(block)
+      addedBlocks.push(block)
+    }
+
+    for (const _ of addedBlocks) {
+      await chain.removeBlock(chain.head.hash)
+    }
+
+    const orphanBlock = addedBlocks[4]
+
+    // Add 5 different blocks to the chain
+    for (const _ of [...new Array(5)]) {
+      const block = await useMinerBlockFixture(chain)
+      await chain.addBlock(block)
+    }
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, block))
+    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, orphanBlock))
+    await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, orphanBlock))
 
     jest.runOnlyPendingTimers()
 
