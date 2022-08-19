@@ -87,6 +87,35 @@ pub fn hash_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>
     Ok(bits)
 }
 
+// TODO: Replace hash_into_boolean_vec_le with this fn, length check is probably unnecessary if
+// the circuit checks the length
+pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
+    mut cs: CS,
+    value: Option<&[u8]>,
+    length: u32,
+) -> Result<Vec<Boolean>, SynthesisError> {
+    let values: Vec<Option<bool>> = match value {
+        Some(value) => value
+            .iter()
+            .flat_map(|&v| (0..8).map(move |i| Some((v >> i) & 1 == 1)))
+            .collect(),
+        None => vec![None; length as usize],
+    };
+
+    let bits = values
+        .into_iter()
+        .enumerate()
+        .map(|(i, b)| {
+            Ok(Boolean::from(AllocatedBit::alloc(
+                cs.namespace(|| format!("bit {}", i)),
+                b,
+            )?))
+        })
+        .collect::<Result<Vec<_>, SynthesisError>>()?;
+
+    Ok(bits)
+}
+
 /// This is an output circuit instance.
 pub struct Output {
     // TODO: Should we pass this in anymore, or just rely on asset type? Feels like this could lead to accidental bugs.
@@ -257,6 +286,10 @@ impl Circuit<bls12_381::Scalar> for Spend {
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
         // Witness the asset type
+        // TODO: Does this properly verify that the spend note is the right asset generator?
+        // Could this be spoofed, or does this not matter? Need to consider what's public/private
+        // In other words: Does this verify that the actual note's asset generator is valid
+        // Or are we allowing this to be _any_ generator
         let asset_generator = ecc::EdwardsPoint::witness(
             cs.namespace(|| "asset_generator"),
             self.asset_type
