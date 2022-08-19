@@ -42,6 +42,7 @@ export function mockChain(): any {
     synced: true,
     onConnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
     onDisconnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
+    onForkBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
   }
 }
 
