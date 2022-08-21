@@ -94,6 +94,9 @@
       "config": {
         "description": "Show and edit the node configuration"
       },
+      "fees": {
+        "description": "Get the fee status"
+      },
       "faucet": {
         "description": "Get coins to start using Iron Fish"
       },

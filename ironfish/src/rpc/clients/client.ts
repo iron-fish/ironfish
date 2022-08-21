@@ -71,6 +71,7 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import { EstimateFeesRequest, EstimateFeesResponse } from '../routes/fees/estimateFees'
 import {
   ExportMinedStreamRequest,
   ExportMinedStreamResponse,
@@ -358,6 +359,10 @@ export abstract class RpcClient {
 
   async getFees(params: GetFeesRequest): Promise<RpcResponseEnded<GetFeesResponse>> {
     return this.request<GetFeesResponse>(`${ApiNamespace.fees}/getFees`, params).waitForEnd()
+  }
+
+  estimateFees(params: EstimateFeesRequest): RpcResponse<EstimateFeesResponse> {
+    return this.request<EstimateFeesResponse>(`${ApiNamespace.fees}/estimateFees`, params)
   }
 
   async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
