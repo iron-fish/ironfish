@@ -361,8 +361,13 @@ export abstract class RpcClient {
     return this.request<GetFeesResponse>(`${ApiNamespace.fees}/getFees`, params).waitForEnd()
   }
 
-  estimateFees(params: EstimateFeesRequest): RpcResponse<EstimateFeesResponse> {
-    return this.request<EstimateFeesResponse>(`${ApiNamespace.fees}/estimateFees`, params)
+  async estimateFees(
+    params: EstimateFeesRequest,
+  ): Promise<RpcResponseEnded<EstimateFeesResponse>> {
+    return this.request<EstimateFeesResponse>(
+      `${ApiNamespace.fees}/estimateFees`,
+      params,
+    ).waitForEnd()
   }
 
   async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {

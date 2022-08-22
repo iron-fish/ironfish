@@ -32,11 +32,14 @@ export class EstimateFeesCommand extends IronfishCommand {
 
     try {
       const response = await client.estimateFees({ targetConfirmSpeed })
-
-      this.log(
-        `To be mined in the next ${targetConfirmSpeed} blocks, the recommended fee is ${response.content.target} ORE\n
+      if (response.content) {
+        this.log(
+          `To be mined in the next ${targetConfirmSpeed} blocks, the recommended fee is ${response.content.target} ORE\n
 More fee status from mempool:\nThe highest transaction fee: ${response.content.highestFee} ORE\nRecommended fee to be mined in the next block: ${response.content.high} ORE\nRecommended fee to be mined in the next 5 blocks: ${response.content.medium} ORE\nRecommended fee to be mined in the next 10 blocks: ${response.content.slow} ORE`,
-      )
+        )
+      } else {
+        this.log(`Get error when fetch fee status from mempool`)
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         this.error(error.message)

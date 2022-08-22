@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Transaction } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 
 export type EstimateFeesRequest = { targetConfirmSpeed: number }
@@ -34,12 +35,12 @@ export const EstimateFeesResponseSchema: yup.ObjectSchema<EstimateFeesResponse> 
 router.register<typeof EstimateFeesRequestSchema, EstimateFeesResponse>(
   `${ApiNamespace.fees}/estimateFees`,
   EstimateFeesRequestSchema,
-  (request, node): void => {
-    const targetConfirmSpeed = BigInt(request.data.targetConfirmSpeed)
+  async (request, node): Promise<void> => {
+    const targetConfirmSpeed = request.data.targetConfirmSpeed
 
     let highestFee = BigInt(1)
     let totalTransactionFees = BigInt(0)
-    let totalTransactions = BigInt(0)
+    let totalTransactions = 0
 
     // Considering max transactions can be mined in a block is 300 now,
     // we suppose that a transaction can be mined in the next block if fee of this transaction stays in top300.
@@ -54,31 +55,44 @@ router.register<typeof EstimateFeesRequestSchema, EstimateFeesResponse>(
 
     let target = BigInt(1)
 
+    // Top 6000 (next 20 blocks) transactions are considered.
+    const mempoolHandleTransactions: Transaction[] = []
+    let txCount = 0
     for (const transaction of node.memPool.orderedTransactions()) {
-      if (totalTransactions === BigInt(0)) {
-        highestFee = transaction.fee()
-      }
-      totalTransactionFees += transaction.fee()
-      totalTransactions += BigInt(1)
-
-      if (totalTransactions === BigInt(150)) {
-        high = transaction.fee()
-      } else if (totalTransactions === BigInt(750)) {
-        medium = transaction.fee()
-      } else if (totalTransactions === BigInt(1500)) {
-        slow = transaction.fee()
-      } else if (totalTransactions === targetConfirmSpeed * 150n) {
-        target = totalTransactionFees / totalTransactions
+      mempoolHandleTransactions.push(transaction)
+      txCount += 1
+      if (txCount >= 6000) {
+        break
       }
     }
-    if (targetConfirmSpeed === BigInt(1)) {
+
+    const transactionFees = await Promise.all(mempoolHandleTransactions.map((t) => t.fee()))
+    for (const fee of transactionFees) {
+      if (totalTransactions === 0) {
+        highestFee = fee
+      }
+      totalTransactionFees += fee
+      totalTransactions += 2
+
+      if (totalTransactions === 150) {
+        high = fee
+      } else if (totalTransactions === 750) {
+        medium = fee
+      } else if (totalTransactions === 1500) {
+        slow = fee
+      } else if (totalTransactions === targetConfirmSpeed * 150) {
+        target = totalTransactionFees / BigInt(totalTransactions)
+      }
+    }
+
+    if (targetConfirmSpeed === 1) {
       target = high
-    } else if (targetConfirmSpeed === BigInt(5)) {
+    } else if (targetConfirmSpeed === 5) {
       target = medium
-    } else if (targetConfirmSpeed === BigInt(10)) {
+    } else if (targetConfirmSpeed === 10) {
       target = slow
     }
-    const avgFee = totalTransactionFees / totalTransactions
+    const avgFee = totalTransactionFees / BigInt(totalTransactions)
 
     request.end({
       target: Number(target),
