@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { Block, BlockSerde } from '../primitives/block'
 import { createNodeTest, useBlockWithTx, useMinerBlockFixture } from '../testUtilities'
@@ -25,6 +26,24 @@ const newHashMessageEvent = (peer: Peer, block: Block) =>
     peer,
     new NewBlockHashesMessage([{ hash: block.header.hash, sequence: block.header.sequence }]),
   )
+
+async function createDisconnectedBlocks(
+  chain: Blockchain,
+  numBlocks: number,
+): Promise<Block[]> {
+  const addedBlocks: Block[] = []
+  for (const _ of [...new Array(numBlocks)]) {
+    const block = await useMinerBlockFixture(chain)
+    await chain.addBlock(block)
+    addedBlocks.push(block)
+  }
+
+  for (const _ of addedBlocks) {
+    await chain.removeBlock(chain.head.hash)
+  }
+
+  return addedBlocks
+}
 
 describe('BlockFetcher', () => {
   const nodeTest = createNodeTest()
@@ -377,16 +396,7 @@ describe('BlockFetcher', () => {
 
     // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
     // We want to have an orphan that is also not ahead of the current chain
-    const addedBlocks: Block[] = []
-    for (const _ of [...new Array(5)]) {
-      const block = await useMinerBlockFixture(chain)
-      await chain.addBlock(block)
-      addedBlocks.push(block)
-    }
-
-    for (const _ of addedBlocks) {
-      await chain.removeBlock(chain.head.hash)
-    }
+    const addedBlocks = await createDisconnectedBlocks(chain, 5)
 
     const orphanBlock = addedBlocks[4]
 
@@ -426,6 +436,46 @@ describe('BlockFetcher', () => {
 
     expect(peers[2].sendSpy).not.toHaveBeenCalled()
     expect(syncSpy).toHaveBeenCalledTimes(1)
+
+    await peerNetwork.stop()
+  })
+
+  it('accepts the block if it was previously marked as an orphan but is not anymore', async () => {
+    const { peerNetwork, chain } = nodeTest
+
+    chain.synced = true
+
+    // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
+    // We want to have an orphan that is also not ahead of the current chain
+    const addedBlocks = await createDisconnectedBlocks(chain, 5)
+
+    const orphan = addedBlocks[4]
+
+    // Add 5 different blocks to the chain
+    for (const _ of [...new Array(5)]) {
+      const block = await useMinerBlockFixture(chain)
+      await chain.addBlock(block)
+    }
+
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 4)
+
+    // The first peer sends a orphaned compact block and it's added to orphans
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...peerMessage(peers[0].peer, new NewBlockV2Message(orphan.toCompactBlock())),
+    )
+
+    expect(chain.orphans.has(orphan.header.hash)).toBe(true)
+
+    // Remove the 5 blocks added and add back previous blocks to make the orphan no longer an orphan
+    for (const _ of [...new Array(5)]) {
+      await chain.removeBlock(chain.head.hash)
+    }
+
+    for (const block of addedBlocks.slice(0, 4)) {
+      await chain.addBlock(block)
+    }
+
+    expect(chain.orphans.has(orphan.header.hash)).toBe(false)
 
     await peerNetwork.stop()
   })

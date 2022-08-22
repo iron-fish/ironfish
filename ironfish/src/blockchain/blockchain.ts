@@ -785,7 +785,7 @@ export class Blockchain {
   private resolveOrphans(block: Block): void {
     this.orphans.remove(block.header.hash)
 
-    for (const [hash, header] of this.orphans.map.entries()) {
+    for (const [hash, { value: header }] of this.orphans.map.entries()) {
       if (header.previousBlockHash.equals(block.header.hash)) {
         // TODO: we could probably store the whole block and add it in
         // this case, but it adds complexity
