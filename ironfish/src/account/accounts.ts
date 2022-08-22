@@ -603,6 +603,7 @@ export class Accounts {
 
     const accountHead = await this.chain.getHeader(accountHeadHash)
     Assert.isNotNull(accountHead)
+    scan.endSequence = accountHead.sequence
 
     this.logger.info(`Scanning for transactions${scanFor ? ` for ${scanFor}` : ''}`)
 
@@ -640,6 +641,7 @@ export class Accounts {
         initialNoteIndex: initialNoteIndex,
       })
 
+      scan.sequence = sequence
       scan.onTransaction.emit(sequence, accountHead.sequence)
       lastBlockHash = blockHash
     }
@@ -1324,6 +1326,8 @@ export class Accounts {
 
 export class ScanState {
   onTransaction = new Event<[sequence: number, endSequence: number]>()
+  sequence = -1
+  endSequence = -1
 
   readonly startedAt: number
   readonly abortController: AbortController

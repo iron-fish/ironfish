@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  FileUtils,
-  GetAccountStatusResponse,
-  GetStatusResponse,
-  PromiseUtils,
-} from '@ironfish/sdk'
+import { FileUtils, GetStatusResponse, PromiseUtils } from '@ironfish/sdk'
 import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
@@ -31,8 +26,7 @@ export default class Status extends IronfishCommand {
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
       const nodeResponse = await client.status()
-      const accountResponse = await client.accountStatus({})
-      this.log(renderStatus(nodeResponse.content, accountResponse.content))
+      this.log(renderStatus(nodeResponse.content))
       this.exit(0)
     }
 
@@ -56,46 +50,17 @@ export default class Status extends IronfishCommand {
       }
 
       const nodeResponse = this.sdk.client.statusStream()
-      const accountResponse = this.sdk.client.accountStatusStream({
-        stream: true,
-      })
-
-      let scanIsRunning = true
-      let accountStatusBackup: GetAccountStatusResponse = {
-        sequence: 0,
-        endSequence: -1,
-        startedAt: 0,
-        head: '',
-      }
 
       for await (const value of nodeResponse.contentStream()) {
-        let accountStatusCount = 0
-        if (scanIsRunning) {
-          for await (const account of accountResponse.contentStream()) {
-            accountStatusCount += 1
-            statusText.clearBaseLine(0)
-            statusText.setContent(renderStatus(value, account))
-            screen.render()
-            if (accountStatusCount === 100) {
-              accountStatusBackup = account
-              break
-            } else if (Number(account.endSequence) === -1) {
-              accountStatusBackup = account
-              scanIsRunning = false
-              break
-            }
-          }
-        } else {
-          statusText.clearBaseLine(0)
-          statusText.setContent(renderStatus(value, accountStatusBackup))
-          screen.render()
-        }
+        statusText.clearBaseLine(0)
+        statusText.setContent(renderStatus(value))
+        screen.render()
       }
     }
   }
 }
 
-function renderStatus(content: GetStatusResponse, account: GetAccountStatusResponse): string {
+function renderStatus(content: GetStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
   const blockSyncerStatusDetails: string[] = []
@@ -172,16 +137,11 @@ function renderStatus(content: GetStatusResponse, account: GetAccountStatusRespo
   ).toFixed(1)}%)`
 
   let accountStatus
-  if (account.endSequence === -1) {
-    accountStatus = 'Scan completed (100%) '
+  if (content.accounts.scanning === undefined) {
+    accountStatus = `${content.accounts.head}`
   } else {
-    const { endSequence, sequence } = account
-    accountStatus = `Scanning: ${sequence} / ${endSequence} (${(
-      (sequence * 100) /
-      endSequence
-    ).toFixed(1)}%)`
+    accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }
-  accountStatus += account.head
 
   return `
 Version              ${content.node.version} @ ${content.node.git}
@@ -194,7 +154,7 @@ Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
 Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
-Account              ${accountStatus}
+Accounts             ${accountStatus}
 Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}`
 }
