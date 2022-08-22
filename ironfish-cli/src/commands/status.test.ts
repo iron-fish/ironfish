@@ -38,6 +38,14 @@ describe('status', () => {
       change: 0,
       speed: 0,
     },
+    accounts: {
+      scanning: {
+        sequence: 1,
+        endSequence: 1,
+        startedAt: 1,
+      },
+      head: '0000000000039334767891d9052a4498c39be101b35d9910a54dc5ca4ace6b33 (18854)',
+    },
   }
 
   beforeAll(() => {
@@ -72,7 +80,7 @@ describe('status', () => {
       .stdout()
       .command(['status'])
       .exit(0)
-      .it('logs out data for the chain, node, mempool, and syncer', (ctx) => {
+      .it('logs out data for the chain, node, mempool, account, and syncer', (ctx) => {
         expectCli(ctx.stdout).include('Version')
         expectCli(ctx.stdout).include('Node')
         expectCli(ctx.stdout).include('Node Name')
@@ -83,6 +91,7 @@ describe('status', () => {
         expectCli(ctx.stdout).include('Mem Pool')
         expectCli(ctx.stdout).include('Syncer')
         expectCli(ctx.stdout).include('Blockchain')
+        expectCli(ctx.stdout).include('Accounts')
         expectCli(ctx.stdout).include('Telemetry')
         expectCli(ctx.stdout).include('Workers')
       })
