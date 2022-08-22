@@ -925,15 +925,15 @@ export class Accounts {
     })
 
     await this.db.database.transaction(async (tx) => {
-      this.accounts.set(account.id, account)
       await this.db.setAccount(account, tx)
-
       await this.updateHeadHash(account, this.chainProcessor.hash, tx)
-
-      if (setDefault) {
-        await this.setDefaultAccount(account.name, tx)
-      }
     })
+
+    this.accounts.set(account.id, account)
+
+    if (setDefault) {
+      await this.setDefaultAccount(account.name)
+    }
 
     return account
   }
