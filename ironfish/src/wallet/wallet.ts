@@ -267,11 +267,10 @@ export class Accounts {
   }
 
   async updateHeadHashes(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
-    let accounts
+    let accounts = this.listAccounts()
+
     if (headHash) {
-      accounts = this.listAccounts().filter((a) => this.isAccountUpToDate(a))
-    } else {
-      accounts = this.listAccounts()
+      accounts = accounts.filter((a) => this.isAccountUpToDate(a))
     }
 
     for (const account of accounts) {
@@ -1122,7 +1121,7 @@ export class Accounts {
     const headHash = this.headHashes.get(account.id)
     Assert.isNotUndefined(
       headHash,
-      `isAccountUpToDate: No head hash found for ${account.displayName}`,
+      `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
     const chainHeadHash = this.chainProcessor.hash
