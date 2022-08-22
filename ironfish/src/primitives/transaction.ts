@@ -21,6 +21,7 @@ export class Transaction {
   private readonly _notes: NoteEncrypted[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
+  private _unsignedHash?: TransactionHash
 
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
@@ -181,12 +182,13 @@ export class Transaction {
    * is signed when the transaction is created
    */
   unsignedHash(): TransactionHash {
-    return this.withReference((t) => t.hash())
+    this._unsignedHash = this._unsignedHash || this.withReference((t) => t.hash())
+    return this._unsignedHash
   }
 
   /**
-   * Genereate the hash of a transaction that includes the witness (signature) data.
-   * Used for cases where a signature needs to be commited to in the hash like P2P transaction gossip
+   * Generate the hash of a transaction that includes the witness (signature) data.
+   * Used for cases where a signature needs to be committed to in the hash like P2P transaction gossip
    */
   hash(): TransactionHash {
     this._hash = this._hash || blake3(this.transactionPostedSerialized)

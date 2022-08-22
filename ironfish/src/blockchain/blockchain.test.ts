@@ -33,7 +33,7 @@ describe('Blockchain', () => {
     expect(await chain.nullifiers.size()).toBeGreaterThan(0)
     expect(await chain.getPrevious(genesis.header)).toBe(null)
     expect(await chain.getNext(genesis.header)).toBe(null)
-  }, 10000)
+  })
 
   it('add blocks with forks', async () => {
     const { strategy, chain } = nodeTest
@@ -93,7 +93,7 @@ describe('Blockchain', () => {
     expect((await chain.getHashAtSequence(2))?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
     expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
-  }, 10000)
+  })
 
   it('iterate', async () => {
     const { strategy, chain } = nodeTest
@@ -411,7 +411,7 @@ describe('Blockchain', () => {
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
     expect(await node.chain.notes.size()).toBe(blockA3.header.noteCommitment.size)
-  }, 60000)
+  })
 
   describe('MerkleTrees', () => {
     it('should add notes and nullifiers to trees', async () => {
@@ -593,7 +593,7 @@ describe('Blockchain', () => {
     await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrowError(
       `Miner's fee is incorrect`,
     )
-  }, 60000)
+  })
 
   it('should wait to validate spends', async () => {
     /**
@@ -652,7 +652,7 @@ describe('Blockchain', () => {
 
     // We should have reorged to blockA5
     expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
-  }, 120000)
+  })
 
   it('should add block to fork with tx expiration', async () => {
     /**

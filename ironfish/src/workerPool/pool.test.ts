@@ -52,7 +52,7 @@ describe('Worker Pool', () => {
     expect(pool.workers.length).toBe(1)
     await pool.sleep().result()
     expect(pool.workers.length).toBe(1)
-  }, 10000)
+  })
 
   it('aborts job in worker', async () => {
     pool = new WorkerPool({ numWorkers: 1 })
@@ -77,7 +77,7 @@ describe('Worker Pool', () => {
     expect(pool.workers.length).toBe(1)
     expect(pool.executing).toBe(0)
     expect(pool.queued).toBe(0)
-  }, 10000)
+  })
 
   it('counts queue size', async () => {
     pool = new WorkerPool()
@@ -107,7 +107,7 @@ describe('Worker Pool', () => {
     expect(pool.completed).toBe(2)
     expect(job1.status).toBe('aborted')
     expect(job2.status).toBe('aborted')
-  }, 10000)
+  })
 
   it('handles job error', async () => {
     pool = new WorkerPool({ numWorkers: 1 })
@@ -136,7 +136,7 @@ describe('Worker Pool', () => {
     expect(pool.queued).toBe(0)
     expect(pool.completed).toBe(2)
     expect(job.status).toBe('success')
-  }, 10000)
+  })
 
   it('should queue up job', () => {
     pool = new WorkerPool({ numWorkers: 1, maxJobs: 0 })
@@ -150,5 +150,5 @@ describe('Worker Pool', () => {
     expect(pool.workers.length).toBe(1)
     expect(pool.queued).toBe(1)
     expect(pool.completed).toBe(0)
-  }, 10000)
+  })
 })

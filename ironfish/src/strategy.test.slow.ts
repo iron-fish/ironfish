@@ -10,7 +10,6 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteLeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
@@ -19,7 +18,6 @@ import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
-import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
 
@@ -80,25 +78,6 @@ describe('Demonstrate the Sapling API', () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
     tree = await makeStrategyTree()
     spenderKey = generateKey()
-  })
-
-  describe('Verifies incoming messages', () => {
-    const nodeTest = createNodeTest()
-
-    it('Rejects incoming new transactions if fees are negative', async () => {
-      // Generate a miner's fee transaction
-      const workerPool = new WorkerPool()
-      const strategy = new Strategy(workerPool)
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
-
-      const verifier = new Verifier(nodeTest.chain, workerPool)
-
-      expect(
-        await verifier.verifyTransactionContextual(minersFee, nodeTest.chain.head),
-      ).toMatchObject({
-        valid: false,
-      })
-    }, 60000)
   })
 
   describe('Can transact between two accounts', () => {
@@ -185,7 +164,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(minersFee['transactionPosted']).toBeNull()
       expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
@@ -204,7 +183,7 @@ describe('Demonstrate the Sapling API', () => {
       })
 
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
@@ -236,7 +215,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(decryptedNote['note']).toBeNull()
       expect(decryptedNote.value()).toBe(BigInt(2000000000))
       expect(decryptedNote['note']).toBeNull()
-    }, 60000)
+    })
   })
 
   describe('Finding notes to spend', () => {

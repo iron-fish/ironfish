@@ -26,7 +26,7 @@ describe('status', () => {
       memTotal: 10,
     },
     miningDirector: { status: 'started', miners: 0, blocks: 0, blockGraffiti: 'my graffiti' },
-    memPool: { size: 0 },
+    memPool: { size: 0, sizeBytes: 0 },
     blockSyncer: { status: 'stopped', syncing: { blockSpeed: 0, speed: 0, progress: 0 } },
     telemetry: { status: 'stopped', pending: 0, submitted: 0 },
     workers: {

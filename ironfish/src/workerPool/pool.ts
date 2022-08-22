@@ -7,14 +7,12 @@ import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
-import { Identity, PrivateIdentity } from '../network'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { RoundRobinQueue } from './roundRobinQueue'
-import { BoxMessageRequest, BoxMessageResponse } from './tasks/boxMessage'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import {
@@ -26,7 +24,6 @@ import {
 import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
-import { UnboxMessageRequest, UnboxMessageResponse } from './tasks/unboxMessage'
 import {
   VerifyTransactionOptions,
   VerifyTransactionRequest,
@@ -56,7 +53,6 @@ export class WorkerPool {
   speed: Meter | null
 
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
-    [WorkerMessageType.BoxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.DecryptNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -64,7 +60,6 @@ export class WorkerPool {
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.UnboxMessage, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransactions, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
@@ -213,42 +208,6 @@ export class WorkerPool {
     return response.verified
       ? { valid: true }
       : { valid: false, reason: VerificationResultReason.ERROR }
-  }
-
-  async boxMessage(
-    plainTextMessage: string,
-    sender: PrivateIdentity,
-    recipient: Identity,
-  ): Promise<{ nonce: string; boxedMessage: string }> {
-    const request: BoxMessageRequest = new BoxMessageRequest(
-      plainTextMessage,
-      sender,
-      recipient,
-    )
-
-    const response = await this.execute(request).result()
-    if (!(response instanceof BoxMessageResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return { nonce: response.nonce, boxedMessage: response.boxedMessage }
-  }
-
-  async unboxMessage(
-    boxedMessage: string,
-    nonce: string,
-    sender: Identity,
-    recipient: PrivateIdentity,
-  ): Promise<UnboxMessageResponse> {
-    const request = new UnboxMessageRequest(boxedMessage, nonce, sender, recipient)
-
-    const response = await this.execute(request).result()
-
-    if (!(response instanceof UnboxMessageResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return response
   }
 
   async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote | null>> {

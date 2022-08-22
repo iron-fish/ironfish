@@ -25,5 +25,5 @@ describe('Route chain.getChainInfo', () => {
     expect(response.content.currentBlockTimestamp).toEqual(
       Number(routeTest.chain.latest.timestamp),
     )
-  }, 10000)
+  })
 })

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * Equivilent to the builtin Partial<T> just recursive.
+ * Equivalent to the builtin Partial<T> just recursive.
  *
  * @see https://www.typescriptlang.org/docs/handbook/utility-types.html#partialtype
  */

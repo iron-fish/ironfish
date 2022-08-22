@@ -6,7 +6,6 @@ import {
   Assert,
   displayIronAmountWithCurrency,
   ironToOre,
-  isValidAmount,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
   PromiseUtils,
@@ -18,11 +17,13 @@ import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
+import { verifyCanSend } from '../utils/currency'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 const IRON_TO_SEND = 0.1
 
 export default class DepositAll extends IronfishCommand {
+  static aliases = ['depositAll']
   static description = 'Deposit $IRON for testnet points'
 
   client: RpcClient | null = null
@@ -32,7 +33,6 @@ export default class DepositAll extends IronfishCommand {
     ...RemoteFlags,
     fee: Flags.integer({
       char: 'f',
-      default: 1,
       description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
     expirationSequenceDelta: Flags.integer({
@@ -57,10 +57,20 @@ export default class DepositAll extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DepositAll)
 
-    this.client = await this.sdk.connectRpc()
+    this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    const fee = flags.fee
+    let fee = flags.fee
+
+    if (fee == null || Number.isNaN(fee)) {
+      try {
+        // fees p25 of last 100 blocks
+        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+      } catch {
+        fee = 1
+      }
+    }
+
     const terminate = flags.terminate
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
@@ -92,8 +102,16 @@ export default class DepositAll extends IronfishCommand {
       this.exit(1)
     }
     Assert.isNotUndefined(graffiti)
+    Assert.isNotNull(this.client)
+    Assert.isNotNull(this.api)
 
-    const { canSend, errorReason } = await this.verifyCanSend(flags, graffiti)
+    const { canSend, errorReason } = await verifyCanSend(
+      this.client,
+      this.api,
+      expirationSequenceDelta,
+      fee,
+      graffiti,
+    )
     if (!canSend) {
       Assert.isNotNull(errorReason)
       this.log(errorReason)
@@ -101,8 +119,11 @@ export default class DepositAll extends IronfishCommand {
     }
 
     if (!flags.confirm) {
+      const feeInIron = oreToIron(fee)
+      const displayFee = displayIronAmountWithCurrency(feeInIron, true)
+
       this.log(
-        `You are about to deposit all your $IRON to the Iron Fish deposit account. The memos will contain the graffiti "${graffiti}".`,
+        `You are about to deposit all your $IRON to the Iron Fish deposit account. Each transaction will use a fee of ${displayFee}. The memos will contain the graffiti "${graffiti}".`,
       )
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -211,70 +232,5 @@ export default class DepositAll extends IronfishCommand {
       // wait 30 seconds for next transaction
       await PromiseUtils.sleep(30000)
     }
-  }
-
-  private async verifyCanSend(
-    flags: Record<string, unknown>,
-    graffiti: string,
-  ): Promise<{ canSend: boolean; errorReason: string | null }> {
-    Assert.isNotNull(this.client)
-    Assert.isNotNull(this.api)
-
-    const status = await this.client.status()
-    if (!status.content.blockchain.synced) {
-      return {
-        canSend: false,
-        errorReason: `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      }
-    }
-
-    let user
-    try {
-      user = await this.api.findUser({ graffiti })
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        this.error(error.message)
-      }
-
-      return {
-        canSend: false,
-        errorReason: `There is a problem with the Iron Fish API. Please try again later.`,
-      }
-    }
-
-    if (!user) {
-      return {
-        canSend: false,
-        errorReason: `Graffiti not registered. Register at ${REGISTER_URL} and try again`,
-      }
-    }
-
-    const expirationSequenceDelta = flags.expirationSequenceDelta as number | undefined
-    if (expirationSequenceDelta !== undefined && expirationSequenceDelta < 0) {
-      return {
-        canSend: false,
-        errorReason: `Expiration sequence delta must be non-negative`,
-      }
-    }
-
-    if (expirationSequenceDelta !== undefined && expirationSequenceDelta > 120) {
-      return {
-        canSend: false,
-        errorReason: 'Expiration sequence delta should not be above 120 blocks',
-      }
-    }
-
-    const fee = flags.fee as number
-    if (!isValidAmount(fee)) {
-      return {
-        canSend: false,
-        errorReason: `The minimum fee is ${displayIronAmountWithCurrency(
-          MINIMUM_IRON_AMOUNT,
-          false,
-        )}`,
-      }
-    }
-
-    return { canSend: true, errorReason: null }
   }
 }

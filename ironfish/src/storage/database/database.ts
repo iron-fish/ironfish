@@ -7,6 +7,11 @@ import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
 import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
 
+export const DATABASE_ALL_KEY_RANGE = {
+  gte: Buffer.alloc(0, 0),
+  lte: Buffer.alloc(256, 255),
+}
+
 /**
  * A database interface to represent a wrapper for a key value store database. The database is the entry point for creating stores, batches, transactions.
  *
@@ -19,7 +24,7 @@ import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types
 */
 export interface IDatabase {
   /**
-   * If the datbase is open and available for operations
+   * If the database is open and available for operations
    */
   readonly isOpen: boolean
 
@@ -33,6 +38,9 @@ export interface IDatabase {
 
   /** Closes the database and does not handle any open transactions */
   close(): Promise<void>
+
+  /** Internal book keeping function to clean up unused space by the database */
+  compact(): Promise<void>
 
   /**
    * Check if the database needs to be upgraded
@@ -105,7 +113,7 @@ export interface IDatabase {
   ): Promise<TResult>
 
   /** Creates a batch of commands that are executed atomically
-   * once it's commited using {@link IDatabaseBatch.commit}
+   * once it's committed using {@link IDatabaseBatch.commit}
    *
    * @see [[`IDatabaseBatch`]] for what operations are supported
    */
@@ -114,7 +122,7 @@ export interface IDatabase {
   /**
    * Executes a batch of database operations atomically
    *
-   * @returns A promise that resolves when the operations are commited to the database
+   * @returns A promise that resolves when the operations are committed to the database
    */
   batch(
     writes: BatchOperation<
@@ -135,6 +143,7 @@ export abstract class Database implements IDatabase {
   abstract upgrade(version: number): Promise<void>
   abstract getVersion(): Promise<number>
   abstract putVersion(version: number): Promise<void>
+  abstract compact(): Promise<void>
 
   abstract transaction(): IDatabaseTransaction
 

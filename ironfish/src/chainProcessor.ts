@@ -17,7 +17,7 @@ import { createRootLogger, Logger } from './logger'
  *  - onAdd(G)
  *  - onAdd(A1)
  *
- * If you then reorg and have recived
+ * If you then reorg and have received
  *      G -> A1
  *        -> B1 -> B2
  *
