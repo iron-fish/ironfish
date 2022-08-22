@@ -297,7 +297,7 @@ impl Transaction for TransferTransaction {
     }
 }
 
-fn add_spends(
+pub fn add_spends(
     sapling: Arc<Sapling>,
     spends: &[Spend],
     bsk: &mut jubjub::Fr,
@@ -328,7 +328,7 @@ fn add_spends(
     Ok(spend_params)
 }
 
-fn add_outputs(
+pub fn add_outputs(
     sapling: Arc<Sapling>,
     outputs: &[Output],
     bsk: &mut jubjub::Fr,
@@ -355,7 +355,7 @@ fn add_outputs(
     Ok(output_params)
 }
 
-fn transaction_signature_hash(
+pub(crate) fn transaction_signature_hash(
     expiration_sequence: u32,
     transaction_fee: i64,
     spends: &[impl SpendSignature],

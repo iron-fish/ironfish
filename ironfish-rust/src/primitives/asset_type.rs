@@ -15,6 +15,50 @@ lazy_static! {
 
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
+// TODO: This is just a placeholder helper struct, feels pretty awkward to use
+// so probably won't stick around like this
+pub struct AssetInfo {
+    // TODO: This functionality should be mostly copied from Memo, same idea.
+    // Also consider unicode char indices or something
+    name: [u8; 32],
+    nonce: u8,
+    asset_type: AssetType,
+}
+
+impl AssetInfo {
+    /// Create a new AssetType from a unique asset name
+    /// Not constant-time, uses rejection sampling
+    pub fn new(name: &str) -> Result<AssetInfo, AssetError> {
+        let mut name_bytes = [0; 32];
+        let name_len = std::cmp::min(name.len(), 32);
+        name_bytes[..name_len].clone_from_slice(&name.as_bytes()[..name_len]);
+
+        let mut nonce = 0u8;
+        loop {
+            if let Some(asset_type) = AssetType::new_with_nonce(&name_bytes, nonce) {
+                return Ok(AssetInfo {
+                    name: name_bytes,
+                    nonce,
+                    asset_type,
+                });
+            }
+            nonce = nonce.checked_add(1).ok_or(AssetError::RandomnessError)?;
+        }
+    }
+
+    pub fn name(&self) -> &[u8] {
+        &self.name
+    }
+
+    pub fn nonce(&self) -> &u8 {
+        &self.nonce
+    }
+
+    pub fn asset_type(&self) -> AssetType {
+        self.asset_type
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct AssetType {
     identifier: AssetIdentifier, // 32 byte asset type preimage
@@ -68,6 +112,7 @@ impl AssetType {
     }
 
     // Attempt to hash an identifier to a curve point
+    // TODO: This fn is basically identical to zcash_primitives::group_hash
     fn hash_to_point(identifier: &AssetIdentifier) -> Option<jubjub::ExtendedPoint> {
         // Check the personalization is acceptable length
         assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
@@ -76,6 +121,9 @@ impl AssetType {
         use ff::PrimeField;
         assert_eq!(bls12_381::Scalar::NUM_BITS, 255);
 
+        // TODO: Is it correct that this uses VALUE_COMMITMENT_GENERATOR_PERSONALIZATION?
+        // Should this use it's own personalization? Is this only used for this? Should
+        // it be named something else, then?
         let h = Blake2sParams::new()
             .hash_length(32)
             .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
