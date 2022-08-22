@@ -369,20 +369,22 @@ describe('PeerNetwork', () => {
 
     describe('handles new blocks', () => {
       it('adds new blocks', async () => {
-        const { peerNetwork, node } = nodeTest
+        const { peerNetwork, chain } = nodeTest
 
-        const { accounts } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
-        const { block } = await useBlockWithTx(node, accountA, accountB)
+        chain.synced = true
+
+        const block = await useMinerBlockFixture(chain)
+
+        expect(await chain.hasBlock(block.header.hash)).toBe(false)
 
         const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
         const serializedBlock = BlockSerde.serialize(block)
-        const addBlockSpy = jest.spyOn(node.syncer, 'addBlock')
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          ...peerMessage(peer, new NewBlockMessage(serializedBlock)),
+        )
 
-        await peerNetwork['handleGossipMessage'](peer, new NewBlockMessage(serializedBlock))
-
-        expect(addBlockSpy).toHaveBeenCalledWith(peer, serializedBlock)
+        expect(await chain.hasBlock(block.header.hash)).toBe(true)
       })
 
       it('does not sync or gossip invalid blocks', async () => {
