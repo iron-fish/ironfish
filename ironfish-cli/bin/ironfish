@@ -43,8 +43,8 @@ else
   fi
 
   if [ "$IRONFISH_EXPOSE_GC" == "true" ]; then
-    "$NODE" "--expose-gc" "$DIR/run" "$@"
+    "$NODE" "--expose-gc" "--enable-source-maps" "$DIR/run" "$@"
   else
-    "$NODE" "$DIR/run" "$@"
+    "$NODE" "--enable-source-maps" "$DIR/run" "$@"
   fi
 fi
