@@ -5,12 +5,14 @@ use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use std::io;
 use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 
-use crate::{errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION};
+use crate::{
+    errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION, PublicAddress,
+};
 
 use super::{constants::ASSET_IDENTIFIER_LENGTH, sapling::ValueCommitment};
 
 lazy_static! {
-    pub static ref DEFAULT_ASSET: AssetType = AssetType::new(b"").unwrap();
+    pub static ref DEFAULT_ASSET: AssetType = AssetType::new(b"", [0; 43].as_ref()).unwrap();
 }
 
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
@@ -21,6 +23,10 @@ pub struct AssetInfo {
     // TODO: This functionality should be mostly copied from Memo, same idea.
     // Also consider unicode char indices or something
     name: [u8; 32],
+    // TODO: Give this the proper type PublicAddress or PaymentAddress or whatever
+    // TODO: This probably needs to use _private_ key, not public otherwise
+    // anyone could re-create the pre-image of the asset identifier
+    public_address: [u8; 43],
     nonce: u8,
     asset_type: AssetType,
 }
@@ -28,16 +34,21 @@ pub struct AssetInfo {
 impl AssetInfo {
     /// Create a new AssetType from a unique asset name
     /// Not constant-time, uses rejection sampling
-    pub fn new(name: &str) -> Result<AssetInfo, AssetError> {
+    pub fn new(name: &str, public_address: PublicAddress) -> Result<AssetInfo, AssetError> {
         let mut name_bytes = [0; 32];
         let name_len = std::cmp::min(name.len(), 32);
         name_bytes[..name_len].clone_from_slice(&name.as_bytes()[..name_len]);
 
+        let public_address_bytes = public_address.public_address();
+
         let mut nonce = 0u8;
         loop {
-            if let Some(asset_type) = AssetType::new_with_nonce(&name_bytes, nonce) {
+            if let Some(asset_type) =
+                AssetType::new_with_nonce(&name_bytes, &public_address_bytes, nonce)
+            {
                 return Ok(AssetInfo {
                     name: name_bytes,
+                    public_address: public_address_bytes,
                     nonce,
                     asset_type,
                 });
@@ -48,6 +59,10 @@ impl AssetInfo {
 
     pub fn name(&self) -> &[u8] {
         &self.name
+    }
+
+    pub fn public_address(&self) -> &[u8] {
+        &self.public_address
     }
 
     pub fn nonce(&self) -> &u8 {
@@ -73,10 +88,10 @@ impl AssetType {
 
     /// Create a new AssetType from a unique asset name
     /// Not constant-time, uses rejection sampling
-    pub fn new(name: &[u8]) -> Result<AssetType, AssetError> {
+    pub fn new(name: &[u8], public_address: &[u8]) -> Result<AssetType, AssetError> {
         let mut nonce = 0u8;
         loop {
-            if let Some(asset_type) = AssetType::new_with_nonce(name, nonce) {
+            if let Some(asset_type) = AssetType::new_with_nonce(name, public_address, nonce) {
                 return Ok(asset_type);
             }
             nonce = nonce.checked_add(1).ok_or(AssetError::RandomnessError)?;
@@ -85,7 +100,7 @@ impl AssetType {
 
     /// Attempt to create a new AssetType from a unique asset name and fixed nonce
     /// Not yet constant-time; assume not-constant-time
-    pub fn new_with_nonce(name: &[u8], nonce: u8) -> Option<AssetType> {
+    pub fn new_with_nonce(name: &[u8], public_address: &[u8], nonce: u8) -> Option<AssetType> {
         use std::slice::from_ref;
 
         // Check the personalization is acceptable length
@@ -98,6 +113,7 @@ impl AssetType {
             .to_state()
             .update(GH_FIRST_BLOCK)
             .update(name)
+            .update(public_address)
             .update(from_ref(&nonce))
             .finalize();
 

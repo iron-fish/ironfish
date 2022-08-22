@@ -48,6 +48,18 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
 
         combined_preimage.extend(name_bits);
 
+        let public_address_bits = slice_into_boolean_vec_le(
+            cs.namespace(|| "booleanize public address"),
+            self.asset_info
+                .as_ref()
+                .and_then(|i| i.public_address().into()),
+            43 * 8,
+        )?;
+
+        assert_eq!(public_address_bits.len(), 43 * 8);
+
+        combined_preimage.extend(public_address_bits);
+
         let nonce_bits = slice_into_boolean_vec_le(
             cs.namespace(|| "booleanize nonce"),
             self.asset_info
@@ -118,7 +130,7 @@ mod test {
     use group::Curve;
     use rand::rngs::OsRng;
 
-    use crate::primitives::asset_type::AssetInfo;
+    use crate::{primitives::asset_type::AssetInfo, SaplingKey};
 
     use super::CreateAsset;
 
@@ -132,9 +144,14 @@ mod test {
         .expect("Can generate random params");
         let pvk = groth16::prepare_verifying_key(&params.vk);
 
+        // Test setup: create sapling keys
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.generate_public_address();
+
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info = AssetInfo::new(name).expect("Can create a valid asset");
+        let asset_info =
+            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
         let inputs = [generator_affine.get_u(), generator_affine.get_v()];
@@ -149,9 +166,22 @@ mod test {
         // Verify proof
         groth16::verify_proof(&pvk, &proof, &inputs).expect("Can verify proof");
 
-        // Sanity check that this fails with different inputs
+        // Sanity check that this fails with different asset name
         let bad_name = "My custom asset 2";
-        let bad_asset_info = AssetInfo::new(bad_name).expect("Can create a valid asset");
+        let bad_asset_info =
+            AssetInfo::new(bad_name, public_address).expect("Can create a valid asset");
+
+        let bad_generator_affine = bad_asset_info.asset_type().asset_generator().to_affine();
+        let bad_inputs = [bad_generator_affine.get_u(), bad_generator_affine.get_v()];
+
+        assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
+
+        // Sanity check that this fails with different public address
+        let bad_sapling_key = SaplingKey::generate_key();
+        let bad_public_address = bad_sapling_key.generate_public_address();
+
+        let bad_asset_info =
+            AssetInfo::new(name, bad_public_address).expect("Can create a valid asset");
 
         let bad_generator_affine = bad_asset_info.asset_type().asset_generator().to_affine();
         let bad_inputs = [bad_generator_affine.get_u(), bad_generator_affine.get_v()];

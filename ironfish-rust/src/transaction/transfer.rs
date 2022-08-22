@@ -573,7 +573,7 @@ mod tests {
             AssetType::default(),
         );
 
-        let new_asset = AssetType::new(b"Foo bar baz").unwrap();
+        let new_asset = AssetType::new(b"Foo bar baz", &[0; 43]).unwrap();
 
         let in_note2 = Note::new(spender_address, 10, Memo::default(), new_asset);
         let out_note2 = Note::new(receiver_address, 5, Memo::default(), new_asset);
