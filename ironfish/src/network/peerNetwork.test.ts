@@ -10,7 +10,7 @@ import http from 'http'
 import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
-import { VerificationResultReason, Verifier } from '../consensus/verifier'
+import { VerificationResultReason } from '../consensus/verifier'
 import { Block, Transaction } from '../primitives'
 import { BlockSerde, SerializedCompactBlock } from '../primitives/block'
 import { BlockHeaderSerde } from '../primitives/blockheader'
@@ -20,7 +20,6 @@ import {
   useMinerBlockFixture,
   useMinersTxFixture,
 } from '../testUtilities'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'

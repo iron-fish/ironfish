@@ -95,12 +95,6 @@ export default class Start extends IronfishCommand {
       allowNo: true,
       description: 'run migrations when an upgrade is required',
     }),
-    unsupportedNetworking: Flags.boolean({
-      default: false,
-      description:
-        'use network messages that are not yet supported by the network. only useful for developers',
-      hidden: true,
-    }),
   }
 
   node: IronfishNode | null = null
@@ -129,7 +123,6 @@ export default class Start extends IronfishCommand {
       workers,
       generateNewIdentity,
       upgrade,
-      unsupportedNetworking,
     } = flags
 
     if (bootstrap !== undefined) {

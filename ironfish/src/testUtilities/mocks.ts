@@ -99,9 +99,7 @@ export function mockLogger(): any {
 }
 
 export function mockTelemetry(): any {
-  return {
-
-  }
+  return {}
 }
 
 export function mockWorkerPool(): any {
