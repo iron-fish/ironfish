@@ -889,6 +889,7 @@ export class PeerNetwork {
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
+      this.blockFetcher.removeBlock(block.header.hash)
       this.node.syncer.startSync(peer)
       return
     }
@@ -940,6 +941,7 @@ export class PeerNetwork {
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
     if (prevHeader === null) {
       this.chain.addOrphan(header)
+      this.blockFetcher.removeBlock(header.hash)
       this.node.syncer.startSync(peer)
       return
     }
@@ -1264,6 +1266,7 @@ export class PeerNetwork {
         block.header.hash,
         verifyBlockHeaderResult.reason ?? VerificationResultReason.ERROR,
       )
+      this.blockFetcher.removeBlock(block.header.hash)
       return
     }
 
@@ -1275,6 +1278,7 @@ export class PeerNetwork {
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
+      this.blockFetcher.removeBlock(block.header.hash)
       this.node.syncer.startSync(peer)
       return
     }
@@ -1316,6 +1320,7 @@ export class PeerNetwork {
         verified.reason ?? VerificationResultReason.ERROR,
       )
       this.blockFetcher.removeBlock(block.header.hash)
+      return
     }
 
     // add the block to the chain
