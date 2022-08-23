@@ -61,7 +61,12 @@ impl AssetInfo {
         &self.name
     }
 
-    pub fn public_address(&self) -> &[u8] {
+    pub fn public_address(&self) -> PublicAddress {
+        // TODO: No unrwap
+        PublicAddress::new(&self.public_address).unwrap()
+    }
+
+    pub fn public_address_bytes(&self) -> &[u8] {
         &self.public_address
     }
 

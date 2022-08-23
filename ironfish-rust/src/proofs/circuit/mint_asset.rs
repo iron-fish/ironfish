@@ -1,19 +1,25 @@
+use std::slice;
+
 use bellman::{
-    gadgets::{blake2s, boolean},
+    gadgets::{blake2s, boolean, multipack},
     Circuit,
 };
 use ff::PrimeField;
 use zcash_primitives::{
-    constants,
+    constants::{self, GH_FIRST_BLOCK},
     primitives::{PaymentAddress, ProofGenerationKey},
 };
 use zcash_proofs::{
-    circuit::ecc,
+    circuit::{ecc, pedersen_hash},
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
 
 use crate::{
-    primitives::sapling::ValueCommitment, proofs::circuit::sapling::slice_into_boolean_vec_le,
+    primitives::{
+        asset_type::AssetInfo, constants::ASSET_IDENTIFIER_PERSONALIZATION,
+        sapling::ValueCommitment,
+    },
+    proofs::circuit::sapling::slice_into_boolean_vec_le,
     AssetType, PublicAddress,
 };
 
@@ -23,11 +29,7 @@ use crate::{
 /// - Public Address
 
 pub struct MintAsset {
-    // TODO: This will eventually come from asset info, but for now
-    // just passing it in so we can do some basic verification
-    pub payment_address: Option<PaymentAddress>,
-    pub asset_type: Option<AssetType>,
-    pub value_commitment: Option<ValueCommitment>,
+    pub asset_info: Option<AssetInfo>,
     pub proof_generation_key: Option<ProofGenerationKey>,
 }
 
@@ -36,115 +38,145 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         self,
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
+        // Asset Commitment Contents
+        let mut asset_commitment_contents = vec![];
+
+        // TODO: I wonder if we could hard-code this to minimize work?
+        // Not clear to me if the booleanizing is adding substantial time
+        // or if it's just a by-product of the hash taking longer due to
+        // more input. Also not clear if that has security implications
+        // by not witnessing the bits
+        let first_block_bits = slice_into_boolean_vec_le(
+            cs.namespace(|| "booleanize first block"),
+            Some(GH_FIRST_BLOCK),
+            64 * 8,
+        )?;
+
+        assert_eq!(first_block_bits.len(), 64 * 8);
+
+        let name_bits = slice_into_boolean_vec_le(
+            cs.namespace(|| "booleanize asset info name"),
+            self.asset_info.as_ref().and_then(|i| i.name().into()),
+            32 * 8,
+        )?;
+
+        let public_address_bits = slice_into_boolean_vec_le(
+            cs.namespace(|| "booleanize asset info public address"),
+            self.asset_info
+                .as_ref()
+                .and_then(|i| i.public_address_bytes().into()),
+            43 * 8,
+        )?;
+
+        let nonce_bits = slice_into_boolean_vec_le(
+            cs.namespace(|| "booleanize asset info nonce"),
+            self.asset_info
+                .as_ref()
+                .and_then(|i| slice::from_ref(i.nonce()).into()),
+            8,
+        )?;
+
         // Public address validation
         // Prover witnesses ak (ensures that it's on the curve)
-        let ak = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "ak"),
-            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
-        )?;
+        // let ak = ecc::EdwardsPoint::witness(
+        //     cs.namespace(|| "ak"),
+        //     self.proof_generation_key.as_ref().map(|k| k.ak.into()),
+        // )?;
 
-        // There are no sensible attacks on small order points
-        // of ak (that we're aware of!) but it's a cheap check,
-        // so we do it.
-        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
+        // // There are no sensible attacks on small order points
+        // // of ak (that we're aware of!) but it's a cheap check,
+        // // so we do it.
+        // ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
 
-        // // Rerandomize ak and expose it as an input to the circuit
+        // // Compute nk = [nsk] ProofGenerationKey
+        // let nk;
         // {
-        //     let ar = boolean::field_into_boolean_vec_le(cs.namespace(|| "ar"), self.ar)?;
-
-        //     // Compute the randomness in the exponent
-        //     let ar = ecc::fixed_base_multiplication(
-        //         cs.namespace(|| "computation of randomization for the signing key"),
-        //         &SPENDING_KEY_GENERATOR,
-        //         &ar,
+        //     // Witness nsk as bits
+        //     let nsk = boolean::field_into_boolean_vec_le(
+        //         cs.namespace(|| "nsk"),
+        //         self.proof_generation_key.as_ref().map(|k| k.nsk),
         //     )?;
 
-        //     let rk = ak.add(cs.namespace(|| "computation of rk"), &ar)?;
+        //     // NB: We don't ensure that the bit representation of nsk
+        //     // is "in the field" (jubjub::Fr) because it's not used
+        //     // except to demonstrate the prover knows it. If they know
+        //     // a congruency then that's equivalent.
 
-        //     rk.inputize(cs.namespace(|| "rk"))?;
+        //     // Compute nk = [nsk] ProvingPublicKey
+        //     nk = ecc::fixed_base_multiplication(
+        //         cs.namespace(|| "computation of nk"),
+        //         &PROOF_GENERATION_KEY_GENERATOR,
+        //         &nsk,
+        //     )?;
         // }
 
-        // Compute nk = [nsk] ProofGenerationKey
-        let nk;
-        {
-            // Witness nsk as bits
-            let nsk = boolean::field_into_boolean_vec_le(
-                cs.namespace(|| "nsk"),
-                self.proof_generation_key.as_ref().map(|k| k.nsk),
-            )?;
+        // // This is the "viewing key" preimage for CRH^ivk
+        // let mut ivk_preimage = vec![];
 
-            // NB: We don't ensure that the bit representation of nsk
-            // is "in the field" (jubjub::Fr) because it's not used
-            // except to demonstrate the prover knows it. If they know
-            // a congruency then that's equivalent.
+        // // Place ak in the preimage for CRH^ivk
+        // ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
 
-            // Compute nk = [nsk] ProvingPublicKey
-            nk = ecc::fixed_base_multiplication(
-                cs.namespace(|| "computation of nk"),
-                &PROOF_GENERATION_KEY_GENERATOR,
-                &nsk,
-            )?;
-        }
+        // // Extend ivk and nf preimages with the representation of
+        // // nk.
+        // {
+        //     let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
 
-        // This is the "viewing key" preimage for CRH^ivk
-        let mut ivk_preimage = vec![];
+        //     ivk_preimage.extend(repr_nk.iter().cloned());
+        // }
 
-        // Place ak in the preimage for CRH^ivk
-        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
+        // assert_eq!(ivk_preimage.len(), 512);
 
-        // Extend ivk and nf preimages with the representation of
-        // nk.
-        {
-            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
+        // // Compute the incoming viewing key ivk
+        // let mut ivk = blake2s::blake2s(
+        //     cs.namespace(|| "computation of ivk"),
+        //     &ivk_preimage,
+        //     constants::CRH_IVK_PERSONALIZATION,
+        // )?;
 
-            ivk_preimage.extend(repr_nk.iter().cloned());
-        }
+        // // drop_5 to ensure it's in the field
+        // ivk.truncate(jubjub::Fr::CAPACITY as usize);
 
-        assert_eq!(ivk_preimage.len(), 512);
+        // // Witness g_d, checking that it's on the curve.
+        // let g_d = {
+        //     ecc::EdwardsPoint::witness(
+        //         cs.namespace(|| "witness g_d"),
+        //         self.asset_info.as_ref().and_then(|a| {
+        //             jubjub::ExtendedPoint::from(a.public_address().diversifier_point).into()
+        //         }),
+        //     )?
+        // };
 
-        // Compute the incoming viewing key ivk
-        let mut ivk = blake2s::blake2s(
-            cs.namespace(|| "computation of ivk"),
-            &ivk_preimage,
-            constants::CRH_IVK_PERSONALIZATION,
+        // // Check that g_d is not small order. Technically, this check
+        // // is already done in the Output circuit, and this proof ensures
+        // // g_d is bound to a product of that check, but for defense in
+        // // depth let's check it anyway. It's cheap.
+        // g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
+
+        // // Compute pk_d = g_d^ivk
+        // let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
+
+        // let pk_d_bits = pk_d.repr(cs.namespace(|| "representation of pk_d"))?;
+
+        // for i in 0..256 {
+        //     boolean::Boolean::enforce_equal(
+        //         cs.namespace(|| format!("integrity of asset generator bit {}", i)),
+        //         &public_address_bits[i],
+        //         &pk_d_bits[i],
+        //     )?;
+        // }
+
+        asset_commitment_contents.extend(first_block_bits);
+        asset_commitment_contents.extend(name_bits);
+        asset_commitment_contents.extend(public_address_bits);
+        asset_commitment_contents.extend(nonce_bits);
+
+        let asset_identifier = blake2s::blake2s(
+            cs.namespace(|| "blake2s(asset info)"),
+            &asset_commitment_contents,
+            ASSET_IDENTIFIER_PERSONALIZATION,
         )?;
 
-        // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
-
-        let d_bits = slice_into_boolean_vec_le(
-            cs.namespace(|| "d bits"),
-            self.payment_address
-                .as_ref()
-                .and_then(|a| a.diversifier().0.as_ref().into()),
-            11 * 8,
-        )?;
-
-        // Calculate g_d from ivk
-        let mut g_d = blake2s::blake2s(
-            cs.namespace(|| "computation of g_d"),
-            &d_bits,
-            constants::KEY_DIVERSIFICATION_PERSONALIZATION,
-        )?;
-
-        // Witness g_d, checking that it's on the curve.
-        let g_d = {
-            ecc::EdwardsPoint::witness(
-                cs.namespace(|| "witness g_d"),
-                self.payment_address
-                    .as_ref()
-                    .and_then(|a| a.g_d().map(jubjub::ExtendedPoint::from)),
-            )?
-        };
-
-        // Check that g_d is not small order. Technically, this check
-        // is already done in the Output circuit, and this proof ensures
-        // g_d is bound to a product of that check, but for defense in
-        // depth let's check it anyway. It's cheap.
-        g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
-
-        // Compute pk_d = g_d^ivk
-        let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
+        multipack::pack_into_inputs(cs.namespace(|| "pack hash"), &asset_identifier)?;
 
         Ok(())
     }
@@ -152,10 +184,14 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellman::groth16;
+    use std::slice;
+
+    use bellman::{gadgets::multipack, groth16};
     use bls12_381::Bls12;
     use group::Curve;
+    use jubjub::ExtendedPoint;
     use rand::rngs::OsRng;
+    use zcash_primitives::pedersen_hash;
 
     use crate::{primitives::asset_type::AssetInfo, SaplingKey};
 
@@ -166,10 +202,8 @@ mod test {
         // Setup: generate parameters file. This is slow, consider using pre-built ones later
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
             MintAsset {
-                payment_address: todo!(),
-                asset_type: todo!(),
-                value_commitment: todo!(),
-                proof_generation_key: todo!(),
+                asset_info: None,
+                proof_generation_key: None,
             },
             &mut OsRng,
         )
@@ -179,21 +213,20 @@ mod test {
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.generate_public_address();
+        let proof_generation_key = sapling_key.sapling_proof_generation_key();
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
+        let asset_info =
+            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
-        // let generator_affine = asset_info.asset_type().asset_generator().to_affine();
-        // let inputs = [generator_affine.get_u(), generator_affine.get_v()];
-        let inputs = vec![];
+        let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
+        let inputs = multipack::compute_multipacking(&identifier_bits);
 
         // Create proof
         let circuit = MintAsset {
-            payment_address: todo!(),
-            asset_type: todo!(),
-            value_commitment: todo!(),
-            proof_generation_key: todo!(),
+            asset_info: Some(asset_info),
+            proof_generation_key: Some(proof_generation_key),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
@@ -206,8 +239,9 @@ mod test {
         let bad_asset_info =
             AssetInfo::new(bad_name, public_address).expect("Can create a valid asset");
 
-        let bad_generator_affine = bad_asset_info.asset_type().asset_generator().to_affine();
-        let bad_inputs = [bad_generator_affine.get_u(), bad_generator_affine.get_v()];
+        let bad_identifier_bits =
+            multipack::bytes_to_bits_le(bad_asset_info.asset_type().get_identifier());
+        let bad_inputs = multipack::compute_multipacking(&bad_identifier_bits);
 
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
     }

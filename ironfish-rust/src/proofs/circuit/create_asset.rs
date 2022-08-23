@@ -52,7 +52,7 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
             cs.namespace(|| "booleanize public address"),
             self.asset_info
                 .as_ref()
-                .and_then(|i| i.public_address().into()),
+                .and_then(|i| i.public_address_bytes().into()),
             43 * 8,
         )?;
 
