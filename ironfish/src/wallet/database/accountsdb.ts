@@ -275,25 +275,46 @@ export class AccountsDB {
     })
   }
 
-  async loadTransactions(
-    map: BufferMap<{
+  async *loadTransactions(tx?: IDatabaseTransaction): AsyncGenerator<{
+    hash: Buffer
+    transaction: {
       transaction: Transaction
       blockHash: Buffer | null
       sequence: number | null
       submittedSequence: number | null
-    }>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      for await (const [key, value] of this.transactions.getAllIter(tx)) {
-        const deserialized = {
+    }
+  }> {
+    for await (const [hash, value] of this.transactions.getAllIter(tx)) {
+      yield {
+        hash,
+        transaction: {
           ...value,
           transaction: new Transaction(value.transaction),
-        }
-
-        map.set(key, deserialized)
+        },
       }
-    })
+    }
+  }
+
+  async loadTransaction(
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<
+    | {
+        transaction: Transaction
+        blockHash: Buffer | null
+        sequence: number | null
+        submittedSequence: number | null
+      }
+    | undefined
+  > {
+    const transactionValue = await this.transactions.get(transactionHash, tx)
+
+    if (transactionValue) {
+      return {
+        ...transactionValue,
+        transaction: new Transaction(transactionValue.transaction),
+      }
+    }
   }
 
   async saveNullifierNoteHash(
@@ -321,17 +342,6 @@ export class AccountsDB {
 
       for (const [key, value] of map) {
         await this.nullifierToNoteHash.put(key, value, tx)
-      }
-    })
-  }
-
-  async loadNullifierToNoteHash(
-    map: BufferMap<Buffer>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      for await (const [key, value] of this.nullifierToNoteHash.getAllIter(tx)) {
-        map.set(key, value)
       }
     })
   }

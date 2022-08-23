@@ -96,12 +96,6 @@ export class Account {
   }
 
   async load(): Promise<void> {
-    await this.accountsDb.loadNullifierToNoteHash(this.nullifierToNoteHash)
-    await this.accountsDb.loadTransactions(this.transactions)
-    await this.loadDecryptedNotesAndBalance()
-  }
-
-  private async loadDecryptedNotesAndBalance(): Promise<void> {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
@@ -112,7 +106,34 @@ export class Account {
           unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
         }
 
-        this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
+        const nullifierHash = decryptedNote.nullifierHash
+        if (nullifierHash) {
+          this.nullifierToNoteHash.set(nullifierHash, hash)
+        }
+
+        const transactionHash = decryptedNote.transactionHash
+        const transaction = await this.accountsDb.loadTransaction(transactionHash)
+        Assert.isNotUndefined(
+          transaction,
+          `Transaction undefined for '${transactionHash.toString('hex')}'`,
+        )
+
+        this.transactions.set(transactionHash, transaction)
+
+        this.saveDecryptedNoteSequence(transactionHash, hash)
+      }
+    }
+
+    for await (const { hash, transaction } of this.accountsDb.loadTransactions()) {
+      if (this.transactions.has(hash)) {
+        continue
+      }
+
+      for (const spend of transaction.transaction.spends()) {
+        if (this.nullifierToNoteHash.has(spend.nullifier)) {
+          this.transactions.set(hash, transaction)
+          break
+        }
       }
     }
 
