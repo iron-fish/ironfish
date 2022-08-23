@@ -50,7 +50,6 @@ describe('BlockFetcher', () => {
 
   it('only requests one block if multiple hashes are received', async () => {
     const { peerNetwork, chain } = nodeTest
-    chain.synced = true
 
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
@@ -131,7 +130,6 @@ describe('BlockFetcher', () => {
   it('adds compact block to the chain when no additional transactions are needed', async () => {
     const { peerNetwork, chain } = nodeTest
 
-    chain.synced = true
     const block = await useMinerBlockFixture(chain)
 
     // The hash is received from 5 peers
@@ -178,7 +176,6 @@ describe('BlockFetcher', () => {
   it('fills missing transactions from the mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    chain.synced = true
     // Another node creates a block with a transaction
     const { block, transaction } = await useBlockWithTx(node)
 
@@ -215,7 +212,6 @@ describe('BlockFetcher', () => {
   it('fills missing transactions from transaction request if not in mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    chain.synced = true
     const { block, transaction } = await useBlockWithTx(node)
 
     // Block should be one ahead of our current chain
@@ -283,7 +279,6 @@ describe('BlockFetcher', () => {
   it('requests full block if transaction request fails', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    chain.synced = true
     const { block } = await useBlockWithTx(node)
 
     // Block should be one ahead of our current chain
@@ -352,7 +347,6 @@ describe('BlockFetcher', () => {
   it('does not request compact block when node has block in blockchain', async () => {
     const { peerNetwork, chain } = nodeTest
 
-    chain.synced = true
     const block = await useMinerBlockFixture(chain)
 
     await expect(chain).toAddBlock(block)
@@ -373,7 +367,6 @@ describe('BlockFetcher', () => {
   it('does not request compact block when block was previously marked as invalid', async () => {
     const { peerNetwork, chain } = nodeTest
 
-    chain.synced = true
     const block = await useMinerBlockFixture(chain)
 
     chain.addInvalid(block.header.hash, VerificationResultReason.ERROR)
@@ -391,8 +384,6 @@ describe('BlockFetcher', () => {
 
   it('ignores new messages when the block was previously marked as an orphan', async () => {
     const { peerNetwork, chain, node } = nodeTest
-
-    chain.synced = true
 
     // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
     // We want to have an orphan that is also not ahead of the current chain
@@ -442,8 +433,6 @@ describe('BlockFetcher', () => {
 
   it('accepts the block if it was previously marked as an orphan but is not anymore', async () => {
     const { peerNetwork, chain } = nodeTest
-
-    chain.synced = true
 
     // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
     // We want to have an orphan that is also not ahead of the current chain

@@ -1335,16 +1335,7 @@ export class PeerNetwork {
   }
 
   private shouldProcessNewBlocks(): boolean {
-    if (!this.enableSyncing) {
-      return false
-    }
-
-    // Ignore new blocks if the chain is unsynced, or is currently syncing
-    if (!this.chain.synced) {
-      return false
-    }
-
-    return true
+    return this.enableSyncing
   }
 
   private shouldProcessTransactions(): boolean {
