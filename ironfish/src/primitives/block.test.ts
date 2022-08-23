@@ -4,7 +4,6 @@
 import {
   useAccountFixture,
   useBlockWithTx,
-  useMinerBlockFixture,
   useMinersTxFixture,
 } from '../testUtilities/fixtures'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
