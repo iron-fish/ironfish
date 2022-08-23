@@ -371,8 +371,6 @@ describe('PeerNetwork', () => {
       it('adds new blocks', async () => {
         const { peerNetwork, chain } = nodeTest
 
-        chain.synced = true
-
         const block = await useMinerBlockFixture(chain)
 
         expect(await chain.hasBlock(block.header.hash)).toBe(false)
@@ -390,8 +388,6 @@ describe('PeerNetwork', () => {
       it('does not sync or gossip invalid blocks', async () => {
         const { peerNetwork, node } = nodeTest
         const { chain } = node
-
-        chain.synced = true
 
         const block = await useMinerBlockFixture(chain)
         const prevBlock = await chain.getBlock(block.header.previousBlockHash)
