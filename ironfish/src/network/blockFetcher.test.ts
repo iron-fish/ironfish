@@ -5,7 +5,12 @@
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { Block, BlockSerde } from '../primitives/block'
-import { createNodeTest, useBlockWithTx, useMinerBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useBlockWithTx,
+  useBlockWithTxs,
+  useMinerBlockFixture,
+} from '../testUtilities'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
@@ -176,34 +181,48 @@ describe('BlockFetcher', () => {
   it('fills missing transactions from the mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    // Another node creates a block with a transaction
-    const { block, transaction } = await useBlockWithTx(node)
+    // Another node creates a block with 5 transactions
+    const { block, transactions } = await useBlockWithTxs(node, 5)
 
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
 
-    // We receive the transaction in our mempool
-    node.memPool.acceptTransaction(transaction)
+    // We accept one of the the transaction in our mempool
+    node.memPool.acceptTransaction(transactions[2])
 
     // Create 5 connected peers
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
-    const compactBlockMessage = peerMessage(
-      peers[0].peer,
-      new NewBlockV2Message(block.toCompactBlock()),
+    expect(await chain.hasBlock(block.header.hash)).toBe(false)
+
+    // Get compact block from peer and fill missing tx from mempool
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...peerMessage(peers[0].peer, new NewBlockV2Message(block.toCompactBlock())),
+    )
+
+    // We should have sent a transaction request to the peer who sent the compact block
+    expect(peers[0].sendSpy.mock.calls).toHaveLength(1)
+    const request = peers[0].sendSpy.mock.calls[0][0]
+    expect(request).toEqual(
+      new GetBlockTransactionsRequest(block.header.hash, [1, 0, 1, 0], expect.any(Number)),
     )
 
     expect(await chain.hasBlock(block.header.hash)).toBe(false)
 
-    // Get compact block from peer and fill missing txs from mempool
-    await peerNetwork.peerManager.onMessage.emitAsync(...compactBlockMessage)
+    // The peer we requested responds with the transactions not in mempool
+    const response = new GetBlockTransactionsResponse(
+      block.header.hash,
+      transactions.filter((t) => t !== transactions[2]).map((t) => t.serialize()),
+      (request as GetBlockTransactionsRequest).rpcId,
+    )
+
+    await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peers[0].peer, response))
 
     expect(await chain.hasBlock(block.header.hash)).toBe(true)
 
     // Block should be gossiped to peers who have not seen it
     for (const { sendSpy } of peers.slice(1)) {
       expect(sendSpy.mock.calls).toHaveLength(1)
-      // expect(sendSpy.mock.calls[0][0]).toBe()
     }
 
     await peerNetwork.stop()
@@ -212,7 +231,7 @@ describe('BlockFetcher', () => {
   it('fills missing transactions from transaction request if not in mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    const { block, transaction } = await useBlockWithTx(node)
+    const { block, transactions } = await useBlockWithTxs(node, 5)
 
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
@@ -247,7 +266,7 @@ describe('BlockFetcher', () => {
     expect(sentMessage2).toBeInstanceOf(GetBlockTransactionsRequest)
     const getBlockTransactionsRequest = sentMessage2 as GetBlockTransactionsRequest
     expect(getBlockTransactionsRequest.blockHash).toEqual(block.header.hash)
-    expect(getBlockTransactionsRequest.transactionIndexes).toEqual([1])
+    expect(getBlockTransactionsRequest.transactionIndexes).toEqual([1, 0, 0, 0, 0])
 
     // We should not have sent messages to any other peers
     const sentPeers2 = peers.filter(({ sendSpy }) => {
@@ -258,7 +277,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transaction
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      [transaction.serialize()],
+      transactions.map((t) => t.serialize()),
       getBlockTransactionsRequest.rpcId,
     )
 

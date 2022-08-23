@@ -356,3 +356,62 @@ export async function useBlockWithTx(
 
   return { block, previous, account: from, transaction: block.transactions[1] }
 }
+
+/**
+ * Produces a block with a multiple transaction that have 1 spend, and 3 notes
+ * It first produces {@link numTransactions} blocks all with mining fees to fund
+ * the transactions
+ *
+ * Returned block has {@link numTransactions} transactions
+ */
+export async function useBlockWithTxs(
+  node: IronfishNode,
+  numTransactions: number,
+): Promise<{ account: Account; block: Block; transactions: Transaction[] }> {
+  const from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
+  const to = from
+
+  let previous
+  for (let i = 0; i < numTransactions; i++) {
+    previous = await useMinerBlockFixture(node.chain, node.chain.head.sequence + 1, from)
+    await node.chain.addBlock(previous)
+  }
+
+  await node.accounts.updateHead()
+
+  const transactions: Transaction[] = []
+  for (let i = 0; i < numTransactions; i++) {
+    const transaction = await node.accounts.createTransaction(
+      from,
+      [
+        {
+          publicAddress: to.publicAddress,
+          amount: BigInt(1),
+          memo: '',
+        },
+      ],
+      BigInt(1),
+      0,
+    )
+    await node.accounts.syncTransaction(transaction, {
+      submittedSequence: node.chain.head.sequence,
+    })
+    transactions.push(transaction)
+  }
+
+  const block = await useBlockFixture(node.chain, async () => {
+    Assert.isNotUndefined(from)
+    Assert.isNotUndefined(to)
+
+    const transactionFees: bigint = transactions.reduce((sum, t) => {
+      return BigInt(sum) + t.fee()
+    }, BigInt(0))
+
+    return node.chain.newBlock(
+      transactions,
+      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spending_key),
+    )
+  })
+
+  return { block, account: from, transactions: block.transactions.slice(1) }
+}

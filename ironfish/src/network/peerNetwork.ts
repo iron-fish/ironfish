@@ -793,6 +793,12 @@ export class PeerNetwork {
     }
   }
 
+  private toDifferentialIndex(list: number[]): number[] {
+    return list.map((val, i) => {
+      return i === 0 ? val : val - list[i - 1] - 1
+    })
+  }
+
   private assembleTransactionsFromMempool(block: SerializedCompactBlock):
     | {
         ok: true
@@ -808,7 +814,7 @@ export class PeerNetwork {
     let nextFullTransaction = absoluteIndexTransactions.next()
 
     const partialTransactions: TransactionOrHash[] = []
-    const missingTransactions: number[] = []
+    const absoluteMissingTransactions: number[] = []
 
     while (hashesConsumed < numHashes || !nextFullTransaction.done) {
       const currPosition = hashesConsumed + fullTransactionsConsumed
@@ -832,7 +838,7 @@ export class PeerNetwork {
               value: hash,
             }
         if (resolved.type === 'HASH') {
-          missingTransactions.push(currPosition)
+          absoluteMissingTransactions.push(currPosition)
         }
 
         partialTransactions.push(resolved)
@@ -848,7 +854,11 @@ export class PeerNetwork {
       fullTransactionsConsumed++
     }
 
-    return { ok: true, partialTransactions, missingTransactions }
+    return {
+      ok: true,
+      partialTransactions,
+      missingTransactions: this.toDifferentialIndex(absoluteMissingTransactions),
+    }
   }
 
   assembleBlockFromResponse(
