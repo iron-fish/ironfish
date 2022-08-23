@@ -123,6 +123,11 @@ export class Migration013 extends Migration {
     await stores.old.noteToNullifier.clear(tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
+    logger.debug('Migrating: Checking nullifierToNote')
+    start = BenchUtils.startSegment()
+    await this.checkNullifierToNote(stores, node, tx)
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
     await chainDb.close()
     logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
@@ -422,6 +427,29 @@ export class Migration013 extends Migration {
     }
 
     return { unconfirmedBalances }
+  }
+
+  private async checkNullifierToNote(
+    stores: Stores,
+    node: IronfishNode,
+    tx: IDatabaseTransaction,
+  ) {
+    let missing = 0
+
+    for await (const noteHash of stores.new.nullifierToNoteHash.getAllValuesIter(tx)) {
+      const hasNote = await stores.new.decryptedNotes.has(noteHash, tx)
+
+      if (!hasNote) {
+        missing++
+      }
+    }
+
+    if (missing) {
+      throw new Error(
+        `Your wallet is corrupt and missing ${missing} notes for nullifiers.` +
+          ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
+      )
+    }
   }
 }
 
