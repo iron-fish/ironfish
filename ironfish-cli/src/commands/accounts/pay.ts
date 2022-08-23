@@ -5,9 +5,7 @@
 import {
   displayIronAmountWithCurrency,
   displayIronToOreRate,
-  displayOreAmountWithCurrency,
   ironToOre,
-  isValidAmount,
   isValidPublicAddress,
   oreToIron,
   RpcClient,
@@ -75,9 +73,23 @@ export class Pay extends IronfishCommand {
       ? Number(balanceResponse.content.confirmed)
       : 0
 
+    const status = await client.status()
+    if (!status.content.blockchain.synced) {
+      this.error(
+        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+      )
+    }
+
     if (!fromAccount) {
       const accountResponse = await client.getDefaultAccount()
-      fromAccount = accountResponse.content.account?.name || ''
+
+      if (!accountResponse.content.account) {
+        this.error(
+          `No account is currently active. Use ironfish accounts:create <name> to first create an account`,
+        )
+      }
+
+      fromAccount = accountResponse.content.account.name
     }
 
     if (!amountInOre) {
@@ -109,7 +121,7 @@ export class Pay extends IronfishCommand {
       })) as string
     }
 
-    this.simpleValidate(toAddress, amountInOre, feeInOre, balance)
+    this.simpleValidate(toAddress, amountInOre, feeInOre, expirationSequence, balance)
 
     await this.processSend(
       client,
@@ -149,6 +161,7 @@ export class Pay extends IronfishCommand {
     toAddress: string,
     amountInOre: number,
     feeInOre: number,
+    expirationSequence: number,
     balance: number,
   ): void {
     if (!isValidPublicAddress(toAddress)) {
@@ -168,6 +181,10 @@ export class Pay extends IronfishCommand {
       this.error(
         `Sum of amount + fee (${displayAmount}) must not be greater than total balance (${displayBalance})`,
       )
+    }
+
+    if (expirationSequence !== undefined && expirationSequence < 0) {
+      this.error(`Expiration sequence must be non-negative`)
     }
   }
 }
