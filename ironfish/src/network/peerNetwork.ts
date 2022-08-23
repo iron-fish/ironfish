@@ -914,12 +914,15 @@ export class PeerNetwork {
     // verify the header
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
-      this.chain.addInvalid(header, verifyHeaderResult.reason ?? VerificationResultReason.ERROR)
+      this.chain.addInvalid(
+        header.hash,
+        verifyHeaderResult.reason ?? VerificationResultReason.ERROR,
+      )
       this.blockFetcher.removeBlock(header.hash)
       return
     }
 
-    if ((await this.alreadyHaveBlock(header.hash)) || this.chain.isInvalid(header) !== null) {
+    if (await this.alreadyHaveBlock(header)) {
       this.blockFetcher.removeBlock(header.hash)
       return
     }
@@ -947,7 +950,7 @@ export class PeerNetwork {
       prevHeader,
     )
     if (!valid) {
-      this.chain.addInvalid(header, reason ?? VerificationResultReason.ERROR)
+      this.chain.addInvalid(header.hash, reason ?? VerificationResultReason.ERROR)
       this.blockFetcher.removeBlock(header.hash)
       return
     }
@@ -1248,7 +1251,7 @@ export class PeerNetwork {
 
     const block = BlockSerde.deserialize(message.block)
 
-    if (await this.alreadyHaveBlock(block.header.hash)) {
+    if (await this.alreadyHaveBlock(block.header)) {
       return
     }
 
@@ -1258,7 +1261,7 @@ export class PeerNetwork {
     const verifyBlockHeaderResult = this.chain.verifier.verifyBlockHeader(block.header)
     if (!verifyBlockHeaderResult.valid) {
       this.chain.addInvalid(
-        block.header,
+        block.header.hash,
         verifyBlockHeaderResult.reason ?? VerificationResultReason.ERROR,
       )
       return
@@ -1308,7 +1311,10 @@ export class PeerNetwork {
     // verify the full block
     const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
     if (!verified.valid) {
-      this.chain.addInvalid(block.header, verified.reason ?? VerificationResultReason.ERROR)
+      this.chain.addInvalid(
+        block.header.hash,
+        verified.reason ?? VerificationResultReason.ERROR,
+      )
       this.blockFetcher.removeBlock(block.header.hash)
     }
 
@@ -1376,8 +1382,9 @@ export class PeerNetwork {
     )
   }
 
-  async alreadyHaveBlock(hash: BlockHash): Promise<boolean> {
-    if (this.chain.invalid.has(hash)) {
+  async alreadyHaveBlock(headerOrHash: BlockHeader | BlockHash): Promise<boolean> {
+    const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
+    if (this.chain.isInvalid(headerOrHash)) {
       return true
     }
 

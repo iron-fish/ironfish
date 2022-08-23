@@ -376,7 +376,7 @@ describe('BlockFetcher', () => {
     chain.synced = true
     const block = await useMinerBlockFixture(chain)
 
-    chain.addInvalid(block.header, VerificationResultReason.ERROR)
+    chain.addInvalid(block.header.hash, VerificationResultReason.ERROR)
 
     const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 

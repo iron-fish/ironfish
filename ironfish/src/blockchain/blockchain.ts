@@ -542,22 +542,24 @@ export class Blockchain {
     }
   }
 
-  isInvalid(header: BlockHeader): VerificationResultReason | null {
-    const invalid = this.invalid.get(header.hash)
+  isInvalid(headerOrHash: BlockHeader | BlockHash): VerificationResultReason | null {
+    const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
+
+    const invalid = this.invalid.get(hash)
     if (invalid) {
       return invalid
     }
 
-    if (this.invalid.has(header.previousBlockHash)) {
-      this.addInvalid(header, VerificationResultReason.INVALID_PARENT)
+    if (!Buffer.isBuffer(headerOrHash) && this.invalid.has(headerOrHash.previousBlockHash)) {
+      this.addInvalid(headerOrHash.hash, VerificationResultReason.INVALID_PARENT)
       return VerificationResultReason.INVALID_PARENT
     }
 
     return null
   }
 
-  addInvalid(header: BlockHeader, reason: VerificationResultReason): void {
-    this.invalid.set(header.hash, reason)
+  addInvalid(hash: BlockHash, reason: VerificationResultReason): void {
+    this.invalid.set(hash, reason)
   }
 
   private async connect(
@@ -657,7 +659,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header, reason)
+      this.addInvalid(block.header.hash, reason)
 
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
@@ -706,7 +708,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header, reason)
+      this.addInvalid(block.header.hash, reason)
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
@@ -1253,7 +1255,7 @@ export class Blockchain {
 
     if (!verify.valid) {
       Assert.isNotUndefined(verify.reason)
-      this.addInvalid(block.header, verify.reason)
+      this.addInvalid(block.header.hash, verify.reason)
       throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
   }
