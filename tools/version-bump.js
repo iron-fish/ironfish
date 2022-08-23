@@ -45,7 +45,8 @@ const readPackage = async (path) => {
 }
 
 const writePackage = async (path, package) => {
-  const toWrite = JSON.stringify(package, null, 2)
+  // Always add a newline so that we conform to the POSIX standards!!!
+  const toWrite = JSON.stringify(package, null, 2) + '\n'
   
   try {
     await fs.writeFile(path, toWrite, 'utf8')
