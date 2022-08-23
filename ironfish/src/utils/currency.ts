@@ -50,3 +50,13 @@ export const displayIronAmountWithCurrency = (amount: number, displayOre: boolea
 
   return iron
 }
+
+export const displayOreAmountWithCurrency = (amount: number): string => {
+  return `${ORE_TICKER} ${displayOreAmount(amount)}`
+}
+
+export const displayIronToOreRate = (): string => {
+  const oreDisplay = displayOreAmountWithCurrency(MINIMUM_IRON_AMOUNT)
+  const ironDisplay = displayIronAmountWithCurrency(MINIMUM_IRON_AMOUNT, false)
+  return `(${oreDisplay} = ${ironDisplay})`
+}

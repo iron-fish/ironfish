@@ -9,7 +9,6 @@ import {
   ironToOre,
   isValidAmount,
   isValidPublicAddress,
-  MINIMUM_IRON_AMOUNT,
   oreToIron,
   RpcClient,
 } from '@ironfish/sdk'
@@ -20,12 +19,10 @@ import { ProgressBar } from '../../types'
 
 export class Pay extends IronfishCommand {
   static description = `Send coins to another account`
-  MINIMUM_ORE_AMOUNT = ironToOre(MINIMUM_IRON_AMOUNT)
-
   static examples = [
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
+    '$ ironfish accounts:pay -a 2 -o 1 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
+    '$ ironfish accounts:pay -a 2 -o 1 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
+    '$ ironfish accounts:pay -a 2 -o 1 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
   ]
 
   static flags = {
@@ -79,7 +76,7 @@ export class Pay extends IronfishCommand {
       : 0
 
     if (!fromAccount) {
-      const accountResponse = await client.getDefaultAccount({ account: fromAccount })
+      const accountResponse = await client.getDefaultAccount()
       fromAccount = accountResponse.content.account?.name || ''
     }
 
