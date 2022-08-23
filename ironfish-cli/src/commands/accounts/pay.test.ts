@@ -112,9 +112,10 @@ describe('accounts:pay command', () => {
     .stub(CliUx.ux, 'prompt', () => async () => await Promise.resolve('not correct address'))
     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
-    .command(['accounts:pay', `-a ${amount}`, `-f ${from}`])
-    .exit(2)
-    .it('without account flag: show the right error message', () => {
+    .command(['accounts:pay', `-a ${amount}`, `-f ${from}`, `-o ${fee}`])
+    .exit(1)
+    .it('without account flag: show the right error message', (ctx) => {
+      expectCli(ctx.stdout).include(`A valid public address is required`)
       expect(sendTransaction).toBeCalledTimes(0)
     })
 
@@ -140,8 +141,9 @@ describe('accounts:pay command', () => {
     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
     .stdout()
     .command(['accounts:pay', `-t ${to}`, `-f ${from}`])
-    .exit(2)
-    .it('without amount flag: show the right error message', () => {
+    .exit(1)
+    .it('without amount flag: show the right error message', (ctx) => {
+      expectCli(ctx.stdout).include('A valid amount is required')
       expect(sendTransaction).toBeCalledTimes(0)
     })
 
