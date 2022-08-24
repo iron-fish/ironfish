@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { displayIronToOreRate, ironToOre, RpcClient, WebApi } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { RemoteFlags } from '../flags'
 import { ProgressBar } from '../types'
 import { Pay } from './accounts/pay'
@@ -19,7 +19,7 @@ export default class Bank extends Pay {
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the account to send money from',
     }),
-    //TODO: ideally, just use the static flags from base command, but edit these two.
+    //TODO: use the static flags from base command, and edit out these two
     amount: Flags.integer({
       char: 'a',
       parse: (input: string) => Promise.resolve(ironToOre(Number(input))),
@@ -52,7 +52,6 @@ export default class Bank extends Pay {
   }
 
   async start(): Promise<void> {
-    this.log('here!')
     const { flags } = await this.parse(Bank)
     const api = new WebApi()
 
@@ -87,8 +86,8 @@ export default class Bank extends Pay {
       this.exit(1)
     }
 
-    if (this.feeInOre == null || Number.isNaN(this.feeInOre)) {
-      this.feeInOre = 1
+    if (!this.feeInOre) {
+      this.feeInOre = await this.getFeeFromPrompt()
     }
 
     await this.validate(balance, !flags.isConfirmed)

@@ -5,6 +5,7 @@
 import {
   displayIronAmountWithCurrency,
   displayIronToOreRate,
+  displayOreAmountWithCurrency,
   ironToOre,
   isValidPublicAddress,
   oreToIron,
@@ -122,12 +123,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!this.feeInOre) {
-      this.feeInOre = Number(
-        await CliUx.ux.prompt(`Enter the fee amount in $ORE ${displayIronToOreRate()}`, {
-          required: true,
-          default: this.getDefaultFee().toString(),
-        }),
-      )
+      this.feeInOre = await this.getFeeFromPrompt()
     }
 
     if (!this.toAddress) {
@@ -136,7 +132,6 @@ export class Pay extends IronfishCommand {
       })) as string
     }
 
-    console.log('validating deposit')
     await this.validate(balance, !flags.isConfirmed)
     await this.processSend()
   }
@@ -219,7 +214,22 @@ export class Pay extends IronfishCommand {
     }
   }
 
-  getDefaultFee(): number {
-    return 1
+  async getFeeFromPrompt(): Promise<number> {
+    const defaultFeeInOre: number = this.getDefaultFeeInOre()
+    return Number(
+      await CliUx.ux.prompt(
+        `Enter the fee amount in $ORE ${displayIronToOreRate()}. Current estimated minimum is ${displayOreAmountWithCurrency(
+          oreToIron(defaultFeeInOre),
+        )}`,
+        {
+          required: true,
+          default: defaultFeeInOre.toString(),
+        },
+      ),
+    )
+  }
+
+  getDefaultFeeInOre(): number {
+    return 10
   }
 }
