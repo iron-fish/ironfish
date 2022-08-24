@@ -125,6 +125,63 @@ describe('Accounts', () => {
     })
   }, 600000)
 
+  it('Saves and restores notes from multiple accounts', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    const chain = nodeTest.chain
+
+    const accountA = await node.accounts.createAccount('A', true)
+
+    // Create a second account
+    await node.accounts.createAccount('B', true)
+
+    // Initial balances should be 0
+    await node.accounts.updateHead()
+    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Balance after adding the genesis block should be 0
+    await node.accounts.updateHead()
+    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, accountA.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 2000000000 after adding the miner's fee
+    await node.accounts.updateHead()
+    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+
+    await node.accounts.saveAccountsToDb()
+
+    await node.accounts['resetAccounts']()
+
+    // Account should now have a balance of 0 after clearing the cache
+    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+    })
+
+    await node.accounts.loadAccountsFromDb()
+
+    // Balance should be back to 2000000000
+    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+  }, 600000)
+
   it('Loads only the transactions that an account owns a note or spend nullifier for', async () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
