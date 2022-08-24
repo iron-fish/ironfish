@@ -1,10 +1,10 @@
 /**
  * Bumps the patch version of npm packages, and updates the dependencies of other npm
  * packages to use the new version.
- * 
+ *
  * Does not bump the Rust version by default -- call `node version-bump.js rust` to bump
  * the Rust package version.
- * 
+ *
  * Flags:
  *   rust - Bumps the @ironfish/rust-nodejs package version.
  */
@@ -40,15 +40,15 @@ const readPackage = async (path) => {
     console.log(`Error reading ${path}: ${err}`);
     throw err
   }
-  
+
   return JSON.parse(data)
 }
 
 const writePackage = async (path, package) => {
   const toWrite = JSON.stringify(package, null, 2)
-  
+
   try {
-    await fs.writeFile(path, toWrite, 'utf8')
+    await fs.writeFile(path, `${toWrite}\n`, 'utf8')
   } catch (err) {
     console.log(`Error writing ${path}: ${err}`);
     throw err
@@ -63,7 +63,7 @@ const getDirectories = async source =>
 const bumpNodeAndCliPackage = async (shouldBumpRust) => {
   const nodePackage = await readPackage(NODE_PACKAGE)
   const cliPackage = await readPackage(CLI_PACKAGE)
-  
+
   // Bump node package and packages that depend on it
   const newNodeVersion = bumpPatch(nodePackage.version)
   nodePackage.version = newNodeVersion
@@ -71,31 +71,31 @@ const bumpNodeAndCliPackage = async (shouldBumpRust) => {
 
   // Bump the CLI
   cliPackage.version = bumpPatch(cliPackage.version)
-  
+
   writePackage(NODE_PACKAGE, nodePackage)
   writePackage(CLI_PACKAGE, cliPackage)
 }
 
 const bumpRustPackage = async () => {
   const deps = await getDirectories(path.join(__dirname, '../ironfish-rust-nodejs/npm/'))
-  
+
   for (const dep of deps) {
     const package = path.join(__dirname, '../ironfish-rust-nodejs/npm/', dep, 'package.json')
     const depPackage = await readPackage(package)
     depPackage.version = bumpPatch(depPackage.version)
     await writePackage(package, depPackage)
   }
-  
+
   const nodePackage = await readPackage(NODE_PACKAGE)
   const cliPackage = await readPackage(CLI_PACKAGE)
   const rustPackage = await readPackage(RUST_PACKAGE)
-  
+
   const newRustVersion = bumpPatch(rustPackage.version)
-  
+
   rustPackage.version = newRustVersion
   nodePackage.dependencies[rustPackage.name] = newRustVersion
   cliPackage.dependencies[rustPackage.name] = newRustVersion
-  
+
   await writePackage(NODE_PACKAGE, nodePackage)
   await writePackage(CLI_PACKAGE, cliPackage)
   await writePackage(RUST_PACKAGE, rustPackage)
@@ -106,7 +106,7 @@ const main = async () => {
   if (shouldBumpIronfishRust) {
     await bumpRustPackage()
   }
-  
+
   await bumpNodeAndCliPackage(shouldBumpIronfishRust)
 }
 
