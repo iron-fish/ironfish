@@ -42,6 +42,7 @@ describe('accounts:pay command', () => {
         getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmed: 1000 } }),
         status: jest.fn().mockResolvedValue({ content: { blockchain: { synced: true } } }),
         sendTransaction,
+        getFees: jest.fn().mockResolvedValue({ content: { p25: 10 } }),
       }
 
       return {

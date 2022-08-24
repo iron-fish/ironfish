@@ -76,19 +76,19 @@ export default class Bank extends Pay {
       this.fromAccount = accountResponse.content.account.name
     }
 
-    const balanceResponse = await this.client.getAccountBalance({ account: this.fromAccount })
-    const balance = balanceResponse.content.confirmed
-      ? Number(balanceResponse.content.confirmed)
-      : 0
-
     if (!this.toAddress) {
-      this.log('Error fetching deposit address. Please try again later.')
+      this.log('Error accessing the Ironfish API. Please try again later.')
       this.exit(1)
     }
 
     if (!this.feeInOre) {
       this.feeInOre = await this.getFeeFromPrompt()
     }
+
+    const balanceResponse = await this.client.getAccountBalance({ account: this.fromAccount })
+    const balance = balanceResponse.content.confirmed
+      ? Number(balanceResponse.content.confirmed)
+      : 0
 
     await this.validate(balance, !flags.isConfirmed)
     await this.processSend()

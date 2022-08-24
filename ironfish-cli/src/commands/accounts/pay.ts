@@ -12,7 +12,6 @@ import {
   RpcClient,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { assert } from 'console'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -91,15 +90,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (!this.fromAccount) {
-      const accountResponse = await this.client.getDefaultAccount()
-
-      if (!accountResponse.content.account) {
-        this.error(
-          `No account is currently active. Use ironfish accounts:create <name> to first create an account`,
-        )
-      }
-
-      this.fromAccount = accountResponse.content.account.name
+      this.fromAccount = await this.getFromAccountFromPrompt()
     }
 
     const balanceResponse = await this.client.getAccountBalance({ account: this.fromAccount })
@@ -214,8 +205,20 @@ export class Pay extends IronfishCommand {
     }
   }
 
+  async getFromAccountFromPrompt(): Promise<string> {
+    const accountResponse = await this.client!.getDefaultAccount()
+
+    if (!accountResponse.content.account) {
+      this.error(
+        `No account is currently active. Use ironfish accounts:create <name> to first create an account`,
+      )
+    }
+
+    return accountResponse.content.account.name
+  }
+
   async getFeeFromPrompt(): Promise<number> {
-    const defaultFeeInOre: number = this.getDefaultFeeInOre()
+    const defaultFeeInOre: number = await this.getDefaultFeeInOre()
     return Number(
       await CliUx.ux.prompt(
         `Enter the fee amount in $ORE ${displayIronToOreRate()}. Current estimated minimum is ${displayOreAmountWithCurrency(
@@ -229,7 +232,7 @@ export class Pay extends IronfishCommand {
     )
   }
 
-  getDefaultFeeInOre(): number {
-    return 10
+  async getDefaultFeeInOre(): Promise<number> {
+    return (await this.client!.getFees({ numOfBlocks: 100 })).content.p25
   }
 }
