@@ -139,7 +139,11 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
+        throw new ValidationError(
+          `Your balance changed while creating a transaction.`,
+          400,
+          ERROR_CODES.INSUFFICIENT_BALANCE,
+        )
       }
       throw e
     }

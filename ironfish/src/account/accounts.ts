@@ -929,7 +929,7 @@ export class Accounts {
       }
 
       if (amountNeeded > 0) {
-        throw new NotEnoughFundsError('Insufficient funds')
+        throw new NotEnoughFundsError()
       }
 
       return this.workerPool.createTransaction(
