@@ -70,7 +70,7 @@ describe('Worker Pool', () => {
 
     job.abort()
 
-    await expect(job.result()).toRejectErrorInstance(JobAbortedError)
+    await expect(job.result()).rejects.toThrowError(JobAbortedError)
 
     expect(job.status).toBe('aborted')
     expect(worker.executing).toBe(false)
@@ -120,7 +120,7 @@ describe('Worker Pool', () => {
     expect(pool.executing).toBe(1)
 
     await expect(job.result()).rejects.toThrowError('test')
-    await expect(job.result()).toRejectErrorInstance(JobError)
+    await expect(job.result()).rejects.toThrowError(JobError)
     expect(job.status).toBe('error')
 
     expect(pool.workers.length).toBe(1)
