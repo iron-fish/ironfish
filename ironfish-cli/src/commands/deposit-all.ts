@@ -5,11 +5,13 @@
 import {
   Assert,
   displayIronAmountWithCurrency,
+  ERROR_CODES,
   ironToOre,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
   PromiseUtils,
   RpcClient,
+  RpcRequestError,
   SendTransactionResponse,
   WebApi,
 } from '@ironfish/sdk'
@@ -224,6 +226,15 @@ export default class DepositAll extends IronfishCommand {
           const transaction = result.content
           txs.push(transaction)
         } catch (error) {
+          if (
+            error instanceof RpcRequestError &&
+            error.code === ERROR_CODES.INSUFFICIENT_BALANCE
+          ) {
+            // Our balance changed while trying to create a payout, ignore this error
+            await PromiseUtils.sleep(30000)
+            continue
+          }
+
           screen.destroy()
           throw error
         }
