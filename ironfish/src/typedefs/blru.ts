@@ -28,7 +28,7 @@ declare module 'blru' {
     has(key: TKey): boolean
     remove(key: TKey): boolean
     keys(): Array<TKey>
-    values(): Iterator<LRUItem<TKey, TValue>>
+    values(): Array<TValue>
     toArray(): Array<LRUItem<TKey, TValue>>
 
     batch(): LRUBatch<TKey, TValue>
