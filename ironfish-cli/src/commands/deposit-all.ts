@@ -232,6 +232,7 @@ export default class DepositAll extends IronfishCommand {
           ) {
             // Our balance changed while trying to create a payout, ignore this error
             await PromiseUtils.sleep(30000)
+            continue
           }
 
           screen.destroy()
