@@ -17,7 +17,7 @@ import { BlockHashInfo } from './messages/newBlockHashes'
 import { PeerNetwork, TransactionOrHash } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
 
-/* Wait 1s before requesting a new hash to see if we receive the
+/* Time to wait before requesting a new hash to see if we receive the
  * block from the network first */
 const WAIT_BEFORE_REQUEST_MS = 1000
 
