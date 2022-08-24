@@ -4,7 +4,7 @@
 import { GetAccountsResponse } from '@ironfish/sdk'
 import { expect as expectCli, test } from '@oclif/test'
 
-describe('accounts:list', () => {
+describe('accounts', () => {
   const responseContent: GetAccountsResponse = {
     accounts: ['default', 'foo', 'bar'],
   }
@@ -40,7 +40,7 @@ describe('accounts:list', () => {
   describe('fetching all accounts', () => {
     test
       .stdout()
-      .command('accounts:list')
+      .command('accounts')
       .exit(0)
       .it('logs all account names', (ctx) => {
         expectCli(ctx.stdout).include(responseContent.accounts.join('\n'))
