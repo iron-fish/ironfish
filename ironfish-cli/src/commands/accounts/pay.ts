@@ -197,6 +197,7 @@ export class Pay extends IronfishCommand {
     expirationSequence: number | null | undefined,
     balance: number,
   ): void {
+    // TODO: need to mock this out in tests. How?
     // if (!isValidPublicAddress(toAddress)) {
     //   this.error(`${toAddress} A valid public address is required`)
     // }
