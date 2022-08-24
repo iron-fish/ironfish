@@ -127,6 +127,7 @@ export class Pay extends IronfishCommand {
     await this.processSend()
   }
 
+  // TODO: need a cleaner way to guard against undefined/null here
   async processSend(): Promise<void> {
     const result = await this.client!.sendTransaction({
       fromAccountName: this.fromAccount!,
