@@ -77,7 +77,7 @@ export class BlockFetcher {
    * Called when a new block hash is received from the network
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
-  async receivedHash({ hash, sequence }: BlockHashInfo, peer: Peer): Promise<void> {
+  receivedHash({ hash, sequence }: BlockHashInfo, peer: Peer): void {
     // If the peer is not connected or identified, don't add them as a source
     const currentState = this.pending.get(hash)
     if (!peer.state.identity || currentState?.action === 'PROCESSING_FULL_BLOCK') {
@@ -92,19 +92,17 @@ export class BlockFetcher {
       return
     }
 
-    if (!(await this.peerNetwork.alreadyHaveBlock(hash))) {
-      const timeout = setTimeout(() => {
-        this.requestCompactBlock(hash)
-      }, WAIT_BEFORE_REQUEST_MS)
+    const timeout = setTimeout(() => {
+      this.requestCompactBlock(hash)
+    }, WAIT_BEFORE_REQUEST_MS)
 
-      const sources = new Set<Identity>([peer.state.identity])
-      this.pending.set(hash, {
-        action: 'BLOCK_REQUEST_SCHEDULED',
-        sequence,
-        timeout,
-        sources,
-      })
-    }
+    const sources = new Set<Identity>([peer.state.identity])
+    this.pending.set(hash, {
+      action: 'BLOCK_REQUEST_SCHEDULED',
+      sequence,
+      timeout,
+      sources,
+    })
   }
 
   private requestCompactBlock(hash: BlockHash): void {
