@@ -789,8 +789,6 @@ export class Blockchain {
 
     for (const [hash, { value: header }] of this.orphans.map.entries()) {
       if (header.previousBlockHash.equals(block.header.hash)) {
-        // TODO: we could probably store the whole block and add it in
-        // this case, but it adds complexity
         this.orphans.remove(hash)
       }
     }
