@@ -168,6 +168,7 @@ impl ReceiptProof {
             _ => Err(errors::SaplingProofError::VerificationFailed),
         }
     }
+
     /// Get a MerkleNote, which can be used as a node in a Merkle Tree.
     pub fn merkle_note(&self) -> MerkleNote {
         self.merkle_note.clone()
