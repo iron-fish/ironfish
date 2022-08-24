@@ -5,6 +5,7 @@
 import {
   displayIronAmountWithCurrency,
   displayIronToOreRate,
+  displayOreAmountWithCurrency,
   ironToOre,
   isValidPublicAddress,
   oreToIron,
@@ -27,6 +28,7 @@ export class Pay extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
+      parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the account to send money from',
     }),
     amount: Flags.integer({
@@ -36,14 +38,17 @@ export class Pay extends IronfishCommand {
     }),
     to: Flags.string({
       char: 't',
+      parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the public address of the recipient',
     }),
     fee: Flags.integer({
       char: 'o',
+      parse: (input: string) => Promise.resolve(Number(input)),
       description: `the fee amount in ORE ${displayIronToOreRate()}`,
     }),
     memo: Flags.string({
       char: 'm',
+      parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the memo of transaction',
     }),
     confirm: Flags.boolean({
@@ -61,7 +66,7 @@ export class Pay extends IronfishCommand {
     const { flags } = await this.parse(Pay)
     let fromAccount = flags.account
     let toAddress = flags.to
-    let amountInOre = flags.amount ? ironToOre(flags.amount) : null
+    let amountInOre = flags.amount
     let feeInOre = flags.fee
     const memo = flags.memo || ''
     const expirationSequence = flags.expirationSequence
@@ -121,6 +126,25 @@ export class Pay extends IronfishCommand {
       })) as string
     }
 
+    if (!flags.confirm) {
+      this.log(
+        `You are about to send: ${displayIronAmountWithCurrency(
+          oreToIron(amountInOre),
+          true,
+        )} plus a transaction fee of ${displayIronAmountWithCurrency(
+          oreToIron(feeInOre),
+          true,
+        )} to ${toAddress} from the account ${fromAccount}`,
+      )
+      this.log(`* This action is NOT reversible *`)
+
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirm) {
+        this.log('Transaction aborted.')
+        this.exit(0)
+      }
+    }
+
     this.simpleValidate(toAddress, amountInOre, feeInOre, expirationSequence, balance)
 
     await this.processSend(
@@ -143,7 +167,7 @@ export class Pay extends IronfishCommand {
     memo: string,
     expirationSequence: number | null | undefined,
   ): Promise<void> {
-    await client.sendTransaction({
+    const result = await client.sendTransaction({
       fromAccountName: fromAccount,
       receives: [
         {
@@ -155,20 +179,35 @@ export class Pay extends IronfishCommand {
       fee: feeInOre.toString(),
       expirationSequence,
     })
+
+    const transaction = result.content
+    const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
+    const amountSent = displayIronAmountWithCurrency(oreToIron(amountInOre), true)
+    this.log(`Sending ${amountSent} to ${recipients} from ${transaction.fromAccountName}`)
+    this.log(`Transaction Hash: ${transaction.hash}`)
+    this.log(`Transaction Fee: ${displayIronAmountWithCurrency(feeInOre, true)}`)
+    this.log(
+      `Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} (it can take a few minutes before the transaction appears in the Explorer)`,
+    )
   }
 
   simpleValidate(
     toAddress: string,
     amountInOre: number,
     feeInOre: number,
-    expirationSequence: number,
+    expirationSequence: number | null | undefined,
     balance: number,
   ): void {
-    if (!isValidPublicAddress(toAddress)) {
-      this.error(`A valid public address is required`)
-    }
+    // if (!isValidPublicAddress(toAddress)) {
+    //   this.error(`${toAddress} A valid public address is required`)
+    // }
 
-    if (amountInOre <= 0 || feeInOre <= 0) {
+    if (
+      Number.isNaN(amountInOre) ||
+      Number.isNaN(feeInOre) ||
+      amountInOre <= 0 ||
+      feeInOre <= 0
+    ) {
       this.error(`Please enter positive values for amount and fee`)
     }
 
@@ -183,8 +222,9 @@ export class Pay extends IronfishCommand {
       )
     }
 
-    if (expirationSequence !== undefined && expirationSequence < 0) {
-      this.error(`Expiration sequence must be non-negative`)
+    if (expirationSequence && expirationSequence < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
     }
   }
 }
