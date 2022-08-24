@@ -24,14 +24,12 @@ const WAIT_BEFORE_REQUEST_MS = 1000
 type BlockState =
   | {
       action: 'BLOCK_REQUEST_SCHEDULED'
-      sequence: number
       timeout: NodeJS.Timeout
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
     }
   | {
       action: 'BLOCK_REQUEST_IN_FLIGHT'
       peer: Identity
-      sequence: number
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
@@ -77,7 +75,7 @@ export class BlockFetcher {
    * Called when a new block hash is received from the network
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
-  receivedHash({ hash, sequence }: BlockHashInfo, peer: Peer): void {
+  receivedHash({ hash }: BlockHashInfo, peer: Peer): void {
     // If the peer is not connected or identified, don't add them as a source
     const currentState = this.pending.get(hash)
     if (!peer.state.identity || currentState?.action === 'PROCESSING_FULL_BLOCK') {
@@ -99,7 +97,6 @@ export class BlockFetcher {
     const sources = new Set<Identity>([peer.state.identity])
     this.pending.set(hash, {
       action: 'BLOCK_REQUEST_SCHEDULED',
-      sequence,
       timeout,
       sources,
     })
@@ -162,7 +159,6 @@ export class BlockFetcher {
     this.pending.set(hash, {
       action: 'BLOCK_REQUEST_IN_FLIGHT',
       peer: peer.state.identity,
-      sequence: currentState.sequence,
       timeout,
       clearDisconnectHandler,
       sources: currentState.sources,
