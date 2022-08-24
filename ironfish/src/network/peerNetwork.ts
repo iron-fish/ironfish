@@ -1345,6 +1345,12 @@ export class PeerNetwork {
   }
 
   private shouldProcessNewBlocks(): boolean {
+    // We drop blocks when we are still initially syncing as they
+    // will become loose blocks and we can't verify them
+    if (!this.chain.synced && this.node.syncer.loader) {
+      return false
+    }
+
     return this.enableSyncing
   }
 
