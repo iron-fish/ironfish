@@ -5,9 +5,7 @@
 import {
   displayIronAmountWithCurrency,
   displayIronToOreRate,
-  displayOreAmountWithCurrency,
   ironToOre,
-  isValidPublicAddress,
   oreToIron,
   RpcClient,
 } from '@ironfish/sdk'
@@ -68,10 +66,10 @@ export class Pay extends IronfishCommand {
     let toAddress = flags.to
     let amountInOre = flags.amount
     let feeInOre = flags.fee
-    const memo = flags.memo || ''
     const expirationSequence = flags.expirationSequence
+    const memo = flags.memo || ''
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.sdk.connectRpc(false, true)
 
     const balanceResponse = await client.getAccountBalance({ account: fromAccount })
     const balance = balanceResponse.content.confirmed
@@ -80,9 +78,10 @@ export class Pay extends IronfishCommand {
 
     const status = await client.status()
     if (!status.content.blockchain.synced) {
-      this.error(
+      this.log(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
+      this.exit(1)
     }
 
     if (!fromAccount) {

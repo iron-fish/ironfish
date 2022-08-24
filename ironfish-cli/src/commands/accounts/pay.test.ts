@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishSdk, isValidPublicAddress } from '@ironfish/sdk'
+import * as ironfishmodule from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { expect as expectCli, test } from '@oclif/test'
 
 describe('accounts:pay command', () => {
   let sendTransaction = jest.fn()
 
-  const ironFishSdkBackup = IronfishSdk.init
+  const ironFishSdkBackup = ironfishmodule.IronfishSdk.init
 
   const fee = 1
   const amount = 0.000001
@@ -36,7 +36,7 @@ describe('accounts:pay command', () => {
       },
     })
 
-    IronfishSdk.init = jest.fn().mockImplementation(() => {
+    ironfishmodule.IronfishSdk.init = jest.fn().mockImplementation(() => {
       const client = {
         connect: jest.fn(),
         getAccountBalance: jest.fn().mockResolvedValue({ content: { confirmed: 1000 } }),
@@ -53,7 +53,7 @@ describe('accounts:pay command', () => {
 
   afterEach(() => {
     sendTransaction.mockReset()
-    IronfishSdk.init = ironFishSdkBackup
+    ironfishmodule.IronfishSdk.init = ironFishSdkBackup
   })
 
   test
