@@ -45,7 +45,6 @@ const readPackage = async (path) => {
 }
 
 const writePackage = async (path, package) => {
-  // Always add a newline so that we conform to the POSIX standards!!!
   const toWrite = JSON.stringify(package, null, 2) + '\n'
   
   try {
