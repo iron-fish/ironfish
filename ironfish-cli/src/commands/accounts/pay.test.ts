@@ -170,21 +170,19 @@ describe('accounts:pay command', () => {
       })
   })
 
-  // describe('When the API throws an error', () => {
-  //   beforeEach(() => {
-  //     sendTransaction = jest.fn().mockRejectedValue('an error')
-  //   })
-  //   test
-  //     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
-  //     .stdout()
-  //     .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
-  //     .exit(2)
-  //     .it('show the right error message and call sendTransaction', (ctx) => {
-  //       expectCli(ctx.stdout).include(
-  //         `$IRON 2.00000000 ($ORE 200,000,000) plus a transaction fee of $IRON 1.00000000 ($ORE 100,000,000) to ${to} from the account ${from}`,
-  //       )
-  //       expect(sendTransaction).toBeCalledTimes(1)
-  //       expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)
-  //     })
-  // })
+  describe('When the API throws an error', () => {
+    beforeEach(() => {
+      sendTransaction = jest.fn().mockRejectedValue('an error')
+    })
+    test
+      .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
+      .stdout()
+      .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
+      .exit(0)
+      .it('show the right error message and call sendTransaction', (ctx) => {
+        expectCli(ctx.stdout).include(confirmationString)
+        expect(sendTransaction).toBeCalledTimes(1)
+        expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)
+      })
+  })
 })
