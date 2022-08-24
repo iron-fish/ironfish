@@ -178,7 +178,7 @@ describe('accounts:pay command', () => {
       .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
       .stdout()
       .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
-      .exit(0)
+      .exit(2)
       .it('show the right error message and call sendTransaction', (ctx) => {
         expectCli(ctx.stdout).include(confirmationString)
         expect(sendTransaction).toBeCalledTimes(1)
