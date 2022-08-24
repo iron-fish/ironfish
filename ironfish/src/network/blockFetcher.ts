@@ -75,7 +75,7 @@ export class BlockFetcher {
    * Called when a new block hash is received from the network
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
-  receivedHash({ hash }: BlockHashInfo, peer: Peer): void {
+  receivedHash(hash: BlockHash, peer: Peer): void {
     // If the peer is not connected or identified, don't add them as a source
     const currentState = this.pending.get(hash)
     if (!peer.state.identity || currentState?.action === 'PROCESSING_FULL_BLOCK') {
