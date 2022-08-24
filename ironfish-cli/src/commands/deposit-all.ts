@@ -223,9 +223,9 @@ export default class DepositAll extends IronfishCommand {
 
           const transaction = result.content
           txs.push(transaction)
-        } catch (error: unknown) {
+        } catch (error) {
           screen.destroy()
-          process.exit(2)
+          throw error
         }
       }
 
