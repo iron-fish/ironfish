@@ -746,11 +746,11 @@ export class PeerNetwork {
       return
     }
 
-    for (const blockInfo of message.blockHashInfos) {
-      peer.knownBlockHashes.set(blockInfo.hash, KnownBlockHashesValue.Received)
+    for (const { hash, sequence } of message.blockHashInfos) {
+      peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Received)
 
-      if (peer.sequence === null || blockInfo.sequence > peer.sequence) {
-        peer.sequence = blockInfo.sequence
+      if (peer.sequence === null || sequence > peer.sequence) {
+        peer.sequence = sequence
       }
 
       // Request blocks that can be fetched as compact blocks, and that we don't already have.
@@ -758,10 +758,10 @@ export class PeerNetwork {
       // greater than 1 ahead of our chain head, but consider also adding protection against
       // peers who send hashes that map to invalid blocks.
       if (
-        blockInfo.sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
-        !(await this.alreadyHaveBlock(blockInfo.hash))
+        sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
+        !(await this.alreadyHaveBlock(hash))
       ) {
-        this.blockFetcher.receivedHash(blockInfo, peer)
+        this.blockFetcher.receivedHash(hash, peer)
       }
     }
   }
