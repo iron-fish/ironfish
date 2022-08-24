@@ -746,42 +746,24 @@ export class PeerNetwork {
       return
     }
 
-    // Update the peer's sequence to the largest sequence seen
-    for (const { hash, sequence } of message.blockHashInfos) {
-      peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Received)
+    for (const blockInfo of message.blockHashInfos) {
+      peer.knownBlockHashes.set(blockInfo.hash, KnownBlockHashesValue.Received)
 
-      if (peer.sequence === null || sequence > peer.sequence) {
-        peer.sequence = sequence
+      if (peer.sequence === null || blockInfo.sequence > peer.sequence) {
+        peer.sequence = blockInfo.sequence
       }
-    }
 
-    // If the peer has blocks that we know don't connect to our chain head,
-    // start syncing from that peer
-    if (
-      peer.work !== null &&
-      peer.sequence !== null &&
-      peer.sequence > this.chain.head.sequence + 1
-    ) {
-      this.node.syncer.startSync(peer)
-      return
-    }
-
-    // Otherwise, request compact blocks for hashes we're missing
-    const hashesToRequest = []
-
-    for (const { hash, sequence } of message.blockHashInfos) {
-      // Request blocks that can likely be added to the head of the chain or are
-      // can be compact blocks, and that we don't already have
+      // Request blocks that can be fetched as compact blocks, and that we don't already have.
+      // NOTE: It may be possible to start syncing from peers who send hashes with a sequence
+      // greater than 1 ahead of our chain head, but consider also adding protection against
+      // peers who send hashes that map to invalid blocks.
       if (
-        sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
-        sequence <= this.chain.head.sequence + 1 &&
-        !(await this.alreadyHaveBlock(hash))
+        blockInfo.sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
+        !(await this.alreadyHaveBlock(blockInfo.hash))
       ) {
-        hashesToRequest.push({ hash, sequence })
+        this.blockFetcher.receivedHash(blockInfo, peer)
       }
     }
-
-    await Promise.all(hashesToRequest.map((info) => this.blockFetcher.receivedHash(info, peer)))
   }
 
   private *fromDifferentialIndex<T extends Indexable>(list: T[]): Generator<T> {
