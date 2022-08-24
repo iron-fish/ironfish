@@ -6,15 +6,25 @@ import {
   displayIronAmountWithCurrency,
   displayIronToOreRate,
   ironToOre,
+  isValidPublicAddress,
   oreToIron,
   RpcClient,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { assert } from 'console'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
 export class Pay extends IronfishCommand {
+  client: RpcClient | undefined
+  fromAccount: string | undefined
+  toAddress: string | undefined
+  amountInOre: number | undefined
+  feeInOre: number | undefined
+  memo: string | undefined
+  expirationSequence: number | undefined
+
   static description = `Send coins to another account`
   static examples = [
     '$ ironfish accounts:pay -a 2 -o 1 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
@@ -49,7 +59,7 @@ export class Pay extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the memo of transaction',
     }),
-    confirm: Flags.boolean({
+    isConfirmed: Flags.boolean({
       default: false,
       description: 'confirm without asking',
     }),
@@ -62,21 +72,16 @@ export class Pay extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Pay)
-    let fromAccount = flags.account
-    let toAddress = flags.to
-    let amountInOre = flags.amount
-    let feeInOre = flags.fee
-    const expirationSequence = flags.expirationSequence
-    const memo = flags.memo || ''
+    this.fromAccount = flags.account
+    this.toAddress = flags.to
+    this.amountInOre = flags.amount
+    this.feeInOre = flags.fee
+    this.expirationSequence = flags.expirationSequence
+    this.memo = flags.memo || ''
 
-    const client = await this.sdk.connectRpc(false, true)
+    this.client = await this.sdk.connectRpc(false, true)
 
-    const balanceResponse = await client.getAccountBalance({ account: fromAccount })
-    const balance = balanceResponse.content.confirmed
-      ? Number(balanceResponse.content.confirmed)
-      : 0
-
-    const status = await client.status()
+    const status = await this.client.status()
     if (!status.content.blockchain.synced) {
       this.log(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
@@ -84,8 +89,8 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
-    if (!fromAccount) {
-      const accountResponse = await client.getDefaultAccount()
+    if (!this.fromAccount) {
+      const accountResponse = await this.client.getDefaultAccount()
 
       if (!accountResponse.content.account) {
         this.error(
@@ -93,10 +98,15 @@ export class Pay extends IronfishCommand {
         )
       }
 
-      fromAccount = accountResponse.content.account.name
+      this.fromAccount = accountResponse.content.account.name
     }
 
-    if (!amountInOre) {
+    const balanceResponse = await this.client.getAccountBalance({ account: this.fromAccount })
+    const balance = balanceResponse.content.confirmed
+      ? Number(balanceResponse.content.confirmed)
+      : 0
+
+    if (!this.amountInOre) {
       const amountInIron = Number(
         await CliUx.ux.prompt(
           `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
@@ -108,32 +118,66 @@ export class Pay extends IronfishCommand {
           },
         ),
       )
-      amountInOre = ironToOre(amountInIron)
+      this.amountInOre = ironToOre(amountInIron)
     }
 
-    if (!feeInOre) {
-      feeInOre = Number(
+    if (!this.feeInOre) {
+      this.feeInOre = Number(
         await CliUx.ux.prompt(`Enter the fee amount in $ORE ${displayIronToOreRate()}`, {
           required: true,
+          default: this.getDefaultFee().toString(),
         }),
       )
     }
 
-    if (!toAddress) {
-      toAddress = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
+    if (!this.toAddress) {
+      this.toAddress = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
         required: true,
       })) as string
     }
 
-    if (!flags.confirm) {
+    console.log('validating deposit')
+    await this.validate(balance, !flags.isConfirmed)
+    await this.processSend()
+  }
+
+  async processSend(): Promise<void> {
+    const result = await this.client!.sendTransaction({
+      fromAccountName: this.fromAccount!,
+      receives: [
+        {
+          publicAddress: this.toAddress!,
+          amount: this.amountInOre!.toString(),
+          memo: this.memo!,
+        },
+      ],
+      fee: this.feeInOre!.toString(),
+      expirationSequence: this.expirationSequence!,
+    })
+
+    const transaction = result.content
+    const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
+    const amountSent = displayIronAmountWithCurrency(oreToIron(this.amountInOre!), true)
+    this.log(`Sending ${amountSent} to ${recipients} from ${transaction.fromAccountName}`)
+    this.log(`Transaction Hash: ${transaction.hash}`)
+    this.log(
+      `Transaction Fee: ${displayIronAmountWithCurrency(oreToIron(this.feeInOre!), true)}`,
+    )
+    this.log(
+      `Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} (it can take a few minutes before the transaction appears in the Explorer)`,
+    )
+  }
+
+  async validate(balance: number, shouldConfirm: boolean): Promise<void> {
+    if (shouldConfirm) {
       this.log(
         `You are about to send: ${displayIronAmountWithCurrency(
-          oreToIron(amountInOre),
+          oreToIron(this.amountInOre!),
           true,
         )} plus a transaction fee of ${displayIronAmountWithCurrency(
-          oreToIron(feeInOre),
+          oreToIron(this.feeInOre!),
           true,
-        )} to ${toAddress} from the account ${fromAccount}`,
+        )} to ${this.toAddress!} from the account ${this.fromAccount!}`,
       )
       this.log(`* This action is NOT reversible *`)
 
@@ -144,76 +188,23 @@ export class Pay extends IronfishCommand {
       }
     }
 
-    this.simpleValidate(toAddress, amountInOre, feeInOre, expirationSequence, balance)
-
-    await this.processSend(
-      client,
-      fromAccount,
-      toAddress,
-      amountInOre,
-      feeInOre,
-      memo,
-      expirationSequence,
-    )
-  }
-
-  async processSend(
-    client: RpcClient,
-    fromAccount: string,
-    toAddress: string,
-    amountInOre: number,
-    feeInOre: number,
-    memo: string,
-    expirationSequence: number | null | undefined,
-  ): Promise<void> {
-    const result = await client.sendTransaction({
-      fromAccountName: fromAccount,
-      receives: [
-        {
-          publicAddress: toAddress,
-          amount: amountInOre.toString(),
-          memo: memo,
-        },
-      ],
-      fee: feeInOre.toString(),
-      expirationSequence,
-    })
-
-    const transaction = result.content
-    const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
-    const amountSent = displayIronAmountWithCurrency(oreToIron(amountInOre), true)
-    this.log(`Sending ${amountSent} to ${recipients} from ${transaction.fromAccountName}`)
-    this.log(`Transaction Hash: ${transaction.hash}`)
-    this.log(`Transaction Fee: ${displayIronAmountWithCurrency(feeInOre, true)}`)
-    this.log(
-      `Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} (it can take a few minutes before the transaction appears in the Explorer)`,
-    )
-  }
-
-  simpleValidate(
-    toAddress: string,
-    amountInOre: number,
-    feeInOre: number,
-    expirationSequence: number | null | undefined,
-    balance: number,
-  ): void {
     // TODO: need to mock this out in tests. How?
-    // if (!isValidPublicAddress(toAddress)) {
-    //   this.error(`${toAddress} A valid public address is required`)
+    // if (!isValidPublicAddress(this.toAddress!)) {
+    //   this.error(`A valid public address is required`)
     // }
 
     if (
-      Number.isNaN(amountInOre) ||
-      Number.isNaN(feeInOre) ||
-      amountInOre <= 0 ||
-      feeInOre <= 0
+      Number.isNaN(this.amountInOre) ||
+      Number.isNaN(this.feeInOre) ||
+      this.amountInOre! <= 0 ||
+      this.feeInOre! <= 0
     ) {
       this.error(`Please enter positive values for amount and fee`)
     }
 
-    if (amountInOre + feeInOre > balance) {
+    if (this.amountInOre! + this.feeInOre! > balance) {
       const displayAmount = displayIronAmountWithCurrency(
-        oreToIron(amountInOre + feeInOre),
+        oreToIron(this.amountInOre! + this.feeInOre!),
         false,
       )
       const displayBalance = displayIronAmountWithCurrency(oreToIron(balance), false)
@@ -222,9 +213,13 @@ export class Pay extends IronfishCommand {
       )
     }
 
-    if (expirationSequence && expirationSequence < 0) {
+    if (this.expirationSequence && this.expirationSequence < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
+  }
+
+  getDefaultFee(): number {
+    return 1
   }
 }

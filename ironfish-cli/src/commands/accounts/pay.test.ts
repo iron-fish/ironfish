@@ -173,7 +173,7 @@ describe('accounts:pay command', () => {
   // TODO: this stopped passing. The error is super cryptic.
   // describe('When the API throws an error', () => {
   //   beforeEach(() => {
-  //     // sendTransaction = jest.fn().mockRejectedValue('an error')
+  //     sendTransaction = jest.fn().mockRejectedValue('an error')
   //   })
   //   test
   //     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
