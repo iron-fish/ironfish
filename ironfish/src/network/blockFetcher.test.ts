@@ -226,7 +226,7 @@ describe('BlockFetcher', () => {
     }
 
     await peerNetwork.stop()
-  }, 10000) // This is a perticularly long test since it generates 5 new blocks, even with fixtures
+  })
 
   it('fills missing transactions from transaction request if not in mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
@@ -293,7 +293,7 @@ describe('BlockFetcher', () => {
     expect(sentPeers3).toHaveLength(1)
 
     await peerNetwork.stop()
-  }, 10000) // This is a perticularly long test since it generates 5 new blocks, even with fixtures
+  })
 
   it('requests full block if transaction request fails', async () => {
     const { peerNetwork, chain, node } = nodeTest

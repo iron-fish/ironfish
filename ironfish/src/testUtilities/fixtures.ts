@@ -379,29 +379,26 @@ export async function useBlockWithTxs(
 
   await node.accounts.updateHead()
 
-  const transactions: Transaction[] = []
-  for (let i = 0; i < numTransactions; i++) {
-    const transaction = await node.accounts.createTransaction(
-      from,
-      [
-        {
-          publicAddress: to.publicAddress,
-          amount: BigInt(1),
-          memo: '',
-        },
-      ],
-      BigInt(1),
-      0,
-    )
-    await node.accounts.syncTransaction(transaction, {
-      submittedSequence: node.chain.head.sequence,
-    })
-    transactions.push(transaction)
-  }
-
   const block = await useBlockFixture(node.chain, async () => {
-    Assert.isNotUndefined(from)
-    Assert.isNotUndefined(to)
+    const transactions: Transaction[] = []
+    for (let i = 0; i < numTransactions; i++) {
+      const transaction = await node.accounts.createTransaction(
+        from,
+        [
+          {
+            publicAddress: to.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+          },
+        ],
+        BigInt(1),
+        0,
+      )
+      await node.accounts.syncTransaction(transaction, {
+        submittedSequence: node.chain.head.sequence,
+      })
+      transactions.push(transaction)
+    }
 
     const transactionFees: bigint = transactions.reduce((sum, t) => {
       return BigInt(sum) + t.fee()
