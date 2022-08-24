@@ -78,92 +78,93 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         // Public address validation
         // Prover witnesses ak (ensures that it's on the curve)
-        // let ak = ecc::EdwardsPoint::witness(
-        //     cs.namespace(|| "ak"),
-        //     self.proof_generation_key.as_ref().map(|k| k.ak.into()),
-        // )?;
+        let ak = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "ak"),
+            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
+        )?;
 
-        // // There are no sensible attacks on small order points
-        // // of ak (that we're aware of!) but it's a cheap check,
-        // // so we do it.
-        // ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
+        // There are no sensible attacks on small order points
+        // of ak (that we're aware of!) but it's a cheap check,
+        // so we do it.
+        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
 
-        // // Compute nk = [nsk] ProofGenerationKey
-        // let nk;
-        // {
-        //     // Witness nsk as bits
-        //     let nsk = boolean::field_into_boolean_vec_le(
-        //         cs.namespace(|| "nsk"),
-        //         self.proof_generation_key.as_ref().map(|k| k.nsk),
-        //     )?;
+        // Compute nk = [nsk] ProofGenerationKey
+        let nk;
+        {
+            // Witness nsk as bits
+            let nsk = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "nsk"),
+                self.proof_generation_key.as_ref().map(|k| k.nsk),
+            )?;
 
-        //     // NB: We don't ensure that the bit representation of nsk
-        //     // is "in the field" (jubjub::Fr) because it's not used
-        //     // except to demonstrate the prover knows it. If they know
-        //     // a congruency then that's equivalent.
+            // NB: We don't ensure that the bit representation of nsk
+            // is "in the field" (jubjub::Fr) because it's not used
+            // except to demonstrate the prover knows it. If they know
+            // a congruency then that's equivalent.
 
-        //     // Compute nk = [nsk] ProvingPublicKey
-        //     nk = ecc::fixed_base_multiplication(
-        //         cs.namespace(|| "computation of nk"),
-        //         &PROOF_GENERATION_KEY_GENERATOR,
-        //         &nsk,
-        //     )?;
-        // }
+            // Compute nk = [nsk] ProvingPublicKey
+            nk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of nk"),
+                &PROOF_GENERATION_KEY_GENERATOR,
+                &nsk,
+            )?;
+        }
 
-        // // This is the "viewing key" preimage for CRH^ivk
-        // let mut ivk_preimage = vec![];
+        // This is the "viewing key" preimage for CRH^ivk
+        let mut ivk_preimage = vec![];
 
-        // // Place ak in the preimage for CRH^ivk
-        // ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
+        // Place ak in the preimage for CRH^ivk
+        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
 
-        // // Extend ivk and nf preimages with the representation of
-        // // nk.
-        // {
-        //     let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
+        // Extend ivk and nf preimages with the representation of
+        // nk.
+        {
+            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
 
-        //     ivk_preimage.extend(repr_nk.iter().cloned());
-        // }
+            ivk_preimage.extend(repr_nk.iter().cloned());
+        }
 
-        // assert_eq!(ivk_preimage.len(), 512);
+        assert_eq!(ivk_preimage.len(), 512);
 
-        // // Compute the incoming viewing key ivk
-        // let mut ivk = blake2s::blake2s(
-        //     cs.namespace(|| "computation of ivk"),
-        //     &ivk_preimage,
-        //     constants::CRH_IVK_PERSONALIZATION,
-        // )?;
+        // Compute the incoming viewing key ivk
+        let mut ivk = blake2s::blake2s(
+            cs.namespace(|| "computation of ivk"),
+            &ivk_preimage,
+            constants::CRH_IVK_PERSONALIZATION,
+        )?;
 
-        // // drop_5 to ensure it's in the field
-        // ivk.truncate(jubjub::Fr::CAPACITY as usize);
+        // drop_5 to ensure it's in the field
+        ivk.truncate(jubjub::Fr::CAPACITY as usize);
 
-        // // Witness g_d, checking that it's on the curve.
-        // let g_d = {
-        //     ecc::EdwardsPoint::witness(
-        //         cs.namespace(|| "witness g_d"),
-        //         self.asset_info.as_ref().and_then(|a| {
-        //             jubjub::ExtendedPoint::from(a.public_address().diversifier_point).into()
-        //         }),
-        //     )?
-        // };
+        // Witness g_d, checking that it's on the curve.
+        let g_d = {
+            ecc::EdwardsPoint::witness(
+                cs.namespace(|| "witness g_d"),
+                self.asset_info.as_ref().and_then(|a| {
+                    jubjub::ExtendedPoint::from(a.public_address().diversifier_point).into()
+                }),
+            )?
+        };
 
-        // // Check that g_d is not small order. Technically, this check
-        // // is already done in the Output circuit, and this proof ensures
-        // // g_d is bound to a product of that check, but for defense in
-        // // depth let's check it anyway. It's cheap.
-        // g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
+        // Check that g_d is not small order. Technically, this check
+        // is already done in the Output circuit, and this proof ensures
+        // g_d is bound to a product of that check, but for defense in
+        // depth let's check it anyway. It's cheap.
+        g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
 
-        // // Compute pk_d = g_d^ivk
-        // let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
+        // Compute pk_d = g_d^ivk
+        let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
-        // let pk_d_bits = pk_d.repr(cs.namespace(|| "representation of pk_d"))?;
+        let calculated_pk_d_bits = pk_d.repr(cs.namespace(|| "representation of pk_d"))?;
+        let asset_pk_d_bits = &public_address_bits[88..];
 
-        // for i in 0..256 {
-        //     boolean::Boolean::enforce_equal(
-        //         cs.namespace(|| format!("integrity of asset generator bit {}", i)),
-        //         &public_address_bits[i],
-        //         &pk_d_bits[i],
-        //     )?;
-        // }
+        for i in 0..256 {
+            boolean::Boolean::enforce_equal(
+                cs.namespace(|| format!("integrity of asset generator bit {}", i)),
+                &asset_pk_d_bits[i],
+                &calculated_pk_d_bits[i],
+            )?;
+        }
 
         asset_commitment_contents.extend(first_block_bits);
         asset_commitment_contents.extend(name_bits);
