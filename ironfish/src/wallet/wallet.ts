@@ -443,14 +443,12 @@ export class Accounts {
   }
 
   /**
-   * Removes a transaction from the transaction map and updates
+   * Deletes a transaction from the transaction map and updates
    * the related maps.
    */
-  async removeTransaction(transaction: Transaction): Promise<void> {
-    const transactionHash = transaction.hash()
-
+  async deleteTransaction(transaction: Transaction): Promise<void> {
     for (const account of this.accounts.values()) {
-      await account.deleteTransaction(transactionHash, transaction)
+      await account.deleteTransaction(transaction)
     }
   }
 
@@ -900,7 +898,7 @@ export class Accounts {
         )
 
         if (isExpired) {
-          await this.removeTransaction(transaction)
+          await this.deleteTransaction(transaction)
         }
       }
     }

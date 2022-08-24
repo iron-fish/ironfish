@@ -410,18 +410,16 @@ export class Account {
     return this.transactions.values()
   }
 
-  async deleteTransaction(
-    hash: Buffer,
-    transaction: Transaction,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
+  async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
+    const transactionHash = transaction.hash()
+
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes()) {
-        const merkleHash = note.merkleHash()
-        const decryptedNote = this.getDecryptedNote(merkleHash)
+        const noteHash = note.merkleHash()
+        const decryptedNote = this.getDecryptedNote(noteHash)
 
         if (decryptedNote) {
-          await this.deleteDecryptedNote(merkleHash, hash, tx)
+          await this.deleteDecryptedNote(noteHash, transactionHash, tx)
 
           if (decryptedNote.nullifierHash) {
             const nullifier = decryptedNote.nullifierHash
@@ -451,8 +449,8 @@ export class Account {
         }
       }
 
-      this.transactions.delete(hash)
-      await this.accountsDb.deleteTransaction(hash, tx)
+      this.transactions.delete(transactionHash)
+      await this.accountsDb.deleteTransaction(transactionHash, tx)
     })
   }
 
