@@ -211,7 +211,11 @@ export class Migration013 extends Migration {
 
     for (const account of accounts) {
       logger.debug(`\tSetting account ${account.account.name} head hash: ${String(headHash)}`)
-      await headHashesStoreNew.put(account.id, headHash ?? null, tx)
+      await headHashesStoreNew.put(
+        account.id,
+        headHash ? Buffer.from(headHash, 'hex') : null,
+        tx,
+      )
     }
   }
 

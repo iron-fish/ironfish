@@ -7,7 +7,7 @@ import {
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
-  NullableStringEncoding,
+  NullableBufferEncoding,
   StringEncoding,
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
@@ -42,7 +42,7 @@ export function loadNewStores(db: IDatabase): NewStores {
     {
       name: 'headHashes',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableStringEncoding(),
+      valueEncoding: new NullableBufferEncoding(),
     },
     false,
   )

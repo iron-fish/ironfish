@@ -93,7 +93,7 @@ export default class Debug extends IronfishCommand {
     await node.accounts.load()
     const output = new Map<string, string>()
 
-    const headHashes = new Map<string, string | null>()
+    const headHashes = new Map<string, Buffer | null>()
     for await (const { accountId, headHash } of node.accounts.db.loadHeadHashes()) {
       headHashes.set(accountId, headHash)
     }
@@ -101,9 +101,7 @@ export default class Debug extends IronfishCommand {
     for (const [accountId, headHash] of headHashes.entries()) {
       const account = node.accounts.getAccount(accountId)
 
-      const blockHeader = headHash
-        ? await node.chain.getHeader(Buffer.from(headHash, 'hex'))
-        : null
+      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
       const headInChain = !!blockHeader
       const headSequence = blockHeader?.sequence || 'null'
 
@@ -111,7 +109,10 @@ export default class Debug extends IronfishCommand {
 
       output.set(`Account ${shortId} uuid`, `${accountId}`)
       output.set(`Account ${shortId} name`, `${account?.name || `ACCOUNT NOT FOUND`}`)
-      output.set(`Account ${shortId} head hash`, `${headHash ?? 'NULL'}`)
+      output.set(
+        `Account ${shortId} head hash`,
+        `${headHash ? headHash.toString('hex') : 'NULL'}`,
+      )
       output.set(`Account ${shortId} head in chain`, `${headInChain.toString()}`)
       output.set(`Account ${shortId} sequence`, `${headSequence}`)
     }

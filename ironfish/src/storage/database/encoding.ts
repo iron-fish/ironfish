@@ -37,6 +37,29 @@ export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   deserialize = (buffer: Buffer): Buffer => buffer
 }
 
+export class NullableBufferEncoding implements IDatabaseEncoding<Buffer | null> {
+  serialize = (value: Buffer | null): Buffer => {
+    const size = value ? bufio.sizeVarBytes(value) : 0
+
+    const buffer = bufio.write(size)
+    if (value) {
+      buffer.writeVarBytes(value)
+    }
+
+    return buffer.render()
+  }
+
+  deserialize(buffer: Buffer): Buffer | null {
+    const reader = bufio.read(buffer, true)
+
+    if (reader.left()) {
+      return reader.readVarBytes()
+    }
+
+    return null
+  }
+}
+
 export class StringHashEncoding implements IDatabaseEncoding<string> {
   serialize(value: string): Buffer {
     const buffer = bufio.write(32)
