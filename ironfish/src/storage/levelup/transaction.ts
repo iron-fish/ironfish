@@ -11,6 +11,7 @@ import {
   IDatabaseTransaction,
   SchemaKey,
   SchemaValue,
+  TransactionWrongDatabaseError,
 } from '../database'
 import { LevelupBatch } from './batch'
 
@@ -76,6 +77,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     key: SchemaKey<Schema>,
   ): Promise<SchemaValue<Schema> | undefined> {
     await this.acquireLock()
+    this.assertIsSameDatabase(store)
     this.assertCanRead()
 
     const [encodedKey] = store.encode(key)
@@ -101,6 +103,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     value: SchemaValue<Schema>,
   ): Promise<void> {
     await this.acquireLock()
+    this.assertIsSameDatabase(store)
     this.assertCanWrite()
 
     const [encodedKey, encodedValue] = store.encode(key, value)
@@ -117,6 +120,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     value: SchemaValue<Schema>,
   ): Promise<void> {
     await this.acquireLock()
+    this.assertIsSameDatabase(store)
     this.assertCanWrite()
 
     if (await this.has(store, key)) {
@@ -135,6 +139,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     key: SchemaKey<Schema>,
   ): Promise<void> {
     await this.acquireLock()
+    this.assertIsSameDatabase(store)
     this.assertCanWrite()
 
     const [encodedKey] = store.encode(key)
@@ -168,6 +173,14 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.aborting = true
     this.releaseLock()
     return Promise.resolve()
+  }
+
+  private assertIsSameDatabase<Schema extends DatabaseSchema>(
+    store: LevelupStore<Schema>,
+  ): void {
+    if (store.db !== this.db) {
+      throw new TransactionWrongDatabaseError(store.name)
+    }
   }
 
   private assertCanRead(): void {

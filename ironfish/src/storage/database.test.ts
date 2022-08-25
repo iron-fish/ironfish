@@ -14,6 +14,7 @@ import {
   DuplicateKeyError,
   JsonEncoding,
   StringEncoding,
+  TransactionWrongDatabaseError,
 } from './database'
 import { LevelupDatabase, LevelupStore } from './levelup'
 
@@ -48,8 +49,7 @@ interface ArrayKeySchema extends DatabaseSchema {
 }
 
 describe('Database', () => {
-  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
-  const db = new LevelupDatabase(leveldown(id))
+  const db = createDB()
 
   const fooStore = db.addStore<FooSchema>({
     name: 'Foo',
@@ -190,6 +190,17 @@ describe('Database', () => {
 
     await expect(db.metaStore.add('a', 2)).rejects.toThrow(DuplicateKeyError)
     await expect(db.metaStore.get('a')).resolves.toBe(1)
+  })
+
+  it('should not let you use transactions across databases', async () => {
+    const dbB = createDB()
+    const tx = dbB.transaction()
+
+    await expect(db.metaStore.add('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.put('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.get('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.has('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.del('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
   })
 
   it('should add values in transactions', async () => {
@@ -689,3 +700,9 @@ describe('Database', () => {
     })
   })
 })
+
+function createDB() {
+  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
+  const db = new LevelupDatabase(leveldown(id))
+  return db
+}
