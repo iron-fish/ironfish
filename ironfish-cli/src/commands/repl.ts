@@ -15,8 +15,6 @@ import {
   VerboseFlagKey,
 } from '../flags'
 
-export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
-
 export default class Repl extends IronfishCommand {
   static description = 'An interactive terminal to the node'
 
