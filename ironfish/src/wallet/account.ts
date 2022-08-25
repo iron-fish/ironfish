@@ -96,23 +96,46 @@ export class Account {
   }
 
   async load(): Promise<void> {
-    await this.accountsDb.loadNullifierToNoteHash(this.nullifierToNoteHash)
-    await this.accountsDb.loadTransactions(this.transactions)
-    await this.loadDecryptedNotesAndBalance()
-  }
-
-  private async loadDecryptedNotesAndBalance(): Promise<void> {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
-      if (decryptedNote.accountId === this.id) {
-        this.decryptedNotes.set(hash, decryptedNote)
+      if (decryptedNote.accountId !== this.id) {
+        continue
+      }
 
-        if (!decryptedNote.spent) {
-          unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
+      this.decryptedNotes.set(hash, decryptedNote)
+
+      if (!decryptedNote.spent) {
+        unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
+      }
+
+      const nullifierHash = decryptedNote.nullifierHash
+      if (nullifierHash) {
+        this.nullifierToNoteHash.set(nullifierHash, hash)
+      }
+
+      const transactionHash = decryptedNote.transactionHash
+      const transaction = await this.accountsDb.loadTransaction(transactionHash)
+      Assert.isNotNull(
+        transaction,
+        `Transaction not found for '${transactionHash.toString('hex')}'`,
+      )
+
+      this.transactions.set(transactionHash, transaction)
+
+      this.saveDecryptedNoteSequence(transactionHash, hash)
+    }
+
+    for await (const { hash, transaction } of this.accountsDb.loadTransactions()) {
+      if (this.transactions.has(hash)) {
+        continue
+      }
+
+      for (const spend of transaction.transaction.spends()) {
+        if (this.nullifierToNoteHash.has(spend.nullifier)) {
+          this.transactions.set(hash, transaction)
+          break
         }
-
-        this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
       }
     }
 
