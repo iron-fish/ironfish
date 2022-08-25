@@ -294,12 +294,14 @@ export class Accounts {
     await this.db.database.transaction(async (tx) => {
       await this.resetAccounts(tx)
       this.chainProcessor.hash = null
-      await this.saveAccountsToDb(tx)
       await this.updateHeadHashes(null, tx)
     })
   }
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.clearDecryptedNotes(tx)
+    await this.db.clearNullifierToNoteHash(tx)
+    await this.db.clearTransactions(tx)
     for (const account of this.accounts.values()) {
       await account.reset(tx)
     }
