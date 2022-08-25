@@ -19,6 +19,7 @@ pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 // TODO: This is just a placeholder helper struct, feels pretty awkward to use
 // so probably won't stick around like this
+#[derive(Clone)]
 pub struct AssetInfo {
     // TODO: This functionality should be mostly copied from Memo, same idea.
     // Also consider unicode char indices or something
