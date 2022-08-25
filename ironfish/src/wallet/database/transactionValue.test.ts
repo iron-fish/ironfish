@@ -1,15 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Transaction } from '../../primitives'
+import { createNodeTest, useAccountFixture } from '../../testUtilities'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
 describe('TransactionValueEncoding', () => {
+  const nodeTest = createNodeTest()
+  let transaction: Transaction
+
+  beforeEach(async () => {
+    const account = await useAccountFixture(nodeTest.accounts)
+    transaction = await nodeTest.strategy.createMinersFee(BigInt(0), 1, account.spendingKey)
+  })
+
   describe('with a null block hash and sequence', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
       const encoder = new TransactionValueEncoding()
 
       const value: TransactionValue = {
-        transaction: Buffer.from('mock-transaction'),
+        transaction,
         blockHash: null,
         sequence: null,
         submittedSequence: null,
@@ -25,7 +35,7 @@ describe('TransactionValueEncoding', () => {
       const encoder = new TransactionValueEncoding()
 
       const value: TransactionValue = {
-        transaction: Buffer.from('mock-transaction'),
+        transaction,
         blockHash: null,
         sequence: null,
         submittedSequence: 123,
@@ -41,7 +51,7 @@ describe('TransactionValueEncoding', () => {
       const encoder = new TransactionValueEncoding()
 
       const value: TransactionValue = {
-        transaction: Buffer.from('mock-transaction'),
+        transaction,
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: null,
@@ -57,7 +67,7 @@ describe('TransactionValueEncoding', () => {
       const encoder = new TransactionValueEncoding()
 
       const value: TransactionValue = {
-        transaction: Buffer.from('mock-transaction'),
+        transaction,
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: 123,
