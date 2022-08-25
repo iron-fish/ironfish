@@ -191,40 +191,28 @@ export class BlockFetcher {
       return false
     }
 
-    if (!currentState) {
-      this.pending.set(hash, {
-        action: 'PROCESSING_COMPACT_BLOCK',
-        peer: peer.state.identity,
-        compactBlock,
-        sources: new Set<Identity>(),
-      })
-      // Return to PeerNetwork to fill from mempool and request missing transactions
-      return true
-    }
+    if (currentState && currentState.action !== 'BLOCK_REQUEST_IN_FLIGHT' && currentState.action !== 'BLOCK_REQUEST_SCHEDULED') {
+      // If we are further along in the request cycle, just add this peer to sources
+      if (currentState.action !== 'PROCESSING_FULL_BLOCK') {
+        currentState.sources.add(peer.state.identity)
+      }
 
-    if (currentState.action === 'PROCESSING_FULL_BLOCK') {
       return false
     }
 
-    // If we are further along in the request cycle, just add this peer to sources
-    if (
-      currentState.action === 'PROCESSING_COMPACT_BLOCK' ||
-      currentState.action === 'TRANSACTION_REQUEST_IN_FLIGHT' ||
-      currentState.action === 'FULL_BLOCK_REQUEST_IN_FLIGHT'
-    ) {
-      currentState.sources.add(peer.state.identity)
-      return false
-    }
+    currentState && this.cleanupCallbacks(currentState)
 
-    this.cleanupCallbacks(currentState)
+    // If we already had a request in flight to a peer, put them back into the pool of sources
+    if (currentState && currentState.action === 'BLOCK_REQUEST_IN_FLIGHT') {
+      currentState.sources.add(currentState.peer)
+    }
 
     this.pending.set(hash, {
       action: 'PROCESSING_COMPACT_BLOCK',
       peer: peer.state.identity,
       compactBlock,
-      sources: currentState.sources,
+      sources: currentState ? currentState.sources : new Set<Identity>(),
     })
-    // Return to PeerNetwork to fill from mempool and request missing transactions
     return true
   }
 
