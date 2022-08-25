@@ -90,7 +90,7 @@ describe('BlockFetcher', () => {
       await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
-    // Another peer send the full block
+    // Another peer sends a full block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
     const message = peerMessage(peer, new NewBlockMessage(BlockSerde.serialize(block)))
@@ -117,11 +117,15 @@ describe('BlockFetcher', () => {
       await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
-    // Another peer send the full block
+    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+
+    // Another peer sends a compact block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
     const message = peerMessage(peer, new NewBlockV2Message(block.toCompactBlock()))
     await peerNetwork.peerManager.onMessage.emitAsync(...message)
+
+    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
 
     jest.runOnlyPendingTimers()
 
@@ -144,13 +148,13 @@ describe('BlockFetcher', () => {
       await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
-    // We wait 500ms and then send the request for the block to a random peer
+    // We wait 500ms and then send the request for a compact block to a random peer
     jest.runOnlyPendingTimers()
 
     const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
     expect(sentPeers).toHaveLength(1)
 
-    // The peer we requested responds with the full transaction
+    // The peer we requested responds with a compact block
     const sentPeer = sentPeers[0].peer
     const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0]
     expect(sentMessage).toBeInstanceOf(GetCompactBlockRequest)
@@ -274,7 +278,7 @@ describe('BlockFetcher', () => {
     })
     expect(sentPeers2).toHaveLength(1)
 
-    // The peer we requested responds with the transaction
+    // The peer we requested responds with the transactions
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
       transactions.map((t) => t.serialize()),
@@ -484,6 +488,13 @@ describe('BlockFetcher', () => {
     }
 
     expect(chain.orphans.has(orphan.header.hash)).toBe(false)
+
+    // A second peer sends the same block, but it should now be added to the chain
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      ...peerMessage(peers[1].peer, new NewBlockV2Message(orphan.toCompactBlock())),
+    )
+
+    await expect(chain.hasBlock(orphan.header.hash)).resolves.toBe(true)
 
     await peerNetwork.stop()
   })
