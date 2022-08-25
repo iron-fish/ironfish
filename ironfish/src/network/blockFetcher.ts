@@ -423,6 +423,9 @@ export class BlockFetcher {
     } else if (state.action === 'TRANSACTION_REQUEST_IN_FLIGHT') {
       clearTimeout(state.timeout)
       state.clearDisconnectHandler()
+    } else if (state.action === 'FULL_BLOCK_REQUEST_IN_FLIGHT') {
+      clearTimeout(state.timeout)
+      state.clearDisconnectHandler()
     }
   }
 }
