@@ -4,7 +4,11 @@
 
 import { BufferMap } from 'buffer-map'
 import { Block, SerializedCompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeaderSerde, SerializedBlockHeader } from '../primitives/blockheader'
+import {
+  BlockHash,
+  BlockHeader,
+  BlockHeaderSerde,
+} from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { Identity } from './identity'
 import { GetBlocksRequest } from './messages/getBlocks'
@@ -51,7 +55,7 @@ type BlockState =
   | {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT'
       peer: Identity
-      header: SerializedBlockHeader
+      header: BlockHeader
       partialTransactions: TransactionOrHash[]
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
@@ -191,7 +195,11 @@ export class BlockFetcher {
       return false
     }
 
-    if (currentState && currentState.action !== 'BLOCK_REQUEST_IN_FLIGHT' && currentState.action !== 'BLOCK_REQUEST_SCHEDULED') {
+    if (
+      currentState &&
+      currentState.action !== 'BLOCK_REQUEST_IN_FLIGHT' &&
+      currentState.action !== 'BLOCK_REQUEST_SCHEDULED'
+    ) {
       // If we are further along in the request cycle, just add this peer to sources
       if (currentState.action !== 'PROCESSING_FULL_BLOCK') {
         currentState.sources.add(peer.state.identity)
@@ -216,18 +224,73 @@ export class BlockFetcher {
     return true
   }
 
+  requestBlockTransactions(
+    peer: Peer,
+    header: BlockHeader,
+    partialTransactions: TransactionOrHash[],
+    missingTransactions: number[],
+  ): void {
+    const hash = header.hash
+    const currentState = this.pending.get(hash)
+
+    if (!currentState || currentState.action === 'PROCESSING_FULL_BLOCK') {
+      return
+    }
+
+    const message = new GetBlockTransactionsRequest(hash, missingTransactions)
+
+    const sent = peer.send(message)
+    // Note that if transaction fetching fails, we fall back to fetching the full block.
+    // This is intentional to minimize additional round-trip messages, but there's
+    // likely room for improvement here.
+    if (!sent || !peer.state.identity) {
+      this.requestFullBlock(hash)
+      return
+    }
+
+    const onPeerDisconnect = ({ state }: { state: PeerState }) => {
+      if (state.type === 'DISCONNECTED') {
+        this.requestFullBlock(hash)
+      }
+    }
+
+    peer.onStateChanged.on(onPeerDisconnect)
+
+    const clearDisconnectHandler = () => {
+      peer.onStateChanged.off(onPeerDisconnect)
+    }
+
+    const timeout = setTimeout(() => {
+      this.requestFullBlock(hash)
+    }, REQUEST_BLOCK_TRANSACTIONS_TIMEOUT_MS)
+
+    this.pending.set(hash, {
+      action: 'TRANSACTION_REQUEST_IN_FLIGHT',
+      peer: peer.state.identity,
+      header,
+      partialTransactions,
+      timeout,
+      clearDisconnectHandler,
+      sources: currentState.sources,
+    })
+
+    return
+  }
+
+  /**
+   * Called when receiving a response to a request for missing transactions on a block. */
   receivedBlockTransactions(message: GetBlockTransactionsResponse): Block | null {
     const hash = message.blockHash
     const currentState = this.pending.get(hash)
 
-    // If we were not waiting for a transaction request, just ignore it
+    // If we were not waiting for a transaction request, ignore it
     if (!currentState || currentState.action !== 'TRANSACTION_REQUEST_IN_FLIGHT') {
       return null
     }
 
     this.cleanupCallbacks(currentState)
 
-    // check if we're missing transactions
+    // Check if we're still missing transactions
     const assembleResult = this.peerNetwork.assembleBlockFromResponse(
       currentState.partialTransactions,
       message.serializedTransactions,
@@ -239,10 +302,7 @@ export class BlockFetcher {
       return null
     }
 
-    const block = new Block(
-      BlockHeaderSerde.deserialize(currentState.header),
-      assembleResult.transactions,
-    )
+    const block = new Block(currentState.header, assembleResult.transactions)
 
     this.pending.set(hash, {
       action: 'PROCESSING_FULL_BLOCK',
@@ -296,56 +356,6 @@ export class BlockFetcher {
     for (const [hash] of this.pending) {
       this.removeBlock(hash)
     }
-  }
-
-  requestTransactions(
-    peer: Peer,
-    header: SerializedBlockHeader,
-    partialTransactions: TransactionOrHash[],
-    missingTransactions: number[],
-  ): void {
-    const hash = BlockHeaderSerde.deserialize(header).hash
-    const currentState = this.pending.get(hash)
-
-    if (!currentState || currentState.action === 'PROCESSING_FULL_BLOCK') {
-      return
-    }
-
-    const message = new GetBlockTransactionsRequest(hash, missingTransactions)
-
-    const sent = peer.send(message)
-    if (!sent || !peer.state.identity) {
-      this.requestFullBlock(hash)
-      return
-    }
-
-    const onPeerDisconnect = ({ state }: { state: PeerState }) => {
-      if (state.type === 'DISCONNECTED') {
-        this.requestFullBlock(hash)
-      }
-    }
-
-    peer.onStateChanged.on(onPeerDisconnect)
-
-    const clearDisconnectHandler = () => {
-      peer.onStateChanged.off(onPeerDisconnect)
-    }
-
-    const timeout = setTimeout(() => {
-      this.requestFullBlock(hash)
-    }, REQUEST_BLOCK_TRANSACTIONS_TIMEOUT_MS)
-
-    this.pending.set(hash, {
-      action: 'TRANSACTION_REQUEST_IN_FLIGHT',
-      peer: peer.state.identity,
-      header,
-      partialTransactions,
-      timeout,
-      clearDisconnectHandler,
-      sources: currentState.sources,
-    })
-
-    return
   }
 
   requestFullBlock(hash: BlockHash): void {
