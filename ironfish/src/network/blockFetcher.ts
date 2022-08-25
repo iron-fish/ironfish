@@ -312,52 +312,6 @@ export class BlockFetcher {
     return block
   }
 
-  /**
-   * Called when a block has been assembled from a compact block
-   * but has not yet been validated and added to the chain. */
-  receivedFullBlock(block: Block): void {
-    const hash = block.header.hash
-
-    const currentState = this.pending.get(hash)
-
-    if (currentState?.action !== 'PROCESSING_FULL_BLOCK') {
-      currentState && this.cleanupCallbacks(currentState)
-      this.pending.set(hash, {
-        action: 'PROCESSING_FULL_BLOCK',
-        block,
-      })
-    }
-  }
-
-  /**
-   * Handles the case where a block may be undergoing verification, but peers
-   * that received the compact block may need transactions from it. */
-  getFullBlock(hash: BlockHash): Block | null {
-    const currentState = this.pending.get(hash)
-
-    if (!currentState || currentState.action !== 'PROCESSING_FULL_BLOCK') {
-      return null
-    }
-
-    return currentState.block
-  }
-
-  /**
-   * Called when a block has been added to the chain or is known to be invalid. */
-  removeBlock(hash: BlockHash): void {
-    const currentState = this.pending.get(hash)
-
-    currentState && this.cleanupCallbacks(currentState)
-
-    this.pending.delete(hash)
-  }
-
-  stop(): void {
-    for (const [hash] of this.pending) {
-      this.removeBlock(hash)
-    }
-  }
-
   requestFullBlock(hash: BlockHash): void {
     const currentState = this.pending.get(hash)
 
@@ -405,6 +359,52 @@ export class BlockFetcher {
       clearDisconnectHandler,
       sources: currentState.sources,
     })
+  }
+
+  /**
+   * Called when a block has been assembled from a compact block
+   * but has not yet been validated and added to the chain. */
+  receivedFullBlock(block: Block): void {
+    const hash = block.header.hash
+
+    const currentState = this.pending.get(hash)
+
+    if (currentState?.action !== 'PROCESSING_FULL_BLOCK') {
+      currentState && this.cleanupCallbacks(currentState)
+      this.pending.set(hash, {
+        action: 'PROCESSING_FULL_BLOCK',
+        block,
+      })
+    }
+  }
+
+  /**
+   * Handles the case where a block may be undergoing verification, but peers
+   * that received the compact block may need transactions from it. */
+  getFullBlock(hash: BlockHash): Block | null {
+    const currentState = this.pending.get(hash)
+
+    if (!currentState || currentState.action !== 'PROCESSING_FULL_BLOCK') {
+      return null
+    }
+
+    return currentState.block
+  }
+
+  /**
+   * Called when a block has been added to the chain or is known to be invalid. */
+  removeBlock(hash: BlockHash): void {
+    const currentState = this.pending.get(hash)
+
+    currentState && this.cleanupCallbacks(currentState)
+
+    this.pending.delete(hash)
+  }
+
+  stop(): void {
+    for (const [hash] of this.pending) {
+      this.removeBlock(hash)
+    }
   }
 
   // Get the next peer to request from. Returns peers that have sent compact blocks first
