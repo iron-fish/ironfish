@@ -35,12 +35,12 @@ const REQUEST_FULL_BLOCK_TIMEOUT_MS = 5000
 
 type BlockState =
   | {
-      action: 'BLOCK_REQUEST_SCHEDULED'
+      action: 'COMPACT_BLOCK_REQUEST_SCHEDULED'
       timeout: NodeJS.Timeout
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
     }
   | {
-      action: 'BLOCK_REQUEST_IN_FLIGHT'
+      action: 'COMPACT_BLOCK_REQUEST_IN_FLIGHT'
       peer: Identity
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
@@ -110,7 +110,7 @@ export class BlockFetcher {
 
     const sources = new Set<Identity>([peer.state.identity])
     this.pending.set(hash, {
-      action: 'BLOCK_REQUEST_SCHEDULED',
+      action: 'COMPACT_BLOCK_REQUEST_SCHEDULED',
       timeout,
       sources,
     })
@@ -127,10 +127,8 @@ export class BlockFetcher {
 
     // If we've already reached a later step, don't send out another request
     if (
-      currentState.action === 'PROCESSING_COMPACT_BLOCK' ||
-      currentState.action === 'TRANSACTION_REQUEST_IN_FLIGHT' ||
-      currentState.action === 'FULL_BLOCK_REQUEST_IN_FLIGHT' ||
-      currentState.action === 'PROCESSING_FULL_BLOCK'
+      currentState.action !== 'COMPACT_BLOCK_REQUEST_SCHEDULED' &&
+      currentState.action !== 'COMPACT_BLOCK_REQUEST_IN_FLIGHT'
     ) {
       return
     }
@@ -173,7 +171,7 @@ export class BlockFetcher {
     }, REQUEST_COMPACT_BLOCK_TIMEOUT_MS)
 
     this.pending.set(hash, {
-      action: 'BLOCK_REQUEST_IN_FLIGHT',
+      action: 'COMPACT_BLOCK_REQUEST_IN_FLIGHT',
       peer: peer.state.identity,
       timeout,
       clearDisconnectHandler,
@@ -197,8 +195,8 @@ export class BlockFetcher {
 
     if (
       currentState &&
-      currentState.action !== 'BLOCK_REQUEST_IN_FLIGHT' &&
-      currentState.action !== 'BLOCK_REQUEST_SCHEDULED'
+      currentState.action !== 'COMPACT_BLOCK_REQUEST_IN_FLIGHT' &&
+      currentState.action !== 'COMPACT_BLOCK_REQUEST_SCHEDULED'
     ) {
       // If we are further along in the request cycle, just add this peer to sources
       if (currentState.action !== 'PROCESSING_FULL_BLOCK') {
@@ -211,7 +209,7 @@ export class BlockFetcher {
     currentState && this.cleanupCallbacks(currentState)
 
     // If we already had a request in flight to a peer, put them back into the pool of sources
-    if (currentState && currentState.action === 'BLOCK_REQUEST_IN_FLIGHT') {
+    if (currentState && currentState.action === 'COMPACT_BLOCK_REQUEST_IN_FLIGHT') {
       currentState.sources.add(currentState.peer)
     }
 
@@ -425,10 +423,10 @@ export class BlockFetcher {
   }
 
   private cleanupCallbacks(state: BlockState) {
-    if (state.action === 'BLOCK_REQUEST_IN_FLIGHT') {
+    if (state.action === 'COMPACT_BLOCK_REQUEST_IN_FLIGHT') {
       clearTimeout(state.timeout)
       state.clearDisconnectHandler()
-    } else if (state.action === 'BLOCK_REQUEST_SCHEDULED') {
+    } else if (state.action === 'COMPACT_BLOCK_REQUEST_SCHEDULED') {
       clearTimeout(state.timeout)
     } else if (state.action === 'TRANSACTION_REQUEST_IN_FLIGHT') {
       clearTimeout(state.timeout)
