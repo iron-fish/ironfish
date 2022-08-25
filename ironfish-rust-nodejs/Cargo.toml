@@ -13,15 +13,19 @@ crate-type = ["cdylib"]
 base64 = "0.13.0"
 hex = "0.4.3"
 ironfish_rust = { path = "../ironfish-rust", features = ["native"] }
-napi-derive = "2.2.0"
+napi-derive = "~2.9"
 
 [dependencies.napi]
-version = "2.2.0"
+version = "~2.9"
 features = ["napi6"]
 
 [build-dependencies]
-napi-build = "1.2.1"
+napi-build = "~2.0"
 
 # Note: Any changes here must also exist in ../ironfish-rust/Cargo.toml
+# While not strictly necessary, this can cause issues if working on the `ironfish-rust` repo.
+# When testing or building in that repo, it would compile with the unpatched version.
 [patch.crates-io]
 bellman = { git = "https://github.com/iron-fish/bellman", rev = "1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec" }
+napi = { git = "https://github.com/napi-rs/napi-rs", rev = "7e3b1ef330f2a8dd120e54093aedd354a084f810" }
+napi-derive-backend = { git = "https://github.com/napi-rs/napi-rs", rev = "7e3b1ef330f2a8dd120e54093aedd354a084f810" }
