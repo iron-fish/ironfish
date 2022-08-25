@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeUtils } from '@ironfish/sdk'
+import { NodeUtils, RpcMemoryClient } from '@ironfish/sdk'
 import fs from 'fs/promises'
 import repl from 'node:repl'
 import path from 'path'
@@ -30,6 +30,7 @@ export default class Repl extends IronfishCommand {
     await this.parse(Repl)
 
     const node = await this.sdk.node()
+    const client = new RpcMemoryClient(this.logger, node)
     await NodeUtils.waitForOpen(node)
 
     this.log('Examples:')
@@ -43,6 +44,8 @@ export default class Repl extends IronfishCommand {
     this.log(`  > accounts.listAccounts().map((a) => a.name)`)
     this.log(`\n  Get the balance of an account`)
     this.log(`  > await accounts.getBalance('default')`)
+    this.log(`\n  Use the RPC node/getStatus`)
+    this.log(`  > (await client.status()).content`)
     this.log('')
 
     const historyPath = path.join(node.config.tempDir, 'repl_history.txt')
@@ -52,6 +55,7 @@ export default class Repl extends IronfishCommand {
 
     const server = repl.start('> ')
     server.context.sdk = this.sdk
+    server.context.client = client
     server.context.node = node
     server.context.chain = node.chain
     server.context.accounts = node.accounts
