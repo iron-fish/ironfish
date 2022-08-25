@@ -99,29 +99,31 @@ export class Account {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
-      if (decryptedNote.accountId === this.id) {
-        this.decryptedNotes.set(hash, decryptedNote)
-
-        if (!decryptedNote.spent) {
-          unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
-        }
-
-        const nullifierHash = decryptedNote.nullifierHash
-        if (nullifierHash) {
-          this.nullifierToNoteHash.set(nullifierHash, hash)
-        }
-
-        const transactionHash = decryptedNote.transactionHash
-        const transaction = await this.accountsDb.loadTransaction(transactionHash)
-        Assert.isNotUndefined(
-          transaction,
-          `Transaction undefined for '${transactionHash.toString('hex')}'`,
-        )
-
-        this.transactions.set(transactionHash, transaction)
-
-        this.saveDecryptedNoteSequence(transactionHash, hash)
+      if (decryptedNote.accountId !== this.id) {
+        continue
       }
+
+      this.decryptedNotes.set(hash, decryptedNote)
+
+      if (!decryptedNote.spent) {
+        unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
+      }
+
+      const nullifierHash = decryptedNote.nullifierHash
+      if (nullifierHash) {
+        this.nullifierToNoteHash.set(nullifierHash, hash)
+      }
+
+      const transactionHash = decryptedNote.transactionHash
+      const transaction = await this.accountsDb.loadTransaction(transactionHash)
+      Assert.isNotUndefined(
+        transaction,
+        `Transaction undefined for '${transactionHash.toString('hex')}'`,
+      )
+
+      this.transactions.set(transactionHash, transaction)
+
+      this.saveDecryptedNoteSequence(transactionHash, hash)
     }
 
     for await (const { hash, transaction } of this.accountsDb.loadTransactions()) {
