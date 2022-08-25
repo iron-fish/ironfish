@@ -969,9 +969,9 @@ export class PeerNetwork {
     )
 
     if (result.missingTransactions.length > 0) {
-      this.blockFetcher.requestTransactions(
+      this.blockFetcher.requestBlockTransactions(
         peer,
-        compactBlock.header,
+        header,
         partialTransactions,
         missingTransactions,
       )
