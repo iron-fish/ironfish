@@ -298,15 +298,12 @@ export class AccountsDB {
   async loadTransaction(
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<
-    | {
-        transaction: Transaction
-        blockHash: Buffer | null
-        sequence: number | null
-        submittedSequence: number | null
-      }
-    | undefined
-  > {
+  ): Promise<{
+    transaction: Transaction
+    blockHash: Buffer | null
+    sequence: number | null
+    submittedSequence: number | null
+  } | null> {
     const transactionValue = await this.transactions.get(transactionHash, tx)
 
     if (transactionValue) {
@@ -315,6 +312,8 @@ export class AccountsDB {
         transaction: new Transaction(transactionValue.transaction),
       }
     }
+
+    return null
   }
 
   async saveNullifierNoteHash(

@@ -116,9 +116,9 @@ export class Account {
 
       const transactionHash = decryptedNote.transactionHash
       const transaction = await this.accountsDb.loadTransaction(transactionHash)
-      Assert.isNotUndefined(
+      Assert.isNotNull(
         transaction,
-        `Transaction undefined for '${transactionHash.toString('hex')}'`,
+        `Transaction not found for '${transactionHash.toString('hex')}'`,
       )
 
       this.transactions.set(transactionHash, transaction)
