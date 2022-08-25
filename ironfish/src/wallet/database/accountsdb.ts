@@ -214,9 +214,7 @@ export class AccountsDB {
   }
 
   async removeHeadHashes(tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.headHashes.clear(tx)
-    })
+    await this.headHashes.clear(tx)
   }
 
   async *loadHeadHashes(
@@ -253,9 +251,7 @@ export class AccountsDB {
   }
 
   async clearTransactions(tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.transactions.clear(tx)
-    })
+    await this.transactions.clear(tx)
   }
 
   async replaceTransactions(
@@ -337,9 +333,7 @@ export class AccountsDB {
   }
 
   async clearNullifierToNoteHash(tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.nullifierToNoteHash.clear(tx)
-    })
+    await this.nullifierToNoteHash.clear(tx)
   }
 
   async replaceNullifierToNoteHash(
@@ -370,9 +364,7 @@ export class AccountsDB {
   }
 
   async clearDecryptedNotes(tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.decryptedNotes.clear(tx)
-    })
+    await this.decryptedNotes.clear(tx)
   }
 
   async replaceDecryptedNotes(
