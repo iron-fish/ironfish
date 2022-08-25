@@ -108,7 +108,9 @@ describe('Accounts', () => {
 
     await node.accounts.saveAccountsToDb()
 
-    await node.accounts['resetAccounts']()
+    for (const account of node.accounts.listAccounts()) {
+      await account.reset()
+    }
 
     // Account should now have a balance of 0 after clearing the cache
     await expect(node.accounts.getBalance(account)).resolves.toEqual({
@@ -165,7 +167,9 @@ describe('Accounts', () => {
 
     await node.accounts.saveAccountsToDb()
 
-    await node.accounts['resetAccounts']()
+    for (const account of node.accounts.listAccounts()) {
+      await account.reset()
+    }
 
     // Account should now have a balance of 0 after clearing the cache
     await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
@@ -687,7 +691,9 @@ describe('Accounts', () => {
     })
 
     // Reload accounts to simulate node restart
-    await node.accounts['resetAccounts']()
+    for (const account of node.accounts.listAccounts()) {
+      await account.reset()
+    }
     await node.accounts.loadAccountsFromDb()
 
     // Create a block with a miner's fee
