@@ -4,11 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { Block, SerializedCompactBlock } from '../primitives/block'
-import {
-  BlockHash,
-  BlockHeader,
-  BlockHeaderSerde,
-} from '../primitives/blockheader'
+import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { Identity } from './identity'
 import { GetBlocksRequest } from './messages/getBlocks'
