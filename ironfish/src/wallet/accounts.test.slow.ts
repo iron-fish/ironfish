@@ -156,6 +156,20 @@ describe('Accounts', () => {
     // Create a second account
     const accountB = await node.accounts.createAccount('B', true)
 
+    // Account A should have one transaction
+    expect(Array.from(accountA.getTransactions()).length).toEqual(1)
+
+    // Account B should have zero transactions
+    expect(Array.from(accountB.getTransactions()).length).toEqual(0)
+
+    // Clear caches for both accounts
+    await accountA.reset()
+    await accountB.reset()
+
+    // Both accounts should have zero transactions
+    expect(Array.from(accountA.getTransactions()).length).toEqual(0)
+    expect(Array.from(accountB.getTransactions()).length).toEqual(0)
+
     // Load account data from db
     await node.accounts.loadAccountsFromDb()
 
@@ -196,6 +210,20 @@ describe('Accounts', () => {
 
     // Create a second account
     const accountB = await node.accounts.createAccount('B', true)
+
+    // Account A should have one nullifier
+    expect(accountA['nullifierToNoteHash'].size).toEqual(1)
+
+    // Account B should have zero nullifiers
+    expect(Array.from(accountB['nullifierToNoteHash']).length).toEqual(0)
+
+    // Clear caches for both accounts
+    await accountA.reset()
+    await accountB.reset()
+
+    // Both accounts should have zero nullifiers
+    expect(Array.from(accountA['nullifierToNoteHash']).length).toEqual(0)
+    expect(Array.from(accountB['nullifierToNoteHash']).length).toEqual(0)
 
     // Load account data from db
     await node.accounts.loadAccountsFromDb()
@@ -602,6 +630,7 @@ describe('Accounts', () => {
     })
 
     // Reload accounts to simulate node restart
+    await node.accounts['resetAccounts']()
     await node.accounts.loadAccountsFromDb()
 
     // Create a block with a miner's fee
