@@ -13,13 +13,21 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest } from './messages/getCompactBlock'
-import { BlockHashInfo } from './messages/newBlockHashes'
 import { PeerNetwork, TransactionOrHash } from './peerNetwork'
 import { Peer, PeerState } from './peers/peer'
 
 /* Time to wait before requesting a new hash to see if we receive the
  * block from the network first */
 const WAIT_BEFORE_REQUEST_MS = 1000
+
+/* Time to wait for a response to a request for a compact block */
+const REQUEST_COMPACT_BLOCK_TIMEOUT_MS = 5000
+
+/* Time to wait for a response to a request for block transactions */
+const REQUEST_BLOCK_TRANSACTIONS_TIMEOUT_MS = 5000
+
+/* Time to wait for a response to a request for a full block */
+const REQUEST_FULL_BLOCK_TIMEOUT_MS = 5000
 
 type BlockState =
   | {
@@ -76,20 +84,22 @@ export class BlockFetcher {
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
   receivedHash(hash: BlockHash, peer: Peer): void {
-    // If the peer is not connected or identified, don't add them as a source
+    // Drop peers without an identity or when we're already processing a full block
     const currentState = this.pending.get(hash)
     if (!peer.state.identity || currentState?.action === 'PROCESSING_FULL_BLOCK') {
       return
     }
 
     if (currentState) {
-      // If the peer is not currently the one we're requesting from, add it to sources
+      // If we're already fetching this block and we're not using this peer to fetch from,
+      // add the peer as a potential backup
       if (!('peer' in currentState && currentState.peer === peer.state.identity)) {
         currentState.sources.add(peer.state.identity)
       }
       return
     }
 
+    // Otherwise, schedule a request for the block and add the peer as the first source
     const timeout = setTimeout(() => {
       this.requestCompactBlock(hash)
     }, WAIT_BEFORE_REQUEST_MS)
@@ -105,11 +115,13 @@ export class BlockFetcher {
   private requestCompactBlock(hash: BlockHash): void {
     const currentState = this.pending.get(hash)
 
+    // State may be gone if we already received a full or compact block, and it was rejected
+    // or added to chain
     if (!currentState) {
       return
     }
 
-    // If we are further along in the request cycle, don't send out another request
+    // If we've already reached a later step, don't send out another request
     if (
       currentState.action === 'PROCESSING_COMPACT_BLOCK' ||
       currentState.action === 'TRANSACTION_REQUEST_IN_FLIGHT' ||
@@ -154,7 +166,7 @@ export class BlockFetcher {
       }
 
       void timeoutFn()
-    }, 5000)
+    }, REQUEST_COMPACT_BLOCK_TIMEOUT_MS)
 
     this.pending.set(hash, {
       action: 'BLOCK_REQUEST_IN_FLIGHT',
@@ -333,7 +345,7 @@ export class BlockFetcher {
 
     const timeout = setTimeout(() => {
       this.requestFullBlock(hash)
-    }, 5000)
+    }, REQUEST_BLOCK_TRANSACTIONS_TIMEOUT_MS)
 
     this.pending.set(hash, {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT',
@@ -386,7 +398,7 @@ export class BlockFetcher {
 
     const timeout = setTimeout(() => {
       this.requestFullBlock(hash)
-    }, 5000)
+    }, REQUEST_FULL_BLOCK_TIMEOUT_MS)
 
     this.pending.set(hash, {
       action: 'FULL_BLOCK_REQUEST_IN_FLIGHT',
