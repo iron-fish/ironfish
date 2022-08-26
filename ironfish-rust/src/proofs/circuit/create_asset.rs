@@ -5,7 +5,10 @@ use bellman::{
     Circuit,
 };
 use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
-use zcash_proofs::circuit::ecc;
+use zcash_proofs::{
+    circuit::{ecc, pedersen_hash},
+    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+};
 
 use crate::primitives::{asset_type::AssetInfo, constants::ASSET_IDENTIFIER_PERSONALIZATION};
 
@@ -13,6 +16,8 @@ use super::sapling::slice_into_boolean_vec_le;
 
 pub struct CreateAsset {
     pub asset_info: Option<AssetInfo>,
+
+    pub commitment_randomness: Option<jubjub::Fr>,
 }
 
 impl Circuit<bls12_381::Scalar> for CreateAsset {
@@ -119,16 +124,54 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
                 &provided_asset_generator_bits[i],
             )?;
         }
+
+        // TODO: Create an Asset Note concept instead of using Asset Info
+        // TODO: does this need a different personalization
+        let mut cm = pedersen_hash::pedersen_hash(
+            cs.namespace(|| "asset note content hash"),
+            pedersen_hash::Personalization::NoteCommitment,
+            &combined_preimage,
+        )?;
+
+        {
+            // Booleanize the randomness
+            let rcm = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "rcm"),
+                self.commitment_randomness,
+            )?;
+
+            // Compute the note commitment randomness in the exponent
+            let rcm = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of commitment randomness"),
+                &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+                &rcm,
+            )?;
+
+            // Randomize our note commitment
+            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+        }
+
+        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+
+        // Note to selves: Create Asset circuit is going to be basically identical to Output circuit
+        // with proving you own the public key in Asset Info
+
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::slice;
+
     use bellman::groth16;
     use bls12_381::Bls12;
     use group::Curve;
-    use rand::rngs::OsRng;
+    use rand::{rngs::OsRng, Rng};
+    use zcash_primitives::{
+        constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
+        pedersen_hash::{self, pedersen_hash},
+    };
 
     use crate::{primitives::asset_type::AssetInfo, SaplingKey};
 
@@ -138,7 +181,10 @@ mod test {
     fn test_create_asset_circuit() {
         // Setup: generate parameters file. This is slow, consider using pre-built ones later
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            CreateAsset { asset_info: None },
+            CreateAsset {
+                asset_info: None,
+                commitment_randomness: None,
+            },
             &mut OsRng,
         )
         .expect("Can generate random params");
@@ -154,11 +200,43 @@ mod test {
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
-        let inputs = [generator_affine.get_u(), generator_affine.get_v()];
+
+        let commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+
+        let mut commitment_plaintext: Vec<u8> = vec![];
+        commitment_plaintext.extend(GH_FIRST_BLOCK);
+        commitment_plaintext.extend(asset_info.name());
+        commitment_plaintext.extend(asset_info.public_address_bytes());
+        commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+
+        // TODO: Make a helper function
+        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+            pedersen_hash::Personalization::NoteCommitment,
+            commitment_plaintext
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        ));
+
+        let commitment_full_point =
+            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+
+        let commitment = commitment_full_point.to_affine().get_u();
+
+        let inputs = [
+            generator_affine.get_u(),
+            generator_affine.get_v(),
+            commitment,
+        ];
 
         // Create proof
         let circuit = CreateAsset {
             asset_info: Some(asset_info),
+            commitment_randomness: Some(commitment_randomness),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
@@ -172,7 +250,11 @@ mod test {
             AssetInfo::new(bad_name, public_address).expect("Can create a valid asset");
 
         let bad_generator_affine = bad_asset_info.asset_type().asset_generator().to_affine();
-        let bad_inputs = [bad_generator_affine.get_u(), bad_generator_affine.get_v()];
+        let bad_inputs = [
+            bad_generator_affine.get_u(),
+            bad_generator_affine.get_v(),
+            commitment,
+        ];
 
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
 
@@ -184,8 +266,14 @@ mod test {
             AssetInfo::new(name, bad_public_address).expect("Can create a valid asset");
 
         let bad_generator_affine = bad_asset_info.asset_type().asset_generator().to_affine();
-        let bad_inputs = [bad_generator_affine.get_u(), bad_generator_affine.get_v()];
+        let bad_inputs = [
+            bad_generator_affine.get_u(),
+            bad_generator_affine.get_v(),
+            commitment,
+        ];
 
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
+
+        // TODO: Add a sanity check with a bad commitment
     }
 }
