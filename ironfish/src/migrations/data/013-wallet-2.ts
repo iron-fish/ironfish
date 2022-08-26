@@ -207,15 +207,12 @@ export class Migration013 extends Migration {
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<void> {
-    const headHash = await metaStoreOld.get('headHash', tx)
+    const headHashHex = await metaStoreOld.get('headHash', tx)
+    const headHash = headHashHex ? Buffer.from(headHashHex, 'hex') : null
 
     for (const account of accounts) {
       logger.debug(`\tSetting account ${account.account.name} head hash: ${String(headHash)}`)
-      await headHashesStoreNew.put(
-        account.id,
-        headHash ? Buffer.from(headHash, 'hex') : null,
-        tx,
-      )
+      await headHashesStoreNew.put(account.id, headHash, tx)
     }
   }
 
