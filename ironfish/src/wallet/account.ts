@@ -523,7 +523,7 @@ export class Account {
     await this.accountsDb.saveUnconfirmedBalance(this, balance, tx)
   }
 
-  async getHeadHash(tx?: IDatabaseTransaction): Promise<string | null> {
+  async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return this.accountsDb.getHeadHash(this, tx)
   }
 }

@@ -103,7 +103,6 @@ describe('Accounts', () => {
       const { node } = nodeTest
 
       const newHeadHash = Buffer.alloc(32, 1)
-      const newHeadHashHex = newHeadHash.toString('hex')
 
       const accountA = await useAccountFixture(node.accounts, 'accountA')
       const accountB = await useAccountFixture(node.accounts, 'accountB')
@@ -113,8 +112,8 @@ describe('Accounts', () => {
       await node.accounts.updateHeadHashes(newHeadHash)
 
       expect(saveHeadHashSpy).toHaveBeenCalledTimes(2)
-      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(1, accountA, newHeadHashHex, undefined)
-      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(2, accountB, newHeadHashHex, undefined)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(1, accountA, newHeadHash, undefined)
+      expect(saveHeadHashSpy).toHaveBeenNthCalledWith(2, accountB, newHeadHash, undefined)
     })
   })
 
@@ -140,7 +139,7 @@ describe('Accounts', () => {
       let headStatusB = node.accounts['headHashes'].get(accountB.id)
 
       // Confirm pre-rescan state
-      expect(headStatusA).toEqual(blockB.header.hash.toString('hex'))
+      expect(headStatusA).toEqual(blockB.header.hash)
       expect(headStatusB).toEqual(null)
 
       await node.accounts.scanTransactions()
@@ -148,8 +147,8 @@ describe('Accounts', () => {
       headStatusA = node.accounts['headHashes'].get(accountA.id)
       headStatusB = node.accounts['headHashes'].get(accountB.id)
 
-      expect(headStatusA).toEqual(blockB.header.hash.toString('hex'))
-      expect(headStatusB).toEqual(blockB.header.hash.toString('hex'))
+      expect(headStatusA).toEqual(blockB.header.hash)
+      expect(headStatusB).toEqual(blockB.header.hash)
     })
 
     it('should rescan and update chain processor', async () => {
@@ -252,8 +251,8 @@ describe('Accounts', () => {
       const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(blockB)
 
-      node.accounts['headHashes'].set(accountA.id, blockA.header.hash.toString('hex'))
-      node.accounts['headHashes'].set(accountB.id, blockB.header.hash.toString('hex'))
+      node.accounts['headHashes'].set(accountA.id, blockA.header.hash)
+      node.accounts['headHashes'].set(accountB.id, blockB.header.hash)
       node.accounts['headHashes'].set(accountC.id, null)
 
       expect(await node.accounts.getEarliestHeadHash()).toEqual(null)
@@ -274,8 +273,8 @@ describe('Accounts', () => {
       const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(blockB)
 
-      node.accounts['headHashes'].set(accountA.id, blockA.header.hash.toString('hex'))
-      node.accounts['headHashes'].set(accountB.id, blockB.header.hash.toString('hex'))
+      node.accounts['headHashes'].set(accountA.id, blockA.header.hash)
+      node.accounts['headHashes'].set(accountB.id, blockB.header.hash)
       node.accounts['headHashes'].set(accountC.id, null)
 
       expect(await node.accounts.getLatestHeadHash()).toEqual(blockB.header.hash)
@@ -304,7 +303,7 @@ describe('Accounts', () => {
 
       const headStatusA = node.accounts['headHashes'].get(accountA.id)
       const headStatusB = node.accounts['headHashes'].get(accountB.id)
-      expect(headStatusA).toEqual(blockB.header.hash.toString('hex'))
+      expect(headStatusA).toEqual(blockB.header.hash)
       expect(headStatusB).toEqual(null)
     })
   })

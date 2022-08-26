@@ -12,7 +12,7 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  NullableStringEncoding,
+  NullableBufferEncoding,
   StringEncoding,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
@@ -44,7 +44,7 @@ export class AccountsDB {
 
   headHashes: IDatabaseStore<{
     key: string
-    value: string | null
+    value: Buffer | null
   }>
 
   balances: IDatabaseStore<{
@@ -89,11 +89,11 @@ export class AccountsDB {
 
     this.headHashes = this.database.addStore<{
       key: string
-      value: string | null
+      value: Buffer | null
     }>({
       name: 'headHashes',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableStringEncoding(),
+      valueEncoding: new NullableBufferEncoding(),
     })
 
     this.accounts = this.database.addStore<{ key: string; value: AccountValue }>({
@@ -189,7 +189,7 @@ export class AccountsDB {
     }
   }
 
-  async getHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<string | null> {
+  async getHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return await this.database.withTransaction(tx, async (tx) => {
       const headHash = await this.headHashes.get(account.id, tx)
       Assert.isNotUndefined(headHash)
@@ -199,7 +199,7 @@ export class AccountsDB {
 
   async saveHeadHash(
     account: Account,
-    headHash: string | null,
+    headHash: Buffer | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
@@ -219,7 +219,7 @@ export class AccountsDB {
 
   async *loadHeadHashes(
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string; headHash: string | null }, void, unknown> {
+  ): AsyncGenerator<{ accountId: string; headHash: Buffer | null }, void, unknown> {
     for await (const [accountId, headHash] of this.headHashes.getAllIter(tx)) {
       yield { accountId, headHash }
     }

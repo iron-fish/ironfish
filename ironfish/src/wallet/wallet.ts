@@ -16,7 +16,7 @@ import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
@@ -41,7 +41,7 @@ export class Accounts {
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
 
-  protected readonly headHashes = new Map<string, string | null>()
+  protected readonly headHashes = new Map<string, Buffer | null>()
 
   protected readonly accounts = new Map<string, Account>()
   readonly db: AccountsDB
@@ -283,11 +283,9 @@ export class Accounts {
     headHash: Buffer | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const hash = headHash ? headHash.toString('hex') : null
+    this.headHashes.set(account.id, headHash)
 
-    this.headHashes.set(account.id, hash)
-
-    await this.db.saveHeadHash(account, hash, tx)
+    await this.db.saveHeadHash(account, headHash, tx)
   }
 
   async reset(): Promise<void> {
@@ -485,8 +483,6 @@ export class Accounts {
     // Accounts that need to be updated at future scan sequences
     let remainingAccounts: Array<Account> = []
 
-    const startHashHex = startHash ? startHash.toString('hex') : null
-
     for (const account of this.accounts.values()) {
       const headHash = this.headHashes.get(account.id)
       Assert.isNotUndefined(
@@ -494,7 +490,7 @@ export class Accounts {
         `scanTransactions: No head hash found for ${account.displayName}`,
       )
 
-      if (startHashHex === headHash) {
+      if (BufferUtils.equalsNullable(startHash, headHash)) {
         accounts.push(account)
       } else if (!this.isAccountUpToDate(account)) {
         remainingAccounts.push(account)
@@ -549,7 +545,6 @@ export class Accounts {
         await this.updateHeadHash(account, blockHeader.hash)
       }
 
-      const hashHex = blockHeader.hash.toString('hex')
       const newRemainingAccounts = []
 
       for (const remainingAccount of remainingAccounts) {
@@ -559,7 +554,7 @@ export class Accounts {
           `scanTransactions: No head hash found for remaining account ${remainingAccount.displayName}`,
         )
 
-        if (headHash === hashHex) {
+        if (BufferUtils.equalsNullable(headHash, blockHeader.hash)) {
           accounts.push(remainingAccount)
           this.logger.debug(`Adding ${remainingAccount.displayName} to scan`)
         } else {
@@ -597,8 +592,8 @@ export class Accounts {
           confirmed: BigInt(0),
         }
       }
-      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'), tx)
-      Assert.isNotNull(header, `Missing block header for hash '${headHash}'`)
+      const header = await this.chain.getHeader(headHash, tx)
+      Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
       const headSequence = header.sequence
       const unconfirmedSequenceStart =
         headSequence - this.config.get('minimumBlockConfirmations')
@@ -1067,12 +1062,14 @@ export class Accounts {
         return null
       }
 
-      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
+      const header = await this.chain.getHeader(headHash)
 
       if (!header) {
         // If no header is returned, the hash is likely invalid and we should remove it
         this.logger.warn(
-          `${account.displayName} has an invalid head hash ${headHash}. This account needs to be rescanned.`,
+          `${account.displayName} has an invalid head hash ${headHash.toString(
+            'hex',
+          )}. This account needs to be rescanned.`,
         )
         await this.db.saveHeadHash(account, null)
         continue
@@ -1094,8 +1091,11 @@ export class Accounts {
         continue
       }
 
-      const header = await this.chain.getHeader(Buffer.from(headHash, 'hex'))
-      Assert.isNotNull(header, `getLatestHeadHash: No header found for ${headHash}`)
+      const header = await this.chain.getHeader(headHash)
+      Assert.isNotNull(
+        header,
+        `getLatestHeadHash: No header found for ${headHash.toString('hex')}`,
+      )
 
       if (!latestHeader || latestHeader.sequence < header.sequence) {
         latestHeader = header
@@ -1124,11 +1124,9 @@ export class Accounts {
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
-    const chainHeadHash = this.chainProcessor.hash
-      ? this.chainProcessor.hash.toString('hex')
-      : null
+    const chainHeadHash = this.chainProcessor.hash ? this.chainProcessor.hash : null
 
-    return headHash === chainHeadHash
+    return BufferUtils.equalsNullable(headHash, chainHeadHash)
   }
 
   protected assertHasAccount(account: Account): void {

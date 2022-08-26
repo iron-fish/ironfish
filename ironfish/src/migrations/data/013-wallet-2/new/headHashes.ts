@@ -6,5 +6,5 @@ import { IDatabaseStore } from '../../../../storage'
 
 export type HeadHashesStore = IDatabaseStore<{
   key: string
-  value: string | null
+  value: Buffer | null
 }>
