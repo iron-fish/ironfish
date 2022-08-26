@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
+import { Transaction } from '../../primitives'
 
 export interface TransactionValue {
-  transaction: Buffer
+  transaction: Transaction
   // These fields are populated once the transaction is on the main chain
   blockHash: Buffer | null
   sequence: number | null
@@ -20,7 +21,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     const { transaction, blockHash, sequence, submittedSequence } = value
 
     const bw = bufio.write(this.getSize(value))
-    bw.writeVarBytes(transaction)
+    bw.writeVarBytes(transaction.serialize())
 
     let flags = 0
     flags |= Number(!!blockHash) << 0
@@ -43,7 +44,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
   deserialize(buffer: Buffer): TransactionValue {
     const reader = bufio.read(buffer, true)
-    const transaction = reader.readVarBytes()
+    const transaction = new Transaction(reader.readVarBytes())
 
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
@@ -69,7 +70,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
   }
 
   getSize(value: TransactionValue): number {
-    let size = bufio.sizeVarBytes(value.transaction)
+    let size = bufio.sizeVarBytes(value.transaction.serialize())
     size += 1
     if (value.blockHash) {
       size += 32

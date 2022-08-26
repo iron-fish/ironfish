@@ -11,6 +11,7 @@ import { BufferUtils } from '../utils'
 import { AccountsDB } from './database/accountsdb'
 import { AccountValue } from './database/accountValue'
 import { DecryptedNoteValue } from './database/decryptedNoteValue'
+import { TransactionValue } from './database/transactionValue'
 import { SyncTransactionParams } from './wallet'
 
 export const ACCOUNT_KEY_LENGTH = 32
@@ -19,14 +20,7 @@ export class Account {
   private readonly accountsDb: AccountsDB
   private readonly decryptedNotes: BufferMap<DecryptedNoteValue>
   private readonly nullifierToNoteHash: BufferMap<Buffer>
-  private readonly transactions: BufferMap<
-    Readonly<{
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    }>
-  >
+  private readonly transactions: BufferMap<Readonly<TransactionValue>>
 
   private readonly noteHashesBySequence: Map<number, BufferSet>
   private readonly nonChainNoteHashes: BufferSet
@@ -74,12 +68,7 @@ export class Account {
     this.accountsDb = accountsDb
     this.decryptedNotes = new BufferMap<DecryptedNoteValue>()
     this.nullifierToNoteHash = new BufferMap<Buffer>()
-    this.transactions = new BufferMap<{
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    }>()
+    this.transactions = new BufferMap<TransactionValue>()
 
     this.noteHashesBySequence = new Map<number, BufferSet>()
     this.nonChainNoteHashes = new BufferSet()
@@ -115,25 +104,25 @@ export class Account {
       }
 
       const transactionHash = decryptedNote.transactionHash
-      const transaction = await this.accountsDb.loadTransaction(transactionHash)
+      const transactionValue = await this.accountsDb.loadTransaction(transactionHash)
       Assert.isNotNull(
-        transaction,
+        transactionValue,
         `Transaction not found for '${transactionHash.toString('hex')}'`,
       )
 
-      this.transactions.set(transactionHash, transaction)
+      this.transactions.set(transactionHash, transactionValue)
 
       this.saveDecryptedNoteSequence(transactionHash, hash)
     }
 
-    for await (const { hash, transaction } of this.accountsDb.loadTransactions()) {
+    for await (const { hash, transactionValue } of this.accountsDb.loadTransactions()) {
       if (this.transactions.has(hash)) {
         continue
       }
 
-      for (const spend of transaction.transaction.spends()) {
+      for (const spend of transactionValue.transaction.spends()) {
         if (this.nullifierToNoteHash.has(spend.nullifier)) {
-          this.transactions.set(hash, transaction)
+          this.transactions.set(hash, transactionValue)
           break
         }
       }
@@ -280,12 +269,7 @@ export class Account {
 
   async updateTransaction(
     hash: Buffer,
-    transactionValue: {
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    },
+    transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.transactions.set(hash, transactionValue)
@@ -411,25 +395,11 @@ export class Account {
     await this.accountsDb.deleteNullifier(nullifier, tx)
   }
 
-  getTransaction(hash: Buffer):
-    | Readonly<{
-        transaction: Transaction
-        blockHash: Buffer | null
-        sequence: number | null
-        submittedSequence: number | null
-      }>
-    | undefined {
+  getTransaction(hash: Buffer): Readonly<TransactionValue> | undefined {
     return this.transactions.get(hash)
   }
 
-  getTransactions(): Generator<
-    Readonly<{
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    }>
-  > {
+  getTransactions(): Generator<Readonly<TransactionValue>> {
     return this.transactions.values()
   }
 

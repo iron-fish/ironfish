@@ -5,7 +5,6 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
-import { Transaction } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
   BufferEncoding,
@@ -227,20 +226,11 @@ export class AccountsDB {
 
   async saveTransaction(
     transactionHash: Buffer,
-    transaction: {
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    },
+    transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const serialized = {
-      ...transaction,
-      transaction: transaction.transaction.serialize(),
-    }
     await this.database.withTransaction(tx, async (tx) => {
-      await this.transactions.put(transactionHash, serialized, tx)
+      await this.transactions.put(transactionHash, transactionValue, tx)
     })
   }
 
@@ -255,42 +245,24 @@ export class AccountsDB {
   }
 
   async replaceTransactions(
-    map: BufferMap<{
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    }>,
+    map: BufferMap<TransactionValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
       for (const [key, value] of map) {
-        const serialized = {
-          ...value,
-          transaction: value.transaction.serialize(),
-        }
-
-        await this.transactions.put(key, serialized, tx)
+        await this.transactions.put(key, value, tx)
       }
     })
   }
 
   async *loadTransactions(tx?: IDatabaseTransaction): AsyncGenerator<{
     hash: Buffer
-    transaction: {
-      transaction: Transaction
-      blockHash: Buffer | null
-      sequence: number | null
-      submittedSequence: number | null
-    }
+    transactionValue: TransactionValue
   }> {
-    for await (const [hash, value] of this.transactions.getAllIter(tx)) {
+    for await (const [hash, transactionValue] of this.transactions.getAllIter(tx)) {
       yield {
         hash,
-        transaction: {
-          ...value,
-          transaction: new Transaction(value.transaction),
-        },
+        transactionValue,
       }
     }
   }
@@ -298,22 +270,9 @@ export class AccountsDB {
   async loadTransaction(
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<{
-    transaction: Transaction
-    blockHash: Buffer | null
-    sequence: number | null
-    submittedSequence: number | null
-  } | null> {
+  ): Promise<TransactionValue | null> {
     const transactionValue = await this.transactions.get(transactionHash, tx)
-
-    if (transactionValue) {
-      return {
-        ...transactionValue,
-        transaction: new Transaction(transactionValue.transaction),
-      }
-    }
-
-    return null
+    return transactionValue || null
   }
 
   async saveNullifierNoteHash(
