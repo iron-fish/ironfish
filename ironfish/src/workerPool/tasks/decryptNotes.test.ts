@@ -34,7 +34,7 @@ describe('DecryptNotesResponse', () => {
         {
           forSpender: false,
           index: 1,
-          merkleHash: Buffer.alloc(32, 1),
+          hash: Buffer.alloc(32, 1),
           nullifier: Buffer.alloc(32, 1),
           serializedNote: Buffer.alloc(NOTE_LENGTH, 1),
         },
@@ -75,7 +75,7 @@ describe('DecryptNotesTask', () => {
             forSpender: false,
             index,
             nullifier: expect.any(Buffer),
-            merkleHash: expect.any(Buffer),
+            hash: expect.any(Buffer),
             serializedNote: expect.any(Buffer),
           },
         ],

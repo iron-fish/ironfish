@@ -18,7 +18,7 @@ import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
+import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
 import { AccountsDB } from './database/accountsdb'
 import { AccountValue } from './database/accountValue'
@@ -309,33 +309,11 @@ export class Accounts {
     transaction: Transaction,
     initialNoteIndex: number | null,
     accounts?: Array<Account>,
-  ): Promise<
-    Map<
-      string,
-      Array<{
-        noteIndex: number | null
-        nullifier: Buffer | null
-        merkleHash: Buffer
-        forSpender: boolean
-        account: Account
-        serializedNote: Buffer
-      }>
-    >
-  > {
+  ): Promise<Map<string, Array<DecryptedNote>>> {
     const accountsToCheck =
       accounts || this.listAccounts().filter((a) => this.isAccountUpToDate(a))
 
-    const decryptedNotesByAccountId = new Map<
-      string,
-      Array<{
-        noteIndex: number | null
-        nullifier: Buffer | null
-        merkleHash: Buffer
-        forSpender: boolean
-        account: Account
-        serializedNote: Buffer
-      }>
-    >()
+    const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
 
     const batchSize = 20
     for (const account of accountsToCheck) {
@@ -358,7 +336,6 @@ export class Accounts {
 
         if (decryptNotesPayloads.length >= batchSize) {
           const decryptedNotesBatch = await this.decryptNotesFromTransaction(
-            account,
             decryptNotesPayloads,
           )
           decryptedNotes.push(...decryptedNotesBatch)
@@ -367,10 +344,7 @@ export class Accounts {
       }
 
       if (decryptNotesPayloads.length) {
-        const decryptedNotesBatch = await this.decryptNotesFromTransaction(
-          account,
-          decryptNotesPayloads,
-        )
+        const decryptedNotesBatch = await this.decryptNotesFromTransaction(decryptNotesPayloads)
         decryptedNotes.push(...decryptedNotesBatch)
       }
 
@@ -383,31 +357,13 @@ export class Accounts {
   }
 
   private async decryptNotesFromTransaction(
-    account: Account,
     decryptNotesPayloads: Array<DecryptNoteOptions>,
-  ): Promise<
-    Array<{
-      noteIndex: number | null
-      nullifier: Buffer | null
-      merkleHash: Buffer
-      forSpender: boolean
-      account: Account
-      serializedNote: Buffer
-    }>
-  > {
+  ): Promise<Array<DecryptedNote>> {
     const decryptedNotes = []
     const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
-
     for (const decryptedNote of response) {
       if (decryptedNote) {
-        decryptedNotes.push({
-          account,
-          forSpender: decryptedNote.forSpender,
-          merkleHash: decryptedNote.merkleHash,
-          noteIndex: decryptedNote.index,
-          nullifier: decryptedNote.nullifier ? decryptedNote.nullifier : null,
-          serializedNote: decryptedNote.serializedNote,
-        })
+        decryptedNotes.push(decryptedNote)
       }
     }
 
@@ -728,7 +684,7 @@ export class Accounts {
             // Update our map so this doesn't happen again
             const noteMapValue = sender.getDecryptedNote(unspentNote.hash)
             if (noteMapValue) {
-              this.logger.debug(`Unspent note has index ${String(noteMapValue.noteIndex)}`)
+              this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
               await sender.updateDecryptedNote(unspentNote.hash, {
                 ...noteMapValue,
                 spent: true,
