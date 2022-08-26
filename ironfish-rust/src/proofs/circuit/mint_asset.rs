@@ -1,14 +1,15 @@
 use std::slice;
 
 use bellman::{
-    gadgets::{blake2s, boolean, multipack},
-    Circuit,
+    gadgets::{blake2s, boolean, multipack, num, Assignment},
+    Circuit, ConstraintSystem,
 };
 use ff::PrimeField;
 use zcash_primitives::{
     constants::{self, GH_FIRST_BLOCK},
     primitives::ProofGenerationKey,
 };
+use zcash_proofs::{circuit::{pedersen_hash}, constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR};
 use zcash_proofs::{circuit::ecc, constants::PROOF_GENERATION_KEY_GENERATOR};
 
 use crate::{
@@ -24,6 +25,15 @@ use crate::{
 pub struct MintAsset {
     pub asset_info: Option<AssetInfo>,
     pub proof_generation_key: Option<ProofGenerationKey>,
+
+    /// The authentication path of the commitment in the tree
+    pub auth_path: Vec<Option<(bls12_381::Scalar, bool)>>,
+
+    /// The anchor; the root of the tree. If the note being
+    /// spent is zero-value, this can be anything.
+    pub anchor: Option<bls12_381::Scalar>,
+
+    pub commitment_randomness: Option<jubjub::Fr>,
 }
 
 impl Circuit<bls12_381::Scalar> for MintAsset {
@@ -164,6 +174,85 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         asset_commitment_contents.extend(public_address_bits);
         asset_commitment_contents.extend(nonce_bits);
 
+        let mut cm = pedersen_hash::pedersen_hash(
+            cs.namespace(|| "asset note content hash"),
+            pedersen_hash::Personalization::NoteCommitment,
+            &asset_commitment_contents,
+        )?;
+
+        {
+            // Booleanize the randomness
+            let rcm = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "rcm"),
+                self.commitment_randomness,
+            )?;
+
+            // Compute the note commitment randomness in the exponent
+            let rcm = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of commitment randomness"),
+                &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+                &rcm,
+            )?;
+
+            // Randomize our note commitment
+            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+        }
+
+        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+
+        // This will store (least significant bit first)
+        // the position of the note in the tree, for use
+        // in nullifier computation.
+        let mut position_bits = vec![];
+        // This is an injective encoding, as cur is a
+        // point in the prime order subgroup.
+        let mut cur = cm.get_u().clone();
+
+        // Ascend the merkle tree authentication path
+        for (i, e) in self.auth_path.into_iter().enumerate() {
+            let cs = &mut cs.namespace(|| format!("merkle tree hash {}", i));
+
+            // Determines if the current subtree is the "right" leaf at this
+            // depth of the tree.
+            let cur_is_right = boolean::Boolean::from(boolean::AllocatedBit::alloc(
+                cs.namespace(|| "position bit"),
+                e.map(|e| e.1),
+            )?);
+
+            // Push this boolean for nullifier computation later
+            position_bits.push(cur_is_right.clone());
+
+            // Witness the authentication path element adjacent
+            // at this depth.
+            let path_element =
+                num::AllocatedNum::alloc(cs.namespace(|| "path element"), || Ok(e.get()?.0))?;
+
+            // Swap the two if the current subtree is on the right
+            let (ul, ur) = num::AllocatedNum::conditionally_reverse(
+                cs.namespace(|| "conditional reversal of preimage"),
+                &cur,
+                &path_element,
+                &cur_is_right,
+            )?;
+
+            // We don't need to be strict, because the function is
+            // collision-resistant. If the prover witnesses a congruency,
+            // they will be unable to find an authentication path in the
+            // tree with high probability.
+            let mut preimage = vec![];
+            preimage.extend(ul.to_bits_le(cs.namespace(|| "ul into bits"))?);
+            preimage.extend(ur.to_bits_le(cs.namespace(|| "ur into bits"))?);
+
+            // Compute the new subtree value
+            cur = pedersen_hash::pedersen_hash(
+                cs.namespace(|| "computation of pedersen hash"),
+                pedersen_hash::Personalization::MerkleTree(i),
+                &preimage,
+            )?
+            .get_u()
+            .clone(); // Injective encoding
+        }
+
         let asset_identifier = blake2s::blake2s(
             cs.namespace(|| "blake2s(asset info)"),
             &asset_commitment_contents,
@@ -191,24 +280,13 @@ mod test {
     };
 
     use crate::{
-        primitives::asset_type::AssetInfo, proofs::circuit::create_asset::CreateAsset, SaplingKey,
+        primitives::asset_type::AssetInfo, proofs::circuit::create_asset::CreateAsset, SaplingKey, test_util::make_fake_witness_from_commitment,
     };
 
     use super::MintAsset;
 
     #[test]
     fn test_mint_asset_circuit() {
-        // Setup: generate parameters file. This is slow, consider using pre-built ones later
-        let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            MintAsset {
-                asset_info: None,
-                proof_generation_key: None,
-            },
-            &mut OsRng,
-        )
-        .expect("Can generate random params");
-        let pvk = groth16::prepare_verifying_key(&params.vk);
-
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.generate_public_address();
@@ -219,6 +297,47 @@ mod test {
         let asset_info =
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
+        let commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+
+        let mut commitment_plaintext: Vec<u8> = vec![];
+        commitment_plaintext.extend(GH_FIRST_BLOCK);
+        commitment_plaintext.extend(asset_info.name());
+        commitment_plaintext.extend(asset_info.public_address_bytes());
+        commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+
+        // TODO: Make a helper function
+        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+            pedersen_hash::Personalization::NoteCommitment,
+            commitment_plaintext
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        ));
+
+        let commitment_full_point =
+            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+
+        let commitment = commitment_full_point.to_affine().get_u();
+        let witness = make_fake_witness_from_commitment(commitment);
+
+        // Setup: generate parameters file. This is slow, consider using pre-built ones later
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(
+            MintAsset {
+                asset_info: None,
+                proof_generation_key: None,
+                commitment_randomness: None,
+                auth_path: None,
+                anchor: None,
+            },
+            &mut OsRng,
+        )
+        .expect("Can generate random params");
+        let pvk = groth16::prepare_verifying_key(&params.vk);
+
         let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
         let inputs = multipack::compute_multipacking(&identifier_bits);
 
@@ -226,6 +345,9 @@ mod test {
         let circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
+            commitment_randomness: Some(commitment_randomness),
+            auth_path: witness.auth_path,
+            anchor: Some(witness.root_hash),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
