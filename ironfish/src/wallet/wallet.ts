@@ -592,11 +592,14 @@ export class Accounts {
           confirmed: BigInt(0),
         }
       }
-      const header = await this.chain.getHeader(headHash, tx)
+
+      const header = await this.chain.getHeader(headHash)
       Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
+
       const headSequence = header.sequence
       const unconfirmedSequenceStart =
         headSequence - this.config.get('minimumBlockConfirmations')
+
       return account.getBalance(unconfirmedSequenceStart, headSequence, tx)
     })
   }
@@ -835,7 +838,7 @@ export class Accounts {
 
         let isValid = true
         await this.db.database.transaction(async (tx) => {
-          const verify = await this.chain.verifier.verifyTransactionAdd(transaction, tx)
+          const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
 
           // We still update this even if it's not valid to prevent constantly
           // reprocessing valid transaction every block. Give them a few blocks to
