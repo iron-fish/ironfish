@@ -170,7 +170,7 @@ mod test {
     use rand::{rngs::OsRng, Rng};
     use zcash_primitives::{
         constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
-        pedersen_hash::{self, pedersen_hash},
+        pedersen_hash::{self},
     };
 
     use crate::{primitives::asset_type::AssetInfo, SaplingKey};

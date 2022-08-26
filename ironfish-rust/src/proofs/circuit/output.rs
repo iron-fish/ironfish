@@ -6,19 +6,12 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use jubjub::ExtendedPoint;
 use zcash_primitives::constants;
 
-use zcash_primitives::primitives::{PaymentAddress, ProofGenerationKey};
+use zcash_primitives::primitives::PaymentAddress;
 
 use bellman::gadgets::blake2s;
-use bellman::gadgets::boolean::{self, AllocatedBit, Boolean};
-use bellman::gadgets::multipack;
-use bellman::gadgets::num;
-use bellman::gadgets::Assignment;
-use zcash_proofs::circuit::ecc::EdwardsPoint;
+use bellman::gadgets::boolean::{self};
 use zcash_proofs::circuit::{ecc, pedersen_hash};
-use zcash_proofs::constants::{
-    NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
-    PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-};
+use zcash_proofs::constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR;
 
 use crate::primitives::asset_type::AssetType;
 use crate::primitives::sapling::ValueCommitment;
