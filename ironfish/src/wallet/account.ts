@@ -22,7 +22,7 @@ export class Account {
   private readonly nullifierToNoteHash: BufferMap<Buffer>
   private readonly transactions: BufferMap<Readonly<TransactionValue>>
 
-  private readonly noteHashesBySequence: Map<number, BufferSet>
+  private readonly sequenceToNoteHashes: Map<number, BufferSet>
   private readonly nonChainNoteHashes: BufferSet
 
   readonly id: string
@@ -70,7 +70,7 @@ export class Account {
     this.nullifierToNoteHash = new BufferMap<Buffer>()
     this.transactions = new BufferMap<TransactionValue>()
 
-    this.noteHashesBySequence = new Map<number, BufferSet>()
+    this.sequenceToNoteHashes = new Map<number, BufferSet>()
     this.nonChainNoteHashes = new BufferSet()
   }
 
@@ -215,9 +215,9 @@ export class Account {
     const { sequence, blockHash } = transaction
     if (blockHash) {
       Assert.isNotNull(sequence, `sequence required when submitting block hash`)
-      const decryptedNotes = this.noteHashesBySequence.get(sequence) ?? new BufferSet()
+      const decryptedNotes = this.sequenceToNoteHashes.get(sequence) ?? new BufferSet()
       decryptedNotes.add(noteHash)
-      this.noteHashesBySequence.set(sequence, decryptedNotes)
+      this.sequenceToNoteHashes.set(sequence, decryptedNotes)
       this.nonChainNoteHashes.delete(noteHash)
     } else {
       this.nonChainNoteHashes.add(noteHash)
@@ -364,10 +364,10 @@ export class Account {
       const record = this.transactions.get(transactionHash)
       if (record && record.sequence) {
         const { sequence } = record
-        const noteHashes = this.noteHashesBySequence.get(sequence)
+        const noteHashes = this.sequenceToNoteHashes.get(sequence)
         if (noteHashes) {
           noteHashes.delete(noteHash)
-          this.noteHashesBySequence.set(sequence, noteHashes)
+          this.sequenceToNoteHashes.set(sequence, noteHashes)
         }
       }
 
@@ -456,7 +456,7 @@ export class Account {
     let confirmed = unconfirmed
 
     for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
-      const noteHashes = this.noteHashesBySequence.get(i)
+      const noteHashes = this.sequenceToNoteHashes.get(i)
       if (noteHashes) {
         for (const hash of noteHashes) {
           const note = this.decryptedNotes.get(hash)
