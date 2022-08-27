@@ -14,8 +14,7 @@ describe('accounts:pay command', () => {
   const amount = 0.000001
   const to =
     '997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
-  const from =
-    '197c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
+  const from = 'test_account'
   const memo = 'test memo for a transaction'
   const hash =
     'aaaa586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
@@ -172,19 +171,24 @@ describe('accounts:pay command', () => {
   })
 
   // TODO: this stopped passing. The error is super cryptic.
-  // describe('When the API throws an error', () => {
-  //   beforeEach(() => {
-  //     sendTransaction = jest.fn().mockRejectedValue('an error')
-  //   })
-  //   test
-  //     .stub(CliUx.ux, 'confirm', () => async () => await Promise.resolve(true))
-  //     .stdout()
-  //     .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`])
-  //     .exit(2)
-  //     .it('show the right error message and call sendTransaction', (ctx) => {
-  //       expectCli(ctx.stdout).include(confirmationString)
-  //       expect(sendTransaction).toBeCalledTimes(1)
-  //       expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)
-  //     })
-  // })
+  describe('When the RPC throws an error', () => {
+    beforeEach(() => {
+      sendTransaction = jest.fn().mockRejectedValue('an error')
+    })
+    test
+      .stdout()
+      .command([
+        'accounts:pay',
+        `-a ${amount}`,
+        `-t ${to}`,
+        `-f ${from}`,
+        `-o ${fee}`,
+        `--isConfirmed`,
+      ])
+      .exit(2)
+      .it('show the right error message and call sendTransaction', (ctx) => {
+        expect(sendTransaction).toBeCalledTimes(1)
+        expectCli(ctx.stdout).include(`An error occurred while sending the transaction.`)
+      })
+  })
 })

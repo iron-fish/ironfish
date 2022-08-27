@@ -129,30 +129,38 @@ export class Pay extends IronfishCommand {
 
   // TODO: need a cleaner way to guard against undefined/null here
   async processSend(): Promise<void> {
-    const result = await this.client!.sendTransaction({
-      fromAccountName: this.fromAccount!,
-      receives: [
-        {
-          publicAddress: this.toAddress!,
-          amount: this.amountInOre!.toString(),
-          memo: this.memo!,
-        },
-      ],
-      fee: this.feeInOre!.toString(),
-      expirationSequence: this.expirationSequence!,
-    })
+    try {
+      const result = await this.client!.sendTransaction({
+        fromAccountName: this.fromAccount!,
+        receives: [
+          {
+            publicAddress: this.toAddress!,
+            amount: this.amountInOre!.toString(),
+            memo: this.memo!,
+          },
+        ],
+        fee: this.feeInOre!.toString(),
+        expirationSequence: this.expirationSequence!,
+      })
 
-    const transaction = result.content
-    const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
-    const amountSent = displayIronAmountWithCurrency(oreToIron(this.amountInOre!), true)
-    this.log(`Sending ${amountSent} to ${recipients} from ${transaction.fromAccountName}`)
-    this.log(`Transaction Hash: ${transaction.hash}`)
-    this.log(
-      `Transaction Fee: ${displayIronAmountWithCurrency(oreToIron(this.feeInOre!), true)}`,
-    )
-    this.log(
-      `Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} (it can take a few minutes before the transaction appears in the Explorer)`,
-    )
+      const transaction = result.content
+      const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
+      const amountSent = displayIronAmountWithCurrency(oreToIron(this.amountInOre!), true)
+      this.log(`Sending ${amountSent} to ${recipients} from ${transaction.fromAccountName}`)
+      this.log(`Transaction Hash: ${transaction.hash}`)
+      this.log(
+        `Transaction Fee: ${displayIronAmountWithCurrency(oreToIron(this.feeInOre!), true)}`,
+      )
+      this.log(
+        `Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} (it can take a few minutes before the transaction appears in the Explorer)`,
+      )
+    } catch (error: unknown) {
+      this.log(`An error occurred while sending the transaction.`)
+      if (error instanceof Error) {
+        this.error(error.message)
+      }
+      this.exit(2)
+    }
   }
 
   async validate(balance: number, shouldConfirm: boolean): Promise<void> {

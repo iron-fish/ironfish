@@ -12,45 +12,6 @@ export default class Bank extends Pay {
   static description = 'Deposit $IRON for testnet points'
   ORE_TO_SEND = 10000000
 
-  static flags = {
-    ...RemoteFlags,
-    account: Flags.string({
-      char: 'f',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      description: 'the account to send money from',
-    }),
-    //TODO: use the static flags from base command, and edit out these two
-    amount: Flags.integer({
-      char: 'a',
-      parse: (input: string) => Promise.resolve(ironToOre(Number(input))),
-      description: 'amount to send in IRON',
-    }),
-    to: Flags.string({
-      char: 't',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      description: 'the public address of the recipient',
-    }),
-    fee: Flags.integer({
-      char: 'o',
-      parse: (input: string) => Promise.resolve(Number(input)),
-      description: `the fee amount in ORE ${displayIronToOreRate()}`,
-    }),
-    memo: Flags.string({
-      char: 'm',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      description: 'the memo of transaction',
-    }),
-    isConfirmed: Flags.boolean({
-      default: false,
-      description: 'confirm without asking',
-    }),
-    expirationSequence: Flags.integer({
-      char: 'e',
-      description:
-        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
-    }),
-  }
-
   async start(): Promise<void> {
     const { flags } = await this.parse(Bank)
     const api = new WebApi()
@@ -65,15 +26,7 @@ export default class Bank extends Pay {
     this.client = await this.sdk.connectRpc(false, true)
 
     if (!this.fromAccount) {
-      const accountResponse = await this.client.getDefaultAccount()
-
-      if (!accountResponse.content.account) {
-        this.error(
-          `No account is currently active. Use ironfish accounts:create <name> to first create an account`,
-        )
-      }
-
-      this.fromAccount = accountResponse.content.account.name
+      this.fromAccount = await this.getFromAccountFromPrompt()
     }
 
     if (!this.toAddress) {
