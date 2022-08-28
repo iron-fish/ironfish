@@ -35,24 +35,24 @@ export default class DepositAll extends IronfishCommand {
     ...RemoteFlags,
     fee: Flags.integer({
       char: 'f',
-      description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
+      description: `The fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
     expirationSequenceDelta: Flags.integer({
       char: 'e',
-      description: 'max number of blocks for the transaction to wait before expiring',
+      description: 'Max number of blocks for the transaction to wait before expiring',
     }),
     account: Flags.string({
       char: 'a',
       parse: (input) => Promise.resolve(input.trim()),
-      description: 'the account to send money from',
+      description: 'The account to send money from',
     }),
     terminate: Flags.boolean({
       default: false,
-      description: 'terminate if balance is below minimum transaction requirement',
+      description: 'Terminate if balance is below minimum transaction requirement',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
   }
 

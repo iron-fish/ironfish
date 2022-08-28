@@ -25,7 +25,7 @@ export class EditCommand extends IronfishCommand {
     [DataDirFlagKey]: DataDirFlag,
     remote: Flags.boolean({
       default: false,
-      description: 'connect to the node when editing the config',
+      description: 'Connect to the node when editing the config',
     }),
   }
 

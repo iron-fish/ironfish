@@ -11,7 +11,7 @@ export class UseCommand extends IronfishCommand {
     {
       name: 'name',
       required: true,
-      description: 'name of the account',
+      description: 'Name of the account',
     },
   ]
 

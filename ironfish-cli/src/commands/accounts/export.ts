@@ -26,13 +26,13 @@ export class ExportCommand extends IronfishCommand {
       name: 'account',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'name of the account to export',
+      description: 'Name of the account to export',
     },
     {
       name: 'path',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'a path to export the account to',
+      description: 'The path to export the account to',
     },
   ]
 

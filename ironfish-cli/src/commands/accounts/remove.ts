@@ -13,14 +13,14 @@ export class RemoveCommand extends IronfishCommand {
     {
       name: 'name',
       required: true,
-      description: 'name of the account',
+      description: 'Name of the account',
     },
   ]
 
   static flags = {
     ...RemoteFlags,
     confirm: Flags.boolean({
-      description: 'suppress the confirmation prompt',
+      description: 'Suppress the confirmation prompt',
     }),
   }
 

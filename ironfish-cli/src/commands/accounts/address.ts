@@ -16,7 +16,7 @@ export class AddressCommand extends IronfishCommand {
     generate: Flags.boolean({
       char: 'g',
       default: false,
-      description: 'generate a new address',
+      description: 'Generate a new address',
     }),
   }
 
@@ -25,7 +25,7 @@ export class AddressCommand extends IronfishCommand {
       name: 'account',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'name of the account to get the address for',
+      description: 'Name of the account to get the address for',
     },
   ]
 

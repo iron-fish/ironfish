@@ -26,7 +26,7 @@ export default class Reset extends IronfishCommand {
     [DatabaseFlagKey]: DatabaseFlag,
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
   }
 
