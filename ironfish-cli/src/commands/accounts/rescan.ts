@@ -29,14 +29,22 @@ export class RescanCommand extends IronfishCommand {
       default: false,
       description: 'Force the rescan to not connect via RPC',
     }),
+    from: Flags.integer({
+      char: 's',
+      description: 'chain sequence to start rescan from',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(RescanCommand)
-    const { follow, reset, local } = flags
+    const { follow, reset, local, from } = flags
 
     if (local && !follow) {
       this.error('You cannot pass both --local and --no-follow')
+    }
+
+    if (reset && from) {
+      this.error('You cannot pass both --reset and --from')
     }
 
     const client = await this.sdk.connectRpc(local)
@@ -45,7 +53,7 @@ export class RescanCommand extends IronfishCommand {
       stdout: true,
     })
 
-    const response = client.rescanAccountStream({ reset, follow })
+    const response = client.rescanAccountStream({ reset, follow, from })
 
     const speed = new Meter()
 

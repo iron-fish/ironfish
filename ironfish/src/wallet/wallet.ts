@@ -452,7 +452,7 @@ export class Accounts {
     }
   }
 
-  async scanTransactions(): Promise<void> {
+  async scanTransactions(fromHash?: Buffer | null): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
@@ -503,16 +503,17 @@ export class Accounts {
       return
     }
 
+    const from = fromHash ? fromHash : startHash
     this.logger.info(
       `Scan starting from earliest found account head hash: ${
-        startHash ? startHash.toString('hex') : 'GENESIS'
+        from ? from.toString('hex') : 'GENESIS'
       }`,
     )
     this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
-      startHash,
+      from,
       endHash,
       undefined,
       false,
