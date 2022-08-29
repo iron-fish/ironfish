@@ -33,6 +33,31 @@ pub(crate) fn make_fake_witness(note: &Note) -> Witness {
     }
 }
 
+/// Given a note commitment point, construct a Witness with a valid root_hash
+/// and authentication path placing that note at a random location in a Merkle
+/// tree.
+#[cfg(test)]
+pub(crate) fn make_fake_witness_from_commitment(note_commitment: Scalar) -> Witness {
+    let mut rng = thread_rng();
+    let mut buffer = [0u8; 64];
+    thread_rng().fill(&mut buffer[..]);
+
+    let mut witness_auth_path = vec![];
+    for _ in 0..TREE_DEPTH {
+        witness_auth_path.push(match rng.gen() {
+            false => WitnessNode::Left(Scalar::from(rng.gen::<u64>())),
+            true => WitnessNode::Right(Scalar::from(rng.gen::<u64>())),
+        })
+    }
+    let root_hash = auth_path_to_root_hash(&witness_auth_path, note_commitment);
+    Witness {
+        auth_path: witness_auth_path,
+        root_hash,
+        tree_size: 1400,
+    }
+}
+
+
 /// Helper function to calculate a root hash given an authentication path from
 /// a specific child_hash.
 ///
