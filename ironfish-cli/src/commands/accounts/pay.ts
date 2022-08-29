@@ -183,10 +183,9 @@ export class Pay extends IronfishCommand {
       }
     }
 
-    // TODO: need to mock this out in tests. How?
-    // if (!isValidPublicAddress(this.toAddress!)) {
-    //   this.error(`A valid public address is required`)
-    // }
+    if (!isValidPublicAddress(this.toAddress!)) {
+      this.error(`A valid public address is required`)
+    }
 
     if (
       Number.isNaN(this.amountInOre) ||

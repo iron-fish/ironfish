@@ -170,7 +170,6 @@ describe('accounts:pay command', () => {
       })
   })
 
-  // TODO: this stopped passing. The error is super cryptic.
   describe('When the RPC throws an error', () => {
     beforeEach(() => {
       sendTransaction = jest.fn().mockRejectedValue('an error')
