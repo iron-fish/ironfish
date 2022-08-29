@@ -137,6 +137,13 @@ function renderStatus(content: GetStatusResponse): string {
     100
   ).toFixed(1)}%)`
 
+  let accountStatus
+  if (content.accounts.scanning === undefined) {
+    accountStatus = `${content.accounts.head}`
+  } else {
+    accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
+  }
+
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
@@ -148,6 +155,7 @@ Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
 Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
+Accounts             ${accountStatus}
 Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}`
 }

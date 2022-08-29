@@ -304,6 +304,7 @@ export class IronfishNode {
   async closeDB(): Promise<void> {
     await this.chain.close()
     await this.accounts.close()
+    await this.minedBlocksIndexer.close()
   }
 
   async start(): Promise<void> {
