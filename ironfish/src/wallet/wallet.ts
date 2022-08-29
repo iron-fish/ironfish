@@ -291,15 +291,17 @@ export class Accounts {
   async reset(): Promise<void> {
     await this.db.database.transaction(async (tx) => {
       await this.resetAccounts(tx)
-      this.chainProcessor.hash = null
       await this.updateHeadHashes(null, tx)
     })
+
+    this.chainProcessor.hash = null
   }
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
     await this.db.clearDecryptedNotes(tx)
     await this.db.clearNullifierToNoteHash(tx)
     await this.db.clearTransactions(tx)
+
     for (const account of this.accounts.values()) {
       await account.reset(tx)
     }
@@ -541,6 +543,7 @@ export class Accounts {
   async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     return await this.db.database.transaction(async (tx) => {
       this.assertHasAccount(account)
+
       const headHash = await account.getHeadHash(tx)
       if (!headHash) {
         return {
@@ -933,24 +936,23 @@ export class Accounts {
   }
 
   async removeAccount(name: string): Promise<void> {
-    await this.db.database.transaction(async (tx) => {
-      const account = this.getAccountByName(name)
-      if (!account) {
-        return
-      }
+    const account = this.getAccountByName(name)
+    if (!account) {
+      return
+    }
 
+    await this.db.database.transaction(async (tx) => {
       if (account.id === this.defaultAccount) {
         await this.db.setDefaultAccount(null, tx)
-
         this.defaultAccount = null
       }
 
-      this.accounts.delete(account.id)
       await this.db.removeAccount(account.id, tx)
       await this.db.removeHeadHash(account, tx)
-
-      this.onAccountRemoved.emit(account)
+      this.accounts.delete(account.id)
     })
+
+    this.onAccountRemoved.emit(account)
   }
 
   get hasDefaultAccount(): boolean {

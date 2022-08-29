@@ -144,6 +144,7 @@ export class Account {
     this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
     this.transactions.clear()
+
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
 

@@ -362,8 +362,6 @@ export class AccountsDB {
     balance: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.balances.put(account.id, balance, tx)
-    })
+    await this.balances.put(account.id, balance, tx)
   }
 }
