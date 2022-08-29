@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import '../testUtilities/matchers/error'
 import leveldown from 'leveldown'
 import { v4 as uuid } from 'uuid'
 import { IJsonSerializable } from '../serde'
@@ -115,7 +114,7 @@ describe('Database', () => {
     expect(await db.metaStore.get('version')).toBe(undefined)
     expect(await db.getVersion()).toBe(0)
 
-    await expect(db.upgrade(1)).toRejectErrorInstance(DatabaseVersionError)
+    await expect(db.upgrade(1)).rejects.toThrowError(DatabaseVersionError)
 
     await db.putVersion(1)
     expect(await db.metaStore.get('version')).toBe(1)
