@@ -118,7 +118,7 @@ describe('Transactions sendTransaction', () => {
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
     expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
-  }, 30000)
+  })
 
   it('calls the pay method on the node with multiple recipient', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
@@ -135,7 +135,7 @@ describe('Transactions sendTransaction', () => {
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
     expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
-  }, 30000)
+  })
 
   it('lets you configure the expiration', async () => {
     const account = await useAccountFixture(routeTest.node.accounts, 'expiration')
@@ -176,5 +176,5 @@ describe('Transactions sendTransaction', () => {
       12345,
       1234,
     )
-  }, 30000)
+  })
 })

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import '../testUtilities/matchers/error'
 import leveldown from 'leveldown'
 import { v4 as uuid } from 'uuid'
 import { IJsonSerializable } from '../serde'
@@ -15,6 +14,7 @@ import {
   DuplicateKeyError,
   JsonEncoding,
   StringEncoding,
+  TransactionWrongDatabaseError,
 } from './database'
 import { LevelupDatabase, LevelupStore } from './levelup'
 
@@ -49,8 +49,7 @@ interface ArrayKeySchema extends DatabaseSchema {
 }
 
 describe('Database', () => {
-  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
-  const db = new LevelupDatabase(leveldown(id))
+  const db = createDB()
 
   const fooStore = db.addStore<FooSchema>({
     name: 'Foo',
@@ -115,7 +114,7 @@ describe('Database', () => {
     expect(await db.metaStore.get('version')).toBe(undefined)
     expect(await db.getVersion()).toBe(0)
 
-    await expect(db.upgrade(1)).toRejectErrorInstance(DatabaseVersionError)
+    await expect(db.upgrade(1)).rejects.toThrowError(DatabaseVersionError)
 
     await db.putVersion(1)
     expect(await db.metaStore.get('version')).toBe(1)
@@ -191,6 +190,17 @@ describe('Database', () => {
 
     await expect(db.metaStore.add('a', 2)).rejects.toThrow(DuplicateKeyError)
     await expect(db.metaStore.get('a')).resolves.toBe(1)
+  })
+
+  it('should not let you use transactions across databases', async () => {
+    const dbB = createDB()
+    const tx = dbB.transaction()
+
+    await expect(db.metaStore.add('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.put('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.get('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.has('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.del('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
   })
 
   it('should add values in transactions', async () => {
@@ -402,7 +412,7 @@ describe('Database', () => {
         await barStore.del('hello', transaction)
         await bazStore.del(fooHash, transaction)
 
-        // Should not be commited until this function returns
+        // Should not be committed until this function returns
         expect(await fooStore.get('hello')).toMatchObject(foo)
         expect(await barStore.get('hello')).toEqual(fooHash)
         expect(await bazStore.get(fooHash)).toEqual('hello')
@@ -690,3 +700,9 @@ describe('Database', () => {
     })
   })
 })
+
+function createDB() {
+  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
+  const db = new LevelupDatabase(leveldown(id))
+  return db
+}

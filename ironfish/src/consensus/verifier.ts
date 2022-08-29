@@ -8,10 +8,9 @@ import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
+import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import { VerifyTransactionOptions } from '../workerPool/tasks/verifyTransaction'
 import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
@@ -148,52 +147,84 @@ export class Verifier {
   }
 
   /**
-   * Verify that a new transaction received over the network has valid proofs
-   * before forwarding it to the network.
+   * Verify that the header of this block is consistent with the one before it.
    *
-   * @params payload an unknown message payload that peerNetwork has received from the network.
-   *
-   * @returns deserialized transaction to be processed by the main handler.
+   * Specifically, it checks:
+   *  -  The block's previousHash equals the hash of the previous block header
+   *  -  The timestamp of the block is within a threshold of not being before
+   *     the previous block
+   *  -  The block sequence has incremented by one
+   *  -  The target matches the expected value
    */
-  verifyNewTransaction(serializedTransaction: SerializedTransaction): Transaction {
-    try {
-      const transaction = new Transaction(serializedTransaction)
+  verifyBlockHeaderContextual(
+    current: BlockHeader,
+    previousHeader: BlockHeader,
+  ): VerificationResult {
+    if (!current.previousBlockHash.equals(previousHeader.hash)) {
+      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
+    }
 
+    if (
+      current.timestamp.getTime() <
+      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
+    ) {
+      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
+    }
+
+    if (current.sequence !== previousHeader.sequence + 1) {
+      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
+    }
+
+    if (!this.isValidTarget(current, previousHeader)) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
+    }
+
+    return { valid: true }
+  }
+
+  /**
+   * Verify that a new transaction received over the network can be accepted into
+   * the mempool and rebroadcasted to the network.
+   */
+  async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
+    try {
       // Transaction is lazily deserialized, so we use takeReference()
       // to force deserialization errors here
       transaction.takeReference()
-
-      return transaction
+      transaction.returnReference()
     } catch (e) {
-      let message = 'Transaction cannot deserialize.'
-      if (e instanceof Error) {
-        message += ` Message: ${e.message}`
-      }
-      throw new Error(message)
-    }
-  }
-
-  async verifyTransactionContextual(
-    transaction: Transaction,
-    block: BlockHeader,
-    options?: VerifyTransactionOptions,
-  ): Promise<VerificationResult> {
-    if (this.isExpiredSequence(transaction.expirationSequence(), block.sequence)) {
-      return {
-        valid: false,
-        reason: VerificationResultReason.TRANSACTION_EXPIRED,
-      }
+      return { valid: false, reason: VerificationResultReason.DESERIALIZATION }
     }
 
-    return await this.verifyTransactionNoncontextual(transaction, options)
-  }
+    // Next, check the spends are valid and not already in the chain
+    const reason = await this.chain.db.withTransaction(null, async (tx) => {
+      const nullifierSize = await this.chain.nullifiers.size(tx)
+      const notesSize = await this.chain.notes.size(tx)
 
-  async verifyTransactionNoncontextual(
-    transaction: Transaction,
-    options?: VerifyTransactionOptions,
-  ): Promise<VerificationResult> {
+      for (const spend of transaction.spends()) {
+        const result = await this.verifySpend(spend, notesSize, nullifierSize, tx)
+
+        // If the spend references a larger tree size, allow it, so it's possible to
+        // store transactions made while the node is a few blocks behind
+        // TODO: We're allowing invalid spends currently because we're often creating
+        // spends with tree size + root at the head of the chain, rather than a reasonable confirmation
+        // range back. These blocks (and spends) can eventually become valid if the chain forks to them.
+        if (
+          result &&
+          result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE &&
+          result !== VerificationResultReason.INVALID_SPEND
+        ) {
+          return result
+        }
+      }
+    })
+
+    if (reason) {
+      return { valid: false, reason }
+    }
+
     try {
-      return await this.workerPool.verify(transaction, options)
+      return await this.workerPool.verify(transaction)
     } catch {
       return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -204,10 +235,11 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
+      const notesSize = await this.chain.notes.size(tx)
       const nullifierSize = await this.chain.nullifiers.size(tx)
 
       for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, nullifierSize, tx)
+        const reason = await this.verifySpend(spend, notesSize, nullifierSize, tx)
 
         if (reason) {
           return { valid: false, reason }
@@ -237,51 +269,7 @@ export class Verifier {
   }
 
   /**
-   * Verify that the header of this block is consistent with the one before it.
-   *
-   * Specifically, it checks:
-   *  -  The number of notes added is equal to the difference between
-   *     commitment sizes
-   *  -  The number of nullifiers added is equal to the difference between
-   *     commitment sizes
-   *  -  The timestamp of the block is within a threshold of not being before
-   *     the previous block
-   *  -  The block sequence has incremented by one
-   */
-  isValidAgainstPrevious(current: Block, previousHeader: BlockHeader): VerificationResult {
-    const { notes, nullifiers } = current.counts()
-
-    if (current.header.noteCommitment.size !== previousHeader.noteCommitment.size + notes) {
-      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-    }
-
-    if (
-      current.header.nullifierCommitment.size !==
-      previousHeader.nullifierCommitment.size + nullifiers
-    ) {
-      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-    }
-
-    if (
-      current.header.timestamp.getTime() <
-      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
-    ) {
-      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
-    }
-
-    if (current.header.sequence !== previousHeader.sequence + 1) {
-      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
-    }
-
-    if (!this.isValidTarget(current.header, previousHeader)) {
-      return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
-    }
-
-    return { valid: true }
-  }
-
-  /**
-   * Verify that the target of this block is correct aginst the block before it.
+   * Verify that the target of this block is correct against the block before it.
    */
   protected isValidTarget(header: BlockHeader, previous: BlockHeader): boolean {
     if (!this.enableVerifyTarget) {
@@ -307,11 +295,17 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
     }
 
-    if (!block.header.previousBlockHash.equals(prev.hash)) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
+    const { notes, nullifiers } = block.counts()
+
+    if (block.header.noteCommitment.size !== prev.noteCommitment.size + notes) {
+      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
     }
 
-    let verification = this.isValidAgainstPrevious(block, prev)
+    if (block.header.nullifierCommitment.size !== prev.nullifierCommitment.size + nullifiers) {
+      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
+    }
+
+    let verification = this.verifyBlockHeaderContextual(block.header, prev)
     if (!verification.valid) {
       return verification
     }
@@ -334,18 +328,23 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const spendsInThisBlock = Array.from(block.spends())
+      const { nullifiers: nullifiersCount } = block.counts()
       const processedSpends = new BufferSet()
 
-      const previousNullifierSize =
-        block.header.nullifierCommitment.size - spendsInThisBlock.length
+      const previousNotesSize = block.header.noteCommitment.size
+      const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
 
-      for (const spend of spendsInThisBlock.values()) {
+      for (const spend of block.spends()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        const verificationError = await this.verifySpend(spend, previousNullifierSize, tx)
+        const verificationError = await this.verifySpend(
+          spend,
+          previousNotesSize,
+          previousNullifierSize,
+          tx,
+        )
         if (verificationError) {
           return { valid: false, reason: verificationError }
         }
@@ -363,17 +362,23 @@ export class Verifier {
    * spend's spend root.
    *
    * @param spend the spend to be verified
+   * @param notesSize the size of the notes tree
    * @param nullifierSize the size of the nullifiers tree at which the spend must not exist
    * @param tx optional transaction context within which to check the spends.
    * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
   async verifySpend(
     spend: Spend,
+    notesSize: number,
     nullifierSize: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
     if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
       return VerificationResultReason.DOUBLE_SPEND
+    }
+
+    if (spend.size > notesSize) {
+      return VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE
     }
 
     try {
@@ -435,6 +440,7 @@ export class Verifier {
 
 export enum VerificationResultReason {
   BLOCK_TOO_OLD = 'Block timestamp is in past',
+  DESERIALIZATION = 'Failed to deserialize',
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
@@ -450,6 +456,7 @@ export enum VerificationResultReason {
   MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
+  NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
   NULLIFIER_COMMITMENT = 'Nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   ORPHAN = 'Block is an orphan',

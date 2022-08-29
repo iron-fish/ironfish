@@ -28,10 +28,10 @@ router.register<typeof OnGossipRequestSchema, OnGossipResponse>(
       request.stream({ block: serialized })
     }
 
-    node.syncer.onGossip.on(onGossip)
+    node.peerNetwork.onBlockGossipReceived.on(onGossip)
 
     request.onClose.on(() => {
-      node.syncer.onGossip.off(onGossip)
+      node.peerNetwork.onBlockGossipReceived.off(onGossip)
     })
   },
 )

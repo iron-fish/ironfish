@@ -303,7 +303,7 @@ export class MiningPool {
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch(async (e: unknown) => {
-      this.logger.error('Fatal error occured while processing blocks from node:')
+      this.logger.error('Fatal error occurred while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
       await this.stop()
     })

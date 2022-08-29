@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
 use napi::Error;
@@ -112,4 +113,9 @@ impl ThreadPoolHandler {
     pub fn get_hash_rate_submission(&self) -> u32 {
         self.threadpool.get_hash_rate_submission()
     }
+}
+
+#[napi]
+fn is_valid_public_address(hex_address: String) -> bool {
+    PublicAddress::from_hex(&hex_address).is_ok()
 }

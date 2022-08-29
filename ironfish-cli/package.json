@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -44,9 +44,9 @@
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start:dev": "node start",
     "start": "yarn build && yarn start:js",
-    "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc bin/run",
-    "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest",
-    "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
+    "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc --inspect --inspect-publish-uid=http --enable-source-maps bin/run",
+    "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --maxWorkers=1 --passWithNoTests",
+    "test:coverage:html": "tsc -b tsconfig.test.json && jest --maxWorkers=1 --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
@@ -54,8 +54,8 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "0.1.11",
-    "@ironfish/sdk": "0.0.21",
+    "@ironfish/rust-nodejs": "0.1.12",
+    "@ironfish/sdk": "0.0.22",
     "@aws-sdk/client-s3": "3.127.0",
     "@oclif/core": "1.6.1",
     "@oclif/plugin-help": "5.1.12",

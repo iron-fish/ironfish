@@ -323,7 +323,7 @@ impl ProposedTransaction {
     }
 
     /// Helper method to encapsulate the verboseness around incrementing the
-    /// binding verificaiton key
+    /// binding verification key
     fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
         let mut tmp = *value;
         if negate {

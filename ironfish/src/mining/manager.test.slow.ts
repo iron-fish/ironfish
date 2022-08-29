@@ -33,7 +33,7 @@ describe('Mining manager', () => {
     expect(newBlock.transactions).toHaveLength(1)
     expect(currentBlock).toEqual(block)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
-  }, 10000)
+  })
 
   it('adds transactions from the mempool', async () => {
     const { node, chain } = nodeTest
@@ -48,7 +48,7 @@ describe('Mining manager', () => {
     const transaction = await useTxFixture(node.accounts, account, account)
 
     expect(node.memPool.size()).toBe(0)
-    await node.memPool.acceptTransaction(transaction)
+    node.memPool.acceptTransaction(transaction)
     expect(node.memPool.size()).toBe(1)
 
     const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
@@ -63,7 +63,7 @@ describe('Mining manager', () => {
     expect(currentBlock).toEqual(previous)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
     expect(node.memPool.size()).toBe(1)
-  }, 25000)
+  })
 
   it('should not add transactions to block if they have invalid spends', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -95,14 +95,14 @@ describe('Mining manager', () => {
     // G -> A1
     //   -> B2 -> B3
 
-    const added = await nodeA.memPool.acceptTransaction(invalidTx)
+    const added = nodeA.memPool.acceptTransaction(invalidTx)
     expect(added).toBe(true)
 
     const { blockTransactions } = await nodeA.miningManager.getNewBlockTransactions(
       nodeA.chain.head.sequence + 1,
     )
     expect(blockTransactions).toHaveLength(0)
-  }, 15000)
+  })
 
   describe('submit block template', () => {
     it('discards block if chain changed', async () => {

@@ -146,5 +146,5 @@ describe('Create genesis block', () => {
     )
     const newBlock = await newChain.newBlock([], newMinersfee)
     expect(newBlock).toBeTruthy()
-  }, 600000)
+  })
 })

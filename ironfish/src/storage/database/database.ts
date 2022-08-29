@@ -24,7 +24,7 @@ export const DATABASE_ALL_KEY_RANGE = {
 */
 export interface IDatabase {
   /**
-   * If the datbase is open and available for operations
+   * If the database is open and available for operations
    */
   readonly isOpen: boolean
 
@@ -113,7 +113,7 @@ export interface IDatabase {
   ): Promise<TResult>
 
   /** Creates a batch of commands that are executed atomically
-   * once it's commited using {@link IDatabaseBatch.commit}
+   * once it's committed using {@link IDatabaseBatch.commit}
    *
    * @see [[`IDatabaseBatch`]] for what operations are supported
    */
@@ -122,7 +122,7 @@ export interface IDatabase {
   /**
    * Executes a batch of database operations atomically
    *
-   * @returns A promise that resolves when the operations are commited to the database
+   * @returns A promise that resolves when the operations are committed to the database
    */
   batch(
     writes: BatchOperation<

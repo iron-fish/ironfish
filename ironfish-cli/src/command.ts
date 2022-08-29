@@ -11,6 +11,7 @@ import {
   RpcConnectionError,
 } from '@ironfish/sdk'
 import { Command, Config } from '@oclif/core'
+import { CLIError, ExitError } from '@oclif/core/lib/errors'
 import {
   ConfigFlagKey,
   DatabaseFlag,
@@ -76,10 +77,18 @@ export abstract class IronfishCommand extends Command {
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
+      } else if (error instanceof ExitError) {
+        throw error
+      } else if (error instanceof CLIError) {
+        throw error
       } else if (error instanceof RpcConnectionError) {
         this.log(`Cannot connect to your node, start your node first.`)
       } else if (error instanceof DatabaseVersionError) {
         this.log(error.message)
+        this.exit(1)
+      } else if (error instanceof Error) {
+        // eslint-disable-next-line no-console
+        console.error(ErrorUtils.renderError(error, true))
         this.exit(1)
       } else {
         throw error

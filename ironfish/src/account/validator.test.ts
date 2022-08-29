@@ -40,6 +40,12 @@ describe('account-validator tests', () => {
     expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
+  test('public address that is not a valid public address should return false', () => {
+    const INVALID_PUBLIC_ADDRESS =
+      'e877d6903692094b67d889c483d09ad2f8438efc8f01c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
+  })
+
   test('valid spending key should return true', () => {
     const VALID_SPENDING_KEY =
       'd89e4a60b0b3edb76faeac12d7b88e660afa0b335fbe04b2ddccdf62dff40d89'

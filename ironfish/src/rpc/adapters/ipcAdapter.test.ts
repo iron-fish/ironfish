@@ -20,16 +20,9 @@ describe('IpcAdapter', () => {
     const dataDir = os.tmpdir()
 
     sdk = await IronfishSdk.init({ dataDir })
-    sdk.config.setOverride('enableRpc', false)
-    sdk.config.setOverride('enableRpcIpc', false)
 
     const node = await sdk.node()
-    ipc = new RpcIpcAdapter(ALL_API_NAMESPACES, {
-      mode: 'ipc',
-      socketPath: sdk.config.get('ipcPath'),
-    })
-
-    await node.rpc.mount(ipc)
+    ipc = node.rpc.adapters[0] as RpcIpcAdapter
 
     client = sdk.client
   })
@@ -40,6 +33,7 @@ describe('IpcAdapter', () => {
   })
 
   it('should start and stop', async () => {
+    expect(ipc).toBeInstanceOf(RpcIpcAdapter)
     expect(ipc.started).toBe(false)
 
     await ipc.start()
@@ -126,5 +120,11 @@ describe('IpcAdapter', () => {
       expect(error.code).toBe(ERROR_CODES.VALIDATION)
       expect(error.codeMessage).toContain('must be defined')
     }
+  })
+
+  it('handles all RPC namespaces', () => {
+    const allowedNamespaces = ALL_API_NAMESPACES
+    const loadedNamespaces = [...(ipc.router?.routes.keys() || [])]
+    expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
 })

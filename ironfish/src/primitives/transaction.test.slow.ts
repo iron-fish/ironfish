@@ -25,7 +25,7 @@ describe('Accounts', () => {
     const hashB = transactionB.unsignedHash()
 
     expect(hashA.equals(hashB)).toBe(false)
-  }, 600000)
+  })
 
   it('check if a transaction is a miners fee', async () => {
     const account = await useAccountFixture(nodeTest.accounts)
@@ -75,5 +75,5 @@ describe('Accounts', () => {
       0,
     )
     expect(transaction.isMinersFee()).toBe(false)
-  }, 600000)
+  })
 })

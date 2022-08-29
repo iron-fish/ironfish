@@ -66,7 +66,7 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
 
     this.loaded = { ...data } as Partial<TSchema>
 
-    //  Patch back in inheritence so config is still TSchema
+    //  Patch back in inheritance so config is still TSchema
     Object.setPrototypeOf(this.loaded, this.defaults)
     Object.setPrototypeOf(this.overrides, this.loaded)
 

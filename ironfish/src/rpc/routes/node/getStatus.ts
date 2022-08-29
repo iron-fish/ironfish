@@ -35,6 +35,7 @@ export type GetStatusResponse = {
   }
   memPool: {
     size: number
+    sizeBytes: number
   }
   blockchain: {
     synced: boolean
@@ -67,6 +68,14 @@ export type GetStatusResponse = {
     executing: number
     change: number
     speed: number
+  }
+  accounts: {
+    scanning?: {
+      sequence: number
+      endSequence: number
+      startedAt: number
+    }
+    head: string
   }
 }
 
@@ -108,6 +117,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
     memPool: yup
       .object({
         size: yup.number().defined(),
+        sizeBytes: yup.number().defined(),
       })
       .defined(),
     blockchain: yup
@@ -155,6 +165,18 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         speed: yup.number().defined(),
       })
       .defined(),
+    accounts: yup
+      .object({
+        head: yup.string().defined(),
+        scanning: yup
+          .object({
+            sequence: yup.number().defined(),
+            endSequence: yup.number().defined(),
+            startedAt: yup.number().defined(),
+          })
+          .optional(),
+      })
+      .defined(),
   })
   .defined()
 
@@ -185,6 +207,15 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
 )
 
 function getStatus(node: IronfishNode): GetStatusResponse {
+  let accountsScanning
+  if (node.accounts.scan !== null) {
+    accountsScanning = {
+      sequence: node.accounts.scan.sequence,
+      endSequence: node.accounts.scan.endSequence,
+      startedAt: node.accounts.scan.startedAt,
+    }
+  }
+
   const status: GetStatusResponse = {
     peerNetwork: {
       peers: node.metrics.p2p_PeersCount.value,
@@ -220,6 +251,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     },
     memPool: {
       size: node.metrics.memPoolSize.value,
+      sizeBytes: node.memPool.sizeBytes(),
     },
     blockSyncer: {
       status: node.syncer.state,
@@ -242,6 +274,12 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       capacity: node.workerPool.capacity,
       change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
       speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
+    },
+    accounts: {
+      scanning: accountsScanning,
+      head: `${node.accounts.chainProcessor.hash?.toString('hex') || ''} (${
+        node.accounts.chainProcessor.sequence?.toString() || ''
+      })`,
     },
   }
 

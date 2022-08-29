@@ -80,7 +80,8 @@ export class Blockchain {
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
   addSpeed: Meter
-  invalid: LRU<Buffer, VerificationResultReason>
+  invalid: LRU<BlockHash, VerificationResultReason>
+  orphans: LRU<BlockHash, BlockHeader>
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
@@ -165,6 +166,7 @@ export class Blockchain {
     this.db = createDB({ location: options.location })
     this.addSpeed = this.metrics.addMeter()
     this.invalid = new LRU(100, null, BufferMap)
+    this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
 
@@ -339,7 +341,7 @@ export class Blockchain {
           return await this.connect(block, null, tx)
         }
 
-        const invalid = this.isInvalid(block)
+        const invalid = this.isInvalid(block.header)
         if (invalid) {
           throw new VerifyError(invalid, BAN_SCORE.MAX)
         }
@@ -357,14 +359,14 @@ export class Blockchain {
         const previous = await this.getPrevious(block.header, tx)
 
         if (!previous) {
-          this.addOrphan(block)
+          this.addOrphan(block.header)
 
           throw new VerifyError(VerificationResultReason.ORPHAN)
         }
 
         const connectResult = await this.connect(block, previous, tx)
 
-        await this.resolveOrphans(block)
+        this.resolveOrphans(block)
 
         return connectResult
       })
@@ -540,22 +542,24 @@ export class Blockchain {
     }
   }
 
-  isInvalid(block: Block): VerificationResultReason | null {
-    const invalid = this.invalid.get(block.header.hash)
+  isInvalid(headerOrHash: BlockHeader | BlockHash): VerificationResultReason | null {
+    const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
+
+    const invalid = this.invalid.get(hash)
     if (invalid) {
       return invalid
     }
 
-    if (this.invalid.has(block.header.previousBlockHash)) {
-      this.addInvalid(block.header, VerificationResultReason.INVALID_PARENT)
+    if (!Buffer.isBuffer(headerOrHash) && this.invalid.has(headerOrHash.previousBlockHash)) {
+      this.addInvalid(headerOrHash.hash, VerificationResultReason.INVALID_PARENT)
       return VerificationResultReason.INVALID_PARENT
     }
 
     return null
   }
 
-  addInvalid(header: BlockHeader, reason: VerificationResultReason): void {
-    this.invalid.set(header.hash, reason)
+  addInvalid(hash: BlockHash, reason: VerificationResultReason): void {
+    this.invalid.set(hash, reason)
   }
 
   private async connect(
@@ -655,7 +659,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header, reason)
+      this.addInvalid(block.header.hash, reason)
 
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
@@ -704,7 +708,7 @@ export class Blockchain {
         }): ${reason}`,
       )
 
-      this.addInvalid(block.header, reason)
+      this.addInvalid(block.header.hash, reason)
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
@@ -776,12 +780,18 @@ export class Blockchain {
     )
   }
 
-  private addOrphan(_block: Block): void {
-    // TODO: not implemented yet
+  addOrphan(header: BlockHeader): void {
+    this.orphans.set(header.hash, header)
   }
 
-  private async resolveOrphans(_block: Block): Promise<void> {
-    // TODO: not implemented yet
+  private resolveOrphans(block: Block): void {
+    this.orphans.remove(block.header.hash)
+
+    for (const [hash, { value: header }] of this.orphans.map.entries()) {
+      if (header.previousBlockHash.equals(block.header.hash)) {
+        this.orphans.remove(hash)
+      }
+    }
   }
 
   /**
@@ -1243,7 +1253,7 @@ export class Blockchain {
 
     if (!verify.valid) {
       Assert.isNotUndefined(verify.reason)
-      this.addInvalid(block.header, verify.reason)
+      this.addInvalid(block.header.hash, verify.reason)
       throw new VerifyError(verify.reason, BAN_SCORE.MAX)
     }
   }

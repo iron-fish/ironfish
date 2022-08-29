@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+export class TransactionWrongDatabaseError extends Error {
+  constructor(store: string) {
+    super(`Wrong transaction database when using store ${store}`)
+  }
+}
+
 export class DuplicateKeyError extends Error {}
 
 export class DatabaseOpenError extends Error {

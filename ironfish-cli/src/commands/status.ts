@@ -112,7 +112,8 @@ function renderStatus(content: GetStatusResponse): string {
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
 
-  const memPoolStatus = `${content.memPool.size} tx`
+  const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
+  const memPoolStatus = `Size: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`
 
   let workersStatus = `${content.workers.started ? 'STARTED' : 'STOPPED'}`
   if (content.workers.started) {
@@ -136,6 +137,13 @@ function renderStatus(content: GetStatusResponse): string {
     100
   ).toFixed(1)}%)`
 
+  let accountStatus
+  if (content.accounts.scanning === undefined) {
+    accountStatus = `${content.accounts.head}`
+  } else {
+    accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
+  }
+
   return `
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
@@ -147,6 +155,7 @@ Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}
 Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
+Accounts             ${accountStatus}
 Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}`
 }
