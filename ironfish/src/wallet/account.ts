@@ -8,6 +8,7 @@ import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils'
+import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AccountsDB } from './database/accountsdb'
 import { AccountValue } from './database/accountValue'
 import { DecryptedNoteValue } from './database/decryptedNoteValue'
@@ -158,7 +159,7 @@ export class Account {
     for (const [hash, decryptedNote] of this.decryptedNotes) {
       notes.push({
         hash,
-        index: decryptedNote.noteIndex,
+        index: decryptedNote.index,
         note: new Note(decryptedNote.serializedNote),
         transactionHash: decryptedNote.transactionHash,
         spent: decryptedNote.spent,
@@ -226,14 +227,7 @@ export class Account {
 
   async syncTransaction(
     transaction: Transaction,
-    decryptedNotes: Array<{
-      noteIndex: number | null
-      nullifier: Buffer | null
-      merkleHash: Buffer
-      forSpender: boolean
-      account: Account
-      serializedNote: Buffer
-    }>,
+    decryptedNotes: Array<DecryptedNote>,
     params: SyncTransactionParams,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -278,32 +272,22 @@ export class Account {
 
   private async bulkUpdateDecryptedNotes(
     transactionHash: Buffer,
-    decryptedNotes: Array<{
-      noteIndex: number | null
-      nullifier: Buffer | null
-      merkleHash: Buffer
-      forSpender: boolean
-      serializedNote: Buffer
-    }>,
+    decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
   ) {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const decryptedNote of decryptedNotes) {
         if (!decryptedNote.forSpender) {
           if (decryptedNote.nullifier !== null) {
-            await this.updateNullifierNoteHash(
-              decryptedNote.nullifier,
-              decryptedNote.merkleHash,
-              tx,
-            )
+            await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
           }
 
           await this.updateDecryptedNote(
-            decryptedNote.merkleHash,
+            decryptedNote.hash,
             {
               accountId: this.id,
               nullifierHash: decryptedNote.nullifier,
-              noteIndex: decryptedNote.noteIndex,
+              index: decryptedNote.index,
               serializedNote: decryptedNote.serializedNote,
               spent: false,
               transactionHash,
