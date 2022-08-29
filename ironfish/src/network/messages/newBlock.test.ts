@@ -55,7 +55,6 @@ describe('NewBlocksMessage', () => {
         target: '12',
         timestamp: 200000,
         work: '123',
-        hash: 'ramen',
       },
       transactions: [Buffer.from('foo'), Buffer.from('bar'), Buffer.from('baz')],
     }
@@ -64,7 +63,6 @@ describe('NewBlocksMessage', () => {
     const buffer = message.serialize()
     const deserializedMessage = NewBlockMessage.deserialize(buffer, nonce)
 
-    delete serializedBlock.header.hash
     delete serializedBlock.header.work
 
     expect(deserializedMessage.block).toEqual(serializedBlock)

@@ -93,4 +93,25 @@ describe('Block', () => {
 
     expect(() => block.minersFee).toThrowError('Block has no miners fee')
   })
+
+  it(`serializes transactions and miner's fee in compact block`, async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+
+    const compactBlock = block.toCompactBlock()
+
+    // The first transaction is the miners fee
+    expect(compactBlock.transactions).toHaveLength(1)
+    const transaction = compactBlock.transactions[0]
+    expect(transaction.index).toBe(0)
+    expect(transaction.transaction).toEqual(block.minersFee.serialize())
+
+    // The remaining transactions are hashed
+    const hashedTransactions = block.transactions.slice(1)
+
+    expect(compactBlock.transactionHashes).toHaveLength(hashedTransactions.length)
+
+    for (const [index, transaction] of hashedTransactions.entries()) {
+      expect(compactBlock.transactionHashes[index]).toEqual(transaction.hash())
+    }
+  })
 })
