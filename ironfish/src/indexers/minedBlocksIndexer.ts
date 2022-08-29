@@ -145,7 +145,7 @@ export class MinedBlocksIndexer {
     this.chainProcessor.onRemove.on(async (header) => {
       await this.database.transaction(async (tx) => {
         if (await this.minedBlocks.has(header.hash, tx)) {
-          const block = await this.chain.getBlock(header, tx)
+          const block = await this.chain.getBlock(header)
           Assert.isNotNull(block)
 
           const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
