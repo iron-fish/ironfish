@@ -170,7 +170,14 @@ export class Verifier {
 
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
-        if (result && result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE) {
+        // TODO: We're allowing invalid spends currently because we're often creating
+        // spends with tree size + root at the head of the chain, rather than a reasonable confirmation
+        // range back. These blocks (and spends) can eventually become valid if the chain forks to them.
+        if (
+          result &&
+          result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE &&
+          result !== VerificationResultReason.INVALID_SPEND
+        ) {
           return result
         }
       }
