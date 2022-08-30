@@ -15,6 +15,7 @@ import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { WorkerPool } from '../workerPool'
 import { TestStrategy } from './strategy'
+import { getUniqueTestDataDir } from './utils'
 
 export type NodeTestOptions =
   | {
@@ -71,7 +72,7 @@ export class NodeTest {
       options = this.options
     }
 
-    const dataDir = path.join(os.tmpdir(), uuid())
+    const dataDir = getUniqueTestDataDir()
     const strategyClass = TestStrategy
 
     const sdk = await IronfishSdk.init({ dataDir, strategyClass })

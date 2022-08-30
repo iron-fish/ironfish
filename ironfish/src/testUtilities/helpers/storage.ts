@@ -8,6 +8,7 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { IDatabase, LevelupDatabase } from '../../storage'
 import { createDB as createDBStorage } from '../../storage/utils'
+import { TEST_DATA_DIR } from '../utils'
 
 /** Generate a test database name from the given test if not provided*/
 export function makeDbName(): string {
@@ -19,14 +20,14 @@ export function makeDb(name?: string): IDatabase {
   if (!name) {
     name = makeDbName()
   }
-  return new LevelupDatabase(leveldown(`./testdbs/${name}`))
+  return new LevelupDatabase(leveldown(`${TEST_DATA_DIR}/${name}`))
 }
 
 export function makeDbPath(name?: string): string {
   if (!name) {
     name = makeDbName()
   }
-  return `./testdbs/${name}`
+  return `${TEST_DATA_DIR}/${name}`
 }
 
 export async function createTestDB(

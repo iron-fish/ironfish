@@ -5,6 +5,7 @@
 import leveldown from 'leveldown'
 import { v4 as uuid } from 'uuid'
 import { IJsonSerializable } from '../serde'
+import { getUniqueTestDataDir } from '../testUtilities'
 import { PromiseUtils } from '../utils'
 import {
   ArrayEncoding,
@@ -702,7 +703,6 @@ describe('Database', () => {
 })
 
 function createDB() {
-  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
-  const db = new LevelupDatabase(leveldown(id))
-  return db
+  const path = getUniqueTestDataDir()
+  return new LevelupDatabase(leveldown(path))
 }
