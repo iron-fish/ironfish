@@ -119,7 +119,7 @@ export class LevelupDatabase extends Database {
       if (this.levelup instanceof LevelDOWN) {
         this.levelup.compactRange(
           DATABASE_ALL_KEY_RANGE.gte,
-          DATABASE_ALL_KEY_RANGE.lte,
+          DATABASE_ALL_KEY_RANGE.lt,
           (err) => (err ? reject(err) : resolve()),
         )
       }

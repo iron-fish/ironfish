@@ -5,11 +5,17 @@
 import { BatchOperation, IDatabaseBatch } from './batch'
 import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
-import { DatabaseOptions, DatabaseSchema, SchemaKey, SchemaValue } from './types'
+import {
+  DatabaseKeyRange,
+  DatabaseOptions,
+  DatabaseSchema,
+  SchemaKey,
+  SchemaValue,
+} from './types'
 
-export const DATABASE_ALL_KEY_RANGE = {
+export const DATABASE_ALL_KEY_RANGE: DatabaseKeyRange = {
   gte: Buffer.alloc(0, 0),
-  lte: Buffer.alloc(256, 255),
+  lt: Buffer.alloc(256, 255),
 }
 
 /**
