@@ -48,11 +48,11 @@ export class Accounts {
   readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
+  readonly chainProcessor: ChainProcessor
   private readonly config: Config
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
-  protected chainProcessor: ChainProcessor
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
@@ -122,6 +122,8 @@ export class Accounts {
       return
     }
 
+    // TODO: this isn't right, as the scan state doesn't get its sequence or
+    // endSequence set properly
     const scan = new ScanState()
     this.updateHeadState = scan
 
@@ -427,14 +429,25 @@ export class Accounts {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const startHash = await this.getEarliestHeadHash()
-    const endHash = this.chainProcessor.hash || this.chain.head.hash
+    let startHash = await this.getEarliestHeadHash()
+    if (!startHash) {
+      startHash = this.chain.genesis.hash
+    }
+    const startHeader = await this.chain.getHeader(startHash)
+    Assert.isNotNull(
+      startHeader,
+      `scanTransactions: No header found for start hash ${startHash.toString('hex')}`,
+    )
 
+    const endHash = this.chainProcessor.hash || this.chain.head.hash
     const endHeader = await this.chain.getHeader(endHash)
     Assert.isNotNull(
       endHeader,
       `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
     )
+
+    scan.sequence = startHeader.sequence
+    scan.endSequence = endHeader.sequence
 
     // Accounts that need to be updated at the current scan sequence
     const accounts: Array<Account> = []
@@ -462,9 +475,7 @@ export class Accounts {
     }
 
     this.logger.info(
-      `Scan starting from earliest found account head hash: ${
-        startHash ? startHash.toString('hex') : 'GENESIS'
-      }`,
+      `Scan starting from earliest found account head hash: ${startHash.toString('hex')}`,
     )
     this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
@@ -496,7 +507,8 @@ export class Accounts {
           },
           accounts,
         )
-        scan.onTransaction.emit(sequence, endHeader.sequence)
+
+        scan.signal(sequence)
       }
 
       for (const account of accounts) {
@@ -1106,6 +1118,9 @@ export class Accounts {
 export class ScanState {
   onTransaction = new Event<[sequence: number, endSequence: number]>()
 
+  sequence = -1
+  endSequence = -1
+
   readonly startedAt: number
   readonly abortController: AbortController
   private runningPromise: Promise<void>
@@ -1122,6 +1137,11 @@ export class ScanState {
 
   get isAborted(): boolean {
     return this.abortController.signal.aborted
+  }
+
+  signal(sequence: number): void {
+    this.sequence = sequence
+    this.onTransaction.emit(sequence, this.endSequence)
   }
 
   signalComplete(): void {

@@ -164,7 +164,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(minersFee['transactionPosted']).toBeNull()
       expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
@@ -183,7 +183,7 @@ describe('Demonstrate the Sapling API', () => {
       })
 
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
@@ -215,7 +215,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(decryptedNote['note']).toBeNull()
       expect(decryptedNote.value()).toBe(BigInt(2000000000))
       expect(decryptedNote['note']).toBeNull()
-    }, 60000)
+    })
   })
 
   describe('Finding notes to spend', () => {

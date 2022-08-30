@@ -34,7 +34,7 @@ describe('Block template stream', () => {
     response.end()
 
     expect(createNewBlockTemplateSpy).toBeCalledTimes(1)
-  }, 10000)
+  })
 
   it('does not crash on expired transactions if the chain head changes rapidly', async () => {
     const node = routeTest.node
@@ -106,5 +106,5 @@ describe('Block template stream', () => {
 
     // newBlock should have thrown an error, but the response should not have crashed
     await expect(newBlockSpy.mock.results[2].value).rejects.toThrowError('Transaction expired')
-  }, 30000)
+  })
 })

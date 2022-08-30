@@ -29,7 +29,9 @@ import { createRootLogger, Logger } from './logger'
  */
 export class ChainProcessor {
   chain: Blockchain
+  // TODO: Consider refactoring to store a BlockHeader rather than a hash + sequence
   hash: Buffer | null = null
+  sequence: number | null = null
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
@@ -54,6 +56,7 @@ export class ChainProcessor {
     if (!this.hash) {
       await this.add(this.chain.genesis)
       this.hash = this.chain.genesis.hash
+      this.sequence = this.chain.genesis.sequence
     }
 
     // Freeze this value in case it changes while we're updating the head
@@ -89,6 +92,7 @@ export class ChainProcessor {
 
         await this.remove(remove)
         this.hash = remove.previousBlockHash
+        this.sequence = remove.sequence - 1
       }
     }
 
@@ -105,6 +109,7 @@ export class ChainProcessor {
 
       await this.add(add)
       this.hash = add.hash
+      this.sequence = add.sequence
     }
 
     return { hashChanged: !oldHash || !this.hash.equals(oldHash) }

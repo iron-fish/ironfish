@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
-interface BlockHashInfo {
+export interface BlockHashInfo {
   hash: Buffer
   sequence: number
 }

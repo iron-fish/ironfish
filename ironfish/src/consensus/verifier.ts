@@ -147,6 +147,42 @@ export class Verifier {
   }
 
   /**
+   * Verify that the header of this block is consistent with the one before it.
+   *
+   * Specifically, it checks:
+   *  -  The block's previousHash equals the hash of the previous block header
+   *  -  The timestamp of the block is within a threshold of not being before
+   *     the previous block
+   *  -  The block sequence has incremented by one
+   *  -  The target matches the expected value
+   */
+  verifyBlockHeaderContextual(
+    current: BlockHeader,
+    previousHeader: BlockHeader,
+  ): VerificationResult {
+    if (!current.previousBlockHash.equals(previousHeader.hash)) {
+      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
+    }
+
+    if (
+      current.timestamp.getTime() <
+      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
+    ) {
+      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
+    }
+
+    if (current.sequence !== previousHeader.sequence + 1) {
+      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
+    }
+
+    if (!this.isValidTarget(current, previousHeader)) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
+    }
+
+    return { valid: true }
+  }
+
+  /**
    * Verify that a new transaction received over the network can be accepted into
    * the mempool and rebroadcasted to the network.
    */
@@ -170,7 +206,14 @@ export class Verifier {
 
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
-        if (result && result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE) {
+        // TODO: We're allowing invalid spends currently because we're often creating
+        // spends with tree size + root at the head of the chain, rather than a reasonable confirmation
+        // range back. These blocks (and spends) can eventually become valid if the chain forks to them.
+        if (
+          result &&
+          result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE &&
+          result !== VerificationResultReason.INVALID_SPEND
+        ) {
           return result
         }
       }
@@ -226,50 +269,6 @@ export class Verifier {
   }
 
   /**
-   * Verify that the header of this block is consistent with the one before it.
-   *
-   * Specifically, it checks:
-   *  -  The number of notes added is equal to the difference between
-   *     commitment sizes
-   *  -  The number of nullifiers added is equal to the difference between
-   *     commitment sizes
-   *  -  The timestamp of the block is within a threshold of not being before
-   *     the previous block
-   *  -  The block sequence has incremented by one
-   */
-  isValidAgainstPrevious(current: Block, previousHeader: BlockHeader): VerificationResult {
-    const { notes, nullifiers } = current.counts()
-
-    if (current.header.noteCommitment.size !== previousHeader.noteCommitment.size + notes) {
-      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-    }
-
-    if (
-      current.header.nullifierCommitment.size !==
-      previousHeader.nullifierCommitment.size + nullifiers
-    ) {
-      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-    }
-
-    if (
-      current.header.timestamp.getTime() <
-      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
-    ) {
-      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
-    }
-
-    if (current.header.sequence !== previousHeader.sequence + 1) {
-      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
-    }
-
-    if (!this.isValidTarget(current.header, previousHeader)) {
-      return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
-    }
-
-    return { valid: true }
-  }
-
-  /**
    * Verify that the target of this block is correct against the block before it.
    */
   protected isValidTarget(header: BlockHeader, previous: BlockHeader): boolean {
@@ -296,11 +295,17 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
     }
 
-    if (!block.header.previousBlockHash.equals(prev.hash)) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
+    const { notes, nullifiers } = block.counts()
+
+    if (block.header.noteCommitment.size !== prev.noteCommitment.size + notes) {
+      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
     }
 
-    let verification = this.isValidAgainstPrevious(block, prev)
+    if (block.header.nullifierCommitment.size !== prev.nullifierCommitment.size + nullifiers) {
+      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
+    }
+
+    let verification = this.verifyBlockHeaderContextual(block.header, prev)
     if (!verification.valid) {
       return verification
     }

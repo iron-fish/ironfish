@@ -204,7 +204,6 @@ export type SerializedBlockHeader = {
   minersFee: string
 
   work?: string
-  hash?: string
   graffiti: string
 }
 
@@ -252,14 +251,7 @@ export class BlockHeaderSerde {
   }
 
   static deserialize(data: SerializedBlockHeader): BlockHeader {
-    // TODO: this needs to make assertions on the data format
-    // as it can be from untrusted sources
-    let hashBuffer
-    if (data.hash) {
-      hashBuffer = Buffer.from(BlockHashSerdeInstance.deserialize(data.hash))
-    }
-
-    const header = new BlockHeader(
+    return new BlockHeader(
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
@@ -276,9 +268,6 @@ export class BlockHeaderSerde {
       BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
       data.work ? BigInt(data.work) : BigInt(0),
-      hashBuffer,
     )
-
-    return header
   }
 }

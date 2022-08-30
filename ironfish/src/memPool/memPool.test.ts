@@ -19,7 +19,7 @@ describe('MemPool', () => {
       memPool.acceptTransaction(transaction)
 
       expect(memPool.size()).toBe(1)
-    }, 60000)
+    })
   })
 
   describe('sizeBytes', () => {
@@ -65,7 +65,7 @@ describe('MemPool', () => {
       memPool.onConnectBlock(block)
 
       expect(memPool.sizeBytes()).toBe(size(transaction2))
-    }, 60000)
+    })
   })
 
   describe('exists', () => {
@@ -121,7 +121,7 @@ describe('MemPool', () => {
 
       const transactions = Array.from(memPool.orderedTransactions())
       expect(transactions).toEqual([transactionB, transactionC, transactionA])
-    }, 60000)
+    })
 
     it('does not return transactions that have been removed from the mempool', async () => {
       const { node } = nodeTest
@@ -146,7 +146,7 @@ describe('MemPool', () => {
 
       const transactions = Array.from(generator)
       expect(transactions).toEqual([])
-    }, 60000)
+    })
   })
 
   describe('acceptTransaction', () => {
@@ -163,7 +163,7 @@ describe('MemPool', () => {
         memPool.acceptTransaction(transaction)
 
         expect(memPool.acceptTransaction(transaction)).toBe(false)
-      }, 60000)
+      })
     })
 
     describe('with an expired sequence', () => {
@@ -202,7 +202,7 @@ describe('MemPool', () => {
         memPool.acceptTransaction(transaction)
 
         expect(memPool.acceptTransaction(transaction2)).toBe(false)
-      }, 60000)
+      })
 
       it('returns true with a higher fee', async () => {
         const { node } = nodeTest
@@ -223,7 +223,7 @@ describe('MemPool', () => {
         memPool.acceptTransaction(transaction)
 
         expect(memPool.acceptTransaction(transaction2)).toBe(true)
-      }, 60000)
+      })
     })
 
     describe('with a new hash', () => {
@@ -237,7 +237,7 @@ describe('MemPool', () => {
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         expect(memPool.acceptTransaction(transaction)).toBe(true)
-      }, 60000)
+      })
 
       it('sets the transaction hash in the mempool map and priority queue', async () => {
         const { node } = nodeTest
@@ -250,7 +250,7 @@ describe('MemPool', () => {
 
         expect(memPool.exists(transaction.hash())).toBe(true)
         expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
-      }, 60000)
+      })
     })
   })
 
@@ -281,7 +281,7 @@ describe('MemPool', () => {
       expect(memPool.exists(transactionB.hash())).toBe(false)
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionB)
-    }, 60000)
+    })
   })
 
   describe('when a block is disconnected', () => {
@@ -307,6 +307,6 @@ describe('MemPool', () => {
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
       expect([...memPool.orderedTransactions()]).not.toContainEqual(minersFee)
-    }, 60000)
+    })
   })
 })

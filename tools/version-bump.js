@@ -45,7 +45,7 @@ const readPackage = async (path) => {
 }
 
 const writePackage = async (path, package) => {
-  const toWrite = JSON.stringify(package, null, 2)
+  const toWrite = JSON.stringify(package, null, 2) + '\n'
   
   try {
     await fs.writeFile(path, toWrite, 'utf8')

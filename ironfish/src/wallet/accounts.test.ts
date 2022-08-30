@@ -23,7 +23,7 @@ describe('Accounts', () => {
 
     await node.accounts.start()
     expect(resetSpy).toBeCalledTimes(1)
-  }, 8000)
+  })
 
   it('should handle transaction created on fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -96,7 +96,7 @@ describe('Accounts', () => {
     // It should now be planned to be processed at head + 1
     invalidTxEntry = accountA.getTransaction(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
-  }, 120000)
+  })
 
   describe('updateHeadHash', () => {
     it('should update head hashes for all existing accounts', async () => {

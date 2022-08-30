@@ -33,7 +33,7 @@ describe('Mining manager', () => {
     expect(newBlock.transactions).toHaveLength(1)
     expect(currentBlock).toEqual(block)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
-  }, 10000)
+  })
 
   it('adds transactions from the mempool', async () => {
     const { node, chain } = nodeTest
@@ -63,7 +63,7 @@ describe('Mining manager', () => {
     expect(currentBlock).toEqual(previous)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
     expect(node.memPool.size()).toBe(1)
-  }, 25000)
+  })
 
   it('should not add transactions to block if they have invalid spends', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -102,7 +102,7 @@ describe('Mining manager', () => {
       nodeA.chain.head.sequence + 1,
     )
     expect(blockTransactions).toHaveLength(0)
-  }, 15000)
+  })
 
   describe('submit block template', () => {
     it('discards block if chain changed', async () => {

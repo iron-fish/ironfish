@@ -157,7 +157,7 @@ describe('Blockchain', () => {
     printResults(await runTest(5, 10))
     printResults(await runTest(5, 50))
     printResults(await runTest(5, 100))
-  }, 780000)
+  })
 })
 
 // Last results on Jason Spafford's Machine
