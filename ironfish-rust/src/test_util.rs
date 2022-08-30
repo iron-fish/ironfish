@@ -57,7 +57,6 @@ pub(crate) fn make_fake_witness_from_commitment(note_commitment: Scalar) -> Witn
     }
 }
 
-
 /// Helper function to calculate a root hash given an authentication path from
 /// a specific child_hash.
 ///
