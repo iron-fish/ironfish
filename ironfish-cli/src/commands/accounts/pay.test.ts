@@ -71,8 +71,11 @@ describe('accounts:pay command', () => {
     .it(
       'with every flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
-        expectCli(ctx.stdout).include(confirmationString)
-        expectCli(ctx.stdout).include(`Transaction Hash`)
+        expectCli(ctx.stdout).include(
+          `Sending $IRON 0.00000100 ($ORE 100) to ${to} from ${from}`,
+        )
+        expectCli(ctx.stdout).include(`Transaction Hash: ${hash}`)
+        expectCli(ctx.stdout).include(`Transaction Fee: $IRON 0.00000001 ($ORE 1)`)
         expect(sendTransaction).toBeCalledTimes(1)
       },
     )
@@ -85,8 +88,11 @@ describe('accounts:pay command', () => {
     .it(
       'without memo flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
-        expectCli(ctx.stdout).include(confirmationString)
-        expectCli(ctx.stdout).include(`Transaction Hash`)
+        expectCli(ctx.stdout).include(
+          `Sending $IRON 0.00000100 ($ORE 100) to ${to} from ${from}`,
+        )
+        expectCli(ctx.stdout).include(`Transaction Hash: ${hash}`)
+        expectCli(ctx.stdout).include(`Transaction Fee: $IRON 0.00000001 ($ORE 1)`)
         expect(sendTransaction).toBeCalledTimes(1)
       },
     )
@@ -124,9 +130,11 @@ describe('accounts:pay command', () => {
     .it(
       'without amount flag: show the right confirmation message and call sendTransaction if valid',
       (ctx) => {
-        const confirmationString = `$IRON 0.00000100 ($ORE 100) plus a transaction fee of $IRON 0.00000000 ($ORE 0) to ${to} from the account ${from}`
-        expectCli(ctx.stdout).include(confirmationString)
-        expectCli(ctx.stdout).include(`Transaction Hash`)
+        expectCli(ctx.stdout).include(
+          `Sending $IRON 0.00000100 ($ORE 100) to ${to} from ${from}`,
+        )
+        expectCli(ctx.stdout).include(`Transaction Hash: ${hash}`)
+        expectCli(ctx.stdout).include(`Transaction Fee: $IRON 0.00000000 ($ORE 0)`)
         expect(sendTransaction).toBeCalledTimes(1)
       },
     )
@@ -176,14 +184,7 @@ describe('accounts:pay command', () => {
     })
     test
       .stdout()
-      .command([
-        'accounts:pay',
-        `-a ${amount}`,
-        `-t ${to}`,
-        `-f ${from}`,
-        `-o ${fee}`,
-        `--isConfirmed`,
-      ])
+      .command(['accounts:pay', `-a ${amount}`, `-t ${to}`, `-f ${from}`, `-o ${fee}`, `-c`])
       .exit(2)
       .it('show the right error message and call sendTransaction', (ctx) => {
         expect(sendTransaction).toBeCalledTimes(1)

@@ -51,7 +51,8 @@ export class Pay extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'the memo of transaction',
     }),
-    isConfirmed: Flags.boolean({
+    confirm: Flags.boolean({
+      char: 'c',
       default: false,
       description: 'confirm without asking',
     }),
@@ -122,7 +123,7 @@ export class Pay extends IronfishCommand {
       feeInOre,
       expirationSequence,
       balance,
-      !flags.isConfirmed,
+      !flags.confirm,
     )
     await this.processSend(
       fromAccount,
@@ -146,14 +147,13 @@ export class Pay extends IronfishCommand {
   ): Promise<void> {
     if (shouldConfirm) {
       this.log(
-        `You are about to send: ${displayIronAmountWithCurrency(
-          oreToIron(amountInOre),
-          true,
-        )} plus a transaction fee of ${displayIronAmountWithCurrency(
-          oreToIron(feeInOre),
-          true,
-        )} to ${toAddress} from the account ${fromAccount}`,
+        `You are about to send: ${displayIronAmountWithCurrency(oreToIron(amountInOre), true)}`,
       )
+      this.log(
+        `Plus transaction fee of: ${displayIronAmountWithCurrency(oreToIron(feeInOre), true)}`,
+      )
+      this.log(`From: ${fromAccount}`)
+      this.log(`To: ${toAddress}`)
       this.log(`* This action is NOT reversible *`)
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
