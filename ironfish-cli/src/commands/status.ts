@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FileUtils, GetStatusResponse, PromiseUtils } from '@ironfish/sdk'
+import { FileUtils, GetNodeStatusResponse, PromiseUtils, TimeUtils } from '@ironfish/sdk'
 import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
@@ -18,6 +18,10 @@ export default class Status extends IronfishCommand {
       default: false,
       description: 'follow the status of the node live',
     }),
+    all: Flags.boolean({
+      default: false,
+      description: 'show all status information',
+    }),
   }
 
   async start(): Promise<void> {
@@ -25,8 +29,8 @@ export default class Status extends IronfishCommand {
 
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
-      const response = await client.status()
-      this.log(renderStatus(response.content))
+      const response = await client.getNodeStatus()
+      this.log(renderStatus(flags, response.content))
       this.exit(0)
     }
 
@@ -53,14 +57,14 @@ export default class Status extends IronfishCommand {
 
       for await (const value of response.contentStream()) {
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(value))
+        statusText.setContent(renderStatus(flags, value))
         screen.render()
       }
     }
   }
 }
 
-function renderStatus(content: GetStatusResponse): string {
+function renderStatus(flags: { all: boolean }, content: GetNodeStatusResponse): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
   const blockSyncerStatusDetails: string[] = []
@@ -108,9 +112,17 @@ function renderStatus(content: GetStatusResponse): string {
     content.blockchain.head
   }`
 
-  const miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
+  let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
+
+  if (flags.all) {
+    miningDirectorStatus += `, get txs: ${TimeUtils.renderSpan(
+      content.miningDirector.newBlockTransactionsSpeed,
+    )}, block: ${TimeUtils.renderSpan(
+      content.blockchain.newBlockSpeed,
+    )}, template: ${TimeUtils.renderSpan(content.miningDirector.newBlockTemplateSpeed)}`
+  }
 
   const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
   const memPoolStatus = `Size: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`

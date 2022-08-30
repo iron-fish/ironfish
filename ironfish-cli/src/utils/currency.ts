@@ -19,7 +19,7 @@ export async function verifyCanSend(
   fee: number,
   graffiti: string,
 ): Promise<{ canSend: boolean; errorReason: string | null }> {
-  const status = await client.status()
+  const status = await client.getNodeStatus()
   if (!status.content.blockchain.synced) {
     return {
       canSend: false,
