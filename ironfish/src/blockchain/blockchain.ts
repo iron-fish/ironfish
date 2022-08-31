@@ -876,7 +876,10 @@ export class Blockchain {
     graffiti?: Buffer,
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
+
     return await this.db.transaction(async (tx) => {
+      const startTime = BenchUtils.start()
+
       const originalNoteSize = await this.notes.size(tx)
       const originalNullifierSize = await this.nullifiers.size(tx)
 
@@ -954,6 +957,8 @@ export class Blockchain {
       // abort this transaction as we've modified the trees just to get new
       // merkle roots, but this block isn't mined or accepted yet
       await tx.abort()
+
+      this.metrics.chain_newBlock.add(BenchUtils.end(startTime))
 
       return block
     })
