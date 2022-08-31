@@ -49,7 +49,7 @@ export default class SyncTransactions extends IronfishCommand {
     {
       name: 'head',
       required: false,
-      description: 'the block hash to start following at',
+      description: 'The block hash to start following at',
     },
   ]
 

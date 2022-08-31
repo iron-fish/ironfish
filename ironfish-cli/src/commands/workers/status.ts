@@ -15,7 +15,7 @@ export default class Status extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the status of the node live',
+      description: 'Follow the status of the node live',
     }),
   }
 

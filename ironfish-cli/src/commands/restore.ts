@@ -25,7 +25,7 @@ export default class Restore extends IronfishCommand {
     lock: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'wait for the database to stop being used',
+      description: 'Wait for the database to stop being used',
     }),
   }
 
@@ -33,12 +33,12 @@ export default class Restore extends IronfishCommand {
     {
       name: 'bucket',
       required: true,
-      description: 'the S3 bucket to upload to',
+      description: 'The S3 bucket to upload to',
     },
     {
       name: 'name',
       required: true,
-      description: 'the name of the backup from the S3 bucket',
+      description: 'The name of the backup from the S3 bucket',
     },
   ]
 

@@ -22,7 +22,7 @@ export default class ReAddBlock extends IronfishCommand {
       name: 'hash',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'the hash of the block in hex format',
+      description: 'The hash of the block in hex format',
     },
   ]
 

@@ -14,7 +14,7 @@ export class ImportCommand extends IronfishCommand {
     rescan: Flags.boolean({
       allowNo: true,
       default: true,
-      description: 'rescan the blockchain once the account is imported',
+      description: 'Rescan the blockchain once the account is imported',
     }),
   }
 
@@ -23,7 +23,7 @@ export class ImportCommand extends IronfishCommand {
       name: 'path',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'a path to import the account from',
+      description: 'The path to import the account from',
     },
   ]
 

@@ -19,36 +19,36 @@ export class ListCommand extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the peers list live',
+      description: 'Follow the peers list live',
     }),
     all: Flags.boolean({
       default: false,
-      description: 'show all peers, not just connected peers',
+      description: 'Show all peers, not just connected peers',
     }),
     extended: Flags.boolean({
       char: 'e',
       default: false,
-      description: 'display all information',
+      description: 'Display all information',
     }),
     sort: Flags.string({
       char: 'o',
       default: STATE_COLUMN_HEADER,
-      description: 'sort by column header',
+      description: 'Sort by column header',
     }),
     agents: Flags.boolean({
       char: 'a',
       default: false,
-      description: 'display peer agents',
+      description: 'Display peer agents',
     }),
     sequence: Flags.boolean({
       char: 's',
       default: false,
-      description: 'display peer head sequence',
+      description: 'Display peer head sequence',
     }),
     names: Flags.boolean({
       char: 'n',
       default: false,
-      description: 'display node names',
+      description: 'Display node names',
       hidden: true,
     }),
   }
