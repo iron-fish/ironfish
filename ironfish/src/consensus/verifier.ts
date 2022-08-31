@@ -187,16 +187,18 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
+    let verificationResult
     try {
-      // Transaction is lazily deserialized, so we use takeReference()
-      // to force deserialization errors here
-      transaction.takeReference()
-      transaction.returnReference()
-    } catch (e) {
-      return { valid: false, reason: VerificationResultReason.DESERIALIZATION }
+      verificationResult = await this.workerPool.verify(transaction)
+    } catch {
+      verificationResult = { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
 
-    // Next, check the spends are valid and not already in the chain
+    if (!verificationResult.valid) {
+      return verificationResult
+    }
+
+    // Check the spends are valid and not already in the chain
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
       const nullifierSize = await this.chain.nullifiers.size(tx)
       const notesSize = await this.chain.notes.size(tx)
@@ -223,11 +225,7 @@ export class Verifier {
       return { valid: false, reason }
     }
 
-    try {
-      return await this.workerPool.verify(transaction)
-    } catch {
-      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
-    }
+    return { valid: true }
   }
 
   async verifyTransactionSpends(
