@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { NotEnoughFundsError } from '../../../account/errors'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
   fromAccountName: 'existingAccount',
@@ -72,11 +74,23 @@ describe('Transactions sendTransaction', () => {
     routeTest.chain.synced = true
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
-      'Your balance is too low. Add funds to your account first',
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Your balance is too low. Add funds to your account first',
+        ),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
     )
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
-      'Your balance is too low. Add funds to your account first',
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Your balance is too low. Add funds to your account first',
+        ),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
     )
   })
 
@@ -90,7 +104,13 @@ describe('Transactions sendTransaction', () => {
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
-      'Please wait a few seconds for your balance to update and try again',
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Please wait a few seconds for your balance to update and try again',
+        ),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
     )
 
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
@@ -99,7 +119,34 @@ describe('Transactions sendTransaction', () => {
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
-      'Please wait a few seconds for your balance to update and try again',
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Please wait a few seconds for your balance to update and try again',
+        ),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
+    )
+  })
+
+  it('throws if pay throws NotEnoughFundsError', async () => {
+    routeTest.node.peerNetwork['_isReady'] = true
+    routeTest.chain.synced = true
+
+    await useAccountFixture(routeTest.node.accounts, 'account-throw-error')
+
+    jest.spyOn(routeTest.node.accounts, 'pay').mockRejectedValue(new NotEnoughFundsError())
+    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(11),
+      confirmed: BigInt(11),
+    })
+
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+      expect.objectContaining({
+        message: expect.stringContaining('Your balance changed while creating a transaction.'),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
     )
   })
 
