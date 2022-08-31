@@ -30,7 +30,7 @@ export default class Status extends IronfishCommand {
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
       const response = await client.getNodeStatus()
-      this.log(renderStatus(flags, response.content))
+      this.log(renderStatus(response.content, flags.all))
       this.exit(0)
     }
 
@@ -57,14 +57,14 @@ export default class Status extends IronfishCommand {
 
       for await (const value of response.contentStream()) {
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(flags, value))
+        statusText.setContent(renderStatus(value, flags.all))
         screen.render()
       }
     }
   }
 }
 
-function renderStatus(flags: { all: boolean }, content: GetNodeStatusResponse): string {
+function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
   const blockSyncerStatusDetails: string[] = []
@@ -116,7 +116,7 @@ function renderStatus(flags: { all: boolean }, content: GetNodeStatusResponse): 
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
 
-  if (flags.all) {
+  if (debugOutput) {
     miningDirectorStatus += `, get txs: ${TimeUtils.renderSpan(
       content.miningDirector.newBlockTransactionsSpeed,
     )}, block: ${TimeUtils.renderSpan(
