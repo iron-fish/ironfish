@@ -300,10 +300,6 @@ export class Accounts {
   }
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
-    await this.db.clearDecryptedNotes(tx)
-    await this.db.clearNullifierToNoteHash(tx)
-    await this.db.clearTransactions(tx)
-
     for (const account of this.accounts.values()) {
       await account.reset(tx)
     }

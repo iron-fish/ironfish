@@ -8,6 +8,7 @@ import {
   BufferEncoding,
   IDatabase,
   NullableBufferEncoding,
+  PrefixEncoding,
   StringEncoding,
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
@@ -16,7 +17,7 @@ import { DecryptedNotesStore, DecryptedNoteValueEncoding } from './decryptedNote
 import { HeadHashesStore } from './headHashes'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NullifierToNoteHashStore } from './nullifierToNoteHash'
-import { TransactionsStore, TransactionsValueEncoding } from './transactions'
+import { TransactionsStore, TransactionValueEncoding } from './transactions'
 
 export type NewStores = {
   meta: MetaStore
@@ -68,7 +69,7 @@ export function loadNewStores(db: IDatabase): NewStores {
   const decryptedNotes: DecryptedNotesStore = db.addStore(
     {
       name: 'decryptedNotes',
-      keyEncoding: new BufferEncoding(),
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     },
     false,
@@ -77,7 +78,7 @@ export function loadNewStores(db: IDatabase): NewStores {
   const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore(
     {
       name: 'nullifierToNoteHash',
-      keyEncoding: new BufferEncoding(),
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     },
     false,
@@ -86,8 +87,8 @@ export function loadNewStores(db: IDatabase): NewStores {
   const transactions: TransactionsStore = db.addStore(
     {
       name: 'transactions',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: new TransactionValueEncoding(),
     },
     false,
   )
