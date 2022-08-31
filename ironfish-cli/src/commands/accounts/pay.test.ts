@@ -18,7 +18,6 @@ describe('accounts:pay command', () => {
   const memo = 'test memo for a transaction'
   const hash =
     'aaaa586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed'
-  const confirmationString = `$IRON 0.00000100 ($ORE 100) plus a transaction fee of $IRON 0.00000001 ($ORE 1) to ${to} from the account ${from}`
 
   beforeEach(() => {
     sendTransaction = jest.fn().mockReturnValue({

@@ -76,10 +76,7 @@ export class Pay extends IronfishCommand {
 
     const status = await client.status()
     if (!status.content.blockchain.synced) {
-      this.log(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-      this.exit(1)
+      this.exitIfError(7)
     }
 
     if (!fromAccount) {
@@ -116,7 +113,7 @@ export class Pay extends IronfishCommand {
       })) as string
     }
 
-    await this.validate(
+    const errorCode = await this.validate(
       fromAccount,
       toAddress,
       amountInOre,
@@ -125,6 +122,8 @@ export class Pay extends IronfishCommand {
       balance,
       !flags.confirm,
     )
+    this.exitIfError(errorCode)
+
     await this.processSend(
       fromAccount,
       toAddress,
@@ -134,6 +133,34 @@ export class Pay extends IronfishCommand {
       memo,
       client,
     )
+    this.exitIfError(errorCode)
+  }
+
+  exitIfError(errorCode: number): void {
+    const errors = [
+      'OK',
+      'Transaction aborted.', //log+1
+      'A valid public address is required.', //error
+      'Please enter positive values for amount and fee.', //error
+      'Sum of amount + fee must not be greater than total balance.', //error
+      'Expiration sequence must be non-negative.', //log+1
+      'An error occurred while sending the transaction.', //log+2
+      'Your node must be synced with the Iron Fish network to send a transaction. Please try again later', //error
+      'No account is currently active. Use ironfish accounts:create <name> to first create an account', //log+1
+    ]
+
+    if (errorCode !== 0) {
+      if (errorCode === 1) {
+        this.log(errors[errorCode])
+        this.exit(0)
+      }
+      if (errorCode === 5) {
+        this.log('Expiration sequence must be non-negative')
+        this.exit(1)
+      } else {
+        this.error(errors[errorCode])
+      }
+    }
   }
 
   async validate(
@@ -144,7 +171,7 @@ export class Pay extends IronfishCommand {
     expirationSequence: number | undefined,
     balance: number,
     shouldConfirm: boolean,
-  ): Promise<void> {
+  ): Promise<number> {
     if (shouldConfirm) {
       this.log(
         `You are about to send: ${displayIronAmountWithCurrency(oreToIron(amountInOre), true)}`,
@@ -158,13 +185,12 @@ export class Pay extends IronfishCommand {
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
-        this.log('Transaction aborted.')
-        this.exit(0)
+        return 1
       }
     }
 
     if (!isValidPublicAddress(toAddress)) {
-      this.error(`A valid public address is required`)
+      return 2
     }
 
     if (
@@ -173,24 +199,22 @@ export class Pay extends IronfishCommand {
       amountInOre <= 0 ||
       feeInOre <= 0
     ) {
-      this.error(`Please enter positive values for amount and fee`)
+      return 3
     }
 
     if (amountInOre + feeInOre > balance) {
-      const displayAmount = displayIronAmountWithCurrency(
-        oreToIron(amountInOre + feeInOre),
-        false,
-      )
-      const displayBalance = displayIronAmountWithCurrency(oreToIron(balance), false)
-      this.error(
-        `Sum of amount + fee (${displayAmount}) must not be greater than total balance (${displayBalance})`,
-      )
+      // const displayAmount = displayIronAmountWithCurrency(
+      //   oreToIron(amountInOre + feeInOre),
+      //   false,
+      // )
+      // const displayBalance = displayIronAmountWithCurrency(oreToIron(balance), false)
+      return 4
     }
 
     if (expirationSequence && expirationSequence < 0) {
-      this.log('Expiration sequence must be non-negative')
-      this.exit(1)
+      return 5
     }
+    return 0
   }
 
   async processSend(

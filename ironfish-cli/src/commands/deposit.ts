@@ -17,6 +17,11 @@ export default class Bank extends Pay {
       description: 'deposit on loop',
       default: false,
     }),
+    sleep: Flags.integer({
+      char: 's',
+      description: 'sleep interval between deposits in seconds',
+      default: 30,
+    }),
   }
 
   async start(): Promise<void> {
@@ -30,6 +35,7 @@ export default class Bank extends Pay {
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
     const depositAll = flags.loop
+    const sleepInterval = flags.sleep
 
     const client = await this.sdk.connectRpc(false, true)
 
@@ -72,7 +78,7 @@ export default class Bank extends Pay {
         client,
       )
       if (depositAll && Number(balanceResponse.content.unconfirmed) >= amountInOre * 2) {
-        await PromiseUtils.sleep(30)
+        await PromiseUtils.sleep(sleepInterval)
       } else {
         processNext = false
       }
