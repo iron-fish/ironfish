@@ -44,7 +44,7 @@ export default class Download extends IronfishCommand {
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
   }
 

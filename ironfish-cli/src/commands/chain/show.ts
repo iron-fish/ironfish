@@ -18,13 +18,13 @@ export default class Show extends IronfishCommand {
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       default: -50,
       required: false,
-      description: 'the sequence to start at (inclusive, genesis block is 1)',
+      description: 'The sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       required: false,
-      description: 'the sequence to end at (inclusive)',
+      description: 'The sequence to end at (inclusive)',
     },
   ]
 

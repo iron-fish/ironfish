@@ -14,11 +14,11 @@ export class ShowCommand extends IronfishCommand {
     ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
     user: Flags.boolean({
-      description: 'only show config from the users datadir and not overrides',
+      description: 'Only show config from the users datadir and not overrides',
     }),
     local: Flags.boolean({
       default: false,
-      description: 'dont connect to the node when displaying the config',
+      description: 'Dont connect to the node when displaying the config',
     }),
   }
 

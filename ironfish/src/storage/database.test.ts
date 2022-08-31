@@ -14,7 +14,9 @@ import {
   DuplicateKeyError,
   JsonEncoding,
   StringEncoding,
+  TransactionWrongDatabaseError,
 } from './database'
+import { StorageUtils } from './database/utils'
 import { LevelupDatabase, LevelupStore } from './levelup'
 
 type FooValue = {
@@ -48,8 +50,7 @@ interface ArrayKeySchema extends DatabaseSchema {
 }
 
 describe('Database', () => {
-  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
-  const db = new LevelupDatabase(leveldown(id))
+  const db = createDB()
 
   const fooStore = db.addStore<FooSchema>({
     name: 'Foo',
@@ -65,13 +66,6 @@ describe('Database', () => {
 
   const bazStore = db.addStore<BazSchema>({
     name: 'Baz',
-    keyEncoding: new BufferEncoding(),
-    valueEncoding: new StringEncoding(),
-  })
-
-  // Prefix key is modified during tests, don't use in other tests
-  const testPrefixKeyStore = db.addStore<BazSchema>({
-    name: 'PrefixKey',
     keyEncoding: new BufferEncoding(),
     valueEncoding: new StringEncoding(),
   })
@@ -145,6 +139,7 @@ describe('Database', () => {
 
   it('should clear store', async () => {
     await db.open()
+
     const foo = { hash: 'hello', name: '@ironfish/sdk' }
     const fooHash = Buffer.from(JSON.stringify(foo))
 
@@ -158,6 +153,22 @@ describe('Database', () => {
 
     expect(await fooStore.get('hello')).not.toBeDefined()
     expect(await barStore.get('hello')).toEqual(fooHash)
+  })
+
+  it('should clear store in a range', async () => {
+    await db.open()
+
+    await testStore.clear()
+    await testStore.put('1', 1)
+    await testStore.put('2a', 2)
+    await testStore.put('2b', 3)
+    await testStore.put('3', 4)
+
+    const clearRange = StorageUtils.getPrefixKeyRange(Buffer.from('2'))
+
+    expect(await testStore.getAllKeys()).toMatchObject(['1', '2a', '2b', '3'])
+    await testStore.clear(undefined, clearRange)
+    expect(await testStore.getAllKeys()).toMatchObject(['1', '3'])
   })
 
   it('should clear store in a transaction', async () => {
@@ -181,6 +192,24 @@ describe('Database', () => {
     expect(await testStore.get('hello')).not.toBeDefined()
   })
 
+  it('should clear store in a transaction in a range', async () => {
+    await db.open()
+
+    await db.transaction(async (tx) => {
+      await testStore.clear(tx)
+      await testStore.put('1', 1, tx)
+      await testStore.put('2a', 2, tx)
+      await testStore.put('2b', 3, tx)
+      await testStore.put('3', 3, tx)
+
+      const clearRange = StorageUtils.getPrefixKeyRange(Buffer.from('2'))
+
+      await expect(testStore.getAllKeys(tx)).resolves.toMatchObject(['1', '2a', '2b', '3'])
+      await testStore.clear(tx, clearRange)
+      await expect(testStore.getAllKeys(tx)).resolves.toMatchObject(['1', '3'])
+    })
+  })
+
   it('should add values', async () => {
     await db.open()
     await db.metaStore.clear()
@@ -190,6 +219,17 @@ describe('Database', () => {
 
     await expect(db.metaStore.add('a', 2)).rejects.toThrow(DuplicateKeyError)
     await expect(db.metaStore.get('a')).resolves.toBe(1)
+  })
+
+  it('should not let you use transactions across databases', async () => {
+    const dbB = createDB()
+    const tx = dbB.transaction()
+
+    await expect(db.metaStore.add('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.put('a', 2, tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.get('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.has('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
+    await expect(db.metaStore.del('a', tx)).rejects.toThrow(TransactionWrongDatabaseError)
   })
 
   it('should add values in transactions', async () => {
@@ -567,29 +607,41 @@ describe('Database', () => {
   })
 
   describe('DatabaseStore: key and value streams', () => {
-    it('should get all keys', async () => {
+    it('should get all keys and values', async () => {
       await db.open()
+
       await db.metaStore.clear()
       await db.metaStore.put('a', 1000)
       await db.metaStore.put('b', 1001)
       await db.metaStore.put('c', 1002)
       await db.metaStore.put('d', 1003)
 
-      const values = await db.metaStore.getAllValues()
+      await expect(db.metaStore.getAllKeys()).resolves.toMatchObject(['a', 'b', 'c', 'd'])
+      await expect(db.metaStore.getAllValues()).resolves.toMatchObject([1000, 1001, 1002, 1003])
+    })
 
-      expect(values).toHaveLength(4)
-      expect(values).toContain(1000)
-      expect(values).toContain(1001)
-      expect(values).toContain(1002)
-      expect(values).toContain(1003)
+    it('should get all keys and values in a range', async () => {
+      await db.open()
 
-      const keys = await db.metaStore.getAllKeys()
+      await db.metaStore.clear()
+      await db.metaStore.put('a', 1000)
+      await db.metaStore.put('b', 1001)
+      await db.metaStore.put('c', 1002)
+      await db.metaStore.put('d', 1003)
 
-      expect(keys).toHaveLength(4)
-      expect(keys).toContain('a')
-      expect(keys).toContain('b')
-      expect(keys).toContain('c')
-      expect(keys).toContain('d')
+      await expect(
+        db.metaStore.getAllValues(undefined, {
+          gte: Buffer.from('b'),
+          lt: Buffer.from('d'),
+        }),
+      ).resolves.toMatchObject([1001, 1002])
+
+      await expect(
+        db.metaStore.getAllKeys(undefined, {
+          gte: Buffer.from('b'),
+          lt: Buffer.from('d'),
+        }),
+      ).resolves.toMatchObject(['b', 'c'])
     })
 
     it('should encode and decode keys', async () => {
@@ -667,6 +719,12 @@ describe('Database', () => {
     })
 
     it('should not find entries with an off-by-one prefix and empty key', async () => {
+      const testPrefixKeyStore = db.addStore<BazSchema>({
+        name: 'PrefixKey',
+        keyEncoding: new BufferEncoding(),
+        valueEncoding: new StringEncoding(),
+      })
+
       await db.open()
       const keyStore = testPrefixKeyStore as LevelupStore<BazSchema>
       await keyStore.clear()
@@ -689,3 +747,9 @@ describe('Database', () => {
     })
   })
 })
+
+function createDB() {
+  const id = `./testdbs/${Math.round(Math.random() * Number.MAX_SAFE_INTEGER)}`
+  const db = new LevelupDatabase(leveldown(id))
+  return db
+}

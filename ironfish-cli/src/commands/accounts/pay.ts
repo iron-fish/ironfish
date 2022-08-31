@@ -29,27 +29,27 @@ export class Pay extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'the account to send money from',
+      description: 'The account to send money from',
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'amount of coins to send in IRON',
+      description: 'Amount of coins to send in IRON',
     }),
     to: Flags.string({
       char: 't',
-      description: 'the public address of the recipient',
+      description: 'The public address of the recipient',
     }),
     fee: Flags.string({
       char: 'o',
-      description: 'the fee amount in IRON',
+      description: 'The fee amount in IRON',
     }),
     memo: Flags.string({
       char: 'm',
-      description: 'the memo of transaction',
+      description: 'The memo of transaction',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
     expirationSequence: Flags.integer({
       char: 'e',
@@ -69,7 +69,7 @@ export class Pay extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(false, true)
 
-    const status = await client.status()
+    const status = await client.getNodeStatus()
 
     if (!status.content.blockchain.synced) {
       this.log(

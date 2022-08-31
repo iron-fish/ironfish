@@ -16,7 +16,7 @@ export class ShowCommand extends IronfishCommand {
     {
       name: 'identity',
       required: true,
-      description: 'identity of the peer',
+      description: 'Identity of the peer',
     },
   ]
 

@@ -15,23 +15,23 @@ export class GetCommand extends IronfishCommand {
       name: 'name',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'name of the config item',
+      description: 'Name of the config item',
     },
   ]
 
   static flags = {
     ...RemoteFlags,
     user: Flags.boolean({
-      description: 'only show config from the users datadir and not overrides',
+      description: 'Only show config from the users datadir and not overrides',
     }),
     local: Flags.boolean({
       default: false,
-      description: 'dont connect to the node when displaying the config',
+      description: 'Dont connect to the node when displaying the config',
     }),
     color: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'should colorize the output',
+      description: 'Should colorize the output',
     }),
   }
 

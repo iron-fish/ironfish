@@ -42,6 +42,7 @@ export function mockChain(): any {
     synced: true,
     onConnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
     onDisconnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
+    onForkBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
   }
 }
 
@@ -95,6 +96,10 @@ export function mockLogger(): any {
     debug: jest.fn(),
     error: jest.fn(),
   }
+}
+
+export function mockTelemetry(): any {
+  return {}
 }
 
 export function mockWorkerPool(): any {
