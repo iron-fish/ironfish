@@ -55,12 +55,12 @@ function getSegment(): Segment {
     for (let i = 0; i < 5; ++i) {
       global.gc()
     }
-
-    const startMem = process.memoryUsage()
-    heap = startMem.heapUsed
-    rss = startMem.rss
-    mem = heap + rss
   }
+
+  const startMem = process.memoryUsage()
+  heap = startMem.heapUsed
+  rss = startMem.rss
+  mem = heap + rss
 
   return { time, heap, rss, mem }
 }
@@ -100,10 +100,17 @@ function renderSegment(segment: SegmentResults, title = 'Benchmark', delimeter =
   return rendered
 }
 
+async function withSegment(fn: () => Promise<void> | void): Promise<SegmentResults> {
+  const segment = startSegment()
+  await fn()
+  return endSegment(segment)
+}
+
 export const BenchUtils = {
   start: startTime,
   end: endTime,
   startSegment,
   endSegment,
   renderSegment,
+  withSegment,
 }
