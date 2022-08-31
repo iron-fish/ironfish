@@ -7,11 +7,13 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
+import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
+import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
 
 const MAX_TRANSACTIONS_PER_BLOCK = 300
@@ -29,16 +31,23 @@ export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
   private readonly node: IronfishNode
+  private readonly metrics: MetricsMonitor
 
   blocksMined = 0
   minersConnected = 0
 
   readonly onNewBlock = new Event<[Block]>()
 
-  constructor(options: { chain: Blockchain; node: IronfishNode; memPool: MemPool }) {
+  constructor(options: {
+    chain: Blockchain
+    node: IronfishNode
+    memPool: MemPool
+    metrics: MetricsMonitor
+  }) {
     this.node = options.node
     this.memPool = options.memPool
     this.chain = options.chain
+    this.metrics = options.metrics
   }
 
   /**
@@ -52,6 +61,8 @@ export class MiningManager {
     totalFees: bigint
     blockTransactions: Transaction[]
   }> {
+    const startTime = BenchUtils.start()
+
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
@@ -94,6 +105,8 @@ export class MiningManager {
       totalTransactionFees += transactionFee
     }
 
+    this.metrics.mining_newBlockTransactions.add(BenchUtils.end(startTime))
+
     return {
       totalFees: totalTransactionFees,
       blockTransactions,
@@ -107,6 +120,8 @@ export class MiningManager {
    * @returns
    */
   async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+    const startTime = BenchUtils.start()
+
     const newBlockSequence = currentBlock.header.sequence + 1
 
     const { totalFees, blockTransactions } = await this.getNewBlockTransactions(
@@ -136,6 +151,8 @@ export class MiningManager {
     this.node.logger.debug(
       `Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
+
+    this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
 
     return BlockTemplateSerde.serialize(newBlock, currentBlock)
   }

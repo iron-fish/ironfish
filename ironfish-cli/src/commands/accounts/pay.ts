@@ -69,7 +69,7 @@ export class Pay extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(false, true)
 
-    const status = await client.status()
+    const status = await client.getNodeStatus()
 
     if (!status.content.blockchain.synced) {
       this.log(
