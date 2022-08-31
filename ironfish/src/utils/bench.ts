@@ -71,9 +71,9 @@ function endSegment(start: Segment): SegmentResults {
 
   return {
     time: diffTime(start.time, end.time),
-    heap: end.heap && start.heap ? end.heap - start.heap : null,
-    rss: end.rss && start.rss ? end.rss - start.rss : null,
-    mem: end.mem && start.mem ? end.mem - start.mem : null,
+    heap: end.heap - start.heap,
+    rss: end.rss - start.rss,
+    mem: end.mem - start.mem,
   }
 }
 
