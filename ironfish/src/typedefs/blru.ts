@@ -12,7 +12,7 @@ declare module 'blru' {
       CustomMap?: typeof Map | unknown | null,
     )
 
-    map: Map<TKey, TValue>
+    map: Map<TKey, LRUItem<TKey, TValue>>
     size: number
     items: number
     head: LRUItem<TKey, TValue> | null
@@ -29,7 +29,7 @@ declare module 'blru' {
     remove(key: TKey): boolean
     keys(): Array<TKey>
     values(): Array<TValue>
-    toArray(): Array<TValue>
+    toArray(): Array<LRUItem<TKey, TValue>>
 
     batch(): LRUBatch<TKey, TValue>
     start(): void

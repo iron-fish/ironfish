@@ -18,7 +18,7 @@ export class FeeCommand extends IronfishCommand {
       name: 'blocks',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'latest number of blocks to calculate fees for',
+      description: 'Number of the latest blocks to calculate fees for',
     },
   ]
 

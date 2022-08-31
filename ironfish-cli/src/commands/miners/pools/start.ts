@@ -23,28 +23,28 @@ export class StartPool extends IronfishCommand {
     ...RemoteFlags,
     discord: Flags.string({
       char: 'd',
-      description: 'a discord webhook URL to send critical information to',
+      description: 'A discord webhook URL to send critical information to',
     }),
     lark: Flags.string({
       char: 'l',
-      description: 'a lark webhook URL to send critical information to',
+      description: 'A lark webhook URL to send critical information to',
     }),
     host: Flags.string({
       char: 'h',
-      description: `a host:port listen for stratum connections: ${DEFAULT_POOL_HOST}:${String(
+      description: `A host:port listen for stratum connections: ${DEFAULT_POOL_HOST}:${String(
         DEFAULT_POOL_PORT,
       )}`,
     }),
     payouts: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'whether the pool should payout or not. useful for solo miners',
+      description: 'Whether the pool should payout or not. Useful for solo miners',
     }),
     balancePercentPayout: Flags.integer({
-      description: 'whether the pool should payout or not. useful for solo miners',
+      description: 'Whether the pool should payout or not. Useful for solo miners',
     }),
     banning: Flags.boolean({
-      description: 'whether the pool should ban peers for errors or bad behavior',
+      description: 'Whether the pool should ban peers for errors or bad behavior',
       allowNo: true,
     }),
   }

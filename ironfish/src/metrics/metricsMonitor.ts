@@ -16,6 +16,10 @@ export class MetricsMonitor {
   private _meters: Meter[] = []
   private readonly logger: Logger
 
+  readonly mining_newBlockTemplate: Meter
+  readonly chain_newBlock: Meter
+  readonly mining_newBlockTransactions: Meter
+
   readonly p2p_InboundTraffic: Meter
   readonly p2p_InboundTraffic_WS: Meter
   readonly p2p_InboundTraffic_WebRTC: Meter
@@ -44,6 +48,10 @@ export class MetricsMonitor {
 
   constructor({ logger }: { logger?: Logger }) {
     this.logger = logger ?? createRootLogger()
+
+    this.mining_newBlockTemplate = this.addMeter()
+    this.chain_newBlock = this.addMeter()
+    this.mining_newBlockTransactions = this.addMeter()
 
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()

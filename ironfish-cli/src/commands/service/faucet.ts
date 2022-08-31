@@ -111,7 +111,7 @@ export default class Faucet extends IronfishCommand {
     speed: Meter,
     api: WebApi,
   ): Promise<void> {
-    const status = await client.status()
+    const status = await client.getNodeStatus()
 
     if (!status.content.blockchain.synced) {
       this.log('Blockchain not synced, waiting 5s')

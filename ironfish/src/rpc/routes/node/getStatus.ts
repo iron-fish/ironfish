@@ -6,13 +6,13 @@ import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
-export type GetStatusRequest =
+export type GetNodeStatusRequest =
   | undefined
   | {
       stream?: boolean
     }
 
-export type GetStatusResponse = {
+export type GetNodeStatusResponse = {
   node: {
     status: 'started' | 'stopped' | 'error'
     version: string
@@ -32,6 +32,8 @@ export type GetStatusResponse = {
     miners: number
     blocks: number
     blockGraffiti: string
+    newBlockTemplateSpeed: number
+    newBlockTransactionsSpeed: number
   }
   memPool: {
     size: number
@@ -40,6 +42,7 @@ export type GetStatusResponse = {
   blockchain: {
     synced: boolean
     head: string
+    newBlockSpeed: number
   }
   blockSyncer: {
     status: 'stopped' | 'idle' | 'stopping' | 'syncing'
@@ -79,14 +82,14 @@ export type GetStatusResponse = {
   }
 }
 
-export const GetStatusRequestSchema: yup.ObjectSchema<GetStatusRequest> = yup
+export const GetStatusRequestSchema: yup.ObjectSchema<GetNodeStatusRequest> = yup
   .object({
     stream: yup.boolean().optional(),
   })
   .optional()
   .default({})
 
-export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
+export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = yup
   .object({
     node: yup
       .object({
@@ -112,6 +115,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
         miners: yup.number().defined(),
         blocks: yup.number().defined(),
         blockGraffiti: yup.string().defined(),
+        newBlockTemplateSpeed: yup.number().defined(),
+        newBlockTransactionsSpeed: yup.number().defined(),
       })
       .defined(),
     memPool: yup
@@ -124,6 +129,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
       .object({
         synced: yup.boolean().defined(),
         head: yup.string().defined(),
+        newBlockSpeed: yup.number().defined(),
       })
       .defined(),
     peerNetwork: yup
@@ -180,7 +186,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetStatusResponse> = yup
   })
   .defined()
 
-router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
+router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
   async (request, node): Promise<void> => {
@@ -206,7 +212,7 @@ router.register<typeof GetStatusRequestSchema, GetStatusResponse>(
   },
 )
 
-function getStatus(node: IronfishNode): GetStatusResponse {
+function getStatus(node: IronfishNode): GetNodeStatusResponse {
   let accountsScanning
   if (node.accounts.scan !== null) {
     accountsScanning = {
@@ -216,7 +222,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
     }
   }
 
-  const status: GetStatusResponse = {
+  const status: GetNodeStatusResponse = {
     peerNetwork: {
       peers: node.metrics.p2p_PeersCount.value,
       isReady: node.peerNetwork.isReady,
@@ -228,6 +234,7 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       head: `${node.chain.head.hash.toString('hex') || ''} (${
         node.chain.head.sequence.toString() || ''
       })`,
+      newBlockSpeed: node.metrics.chain_newBlock.avg,
     },
     node: {
       status: node.started ? 'started' : 'stopped',
@@ -248,6 +255,8 @@ function getStatus(node: IronfishNode): GetStatusResponse {
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
       blockGraffiti: node.config.get('blockGraffiti'),
+      newBlockTemplateSpeed: node.metrics.mining_newBlockTemplate.avg,
+      newBlockTransactionsSpeed: node.metrics.mining_newBlockTransactions.avg,
     },
     memPool: {
       size: node.metrics.memPoolSize.value,
