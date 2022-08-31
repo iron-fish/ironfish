@@ -4,6 +4,7 @@
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
@@ -190,6 +191,9 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    if (inspector.url()) {
+      this.log(`Inspector     ${String(inspector.url())}`)
+    }
     this.log(` `)
 
     await NodeUtils.waitForOpen(node, () => this.closing)
