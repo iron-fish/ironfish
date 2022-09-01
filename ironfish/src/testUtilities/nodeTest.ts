@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import './matchers'
-import os from 'os'
-import path from 'path'
-import { v4 as uuid } from 'uuid'
 import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
@@ -15,6 +12,7 @@ import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { WorkerPool } from '../workerPool'
 import { TestStrategy } from './strategy'
+import { getUniqueTestDataDir } from './utils'
 
 export type NodeTestOptions =
   | {
@@ -71,7 +69,7 @@ export class NodeTest {
       options = this.options
     }
 
-    const dataDir = path.join(os.tmpdir(), uuid())
+    const dataDir = getUniqueTestDataDir()
     const strategyClass = TestStrategy
 
     const sdk = await IronfishSdk.init({ dataDir, strategyClass })
