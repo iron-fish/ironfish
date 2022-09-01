@@ -42,6 +42,17 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   inboundTraffic = new Meter()
   outboundTraffic = new Meter()
 
+  get addressPort(): number | null {
+    const address = this.server?.address()
+    if (!address) {
+      return null
+    }
+    if (typeof address === 'string') {
+      throw new Error('No unix sockets')
+    }
+    return address.port
+  }
+
   constructor(
     host: string,
     port: number,
