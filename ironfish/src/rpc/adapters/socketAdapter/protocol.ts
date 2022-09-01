@@ -12,7 +12,7 @@ export type ClientSocketRpc = {
 
 export type ServerSocketRpc = {
   type: 'message' | 'malformedRequest' | 'error' | 'stream'
-  data: SocketRpcResponse | SocketRpcError | SocketRpcError | SocketRpcStream
+  data: SocketRpcResponse | SocketRpcError | SocketRpcStream
 }
 
 export type SocketRpcRequest = {
@@ -54,9 +54,7 @@ export const ClientSocketRpcSchema: yup.ObjectSchema<ClientSocketRpc> = yup
 export const ServerSocketRpcSchema: yup.ObjectSchema<ServerSocketRpc> = yup
   .object({
     type: yup.string().oneOf(['message', 'malformedRequest', 'error', 'stream']).required(),
-    data: yup
-      .mixed<SocketRpcResponse | SocketRpcError | SocketRpcError | SocketRpcStream>()
-      .required(),
+    data: yup.mixed<SocketRpcResponse | SocketRpcError | SocketRpcStream>().required(),
   })
   .required()
 
