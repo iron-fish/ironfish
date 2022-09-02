@@ -7,7 +7,7 @@ use std::convert::TryInto;
 
 use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish_rust::sapling_bls12::SAPLING;
@@ -24,10 +24,10 @@ pub struct NativeTransactionPosted {
 #[napi]
 impl NativeTransactionPosted {
     #[napi(constructor)]
-    pub fn new(bytes: Buffer) -> Result<NativeTransactionPosted> {
-        let mut cursor = std::io::Cursor::new(bytes);
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeTransactionPosted> {
+        let bytes = js_bytes.into_value()?;
 
-        let transaction = Transaction::read(SAPLING.clone(), &mut cursor)
+        let transaction = Transaction::read(SAPLING.clone(), bytes.as_ref())
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeTransactionPosted { transaction })
