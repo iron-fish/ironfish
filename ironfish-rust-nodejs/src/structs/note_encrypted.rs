@@ -6,6 +6,7 @@ use ironfish_rust::IncomingViewKey;
 use ironfish_rust::MerkleNoteHash;
 use ironfish_rust::OutgoingViewKey;
 use napi::bindgen_prelude::*;
+use napi::JsBuffer;
 use napi_derive::napi;
 
 use ironfish_rust::MerkleNote;
@@ -18,7 +19,8 @@ pub struct NativeNoteEncrypted {
 #[napi]
 impl NativeNoteEncrypted {
     #[napi(constructor)]
-    pub fn new(bytes: Buffer) -> Result<Self> {
+    pub fn new(js_bytes: JsBuffer) -> Result<Self> {
+        let bytes = js_bytes.into_value()?;
         let note =
             MerkleNote::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
@@ -54,7 +56,10 @@ impl NativeNoteEncrypted {
     /// Hash two child hashes together to calculate the hash of the
     /// new parent
     #[napi]
-    pub fn combine_hash(depth: i64, left: Buffer, right: Buffer) -> Result<Buffer> {
+    pub fn combine_hash(depth: i64, js_left: JsBuffer, js_right: JsBuffer) -> Result<Buffer> {
+        let left = js_left.into_value()?;
+        let right = js_right.into_value()?;
+
         let left_hash = MerkleNoteHash::read(left.as_ref())
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
