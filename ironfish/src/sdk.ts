@@ -188,9 +188,9 @@ export class IronfishSdk {
       dataDir: this.dataDir,
     })
 
+    const namespaces = ALL_API_NAMESPACES
+    const protectedNamespace = API_NAMESPACES_PROTECTED
     if (this.config.get('enableRpcIpc')) {
-      const namespaces = ALL_API_NAMESPACES
-
       await node.rpc.mount(
         new RpcIpcAdapter(
           namespaces,
@@ -203,15 +203,9 @@ export class IronfishSdk {
       )
     }
 
+    const authToken = this.config.get('authToken')
+
     if (this.config.get('enableRpcTcp')) {
-      const namespaces = ALL_API_NAMESPACES.filter(
-        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
-      )
-
-      if (this.config.get('rpcTcpSecure')) {
-        namespaces.push(...API_NAMESPACES_PROTECTED)
-      }
-
       if (this.config.get('enableRpcTls')) {
         await node.rpc.mount(
           new RpcTlsAdapter(
@@ -222,6 +216,8 @@ export class IronfishSdk {
             this.config.get('tlsCertPath'),
             this.logger,
             namespaces,
+            protectedNamespace,
+            authToken,
           ),
         )
       } else {
@@ -231,6 +227,8 @@ export class IronfishSdk {
             this.config.get('rpcTcpPort'),
             this.logger,
             namespaces,
+            protectedNamespace,
+            authToken,
           ),
         )
       }

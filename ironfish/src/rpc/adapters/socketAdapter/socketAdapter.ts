@@ -35,6 +35,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  protectedNameSpaces: ApiNamespace[]
+  authToken: string
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -58,11 +60,15 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     port: number,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
+    protectedNameSpaces: ApiNamespace[],
+    authToken: string,
   ) {
     this.host = host
     this.port = port
     this.logger = logger.withTag('tcpadapter')
     this.namespaces = namespaces
+    this.protectedNameSpaces = protectedNameSpaces
+    this.authToken = authToken
   }
 
   protected abstract createServer(): net.Server | Promise<net.Server>
@@ -127,7 +133,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   attach(server: RpcServer): void {
-    this.router = server.getRouter(this.namespaces)
+    this.router = server.getRouter(this.namespaces, this.protectedNameSpaces)
   }
 
   async waitForAllToDisconnect(): Promise<void> {
@@ -203,6 +209,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
         (data: unknown) => {
           this.emitStream(client, this.constructStream(message.mid, data))
         },
+        message.token,
       )
       client.requests.set(requestId, request)
 
@@ -212,7 +219,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       }
 
       try {
-        await this.router.route(message.type, request)
+        await this.router.route(message.type, request, this.authToken)
       } catch (error: unknown) {
         if (error instanceof ResponseError) {
           const response = this.constructMessage(message.mid, error.status, {

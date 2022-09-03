@@ -16,6 +16,7 @@ export type ServerSocketRpc = {
 }
 
 export type SocketRpcRequest = {
+  token?: string
   mid: number
   type: string
   data: unknown | undefined
@@ -46,6 +47,7 @@ export const ClientSocketRpcSchema: yup.ObjectSchema<ClientSocketRpc> = yup
         mid: yup.number().required(),
         type: yup.string().required(),
         data: yup.mixed().notRequired(),
+        token: yup.string().notRequired(),
       })
       .required(),
   })
@@ -68,6 +70,7 @@ export const SocketRpcErrorSchema: yup.ObjectSchema<SocketRpcError> = yup
 
 export const SocketRpcRequestSchema: yup.ObjectSchema<SocketRpcRequest> = yup
   .object({
+    token: yup.string().notRequired(),
     mid: yup.number().required(),
     type: yup.string().required(),
     data: yup.mixed().notRequired(),

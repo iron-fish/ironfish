@@ -43,6 +43,16 @@ export class RouteNotFoundError extends ResponseError {
   }
 }
 
+export class RequestForbiddenError extends ResponseError {
+  constructor(route: string, namespace: string, method: string) {
+    super(
+      `Route ${route} in namespace ${namespace} for method ${method} is protected, token needed for this request`,
+      ERROR_CODES.REQUEST_FORBIDDEN,
+      403,
+    )
+  }
+}
+
 export function parseRoute(
   route: string,
 ): [namespace: string | undefined, method: string | undefined] {
@@ -52,6 +62,7 @@ export function parseRoute(
 
 export class Router {
   routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
+  protectedRoutes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
   server: RpcServer | null = null
 
   register<TRequestSchema extends YupSchema, TResponse>(
@@ -77,7 +88,7 @@ export class Router {
     })
   }
 
-  async route(route: string, request: RpcRequest): Promise<void> {
+  async route(route: string, request: RpcRequest, token?: string): Promise<void> {
     const [namespace, method] = route.split('/')
 
     const namespaceRoutes = this.routes.get(namespace)
@@ -88,6 +99,13 @@ export class Router {
     const methodRoute = namespaceRoutes.get(method)
     if (!methodRoute) {
       throw new RouteNotFoundError(route, namespace, method)
+    }
+
+    const protectedNameRoutes = this.protectedRoutes.get(namespace)
+    if (protectedNameRoutes) {
+      if (!request.token || request.token !== token) {
+        throw new RequestForbiddenError(route, namespace, method)
+      }
     }
 
     const { handler, schema } = methodRoute
@@ -112,7 +130,7 @@ export class Router {
     }
   }
 
-  filter(namespaces: string[]): Router {
+  filter(namespaces: string[], protectedNameSpaces?: string[]): Router {
     const set = new Set(namespaces)
     const copy = new Router()
     copy.server = this.server
@@ -120,6 +138,16 @@ export class Router {
     for (const [key, value] of this.routes) {
       if (set.has(key)) {
         copy.routes.set(key, value)
+      }
+    }
+    if (!protectedNameSpaces) {
+      return copy
+    }
+
+    const protectedSet = new Set(protectedNameSpaces)
+    for (const [key, value] of this.routes) {
+      if (protectedSet.has(key)) {
+        copy.protectedRoutes.set(key, value)
       }
     }
 

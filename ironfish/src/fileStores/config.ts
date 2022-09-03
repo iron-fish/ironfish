@@ -21,6 +21,7 @@ export const DEFAULT_MINER_BATCH_SIZE = 25000
 export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
 export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
   'https://explorer.ironfish.network/transaction/'
+export const DEFAULT_TCP_AUTH_TOKEN = 'ironfish-testnet'
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -237,6 +238,11 @@ export type ConfigOptions = {
    * URL for viewing transaction information in a block explorer
    */
   explorerTransactionsUrl: string
+
+  /**
+   * Auth token used in Rpc request for protected routes
+   * */
+  authToken: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -330,6 +336,7 @@ export class Config extends KeyStore<ConfigOptions> {
       jsonLogs: false,
       explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
       explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
+      authToken: DEFAULT_TCP_AUTH_TOKEN,
     }
   }
 }

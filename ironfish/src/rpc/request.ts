@@ -7,6 +7,7 @@ import { Event } from '../event'
 export class RpcRequest<TRequest = unknown, TResponse = unknown> {
   data: TRequest
   route: string
+  token: string | undefined = undefined
   ended = false
   closed = false
   onEnd: (status: number, data?: TResponse) => void
@@ -18,9 +19,11 @@ export class RpcRequest<TRequest = unknown, TResponse = unknown> {
     route: string,
     onEnd: (status: number, data?: unknown) => void,
     onStream: (data?: unknown) => void,
+    token?: string,
   ) {
     this.data = data
     this.route = route
+    this.token = token
     this.onEnd = onEnd
     this.onStream = onStream
   }
