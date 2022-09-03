@@ -624,6 +624,7 @@ dependencies = [
  "jubjub",
  "lazy_static",
  "libc",
+ "murmur3",
  "rand 0.8.5",
  "rust-crypto-wasm",
  "tiny-bip39",
@@ -698,6 +699,12 @@ checksum = "f69d25cd7528769ad3d897e99eb942774bff8b23165012af490351a44c5b583b"
 dependencies = [
  "nonempty",
 ]
+
+[[package]]
+name = "murmur3"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ead5388e485d38e622630c6b05afd3761a6701ff15c55b279ea5b31dcb62cff"
 
 [[package]]
 name = "nonempty"
