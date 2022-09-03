@@ -61,11 +61,8 @@ export class Account {
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
 
-    const prefix = Buffer.alloc(4)
-    const prefixHash = new MurmurHash3(id, 1).result()
-    prefix.writeUInt32BE(prefixHash)
-    this.prefix = prefix
-    this.prefixRange = StorageUtils.getPrefixKeyRange(prefix)
+    this.prefix = calculateAccountPrefix(id)
+    this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
 
     this.displayName = `${name} (${id.slice(0, 7)})`
 
@@ -80,6 +77,7 @@ export class Account {
 
   serialize(): AccountValue {
     return {
+      id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
       incomingViewKey: this.incomingViewKey,
@@ -281,24 +279,26 @@ export class Account {
   ) {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const decryptedNote of decryptedNotes) {
-        if (!decryptedNote.forSpender) {
-          if (decryptedNote.nullifier !== null) {
-            await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
-          }
-
-          await this.updateDecryptedNote(
-            decryptedNote.hash,
-            {
-              accountId: this.id,
-              nullifierHash: decryptedNote.nullifier,
-              index: decryptedNote.index,
-              serializedNote: decryptedNote.serializedNote,
-              spent: false,
-              transactionHash,
-            },
-            tx,
-          )
+        if (decryptedNote.forSpender) {
+          continue
         }
+
+        if (decryptedNote.nullifier !== null) {
+          await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
+        }
+
+        await this.updateDecryptedNote(
+          decryptedNote.hash,
+          {
+            accountId: this.id,
+            nullifierHash: decryptedNote.nullifier,
+            index: decryptedNote.index,
+            serializedNote: decryptedNote.serializedNote,
+            spent: false,
+            transactionHash,
+          },
+          tx,
+        )
       }
     })
   }
@@ -484,4 +484,11 @@ export class Account {
   async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return this.accountsDb.getHeadHash(this, tx)
   }
+}
+
+export function calculateAccountPrefix(id: string): Buffer {
+  const prefix = Buffer.alloc(4)
+  const prefixHash = new MurmurHash3(id, 1).result()
+  prefix.writeUInt32BE(prefixHash)
+  return prefix
 }

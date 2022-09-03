@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
+import { Transaction } from '../../../../primitives/transaction'
 import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 
 export type TransactionsStore = IDatabaseStore<{
@@ -10,18 +11,19 @@ export type TransactionsStore = IDatabaseStore<{
 }>
 
 export interface TransactionValue {
-  transaction: Buffer
+  transaction: Transaction
   blockHash: Buffer | null
   sequence: number | null
   submittedSequence: number | null
 }
+
 
 export class TransactionValueEncoding implements IDatabaseEncoding<TransactionValue> {
   serialize(value: TransactionValue): Buffer {
     const { transaction, blockHash, sequence, submittedSequence } = value
 
     const bw = bufio.write(this.getSize(value))
-    bw.writeVarBytes(transaction)
+    bw.writeVarBytes(transaction.serialize())
 
     let flags = 0
     flags |= Number(!!blockHash) << 0
@@ -44,7 +46,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
   deserialize(buffer: Buffer): TransactionValue {
     const reader = bufio.read(buffer, true)
-    const transaction = reader.readVarBytes()
+    const transaction = new Transaction(reader.readVarBytes())
 
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
@@ -70,7 +72,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
   }
 
   getSize(value: TransactionValue): number {
-    let size = bufio.sizeVarBytes(value.transaction)
+    let size = bufio.sizeVarBytes(value.transaction.serialize())
     size += 1
     if (value.blockHash) {
       size += 32

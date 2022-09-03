@@ -906,7 +906,7 @@ export class Accounts {
     await this.updateHeadHash(account, this.chainProcessor.hash)
   }
 
-  async importAccount(toImport: Omit<AccountValue, 'rescan'>): Promise<Account> {
+  async importAccount(toImport: Omit<AccountValue, 'rescan' | 'id'>): Promise<Account> {
     validateAccount(toImport)
 
     if (toImport.name && this.getAccountByName(toImport.name)) {

@@ -4,7 +4,6 @@
 
 import {
   BigIntLEEncoding,
-  BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
   NullableBufferEncoding,
@@ -32,7 +31,7 @@ export type NewStores = {
 export function loadNewStores(db: IDatabase): NewStores {
   const meta: MetaStore = db.addStore(
     {
-      name: 'meta',
+      name: 'm',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
       valueEncoding: new MetaValueEncoding(),
     },
@@ -41,7 +40,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const headHashes: HeadHashesStore = db.addStore(
     {
-      name: 'headHashes',
+      name: 'h',
       keyEncoding: new StringEncoding(),
       valueEncoding: new NullableBufferEncoding(),
     },
@@ -50,7 +49,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>(
     {
-      name: 'accounts',
+      name: 'a',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     },
@@ -59,7 +58,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const balances: BalancesStore = db.addStore<{ key: string; value: bigint }>(
     {
-      name: 'balances',
+      name: 'b',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BigIntLEEncoding(),
     },
@@ -68,7 +67,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const decryptedNotes: DecryptedNotesStore = db.addStore(
     {
-      name: 'decryptedNotes',
+      name: 'd',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     },
@@ -77,7 +76,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore(
     {
-      name: 'nullifierToNoteHash',
+      name: 'n',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     },
@@ -86,7 +85,7 @@ export function loadNewStores(db: IDatabase): NewStores {
 
   const transactions: TransactionsStore = db.addStore(
     {
-      name: 'transactions',
+      name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
     },

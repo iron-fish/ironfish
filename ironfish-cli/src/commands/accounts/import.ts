@@ -33,7 +33,7 @@ export class ImportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account: AccountValue | null = null
+    let account: Omit<AccountValue, 'id'> | null = null
     if (importPath) {
       account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
@@ -87,7 +87,7 @@ export class ImportCommand extends IronfishCommand {
     return JSONUtils.parse<AccountValue>(data)
   }
 
-  async importTTY(): Promise<AccountValue> {
+  async importTTY(): Promise<Omit<AccountValue, 'id'>> {
     const accountName = (await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })) as string

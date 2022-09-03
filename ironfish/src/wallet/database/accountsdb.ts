@@ -88,43 +88,43 @@ export class AccountsDB {
       key: keyof AccountsDBMeta
       value: AccountsDBMeta[keyof AccountsDBMeta]
     }>({
-      name: 'meta',
+      name: 'm',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
       valueEncoding: new MetaValueEncoding(),
     })
 
     this.headHashes = this.database.addStore({
-      name: 'headHashes',
+      name: 'h',
       keyEncoding: new StringEncoding(),
       valueEncoding: new NullableBufferEncoding(),
     })
 
     this.accounts = this.database.addStore({
-      name: 'accounts',
+      name: 'a',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     })
 
     this.balances = this.database.addStore({
-      name: 'balances',
+      name: 'b',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BigIntLEEncoding(),
     })
 
     this.decryptedNotes = this.database.addStore({
-      name: 'decryptedNotes',
+      name: 'd',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
     this.nullifierToNoteHash = this.database.addStore({
-      name: 'nullifierToNoteHash',
+      name: 'n',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     })
 
     this.transactions = this.database.addStore({
-      name: 'transactions',
+      name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
     })

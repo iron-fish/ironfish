@@ -18,9 +18,12 @@ export type DatabaseKey =
   | Array<IJsonSerializable>
   | unknown
 
-export type DatabaseSchema = {
-  key: DatabaseKey
-  value: unknown
+export type DatabaseSchema<
+  key extends DatabaseKey = DatabaseKey,
+  value extends unknown = unknown,
+> = {
+  key: key
+  value: value
 }
 
 export type SchemaKey<Schema extends DatabaseSchema> = Schema['key']
