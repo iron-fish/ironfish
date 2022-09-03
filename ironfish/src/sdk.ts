@@ -203,7 +203,7 @@ export class IronfishSdk {
       )
     }
 
-    const authToken = this.config.get('authToken')
+    const rpcAuthToken = this.config.get('rpcAuthToken')
 
     if (this.config.get('enableRpcTcp')) {
       if (this.config.get('enableRpcTls')) {
@@ -217,7 +217,7 @@ export class IronfishSdk {
             this.logger,
             namespaces,
             protectedNamespace,
-            authToken,
+            rpcAuthToken,
           ),
         )
       } else {
@@ -228,7 +228,7 @@ export class IronfishSdk {
             this.logger,
             namespaces,
             protectedNamespace,
-            authToken,
+            rpcAuthToken,
           ),
         )
       }

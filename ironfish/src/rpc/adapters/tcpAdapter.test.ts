@@ -9,7 +9,7 @@ import { Assert } from '../../assert'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
-import { ALL_API_NAMESPACES } from '../routes'
+import { ALL_API_NAMESPACES, API_NAMESPACES_PROTECTED } from '../routes'
 import { ERROR_CODES, ValidationError } from './errors'
 import { RpcTcpAdapter } from './tcpAdapter'
 
@@ -32,7 +32,14 @@ describe('TcpAdapter', () => {
       },
     })
 
-    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
+    tcp = new RpcTcpAdapter(
+      'localhost',
+      0,
+      undefined,
+      ALL_API_NAMESPACES,
+      API_NAMESPACES_PROTECTED,
+      'testToken',
+    )
 
     const node = await sdk.node()
     await node.rpc.mount(tcp)

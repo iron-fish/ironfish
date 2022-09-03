@@ -166,11 +166,7 @@ describe('IronfishSdk', () => {
         (a): a is RpcTcpAdapter => a instanceof RpcTcpAdapter,
       )
 
-      const allowedNamespaces = ALL_API_NAMESPACES.filter(
-        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
-      )
-
-      expect(tcp?.namespaces.sort()).toMatchObject(allowedNamespaces.sort())
+      expect(tcp?.protectedNameSpaces.sort()).toMatchObject(API_NAMESPACES_PROTECTED.sort())
     })
 
     it('should use all RPC namespaces for TCP with rpcTcpSecure flag', async () => {
