@@ -7,12 +7,14 @@ import {
   IDatabase,
   StringEncoding,
   StringHashEncoding,
+  U32_ENCODING,
 } from '../../../../storage'
 import { AccountsStore, AccountsValueEncoding } from './accounts'
 import { HeaderEncoding, HeadersStore } from './headers'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NoteToNullifierStore, NoteToNullifiersValueEncoding } from './noteToNullifier'
 import { NullifierToNoteStore } from './nullifierToNote'
+import { SequenceToHashStore } from './sequenceToHash'
 import { TransactionsStore, TransactionsValueEncoding } from './transactions'
 
 export type OldStores = {
@@ -22,6 +24,7 @@ export type OldStores = {
   nullifierToNote: NullifierToNoteStore
   transactions: TransactionsStore
   headers: HeadersStore
+  sequenceToHash: SequenceToHashStore
 }
 
 export function loadOldStores(db: IDatabase, chainDb: IDatabase): OldStores {
@@ -79,5 +82,22 @@ export function loadOldStores(db: IDatabase, chainDb: IDatabase): OldStores {
     false,
   )
 
-  return { meta, accounts, noteToNullifier, nullifierToNote, transactions, headers }
+  const sequenceToHash: SequenceToHashStore = chainDb.addStore(
+    {
+      name: 'bS',
+      keyEncoding: U32_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    },
+    false,
+  )
+
+  return {
+    meta,
+    accounts,
+    noteToNullifier,
+    nullifierToNote,
+    transactions,
+    headers,
+    sequenceToHash,
+  }
 }

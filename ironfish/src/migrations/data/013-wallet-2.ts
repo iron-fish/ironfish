@@ -13,6 +13,7 @@ import { IronfishNode } from '../../node'
 import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import {
+  ArrayEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   DatabaseSchema,
@@ -62,6 +63,13 @@ export class Migration013 extends Migration {
       valueEncoding: new BufferEncoding(),
     })
 
+    const nullifierToTransaction: IDatabaseStore<DatabaseSchema<Buffer, string[]>> =
+      cacheDb.addStore({
+        name: 'za',
+        keyEncoding: new BufferEncoding(),
+        valueEncoding: new ArrayEncoding<string[]>(),
+      })
+
     const stores: Stores = {
       old: loadOldStores(db, chainDb),
       new: loadNewStores(db),
@@ -76,7 +84,13 @@ export class Migration013 extends Migration {
 
     logger.debug('Building note to transaction cache')
     start = BenchUtils.startSegment()
-    await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransaction, logger)
+    await this.writeNoteToTransactionCache(
+      stores,
+      cacheDb,
+      noteToTransaction,
+      nullifierToTransaction,
+      logger,
+    )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: accounts')
@@ -86,7 +100,14 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: accounts data')
     start = BenchUtils.startSegment()
-    await this.migrateAccountsData(stores, accounts, noteToTransaction, tx, logger)
+    await this.migrateAccountsData(
+      stores,
+      accounts,
+      noteToTransaction,
+      nullifierToTransaction,
+      tx,
+      logger,
+    )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: headHashes')
@@ -193,6 +214,7 @@ export class Migration013 extends Migration {
     stores: Stores,
     accounts: DatabaseStoreValue<NewStores['accounts']>[],
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
+    nullifierToTransaction: IDatabaseStore<DatabaseSchema<Buffer, string[]>>,
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<void> {
@@ -200,6 +222,10 @@ export class Migration013 extends Migration {
 
     let countMissingAccount = 0
     let countDroppedTx = 0
+    let countCorruptNote = 0
+    let countCorruptOnMain = 0
+    let countCorruptOffMain = 0
+    let countCorruptState = 0
 
     const unconfirmedBalances = new Map<string, bigint>()
     const accountIdToPrefix = new Map<string, Buffer>()
@@ -221,7 +247,7 @@ export class Migration013 extends Migration {
         continue
       }
 
-      const { transaction, dropped } = await this.getMigratedTransaction(
+      const { transaction, dropped } = await this.constructMigratedTransaction(
         stores,
         transactionHash,
         tx,
@@ -263,21 +289,77 @@ export class Migration013 extends Migration {
         continue
       }
 
-      Assert.isEqual(
-        nullifierEntry.spent,
-        nullifierEntry.nullifierHash ? true : false,
-        `Note ${noteHashHex} is corrupt. It's spent does not match its nullifier` +
-          `\nSpent: ${String(nullifierEntry.spent)}` +
-          `\nNullifier: ${String(nullifierEntry.nullifierHash)}`,
-      )
+      const noteIsCorrupt =
+        nullifierEntry.spent !== (nullifierEntry.nullifierHash ? true : false) ||
+        nullifierEntry.spent !== (nullifierEntry.noteIndex ? true : false) ||
+        nullifierEntry.spent !== (transaction.blockHash ? true : false)
 
-      Assert.isEqual(
-        nullifierEntry.spent,
-        nullifierEntry.noteIndex ? true : false,
-        `Note ${noteHashHex} is corrupt. It's spent does not match its nullifier` +
-          `\nSpent: ${String(nullifierEntry.spent)}` +
-          `\nNullifier: ${String(nullifierEntry.noteIndex)}`,
-      )
+      if (noteIsCorrupt) {
+        let header
+        let main
+
+        let spentIn
+        let spentCount = 0
+
+        if (nullifierEntry.nullifierHash) {
+          const spentTransactions =
+            (await nullifierToTransaction.get(
+              Buffer.from(nullifierEntry.nullifierHash, 'hex'),
+            )) ?? []
+
+          spentCount = spentTransactions.length
+
+          for (const spentTransactionHash of spentTransactions) {
+            const { transaction: spentTransaction } = await this.constructMigratedTransaction(
+              stores,
+              Buffer.from(spentTransactionHash, 'hex'),
+              tx,
+              logger,
+            )
+
+            if (spentTransaction) {
+              spentIn = spentTransaction
+            }
+
+            if (spentTransaction?.blockHash) {
+              header = await stores.old.headers.get(spentTransaction.blockHash)
+
+              if (header) {
+                const mainHash = await stores.old.sequenceToHash.get(header.header.sequence)
+                main = mainHash ? mainHash.equals(header.header.hash) : undefined
+
+                if (main) {
+                  break
+                }
+              }
+            }
+          }
+        }
+
+        if (main === true && nullifierEntry.spent === false) {
+          countCorruptOnMain++
+        } else if (main === false && nullifierEntry.spent === true) {
+          countCorruptOffMain++
+        } else if (main === undefined) {
+          countCorruptState++
+        }
+
+        logger.info(
+          `Note ${noteHashHex} is corrupt. It's spent does not match its state` +
+            `\nspent: ${String(nullifierEntry.spent)}` +
+            `\nnullifier: ${String(nullifierEntry.nullifierHash)}` +
+            `\nmerkle noteIndex: ${String(nullifierEntry.noteIndex)}` +
+            `\nspent count: ${spentCount}` +
+            `\nspent in tx: ${spentIn?.transaction?.unsignedHash().toString('hex') ?? 'null'}` +
+            `\nspent in block: ${spentIn?.blockHash?.toString('hex') ?? 'null'}` +
+            `\nspent in sequence: ${header?.header.sequence ?? `undefined`}` +
+            `\nspent main: ${String(main)}\n`,
+        )
+
+        countCorruptNote++
+        // throw new Error()
+        continue
+      }
 
       const nullifierHash = nullifierEntry.nullifierHash
         ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
@@ -333,6 +415,13 @@ export class Migration013 extends Migration {
       )
     }
 
+    if (countCorruptNote > 0) {
+      console.log('countCorruptOffMain', countCorruptOffMain)
+      console.log('countCorruptOnMain', countCorruptOnMain)
+      console.log('countCorruptState', countCorruptState)
+      throw new Error('Aborting because of corrupt notes')
+    }
+
     for (const account of accounts) {
       const balance = unconfirmedBalances.get(account.id)
 
@@ -346,7 +435,7 @@ export class Migration013 extends Migration {
     }
   }
 
-  async getMigratedTransaction(
+  async constructMigratedTransaction(
     stores: Stores,
     transactionHash: Buffer,
     tx: IDatabaseTransaction,
@@ -396,10 +485,12 @@ export class Migration013 extends Migration {
     stores: Stores,
     cacheDb: IDatabase,
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
+    nullifierToTransaction: IDatabaseStore<DatabaseSchema<Buffer, string[]>>,
     logger: Logger,
   ): Promise<void> {
     let transactionCount = 0
     let noteCount = 0
+    let spendCount = 0
 
     const batch = cacheDb.batch()
     const batchSize = 1000
@@ -414,19 +505,34 @@ export class Migration013 extends Migration {
         const noteHash = note.merkleHash()
 
         batch.put(noteToTransaction, noteHash, transactionHash)
+        noteCount++
 
         if (batch.size >= batchSize) {
           await batch.commit()
         }
+      }
 
-        noteCount++
+      for (const spend of transaction.spends()) {
+        const hashes =
+          (await nullifierToTransaction.get(spend.nullifier)) ?? new Array<string>()
+
+        hashes.push(transactionHash.toString('hex'))
+        await nullifierToTransaction.put(spend.nullifier, hashes)
+
+        spendCount++
+
+        if (batch.size >= batchSize) {
+          await batch.commit()
+        }
       }
 
       transactionCount++
     }
 
     await batch.commit()
-    logger.debug(`\tFound ${noteCount} notes that map to ${transactionCount} transactions`)
+    logger.debug(
+      `\tFound ${noteCount} notes and ${spendCount} spends that map to ${transactionCount} transactions`,
+    )
   }
 
   async deleteOldStores(
@@ -441,10 +547,6 @@ export class Migration013 extends Migration {
     start = BenchUtils.startSegment()
     await stores.old.accounts.clear(tx)
     logger.debug('\taccounts' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    start = BenchUtils.startSegment()
-    await stores.old.headers.clear(tx)
-    logger.debug('\theaders' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     start = BenchUtils.startSegment()
     await stores.old.meta.clear(tx)

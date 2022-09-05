@@ -109,9 +109,9 @@ export class LevelupDatabase extends Database {
 
     const current = await this.getVersion()
 
-    if (current !== version) {
-      throw new DatabaseVersionError(current, version)
-    }
+    // if (current !== version) {
+    //   throw new DatabaseVersionError(current, version)
+    // }
   }
 
   compact(): Promise<void> {
