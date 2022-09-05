@@ -10,6 +10,7 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
+import { ConsoleReporter } from '../../logger/reporters'
 import { IronfishNode } from '../../node'
 import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
@@ -22,6 +23,7 @@ import {
   IDatabaseTransaction,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { isTransactionMine } from '../../testUtilities/helpers/transaction'
 import { BenchUtils } from '../../utils'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
@@ -88,6 +90,10 @@ export class Migration013 extends Migration {
     start = BenchUtils.startSegment()
     await this.migrateAccountsData(stores, accounts, noteToTransaction, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
+    if (Math.random() > 0) {
+      throw new Error()
+    }
 
     logger.debug('Migrating: headHashes')
     start = BenchUtils.startSegment()
@@ -196,21 +202,43 @@ export class Migration013 extends Migration {
     tx: IDatabaseTransaction,
     logger: Logger,
   ): Promise<void> {
-    let countMissingAccount = 0
-    let countDroppedTx = 0
+    // let countMissingAccount = 0
+    // let countDroppedTx = 0
+    // let countNotes = 0
+
+    // const unconfirmedBalances = new Map<string, bigint>()
+    // const accountIdToPrefix = new Map<string, Buffer>()
+    // const droppedTransactions = new BufferSet()
+
+    // const transactionLRU = new LRU<
+    //   Buffer,
+    //   {
+    //     transaction: DatabaseStoreValue<typeof stores.new.transactions> | null
+    //     dropped: boolean
+    //   }
+    // >(1000, undefined, BufferMap)
+
+    let countTransactions = 0
     let countNotes = 0
+    let countSpends = 0
 
-    const unconfirmedBalances = new Map<string, bigint>()
-    const accountIdToPrefix = new Map<string, Buffer>()
-    const droppedTransactions = new BufferSet()
+    for await (const [transactionHash, transactionValue] of stores.old.transactions.getAllIter(
+      tx,
+    )) {
+      const transaction = new Transaction(transactionValue.transaction)
+      countTransactions++
+      countNotes += transaction.notesLength()
+      countSpends += transaction.spendsLength()
+    }
 
-    const transactionLRU = new LRU<
-      Buffer,
-      {
-        transaction: DatabaseStoreValue<typeof stores.new.transactions> | null
-        dropped: boolean
-      }
-    >(1000, undefined, BufferMap)
+    console.log(countTransactions)
+    console.log(countNotes)
+    console.log(countSpends)
+
+
+
+
+
 
     for await (const [noteHashHex, nullifierEntry] of stores.old.noteToNullifier.getAllIter(
       tx,
@@ -228,22 +256,13 @@ export class Migration013 extends Migration {
         continue
       }
 
-      let cachedTransaction = transactionLRU.get(transactionHash)
 
-      if (cachedTransaction === null) {
-        cachedTransaction = await this.constructMigratedTransaction(
-          stores,
-          transactionHash,
-          tx,
-          logger,
-        )
-
-        transactionLRU.set(transactionHash, cachedTransaction)
-      } else {
-        console.log('HIT')
-      }
-
-      const { transaction, dropped } = cachedTransaction
+      const { transaction, dropped } = await this.constructMigratedTransaction(
+        stores,
+        transactionHash,
+        tx,
+        logger,
+      )
 
       if (dropped) {
         countDroppedTx++
