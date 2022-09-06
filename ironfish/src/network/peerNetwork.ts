@@ -43,7 +43,6 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import {
   PooledTransactionsRequest,
@@ -256,10 +255,7 @@ export class PeerNetwork {
     this.node.accounts.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = transaction.serialize()
 
-      const nonce = Buffer.alloc(16, transaction.hash())
-      const message = new NewTransactionMessage(serializedTransaction, nonce)
-
-      this.broadcastTransaction(message)
+      this.broadcastTransaction(serializedTransaction)
     })
   }
 
@@ -430,50 +426,32 @@ export class PeerNetwork {
     }
   }
 
-  private broadcastTransaction(message: NewTransactionMessage): void {
-    const hash = new Transaction(message.transaction).hash()
-    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 17
+  private broadcastTransaction(transaction: SerializedTransaction): void {
+    const hash = new Transaction(transaction).hash()
 
-    const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
-    const sendHash: Peer[] = []
-    const sendFull: Peer[] = peersToSendToArray.filter((p) => !isUpgraded(p))
-
-    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
-      peersToSendToArray.filter((p) => isUpgraded(p)),
-    )
+    const peersToSendToArray = ArrayUtils.shuffle([
+      ...this.connectedPeersWithoutTransaction(hash),
+    ])
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    for (const peer of upgradedPeers) {
-      if (sendFull.length < sqrtSize) {
-        sendFull.push(peer)
+    let attemptedSendFull = 0
+    for (const peer of peersToSendToArray) {
+      if (!peer.state.identity) {
+        continue
+      }
+
+      if (attemptedSendFull < sqrtSize) {
+        attemptedSendFull++
+        const newTransactionMessage = new NewTransactionV2Message([transaction])
+        if (peer.send(newTransactionMessage)) {
+          this.markKnowsTransaction(hash, peer.state.identity)
+        }
       } else {
-        sendHash.push(peer)
-      }
-    }
-
-    const hashMessage = new NewPooledTransactionHashes([hash])
-
-    for (const peer of sendHash) {
-      if (peer.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      if (peer.send(hashMessage)) {
-        this.markKnowsTransaction(hash, peer.state.identity)
-      }
-    }
-
-    const newTransactionMessage = new NewTransactionV2Message([message.transaction])
-    for (const peer of sendFull) {
-      if (peer.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      const messageToSend = isUpgraded(peer) ? newTransactionMessage : message
-
-      if (peer.send(messageToSend)) {
-        this.markKnowsTransaction(hash, peer.state.identity)
+        const hashMessage = new NewPooledTransactionHashes([hash])
+        if (peer.send(hashMessage)) {
+          this.markKnowsTransaction(hash, peer.state.identity)
+        }
       }
     }
   }
@@ -631,11 +609,8 @@ export class PeerNetwork {
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
     } else if (message instanceof NewTransactionV2Message) {
-      for (const transaction of message.transactions) {
-        // Set the nonce to the hash of the transaction for older peers
-        const nonce = Buffer.alloc(16, new Transaction(transaction).hash())
-        const gossipMessage = new NewTransactionMessage(transaction, nonce)
-        await this.onNewTransaction(peer, gossipMessage)
+      for (const serializedTransaction of message.transactions) {
+        await this.onNewTransaction(peer, serializedTransaction)
       }
     } else {
       throw new Error(
@@ -652,8 +627,6 @@ export class PeerNetwork {
   ): Promise<void> {
     if (gossipMessage instanceof NewBlockMessage) {
       await this.handleNewBlockMessage(peer, gossipMessage)
-    } else if (gossipMessage instanceof NewTransactionMessage) {
-      await this.onNewTransaction(peer, gossipMessage)
     } else {
       throw new Error(`Invalid gossip message type: '${gossipMessage.type}'`)
     }
@@ -721,9 +694,7 @@ export class PeerNetwork {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const serializedTransaction of rpcMessage.transactions) {
-          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
-          const gossipMessage = new NewTransactionMessage(serializedTransaction, nonce)
-          await this.onNewTransaction(peer, gossipMessage)
+          await this.onNewTransaction(peer, serializedTransaction)
         }
       } else if (rpcMessage instanceof GetBlockTransactionsResponse) {
         await this.onNewBlockTransactions(peer, rpcMessage)
@@ -1001,9 +972,7 @@ export class PeerNetwork {
       // If the transaction is already in the mempool the only thing we have to do is broadcast
       const transaction = this.node.memPool.get(hash)
       if (transaction && !this.alreadyHaveTransaction(hash)) {
-        const nonce = Buffer.alloc(16, transaction.hash())
-        const gossipMessage = new NewTransactionMessage(transaction.serialize(), nonce)
-        this.broadcastTransaction(gossipMessage)
+        this.broadcastTransaction(transaction.serialize())
       } else {
         this.transactionFetcher.hashReceived(hash, peer)
       }
@@ -1389,11 +1358,14 @@ export class PeerNetwork {
     return await this.chain.hasBlock(hash)
   }
 
-  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<void> {
+  private async onNewTransaction(
+    peer: Peer,
+    serializedTransaction: SerializedTransaction,
+  ): Promise<void> {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
-    const transaction = new Transaction(message.transaction)
+    const transaction = new Transaction(serializedTransaction)
     const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
@@ -1421,7 +1393,7 @@ export class PeerNetwork {
       }
 
       if (this.node.memPool.exists(transaction.hash())) {
-        this.broadcastTransaction(message)
+        this.broadcastTransaction(serializedTransaction)
       }
     }
 

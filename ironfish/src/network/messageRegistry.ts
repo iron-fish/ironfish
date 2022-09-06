@@ -18,7 +18,6 @@ import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
@@ -106,8 +105,6 @@ const parseGossipNetworkMessage = (
   switch (type) {
     case NetworkMessageType.NewBlock:
       return NewBlockMessage.deserialize(body, nonce)
-    case NetworkMessageType.NewTransaction:
-      return NewTransactionMessage.deserialize(body, nonce)
     default:
       throw new Error(`Unknown gossip network message type: ${type}`)
   }

@@ -3,4 +3,4 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export const VERSION_PROTOCOL = 18
-export const VERSION_PROTOCOL_MIN = 15
+export const VERSION_PROTOCOL_MIN = 17
