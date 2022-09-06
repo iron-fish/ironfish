@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import LRU from 'blru'
-import { BufferMap, BufferSet } from 'buffer-map'
-import fsAsync from 'fs/promises'
 import MurmurHash3 from 'imurmurhash'
+import _ from 'lodash'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
-import { ConsoleReporter } from '../../logger/reporters'
+import { Meter } from '../../metrics/meter'
 import { IronfishNode } from '../../node'
 import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
@@ -23,7 +21,6 @@ import {
   IDatabaseTransaction,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { isTransactionMine } from '../../testUtilities/helpers/transaction'
 import { BenchUtils } from '../../utils'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
@@ -52,34 +49,46 @@ export class Migration013 extends Migration {
     const chainDb = createDB({ location: node.config.chainDatabasePath })
     await chainDb.open()
 
-    const cacheDbPath = path.join(node.config.tempDir, 'migration')
-
-    const cacheDb = createDB({ location: cacheDbPath })
-
-    logger.debug(`Using cache database at ${cacheDbPath}`)
-
-    const noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>> = cacheDb.addStore({
-      name: 'z',
-      keyEncoding: new BufferEncoding(),
-      valueEncoding: new BufferEncoding(),
-    })
-
     const stores: Stores = {
       old: loadOldStores(db, chainDb),
       new: loadNewStores(db),
     }
 
-    logger.debug('Clearing old note to transaction cache')
+    const cacheDbPath = path.join(node.config.tempDir, 'migration')
+    const cacheDb = createDB({ location: cacheDbPath })
+    logger.debug(`Using cache database at ${cacheDbPath}`)
+
+    const noteToTransactionCache: IDatabaseStore<DatabaseSchema<Buffer, Buffer>> =
+      cacheDb.addStore({
+        name: 'z',
+        keyEncoding: new BufferEncoding(),
+        valueEncoding: new BufferEncoding(),
+      })
+
+    const transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    > = cacheDb.addStore({
+      name: 'cz',
+      keyEncoding: new BufferEncoding(),
+      valueEncoding: stores.new.transactions.valueEncoding,
+    })
+
+    // logger.debug('Clearing cache DB')
     let start = BenchUtils.startSegment()
-    await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     await cacheDb.open()
 
-    logger.debug('Building note to transaction cache')
-    start = BenchUtils.startSegment()
-    await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransaction, logger)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // logger.debug('Building note to transaction cache')
+    // start = BenchUtils.startSegment()
+    // await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransactionCache, logger)
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
+    // logger.debug('Building transaction cache')
+    // start = BenchUtils.startSegment()
+    // await this.writeTransactionsCache(stores, transactionsCache, logger)
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: accounts')
     start = BenchUtils.startSegment()
@@ -88,40 +97,48 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: accounts data')
     start = BenchUtils.startSegment()
-    await this.migrateAccountsData(stores, accounts, noteToTransaction, tx, logger)
+    await this.migrateAccountsData(
+      stores,
+      db,
+      accounts,
+      noteToTransactionCache,
+      transactionsCache,
+      logger,
+      tx,
+    )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     if (Math.random() > 0) {
       throw new Error()
     }
 
-    logger.debug('Migrating: headHashes')
-    start = BenchUtils.startSegment()
-    await this.migrateHeadHashes(stores, accounts, tx, logger)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // logger.debug('Migrating: headHashes')
+    // start = BenchUtils.startSegment()
+    // await this.migrateHeadHashes(stores, accounts, tx, logger)
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug('Migrating: meta')
-    start = BenchUtils.startSegment()
-    await this.migrateMeta(stores, accounts, tx, logger)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // logger.debug('Migrating: meta')
+    // start = BenchUtils.startSegment()
+    // await this.migrateMeta(stores, accounts, tx, logger)
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug('Migrating: Deleting old stores')
-    await this.deleteOldStores(stores, tx, logger)
+    // logger.debug('Migrating: Deleting old stores')
+    // await this.deleteOldStores(stores, tx, logger)
 
-    logger.debug('Migrating: Checking nullifierToNote')
-    start = BenchUtils.startSegment()
-    await this.checkNullifierToNote(stores, node, tx)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // logger.debug('Migrating: Checking nullifierToNote')
+    // start = BenchUtils.startSegment()
+    // await this.checkNullifierToNote(stores, node, tx)
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    await chainDb.close()
-    await cacheDb.close()
+    // await chainDb.close()
+    // await cacheDb.close()
 
-    logger.debug(`Migrating: Deleting cache DB at ${cacheDbPath}`)
-    start = BenchUtils.startSegment()
-    await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    // logger.debug(`Migrating: Deleting cache DB at ${cacheDbPath}`)
+    // start = BenchUtils.startSegment()
+    // await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
+    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
+    // logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
 
   backward(): Promise<void> {
@@ -197,133 +214,90 @@ export class Migration013 extends Migration {
 
   async migrateAccountsData(
     stores: Stores,
+    accountDb: IDatabase,
     accounts: DatabaseStoreValue<NewStores['accounts']>[],
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
-    tx: IDatabaseTransaction,
+    transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    >,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    // let countMissingAccount = 0
-    // let countDroppedTx = 0
-    // let countNotes = 0
+    let countMissingAccount = 0
+    let countMissingTx = 0
+    let countNote = 0
 
-    // const unconfirmedBalances = new Map<string, bigint>()
-    // const accountIdToPrefix = new Map<string, Buffer>()
-    // const droppedTransactions = new BufferSet()
+    const unconfirmedBalances = new Map<string, bigint>()
+    const accountPrefixes = new Map<string, Buffer>()
 
-    // const transactionLRU = new LRU<
-    //   Buffer,
-    //   {
-    //     transaction: DatabaseStoreValue<typeof stores.new.transactions> | null
-    //     dropped: boolean
-    //   }
-    // >(1000, undefined, BufferMap)
-
-    let countTransactions = 0
-    let countNotes = 0
-    let countSpends = 0
-
-    for await (const [transactionHash, transactionValue] of stores.old.transactions.getAllIter(
-      tx,
-    )) {
-      const transaction = new Transaction(transactionValue.transaction)
-      countTransactions++
-      countNotes += transaction.notesLength()
-      countSpends += transaction.spendsLength()
+    // Cache the account prefix because murmur is slow
+    for (const account of accounts) {
+      const prefix = calculateAccountPrefix(account.id)
+      accountPrefixes.set(account.id, prefix)
     }
 
-    console.log(countTransactions)
-    console.log(countNotes)
-    console.log(countSpends)
-
-
-
-
-
+    const speed = new Meter()
+    speed.start()
 
     for await (const [noteHashHex, nullifierEntry] of stores.old.noteToNullifier.getAllIter(
       tx,
     )) {
       const noteHash = Buffer.from(noteHashHex, 'hex')
-
       const transactionHash = await noteToTransaction.get(noteHash)
-      Assert.isNotUndefined(
-        transactionHash,
-        `Could not find note ${noteHashHex} in noteHashToTransaction`,
-      )
+      Assert.isNotUndefined(transactionHash)
 
-      if (droppedTransactions.has(transactionHash)) {
-        countDroppedTx++
+      const transaction = await transactionsCache.get(transactionHash)
+
+      if (!transaction) {
+        countMissingTx++
+        speed.add(1)
         continue
       }
 
+      const encryptedNote = findNoteInTransaction(transaction.transaction, noteHash)
+      Assert.isNotNull(encryptedNote)
 
-      const { transaction, dropped } = await this.constructMigratedTransaction(
-        stores,
-        transactionHash,
-        tx,
-        logger,
-      )
-
-      if (dropped) {
-        countDroppedTx++
-        droppedTransactions.add(transactionHash)
-        continue
-      }
-
-      Assert.isNotNull(transaction)
-
-      const encryptedNote = findNoteInTranaction(transaction.transaction, noteHash)
-      Assert.isNotNull(
-        encryptedNote,
-        `Could not find note ${noteHashHex} in transaction ${transactionHash.toString('hex')}`,
-      )
-
-      let account = null
-      let note = null
+      let ownerAccount = null
+      let ownerNote = null
 
       for (const possibleAccount of accounts) {
         const received = encryptedNote.decryptNoteForOwner(possibleAccount.incomingViewKey)
 
         if (received) {
-          note = received
-          account = possibleAccount
+          ownerNote = received
+          ownerAccount = possibleAccount
           break
         }
       }
 
-      if (!account || !note) {
+      if (!ownerAccount || !ownerNote) {
         logger.warn(
           `\tCould not find the original account that the note ${noteHashHex} was decrypted as owner, discarding. Tried ${accounts.length} accounts.`,
         )
         countMissingAccount++
+        speed.add(1)
         continue
       }
 
-      const nullifierHash = nullifierEntry.nullifierHash
-        ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
-        : null
-
-      const decryptedNote: DatabaseStoreValue<NewStores['decryptedNotes']> = {
-        accountId: account.id,
+      const decryptedNote = {
+        accountId: ownerAccount.id,
         noteIndex: nullifierEntry.noteIndex,
-        serializedNote: note.serialize(),
+        serializedNote: ownerNote.serialize(),
         spent: nullifierEntry.spent,
         transactionHash: transactionHash,
-        nullifierHash: nullifierHash,
+        nullifierHash: nullifierEntry.nullifierHash
+          ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
+          : null,
       }
 
       if (!decryptedNote.spent) {
-        let balance = unconfirmedBalances.get(account.id) ?? BigInt(0)
-        balance += note.value()
-        unconfirmedBalances.set(account.id, balance)
+        let balance = unconfirmedBalances.get(ownerAccount.id) ?? BigInt(0)
+        balance += ownerNote.value()
+        unconfirmedBalances.set(ownerAccount.id, balance)
       }
 
-      // Cache the account prefix because murmur is slow
-      let accountPrefix = accountIdToPrefix.get(account.id)
-      if (!accountPrefix) {
-        accountPrefix = calculateAccountPrefix(account.id)
-        accountIdToPrefix.set(account.id, accountPrefix)
-      }
+      const accountPrefix = accountPrefixes.get(ownerAccount.id)
+      Assert.isNotUndefined(accountPrefix)
 
       // Write the account data
       await stores.new.decryptedNotes.put([accountPrefix, noteHash], decryptedNote, tx)
@@ -336,22 +310,23 @@ export class Migration013 extends Migration {
         )
       }
 
-      countNotes++
-      console.log(countNotes)
+      countNote++
+      speed.add(1)
+
+      if (countNote % 1000 === 0) {
+        logger.debug(`Migrated ${countNote} notes: ${speed.rate5s}`)
+      }
     }
 
-    logger.debug(`\tMigrated ${countNotes} notes.`)
+    speed.stop()
+    logger.debug(`\tMigrated ${countNote} notes.`)
 
     if (countMissingAccount) {
-      logger.warn(
-        `\tDropped ${countMissingAccount} notes that were not decryptable by any accounts we have and dropped ${countDroppedTx} notes from transactions that were dropped because their blocks were missing.`,
-      )
+      logger.warn(`\tDropped ${countMissingAccount} notes missing accounts.`)
     }
 
-    if (countDroppedTx) {
-      logger.warn(
-        `\tDropped ${countDroppedTx} notes from TX that were dropped because their blocks were missing.`,
-      )
+    if (countMissingTx) {
+      logger.warn(`\tDropped ${countMissingTx} missing transactions.`)
     }
 
     for (const account of accounts) {
@@ -367,50 +342,51 @@ export class Migration013 extends Migration {
     }
   }
 
-  async constructMigratedTransaction(
+  async writeTransactionsCache(
     stores: Stores,
-    transactionHash: Buffer,
-    tx: IDatabaseTransaction,
+    transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    >,
     logger: Logger,
-  ): Promise<{
-    transaction: DatabaseStoreValue<typeof stores.new.transactions> | null
-    dropped: boolean
-  }> {
-    const oldValue = await stores.old.transactions.get(transactionHash, tx)
-    Assert.isNotUndefined(oldValue)
+  ): Promise<void> {
+    let countMigrated = 0
+    let countDropped = 0
 
-    const migrated: DatabaseStoreValue<typeof stores.new.transactions> = {
-      ...oldValue,
-      transaction: new Transaction(oldValue.transaction),
-      blockHash: null,
-      sequence: null,
-    }
-
-    if (oldValue.blockHash) {
-      const blockHash = Buffer.from(oldValue.blockHash, 'hex')
-      const header = await stores.old.headers.get(blockHash)
-
-      if (!header) {
-        logger.debug(
-          `\tDropping TX ${transactionHash.toString('hex')}: block not found ${
-            oldValue.blockHash
-          }`,
-        )
-
-        return {
-          transaction: null,
-          dropped: true,
-        }
+    for await (const [
+      transactionHash,
+      transactionValue,
+    ] of stores.old.transactions.getAllIter()) {
+      const migrated = {
+        ...transactionValue,
+        transaction: new Transaction(transactionValue.transaction),
+        blockHash: null as null | Buffer,
+        sequence: null as null | number,
       }
 
-      migrated.blockHash = blockHash
-      migrated.sequence = header.header.sequence
+      if (transactionValue.blockHash) {
+        const blockHash = Buffer.from(transactionValue.blockHash, 'hex')
+        const header = await stores.old.headers.get(blockHash)
+
+        if (!header) {
+          logger.debug(
+            `\tDropping TX ${transactionHash.toString('hex')}: block not found ${
+              transactionValue.blockHash
+            }`,
+          )
+
+          countDropped++
+          continue
+        }
+
+        migrated.blockHash = blockHash
+        migrated.sequence = header.header.sequence
+      }
+
+      await transactionsCache.put(transactionHash, migrated)
+      countMigrated++
     }
 
-    return {
-      transaction: migrated,
-      dropped: false,
-    }
+    logger.debug(`Migrated ${countMigrated} transactions and dropped ${countDropped}`)
   }
 
   async writeNoteToTransactionCache(
@@ -419,9 +395,8 @@ export class Migration013 extends Migration {
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     logger: Logger,
   ): Promise<void> {
-    let transactionCount = 0
-    let noteCount = 0
-    const spendCount = 0
+    let countTransaction = 0
+    let countNote = 0
 
     const batch = cacheDb.batch()
     const batchSize = 1000
@@ -436,20 +411,18 @@ export class Migration013 extends Migration {
         const noteHash = note.merkleHash()
 
         batch.put(noteToTransaction, noteHash, transactionHash)
-        noteCount++
+        countNote++
 
         if (batch.size >= batchSize) {
           await batch.commit()
         }
       }
 
-      transactionCount++
+      countTransaction++
     }
 
     await batch.commit()
-    logger.debug(
-      `\tFound ${noteCount} notes and ${spendCount} spends that map to ${transactionCount} transactions`,
-    )
+    logger.debug(`\tFound ${countNote} notes that map to ${countTransaction} transactions`)
   }
 
   async deleteOldStores(
@@ -505,7 +478,7 @@ export class Migration013 extends Migration {
   }
 }
 
-function findNoteInTranaction(
+function findNoteInTransaction(
   transaction: Transaction,
   noteHash: Buffer,
 ): NoteEncrypted | null {
@@ -524,3 +497,6 @@ export function calculateAccountPrefix(id: string): Buffer {
   prefix.writeUInt32BE(prefixHash)
   return prefix
 }
+
+// 1. Write migrated transactions to cache DB
+// 2. Migrate notes
