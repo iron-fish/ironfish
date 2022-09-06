@@ -14,7 +14,7 @@ import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
-import { ValidationError } from '../rpc/adapters/errors'
+import { ERROR_CODES, ValidationError } from '../rpc/adapters/errors';
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -735,7 +735,11 @@ export class Accounts {
       }
 
       if (amountNeeded > 0) {
-        throw new Error('Insufficient funds')
+        throw new ValidationError(
+          `Insufficient funds`,
+          undefined,
+          ERROR_CODES.INSUFFICIENT_BALANCE,
+        )
       }
 
       return this.workerPool.createTransaction(
