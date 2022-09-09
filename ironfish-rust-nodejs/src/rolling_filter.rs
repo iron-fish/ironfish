@@ -1,10 +1,10 @@
-use ironfish_rust::rolling_filter::RollingFilterRs;
+use ironfish_rust::rolling_filter2::RollingFilterRs2;
 use napi::JsBuffer;
 use napi_derive::napi;
 
 #[napi(js_name = "RollingFilterRs")]
 pub struct NativeRollingFilter {
-    inner: RollingFilterRs,
+    inner: RollingFilterRs2,
 }
 
 #[napi]
@@ -13,7 +13,7 @@ impl NativeRollingFilter {
     #[allow(clippy::new_without_default)]
     pub fn new(items: u32, rate: f64) -> Self {
         Self {
-            inner: RollingFilterRs::new(Some(items), rate as f32),
+            inner: RollingFilterRs2::new(items, rate),
         }
     }
 
