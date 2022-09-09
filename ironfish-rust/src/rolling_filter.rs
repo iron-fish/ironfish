@@ -1,8 +1,8 @@
-use std::{cmp, io::Cursor};
+use std::cmp;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use murmur3::murmur3_32;
 use rand::{thread_rng, RngCore};
+use xxhash_rust::xxh3::xxh3_64_with_seed;
 
 pub struct RollingFilterRs {
     entries: u32,
@@ -87,7 +87,7 @@ impl RollingFilterRs {
         let seed = (n.wrapping_mul(0xfba4c795)).wrapping_add(self.tweak | 0);
         // println!("hash seed: {}", seed);
 
-        murmur3_32(&mut Cursor::new(value), seed).unwrap()
+        xxh3_64_with_seed(value, seed.into()) as u32
     }
 
     fn reset() {

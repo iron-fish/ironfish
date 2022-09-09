@@ -1,7 +1,7 @@
-use std::{cmp, io::Cursor};
+use std::cmp;
 
-use murmur3::murmur3_32;
 use rand::{thread_rng, RngCore};
+use xxhash_rust::xxh3::xxh3_64_with_seed;
 
 pub struct RollingFilterRs2 {
     n_entries_this_generation: u32, // bcoin's entries?
@@ -46,7 +46,7 @@ impl RollingFilterRs2 {
     fn hash(&self, value: &[u8], n_hash_num: u32) -> u32 {
         let seed = n_hash_num * 0xFBA4C795 + self.n_tweak;
 
-        murmur3_32(&mut Cursor::new(value), seed).unwrap()
+        xxh3_64_with_seed(value, seed.into()) as u32
     }
 
     pub fn add(&mut self, value: &[u8]) {

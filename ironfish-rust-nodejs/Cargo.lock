@@ -679,10 +679,10 @@ dependencies = [
  "jubjub",
  "lazy_static",
  "libc",
- "murmur3",
  "rand 0.8.5",
  "rust-crypto-wasm",
  "tiny-bip39",
+ "xxhash-rust",
  "zcash_primitives",
  "zcash_proofs",
 ]
@@ -770,12 +770,6 @@ checksum = "f69d25cd7528769ad3d897e99eb942774bff8b23165012af490351a44c5b583b"
 dependencies = [
  "nonempty",
 ]
-
-[[package]]
-name = "murmur3"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ead5388e485d38e622630c6b05afd3761a6701ff15c55b279ea5b31dcb62cff"
 
 [[package]]
 name = "napi"
@@ -1614,6 +1608,12 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074914ea4eec286eb8d1fd745768504f420a1f7b7919185682a4a267bed7d2e7"
 
 [[package]]
 name = "zcash_encoding"
