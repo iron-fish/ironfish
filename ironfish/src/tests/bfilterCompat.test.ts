@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// @ts-nocheck
 import { RollingFilter } from '@ironfish/bfilter'
 import { RollingFilterRs } from '@ironfish/rust-nodejs'
 import { randomBytes } from 'crypto'
@@ -23,14 +22,14 @@ describe('bfilter compatibility with rust bindings', () => {
     const jsResult = await BenchUtils.withSegment(async () => {
       for (let i = 0; i < TEST_ITERATIONS; i++) {
         const x: Buffer = randomBytes(64)
-        const fp = jsFilter.test(x, null)
+        const fp = jsFilter.test(x)
         if (fp) {
           jsFp += 1
         }
 
-        jsFilter.add(x, null)
+        jsFilter.add(x)
 
-        const fneg = jsFilter.test(x, null)
+        const fneg = jsFilter.test(x)
         if (!fneg) {
           jsFn += 1
         }
