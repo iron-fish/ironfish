@@ -1,5 +1,5 @@
 use ironfish_rust::rolling_filter2::RollingFilterRs2;
-use napi::JsBuffer;
+use napi::{bindgen_prelude::Buffer, JsBuffer};
 use napi_derive::napi;
 
 #[napi(js_name = "RollingFilterRs")]
@@ -20,12 +20,17 @@ impl NativeRollingFilter {
     #[napi]
     pub fn add(&mut self, value: JsBuffer) {
         let v = value.into_value().unwrap();
+        // pub fn add(&mut self, value: String) {
+        //     let v = value.as_bytes();
+        // let v = value.into_value().unwrap();
         self.inner.add(v.as_ref())
     }
 
     #[napi]
     pub fn test(&self, value: JsBuffer) -> bool {
         let v = value.into_value().unwrap();
+        // pub fn test(&self, value: String) -> bool {
+        //     let v = value.as_bytes();
         self.inner.test(v.as_ref())
     }
 }
