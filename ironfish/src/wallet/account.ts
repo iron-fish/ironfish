@@ -101,29 +101,11 @@ export class Account {
         this.nullifierToNoteHash.set(nullifierHash, hash)
       }
 
-      const transactionHash = decryptedNote.transactionHash
-      const transactionValue = await this.accountsDb.loadTransaction(this, transactionHash)
-      Assert.isNotNull(
-        transactionValue,
-        `Transaction not found for '${transactionHash.toString('hex')}'`,
-      )
-
-      this.transactions.set(transactionHash, transactionValue)
-
-      this.saveDecryptedNoteSequence(transactionHash, hash)
+      this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
     }
 
     for await (const { hash, transactionValue } of this.accountsDb.loadTransactions(this)) {
-      if (this.transactions.has(hash)) {
-        continue
-      }
-
-      for (const spend of transactionValue.transaction.spends()) {
-        if (this.nullifierToNoteHash.has(spend.nullifier)) {
-          this.transactions.set(hash, transactionValue)
-          break
-        }
-      }
+      this.transactions.set(hash, transactionValue)
     }
 
     await this.saveUnconfirmedBalance(unconfirmedBalance)

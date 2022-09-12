@@ -10,6 +10,7 @@ describe('AccountValueEncoding', () => {
 
     const key = generateKey()
     const value: AccountValue = {
+      id: 'id',
       name: 'foobar👁️🏃🐟',
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
