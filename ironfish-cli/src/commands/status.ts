@@ -40,6 +40,7 @@ export default class Status extends IronfishCommand {
     const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
     const statusText = blessed.text()
     screen.append(statusText)
+    let previousResponse: GetNodeStatusResponse | null = null
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -47,7 +48,12 @@ export default class Status extends IronfishCommand {
 
       if (!connected) {
         statusText.clearBaseLine(0)
-        statusText.setContent('Node: STOPPED')
+        if (previousResponse != null) {
+          statusText.setContent(renderStatus(previousResponse, flags.all))
+          statusText.insertTop("Node: Disonnected \n")
+        } else {
+          statusText.setContent('Node: STOPPED')
+        }
         screen.render()
         await PromiseUtils.sleep(1000)
         continue
@@ -59,6 +65,7 @@ export default class Status extends IronfishCommand {
         statusText.clearBaseLine(0)
         statusText.setContent(renderStatus(value, flags.all))
         screen.render()
+        previousResponse = value
       }
     }
   }
