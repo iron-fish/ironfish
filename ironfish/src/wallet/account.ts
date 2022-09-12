@@ -96,19 +96,18 @@ export class Account {
         unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
       }
 
-      const nullifierHash = decryptedNote.nullifierHash
-      if (nullifierHash) {
-        this.nullifierToNoteHash.set(nullifierHash, hash)
-      }
-
       this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
+    }
+
+    await this.saveUnconfirmedBalance(unconfirmedBalance)
+
+    for await (const { nullifier, noteHash } of this.accountsDb.loadNullifierToNoteHash(this)) {
+      this.nullifierToNoteHash.set(nullifier, noteHash)
     }
 
     for await (const { hash, transactionValue } of this.accountsDb.loadTransactions(this)) {
       this.transactions.set(hash, transactionValue)
     }
-
-    await this.saveUnconfirmedBalance(unconfirmedBalance)
   }
 
   async save(tx?: IDatabaseTransaction): Promise<void> {

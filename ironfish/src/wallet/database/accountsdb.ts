@@ -293,6 +293,24 @@ export class AccountsDB {
     await this.nullifierToNoteHash.put([account.prefix, nullifier], noteHash, tx)
   }
 
+  async *loadNullifierToNoteHash(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
+    nullifier: Buffer
+    noteHash: Buffer
+  }> {
+    for await (const [[_, nullifier], noteHash] of this.nullifierToNoteHash.getAllIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield {
+        nullifier,
+        noteHash,
+      }
+    }
+  }
+
   async deleteNullifier(
     account: Account,
     nullifier: Buffer,
