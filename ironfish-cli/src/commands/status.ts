@@ -50,7 +50,7 @@ export default class Status extends IronfishCommand {
         statusText.clearBaseLine(0)
         if (previousResponse) {
           statusText.setContent(renderStatus(previousResponse, flags.all))
-          statusText.insertTop("Node: Disconnected \n")
+          statusText.insertTop('Node: Disconnected \n')
         } else {
           statusText.setContent('Node: STOPPED')
         }
