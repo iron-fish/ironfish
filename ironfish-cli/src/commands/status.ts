@@ -55,7 +55,7 @@ export default class Status extends IronfishCommand {
         } else {
           statusText.setContent('Node: STOPPED')
         }
-        
+
         screen.render()
         await PromiseUtils.sleep(1000)
         continue
