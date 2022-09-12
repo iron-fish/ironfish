@@ -48,12 +48,14 @@ export default class Status extends IronfishCommand {
 
       if (!connected) {
         statusText.clearBaseLine(0)
+
         if (previousResponse) {
           statusText.setContent(renderStatus(previousResponse, flags.all))
           statusText.insertTop('Node: Disconnected \n')
         } else {
           statusText.setContent('Node: STOPPED')
         }
+        
         screen.render()
         await PromiseUtils.sleep(1000)
         continue
@@ -163,7 +165,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }
 
-  return `
+  return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 Node Name            ${nodeName}
