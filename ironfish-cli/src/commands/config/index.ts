@@ -8,6 +8,7 @@ import { ColorFlag, ColorFlagKey } from '../../flags'
 import { RemoteFlags } from '../../flags'
 
 export class ShowCommand extends IronfishCommand {
+  static aliases = ['config:show']
   static description = `Print out the entire config`
 
   static flags = {
