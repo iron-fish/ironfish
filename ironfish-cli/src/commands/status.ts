@@ -109,7 +109,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   }`
 
   const blockchainStatus = `HEAD ${content.blockchain.head}, behind: ${TimeUtils.renderSpan(
-    Date.now() - content.blockchain.head_timestamp,
+    Date.now() - content.blockchain.headTimestamp,
   )} (${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'})`
 
   let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
