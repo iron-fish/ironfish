@@ -89,6 +89,10 @@ export class Account {
   async load(): Promise<void> {
     let unconfirmedBalance = BigInt(0)
 
+    for await (const { hash, transactionValue } of this.accountsDb.loadTransactions(this)) {
+      this.transactions.set(hash, transactionValue)
+    }
+
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
       this.decryptedNotes.set(hash, decryptedNote)
 
@@ -103,10 +107,6 @@ export class Account {
 
     for await (const { nullifier, noteHash } of this.accountsDb.loadNullifierToNoteHash(this)) {
       this.nullifierToNoteHash.set(nullifier, noteHash)
-    }
-
-    for await (const { hash, transactionValue } of this.accountsDb.loadTransactions(this)) {
-      this.transactions.set(hash, transactionValue)
     }
   }
 
