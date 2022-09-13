@@ -108,11 +108,9 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     content.peerNetwork.peers
   }`
 
-  const blockchainStatus = `HEAD @ ${
-    content.blockchain.head
-  }, Since HEAD: ${TimeUtils.renderSpan(Date.now() - content.blockchain.headTimestamp)} (${
-    content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'
-  })`
+  const blockchainStatus = `${content.blockchain.head}, Since HEAD: ${TimeUtils.renderSpan(
+    Date.now() - content.blockchain.headTimestamp,
+  )} (${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'})`
 
   let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
