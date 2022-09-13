@@ -61,6 +61,7 @@ export class Migration013 extends Migration {
     }
 
     const cacheDbPath = path.join(node.config.tempDir, 'migration')
+    await node.files.mkdir(cacheDbPath, { recursive: true })
     const cacheDb = createDB({ location: cacheDbPath })
     logger.debug(`Using cache database at ${cacheDbPath}`)
 
