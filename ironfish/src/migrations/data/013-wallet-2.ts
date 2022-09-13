@@ -11,7 +11,7 @@ import { Assert } from '../../assert'
 import { Logger } from '../../logger'
 import { Meter } from '../../metrics/meter'
 import { IronfishNode } from '../../node'
-import { Transaction } from '../../primitives'
+import { Note, Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { IJsonSerializable } from '../../serde/Serde'
 import {
@@ -116,8 +116,10 @@ export class Migration013 extends Migration {
     start = BenchUtils.startSegment()
     await this.migrateAccountsData(
       stores,
+      db,
       noteToTransactionCache,
       transactionsCache,
+      cacheMeta,
       logger,
       tx,
     )
@@ -222,23 +224,29 @@ export class Migration013 extends Migration {
 
   async migrateAccountsData(
     stores: Stores,
+    accountsDb: IDatabase,
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     transactionsCache: IDatabaseStore<
       DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
     >,
+    cacheMeta: IDatabaseStore<DatabaseSchema<string, IJsonSerializable>>,
     logger: Logger,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    let countMissingAccount = 0
-    let countMissingTx = 0
-    let countNote = 0
-
-    const unconfirmedBalances = new Map<string, bigint>()
-    const accountPrefixes = new Map<string, Buffer>()
+    let countMissingAccount = Number((await cacheMeta.get('countMissingAccount')) ?? 0)
+    let countMissingTx = Number((await cacheMeta.get('countMissingTx')) ?? 0)
+    let countNote = Number((await cacheMeta.get('countNote')) ?? 0)
 
     const accounts = await stores.new.accounts.getAllValues(tx)
 
+    // Restore the current balances in case we have resumed the migration
+    const unconfirmedBalances = new Map<string, bigint>()
+    for await (const [accountId, balance] of stores.new.balances.getAllIter(tx)) {
+      unconfirmedBalances.set(accountId, balance)
+    }
+
     // Cache the account prefix because murmur is slow
+    const accountPrefixes = new Map<string, Buffer>()
     for (const account of accounts) {
       const prefix = calculateAccountPrefix(account.id)
       accountPrefixes.set(account.id, prefix)
@@ -265,15 +273,15 @@ export class Migration013 extends Migration {
       const encryptedNote = findNoteInTransaction(transaction.transaction, noteHash)
       Assert.isNotNull(encryptedNote)
 
-      let ownerAccount = null
-      let ownerNote = null
+      let ownerAccount: DatabaseStoreValue<Stores['new']['accounts']> | null = null
+      let ownerNote: Note | null = null
 
       for (const possibleAccount of accounts) {
         const received = encryptedNote.decryptNoteForOwner(possibleAccount.incomingViewKey)
 
         if (received) {
-          ownerNote = received
           ownerAccount = possibleAccount
+          ownerNote = received
           break
         }
       }
@@ -298,45 +306,55 @@ export class Migration013 extends Migration {
           : null,
       }
 
-      if (!decryptedNote.spent) {
-        let balance = unconfirmedBalances.get(ownerAccount.id) ?? BigInt(0)
-        balance += ownerNote.value()
-        unconfirmedBalances.set(ownerAccount.id, balance)
-      }
-
       const accountPrefix = accountPrefixes.get(ownerAccount.id)
       Assert.isNotUndefined(accountPrefix)
 
-      // Write the account data
-      await stores.new.decryptedNotes.put([accountPrefix, noteHash], decryptedNote, tx)
-      await stores.new.transactions.put([accountPrefix, transactionHash], transaction, tx)
+      // These writes must happen atomically
+      await accountsDb.withTransaction(tx, async (tx) => {
+        Assert.isNotNull(ownerAccount)
+        Assert.isNotNull(ownerNote)
 
-      if (decryptedNote.nullifierHash) {
-        await stores.new.nullifierToNoteHash.put(
-          [accountPrefix, decryptedNote.nullifierHash],
-          noteHash,
-        )
-      }
+        await stores.new.decryptedNotes.put([accountPrefix, noteHash], decryptedNote, tx)
+        await stores.new.transactions.put([accountPrefix, transactionHash], transaction, tx)
+
+        if (!decryptedNote.spent) {
+          let balance = unconfirmedBalances.get(ownerAccount.id) ?? BigInt(0)
+          balance += ownerNote.value()
+          unconfirmedBalances.set(ownerAccount.id, balance)
+          await stores.new.balances.put(ownerAccount.id, balance, tx)
+        }
+
+        if (decryptedNote.nullifierHash) {
+          await stores.new.nullifierToNoteHash.put(
+            [accountPrefix, decryptedNote.nullifierHash],
+            noteHash,
+            tx,
+          )
+        }
+
+        await stores.old.noteToNullifier.del(noteHashHex, tx)
+      })
 
       countNote++
       speed.add(1)
 
       if (countNote % 1000 === 0) {
+        await cacheMeta.put('countMissingAccount', countMissingAccount)
+        await cacheMeta.put('countMissingTx', countMissingTx)
+        await cacheMeta.put('countNote', countNote)
         logger.debug(`Migrated ${countNote} notes: ${speed.rate1s.toFixed(2)}/s`)
       }
-
-      await stores.old.noteToNullifier.del(noteHashHex)
     }
 
     speed.stop()
-    logger.debug(`\tMigrated ${countNote} notes.`)
+    logger.debug(`\tMigrated ${countNote}~ notes.`)
 
     if (countMissingAccount) {
-      logger.warn(`\tDropped ${countMissingAccount} notes missing accounts.`)
+      logger.warn(`\tDropped ${countMissingAccount}~ notes missing accounts.`)
     }
 
     if (countMissingTx) {
-      logger.warn(`\tDropped ${countMissingTx} missing transactions.`)
+      logger.warn(`\tDropped ${countMissingTx}~ missing transactions.`)
     }
 
     for (const account of accounts) {
@@ -344,10 +362,8 @@ export class Migration013 extends Migration {
 
       if (typeof balance === 'bigint') {
         logger.debug(`\tCalculated balance ${account.name}: ${balance}`)
-        await stores.new.balances.put(account.id, balance, tx)
       } else {
         logger.debug(`\tNo balance for ${account.name}, setting to 0`)
-        await stores.new.balances.put(account.id, BigInt(0), tx)
       }
     }
   }
@@ -507,6 +523,3 @@ export function calculateAccountPrefix(id: string): Buffer {
   prefix.writeUInt32BE(prefixHash)
   return prefix
 }
-
-// 1. Write migrated transactions to cache DB
-// 2. Migrate notes
