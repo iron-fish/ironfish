@@ -26,6 +26,7 @@ import {
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { BenchUtils } from '../../utils'
+import { AccountsDB } from '../../wallet'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
 import { loadOldStores, OldStores } from './013-wallet-2/old/stores'
@@ -85,6 +86,7 @@ export class Migration013 extends Migration {
       valueEncoding: stores.new.transactions.valueEncoding,
     })
 
+    logger.debug('Opening Cache DB connection')
     await cacheDb.open()
 
     if ((await cacheMeta.get('noteToTransactionCache')) !== true) {
@@ -109,7 +111,7 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: accounts')
     start = BenchUtils.startSegment()
-    await this.migrateAccounts(stores, tx, logger)
+    await this.migrateAccounts(stores, db, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: accounts data')
@@ -198,12 +200,15 @@ export class Migration013 extends Migration {
 
   async migrateAccounts(
     stores: Stores,
+    accountsDb: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     let count = 0
 
-    for await (const [accountName, accountValue] of stores.old.accounts.getAllIter(tx)) {
+    const accounts = await stores.old.accounts.getAll(tx)
+
+    for await (const [accountName, accountValue] of accounts) {
       const accountId = uuid()
 
       const migrated = {
@@ -213,8 +218,10 @@ export class Migration013 extends Migration {
 
       logger.debug(`\tAssigned account id ${accountName}: ${accountId}`)
 
-      await stores.new.accounts.put(accountId, migrated, tx)
-      await stores.old.accounts.del(accountName, tx)
+      await accountsDb.withTransaction(tx, async (tx) => {
+        await stores.new.accounts.put(accountId, migrated, tx)
+        await stores.old.accounts.del(accountName, tx)
+      })
 
       count++
     }
