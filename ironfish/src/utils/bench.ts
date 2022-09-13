@@ -18,7 +18,7 @@ type Segment = {
   mem: number
 }
 
-type HRTime = [seconds: number, nanoseconds: number]
+export type HRTime = [seconds: number, nanoseconds: number]
 
 function startTime(): HRTime {
   return process.hrtime()

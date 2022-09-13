@@ -7,6 +7,7 @@ import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Identity } from '../network'
+import { isRpcNetworkMessageType } from '../network/messageRegistry'
 import { NetworkMessageType } from '../network/types'
 import { BlockHeader, Transaction } from '../primitives'
 import { Block } from '../primitives/block'
@@ -204,6 +205,26 @@ export class Telemetry {
         type: 'float',
         value: meter.rate5m,
       })
+    }
+
+    for (const [messageType, meter] of this.metrics.p2p_RpcResponseTimeMsByMessage) {
+      if (isRpcNetworkMessageType(messageType) && meter._average.sampleCount() >= 10) {
+        fields.push({
+          name: 'rpc_response_ms_' + NetworkMessageType[messageType].toLowerCase(),
+          type: 'float',
+          value: meter.avg,
+        })
+      }
+    }
+
+    for (const [messageType, meter] of this.metrics.p2p_RpcSuccessRateByMessage) {
+      if (isRpcNetworkMessageType(messageType) && meter._average.sampleCount() >= 10) {
+        fields.push({
+          name: 'rpc_success_' + NetworkMessageType[messageType].toLowerCase(),
+          type: 'float',
+          value: meter.avg,
+        })
+      }
     }
 
     this.submit({
