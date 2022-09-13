@@ -17,7 +17,6 @@ export interface TransactionValue {
   submittedSequence: number | null
 }
 
-
 export class TransactionValueEncoding implements IDatabaseEncoding<TransactionValue> {
   serialize(value: TransactionValue): Buffer {
     const { transaction, blockHash, sequence, submittedSequence } = value

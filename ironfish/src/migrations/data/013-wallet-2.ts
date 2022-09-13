@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import fsAsync from 'fs/promises'
 import MurmurHash3 from 'imurmurhash'
 import _ from 'lodash'
 import path from 'path'
@@ -12,6 +13,7 @@ import { Meter } from '../../metrics/meter'
 import { IronfishNode } from '../../node'
 import { Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { IJsonSerializable } from '../../serde/Serde'
 import {
   BufferEncoding,
   DatabaseSchema,
@@ -19,6 +21,8 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  JsonEncoding,
+  StringEncoding,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { BenchUtils } from '../../utils'
@@ -41,10 +45,11 @@ export class Migration013 extends Migration {
   async forward(
     node: IronfishNode,
     db: IDatabase,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     const startTotal = BenchUtils.startSegment()
+    let start = BenchUtils.startSegment()
 
     const chainDb = createDB({ location: node.config.chainDatabasePath })
     await chainDb.open()
@@ -57,6 +62,13 @@ export class Migration013 extends Migration {
     const cacheDbPath = path.join(node.config.tempDir, 'migration')
     const cacheDb = createDB({ location: cacheDbPath })
     logger.debug(`Using cache database at ${cacheDbPath}`)
+
+    const cacheMeta: IDatabaseStore<DatabaseSchema<string, IJsonSerializable>> =
+      cacheDb.addStore({
+        name: 'm',
+        keyEncoding: new StringEncoding(),
+        valueEncoding: new JsonEncoding(),
+      })
 
     const noteToTransactionCache: IDatabaseStore<DatabaseSchema<Buffer, Buffer>> =
       cacheDb.addStore({
@@ -73,34 +85,37 @@ export class Migration013 extends Migration {
       valueEncoding: stores.new.transactions.valueEncoding,
     })
 
-    // logger.debug('Clearing cache DB')
-    let start = BenchUtils.startSegment()
-    // await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
     await cacheDb.open()
 
-    // logger.debug('Building note to transaction cache')
-    // start = BenchUtils.startSegment()
-    // await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransactionCache, logger)
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    if ((await cacheMeta.get('noteToTransactionCache')) !== true) {
+      logger.debug('Building note to transaction cache')
+      start = BenchUtils.startSegment()
+      await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransactionCache, logger)
+      logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+      await cacheMeta.put('noteToTransactionCache', true)
+    } else {
+      logger.debug('Skipping note to transaction cache')
+    }
 
-    // logger.debug('Building transaction cache')
-    // start = BenchUtils.startSegment()
-    // await this.writeTransactionsCache(stores, transactionsCache, logger)
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    if ((await cacheMeta.get('transactionsCache')) !== true) {
+      logger.debug('Building transaction cache')
+      start = BenchUtils.startSegment()
+      await this.writeTransactionsCache(stores, transactionsCache, logger)
+      logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+      await cacheMeta.put('transactionsCache', true)
+    } else {
+      logger.debug('Skipping transaction cache')
+    }
 
     logger.debug('Migrating: accounts')
     start = BenchUtils.startSegment()
-    const accounts = await this.migrateAccounts(stores, tx, logger)
+    await this.migrateAccounts(stores, tx, logger)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: accounts data')
     start = BenchUtils.startSegment()
     await this.migrateAccountsData(
       stores,
-      db,
-      accounts,
       noteToTransactionCache,
       transactionsCache,
       logger,
@@ -108,37 +123,33 @@ export class Migration013 extends Migration {
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    if (Math.random() > 0) {
-      throw new Error()
-    }
+    logger.debug('Migrating: headHashes')
+    start = BenchUtils.startSegment()
+    await this.migrateHeadHashes(stores, tx, logger)
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    // logger.debug('Migrating: headHashes')
-    // start = BenchUtils.startSegment()
-    // await this.migrateHeadHashes(stores, accounts, tx, logger)
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('Migrating: meta')
+    start = BenchUtils.startSegment()
+    await this.migrateMeta(stores, tx, logger)
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    // logger.debug('Migrating: meta')
-    // start = BenchUtils.startSegment()
-    // await this.migrateMeta(stores, accounts, tx, logger)
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('Migrating: Deleting old stores')
+    await this.deleteOldStores(stores, tx, logger)
 
-    // logger.debug('Migrating: Deleting old stores')
-    // await this.deleteOldStores(stores, tx, logger)
+    logger.debug('Migrating: Checking nullifierToNote')
+    start = BenchUtils.startSegment()
+    await this.checkNullifierToNote(stores, node, tx)
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    // logger.debug('Migrating: Checking nullifierToNote')
-    // start = BenchUtils.startSegment()
-    // await this.checkNullifierToNote(stores, node, tx)
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    await chainDb.close()
+    await cacheDb.close()
 
-    // await chainDb.close()
-    // await cacheDb.close()
+    logger.debug(`Migrating: Deleting cache DB at ${cacheDbPath}`)
+    start = BenchUtils.startSegment()
+    await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    // logger.debug(`Migrating: Deleting cache DB at ${cacheDbPath}`)
-    // start = BenchUtils.startSegment()
-    // await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
-    // logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    // logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
+    logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
 
   backward(): Promise<void> {
@@ -147,14 +158,13 @@ export class Migration013 extends Migration {
 
   async migrateHeadHashes(
     stores: Stores,
-    accounts: DatabaseStoreValue<NewStores['accounts']>[],
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     const headHashHex = await stores.old.meta.get('headHash', tx)
     const headHash = headHashHex ? Buffer.from(headHashHex, 'hex') : null
 
-    for (const account of accounts) {
+    for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
       logger.debug(`\tSetting account ${account.name} head hash: ${String(headHash)}`)
       await stores.new.headHashes.put(account.id, headHash, tx)
     }
@@ -162,11 +172,11 @@ export class Migration013 extends Migration {
 
   async migrateMeta(
     stores: Stores,
-    accounts: DatabaseStoreValue<NewStores['accounts']>[],
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     const accountName = await stores.old.meta.get('defaultAccountName')
+    const accounts = await stores.new.accounts.getAllValues(tx)
 
     if (accountName) {
       const account = accounts.find((a) => a.name === accountName)
@@ -186,10 +196,10 @@ export class Migration013 extends Migration {
 
   async migrateAccounts(
     stores: Stores,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
-  ): Promise<DatabaseStoreValue<NewStores['accounts']>[]> {
-    const accounts = []
+  ): Promise<void> {
+    let count = 0
 
     for await (const [accountName, accountValue] of stores.old.accounts.getAllIter(tx)) {
       const accountId = uuid()
@@ -204,18 +214,14 @@ export class Migration013 extends Migration {
       await stores.new.accounts.put(accountId, migrated, tx)
       await stores.old.accounts.del(accountName, tx)
 
-      accounts.push(migrated)
+      count++
     }
 
-    logger.debug(`\tMigrated ${accounts.length} accounts`)
-
-    return accounts
+    logger.debug(`\tMigrated ${count} accounts`)
   }
 
   async migrateAccountsData(
     stores: Stores,
-    accountDb: IDatabase,
-    accounts: DatabaseStoreValue<NewStores['accounts']>[],
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     transactionsCache: IDatabaseStore<
       DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
@@ -229,6 +235,8 @@ export class Migration013 extends Migration {
 
     const unconfirmedBalances = new Map<string, bigint>()
     const accountPrefixes = new Map<string, Buffer>()
+
+    const accounts = await stores.new.accounts.getAllValues(tx)
 
     // Cache the account prefix because murmur is slow
     for (const account of accounts) {
@@ -314,8 +322,10 @@ export class Migration013 extends Migration {
       speed.add(1)
 
       if (countNote % 1000 === 0) {
-        logger.debug(`Migrated ${countNote} notes: ${speed.rate5s}`)
+        logger.debug(`Migrated ${countNote} notes: ${speed.rate1s.toFixed(2)}/s`)
       }
+
+      await stores.old.noteToNullifier.del(noteHashHex)
     }
 
     speed.stop()
@@ -392,7 +402,7 @@ export class Migration013 extends Migration {
   async writeNoteToTransactionCache(
     stores: Stores,
     cacheDb: IDatabase,
-    noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
+    noteToTransactionCache: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     logger: Logger,
   ): Promise<void> {
     let countTransaction = 0
@@ -410,7 +420,7 @@ export class Migration013 extends Migration {
       for (const note of transaction.notes()) {
         const noteHash = note.merkleHash()
 
-        batch.put(noteToTransaction, noteHash, transactionHash)
+        batch.put(noteToTransactionCache, noteHash, transactionHash)
         countNote++
 
         if (batch.size >= batchSize) {
@@ -427,7 +437,7 @@ export class Migration013 extends Migration {
 
   async deleteOldStores(
     stores: Stores,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     let start = BenchUtils.startSegment()
@@ -454,7 +464,7 @@ export class Migration013 extends Migration {
   private async checkNullifierToNote(
     stores: Stores,
     node: IronfishNode,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
   ) {
     let missing = 0
 
