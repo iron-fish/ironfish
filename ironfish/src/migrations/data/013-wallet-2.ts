@@ -167,7 +167,7 @@ export class Migration013 extends Migration {
     const headHash = headHashHex ? Buffer.from(headHashHex, 'hex') : null
 
     for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
-      logger.debug(`\tSetting account ${account.name} head hash: ${String(headHash)}`)
+      logger.debug(`\tSetting account ${account.name} head hash: ${headHashHex || 'null'}`)
       await stores.new.headHashes.put(account.id, headHash, tx)
     }
   }
