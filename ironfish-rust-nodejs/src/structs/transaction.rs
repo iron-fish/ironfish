@@ -10,8 +10,6 @@ use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingK
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::sapling_bls12::SAPLING;
-
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
@@ -160,7 +158,7 @@ impl NativeTransaction {
     #[napi(constructor)]
     pub fn new() -> NativeTransaction {
         NativeTransaction {
-            transaction: ProposedTransaction::new(SAPLING.clone()),
+            transaction: ProposedTransaction::new(),
         }
     }
 

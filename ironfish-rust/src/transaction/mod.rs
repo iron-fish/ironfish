@@ -12,7 +12,6 @@ use super::{
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
-    Sapling,
 };
 use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
@@ -28,7 +27,7 @@ use zcash_primitives::{
     sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
-use std::{io, iter, slice::Iter, sync::Arc};
+use std::{io, iter, slice::Iter};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -48,10 +47,6 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
 pub struct ProposedTransaction {
-    /// Essentially a global reference to the sapling parameters, including
-    /// proving and verification keys.
-    sapling: Arc<Sapling>,
-
     /// A "private key" manufactured from a bunch of randomness added for each
     /// spend and output.
     binding_signature_key: jubjub::Fr,
@@ -83,9 +78,8 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction {
+    pub fn new() -> ProposedTransaction {
         ProposedTransaction {
-            sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
@@ -102,7 +96,7 @@ impl ProposedTransaction {
         note: &Note,
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
-        let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
+        let proof = SpendParams::new(spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
     }
@@ -126,7 +120,7 @@ impl ProposedTransaction {
         spender_key: &SaplingKey,
         note: &Note,
     ) -> Result<(), SaplingProofError> {
-        let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
+        let proof = ReceiptParams::new(spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
         self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
@@ -332,6 +326,12 @@ impl ProposedTransaction {
         }
         tmp += self.binding_verification_key;
         self.binding_verification_key = tmp;
+    }
+}
+
+impl Default for ProposedTransaction {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -571,14 +571,14 @@ pub fn batch_verify_transactions<'a>(
     }
 
     if spend_verifier
-        .verify(&mut OsRng, &SAPLING.clone().spend_params.vk)
+        .verify(&mut OsRng, &SAPLING.spend_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());
     }
 
     if receipt_verifier
-        .verify(&mut OsRng, &SAPLING.clone().receipt_params.vk)
+        .verify(&mut OsRng, &SAPLING.receipt_params.vk)
         .is_err()
     {
         return Err(SaplingProofError::VerificationFailed.into());
