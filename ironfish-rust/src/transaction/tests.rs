@@ -67,7 +67,7 @@ fn test_transaction() {
         .write(&mut serialized_transaction)
         .expect("should be able to serialize transaction");
     let read_back_transaction: Transaction =
-        Transaction::read(sapling, &mut serialized_transaction[..].as_ref())
+        Transaction::read(&mut serialized_transaction[..].as_ref())
             .expect("should be able to deserialize valid transaction");
     assert_eq!(
         public_transaction.transaction_fee,

@@ -27,8 +27,8 @@ impl NativeTransactionPosted {
     pub fn new(js_bytes: JsBuffer) -> Result<NativeTransactionPosted> {
         let bytes = js_bytes.into_value()?;
 
-        let transaction = Transaction::read(SAPLING.clone(), bytes.as_ref())
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let transaction =
+            Transaction::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeTransactionPosted { transaction })
     }
@@ -271,11 +271,11 @@ pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
     let mut transactions: Vec<Transaction> = vec![];
 
     for tx_bytes in serialized_transactions {
-        match Transaction::read(SAPLING.clone(), &mut tx_bytes.as_ref()) {
+        match Transaction::read(&mut tx_bytes.as_ref()) {
             Ok(tx) => transactions.push(tx),
             Err(_) => return false,
         }
     }
 
-    batch_verify_transactions(SAPLING.clone(), transactions.iter()).is_ok()
+    batch_verify_transactions(transactions.iter()).is_ok()
 }
