@@ -28,68 +28,47 @@ export type OldStores = {
 }
 
 export function loadOldStores(db: IDatabase, chainDb: IDatabase): OldStores {
-  const meta: MetaStore = db.addStore(
-    {
-      name: 'meta',
-      keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
-      valueEncoding: new MetaValueEncoding(),
-    },
-    false,
-  )
+  const meta: MetaStore = db.addStore({
+    name: 'meta',
+    keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
+    valueEncoding: new MetaValueEncoding(),
+  })
 
-  const accounts: AccountsStore = db.addStore(
-    {
-      name: 'accounts',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountsValueEncoding(),
-    },
-    false,
-  )
+  const accounts: AccountsStore = db.addStore({
+    name: 'accounts',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new AccountsValueEncoding(),
+  })
 
-  const noteToNullifier: NoteToNullifierStore = db.addStore(
-    {
-      name: 'noteToNullifier',
-      keyEncoding: new StringHashEncoding(),
-      valueEncoding: new NoteToNullifiersValueEncoding(),
-    },
-    false,
-  )
+  const noteToNullifier: NoteToNullifierStore = db.addStore({
+    name: 'noteToNullifier',
+    keyEncoding: new StringHashEncoding(),
+    valueEncoding: new NoteToNullifiersValueEncoding(),
+  })
 
-  const nullifierToNote: NullifierToNoteStore = db.addStore(
-    {
-      name: 'nullifierToNote',
-      keyEncoding: new StringHashEncoding(),
-      valueEncoding: new StringEncoding(),
-    },
-    false,
-  )
+  const nullifierToNote: NullifierToNoteStore = db.addStore({
+    name: 'nullifierToNote',
+    keyEncoding: new StringHashEncoding(),
+    valueEncoding: new StringEncoding(),
+  })
 
-  const transactions: TransactionsStore = db.addStore(
-    {
-      name: 'transactions',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
-    },
-    false,
-  )
+  const transactions: TransactionsStore = db.addStore({
+    name: 'transactions',
+    keyEncoding: BUFFER_ENCODING,
+    valueEncoding: new TransactionsValueEncoding(),
+  })
 
-  const headers: HeadersStore = chainDb.addStore(
-    {
-      name: 'bh',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new HeaderEncoding(),
-    },
-    false,
-  )
+  const headers: HeadersStore = chainDb.addStore({
+    name: 'bh',
+    keyEncoding: BUFFER_ENCODING,
+    valueEncoding: new HeaderEncoding(),
+  })
 
-  const sequenceToHash: SequenceToHashStore = chainDb.addStore(
-    {
-      name: 'bS',
-      keyEncoding: U32_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    },
-    false,
-  )
+  const sequenceToHash: SequenceToHashStore = chainDb.addStore({
+    name: 'bS',
+    keyEncoding: U32_ENCODING,
+    valueEncoding: BUFFER_ENCODING,
+  })
 
   return {
     meta,

@@ -160,7 +160,6 @@ export class Migrator {
         }
       } catch (e) {
         this.logger.error(`Error applying ${migration.name}`)
-        this.logger.error(`${ErrorUtils.renderError(e, true)}`)
         throw e
       } finally {
         await db.close()

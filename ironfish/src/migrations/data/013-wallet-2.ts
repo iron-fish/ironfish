@@ -26,7 +26,6 @@ import {
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { BenchUtils } from '../../utils'
-import { AccountsDB } from '../../wallet'
 import { Migration } from '../migration'
 import { loadNewStores, NewStores } from './013-wallet-2/new/stores'
 import { loadOldStores, OldStores } from './013-wallet-2/old/stores'
@@ -112,7 +111,7 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: accounts')
     start = BenchUtils.startSegment()
-    await this.migrateAccounts(stores, db, tx, logger)
+    await this.migrateAccounts(stores, db, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: accounts data')
@@ -130,20 +129,20 @@ export class Migration013 extends Migration {
 
     logger.debug('Migrating: headHashes')
     start = BenchUtils.startSegment()
-    await this.migrateHeadHashes(stores, tx, logger)
+    await this.migrateHeadHashes(stores, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: meta')
     start = BenchUtils.startSegment()
-    await this.migrateMeta(stores, tx, logger)
+    await this.migrateMeta(stores, db, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: Deleting old stores')
-    await this.deleteOldStores(stores, tx, logger)
+    await this.deleteOldStores(stores, logger, tx)
 
     logger.debug('Migrating: Checking nullifierToNote')
     start = BenchUtils.startSegment()
-    await this.checkNullifierToNote(stores, node, tx)
+    await this.checkNullifierToNote(stores, node, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     await chainDb.close()
@@ -163,8 +162,8 @@ export class Migration013 extends Migration {
 
   async migrateHeadHashes(
     stores: Stores,
-    tx: IDatabaseTransaction | undefined,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     const headHashHex = await stores.old.meta.get('headHash', tx)
     const headHash = headHashHex ? Buffer.from(headHashHex, 'hex') : null
@@ -177,50 +176,49 @@ export class Migration013 extends Migration {
 
   async migrateMeta(
     stores: Stores,
-    tx: IDatabaseTransaction | undefined,
+    accountsDb: IDatabase,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     const accountName = await stores.old.meta.get('defaultAccountName')
     const accounts = await stores.new.accounts.getAllValues(tx)
 
-    if (accountName) {
-      const account = accounts.find((a) => a.name === accountName)
+    await accountsDb.withTransaction(tx, async (tx) => {
+      if (accountName) {
+        const account = accounts.find((a) => a.name === accountName)
 
-      if (account) {
-        logger.debug(`\tMigrating default account from ${accountName} -> ${account.id}`)
-        await stores.new.meta.put('defaultAccountId', account.id, tx)
-      } else {
-        logger.warn(`\tCould not migrate default with name ${accountName}`)
-        await stores.new.meta.put('defaultAccountId', null, tx)
+        if (account) {
+          logger.debug(`\tMigrating default account from ${accountName} -> ${account.id}`)
+          await stores.new.meta.put('defaultAccountId', account.id, tx)
+        } else {
+          logger.warn(`\tCould not migrate default with name ${accountName}`)
+          await stores.new.meta.put('defaultAccountId', null, tx)
+        }
       }
-    }
 
-    await stores.old.meta.del('defaultAccountName', tx)
-    await stores.old.meta.del('headHash', tx)
+      await stores.old.meta.del('defaultAccountName', tx)
+      await stores.old.meta.del('headHash', tx)
+    })
   }
 
   async migrateAccounts(
     stores: Stores,
     accountsDb: IDatabase,
-    tx: IDatabaseTransaction | undefined,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     let count = 0
 
     const accounts = await stores.old.accounts.getAll(tx)
 
-    for await (const [accountName, accountValue] of accounts) {
-      const accountId = uuid()
-
+    for (const [accountName, accountValue] of accounts) {
       const migrated = {
+        id: uuid(),
         ...accountValue,
-        id: accountId,
       }
 
-      logger.debug(`\tAssigned account id ${accountName}: ${accountId}`)
-
       await accountsDb.withTransaction(tx, async (tx) => {
-        await stores.new.accounts.put(accountId, migrated, tx)
+        await stores.new.accounts.put(migrated.id, migrated, tx)
         await stores.old.accounts.del(accountName, tx)
       })
 
@@ -228,6 +226,14 @@ export class Migration013 extends Migration {
     }
 
     logger.debug(`\tMigrated ${count} accounts`)
+
+    for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
+      logger.debug(
+        `\tAccount: ${account.name} -> ${account.id}: ${calculateAccountPrefix(
+          account.id,
+        ).toString('hex')}`,
+      )
+    }
   }
 
   async migrateAccountsData(
@@ -461,44 +467,82 @@ export class Migration013 extends Migration {
 
   async deleteOldStores(
     stores: Stores,
-    tx: IDatabaseTransaction | undefined,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     let start = BenchUtils.startSegment()
     await stores.old.nullifierToNote.clear(tx)
-    logger.debug('\tnullifierToNote' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('\tnullifierToNote: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     start = BenchUtils.startSegment()
     await stores.old.accounts.clear(tx)
-    logger.debug('\taccounts' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('\taccounts: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     start = BenchUtils.startSegment()
     await stores.old.meta.clear(tx)
-    logger.debug('\tmeta' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('\tmeta: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     start = BenchUtils.startSegment()
     await stores.old.noteToNullifier.clear(tx)
-    logger.debug('\tnoteToNullifier' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('\tnoteToNullifier: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     start = BenchUtils.startSegment()
     await stores.old.transactions.clear(tx)
-    logger.debug('\ttransactions' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('\ttransactions: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
   }
 
   private async checkNullifierToNote(
     stores: Stores,
     node: IronfishNode,
-    tx: IDatabaseTransaction | undefined,
+    logger: Logger,
+    tx?: IDatabaseTransaction,
   ) {
     let missing = 0
 
     for await (const [
-      [accountPrefix, _],
+      [accountPrefix, noteHash],
+      decryptedNote,
+    ] of stores.new.decryptedNotes.getAllIter(tx)) {
+      if (decryptedNote.nullifierHash) {
+        console.log(
+          'FOUND ONE',
+          accountPrefix.toString('hex'),
+          noteHash.toString('hex'),
+          decryptedNote.nullifierHash.toString('hex'),
+          await stores.new.nullifierToNoteHash.has([
+            accountPrefix,
+            decryptedNote.nullifierHash,
+          ]),
+        )
+        break
+      }
+    }
+
+    for await (const [
+      [accountPrefix, nullifier],
       noteHash,
     ] of stores.new.nullifierToNoteHash.getAllIter(tx)) {
+      if (
+        nullifier.toString('hex') !==
+        '4d5f8907abd59cbe12f46e5d6f41c7e551672c0df02799e6905217e7e36c03fd'
+      ) {
+        continue
+      }
+
       const hasNote = await stores.new.decryptedNotes.has([accountPrefix, noteHash], tx)
 
+      logger.debug(
+        `${String(hasNote)} - ${nullifier.toString('hex')} -> ${noteHash.toString(
+          'hex',
+        )} (${accountPrefix.toString('hex')})`,
+      )
+
       if (!hasNote) {
+        //   logger.debug(
+        //     `Missing nullifier ${nullifier.toString('hex')} -> ${noteHash.toString(
+        //       'hex',
+        //     )}: ${missing} (${accountPrefix.toString('hex')})`,
+        //   )
         missing++
       }
     }
@@ -509,6 +553,8 @@ export class Migration013 extends Migration {
           ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
       )
     }
+
+    throw new Error(`FOO`)
   }
 }
 

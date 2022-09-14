@@ -29,68 +29,47 @@ export type NewStores = {
 }
 
 export function loadNewStores(db: IDatabase): NewStores {
-  const meta: MetaStore = db.addStore(
-    {
-      name: 'm',
-      keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
-      valueEncoding: new MetaValueEncoding(),
-    },
-    false,
-  )
+  const meta: MetaStore = db.addStore({
+    name: 'm',
+    keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
+    valueEncoding: new MetaValueEncoding(),
+  })
 
-  const headHashes: HeadHashesStore = db.addStore(
-    {
-      name: 'h',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableBufferEncoding(),
-    },
-    false,
-  )
+  const headHashes: HeadHashesStore = db.addStore({
+    name: 'h',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new NullableBufferEncoding(),
+  })
 
-  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>(
-    {
-      name: 'a',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountValueEncoding(),
-    },
-    false,
-  )
+  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>({
+    name: 'a',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new AccountValueEncoding(),
+  })
 
-  const balances: BalancesStore = db.addStore<{ key: string; value: bigint }>(
-    {
-      name: 'b',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new BigIntLEEncoding(),
-    },
-    false,
-  )
+  const balances: BalancesStore = db.addStore<{ key: string; value: bigint }>({
+    name: 'b',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new BigIntLEEncoding(),
+  })
 
-  const decryptedNotes: DecryptedNotesStore = db.addStore(
-    {
-      name: 'd',
-      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
-      valueEncoding: new DecryptedNoteValueEncoding(),
-    },
-    false,
-  )
+  const decryptedNotes: DecryptedNotesStore = db.addStore({
+    name: 'd',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new DecryptedNoteValueEncoding(),
+  })
 
-  const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore(
-    {
-      name: 'n',
-      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
-      valueEncoding: new BufferEncoding(),
-    },
-    false,
-  )
+  const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore({
+    name: 'n',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new BufferEncoding(),
+  })
 
-  const transactions: TransactionsStore = db.addStore(
-    {
-      name: 't',
-      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
-      valueEncoding: new TransactionValueEncoding(),
-    },
-    false,
-  )
+  const transactions: TransactionsStore = db.addStore({
+    name: 't',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new TransactionValueEncoding(),
+  })
 
   return {
     meta,
