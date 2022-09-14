@@ -34,6 +34,12 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
     timeout: SetTimeoutToken | null,
   ) {
     this.promise = promise
+    this.promise.catch(() => {
+      // Eat the exception so there isn't an unhandled exception
+      // error that crashes the process. You can still read/catch
+      // the exception using waitForEnd().catch() or try..catch
+      // around contentStream() for non-RpcConnectionLostError errors
+    })
     this.stream = stream
     this.timeout = timeout
   }
@@ -43,20 +49,25 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
     return this as RpcResponseEnded<TEnd>
   }
 
-  async *contentStream(ignoreClose = true): AsyncGenerator<TStream, void> {
+  /*
+   * Returns a generator of stream results. If a disconnect error occurs during
+   * the streaming request it just causes the generator to end, the error is
+   * not propagated
+   */
+  async *contentStream(): AsyncGenerator<TStream, void> {
     if (this.timeout) {
       clearTimeout(this.timeout)
     }
 
-    for await (const value of this.stream) {
-      yield value
-    }
-
-    await this.promise.catch((e) => {
-      if (e instanceof RpcConnectionLostError && ignoreClose) {
+    try {
+      for await (const value of this.stream) {
+        yield value
+      }
+    } catch (e) {
+      if (e instanceof RpcConnectionLostError) {
         return
       }
       throw e
-    })
+    }
   }
 }

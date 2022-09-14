@@ -103,7 +103,7 @@ export abstract class RpcSocketClient extends RpcClient {
       if (timeout) {
         clearTimeout(timeout)
       }
-      stream.close()
+      stream.close(...args)
       reject(...args)
     }
 
