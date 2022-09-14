@@ -2,7 +2,6 @@ use ff::PrimeField;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use jubjub::ExtendedPoint;
 use zcash_primitives::constants;
 
 use zcash_primitives::primitives::{PaymentAddress, ProofGenerationKey};
@@ -20,7 +19,7 @@ use zcash_proofs::constants::{
 
 use crate::primitives::asset_type::AssetType;
 use crate::primitives::sapling::ValueCommitment;
-use crate::proofs::circuit::sapling::expose_value_commitment;
+use crate::proofs::circuit::util::build_note_contents;
 
 pub struct Spend {
     // TODO: Should we pass this in anymore, or just rely on asset type? Feels like this could lead to accidental bugs.
@@ -154,73 +153,10 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // Compute pk_d = g_d^ivk
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
-        // Witness the asset type
-        // TODO: Does this properly verify that the spend note is the right asset generator?
-        // Could this be spoofed, or does this not matter? Need to consider what's public/private
-        // In other words: Does this verify that the actual note's asset generator is valid
-        // Or are we allowing this to be _any_ generator
-        let asset_generator = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "asset_generator"),
-            self.asset_type
-                .as_ref()
-                .and_then(|at| at.asset_generator().into()),
-        )?;
-
-        let value_commitment_generator = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "value commitment generator"),
-            self.asset_type
-                .as_ref()
-                .and_then(|at| ExtendedPoint::from(at.value_commitment_generator()).into()),
-        )?;
-
-        value_commitment_generator.assert_not_small_order(
-            cs.namespace(|| "value_commitment_generator not small order"),
-        )?;
-
         // Compute note contents:
         // asset_generator, value (in big endian), g_d, pk_d
-        let mut note_contents = vec![];
-
-        // Place asset_generator in the note
-        note_contents
-            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
-
-        // Handle the value; we'll need it later for the
-        // dummy input check.
-        let mut value_num = num::Num::zero();
-        {
-            // Get the value in little-endian bit order
-            let value_bits = expose_value_commitment(
-                cs.namespace(|| "value commitment"),
-                value_commitment_generator,
-                self.value_commitment,
-            )?;
-
-            // Compute the note's value as a linear combination
-            // of the bits.
-            let mut coeff = bls12_381::Scalar::one();
-            for bit in &value_bits {
-                value_num = value_num.add_bool_with_coeff(CS::one(), bit, coeff);
-                coeff = coeff.double();
-            }
-
-            // Place the value in the note
-            note_contents.extend(value_bits);
-        }
-
-        // Place g_d in the note
-        note_contents.extend(g_d.repr(cs.namespace(|| "representation of g_d"))?);
-
-        // Place pk_d in the note
-        note_contents.extend(pk_d.repr(cs.namespace(|| "representation of pk_d"))?);
-
-        assert_eq!(
-            note_contents.len(),
-            256 + // asset_generator
-            64 + // value
-            256 + // g_d
-            256 // pk_d
-        );
+        let (note_contents, value_num) =
+            build_note_contents(cs, self.asset_type, self.value_commitment, g_d, pk_d)?;
 
         // Compute the hash of the note contents
         let mut cm = pedersen_hash::pedersen_hash(
