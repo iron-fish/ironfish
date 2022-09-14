@@ -34,12 +34,12 @@ import {
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
+  GetNodeStatusRequest,
+  GetNodeStatusResponse,
   GetPeersRequest,
   GetPeersResponse,
   GetPublicKeyRequest,
   GetPublicKeyResponse,
-  GetStatusRequest,
-  GetStatusResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -95,17 +95,17 @@ export abstract class RpcClient {
     options?: { timeoutMs?: number | null },
   ): RpcResponse<TEnd, TStream>
 
-  async status(
-    params: GetStatusRequest = undefined,
-  ): Promise<RpcResponseEnded<GetStatusResponse>> {
-    return this.request<GetStatusResponse>(
+  async getNodeStatus(
+    params: GetNodeStatusRequest = undefined,
+  ): Promise<RpcResponseEnded<GetNodeStatusResponse>> {
+    return this.request<GetNodeStatusResponse>(
       `${ApiNamespace.node}/getStatus`,
       params,
     ).waitForEnd()
   }
 
-  statusStream(): RpcResponse<void, GetStatusResponse> {
-    return this.request<void, GetStatusResponse>(`${ApiNamespace.node}/getStatus`, {
+  statusStream(): RpcResponse<void, GetNodeStatusResponse> {
+    return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.node}/getStatus`, {
       stream: true,
     })
   }

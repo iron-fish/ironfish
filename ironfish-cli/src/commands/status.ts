@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FileUtils, GetStatusResponse, PromiseUtils } from '@ironfish/sdk'
+import { FileUtils, GetNodeStatusResponse, PromiseUtils, TimeUtils } from '@ironfish/sdk'
 import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
@@ -16,7 +16,11 @@ export default class Status extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the status of the node live',
+      description: 'Follow the status of the node live',
+    }),
+    all: Flags.boolean({
+      default: false,
+      description: 'show all status information',
     }),
   }
 
@@ -25,8 +29,8 @@ export default class Status extends IronfishCommand {
 
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
-      const response = await client.status()
-      this.log(renderStatus(response.content))
+      const response = await client.getNodeStatus()
+      this.log(renderStatus(response.content, flags.all))
       this.exit(0)
     }
 
@@ -36,6 +40,7 @@ export default class Status extends IronfishCommand {
     const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
     const statusText = blessed.text()
     screen.append(statusText)
+    let previousResponse: GetNodeStatusResponse | null = null
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -43,7 +48,14 @@ export default class Status extends IronfishCommand {
 
       if (!connected) {
         statusText.clearBaseLine(0)
-        statusText.setContent('Node: STOPPED')
+
+        if (previousResponse) {
+          statusText.setContent(renderStatus(previousResponse, flags.all))
+          statusText.insertTop('Node: Disconnected \n')
+        } else {
+          statusText.setContent('Node: STOPPED')
+        }
+
         screen.render()
         await PromiseUtils.sleep(1000)
         continue
@@ -53,14 +65,15 @@ export default class Status extends IronfishCommand {
 
       for await (const value of response.contentStream()) {
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(value))
+        statusText.setContent(renderStatus(value, flags.all))
         screen.render()
+        previousResponse = value
       }
     }
   }
 }
 
-function renderStatus(content: GetStatusResponse): string {
+function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): string {
   const nodeStatus = `${content.node.status.toUpperCase()}`
   let blockSyncerStatus = content.blockSyncer.status.toString().toUpperCase()
   const blockSyncerStatusDetails: string[] = []
@@ -104,13 +117,21 @@ function renderStatus(content: GetStatusResponse): string {
     content.peerNetwork.peers
   }`
 
-  const blockchainStatus = `${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'} @ HEAD ${
-    content.blockchain.head
-  }`
+  const blockchainStatus = `${content.blockchain.head}, Since HEAD: ${TimeUtils.renderSpan(
+    Date.now() - content.blockchain.headTimestamp,
+  )} (${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'})`
 
-  const miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
+  let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
   } miners, ${content.miningDirector.blocks} mined`
+
+  if (debugOutput) {
+    miningDirectorStatus += `, get txs: ${TimeUtils.renderSpan(
+      content.miningDirector.newBlockTransactionsSpeed,
+    )}, block: ${TimeUtils.renderSpan(
+      content.blockchain.newBlockSpeed,
+    )}, template: ${TimeUtils.renderSpan(content.miningDirector.newBlockTemplateSpeed)}`
+  }
 
   const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
   const memPoolStatus = `Size: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`
@@ -144,7 +165,7 @@ function renderStatus(content: GetStatusResponse): string {
     accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }
 
-  return `
+  return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 Node Name            ${nodeName}

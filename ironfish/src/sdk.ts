@@ -26,7 +26,7 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ALL_API_NAMESPACES, ApiNamespace } from './rpc/routes/router'
+import { ALL_API_NAMESPACES, API_NAMESPACES_PROTECTED } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
@@ -204,13 +204,12 @@ export class IronfishSdk {
     }
 
     if (this.config.get('enableRpcTcp')) {
-      const protectedNamespaces = [ApiNamespace.account, ApiNamespace.config]
       const namespaces = ALL_API_NAMESPACES.filter(
-        (namespace) => !protectedNamespaces.includes(namespace),
+        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
       )
 
       if (this.config.get('rpcTcpSecure')) {
-        namespaces.push(...protectedNamespaces)
+        namespaces.push(...API_NAMESPACES_PROTECTED)
       }
 
       if (this.config.get('enableRpcTls')) {

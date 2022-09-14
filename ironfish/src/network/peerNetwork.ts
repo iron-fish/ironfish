@@ -21,7 +21,7 @@ import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../p
 import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
-import { ArrayUtils } from '../utils'
+import { ArrayUtils, BenchUtils, HRTime } from '../utils'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -86,6 +86,8 @@ type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
   peer: Peer
+  messageType: number
+  startTime: HRTime
 }
 
 export type TransactionOrHash =
@@ -558,6 +560,11 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          const endTime = BenchUtils.end(request.startTime)
+          this.metrics.p2p_RpcResponseTimeMsByMessage.get(request.messageType)?.add(endTime)
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(1)
+
           resolve(message)
         },
         reject: (reason?: unknown): void => {
@@ -565,9 +572,14 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(0)
+
           reject(reason)
         },
         peer: peer,
+        messageType: message.type,
+        startTime: BenchUtils.start(),
       }
 
       peer.pendingRPC++

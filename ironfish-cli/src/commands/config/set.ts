@@ -13,13 +13,13 @@ export class SetCommand extends IronfishCommand {
       name: 'name',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'name of the config item',
+      description: 'Name of the config item',
     },
     {
       name: 'value',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'value of the config item',
+      description: 'Value of the config item',
     },
   ]
 
@@ -27,7 +27,7 @@ export class SetCommand extends IronfishCommand {
     ...RemoteFlags,
     local: Flags.boolean({
       default: false,
-      description: 'dont connect to the node when updating the config',
+      description: 'Dont connect to the node when updating the config',
     }),
   }
 

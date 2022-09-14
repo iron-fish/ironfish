@@ -21,7 +21,7 @@ export class Meter {
   private _rate5s: EwmAverage
   private _rate1m: EwmAverage
   private _rate5m: EwmAverage
-  private _average: RollingAverage
+  _average: RollingAverage
   private _count = 0
   private _interval: SetIntervalToken | null = null
   private _intervalMs: number
