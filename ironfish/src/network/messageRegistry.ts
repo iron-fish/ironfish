@@ -43,7 +43,7 @@ export const parseNetworkMessage = (buffer: Buffer): NetworkMessage => {
   return parseGenericNetworkMessage(type, body)
 }
 
-const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
+export const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
   return [
     NetworkMessageType.CannotSatisfyRequest,
     NetworkMessageType.GetBlockHashesRequest,
