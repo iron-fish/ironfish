@@ -139,6 +139,7 @@ export class Account {
   async updateDecryptedNote(
     noteHash: Buffer,
     note: Readonly<DecryptedNoteValue>,
+    sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
@@ -157,8 +158,7 @@ export class Account {
 
       await this.accountsDb.saveDecryptedNote(this, noteHash, note, tx)
 
-      const transaction = await this.getTransaction(note.transactionHash, tx)
-      this.saveDecryptedNoteSequence(noteHash, transaction?.sequence ?? null)
+      this.saveDecryptedNoteSequence(noteHash, sequence)
     })
   }
 
@@ -205,8 +205,8 @@ export class Account {
       }
 
       const isRemovingTransaction = submittedSequence === null && blockHash === null
-      await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
-      await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+      await this.bulkUpdateDecryptedNotes(transactionHash, sequence, decryptedNotes, tx)
+      await this.processTransactionSpends(transaction, sequence, isRemovingTransaction, tx)
     })
   }
 
@@ -220,6 +220,7 @@ export class Account {
 
   private async bulkUpdateDecryptedNotes(
     transactionHash: Buffer,
+    sequence: number | null,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
   ) {
@@ -243,6 +244,7 @@ export class Account {
             spent: false,
             transactionHash,
           },
+          sequence,
           tx,
         )
       }
@@ -251,6 +253,7 @@ export class Account {
 
   private async processTransactionSpends(
     transaction: Transaction,
+    sequence: number | null,
     isRemovingTransaction: boolean,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -270,6 +273,7 @@ export class Account {
             ...decryptedNote,
             spent: !isRemovingTransaction,
           },
+          sequence,
           tx,
         )
       }
@@ -371,6 +375,7 @@ export class Account {
               ...decryptedNote,
               spent: false,
             },
+            null,
             tx,
           )
         }

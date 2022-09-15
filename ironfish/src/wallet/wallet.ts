@@ -701,10 +701,14 @@ export class Accounts {
             const noteMapValue = await sender.getDecryptedNote(unspentNote.hash)
             if (noteMapValue) {
               this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
-              await sender.updateDecryptedNote(unspentNote.hash, {
-                ...noteMapValue,
-                spent: true,
-              })
+              await sender.updateDecryptedNote(
+                unspentNote.hash,
+                {
+                  ...noteMapValue,
+                  spent: true,
+                },
+                null,
+              )
             }
 
             // Move on to the next note
