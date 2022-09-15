@@ -28,7 +28,7 @@ pub(crate) fn mine_batch(
     step_size: usize,
     batch_size: u64,
 ) -> Option<u64> {
-    let end = start + batch_size;
+    let end = start + batch_size - 1;
     for i in (start..end).step_by(step_size) {
         randomize_header(i, header_bytes);
         let hash = blake3::hash(header_bytes);
@@ -42,6 +42,10 @@ pub(crate) fn mine_batch(
 
 #[cfg(test)]
 mod test {
+    use std::io::Cursor;
+
+    use byteorder::{BigEndian, ReadBytesExt};
+
     use super::{bytes_lte, mine_batch};
 
     #[test]
@@ -75,6 +79,50 @@ mod test {
 
         assert!(result.is_some());
         assert_eq!(result.unwrap(), 43);
+    }
+
+    #[test]
+    fn test_mine_batch_step_size() {
+        let header_bytes_base = &mut (0..128).collect::<Vec<u8>>();
+        let target = &[0u8; 32];
+        let mut start = 0;
+        let batch_size = 8;
+        let step_size = 2;
+
+        // Uses i values: 0, 2, 4, 6
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 6);
+
+        // Uses i values: 1, 3, 5, 7
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start + 1, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 7);
+
+        // Second batch
+        start += batch_size;
+
+        // Uses i values: 8, 10, 12, 14
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 14);
+
+        // Uses i values: 9, 11, 13, 15
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start + 1, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 15);
     }
 
     #[test]
