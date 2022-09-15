@@ -48,9 +48,6 @@ export class Meter {
     return this._rate1s.average
   }
 
-  /**
-   * The average rate per second over 5s
-   */
   get rate5s(): number {
     return this._rate5s.average
   }
