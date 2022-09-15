@@ -8,9 +8,8 @@ pub struct RollingFilterRs2 {
     generation: i32,      // current generation
     hash_func_count: u32, // the number of hash functions to use
     entries_per_generation: u32,
-    tweak: u32, // essentially salt for the hash function
-    // TODO: Why is this pub
-    pub data: Vec<u64>, // the actual bits used to determine existence
+    tweak: u32,     // salt for the hash function
+    data: Vec<u64>, // the actual bits used to determine existence
 }
 
 impl RollingFilterRs2 {

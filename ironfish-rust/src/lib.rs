@@ -18,7 +18,6 @@ pub mod mining;
 pub mod nacl;
 pub mod note;
 pub mod receiving;
-pub mod rolling_filter;
 pub mod rolling_filter2;
 pub mod sapling_bls12;
 pub mod spending;
