@@ -497,64 +497,25 @@ export class Migration013 extends Migration {
     logger: Logger,
     tx?: IDatabaseTransaction,
   ) {
-    let missing = 0
-
-    for await (const [
-      [accountPrefix, noteHash],
-      decryptedNote,
-    ] of stores.new.decryptedNotes.getAllIter(tx)) {
-      if (decryptedNote.nullifierHash) {
-        console.log(
-          'FOUND ONE',
-          accountPrefix.toString('hex'),
-          noteHash.toString('hex'),
-          decryptedNote.nullifierHash.toString('hex'),
-          await stores.new.nullifierToNoteHash.has([
-            accountPrefix,
-            decryptedNote.nullifierHash,
-          ]),
-        )
-        break
-      }
-    }
-
     for await (const [
       [accountPrefix, nullifier],
       noteHash,
     ] of stores.new.nullifierToNoteHash.getAllIter(tx)) {
-      if (
-        nullifier.toString('hex') !==
-        '4d5f8907abd59cbe12f46e5d6f41c7e551672c0df02799e6905217e7e36c03fd'
-      ) {
-        continue
-      }
-
       const hasNote = await stores.new.decryptedNotes.has([accountPrefix, noteHash], tx)
 
-      logger.debug(
-        `${String(hasNote)} - ${nullifier.toString('hex')} -> ${noteHash.toString(
-          'hex',
-        )} (${accountPrefix.toString('hex')})`,
-      )
-
       if (!hasNote) {
-        //   logger.debug(
-        //     `Missing nullifier ${nullifier.toString('hex')} -> ${noteHash.toString(
-        //       'hex',
-        //     )}: ${missing} (${accountPrefix.toString('hex')})`,
-        //   )
-        missing++
+        logger.debug(
+          `Missing nullifier ${nullifier.toString('hex')} -> ${noteHash.toString(
+            'hex',
+          )} (${accountPrefix.toString('hex')})`,
+        )
+
+        throw new Error(
+          `Your wallet is corrupt and missing a notes for a nullifier.` +
+            ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
+        )
       }
     }
-
-    if (missing) {
-      throw new Error(
-        `Your wallet is corrupt and missing ${missing} notes for nullifiers.` +
-          ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
-      )
-    }
-
-    throw new Error(`FOO`)
   }
 }
 
