@@ -3,7 +3,7 @@ use std::{cmp, num::Wrapping};
 use rand::{thread_rng, RngCore};
 use xxhash_rust::xxh3::xxh3_64_with_seed;
 
-pub struct RollingFilterRs2 {
+pub struct RollingFilter {
     entries: u32,         // entries currently in this generation
     generation: i32,      // current generation
     hash_func_count: u32, // the number of hash functions to use
@@ -12,7 +12,7 @@ pub struct RollingFilterRs2 {
     data: Vec<u64>, // the actual bits used to determine existence
 }
 
-impl RollingFilterRs2 {
+impl RollingFilter {
     pub fn new(n_elements: u32, fp_rate: f64) -> Self {
         let log_rate = fp_rate.ln();
 
@@ -103,11 +103,11 @@ impl RollingFilterRs2 {
 mod test {
     use crate::nacl::random_bytes;
 
-    use super::RollingFilterRs2;
+    use super::RollingFilter;
 
     #[test]
-    fn test_filter() {
-        let mut filter = RollingFilterRs2::new(1_000, 0.0000001);
+    fn test_rolling_filter() {
+        let mut filter = RollingFilter::new(1_000, 0.0000001);
 
         let mut false_positives = 0;
         for _ in 0..5_000 {

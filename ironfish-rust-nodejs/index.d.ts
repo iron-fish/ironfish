@@ -34,8 +34,8 @@ export class BoxKeyPair {
   get publicKey(): Buffer
   get secretKey(): Buffer
 }
-export type NativeRollingFilter = RollingFilterRs
-export class RollingFilterRs {
+export type NativeRollingFilter = RollingFilter
+export class RollingFilter {
   constructor(items: number, rate: number)
   add(value: Buffer): void
   test(value: Buffer): boolean
