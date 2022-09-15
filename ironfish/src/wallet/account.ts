@@ -369,13 +369,15 @@ export class Account {
             'nullifierToNote mappings must have a corresponding decryptedNote',
           )
 
+          const transactionValue = await this.getTransaction(decryptedNote.transactionHash)
+
           await this.updateDecryptedNote(
             noteHash,
             {
               ...decryptedNote,
               spent: false,
             },
-            null,
+            transactionValue?.sequence ?? null,
             tx,
           )
         }
