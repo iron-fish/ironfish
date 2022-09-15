@@ -62,7 +62,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       let transactionCreator = false
 
       for (const spend of transaction.spends()) {
-        if (account.getNoteHash(spend.nullifier)) {
+        if (await account.getNoteHash(spend.nullifier)) {
           transactionCreator = true
           break
         }
