@@ -64,7 +64,7 @@ mod test {
     #[test]
     fn test_mine_batch_match() {
         let header_bytes = &mut [0, 1, 2, 4, 5, 6, 7, 8];
-        let batch_size = 2;
+        let batch_size = 3;
         let start = 42;
         let step_size = 1;
 
