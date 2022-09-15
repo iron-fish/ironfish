@@ -20,7 +20,6 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-  private readonly decryptedNotes: BufferMap<DecryptedNoteValue>
   private readonly nullifierToNoteHash: BufferMap<Buffer>
 
   private readonly sequenceToNoteHashes: Map<number, BufferSet>
@@ -66,7 +65,6 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.accountsDb = accountsDb
-    this.decryptedNotes = new BufferMap<DecryptedNoteValue>()
     this.nullifierToNoteHash = new BufferMap<Buffer>()
 
     this.sequenceToNoteHashes = new Map<number, BufferSet>()
@@ -88,8 +86,6 @@ export class Account {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
-      this.decryptedNotes.set(hash, decryptedNote)
-
       if (!decryptedNote.spent) {
         unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
       }
@@ -108,7 +104,6 @@ export class Account {
 
   async save(tx?: IDatabaseTransaction): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      await this.accountsDb.replaceDecryptedNotes(this, this.decryptedNotes, tx)
       await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
     })
   }
@@ -118,41 +113,40 @@ export class Account {
     await this.accountsDb.clearNullifierToNoteHash(this, tx)
     await this.accountsDb.clearTransactions(this, tx)
 
-    this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
 
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
 
-  getNotes(): ReadonlyArray<{
+  async *getNotes(): AsyncGenerator<{
     hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
     spent: boolean
   }> {
-    const notes = []
-
-    for (const [hash, decryptedNote] of this.decryptedNotes) {
-      notes.push({
+    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
+      yield {
         hash,
         index: decryptedNote.index,
         note: new Note(decryptedNote.serializedNote),
         transactionHash: decryptedNote.transactionHash,
         spent: decryptedNote.spent,
-      })
+      }
     }
-
-    return notes
   }
 
-  getUnspentNotes(): ReadonlyArray<{
+  async *getUnspentNotes(): AsyncGenerator<{
     hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
   }> {
-    return this.getNotes().filter((note) => !note.spent)
+    for await (const decryptedNote of this.getNotes()) {
+      if (!decryptedNote.spent) {
+        yield decryptedNote
+      }
+    }
   }
 
   getDecryptedNote(hash: Buffer): DecryptedNoteValue | undefined {
