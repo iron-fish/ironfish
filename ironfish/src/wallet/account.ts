@@ -179,6 +179,7 @@ export class Account {
       }
 
       this.decryptedNotes.set(noteHash, note)
+      await this.accountsDb.saveDecryptedNote(this, noteHash, note, tx)
 
       const transaction = await this.getTransaction(note.transactionHash, tx)
       this.saveDecryptedNoteSequence(noteHash, transaction?.sequence ?? null)
