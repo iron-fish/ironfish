@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RollingFilter } from '@ironfish/bfilter'
+import { RollingFilter } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
