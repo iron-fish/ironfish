@@ -56,10 +56,9 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const transactions = account.getTransactions()
     const responseTransactions = []
 
-    for (const { transaction, blockHash, sequence } of transactions) {
+    for await (const { transaction, blockHash, sequence } of account.getTransactions()) {
       let transactionCreator = false
 
       for (const spend of transaction.spends()) {

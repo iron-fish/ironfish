@@ -72,7 +72,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     let transactionInfo = null
     const transactionNotes = []
 
-    for (const { transaction, blockHash, sequence } of account.getTransactions()) {
+    for await (const { transaction, blockHash, sequence } of account.getTransactions()) {
       if (unsignedTransactionHash.equals(transaction.unsignedHash())) {
         transactionInfo = {
           status: await getTransactionStatus(

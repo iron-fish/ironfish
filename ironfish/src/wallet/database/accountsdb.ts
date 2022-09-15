@@ -275,6 +275,18 @@ export class AccountsDB {
     }
   }
 
+  async *loadTransactionValues(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    for await (const transactionValue of this.transactions.getAllValuesIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield transactionValue
+    }
+  }
+
   async loadTransaction(
     account: Account,
     transactionHash: Buffer,

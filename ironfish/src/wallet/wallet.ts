@@ -587,8 +587,8 @@ export class Accounts {
       let confirmed = false
 
       if (transactionHash) {
-        const transaction = account.getTransaction(transactionHash)
-        Assert.isNotUndefined(
+        const transaction = await account.getTransaction(transactionHash)
+        Assert.isNotNull(
           transaction,
           `Transaction '${transactionHash.toString('hex')}' missing for account '${
             account.id
@@ -779,7 +779,7 @@ export class Accounts {
     }
 
     for (const account of this.accounts.values()) {
-      for (const transactionInfo of account.getTransactions()) {
+      for await (const transactionInfo of account.getTransactions()) {
         const { transaction, blockHash, submittedSequence } = transactionInfo
         const transactionHash = transaction.hash()
 
@@ -853,7 +853,7 @@ export class Accounts {
     }
 
     for (const account of this.accounts.values()) {
-      for (const { transaction, blockHash } of account.getTransactions()) {
+      for await (const { transaction, blockHash } of account.getTransactions()) {
         // Skip transactions that are already added to a block
         if (blockHash) {
           continue
