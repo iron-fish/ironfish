@@ -5,6 +5,7 @@ import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { IronfishSdk } from '../../sdk'
+import { PromiseUtils } from '../../utils/promise'
 import { RpcRequestError } from '../clients'
 import { RpcIpcClient } from '../clients/ipcClient'
 import { ALL_API_NAMESPACES } from '../routes/router'
@@ -83,6 +84,24 @@ describe('IpcAdapter', () => {
 
     await response.waitForEnd()
     expect(response.content).toBe(undefined)
+  })
+
+  it('should not crash on disconnect while streaming', async () => {
+    const [waitPromise, waitResolve] = PromiseUtils.split<void>()
+
+    ipc.router?.register('foo/bar', yup.object({}), async () => {
+      await waitPromise
+    })
+
+    await ipc.start()
+    await client.connect()
+
+    client.request('foo/bar').contentStream()
+
+    client.close()
+    waitResolve()
+
+    expect.assertions(0)
   })
 
   it('should handle errors', async () => {
