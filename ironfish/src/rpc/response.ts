@@ -49,8 +49,10 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
    * not propagated
    */
   async *contentStream(ignoreClose = true): AsyncGenerator<TStream, void> {
-    this.promise.catch((e) => {
-      throw e
+    this.promise.catch(() => {
+      // In the streaming case the error is piped through the stream instead
+      // and we handle it there (below). The same error is piped through this promise
+      // but since we are already handling it in the stream we can ignore this one
     })
 
     if (this.timeout) {
