@@ -46,11 +46,11 @@ export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResp
 router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   `${ApiNamespace.account}/getAccountNotes`,
   GetAccountNotesRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
     const responseNotes = []
-    for (const { transaction } of account.getTransactions()) {
+    for await (const { transaction } of account.getTransactions()) {
       responseNotes.push(...getTransactionNotes(account, transaction))
     }
 
