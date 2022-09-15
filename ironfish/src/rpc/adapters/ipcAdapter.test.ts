@@ -96,12 +96,13 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    client.request('foo/bar').contentStream()
+    const next = client.request('foo/bar').contentStream().next()
 
     client.close()
     waitResolve()
 
     expect.assertions(0)
+    await next
   })
 
   it('should handle errors', async () => {
