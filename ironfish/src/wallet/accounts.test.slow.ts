@@ -11,6 +11,7 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { Account } from './account'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -109,7 +110,7 @@ describe('Accounts', () => {
     await node.accounts.saveAccountsToDb()
 
     for (const account of node.accounts.listAccounts()) {
-      await account.reset()
+      await clearAccountCaches(account)
     }
 
     // Account should now have a balance of 0 after clearing the cache
@@ -168,7 +169,7 @@ describe('Accounts', () => {
     await node.accounts.saveAccountsToDb()
 
     for (const account of node.accounts.listAccounts()) {
-      await account.reset()
+      await clearAccountCaches(account)
     }
 
     // Account should now have a balance of 0 after clearing the cache
@@ -224,8 +225,8 @@ describe('Accounts', () => {
     expect(Array.from(accountB.getTransactions()).length).toEqual(0)
 
     // Clear caches for both accounts
-    await accountA.reset()
-    await accountB.reset()
+    await clearAccountCaches(accountA)
+    await clearAccountCaches(accountB)
 
     // Both accounts should have zero transactions
     expect(Array.from(accountA.getTransactions()).length).toEqual(0)
@@ -279,8 +280,8 @@ describe('Accounts', () => {
     expect(Array.from(accountB['nullifierToNoteHash']).length).toEqual(0)
 
     // Clear caches for both accounts
-    await accountA.reset()
-    await accountB.reset()
+    await clearAccountCaches(accountA)
+    await clearAccountCaches(accountB)
 
     // Both accounts should have zero nullifiers
     expect(Array.from(accountA['nullifierToNoteHash']).length).toEqual(0)
@@ -692,8 +693,9 @@ describe('Accounts', () => {
 
     // Reload accounts to simulate node restart
     for (const account of node.accounts.listAccounts()) {
-      await account.reset()
+      await clearAccountCaches(account)
     }
+
     await node.accounts.loadAccountsFromDb()
 
     // Create a block with a miner's fee
@@ -1049,3 +1051,10 @@ describe('Accounts', () => {
     })
   })
 })
+
+async function clearAccountCaches(account: Account): Promise<void> {
+  account['transactions'].clear()
+  account['decryptedNotes'].clear()
+  account['nullifierToNoteHash'].clear()
+  await account['saveUnconfirmedBalance'](BigInt(0))
+}

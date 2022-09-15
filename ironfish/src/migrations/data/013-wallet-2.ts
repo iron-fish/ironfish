@@ -2,14 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BufferMap, BufferSet } from 'buffer-map'
+import fsAsync from 'fs/promises'
+import MurmurHash3 from 'imurmurhash'
+import _ from 'lodash'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
+import { Meter } from '../../metrics/meter'
 import { IronfishNode } from '../../node'
-import { Transaction } from '../../primitives'
+import { Note, Transaction } from '../../primitives'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
-import { DatabaseStoreValue, IDatabase, IDatabaseTransaction } from '../../storage'
+import { IJsonSerializable } from '../../serde/Serde'
+import {
+  BufferEncoding,
+  DatabaseSchema,
+  DatabaseStoreValue,
+  IDatabase,
+  IDatabaseStore,
+  IDatabaseTransaction,
+  JsonEncoding,
+  StringEncoding,
+} from '../../storage'
 import { createDB } from '../../storage/utils'
 import { BenchUtils } from '../../utils'
 import { Migration } from '../migration'
@@ -31,10 +45,11 @@ export class Migration013 extends Migration {
   async forward(
     node: IronfishNode,
     db: IDatabase,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     const startTotal = BenchUtils.startSegment()
+    let start = BenchUtils.startSegment()
 
     const chainDb = createDB({ location: node.config.chainDatabasePath })
     await chainDb.open()
@@ -44,91 +59,100 @@ export class Migration013 extends Migration {
       new: loadNewStores(db),
     }
 
-    logger.debug('Building a map of notes to which transaction they are in')
-    let start = BenchUtils.startSegment()
-    const noteToTransactionCache = await this.buildNoteToTransactionCache(
-      stores.old.transactions,
-      tx,
-      logger,
-    )
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    const cacheDbPath = path.join(node.config.tempDir, 'migration')
+    await node.files.mkdir(cacheDbPath, { recursive: true })
+    const cacheDb = createDB({ location: cacheDbPath })
+    logger.debug(`Using cache database at ${cacheDbPath}`)
+
+    const cacheMeta: IDatabaseStore<DatabaseSchema<string, IJsonSerializable>> =
+      cacheDb.addStore({
+        name: 'm',
+        keyEncoding: new StringEncoding(),
+        valueEncoding: new JsonEncoding(),
+      })
+
+    const noteToTransactionCache: IDatabaseStore<DatabaseSchema<Buffer, Buffer>> =
+      cacheDb.addStore({
+        name: 'z',
+        keyEncoding: new BufferEncoding(),
+        valueEncoding: new BufferEncoding(),
+      })
+
+    const transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    > = cacheDb.addStore({
+      name: 'cz',
+      keyEncoding: new BufferEncoding(),
+      valueEncoding: stores.new.transactions.valueEncoding,
+    })
+
+    logger.debug('Opening Cache DB connection')
+    await cacheDb.open()
+
+    if ((await cacheMeta.get('noteToTransactionCache')) !== true) {
+      logger.debug('Building note to transaction cache')
+      start = BenchUtils.startSegment()
+      await this.writeNoteToTransactionCache(stores, cacheDb, noteToTransactionCache, logger)
+      logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+      await cacheMeta.put('noteToTransactionCache', true)
+    } else {
+      logger.debug('Skipping note to transaction cache')
+    }
+
+    if ((await cacheMeta.get('transactionsCache')) !== true) {
+      logger.debug('Building transaction cache')
+      start = BenchUtils.startSegment()
+      await this.writeTransactionsCache(stores, transactionsCache, logger)
+      logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+      await cacheMeta.put('transactionsCache', true)
+    } else {
+      logger.debug('Skipping transaction cache')
+    }
 
     logger.debug('Migrating: accounts')
     start = BenchUtils.startSegment()
-    const accounts = await this.migrateAccounts(
-      stores.old.accounts,
-      stores.new.accounts,
-      tx,
-      logger,
-    )
+    await this.migrateAccounts(stores, db, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug('Migrating: transactions')
+    logger.debug('Migrating: accounts data')
     start = BenchUtils.startSegment()
-    const droppedTransactions = await this.migrateTransactions(
-      stores.old.transactions,
-      stores.new.transactions,
-      stores.old.headers,
-      tx,
-      logger,
-    )
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    logger.debug('Migrating: decryptedNotes')
-    start = BenchUtils.startSegment()
-    const { unconfirmedBalances } = await this.migrateDecryptedNotes(
-      stores.old.noteToNullifier,
-      stores.new.transactions,
-      stores.new.decryptedNotes,
+    await this.migrateAccountsData(
+      stores,
+      db,
       noteToTransactionCache,
-      accounts,
-      droppedTransactions,
-      tx,
+      transactionsCache,
+      cacheMeta,
       logger,
-    )
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    logger.debug('Migrating: balances')
-    start = BenchUtils.startSegment()
-    await this.migrateBalances(stores.new.balances, unconfirmedBalances, accounts, tx, logger)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    logger.debug('Migrating: nullifierToNoteHash')
-    start = BenchUtils.startSegment()
-    await this.migrateNullifierToNoteHash(
-      stores.old.nullifierToNote,
-      stores.new.nullifierToNoteHash,
       tx,
-      logger,
     )
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: headHashes')
     start = BenchUtils.startSegment()
-    await this.migrateHeadHashes(stores.old.meta, stores.new.headHashes, accounts, tx, logger)
+    await this.migrateHeadHashes(stores, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     logger.debug('Migrating: meta')
     start = BenchUtils.startSegment()
-    await this.migrateMeta(stores.old.meta, stores.new.meta, accounts, tx, logger)
+    await this.migrateMeta(stores, db, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    logger.debug('Migrating: Deleting old store nullifierToNote')
-    start = BenchUtils.startSegment()
-    await stores.old.nullifierToNote.clear(tx)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
-
-    logger.debug('Migrating: Deleting old store noteToNullifier')
-    start = BenchUtils.startSegment()
-    await stores.old.noteToNullifier.clear(tx)
-    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+    logger.debug('Migrating: Deleting old stores')
+    await this.deleteOldStores(stores, logger, tx)
 
     logger.debug('Migrating: Checking nullifierToNote')
     start = BenchUtils.startSegment()
-    await this.checkNullifierToNote(stores, node, tx)
+    await this.checkNullifierToNote(stores, node, logger, tx)
     logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
     await chainDb.close()
+    await cacheDb.close()
+
+    logger.debug(`Migrating: Deleting cache DB at ${cacheDbPath}`)
+    start = BenchUtils.startSegment()
+    await fsAsync.rm(cacheDbPath, { force: true, recursive: true })
+    logger.debug('\t' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
     logger.debug(BenchUtils.renderSegment(BenchUtils.endSegment(startTotal)))
   }
 
@@ -136,335 +160,382 @@ export class Migration013 extends Migration {
     throw new Error()
   }
 
-  async buildNoteToTransactionCache(
-    transactionsStoreOld: Stores['old']['transactions'],
-    tx: IDatabaseTransaction,
-    logger: Logger,
-  ): Promise<BufferMap<Buffer>> {
-    const noteToTransaction = new BufferMap<Buffer>()
-    let tranactionCount = 0
-
-    for await (const transactionValue of transactionsStoreOld.getAllValuesIter(tx)) {
-      const transaction = new Transaction(transactionValue.transaction)
-
-      for (const note of transaction.notes()) {
-        const noteHash = note.merkleHash()
-        noteToTransaction.set(noteHash, transaction.hash())
-      }
-
-      tranactionCount++
-    }
-
-    logger.debug(
-      `\tFound ${noteToTransaction.size} notes that map to ${tranactionCount} transactions`,
-    )
-
-    return noteToTransaction
-  }
-
-  async migrateBalances(
-    balancesStoreNew: Stores['new']['balances'],
-    unconfirmedBalances: Map<string, bigint>,
-    accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
-    tx: IDatabaseTransaction,
-    logger: Logger,
-  ): Promise<void> {
-    for (const account of accounts) {
-      const balance = unconfirmedBalances.get(account.id)
-
-      if (typeof balance === 'bigint') {
-        logger.debug(`\tCalculated balance ${account.account.name}: ${balance}`)
-        await balancesStoreNew.put(account.id, balance, tx)
-      } else {
-        logger.debug(`\tNo balance for ${account.account.name}, setting to 0`)
-        await balancesStoreNew.put(account.id, BigInt(0), tx)
-      }
-    }
-  }
-
-  async migrateNullifierToNoteHash(
-    nullifierToNoteOld: Stores['old']['nullifierToNote'],
-    nullifierToNoteHashNew: Stores['new']['nullifierToNoteHash'],
-    tx: IDatabaseTransaction,
-    logger: Logger,
-  ): Promise<void> {
-    let count = 0
-
-    for await (const [nullifierHex, noteHashHex] of nullifierToNoteOld.getAllIter(tx)) {
-      const nullifier = Buffer.from(nullifierHex, 'hex')
-      const noteHash = Buffer.from(noteHashHex, 'hex')
-      await nullifierToNoteHashNew.put(nullifier, noteHash, tx)
-      count++
-    }
-
-    logger.debug(`\tMigrated ${count} nullifiers`)
-  }
-
   async migrateHeadHashes(
-    metaStoreOld: Stores['old']['meta'],
-    headHashesStoreNew: Stores['new']['headHashes'],
-    accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
-    tx: IDatabaseTransaction,
+    stores: Stores,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const headHashHex = await metaStoreOld.get('headHash', tx)
+    const headHashHex = await stores.old.meta.get('headHash', tx)
     const headHash = headHashHex ? Buffer.from(headHashHex, 'hex') : null
 
-    for (const account of accounts) {
-      logger.debug(`\tSetting account ${account.account.name} head hash: ${String(headHash)}`)
-      await headHashesStoreNew.put(account.id, headHash, tx)
+    for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
+      logger.debug(`\tSetting account ${account.name} head hash: ${headHashHex || 'null'}`)
+      await stores.new.headHashes.put(account.id, headHash, tx)
     }
   }
 
   async migrateMeta(
-    metaStoreOld: Stores['old']['meta'],
-    metaStoreNew: Stores['new']['meta'],
-    accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
-    tx: IDatabaseTransaction,
+    stores: Stores,
+    accountsDb: IDatabase,
     logger: Logger,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const accountName = await metaStoreOld.get('defaultAccountName')
+    const accountName = await stores.old.meta.get('defaultAccountName')
+    const accounts = await stores.new.accounts.getAllValues(tx)
 
-    if (accountName) {
-      const account = accounts.find((a) => a.account.name === accountName)
+    await accountsDb.withTransaction(tx, async (tx) => {
+      if (accountName) {
+        const account = accounts.find((a) => a.name === accountName)
 
-      if (account) {
-        logger.debug(`\tMigrating default account from ${accountName} -> ${account.id}`)
-        await metaStoreNew.put('defaultAccountId', account.id, tx)
-      } else {
-        logger.warn(`\tCould not migrate default with name ${accountName}`)
-        await metaStoreNew.put('defaultAccountId', null, tx)
+        if (account) {
+          logger.debug(`\tMigrating default account from ${accountName} -> ${account.id}`)
+          await stores.new.meta.put('defaultAccountId', account.id, tx)
+        } else {
+          logger.warn(`\tCould not migrate default account with name ${accountName}`)
+          await stores.new.meta.put('defaultAccountId', null, tx)
+        }
       }
-    }
 
-    await metaStoreOld.del('defaultAccountName', tx)
-    await metaStoreOld.del('headHash', tx)
+      await stores.old.meta.del('defaultAccountName', tx)
+      await stores.old.meta.del('headHash', tx)
+    })
   }
 
   async migrateAccounts(
-    accountsStoreOld: Stores['old']['accounts'],
-    accountsStoreNew: Stores['new']['accounts'],
-    tx: IDatabaseTransaction,
+    stores: Stores,
+    accountsDb: IDatabase,
     logger: Logger,
-  ): Promise<{ account: DatabaseStoreValue<NewStores['accounts']>; id: string }[]> {
-    const accounts = []
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    let count = 0
 
-    for await (const [accountName, accountValue] of accountsStoreOld.getAllIter(tx)) {
-      const accountId = uuid()
+    const accounts = await stores.old.accounts.getAll(tx)
 
-      logger.debug(`\tAssigned account id ${accountName}: ${accountId}`)
+    for (const [accountName, accountValue] of accounts) {
+      const migrated = {
+        id: uuid(),
+        ...accountValue,
+      }
 
-      await accountsStoreNew.put(accountId, accountValue, tx)
-      await accountsStoreOld.del(accountName, tx)
+      await accountsDb.withTransaction(tx, async (tx) => {
+        await stores.new.accounts.put(migrated.id, migrated, tx)
+        await stores.old.accounts.del(accountName, tx)
+      })
 
-      accounts.push({ id: accountId, account: accountValue })
+      count++
     }
 
-    logger.debug(`\tMigrated ${accounts.length} accounts`)
+    logger.debug(`\tMigrated ${count} accounts`)
 
-    return accounts
+    for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
+      logger.debug(
+        `\tAccount: ${account.name} -> ${account.id}: ${calculateAccountPrefix(
+          account.id,
+        ).toString('hex')}`,
+      )
+    }
   }
 
-  async migrateTransactions(
-    transactionsStoreOld: Stores['old']['transactions'],
-    transactionsStoreNew: Stores['new']['transactions'],
-    headersStoreOld: Stores['old']['headers'],
-    tx: IDatabaseTransaction,
+  async migrateAccountsData(
+    stores: Stores,
+    accountsDb: IDatabase,
+    noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
+    transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    >,
+    cacheMeta: IDatabaseStore<DatabaseSchema<string, IJsonSerializable>>,
     logger: Logger,
-  ): Promise<BufferSet> {
-    const dropped = new BufferSet()
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    let countMissingAccount = Number((await cacheMeta.get('countMissingAccount')) ?? 0)
+    let countMissingTx = Number((await cacheMeta.get('countMissingTx')) ?? 0)
+    let countNote = Number((await cacheMeta.get('countNote')) ?? 0)
 
+    const accounts = await stores.new.accounts.getAllValues(tx)
+
+    // Restore the current balances in case we have resumed the migration
+    const unconfirmedBalances = new Map<string, bigint>()
+    for await (const [accountId, balance] of stores.new.balances.getAllIter(tx)) {
+      unconfirmedBalances.set(accountId, balance)
+    }
+
+    // Cache the account prefix because murmur is slow
+    const accountPrefixes = new Map<string, Buffer>()
+    for (const account of accounts) {
+      const prefix = calculateAccountPrefix(account.id)
+      accountPrefixes.set(account.id, prefix)
+    }
+
+    const speed = new Meter()
+    speed.start()
+
+    for await (const [noteHashHex, nullifierEntry] of stores.old.noteToNullifier.getAllIter(
+      tx,
+    )) {
+      const noteHash = Buffer.from(noteHashHex, 'hex')
+      const transactionHash = await noteToTransaction.get(noteHash)
+      Assert.isNotUndefined(transactionHash)
+
+      const transaction = await transactionsCache.get(transactionHash)
+
+      if (!transaction) {
+        countMissingTx++
+        speed.add(1)
+        continue
+      }
+
+      const encryptedNote = findNoteInTransaction(transaction.transaction, noteHash)
+      Assert.isNotNull(encryptedNote)
+
+      let ownerAccount: DatabaseStoreValue<Stores['new']['accounts']> | null = null
+      let ownerNote: Note | null = null
+
+      for (const possibleAccount of accounts) {
+        const received = encryptedNote.decryptNoteForOwner(possibleAccount.incomingViewKey)
+
+        if (received) {
+          ownerAccount = possibleAccount
+          ownerNote = received
+          break
+        }
+      }
+
+      if (!ownerAccount || !ownerNote) {
+        logger.warn(
+          `\tCould not find the original account that the note ${noteHashHex} was decrypted as owner, discarding. Tried ${accounts.length} accounts.`,
+        )
+        countMissingAccount++
+        speed.add(1)
+        continue
+      }
+
+      const decryptedNote = {
+        accountId: ownerAccount.id,
+        noteIndex: nullifierEntry.noteIndex,
+        serializedNote: ownerNote.serialize(),
+        spent: nullifierEntry.spent,
+        transactionHash: transactionHash,
+        nullifierHash: nullifierEntry.nullifierHash
+          ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
+          : null,
+      }
+
+      const accountPrefix = accountPrefixes.get(ownerAccount.id)
+      Assert.isNotUndefined(accountPrefix)
+
+      // These writes must happen atomically
+      await accountsDb.withTransaction(tx, async (tx) => {
+        Assert.isNotNull(ownerAccount)
+        Assert.isNotNull(ownerNote)
+
+        await stores.new.decryptedNotes.put([accountPrefix, noteHash], decryptedNote, tx)
+        await stores.new.transactions.put([accountPrefix, transactionHash], transaction, tx)
+
+        if (!decryptedNote.spent) {
+          let balance = unconfirmedBalances.get(ownerAccount.id) ?? BigInt(0)
+          balance += ownerNote.value()
+          unconfirmedBalances.set(ownerAccount.id, balance)
+          await stores.new.balances.put(ownerAccount.id, balance, tx)
+        }
+
+        if (decryptedNote.nullifierHash) {
+          await stores.new.nullifierToNoteHash.put(
+            [accountPrefix, decryptedNote.nullifierHash],
+            noteHash,
+            tx,
+          )
+        }
+
+        // Delete note from old store so that it will not be reprocessed if we resume the migration
+        await stores.old.noteToNullifier.del(noteHashHex, tx)
+      })
+
+      countNote++
+      speed.add(1)
+
+      if (countNote % 1000 === 0) {
+        await cacheMeta.put('countMissingAccount', countMissingAccount)
+        await cacheMeta.put('countMissingTx', countMissingTx)
+        await cacheMeta.put('countNote', countNote)
+        logger.debug(`Migrated ${countNote} notes: ${speed.rate1s.toFixed(2)}/s`)
+      }
+    }
+
+    speed.stop()
+    logger.debug(`\tMigrated ${countNote}~ notes.`)
+
+    if (countMissingAccount) {
+      logger.warn(`\tDropped ${countMissingAccount}~ notes missing accounts.`)
+    }
+
+    if (countMissingTx) {
+      logger.warn(`\tDropped ${countMissingTx}~ missing transactions.`)
+    }
+
+    for (const account of accounts) {
+      const balance = unconfirmedBalances.get(account.id)
+
+      if (typeof balance === 'bigint') {
+        logger.debug(`\tCalculated balance ${account.name}: ${balance}`)
+      } else {
+        logger.debug(`\tNo balance for ${account.name}, setting to 0`)
+      }
+    }
+  }
+
+  async writeTransactionsCache(
+    stores: Stores,
+    transactionsCache: IDatabaseStore<
+      DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
+    >,
+    logger: Logger,
+  ): Promise<void> {
     let countMigrated = 0
     let countDropped = 0
 
-    for await (const [transactionHash, transactionValue] of transactionsStoreOld.getAllIter(
-      tx,
-    )) {
-      const transaction = new Transaction(transactionValue.transaction)
-      const transactionHashHex = transactionHash.toString('hex')
-      await transactionsStoreOld.del(transactionHash, tx)
-
-      const migrated: DatabaseStoreValue<typeof transactionsStoreNew> = {
+    for await (const [
+      transactionHash,
+      transactionValue,
+    ] of stores.old.transactions.getAllIter()) {
+      const migrated = {
         ...transactionValue,
-        blockHash: null,
-        sequence: null,
+        transaction: new Transaction(transactionValue.transaction),
+        blockHash: null as null | Buffer,
+        sequence: null as null | number,
       }
 
       if (transactionValue.blockHash) {
         const blockHash = Buffer.from(transactionValue.blockHash, 'hex')
-        const header = await headersStoreOld.get(blockHash)
+        const header = await stores.old.headers.get(blockHash)
 
-        if (header) {
-          migrated.blockHash = blockHash
-          migrated.sequence = header.header.sequence
-          countMigrated++
-        } else {
+        if (!header) {
           logger.debug(
-            `\tDropping TX ${transactionHashHex}: block not found ${transactionValue.blockHash}`,
+            `\tDropping TX ${transactionHash.toString('hex')}: block not found ${
+              transactionValue.blockHash
+            }`,
           )
-          dropped.add(transaction.hash())
+
           countDropped++
           continue
         }
+
+        migrated.blockHash = blockHash
+        migrated.sequence = header.header.sequence
       }
 
-      await transactionsStoreNew.put(transaction.hash(), migrated, tx)
+      await transactionsCache.put(transactionHash, migrated)
+      countMigrated++
     }
 
-    logger.debug(`\tMigrated ${countMigrated} transactions`)
-
-    if (countDropped) {
-      logger.warn(`\tDropped ${countDropped} transactions with missing blocks`)
-    }
-
-    return dropped
+    logger.debug(`Migrated ${countMigrated} transactions and dropped ${countDropped}`)
   }
 
-  async migrateDecryptedNotes(
-    noteToNullifierStoreOld: Stores['old']['noteToNullifier'],
-    transactionStoreNew: Stores['new']['transactions'],
-    decryptedNoteStoreNew: Stores['new']['decryptedNotes'],
-    noteToTransactionCache: BufferMap<Buffer>,
-    accounts: { account: DatabaseStoreValue<NewStores['accounts']>; id: string }[],
-    droppedTransactions: BufferSet,
-    tx: IDatabaseTransaction,
+  async writeNoteToTransactionCache(
+    stores: Stores,
+    cacheDb: IDatabase,
+    noteToTransactionCache: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     logger: Logger,
-  ): Promise<{ unconfirmedBalances: Map<string, bigint> }> {
-    const decryptedNotes: DatabaseStoreValue<NewStores['decryptedNotes']>[] = []
+  ): Promise<void> {
+    let countTransaction = 0
+    let countNote = 0
 
-    let countMissingAccount = 0
-    let countMissingTx = 0
+    const batch = cacheDb.batch()
+    const batchSize = 1000
 
-    const unconfirmedBalances = new Map<string, bigint>()
+    for await (const [
+      transactionHash,
+      transactionValue,
+    ] of stores.old.transactions.getAllIter()) {
+      const transaction = new Transaction(transactionValue.transaction)
 
-    for await (const [noteHashHex, nullifierEntry] of noteToNullifierStoreOld.getAllIter(tx)) {
-      const noteHash = Buffer.from(noteHashHex, 'hex')
+      for (const note of transaction.notes()) {
+        const noteHash = note.merkleHash()
 
-      const transactionHash = noteToTransactionCache.get(noteHash)
-      Assert.isNotUndefined(transactionHash)
+        batch.put(noteToTransactionCache, noteHash, transactionHash)
+        countNote++
 
-      if (droppedTransactions.has(transactionHash)) {
-        countMissingTx++
-        continue
-      }
-
-      const transactionEntry = await transactionStoreNew.get(transactionHash, tx)
-      Assert.isNotUndefined(transactionEntry)
-
-      const transaction = new Transaction(transactionEntry.transaction)
-      const encryptedNote = findNoteInTranaction(transaction, noteHashHex)
-
-      if (!encryptedNote) {
-        throw new Error(
-          `Could not find note ${noteHashHex} in transaction ${transactionHash.toString(
-            'hex',
-          )}`,
-        )
-      }
-
-      let account = null
-      let note = null
-
-      for (const accountWithId of accounts) {
-        const received = encryptedNote.decryptNoteForOwner(
-          accountWithId.account.incomingViewKey,
-        )
-        if (received) {
-          note = received
-          account = accountWithId
-          break
-        }
-
-        const sent = encryptedNote.decryptNoteForSpender(accountWithId.account.outgoingViewKey)
-        if (sent) {
-          note = sent
-          account = accountWithId
-          break
+        if (batch.size >= batchSize) {
+          await batch.commit()
         }
       }
 
-      if (!account || !note) {
-        logger.warn(
-          `\tCould not find the original account that the note ${noteHashHex} was decrypted with, discarding. Tried ${accounts.length} accounts.`,
-        )
-        countMissingAccount++
-        continue
-      }
-
-      const decryptedNote: DatabaseStoreValue<NewStores['decryptedNotes']> = {
-        accountId: account.id,
-        noteIndex: nullifierEntry.noteIndex,
-        nullifierHash: nullifierEntry.nullifierHash
-          ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
-          : null,
-        serializedNote: note.serialize(),
-        spent: nullifierEntry.spent,
-        transactionHash: transaction.hash(),
-      }
-
-      if (!decryptedNote.spent) {
-        let balance = unconfirmedBalances.get(account.id) ?? BigInt(0)
-        balance += note.value()
-        unconfirmedBalances.set(account.id, balance)
-      }
-
-      await decryptedNoteStoreNew.put(noteHash, decryptedNote, tx)
-
-      decryptedNotes.push(decryptedNote)
+      countTransaction++
     }
 
-    logger.debug(`\tMigrated ${decryptedNotes.length} notes.`)
+    await batch.commit()
+    logger.debug(`\tFound ${countNote} notes that map to ${countTransaction} transactions`)
+  }
 
-    if (countMissingAccount) {
-      logger.warn(
-        `\tDropped ${countMissingAccount} notes that were not decryptable by any accounts we have and dropped ${countMissingTx} notes from transactions that were dropped because their blocks were missing.`,
-      )
-    }
+  async deleteOldStores(
+    stores: Stores,
+    logger: Logger,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    let start = BenchUtils.startSegment()
+    await stores.old.nullifierToNote.clear(tx)
+    logger.debug('\tnullifierToNote: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    if (countMissingTx) {
-      logger.warn(
-        `\tDropped ${countMissingTx} notes from TX that were dropped because their blocks were missing.`,
-      )
-    }
+    start = BenchUtils.startSegment()
+    await stores.old.accounts.clear(tx)
+    logger.debug('\taccounts: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
 
-    return { unconfirmedBalances }
+    start = BenchUtils.startSegment()
+    await stores.old.meta.clear(tx)
+    logger.debug('\tmeta: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
+    start = BenchUtils.startSegment()
+    await stores.old.noteToNullifier.clear(tx)
+    logger.debug('\tnoteToNullifier: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
+
+    start = BenchUtils.startSegment()
+    await stores.old.transactions.clear(tx)
+    logger.debug('\ttransactions: ' + BenchUtils.renderSegment(BenchUtils.endSegment(start)))
   }
 
   private async checkNullifierToNote(
     stores: Stores,
     node: IronfishNode,
-    tx: IDatabaseTransaction,
+    logger: Logger,
+    tx?: IDatabaseTransaction,
   ) {
-    let missing = 0
-
-    for await (const noteHash of stores.new.nullifierToNoteHash.getAllValuesIter(tx)) {
-      const hasNote = await stores.new.decryptedNotes.has(noteHash, tx)
+    for await (const [
+      [accountPrefix, nullifier],
+      noteHash,
+    ] of stores.new.nullifierToNoteHash.getAllIter(tx)) {
+      const hasNote = await stores.new.decryptedNotes.has([accountPrefix, noteHash], tx)
 
       if (!hasNote) {
-        missing++
-      }
-    }
+        logger.debug(
+          `Missing nullifier ${nullifier.toString('hex')} -> ${noteHash.toString(
+            'hex',
+          )} (${accountPrefix.toString('hex')})`,
+        )
 
-    if (missing) {
-      throw new Error(
-        `Your wallet is corrupt and missing ${missing} notes for nullifiers.` +
-          ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
-      )
+        throw new Error(
+          `Your wallet is corrupt and missing a note for a nullifier.` +
+            ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
+        )
+      }
     }
   }
 }
 
-function findNoteInTranaction(
+function findNoteInTransaction(
   transaction: Transaction,
-  noteHash: string,
+  noteHash: Buffer,
 ): NoteEncrypted | null {
-  const noteHashBuffer = Buffer.from(noteHash, 'hex')
-
   for (const note of transaction.notes()) {
-    if (note.merkleHash().equals(noteHashBuffer)) {
+    if (note.merkleHash().equals(noteHash)) {
       return note
     }
   }
 
   return null
+}
+
+export function calculateAccountPrefix(id: string): Buffer {
+  const prefix = Buffer.alloc(4)
+  const prefixHash = new MurmurHash3(id, 1).result()
+  prefix.writeUInt32BE(prefixHash)
+  return prefix
 }

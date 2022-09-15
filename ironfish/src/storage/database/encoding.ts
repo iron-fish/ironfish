@@ -6,7 +6,8 @@ import bufio from 'bufio'
 import hexArray from 'hex-array'
 import { IJSON, IJsonSerializable, Serde } from '../../serde'
 import { BigIntUtils } from '../../utils'
-import { IDatabaseEncoding } from './types'
+import { DatabaseKeyRange, IDatabaseEncoding } from './types'
+import { StorageUtils } from './utils'
 
 export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncoding<T> {
   serialize = (value: T): Buffer => Buffer.from(IJSON.stringify(value), 'utf8')
@@ -35,6 +36,57 @@ export class U32Encoding implements IDatabaseEncoding<number> {
 export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   serialize = (value: Buffer): Buffer => value
   deserialize = (buffer: Buffer): Buffer => buffer
+}
+
+export class PrefixSizeError extends Error {}
+
+export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix, TKey]> {
+  readonly keyEncoding: IDatabaseEncoding<TKey>
+  readonly prefixEncoding: IDatabaseEncoding<TPrefix>
+  readonly prefixSize: number
+
+  constructor(
+    keyEncoding: IDatabaseEncoding<TKey>,
+    prefixEncoding: IDatabaseEncoding<TPrefix>,
+    prefixSize: number,
+  ) {
+    this.keyEncoding = keyEncoding
+    this.prefixEncoding = prefixEncoding
+    this.prefixSize = prefixSize
+  }
+
+  serialize = (value: [TPrefix, TKey]): Buffer => {
+    const prefixEncoded = this.prefixEncoding.serialize(value[0])
+    const keyEncoded = this.keyEncoding.serialize(value[1])
+
+    this.assertPrefixSize(prefixEncoded)
+
+    return Buffer.concat([prefixEncoded, keyEncoded])
+  }
+
+  deserialize = (buffer: Buffer): [TPrefix, TKey] => {
+    const prefix = buffer.slice(0, this.prefixSize)
+    const key = buffer.slice(this.prefixSize)
+
+    const prefixDecoded = this.prefixEncoding.deserialize(prefix)
+    const keyDecoded = this.keyEncoding.deserialize(key)
+
+    return [prefixDecoded, keyDecoded]
+  }
+
+  getKeyRange(prefix: TPrefix): DatabaseKeyRange {
+    const encoded = this.prefixEncoding.serialize(prefix)
+    this.assertPrefixSize(encoded)
+    return StorageUtils.getPrefixKeyRange(encoded)
+  }
+
+  private assertPrefixSize(prefix: Buffer): void {
+    if (prefix.byteLength !== this.prefixSize) {
+      throw new PrefixSizeError(
+        `key prefix expected to be byte size ${this.prefixSize} but was ${prefix.byteLength}`,
+      )
+    }
+  }
 }
 
 export class NullableBufferEncoding implements IDatabaseEncoding<Buffer | null> {

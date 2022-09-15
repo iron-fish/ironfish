@@ -47,6 +47,12 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
    */
   encode(key: Readonly<SchemaKey<Schema>>, value: SchemaValue<Schema>): [Buffer, Buffer]
 
+  /* Get all of the key values in the IDatastore */
+  getAll(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
+
   /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatastore */
   getAllIter(
     transaction?: IDatabaseTransaction,
@@ -69,6 +75,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<SchemaKey<Schema>>
+
   /* Get all of the keys in the IDatastore */
   getAllKeys(
     transaction?: IDatabaseTransaction,
@@ -175,7 +182,13 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
 
   abstract getAllIter(
     transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]>
+
+  abstract getAll(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
 
   abstract getAllValuesIter(
     transaction?: IDatabaseTransaction,

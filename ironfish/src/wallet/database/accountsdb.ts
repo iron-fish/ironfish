@@ -5,6 +5,9 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
+import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
+import { Nullifier } from '../../primitives/nullifier'
+import { TransactionHash } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
   BufferEncoding,
@@ -12,6 +15,7 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   NullableBufferEncoding,
+  PrefixEncoding,
   StringEncoding,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
@@ -42,24 +46,27 @@ export class AccountsDB {
   }>
 
   headHashes: IDatabaseStore<{
-    key: string
+    key: Account['id']
     value: Buffer | null
   }>
 
   balances: IDatabaseStore<{
-    key: string
+    key: Account['id']
     value: bigint
   }>
 
   decryptedNotes: IDatabaseStore<{
-    key: Buffer
+    key: [Account['prefix'], NoteEncryptedHash]
     value: DecryptedNoteValue
   }>
 
-  nullifierToNoteHash: IDatabaseStore<{ key: Buffer; value: Buffer }>
+  nullifierToNoteHash: IDatabaseStore<{
+    key: [Account['prefix'], Nullifier]
+    value: Buffer
+  }>
 
   transactions: IDatabaseStore<{
-    key: Buffer
+    key: [Account['prefix'], TransactionHash]
     value: TransactionValue
   }>
 
@@ -81,53 +88,44 @@ export class AccountsDB {
       key: keyof AccountsDBMeta
       value: AccountsDBMeta[keyof AccountsDBMeta]
     }>({
-      name: 'meta',
+      name: 'm',
       keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
       valueEncoding: new MetaValueEncoding(),
     })
 
-    this.headHashes = this.database.addStore<{
-      key: string
-      value: Buffer | null
-    }>({
-      name: 'headHashes',
+    this.headHashes = this.database.addStore({
+      name: 'h',
       keyEncoding: new StringEncoding(),
       valueEncoding: new NullableBufferEncoding(),
     })
 
-    this.accounts = this.database.addStore<{ key: string; value: AccountValue }>({
-      name: 'accounts',
+    this.accounts = this.database.addStore({
+      name: 'a',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     })
 
-    this.balances = this.database.addStore<{ key: string; value: bigint }>({
-      name: 'balances',
+    this.balances = this.database.addStore({
+      name: 'b',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BigIntLEEncoding(),
     })
 
-    this.decryptedNotes = this.database.addStore<{
-      key: Buffer
-      value: DecryptedNoteValue
-    }>({
-      name: 'decryptedNotes',
-      keyEncoding: new BufferEncoding(),
+    this.decryptedNotes = this.database.addStore({
+      name: 'd',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
-    this.nullifierToNoteHash = this.database.addStore<{ key: Buffer; value: Buffer }>({
-      name: 'nullifierToNoteHash',
-      keyEncoding: new BufferEncoding(),
+    this.nullifierToNoteHash = this.database.addStore({
+      name: 'n',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     })
 
-    this.transactions = this.database.addStore<{
-      key: Buffer
-      value: TransactionValue
-    }>({
-      name: 'transactions',
-      keyEncoding: new BufferEncoding(),
+    this.transactions = this.database.addStore({
+      name: 't',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
     })
   }
@@ -225,41 +223,51 @@ export class AccountsDB {
   }
 
   async saveTransaction(
+    account: Account,
     transactionHash: Buffer,
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.transactions.put(transactionHash, transactionValue, tx)
-    })
+    await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
   }
 
-  async deleteTransaction(transactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.transactions.del(transactionHash, tx)
-    })
+  async deleteTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.transactions.del([account.prefix, transactionHash], tx)
   }
 
-  async clearTransactions(tx?: IDatabaseTransaction): Promise<void> {
-    await this.transactions.clear(tx)
+  async clearTransactions(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.transactions.clear(tx, account.prefixRange)
   }
 
   async replaceTransactions(
+    account: Account,
     map: BufferMap<TransactionValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
+      await this.clearTransactions(account, tx)
+
       for (const [key, value] of map) {
-        await this.transactions.put(key, value, tx)
+        await this.transactions.put([account.prefix, key], value, tx)
       }
     })
   }
 
-  async *loadTransactions(tx?: IDatabaseTransaction): AsyncGenerator<{
+  async *loadTransactions(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
     hash: Buffer
     transactionValue: TransactionValue
   }> {
-    for await (const [hash, transactionValue] of this.transactions.getAllIter(tx)) {
+    for await (const [[_, hash], transactionValue] of this.transactions.getAllIter(
+      tx,
+      account.prefixRange,
+    )) {
       yield {
         hash,
         transactionValue,
@@ -268,80 +276,113 @@ export class AccountsDB {
   }
 
   async loadTransaction(
+    account: Account,
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<TransactionValue | null> {
-    const transactionValue = await this.transactions.get(transactionHash, tx)
+    const transactionValue = await this.transactions.get([account.prefix, transactionHash], tx)
     return transactionValue || null
   }
 
   async saveNullifierNoteHash(
+    account: Account,
     nullifier: Buffer,
     noteHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.nullifierToNoteHash.put(nullifier, noteHash, tx)
-    })
+    await this.nullifierToNoteHash.put([account.prefix, nullifier], noteHash, tx)
   }
 
-  async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.nullifierToNoteHash.del(nullifier, tx)
-    })
+  async *loadNullifierToNoteHash(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
+    nullifier: Buffer
+    noteHash: Buffer
+  }> {
+    for await (const [[_, nullifier], noteHash] of this.nullifierToNoteHash.getAllIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield {
+        nullifier,
+        noteHash,
+      }
+    }
   }
 
-  async clearNullifierToNoteHash(tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifierToNoteHash.clear(tx)
+  async deleteNullifier(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToNoteHash.del([account.prefix, nullifier], tx)
+  }
+
+  async clearNullifierToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.nullifierToNoteHash.clear(tx, account.prefixRange)
   }
 
   async replaceNullifierToNoteHash(
+    account: Account,
     map: BufferMap<Buffer>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
+      await this.clearNullifierToNoteHash(account, tx)
+
       for (const [key, value] of map) {
-        await this.nullifierToNoteHash.put(key, value, tx)
+        await this.nullifierToNoteHash.put([account.prefix, key], value, tx)
       }
     })
   }
 
   async saveDecryptedNote(
+    account: Account,
     noteHash: Buffer,
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.decryptedNotes.put(noteHash, note, tx)
-    })
+    await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
   }
 
-  async deleteDecryptedNote(noteHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.decryptedNotes.del(noteHash, tx)
-    })
+  async deleteDecryptedNote(
+    account: Account,
+    noteHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.decryptedNotes.del([account.prefix, noteHash], tx)
   }
 
-  async clearDecryptedNotes(tx?: IDatabaseTransaction): Promise<void> {
-    await this.decryptedNotes.clear(tx)
+  async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.decryptedNotes.clear(tx, account.prefixRange)
   }
 
   async replaceDecryptedNotes(
+    account: Account,
     map: BufferMap<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
+      await this.clearDecryptedNotes(account, tx)
+
       for (const [key, value] of map) {
-        await this.decryptedNotes.put(key, value, tx)
+        await this.decryptedNotes.put([account.prefix, key], value, tx)
       }
     })
   }
 
-  async *loadDecryptedNotes(tx?: IDatabaseTransaction): AsyncGenerator<{
+  async *loadDecryptedNotes(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
     hash: Buffer
     decryptedNote: DecryptedNoteValue
   }> {
-    for await (const [hash, decryptedNote] of this.decryptedNotes.getAllIter(tx)) {
+    for await (const [[_, hash], decryptedNote] of this.decryptedNotes.getAllIter(
+      tx,
+      account.prefixRange,
+    )) {
       yield {
         hash,
         decryptedNote,
@@ -350,11 +391,9 @@ export class AccountsDB {
   }
 
   async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
-    return await this.database.withTransaction(tx, async (tx) => {
-      const unconfirmedBalance = await this.balances.get(account.id, tx)
-      Assert.isNotUndefined(unconfirmedBalance)
-      return unconfirmedBalance
-    })
+    const unconfirmedBalance = await this.balances.get(account.id, tx)
+    Assert.isNotUndefined(unconfirmedBalance)
+    return unconfirmedBalance
   }
 
   async saveUnconfirmedBalance(

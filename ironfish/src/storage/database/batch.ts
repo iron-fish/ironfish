@@ -7,6 +7,11 @@ import { DatabaseSchema, SchemaKey, SchemaValue } from './types'
 
 export interface IDatabaseBatch {
   /**
+   * How many queued operations are in the batch
+   */
+  readonly size: number
+
+  /**
      * Put a value into the database with the given key.
 
     * @param store - The [[`IDatabaseStore`]] to put the value into

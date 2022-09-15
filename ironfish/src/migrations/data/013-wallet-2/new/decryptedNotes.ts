@@ -7,7 +7,7 @@ import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 export const NOTE_SIZE = 43 + 8 + 32 + 32
 
 export type DecryptedNotesStore = IDatabaseStore<{
-  key: Buffer
+  key: [Buffer, Buffer]
   value: DecryptedNoteValue
 }>
 

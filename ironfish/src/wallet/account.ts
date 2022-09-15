@@ -6,7 +6,8 @@ import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
-import { IDatabaseTransaction } from '../storage'
+import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
+import { StorageUtils } from '../storage/database/utils'
 import { BufferUtils } from '../utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AccountsDB } from './database/accountsdb'
@@ -33,6 +34,8 @@ export class Account {
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string
+  readonly prefix: Buffer
+  readonly prefixRange: DatabaseKeyRange
 
   constructor({
     id,
@@ -58,13 +61,10 @@ export class Account {
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
 
-    const prefixHash = new MurmurHash3(this.spendingKey, 1)
-      .hash(this.incomingViewKey)
-      .hash(this.outgoingViewKey)
-      .result()
-      .toString(16)
-    const hashSlice = prefixHash.slice(0, 7)
-    this.displayName = `${this.name} (${hashSlice})`
+    this.prefix = calculateAccountPrefix(id)
+    this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
+
+    this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.accountsDb = accountsDb
     this.decryptedNotes = new BufferMap<DecryptedNoteValue>()
@@ -77,6 +77,7 @@ export class Account {
 
   serialize(): AccountValue {
     return {
+      id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
       incomingViewKey: this.incomingViewKey,
@@ -88,59 +89,40 @@ export class Account {
   async load(): Promise<void> {
     let unconfirmedBalance = BigInt(0)
 
-    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes()) {
-      if (decryptedNote.accountId !== this.id) {
-        continue
-      }
+    for await (const { hash, transactionValue } of this.accountsDb.loadTransactions(this)) {
+      this.transactions.set(hash, transactionValue)
+    }
 
+    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
       this.decryptedNotes.set(hash, decryptedNote)
 
       if (!decryptedNote.spent) {
         unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
       }
 
-      const nullifierHash = decryptedNote.nullifierHash
-      if (nullifierHash) {
-        this.nullifierToNoteHash.set(nullifierHash, hash)
-      }
-
-      const transactionHash = decryptedNote.transactionHash
-      const transactionValue = await this.accountsDb.loadTransaction(transactionHash)
-      Assert.isNotNull(
-        transactionValue,
-        `Transaction not found for '${transactionHash.toString('hex')}'`,
-      )
-
-      this.transactions.set(transactionHash, transactionValue)
-
-      this.saveDecryptedNoteSequence(transactionHash, hash)
-    }
-
-    for await (const { hash, transactionValue } of this.accountsDb.loadTransactions()) {
-      if (this.transactions.has(hash)) {
-        continue
-      }
-
-      for (const spend of transactionValue.transaction.spends()) {
-        if (this.nullifierToNoteHash.has(spend.nullifier)) {
-          this.transactions.set(hash, transactionValue)
-          break
-        }
-      }
+      this.saveDecryptedNoteSequence(decryptedNote.transactionHash, hash)
     }
 
     await this.saveUnconfirmedBalance(unconfirmedBalance)
+
+    for await (const { nullifier, noteHash } of this.accountsDb.loadNullifierToNoteHash(this)) {
+      this.nullifierToNoteHash.set(nullifier, noteHash)
+    }
   }
 
   async save(tx?: IDatabaseTransaction): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      await this.accountsDb.replaceDecryptedNotes(this.decryptedNotes, tx)
-      await this.accountsDb.replaceNullifierToNoteHash(this.nullifierToNoteHash, tx)
-      await this.accountsDb.replaceTransactions(this.transactions, tx)
+      await this.accountsDb.replaceDecryptedNotes(this, this.decryptedNotes, tx)
+      await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
+      await this.accountsDb.replaceTransactions(this, this.transactions, tx)
     })
   }
 
   async reset(tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountsDb.clearDecryptedNotes(this, tx)
+    await this.accountsDb.clearNullifierToNoteHash(this, tx)
+    await this.accountsDb.clearTransactions(this, tx)
+
     this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
     this.transactions.clear()
@@ -203,7 +185,7 @@ export class Account {
 
       this.saveDecryptedNoteSequence(note.transactionHash, noteHash)
       this.decryptedNotes.set(noteHash, note)
-      await this.accountsDb.saveDecryptedNote(noteHash, note, tx)
+      await this.accountsDb.saveDecryptedNote(this, noteHash, note, tx)
     })
   }
 
@@ -268,7 +250,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.transactions.set(hash, transactionValue)
-    await this.accountsDb.saveTransaction(hash, transactionValue, tx)
+    await this.accountsDb.saveTransaction(this, hash, transactionValue, tx)
   }
 
   private async bulkUpdateDecryptedNotes(
@@ -278,24 +260,26 @@ export class Account {
   ) {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const decryptedNote of decryptedNotes) {
-        if (!decryptedNote.forSpender) {
-          if (decryptedNote.nullifier !== null) {
-            await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
-          }
-
-          await this.updateDecryptedNote(
-            decryptedNote.hash,
-            {
-              accountId: this.id,
-              nullifierHash: decryptedNote.nullifier,
-              index: decryptedNote.index,
-              serializedNote: decryptedNote.serializedNote,
-              spent: false,
-              transactionHash,
-            },
-            tx,
-          )
+        if (decryptedNote.forSpender) {
+          continue
         }
+
+        if (decryptedNote.nullifier !== null) {
+          await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
+        }
+
+        await this.updateDecryptedNote(
+          decryptedNote.hash,
+          {
+            accountId: this.id,
+            nullifierHash: decryptedNote.nullifier,
+            index: decryptedNote.index,
+            serializedNote: decryptedNote.serializedNote,
+            spent: false,
+            transactionHash,
+          },
+          tx,
+        )
       }
     })
   }
@@ -358,7 +342,7 @@ export class Account {
 
       this.nonChainNoteHashes.delete(noteHash)
       this.decryptedNotes.delete(noteHash)
-      await this.accountsDb.deleteDecryptedNote(noteHash, tx)
+      await this.accountsDb.deleteDecryptedNote(this, noteHash, tx)
     })
   }
 
@@ -372,12 +356,12 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     this.nullifierToNoteHash.set(nullifier, noteHash)
-    await this.accountsDb.saveNullifierNoteHash(nullifier, noteHash, tx)
+    await this.accountsDb.saveNullifierNoteHash(this, nullifier, noteHash, tx)
   }
 
   async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     this.nullifierToNoteHash.delete(nullifier)
-    await this.accountsDb.deleteNullifier(nullifier, tx)
+    await this.accountsDb.deleteNullifier(this, nullifier, tx)
   }
 
   getTransaction(hash: Buffer): Readonly<TransactionValue> | undefined {
@@ -428,7 +412,7 @@ export class Account {
       }
 
       this.transactions.delete(transactionHash)
-      await this.accountsDb.deleteTransaction(transactionHash, tx)
+      await this.accountsDb.deleteTransaction(this, transactionHash, tx)
     })
   }
 
@@ -481,4 +465,11 @@ export class Account {
   async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return this.accountsDb.getHeadHash(this, tx)
   }
+}
+
+export function calculateAccountPrefix(id: string): Buffer {
+  const prefix = Buffer.alloc(4)
+  const prefixHash = new MurmurHash3(id, 1).result()
+  prefix.writeUInt32BE(prefixHash)
+  return prefix
 }

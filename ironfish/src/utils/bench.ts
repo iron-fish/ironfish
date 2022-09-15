@@ -85,7 +85,7 @@ function renderSegment(segment: SegmentResults, title = 'Benchmark', delimeter =
 
   result.push(`Time: ${TimeUtils.renderSpan(segment.time)}`)
 
-  if (segment.heap && segment.rss && segment.mem) {
+  if (segment.heap != null && segment.rss != null && segment.mem != null) {
     result.push(`Heap: ${FileUtils.formatMemorySize(segment.heap)}`)
     result.push(`RSS: ${FileUtils.formatMemorySize(segment.rss)}`)
     result.push(`Mem: ${FileUtils.formatMemorySize(segment.mem)}`)

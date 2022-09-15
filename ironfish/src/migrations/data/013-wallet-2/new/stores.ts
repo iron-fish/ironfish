@@ -4,10 +4,10 @@
 
 import {
   BigIntLEEncoding,
-  BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
   NullableBufferEncoding,
+  PrefixEncoding,
   StringEncoding,
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
@@ -16,7 +16,7 @@ import { DecryptedNotesStore, DecryptedNoteValueEncoding } from './decryptedNote
 import { HeadHashesStore } from './headHashes'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NullifierToNoteHashStore } from './nullifierToNoteHash'
-import { TransactionsStore, TransactionsValueEncoding } from './transactions'
+import { TransactionsStore, TransactionValueEncoding } from './transactions'
 
 export type NewStores = {
   meta: MetaStore
@@ -29,68 +29,47 @@ export type NewStores = {
 }
 
 export function loadNewStores(db: IDatabase): NewStores {
-  const meta: MetaStore = db.addStore(
-    {
-      name: 'meta',
-      keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
-      valueEncoding: new MetaValueEncoding(),
-    },
-    false,
-  )
+  const meta: MetaStore = db.addStore({
+    name: 'm',
+    keyEncoding: new StringEncoding<keyof AccountsDBMeta>(),
+    valueEncoding: new MetaValueEncoding(),
+  })
 
-  const headHashes: HeadHashesStore = db.addStore(
-    {
-      name: 'headHashes',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableBufferEncoding(),
-    },
-    false,
-  )
+  const headHashes: HeadHashesStore = db.addStore({
+    name: 'h',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new NullableBufferEncoding(),
+  })
 
-  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>(
-    {
-      name: 'accounts',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountValueEncoding(),
-    },
-    false,
-  )
+  const accounts: AccountsStore = db.addStore<{ key: string; value: AccountValue }>({
+    name: 'a',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new AccountValueEncoding(),
+  })
 
-  const balances: BalancesStore = db.addStore<{ key: string; value: bigint }>(
-    {
-      name: 'balances',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new BigIntLEEncoding(),
-    },
-    false,
-  )
+  const balances: BalancesStore = db.addStore<{ key: string; value: bigint }>({
+    name: 'b',
+    keyEncoding: new StringEncoding(),
+    valueEncoding: new BigIntLEEncoding(),
+  })
 
-  const decryptedNotes: DecryptedNotesStore = db.addStore(
-    {
-      name: 'decryptedNotes',
-      keyEncoding: new BufferEncoding(),
-      valueEncoding: new DecryptedNoteValueEncoding(),
-    },
-    false,
-  )
+  const decryptedNotes: DecryptedNotesStore = db.addStore({
+    name: 'd',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new DecryptedNoteValueEncoding(),
+  })
 
-  const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore(
-    {
-      name: 'nullifierToNoteHash',
-      keyEncoding: new BufferEncoding(),
-      valueEncoding: new BufferEncoding(),
-    },
-    false,
-  )
+  const nullifierToNoteHash: NullifierToNoteHashStore = db.addStore({
+    name: 'n',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new BufferEncoding(),
+  })
 
-  const transactions: TransactionsStore = db.addStore(
-    {
-      name: 'transactions',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
-    },
-    false,
-  )
+  const transactions: TransactionsStore = db.addStore({
+    name: 't',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: new TransactionValueEncoding(),
+  })
 
   return {
     meta,
