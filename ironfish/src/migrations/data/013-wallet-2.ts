@@ -346,6 +346,7 @@ export class Migration013 extends Migration {
           )
         }
 
+        // Delete note from old store so that it will not be reprocessed if we resume the migration
         await stores.old.noteToNullifier.del(noteHashHex, tx)
       })
 
