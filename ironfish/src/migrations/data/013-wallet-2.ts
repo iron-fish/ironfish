@@ -512,7 +512,7 @@ export class Migration013 extends Migration {
         )
 
         throw new Error(
-          `Your wallet is corrupt and missing a notes for a nullifier.` +
+          `Your wallet is corrupt and missing a note for a nullifier.` +
             ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
         )
       }
