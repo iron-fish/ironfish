@@ -773,8 +773,8 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.9.1"
-source = "git+https://github.com/napi-rs/napi-rs?rev=f7c26cccbffa12879f2c2f8331b66bec8582d4de#f7c26cccbffa12879f2c2f8331b66bec8582d4de"
+version = "2.9.0"
+source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
 dependencies = [
  "bitflags",
  "ctor",
@@ -804,8 +804,8 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "1.0.38"
-source = "git+https://github.com/napi-rs/napi-rs?rev=f7c26cccbffa12879f2c2f8331b66bec8582d4de#f7c26cccbffa12879f2c2f8331b66bec8582d4de"
+version = "1.0.37"
+source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -818,7 +818,7 @@ dependencies = [
 [[package]]
 name = "napi-sys"
 version = "2.2.2"
-source = "git+https://github.com/napi-rs/napi-rs?rev=f7c26cccbffa12879f2c2f8331b66bec8582d4de#f7c26cccbffa12879f2c2f8331b66bec8582d4de"
+source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
 dependencies = [
  "libloading",
 ]
