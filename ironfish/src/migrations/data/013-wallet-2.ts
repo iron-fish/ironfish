@@ -191,7 +191,7 @@ export class Migration013 extends Migration {
           logger.debug(`\tMigrating default account from ${accountName} -> ${account.id}`)
           await stores.new.meta.put('defaultAccountId', account.id, tx)
         } else {
-          logger.warn(`\tCould not migrate default with name ${accountName}`)
+          logger.warn(`\tCould not migrate default account with name ${accountName}`)
           await stores.new.meta.put('defaultAccountId', null, tx)
         }
       }
