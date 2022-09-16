@@ -20,7 +20,6 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-  private readonly decryptedNotes: BufferMap<DecryptedNoteValue>
   private readonly nullifierToNoteHash: BufferMap<Buffer>
 
   private readonly sequenceToNoteHashes: Map<number, BufferSet>
@@ -66,7 +65,6 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.accountsDb = accountsDb
-    this.decryptedNotes = new BufferMap<DecryptedNoteValue>()
     this.nullifierToNoteHash = new BufferMap<Buffer>()
 
     this.sequenceToNoteHashes = new Map<number, BufferSet>()
@@ -88,8 +86,6 @@ export class Account {
     let unconfirmedBalance = BigInt(0)
 
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
-      this.decryptedNotes.set(hash, decryptedNote)
-
       if (!decryptedNote.spent) {
         unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
       }
@@ -107,10 +103,7 @@ export class Account {
   }
 
   async save(tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      await this.accountsDb.replaceDecryptedNotes(this, this.decryptedNotes, tx)
-      await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
-    })
+    await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
   }
 
   async reset(tx?: IDatabaseTransaction): Promise<void> {
@@ -118,45 +111,44 @@ export class Account {
     await this.accountsDb.clearNullifierToNoteHash(this, tx)
     await this.accountsDb.clearTransactions(this, tx)
 
-    this.decryptedNotes.clear()
     this.nullifierToNoteHash.clear()
 
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
 
-  getNotes(): ReadonlyArray<{
+  async *getNotes(): AsyncGenerator<{
     hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
     spent: boolean
   }> {
-    const notes = []
-
-    for (const [hash, decryptedNote] of this.decryptedNotes) {
-      notes.push({
+    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
+      yield {
         hash,
         index: decryptedNote.index,
         note: new Note(decryptedNote.serializedNote),
         transactionHash: decryptedNote.transactionHash,
         spent: decryptedNote.spent,
-      })
+      }
     }
-
-    return notes
   }
 
-  getUnspentNotes(): ReadonlyArray<{
+  async *getUnspentNotes(): AsyncGenerator<{
     hash: Buffer
     index: number | null
     note: Note
     transactionHash: Buffer
   }> {
-    return this.getNotes().filter((note) => !note.spent)
+    for await (const decryptedNote of this.getNotes()) {
+      if (!decryptedNote.spent) {
+        yield decryptedNote
+      }
+    }
   }
 
-  getDecryptedNote(hash: Buffer): DecryptedNoteValue | undefined {
-    return this.decryptedNotes.get(hash)
+  async getDecryptedNote(hash: Buffer): Promise<DecryptedNoteValue | undefined> {
+    return await this.accountsDb.loadDecryptedNote(this, hash)
   }
 
   async updateDecryptedNote(
@@ -165,7 +157,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      const existingNote = this.decryptedNotes.get(noteHash)
+      const existingNote = await this.getDecryptedNote(noteHash)
 
       if (!existingNote || existingNote.spent !== note.spent) {
         const value = new Note(note.serializedNote).value()
@@ -178,7 +170,6 @@ export class Account {
         }
       }
 
-      this.decryptedNotes.set(noteHash, note)
       await this.accountsDb.saveDecryptedNote(this, noteHash, note, tx)
 
       const transaction = await this.getTransaction(note.transactionHash, tx)
@@ -282,7 +273,7 @@ export class Account {
       const noteHash = this.getNoteHash(spend.nullifier)
 
       if (noteHash) {
-        const decryptedNote = this.getDecryptedNote(noteHash)
+        const decryptedNote = await this.getDecryptedNote(noteHash)
         Assert.isNotUndefined(
           decryptedNote,
           'nullifierToNote mappings must have a corresponding decryptedNote',
@@ -306,7 +297,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      const existingNote = this.decryptedNotes.get(noteHash)
+      const existingNote = await this.getDecryptedNote(noteHash)
       if (existingNote) {
         const note = new Note(existingNote.serializedNote)
         const value = note.value()
@@ -330,7 +321,6 @@ export class Account {
       }
 
       this.nonChainNoteHashes.delete(noteHash)
-      this.decryptedNotes.delete(noteHash)
       await this.accountsDb.deleteDecryptedNote(this, noteHash, tx)
     })
   }
@@ -361,7 +351,7 @@ export class Account {
   }
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.accountsDb.loadTransactionValues(this, tx)
+    return this.accountsDb.loadTransactions(this, tx)
   }
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
@@ -370,7 +360,7 @@ export class Account {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes()) {
         const noteHash = note.merkleHash()
-        const decryptedNote = this.getDecryptedNote(noteHash)
+        const decryptedNote = await this.getDecryptedNote(noteHash)
 
         if (decryptedNote) {
           await this.deleteDecryptedNote(noteHash, transactionHash, tx)
@@ -386,7 +376,7 @@ export class Account {
         const noteHash = this.getNoteHash(spend.nullifier)
 
         if (noteHash) {
-          const decryptedNote = this.getDecryptedNote(noteHash)
+          const decryptedNote = await this.getDecryptedNote(noteHash)
           Assert.isNotUndefined(
             decryptedNote,
             'nullifierToNote mappings must have a corresponding decryptedNote',
@@ -419,7 +409,7 @@ export class Account {
       const noteHashes = this.sequenceToNoteHashes.get(i)
       if (noteHashes) {
         for (const hash of noteHashes) {
-          const note = this.decryptedNotes.get(hash)
+          const note = await this.getDecryptedNote(hash)
           Assert.isNotUndefined(note)
           if (!note.spent) {
             confirmed -= new Note(note.serializedNote).value()
@@ -429,7 +419,7 @@ export class Account {
     }
 
     for (const noteHash of this.nonChainNoteHashes) {
-      const note = this.decryptedNotes.get(noteHash)
+      const note = await this.getDecryptedNote(noteHash)
       Assert.isNotUndefined(note)
       if (!note.spent) {
         confirmed -= new Note(note.serializedNote).value()

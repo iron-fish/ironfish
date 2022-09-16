@@ -998,7 +998,6 @@ describe('Accounts', () => {
 })
 
 async function clearAccountCaches(account: Account): Promise<void> {
-  account['decryptedNotes'].clear()
   account['nullifierToNoteHash'].clear()
   await account['saveUnconfirmedBalance'](BigInt(0))
 }

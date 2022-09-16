@@ -50,8 +50,10 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
     const account = getAccount(node, request.data.account)
 
     const responseNotes = []
+
     for await (const { transaction } of account.getTransactions()) {
-      responseNotes.push(...getTransactionNotes(account, transaction))
+      const notes = await getTransactionNotes(account, transaction)
+      responseNotes.push(...notes)
     }
 
     request.end({ account: account.displayName, notes: responseNotes })
