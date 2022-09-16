@@ -67,7 +67,9 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
   }
 
   getSize(value: DecryptedNoteValue): number {
-    let size = 1 + bufio.sizeVarString(value.accountId) + NOTE_SIZE
+    let size = 1
+    size += bufio.sizeVarString(value.accountId)
+    size += NOTE_SIZE
 
     // transaction hash
     size += 32
@@ -75,6 +77,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     if (value.index) {
       size += 4
     }
+
     if (value.nullifierHash) {
       size += 32
     }
