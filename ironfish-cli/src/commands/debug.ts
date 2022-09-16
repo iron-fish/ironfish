@@ -90,7 +90,6 @@ export default class Debug extends IronfishCommand {
   }
 
   async outputRequiringDB(node: IronfishNode): Promise<Map<string, string>> {
-    await node.accounts.load()
     const output = new Map<string, string>()
 
     const headHashes = new Map<string, Buffer | null>()
