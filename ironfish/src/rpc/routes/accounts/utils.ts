@@ -48,16 +48,18 @@ export async function getTransactionStatus(
   }
 }
 
-export function getTransactionNotes(
+export async function getTransactionNotes(
   account: Account,
   transaction: Transaction,
-): ReadonlyArray<{
-  owner: boolean
-  amount: number
-  memo: string
-  transactionHash: string
-  spent: boolean | undefined
-}> {
+): Promise<
+  ReadonlyArray<{
+    owner: boolean
+    amount: number
+    memo: string
+    transactionHash: string
+    spent: boolean | undefined
+  }>
+> {
   const transactionNotes = []
 
   for (const note of transaction.notes()) {
@@ -65,7 +67,7 @@ export function getTransactionNotes(
     let owner
 
     // Try loading the decrypted note from the account
-    const decryptedNoteValue = account.getDecryptedNote(note.merkleHash())
+    const decryptedNoteValue = await account.getDecryptedNote(note.merkleHash())
 
     if (decryptedNoteValue) {
       decryptedNote = new Note(decryptedNoteValue.serializedNote)

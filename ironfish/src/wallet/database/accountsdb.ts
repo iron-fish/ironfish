@@ -358,6 +358,14 @@ export class AccountsDB {
     await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
   }
 
+  async loadDecryptedNote(
+    account: Account,
+    noteHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<DecryptedNoteValue | undefined> {
+    return await this.decryptedNotes.get([account.prefix, noteHash], tx)
+  }
+
   async deleteDecryptedNote(
     account: Account,
     noteHash: Buffer,

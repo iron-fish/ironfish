@@ -87,7 +87,8 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
           spends: transaction.spendsLength(),
         }
 
-        transactionNotes.push(...getTransactionNotes(account, transaction))
+        const notes = await getTransactionNotes(account, transaction)
+        transactionNotes.push(...notes)
         break
       }
     }

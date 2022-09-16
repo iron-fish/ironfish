@@ -583,7 +583,7 @@ export class Accounts {
     const notes = []
     const unspentNotes = account.getUnspentNotes()
 
-    for (const { hash, note, index, transactionHash } of unspentNotes) {
+    for await (const { hash, note, index, transactionHash } of unspentNotes) {
       let confirmed = false
 
       if (transactionHash) {
@@ -696,7 +696,7 @@ export class Accounts {
             )
 
             // Update our map so this doesn't happen again
-            const noteMapValue = sender.getDecryptedNote(unspentNote.hash)
+            const noteMapValue = await sender.getDecryptedNote(unspentNote.hash)
             if (noteMapValue) {
               this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
               await sender.updateDecryptedNote(unspentNote.hash, {
