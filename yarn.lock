@@ -1219,16 +1219,6 @@
   resolved "https://registry.yarnpkg.com/@hutson/parse-repository-url/-/parse-repository-url-3.0.2.tgz#98c23c950a3d9b6c8f0daed06da6c3af06981340"
   integrity sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==
 
-"@ironfish/bfilter@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@ironfish/bfilter/-/bfilter-0.0.1.tgz#ff6b91b3b6160313f64db9d526175af1a4fc4565"
-  integrity sha512-xvzbP5gmDwd88+3Hp7xM39TjrC6I09y1vkRh52ku70HcnUMVtw61cgCVxPdkU/DZSdXxWcjkG3DIMYpR38kPkA==
-  dependencies:
-    bsert "git+https://github.com/chjj/bsert.git#semver:~0.0.10"
-    bufio "git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6"
-    imurmurhash "0.1.4"
-    loady "git+https://github.com/chjj/loady.git#semver:~0.0.1"
-
 "@isaacs/string-locale-compare@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@isaacs/string-locale-compare/-/string-locale-compare-1.1.0.tgz#291c227e93fd407a96ecd59879a35809120e432b"
@@ -3681,7 +3671,7 @@ bser@2.1.1:
   dependencies:
     node-int64 "^0.4.0"
 
-"bsert@git+https://github.com/chjj/bsert.git#semver:~0.0.10", bsert@~0.0.10:
+bsert@~0.0.10:
   version "0.0.10"
   resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
 
@@ -3729,10 +3719,6 @@ bufio@1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/bufio/-/bufio-1.0.7.tgz#b7f63a1369a0829ed64cc14edf0573b3e382a33e"
   integrity sha512-bd1dDQhiC+bEbEfg56IdBv7faWa6OipMs/AFFFvtFnB3wAYjlwQpQRZ0pm6ZkgtfL0pILRXhKxOiQj6UzoMR7A==
-
-"bufio@git+https://github.com/bcoin-org/bufio.git#semver:~1.0.6":
-  version "1.0.7"
-  resolved "git+https://github.com/bcoin-org/bufio.git#91ae6c93899ff9fad7d7cee9afd2a1c4933ca984"
 
 builtins@^1.0.3:
   version "1.0.3"
@@ -7381,10 +7367,6 @@ load-yaml-file@^0.2.0:
     js-yaml "^3.13.0"
     pify "^4.0.1"
     strip-bom "^3.0.0"
-
-"loady@git+https://github.com/chjj/loady.git#semver:~0.0.1":
-  version "0.0.5"
-  resolved "git+https://github.com/chjj/loady.git#b94958b7ee061518f4b85ea6da380e7ee93222d5"
 
 locate-path@^2.0.0:
   version "2.0.0"
