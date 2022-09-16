@@ -329,7 +329,7 @@ export class Account {
   async getTransaction(
     hash: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<Readonly<TransactionValue> | null> {
+  ): Promise<Readonly<TransactionValue> | undefined> {
     return await this.accountsDb.loadTransaction(this, hash, tx)
   }
 
