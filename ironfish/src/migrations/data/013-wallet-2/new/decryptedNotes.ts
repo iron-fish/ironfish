@@ -14,7 +14,7 @@ export type DecryptedNotesStore = IDatabaseStore<{
 export interface DecryptedNoteValue {
   accountId: string
   index: number | null
-  nullifierHash: Buffer | null
+  nullifier: Buffer | null
   serializedNote: Buffer
   spent: boolean
   transactionHash: Buffer
@@ -22,12 +22,12 @@ export interface DecryptedNoteValue {
 
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
   serialize(value: DecryptedNoteValue): Buffer {
-    const { accountId, nullifierHash, index, serializedNote, spent, transactionHash } = value
+    const { accountId, nullifier, index, serializedNote, spent, transactionHash } = value
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
     flags |= Number(!!index) << 0
-    flags |= Number(!!nullifierHash) << 1
+    flags |= Number(!!nullifier) << 1
     flags |= Number(spent) << 2
     bw.writeU8(flags)
 
@@ -38,8 +38,8 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     if (index) {
       bw.writeU32(index)
     }
-    if (nullifierHash) {
-      bw.writeHash(nullifierHash)
+    if (nullifier) {
+      bw.writeHash(nullifier)
     }
 
     return bw.render()
@@ -50,7 +50,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
 
     const flags = reader.readU8()
     const hasIndex = flags & (1 << 0)
-    const hasNullifierHash = flags & (1 << 1)
+    const hasNullifier = flags & (1 << 1)
     const spent = Boolean(flags & (1 << 2))
 
     const accountId = reader.readVarString()
@@ -62,12 +62,12 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
       index = reader.readU32()
     }
 
-    let nullifierHash = null
-    if (hasNullifierHash) {
-      nullifierHash = reader.readHash()
+    let nullifier = null
+    if (hasNullifier) {
+      nullifier = reader.readHash()
     }
 
-    return { accountId, index, nullifierHash, serializedNote, spent, transactionHash }
+    return { accountId, index, nullifier, serializedNote, spent, transactionHash }
   }
 
   getSize(value: DecryptedNoteValue): number {
@@ -82,7 +82,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
       size += 4
     }
 
-    if (value.nullifierHash) {
+    if (value.nullifier) {
       size += 32
     }
 

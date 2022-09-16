@@ -237,7 +237,7 @@ export class Account {
           decryptedNote.hash,
           {
             accountId: this.id,
-            nullifierHash: decryptedNote.nullifier,
+            nullifier: decryptedNote.nullifier,
             index: decryptedNote.index,
             serializedNote: decryptedNote.serializedNote,
             spent: false,
@@ -348,9 +348,8 @@ export class Account {
         if (decryptedNote) {
           await this.deleteDecryptedNote(noteHash, transactionHash, tx)
 
-          if (decryptedNote.nullifierHash) {
-            const nullifier = decryptedNote.nullifierHash
-            await this.deleteNullifier(nullifier, tx)
+          if (decryptedNote.nullifier) {
+            await this.deleteNullifier(decryptedNote.nullifier, tx)
           }
         }
       }

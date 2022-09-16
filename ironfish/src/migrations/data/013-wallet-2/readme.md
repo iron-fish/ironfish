@@ -18,7 +18,7 @@
     - headHashes
       - This is a map of `accounts.id` to the blockchain block hash as a hex string that the account is updated to.
     - nullifierToNoteHash
-      - This is a map of `decrypytedNotes.nullifierHash` to `note.merkleHash()` in hex form
+      - This is a map of `decrypytedNotes.nullifier` to `note.merkleHash()` in hex form
       - This replaces the old store `nullifierToNote`
   - **Deleted Stores**
     - nullifierToNote
