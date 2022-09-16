@@ -63,13 +63,13 @@ export class Stream<T> implements AsyncIterable<T> {
   }
 
   next(): Promise<IteratorResult<T>> {
-    if (this.error) {
-      return Promise.reject(this.error)
-    }
-
     if (this.buffer.length > 0) {
       const value = this.buffer.shift()
       return Promise.resolve({ done: false, value: value as T })
+    }
+
+    if (this.error) {
+      return Promise.reject(this.error)
     }
 
     if (this.closed) {
