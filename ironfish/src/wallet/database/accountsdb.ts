@@ -199,19 +199,11 @@ export class AccountsDB {
     headHash: Buffer | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.headHashes.put(account.id, headHash, tx)
-    })
+    await this.headHashes.put(account.id, headHash, tx)
   }
 
   async removeHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.headHashes.del(account.id, tx)
-    })
-  }
-
-  async removeHeadHashes(tx?: IDatabaseTransaction): Promise<void> {
-    await this.headHashes.clear(tx)
+    await this.headHashes.del(account.id, tx)
   }
 
   async *loadHeadHashes(
@@ -243,39 +235,7 @@ export class AccountsDB {
     await this.transactions.clear(tx, account.prefixRange)
   }
 
-  async replaceTransactions(
-    account: Account,
-    map: BufferMap<TransactionValue>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.clearTransactions(account, tx)
-
-      for (const [key, value] of map) {
-        await this.transactions.put([account.prefix, key], value, tx)
-      }
-    })
-  }
-
   async *loadTransactions(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{
-    hash: Buffer
-    transactionValue: TransactionValue
-  }> {
-    for await (const [[_, hash], transactionValue] of this.transactions.getAllIter(
-      tx,
-      account.prefixRange,
-    )) {
-      yield {
-        hash,
-        transactionValue,
-      }
-    }
-  }
-
-  async *loadTransactionValues(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
@@ -376,20 +336,6 @@ export class AccountsDB {
 
   async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.decryptedNotes.clear(tx, account.prefixRange)
-  }
-
-  async replaceDecryptedNotes(
-    account: Account,
-    map: BufferMap<DecryptedNoteValue>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
-      await this.clearDecryptedNotes(account, tx)
-
-      for (const [key, value] of map) {
-        await this.decryptedNotes.put([account.prefix, key], value, tx)
-      }
-    })
   }
 
   async *loadDecryptedNotes(

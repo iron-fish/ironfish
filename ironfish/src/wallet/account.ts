@@ -103,9 +103,7 @@ export class Account {
   }
 
   async save(tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountsDb.database.withTransaction(tx, async (tx) => {
-      await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
-    })
+    await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
   }
 
   async reset(tx?: IDatabaseTransaction): Promise<void> {
@@ -353,7 +351,7 @@ export class Account {
   }
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.accountsDb.loadTransactionValues(this, tx)
+    return this.accountsDb.loadTransactions(this, tx)
   }
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
