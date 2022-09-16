@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferMap, BufferSet } from 'buffer-map'
+import { BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -20,7 +20,6 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-  private readonly nullifierToNoteHash: BufferMap<Buffer>
 
   private readonly sequenceToNoteHashes: Map<number, BufferSet>
   private readonly nonChainNoteHashes: BufferSet
@@ -65,7 +64,6 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.accountsDb = accountsDb
-    this.nullifierToNoteHash = new BufferMap<Buffer>()
 
     this.sequenceToNoteHashes = new Map<number, BufferSet>()
     this.nonChainNoteHashes = new BufferSet()
@@ -83,35 +81,22 @@ export class Account {
   }
 
   async load(): Promise<void> {
-    let unconfirmedBalance = BigInt(0)
-
     for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
-      if (!decryptedNote.spent) {
-        unconfirmedBalance += new Note(decryptedNote.serializedNote).value()
-      }
-
       const transaction = await this.getTransaction(decryptedNote.transactionHash)
 
       this.saveDecryptedNoteSequence(hash, transaction?.sequence ?? null)
     }
-
-    await this.saveUnconfirmedBalance(unconfirmedBalance)
-
-    for await (const { nullifier, noteHash } of this.accountsDb.loadNullifierToNoteHash(this)) {
-      this.nullifierToNoteHash.set(nullifier, noteHash)
-    }
   }
 
-  async save(tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountsDb.replaceNullifierToNoteHash(this, this.nullifierToNoteHash, tx)
+  unload(): void {
+    this.sequenceToNoteHashes.clear()
+    this.nonChainNoteHashes.clear()
   }
 
   async reset(tx?: IDatabaseTransaction): Promise<void> {
     await this.accountsDb.clearDecryptedNotes(this, tx)
     await this.accountsDb.clearNullifierToNoteHash(this, tx)
     await this.accountsDb.clearTransactions(this, tx)
-
-    this.nullifierToNoteHash.clear()
 
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
@@ -270,7 +255,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends()) {
-      const noteHash = this.getNoteHash(spend.nullifier)
+      const noteHash = await this.getNoteHash(spend.nullifier)
 
       if (noteHash) {
         const decryptedNote = await this.getDecryptedNote(noteHash)
@@ -325,8 +310,8 @@ export class Account {
     })
   }
 
-  getNoteHash(nullifier: Buffer): Buffer | undefined {
-    return this.nullifierToNoteHash.get(nullifier)
+  async getNoteHash(nullifier: Buffer): Promise<Buffer | null> {
+    return await this.accountsDb.loadNoteHash(this, nullifier)
   }
 
   async updateNullifierNoteHash(
@@ -334,12 +319,10 @@ export class Account {
     noteHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    this.nullifierToNoteHash.set(nullifier, noteHash)
     await this.accountsDb.saveNullifierNoteHash(this, nullifier, noteHash, tx)
   }
 
   async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    this.nullifierToNoteHash.delete(nullifier)
     await this.accountsDb.deleteNullifier(this, nullifier, tx)
   }
 
@@ -373,7 +356,7 @@ export class Account {
       }
 
       for (const spend of transaction.spends()) {
-        const noteHash = this.getNoteHash(spend.nullifier)
+        const noteHash = await this.getNoteHash(spend.nullifier)
 
         if (noteHash) {
           const decryptedNote = await this.getDecryptedNote(noteHash)

@@ -167,7 +167,7 @@ export class Accounts {
     await this.load()
   }
 
-  async load(): Promise<void> {
+  private async load(): Promise<void> {
     for await (const { id, serializedAccount } of this.db.loadAccounts()) {
       const account = new Account({
         ...serializedAccount,
@@ -176,15 +176,29 @@ export class Accounts {
       })
 
       this.accounts.set(id, account)
+      await account.load()
     }
 
     const meta = await this.db.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
 
-    await this.loadHeadHashes()
-    this.chainProcessor.hash = await this.getLatestHeadHash()
+    for await (const { accountId, headHash } of this.db.loadHeadHashes()) {
+      this.headHashes.set(accountId, headHash)
+    }
 
-    await this.loadAccountsFromDb()
+    this.chainProcessor.hash = await this.getLatestHeadHash()
+  }
+
+  private unload(): void {
+    for (const account of this.accounts.values()) {
+      account.unload()
+    }
+
+    this.accounts.clear()
+    this.headHashes.clear()
+
+    this.defaultAccount = null
+    this.chainProcessor.hash = null
   }
 
   async close(): Promise<void> {
@@ -194,6 +208,7 @@ export class Accounts {
 
     this.isOpen = false
     await this.db.close()
+    this.unload()
   }
 
   async start(): Promise<void> {
@@ -235,10 +250,7 @@ export class Accounts {
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
     if (this.db.database.isOpen) {
-      await this.db.database.transaction(async (tx) => {
-        await this.saveAccountsToDb(tx)
-        await this.updateHeadHashes(this.chainProcessor.hash, tx)
-      })
+      await this.updateHeadHashes(this.chainProcessor.hash)
     }
   }
 
@@ -256,18 +268,6 @@ export class Accounts {
     }
   }
 
-  async loadAccountsFromDb(): Promise<void> {
-    for (const account of this.accounts.values()) {
-      await account.load()
-    }
-  }
-
-  async saveAccountsToDb(tx?: IDatabaseTransaction): Promise<void> {
-    for (const account of this.accounts.values()) {
-      await account.save(tx)
-    }
-  }
-
   async updateHeadHashes(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
     let accounts = this.listAccounts()
 
@@ -275,9 +275,11 @@ export class Accounts {
       accounts = accounts.filter((a) => this.isAccountUpToDate(a))
     }
 
-    for (const account of accounts) {
-      await this.updateHeadHash(account, headHash, tx)
-    }
+    await this.db.database.withTransaction(tx, async (tx) => {
+      for (const account of accounts) {
+        await this.updateHeadHash(account, headHash, tx)
+      }
+    })
   }
 
   async updateHeadHash(
@@ -926,7 +928,6 @@ export class Accounts {
     await this.db.database.transaction(async (tx) => {
       this.accounts.set(account.id, account)
       await this.db.setAccount(account, tx)
-
       await this.updateHeadHash(account, null, tx)
     })
 
@@ -1072,18 +1073,6 @@ export class Accounts {
     }
 
     return latestHeader ? latestHeader.hash : null
-  }
-
-  async loadHeadHashes(): Promise<void> {
-    for await (const { accountId, headHash } of this.db.loadHeadHashes()) {
-      this.headHashes.set(accountId, headHash)
-    }
-
-    for (const account of this.accounts.values()) {
-      if (!this.headHashes.has(account.id)) {
-        await this.updateHeadHash(account, null)
-      }
-    }
   }
 
   isAccountUpToDate(account: Account): boolean {

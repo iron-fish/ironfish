@@ -11,7 +11,6 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { Account } from './account'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -71,176 +70,6 @@ describe('Accounts', () => {
       unconfirmed: BigInt(2000000000),
     })
   })
-
-  it('Saves and restores transactions from accounts db', async () => {
-    // Initialize the database and chain
-    const strategy = nodeTest.strategy
-    const node = nodeTest.node
-    const chain = nodeTest.chain
-
-    const account = await node.accounts.createAccount('test', true)
-
-    // Initial balance should be 0
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    // Balance after adding the genesis block should be 0
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
-    const addResult = await chain.addBlock(newBlock)
-    expect(addResult.isAdded).toBeTruthy()
-
-    // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
-
-    await node.accounts.saveAccountsToDb()
-
-    for (const account of node.accounts.listAccounts()) {
-      await clearAccountCaches(account)
-    }
-
-    // Account should now have a balance of 0 after clearing the cache
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    await node.accounts.loadAccountsFromDb()
-
-    // Balance should be back to 2000000000
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
-  })
-
-  it('Saves and restores notes from multiple accounts', async () => {
-    // Initialize the database and chain
-    const strategy = nodeTest.strategy
-    const node = nodeTest.node
-    const chain = nodeTest.chain
-
-    const accountA = await node.accounts.createAccount('A', true)
-
-    // Create a second account
-    await node.accounts.createAccount('B', true)
-
-    // Initial balances should be 0
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    // Balance after adding the genesis block should be 0
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, accountA.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
-    const addResult = await chain.addBlock(newBlock)
-    expect(addResult.isAdded).toBeTruthy()
-
-    // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
-
-    await node.accounts.saveAccountsToDb()
-
-    for (const account of node.accounts.listAccounts()) {
-      await clearAccountCaches(account)
-    }
-
-    // Account should now have a balance of 0 after clearing the cache
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    await node.accounts.loadAccountsFromDb()
-
-    // Balance should be back to 2000000000
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
-  }, 600000)
-
-  it('Loads only the nullifiers that an account owns a note for', async () => {
-    // Initialize the database and chain
-    const strategy = nodeTest.strategy
-    const node = nodeTest.node
-    const chain = nodeTest.chain
-
-    const accountA = await node.accounts.createAccount('A', true)
-
-    // Initial balance should be 0
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
-
-    // Create a block with a miner's fee awarded to account A
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, accountA.spendingKey)
-    const newBlock = await chain.newBlock([], minersfee)
-    const addResult = await chain.addBlock(newBlock)
-    expect(addResult.isAdded).toBeTruthy()
-
-    // Account A should now have a balance of 2000000000 after adding the miner's fee
-    await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(accountA)).resolves.toEqual({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
-
-    // Create a second account
-    const accountB = await node.accounts.createAccount('B', true)
-
-    // Account A should have one nullifier
-    expect(accountA['nullifierToNoteHash'].size).toEqual(1)
-
-    // Account B should have zero nullifiers
-    expect(Array.from(accountB['nullifierToNoteHash']).length).toEqual(0)
-
-    // Clear caches for both accounts
-    await clearAccountCaches(accountA)
-    await clearAccountCaches(accountB)
-
-    // Both accounts should have zero nullifiers
-    expect(Array.from(accountA['nullifierToNoteHash']).length).toEqual(0)
-    expect(Array.from(accountB['nullifierToNoteHash']).length).toEqual(0)
-
-    // Load account data from db
-    await node.accounts.loadAccountsFromDb()
-
-    // Account A should have one nullifier
-    expect(accountA['nullifierToNoteHash'].size).toEqual(1)
-
-    // Account B should have zero nullifiers
-    expect(accountB['nullifierToNoteHash'].size).toEqual(0)
-  }, 600000)
 
   it('Lowers the balance after using pay to spend a note', async () => {
     // Initialize the database and chain
@@ -574,13 +403,13 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
+    // // Mock that accounts is started for the purposes of the test
+    node.accounts['isStarted'] = true
+
     const account = await node.accounts.createAccount('test', true)
 
     // Create a second account
     await node.accounts.createAccount('test2')
-
-    // Mock that accounts is started for the purposes of the test
-    node.accounts['isStarted'] = true
 
     // Initial balance should be 0
     await expect(node.accounts.getBalance(account)).resolves.toEqual({
@@ -598,8 +427,7 @@ describe('Accounts', () => {
     // Create a block with a miner's fee
     const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
-    const addResult = await chain.addBlock(newBlock)
-    expect(addResult.isAdded).toBeTruthy()
+    await expect(chain).toAddBlock(newBlock)
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
@@ -636,12 +464,8 @@ describe('Accounts', () => {
       unconfirmed: BigInt(1999999998),
     })
 
-    // Reload accounts to simulate node restart
-    for (const account of node.accounts.listAccounts()) {
-      await clearAccountCaches(account)
-    }
-
-    await node.accounts.loadAccountsFromDb()
+    await node.accounts.close()
+    await node.accounts.open()
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
@@ -996,8 +820,3 @@ describe('Accounts', () => {
     })
   })
 })
-
-async function clearAccountCaches(account: Account): Promise<void> {
-  account['nullifierToNoteHash'].clear()
-  await account['saveUnconfirmedBalance'](BigInt(0))
-}

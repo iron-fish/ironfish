@@ -256,6 +256,15 @@ export class AccountsDB {
     return transactionValue || null
   }
 
+  async loadNoteHash(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | null> {
+    const noteHash = await this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
+    return noteHash || null
+  }
+
   async saveNullifierNoteHash(
     account: Account,
     nullifier: Buffer,
