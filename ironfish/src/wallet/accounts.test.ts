@@ -129,30 +129,32 @@ describe('Accounts', () => {
 
   describe('scanTransactions', () => {
     it('should update head status', async () => {
+      // G -> 1 -> 2
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.accounts, 'accountA')
 
-      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
-      await node.chain.addBlock(blockA)
-
+      const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await expect(node.chain).toAddBlock(block1)
       await node.accounts.updateHead()
 
       const accountB = await useAccountFixture(node.accounts, 'accountB')
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await expect(node.chain).toAddBlock(block2)
 
-      const blockB = await useMinerBlockFixture(node.chain, 2, accountA)
-      await node.chain.addBlock(blockB)
+      expect(node.accounts['headHashes'].get(accountA.id)).toEqual(block1.header.hash)
+      expect(node.accounts['headHashes'].get(accountB.id)).toEqual(null)
 
       await node.accounts.updateHead()
 
       // Confirm pre-rescan state
-      expect(node.accounts['headHashes'].get(accountA.id)).toEqual(blockB.header.hash)
+      expect(node.accounts['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
       expect(node.accounts['headHashes'].get(accountB.id)).toEqual(null)
 
       await node.accounts.scanTransactions()
 
-      expect(node.accounts['headHashes'].get(accountA.id)).toEqual(blockB.header.hash)
-      expect(node.accounts['headHashes'].get(accountB.id)).toEqual(blockB.header.hash)
+      expect(node.accounts['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
+      expect(node.accounts['headHashes'].get(accountB.id)).toEqual(block2.header.hash)
     })
 
     it('should rescan and update chain processor', async () => {

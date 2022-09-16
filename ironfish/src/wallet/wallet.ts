@@ -428,24 +428,10 @@ export class Accounts {
     await this.updateHeadState?.wait()
 
     let startHash = await this.getEarliestHeadHash()
-    if (!startHash) {
-      startHash = this.chain.genesis.hash
-    }
-    const startHeader = await this.chain.getHeader(startHash)
-    Assert.isNotNull(
-      startHeader,
-      `scanTransactions: No header found for start hash ${startHash.toString('hex')}`,
-    )
+    let startHeader = startHash ? await this.chain.getHeader(startHash) : null
 
     const endHash = this.chainProcessor.hash || this.chain.head.hash
     const endHeader = await this.chain.getHeader(endHash)
-    Assert.isNotNull(
-      endHeader,
-      `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
-    )
-
-    scan.sequence = startHeader.sequence
-    scan.endSequence = endHeader.sequence
 
     // Accounts that need to be updated at the current scan sequence
     const accounts: Array<Account> = []
@@ -465,6 +451,24 @@ export class Accounts {
         remainingAccounts.push(account)
       }
     }
+
+    if (!startHash) {
+      startHash = this.chain.genesis.hash
+      startHeader = await this.chain.getHeader(startHash)
+    }
+
+    Assert.isNotNull(
+      startHeader,
+      `scanTransactions: No header found for start hash ${startHash.toString('hex')}`,
+    )
+
+    Assert.isNotNull(
+      endHeader,
+      `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
+    )
+
+    scan.sequence = startHeader.sequence
+    scan.endSequence = endHeader.sequence
 
     if (scan.isAborted) {
       scan.signalComplete()
