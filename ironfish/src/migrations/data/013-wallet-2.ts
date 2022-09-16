@@ -315,7 +315,7 @@ export class Migration013 extends Migration {
         serializedNote: ownerNote.serialize(),
         spent: nullifierEntry.spent,
         transactionHash: transactionHash,
-        nullifierHash: nullifierEntry.nullifierHash
+        nullifier: nullifierEntry.nullifierHash
           ? Buffer.from(nullifierEntry.nullifierHash, 'hex')
           : null,
       }
@@ -338,9 +338,9 @@ export class Migration013 extends Migration {
           await stores.new.balances.put(ownerAccount.id, balance, tx)
         }
 
-        if (decryptedNote.nullifierHash) {
+        if (decryptedNote.nullifier) {
           await stores.new.nullifierToNoteHash.put(
-            [accountPrefix, decryptedNote.nullifierHash],
+            [accountPrefix, decryptedNote.nullifier],
             noteHash,
             tx,
           )

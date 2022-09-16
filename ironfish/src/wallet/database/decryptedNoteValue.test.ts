@@ -11,7 +11,7 @@ describe('DecryptedNoteValueEncoding', () => {
       const value: DecryptedNoteValue = {
         accountId: 'uuid',
         index: null,
-        nullifierHash: null,
+        nullifier: null,
         spent: false,
         serializedNote: Buffer.alloc(NOTE_SIZE, 1),
         transactionHash: Buffer.alloc(32, 1),
@@ -30,7 +30,7 @@ describe('DecryptedNoteValueEncoding', () => {
         accountId: 'uuid',
         spent: true,
         index: 40,
-        nullifierHash: Buffer.alloc(32, 1),
+        nullifier: Buffer.alloc(32, 1),
         serializedNote: Buffer.alloc(NOTE_SIZE, 1),
         transactionHash: Buffer.alloc(32, 1),
       }
