@@ -588,7 +588,7 @@ export class Accounts {
 
       if (transactionHash) {
         const transaction = await account.getTransaction(transactionHash)
-        Assert.isNotNull(
+        Assert.isNotUndefined(
           transaction,
           `Transaction '${transactionHash.toString('hex')}' missing for account '${
             account.id

@@ -291,9 +291,8 @@ export class AccountsDB {
     account: Account,
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<TransactionValue | null> {
-    const transactionValue = await this.transactions.get([account.prefix, transactionHash], tx)
-    return transactionValue || null
+  ): Promise<TransactionValue | undefined> {
+    return this.transactions.get([account.prefix, transactionHash], tx)
   }
 
   async saveNullifierNoteHash(
