@@ -7,6 +7,7 @@ import { VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
@@ -768,6 +769,31 @@ describe('Blockchain', () => {
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.MINERS_FEE_MISMATCH,
+    })
+  })
+
+  it('rejects double spend transactions', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.accounts, 'accountA')
+    const accountB = await useAccountFixture(node.accounts, 'accountB')
+
+    const block1 = await useMinerBlockFixture(chain, chain.head.sequence + 1, accountA)
+    await expect(chain).toAddBlock(block1)
+    await node.accounts.updateHead()
+
+    const { block: block2, transaction } = await useBlockWithTx(node, accountA, accountB, false)
+    await expect(chain).toAddBlock(block2)
+
+    const block3 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [
+      transaction,
+    ])
+
+    const result = await chain.addBlock(block3)
+
+    expect(result).toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.DOUBLE_SPEND,
     })
   })
 })

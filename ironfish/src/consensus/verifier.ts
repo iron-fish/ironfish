@@ -349,6 +349,32 @@ export class Verifier {
   }
 
   /**
+   * Loop over all spends in the block and check that the nullifier has not previously been spent
+   */
+  async verifyNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      const { nullifiers: nullifiersCount } = block.counts()
+      const processedSpends = new BufferSet()
+
+      const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
+
+      for (const spend of block.spends()) {
+        if (processedSpends.has(spend.nullifier)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        if (await this.chain.nullifiers.contained(spend.nullifier, previousNullifierSize, tx)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        processedSpends.add(spend.nullifier)
+      }
+
+      return { valid: true }
+    })
+  }
+
+  /**
    * Verify that the given spend was not in the nullifiers tree when it was the given size,
    * and that the root of the notes tree is the one that is actually associated with the
    * spend's spend root.

@@ -60,6 +60,10 @@ import {
 
 export const VERSION_DATABASE_CHAIN = 10
 
+// Block sequence to start an extra nullifier check
+// TODO: Something like 207000 roughly Oct 1 2022
+const NULLIFIER_CHECK_ACTIVATION = 0
+
 export class Blockchain {
   db: IDatabase
   logger: Logger
@@ -1234,6 +1238,22 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     // TODO: transaction goes here
+
+    // We are checking the nullifiers here for double spends BEFORE we update
+    // any of the note or nullifier trees. This is because we have a potential
+    // bug when checking existence of nullifiers after updating the trees.
+    // See more: https://coda.io/d/_du44HZfIRa4
+    //
+    // TODO: remove this sequence check before mainnet
+    if (block.header.sequence > NULLIFIER_CHECK_ACTIVATION) {
+      const verifyNullifiers = await this.verifier.verifyNullifiers(block, tx)
+      if (!verifyNullifiers.valid) {
+        Assert.isNotUndefined(verifyNullifiers.reason)
+        this.addInvalid(block.header.hash, verifyNullifiers.reason)
+        throw new VerifyError(verifyNullifiers.reason, BAN_SCORE.MAX)
+      }
+    }
+
     if (prev) {
       await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     }
