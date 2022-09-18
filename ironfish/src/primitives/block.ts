@@ -59,7 +59,7 @@ export class Block {
    * Get a list of all notes created in this block including the miner's fee
    * note on the header.
    */
-  *allNotes(): Generator<NoteEncrypted> {
+  *notes(): Generator<NoteEncrypted> {
     for (const transaction of this.transactions) {
       for (const note of transaction.notes()) {
         yield note

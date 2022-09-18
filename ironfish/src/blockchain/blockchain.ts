@@ -1244,7 +1244,7 @@ export class Blockchain {
     let notesIndex = prev?.noteCommitment.size || 0
     let nullifierIndex = prev?.nullifierCommitment.size || 0
 
-    for (const note of block.allNotes()) {
+    for (const note of block.notes()) {
       await this.addNote(notesIndex, note, tx)
       notesIndex++
     }
