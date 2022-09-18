@@ -10,6 +10,7 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -772,25 +773,67 @@ describe('Blockchain', () => {
   })
 
   it('rejects double spend transactions', async () => {
+    /**
+     * This test tests that our double spend code is working properly. We had a
+     * bug that allowed double spends, but fixed the bug at roughly 200k blocks
+     * in. So we need to test that blocks are allowed in before the block
+     * activation of the fix.
+     */
     const { node, chain } = await nodeTest.createSetup()
+
+    // Set this up so we can reject block with a double spend starting at sequence 5
+    node.chain.consensus.V1_DOUBLE_SPEND = 5
 
     const accountA = await useAccountFixture(node.accounts, 'accountA')
     const accountB = await useAccountFixture(node.accounts, 'accountB')
 
-    const block1 = await useMinerBlockFixture(chain, chain.head.sequence + 1, accountA)
-    await expect(chain).toAddBlock(block1)
-    await node.accounts.updateHead()
-
-    const { block: block2, transaction } = await useBlockWithTx(node, accountA, accountB, false)
+    const block2 = await useMinerBlockFixture(chain, 2, accountA)
     await expect(chain).toAddBlock(block2)
 
-    const block3 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [
-      transaction,
-    ])
+    // Now create the offending transasction we will use to double spend
+    await node.accounts.updateHead()
+    const tx = await useTxFixture(node.accounts, accountA, accountB)
+    const nullifier = tx.getSpend(0).nullifier
 
-    const result = await chain.addBlock(block3)
+    const treeSize = await node.chain.nullifiers.size()
 
-    expect(result).toMatchObject({
+    // The nullifier is not found in the tree
+    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(false)
+    await expect(node.chain.nullifiers.contained(nullifier, treeSize)).resolves.toBe(false)
+
+    // Let's spend the transaaction for the first time
+    const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
+    await expect(node.chain).toAddBlock(block3)
+
+    // The nullifier is not found at the old tree size, but is found at the new tree size
+    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(true)
+    await expect(node.chain.nullifiers.contained(nullifier, treeSize)).resolves.toBe(false)
+    await expect(
+      node.chain.nullifiers.contained(nullifier, treeSize + tx.spendsLength()),
+    ).resolves.toBe(true)
+
+    // Let's spend the transaction a second time
+    const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, [tx])
+    await expect(node.chain).toAddBlock(block4)
+
+    // We've now added a double spend, we can see that because of a bug in the
+    // MerkleTree implementation the nullifier is no longer found at the tree
+    // size before this block, but moved to the tree size at block3
+    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(true)
+    await expect(
+      node.chain.nullifiers.contained(nullifier, treeSize + tx.spendsLength()),
+    ).resolves.toBe(false)
+    await expect(
+      node.chain.nullifiers.contained(
+        nullifier,
+        treeSize + tx.spendsLength() + tx.spendsLength(),
+      ),
+    ).resolves.toBe(true)
+
+    // Now we set our fix to activate at sequence 5 so this block will not let
+    // us add the transaction a third time
+    const block5 = await useMinerBlockFixture(node.chain, 5, undefined, undefined, [tx])
+    await expect(node.chain.addBlock(block5)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
     })

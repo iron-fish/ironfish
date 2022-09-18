@@ -349,29 +349,33 @@ export class Verifier {
   }
 
   /**
-   * Loop over all spends in the block and check that the nullifier has not previously been spent
+   * Verify the block before connecting it to the main chain
    */
-  async verifyNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
-      const { nullifiers: nullifiersCount } = block.counts()
-      const processedSpends = new BufferSet()
-
-      const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
+  async verifyBlockConnect(
+    block: Block,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    if (
+      this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
+    ) {
+      // Loop over all spends in the block and check that the nullifier has not previously been spent
+      const seen = new BufferSet()
+      const size = await this.chain.nullifiers.size(tx)
 
       for (const spend of block.spends()) {
-        if (processedSpends.has(spend.nullifier)) {
+        if (seen.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        if (await this.chain.nullifiers.contained(spend.nullifier, previousNullifierSize, tx)) {
+        if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        processedSpends.add(spend.nullifier)
+        seen.add(spend.nullifier)
       }
+    }
 
-      return { valid: true }
-    })
+    return { valid: true }
   }
 
   /**

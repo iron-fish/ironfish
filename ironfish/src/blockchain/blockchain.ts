@@ -6,10 +6,12 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import {
+  ConsensusParameters,
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_IN_SECONDS,
+  TestnetParameters,
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -60,10 +62,6 @@ import {
 
 export const VERSION_DATABASE_CHAIN = 10
 
-// Block sequence to start an extra nullifier check
-// TODO: Something like 207000 roughly Oct 1 2022
-const NULLIFIER_CHECK_ACTIVATION = 0
-
 export class Blockchain {
   db: IDatabase
   logger: Logger
@@ -72,6 +70,7 @@ export class Blockchain {
   metrics: MetricsMonitor
   location: string
   files: FileSystem
+  consensus: ConsensusParameters
 
   synced = false
   opened = false
@@ -173,6 +172,7 @@ export class Blockchain {
     this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
+    this.consensus = new TestnetParameters()
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -1239,19 +1239,12 @@ export class Blockchain {
   ): Promise<void> {
     // TODO: transaction goes here
 
-    // We are checking the nullifiers here for double spends BEFORE we update
-    // any of the note or nullifier trees. This is because we have a potential
-    // bug when checking existence of nullifiers after updating the trees.
-    // See more: https://coda.io/d/_du44HZfIRa4
-    //
-    // TODO: remove this sequence check before mainnet
-    if (block.header.sequence > NULLIFIER_CHECK_ACTIVATION) {
-      const verifyNullifiers = await this.verifier.verifyNullifiers(block, tx)
-      if (!verifyNullifiers.valid) {
-        Assert.isNotUndefined(verifyNullifiers.reason)
-        this.addInvalid(block.header.hash, verifyNullifiers.reason)
-        throw new VerifyError(verifyNullifiers.reason, BAN_SCORE.MAX)
-      }
+    const { valid, reason } = await this.verifier.verifyBlockConnect(block, tx)
+
+    if (!valid) {
+      Assert.isNotUndefined(reason)
+      this.addInvalid(block.header.hash, reason)
+      throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
     if (prev) {
