@@ -7,7 +7,6 @@ import { VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
   useAccountFixture,
-  useBlockFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
