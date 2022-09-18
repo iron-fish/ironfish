@@ -410,13 +410,13 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
       }
 
-      const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
+      const noteRoot = await this.chain.notes.pastRoot(noteSize, tx)
+      if (!noteRoot.equals(header.noteCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
 
-      const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
+      const nullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
+      if (!nullifierRoot.equals(header.nullifierCommitment.commitment)) {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
