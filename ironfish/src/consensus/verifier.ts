@@ -6,7 +6,7 @@ import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -467,5 +467,4 @@ export enum VerificationResultReason {
 export interface VerificationResult {
   valid: boolean
   reason?: VerificationResultReason
-  hash?: BlockHash
 }
