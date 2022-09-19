@@ -81,7 +81,7 @@ describe('SubmitTelemetryTask', () => {
       const request = new SubmitTelemetryRequest(points, graffitiBuffer)
 
       await task.execute(request)
-      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points, graffiti })
+      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith(points, graffiti)
     })
   })
 })
