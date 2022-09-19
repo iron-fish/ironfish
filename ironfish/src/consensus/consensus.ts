@@ -64,3 +64,24 @@ export const GRAFFITI_SIZE = 32
  * It's used in calculating how much a miner should get in rewards.
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
+
+export class ConsensusParameters {
+  /**
+   * Before upgrade V1 we had double spends. At this block we do a double spend
+   * check to disallow it.
+   *
+   * TODO: remove this sequence check before mainnet
+   */
+  V1_DOUBLE_SPEND = 0
+
+  isActive(upgrade: number, sequence: number): boolean {
+    return sequence >= upgrade
+  }
+}
+
+export class TestnetParameters extends ConsensusParameters {
+  constructor() {
+    super()
+    this.V1_DOUBLE_SPEND = 204000
+  }
+}

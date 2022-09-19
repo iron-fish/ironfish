@@ -6,10 +6,12 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import {
+  ConsensusParameters,
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_IN_SECONDS,
+  TestnetParameters,
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -68,6 +70,7 @@ export class Blockchain {
   metrics: MetricsMonitor
   location: string
   files: FileSystem
+  consensus: ConsensusParameters
 
   synced = false
   opened = false
@@ -169,6 +172,7 @@ export class Blockchain {
     this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
+    this.consensus = new TestnetParameters()
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -1234,6 +1238,15 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     // TODO: transaction goes here
+
+    const { valid, reason } = await this.verifier.verifyBlockConnect(block, tx)
+
+    if (!valid) {
+      Assert.isNotUndefined(reason)
+      this.addInvalid(block.header.hash, reason)
+      throw new VerifyError(reason, BAN_SCORE.MAX)
+    }
+
     if (prev) {
       await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     }
