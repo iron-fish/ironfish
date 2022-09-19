@@ -1317,7 +1317,6 @@ export class PeerNetwork {
     this.broadcastBlock(newBlockMessage)
 
     // log that we've validated the block enough to gossip it
-    this.onBlockGossipReceived.emit(block.header)
     this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block
