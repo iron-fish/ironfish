@@ -26,7 +26,7 @@ describe('Block', () => {
     const spends = Array.from(block.spends())
     expect(spends).toHaveLength(1)
 
-    const notes = Array.from(block.allNotes())
+    const notes = Array.from(block.notes())
     expect(notes).toHaveLength(3)
   })
 

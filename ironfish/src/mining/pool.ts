@@ -319,7 +319,7 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
+    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
       this.restartCalculateTargetInterval()
 

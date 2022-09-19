@@ -189,16 +189,18 @@ export async function useMinerBlockFixture(
   sequence?: number,
   account?: Account,
   addTransactionsTo?: Accounts,
+  transactions: Transaction[] = [],
 ): Promise<Block> {
   const spendingKey = account ? account.spendingKey : generateKey().spending_key
+  const transactionFees = transactions.reduce((a, t) => a + t.fee(), BigInt(0))
 
   return await useBlockFixture(
     chain,
     async () =>
       chain.newBlock(
-        [],
+        transactions,
         await chain.strategy.createMinersFee(
-          BigInt(0),
+          transactionFees,
           sequence || chain.head.sequence + 1,
           spendingKey,
         ),

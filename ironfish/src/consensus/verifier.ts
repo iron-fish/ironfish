@@ -6,7 +6,7 @@ import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -349,6 +349,36 @@ export class Verifier {
   }
 
   /**
+   * Verify the block before connecting it to the main chain
+   */
+  async verifyBlockConnect(
+    block: Block,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    if (
+      this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
+    ) {
+      // Loop over all spends in the block and check that the nullifier has not previously been spent
+      const seen = new BufferSet()
+      const size = await this.chain.nullifiers.size(tx)
+
+      for (const spend of block.spends()) {
+        if (seen.has(spend.nullifier)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        seen.add(spend.nullifier)
+      }
+    }
+
+    return { valid: true }
+  }
+
+  /**
    * Verify that the given spend was not in the nullifiers tree when it was the given size,
    * and that the root of the notes tree is the one that is actually associated with the
    * spend's spend root.
@@ -467,5 +497,4 @@ export enum VerificationResultReason {
 export interface VerificationResult {
   valid: boolean
   reason?: VerificationResultReason
-  hash?: BlockHash
 }

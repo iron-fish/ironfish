@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
+use crate::sapling_bls12::SAPLING;
+
+use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
@@ -11,16 +13,12 @@ use rand::{rngs::OsRng, thread_rng, Rng};
 use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::circuit::sapling::Output;
 
-use std::{io, sync::Arc};
+use std::io;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
 pub struct ReceiptParams {
-    /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
-    /// value.
-    pub(crate) sapling: Arc<Sapling>,
-
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
@@ -35,7 +33,6 @@ pub struct ReceiptParams {
 impl ReceiptParams {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
-        sapling: Arc<Sapling>,
         spender_key: &SaplingKey,
         note: &Note,
     ) -> Result<ReceiptParams, errors::SaplingProofError> {
@@ -61,10 +58,9 @@ impl ReceiptParams {
             esk: Some(diffie_hellman_keys.0),
         };
         let proof =
-            groth16::create_random_proof(output_circuit, &sapling.receipt_params, &mut OsRng)?;
+            groth16::create_random_proof(output_circuit, &SAPLING.receipt_params, &mut OsRng)?;
 
         let receipt_proof = ReceiptParams {
-            sapling,
             proof,
             value_commitment_randomness,
             merkle_note,
@@ -85,7 +81,7 @@ impl ReceiptParams {
             proof: self.proof.clone(),
             merkle_note: self.merkle_note.clone(),
         };
-        receipt_proof.verify_proof(&self.sapling)?;
+        receipt_proof.verify_proof()?;
 
         Ok(receipt_proof)
     }
@@ -134,11 +130,11 @@ impl ReceiptProof {
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
         self.verify_value_commitment()?;
 
         match groth16::verify_proof(
-            &sapling.receipt_verifying_key,
+            &SAPLING.receipt_verifying_key,
             &self.proof,
             &self.public_inputs()[..],
         ) {
@@ -200,7 +196,6 @@ mod test {
     use crate::{
         keys::SaplingKey,
         note::{Memo, Note},
-        sapling_bls12,
     };
     use ff::PrimeField;
     use group::Curve;
@@ -208,16 +203,15 @@ mod test {
 
     #[test]
     fn test_receipt_round_trip() {
-        let sapling = &*sapling_bls12::SAPLING;
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
 
-        let receipt = ReceiptParams::new(sapling.clone(), &spender_key, &note)
+        let receipt = ReceiptParams::new(&spender_key, &note)
             .expect("should be able to create receipt proof");
         let proof = receipt
             .post()
             .expect("Should be able to post receipt proof");
-        proof.verify_proof(sapling).expect("proof should check out");
+        proof.verify_proof().expect("proof should check out");
 
         // test serialization
         let mut serialized_proof = vec![];

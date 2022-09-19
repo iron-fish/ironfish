@@ -11,7 +11,7 @@ import {
   ServerSocketRpcSchema,
 } from '../adapters/socketAdapter/protocol'
 import { MessageBuffer } from '../messageBuffer'
-import { RpcConnectionLostError, RpcConnectionRefusedError } from './errors'
+import { RpcConnectionRefusedError } from './errors'
 import { RpcClientConnectionInfo, RpcSocketClient } from './socketClient'
 
 export class RpcTcpClient extends RpcSocketClient {
@@ -129,12 +129,7 @@ export class RpcTcpClient extends RpcSocketClient {
     this.client?.off('data', this.onClientData)
     this.client?.off('close', this.onClientClose)
 
-    for (const request of this.pending.values()) {
-      request.reject(new RpcConnectionLostError(request.type))
-    }
-    this.pending.clear()
-
-    this.onClose.emit()
+    this.handleClose()
   }
 
   protected onMessage = (data: unknown): void => {
