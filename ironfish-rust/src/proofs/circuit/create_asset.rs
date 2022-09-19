@@ -1,18 +1,17 @@
-use std::slice;
-
 use bellman::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
-use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
+use zcash_primitives::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::primitives::{asset_type::AssetInfo, constants::ASSET_IDENTIFIER_PERSONALIZATION};
-
-use super::sapling::slice_into_boolean_vec_le;
+use crate::{
+    primitives::{asset_type::AssetInfo, constants::ASSET_IDENTIFIER_PERSONALIZATION},
+    proofs::circuit::util::hash_asset_info_to_preimage,
+};
 
 pub struct CreateAsset {
     pub asset_info: Option<AssetInfo>,
@@ -26,56 +25,10 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
         // Hash the Asset Info pre-image
-        let mut combined_preimage = vec![];
-
-        // TODO: I wonder if we could hard-code this to minimize work?
-        // Not clear to me if the booleanizing is adding substantial time
-        // or if it's just a by-product of the hash taking longer due to
-        // more input. Also not clear if that has security implications
-        // by not witnessing the bits
-        let first_block_bits = slice_into_boolean_vec_le(
-            cs.namespace(|| "booleanize first block"),
-            Some(GH_FIRST_BLOCK),
-            64 * 8,
+        let combined_preimage = hash_asset_info_to_preimage(
+            &mut cs.namespace(|| "asset info preimage"),
+            self.asset_info,
         )?;
-
-        assert_eq!(first_block_bits.len(), 64 * 8);
-
-        combined_preimage.extend(first_block_bits);
-
-        let name_bits = slice_into_boolean_vec_le(
-            cs.namespace(|| "booleanize name"),
-            self.asset_info.as_ref().and_then(|i| i.name().into()),
-            32 * 8,
-        )?;
-
-        assert_eq!(name_bits.len(), 32 * 8);
-
-        combined_preimage.extend(name_bits);
-
-        let public_address_bits = slice_into_boolean_vec_le(
-            cs.namespace(|| "booleanize public address"),
-            self.asset_info
-                .as_ref()
-                .and_then(|i| i.public_address_bytes().into()),
-            43 * 8,
-        )?;
-
-        assert_eq!(public_address_bits.len(), 43 * 8);
-
-        combined_preimage.extend(public_address_bits);
-
-        let nonce_bits = slice_into_boolean_vec_le(
-            cs.namespace(|| "booleanize nonce"),
-            self.asset_info
-                .as_ref()
-                .and_then(|i| slice::from_ref(i.nonce()).into()),
-            8,
-        )?;
-
-        assert_eq!(nonce_bits.len(), 8);
-
-        combined_preimage.extend(nonce_bits);
 
         // Computed identifier bits from the given asset info
         let asset_identifier = blake2s::blake2s(

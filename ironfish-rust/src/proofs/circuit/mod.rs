@@ -4,3 +4,4 @@ pub mod mycircuit;
 pub mod output;
 pub mod sapling;
 pub mod spend;
+pub mod util;
