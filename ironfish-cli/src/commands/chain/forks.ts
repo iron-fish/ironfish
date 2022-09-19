@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GraffitiUtils, PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
-import { RpcBlock } from '@ironfish/sdk'
+import { RpcBlockHeader } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -23,7 +23,7 @@ export default class ForksCommand extends IronfishCommand {
     let connected = false
     const forks = new Map<
       string,
-      { block: RpcBlock; time: number; mined: number; old?: boolean }
+      { header: RpcBlockHeader; time: number; mined: number; old?: boolean }
     >()
 
     const screen = blessed.screen({ smartCSR: true })
@@ -58,15 +58,15 @@ export default class ForksCommand extends IronfishCommand {
       list.clearBaseLine(0)
       list.setContent('')
 
-      const values = [...forks.values()].sort((a, b) => b.block.sequence - a.block.sequence)
+      const values = [...forks.values()].sort((a, b) => b.header.sequence - a.header.sequence)
       let count = 0
 
       let highest = 0
-      for (const { block } of values) {
-        highest = Math.max(highest, block.sequence)
+      for (const { header } of values) {
+        highest = Math.max(highest, header.sequence)
       }
 
-      for (const { block, time, mined, old } of values) {
+      for (const { header, time, mined, old } of values) {
         const age = now - time
         if (age >= STALE_THRESHOLD) {
           continue
@@ -76,12 +76,12 @@ export default class ForksCommand extends IronfishCommand {
         }
 
         const renderedAge = (age / 1000).toFixed(0).padStart(3)
-        const renderedDiff = (highest - block.sequence).toString().padStart(6)
+        const renderedDiff = (highest - header.sequence).toString().padStart(6)
         const renderedMined = mined.toString().padStart(3)
-        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(block.graffiti, 'hex'))
+        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
 
         list.pushLine(
-          `${block.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
+          `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
         )
         count++
       }
@@ -93,16 +93,16 @@ export default class ForksCommand extends IronfishCommand {
       screen.render()
     }, 1000)
 
-    function handleGossip(block: RpcBlock) {
-      const prev = forks.get(block.previousBlockHash)
+    function handleGossip(header: RpcBlockHeader) {
+      const prev = forks.get(header.previousBlockHash)
       const mined = prev ? prev.mined + 1 : 0
 
       if (prev) {
         prev.old = true
-        forks.set(block.previousBlockHash, prev)
+        forks.set(header.previousBlockHash, prev)
       }
 
-      forks.set(block.hash, { block: block, time: Date.now(), mined: mined })
+      forks.set(header.hash, { header: header, time: Date.now(), mined: mined })
     }
 
     // eslint-disable-next-line no-constant-condition
@@ -117,7 +117,7 @@ export default class ForksCommand extends IronfishCommand {
       const response = this.sdk.client.onGossipStream()
 
       for await (const value of response.contentStream()) {
-        handleGossip(value.block)
+        handleGossip(value.blockHeader)
       }
     }
   }
