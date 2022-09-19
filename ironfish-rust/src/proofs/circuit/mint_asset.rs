@@ -176,22 +176,26 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         {
             // Booleanize the randomness
             let rcm = boolean::field_into_boolean_vec_le(
-                cs.namespace(|| "rcm"),
+                cs.namespace(|| "identifier commitment randomness"),
                 self.commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
             let rcm = ecc::fixed_base_multiplication(
-                cs.namespace(|| "computation of commitment randomness"),
+                cs.namespace(|| "computation of identifier commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
                 &rcm,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+            cm = cm.add(
+                cs.namespace(|| "randomization of identifier note commitment"),
+                &rcm,
+            )?;
         }
 
-        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+        cm.get_u()
+            .inputize(cs.namespace(|| "identifier commitment"))?;
 
         // This will store (least significant bit first)
         // the position of the note in the tree, for use
@@ -284,7 +288,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         {
             // Booleanize the randomness
             let rcm = boolean::field_into_boolean_vec_le(
-                cs.namespace(|| "rcm"),
+                cs.namespace(|| "note contents randomness"),
                 self.commitment_randomness,
             )?;
 
