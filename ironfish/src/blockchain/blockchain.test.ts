@@ -790,26 +790,30 @@ describe('Blockchain', () => {
     const block2 = await useMinerBlockFixture(chain, 2, accountA)
     await expect(chain).toAddBlock(block2)
 
-    // Now create the offending transasction we will use to double spend
+    // Now create the double spend
     await node.accounts.updateHead()
     const tx = await useTxFixture(node.accounts, accountA, accountB)
-    const nullifier = tx.getSpend(0).nullifier
+    const doubleSpend = tx.getSpend(0)
 
     const treeSize = await node.chain.nullifiers.size()
 
     // The nullifier is not found in the tree
-    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(false)
-    await expect(node.chain.nullifiers.contained(nullifier, treeSize)).resolves.toBe(false)
+    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(false)
+    await expect(
+      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
+    ).resolves.toBe(false)
 
     // Let's spend the transaaction for the first time
     const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
     // The nullifier is not found at the old tree size, but is found at the new tree size
-    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(true)
-    await expect(node.chain.nullifiers.contained(nullifier, treeSize)).resolves.toBe(false)
+    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
     await expect(
-      node.chain.nullifiers.contained(nullifier, treeSize + tx.spendsLength()),
+      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
+    ).resolves.toBe(false)
+    await expect(
+      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
     ).resolves.toBe(true)
 
     // Let's spend the transaction a second time
@@ -819,13 +823,13 @@ describe('Blockchain', () => {
     // We've now added a double spend, we can see that because of a bug in the
     // MerkleTree implementation the nullifier is no longer found at the tree
     // size before this block, but moved to the tree size at block3
-    await expect(node.chain.nullifiers.contains(nullifier)).resolves.toBe(true)
+    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
     await expect(
-      node.chain.nullifiers.contained(nullifier, treeSize + tx.spendsLength()),
+      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
     ).resolves.toBe(false)
     await expect(
       node.chain.nullifiers.contained(
-        nullifier,
+        doubleSpend.nullifier,
         treeSize + tx.spendsLength() + tx.spendsLength(),
       ),
     ).resolves.toBe(true)
@@ -837,5 +841,85 @@ describe('Blockchain', () => {
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
     })
+  })
+
+  it('rejects double spend during reorg', async () => {
+    // G -> A2 -> A3
+    //   -> B2 -> B3* -> A4
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    nodeA.chain.consensus.V1_DOUBLE_SPEND = 0
+    nodeB.chain.consensus.V1_DOUBLE_SPEND = 5
+
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain, 4)
+    await expect(nodeA.chain).toAddBlock(blockA4)
+    const blockA5 = await useMinerBlockFixture(nodeA.chain, 4)
+    await expect(nodeA.chain).toAddBlock(blockA5)
+
+    const accountA = await useAccountFixture(nodeB.accounts, 'accountA')
+    const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
+
+    // Now create the double spend chain
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 2, accountA)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+
+    // Now create the double spend tx
+    await nodeB.accounts.updateHead()
+    const tx = await useTxFixture(nodeB.accounts, accountA, accountB)
+
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, 4, undefined, undefined, [tx])
+    await expect(nodeB.chain).toAddBlock(blockB4)
+
+    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
+    await expect(nodeB.chain).toAddBlock(blockB5)
+
+    const blockB6 = await useMinerBlockFixture(nodeB.chain, 6)
+    await expect(nodeB.chain).toAddBlock(blockB6)
+
+    // Now start adding the double spend chain until we reorg to it
+    await expect(nodeA.chain.addBlock(blockB2)).resolves.toMatchObject({
+      isAdded: true,
+      isFork: true,
+    })
+
+    await expect(nodeA.chain.addBlock(blockB3)).resolves.toMatchObject({
+      isAdded: true,
+      isFork: true,
+    })
+
+    await expect(nodeA.chain.addBlock(blockB4)).resolves.toMatchObject({
+      isAdded: true,
+      isFork: true,
+    })
+
+    const addedB5 = await nodeA.chain.addBlock(blockB5)
+    const addedB6 = await nodeA.chain.addBlock(blockB6)
+
+    if (!addedB5.isAdded) {
+      expect(addedB5).toMatchObject({
+        isAdded: false,
+        isFork: null,
+        reason: VerificationResultReason.DOUBLE_SPEND,
+      })
+    } else {
+      expect(addedB5).toMatchObject({
+        isAdded: true,
+        isFork: true,
+      })
+
+      expect(addedB6).toMatchObject({
+        isAdded: false,
+        isFork: null,
+        reason: VerificationResultReason.DOUBLE_SPEND,
+      })
+    }
   })
 })
