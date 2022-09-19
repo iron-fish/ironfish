@@ -175,7 +175,6 @@ export class Accounts {
       })
 
       this.accounts.set(account.id, account)
-      await account.load()
     }
 
     const meta = await this.db.loadAccountsMeta()
@@ -189,10 +188,6 @@ export class Accounts {
   }
 
   private unload(): void {
-    for (const account of this.accounts.values()) {
-      account.unload()
-    }
-
     this.accounts.clear()
     this.headHashes.clear()
 

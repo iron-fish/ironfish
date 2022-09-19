@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
+import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
@@ -20,9 +20,6 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export class Account {
   private readonly accountsDb: AccountsDB
-
-  private readonly sequenceToNoteHashes: Map<number, BufferSet>
-  private readonly nonChainNoteHashes: BufferSet
 
   readonly id: string
   readonly displayName: string
@@ -64,9 +61,6 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.accountsDb = accountsDb
-
-    this.sequenceToNoteHashes = new Map<number, BufferSet>()
-    this.nonChainNoteHashes = new BufferSet()
   }
 
   serialize(): AccountValue {
@@ -80,23 +74,12 @@ export class Account {
     }
   }
 
-  async load(): Promise<void> {
-    for await (const decryptedNote of this.accountsDb.loadDecryptedNotes(this)) {
-      const transaction = await this.getTransaction(decryptedNote.transactionHash)
-
-      this.saveDecryptedNoteSequence(decryptedNote.hash, transaction?.sequence ?? null)
-    }
-  }
-
-  unload(): void {
-    this.sequenceToNoteHashes.clear()
-    this.nonChainNoteHashes.clear()
-  }
-
   async reset(tx?: IDatabaseTransaction): Promise<void> {
     await this.accountsDb.clearDecryptedNotes(this, tx)
     await this.accountsDb.clearNullifierToNoteHash(this, tx)
     await this.accountsDb.clearTransactions(this, tx)
+    await this.accountsDb.clearSequenceToNoteHash(this, tx)
+    await this.accountsDb.clearNonChainNoteHashes(this, tx)
 
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
@@ -149,20 +132,14 @@ export class Account {
       await this.accountsDb.saveDecryptedNote(this, noteHash, note, tx)
 
       const transaction = await this.getTransaction(note.transactionHash, tx)
-      this.saveDecryptedNoteSequence(noteHash, transaction?.sequence ?? null)
-    })
-  }
 
-  private saveDecryptedNoteSequence(noteHash: Buffer, sequence: number | null): void {
-    if (sequence) {
-      Assert.isNotNull(sequence, `sequence required when submitting block hash`)
-      const decryptedNotes = this.sequenceToNoteHashes.get(sequence) ?? new BufferSet()
-      decryptedNotes.add(noteHash)
-      this.sequenceToNoteHashes.set(sequence, decryptedNotes)
-      this.nonChainNoteHashes.delete(noteHash)
-    } else {
-      this.nonChainNoteHashes.add(noteHash)
-    }
+      await this.accountsDb.setNoteHashSequence(
+        this,
+        noteHash,
+        transaction?.sequence ?? null,
+        tx,
+      )
+    })
   }
 
   async syncTransaction(
@@ -274,6 +251,7 @@ export class Account {
   ): Promise<void> {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       const existingNote = await this.getDecryptedNote(noteHash)
+
       if (existingNote) {
         const note = existingNote.note
         const value = note.value()
@@ -284,20 +262,12 @@ export class Account {
         } else {
           await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
         }
+
+        await this.accountsDb.deleteDecryptedNote(this, noteHash, tx)
       }
 
       const record = await this.getTransaction(transactionHash, tx)
-      if (record && record.sequence) {
-        const { sequence } = record
-        const noteHashes = this.sequenceToNoteHashes.get(sequence)
-        if (noteHashes) {
-          noteHashes.delete(noteHash)
-          this.sequenceToNoteHashes.set(sequence, noteHashes)
-        }
-      }
-
-      this.nonChainNoteHashes.delete(noteHash)
-      await this.accountsDb.deleteDecryptedNote(this, noteHash, tx)
+      await this.accountsDb.deleteNoteHashSequence(this, noteHash, record?.sequence ?? null, tx)
     })
   }
 
@@ -305,7 +275,7 @@ export class Account {
     return await this.accountsDb.loadNoteHash(this, nullifier)
   }
 
-  async updateNullifierNoteHash(
+  private async updateNullifierNoteHash(
     nullifier: Buffer,
     noteHash: Buffer,
     tx?: IDatabaseTransaction,
@@ -313,7 +283,7 @@ export class Account {
     await this.accountsDb.saveNullifierNoteHash(this, nullifier, noteHash, tx)
   }
 
-  async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+  private async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     await this.accountsDb.deleteNullifier(this, nullifier, tx)
   }
 
@@ -378,24 +348,27 @@ export class Account {
     const unconfirmed = await this.getUnconfirmedBalance(tx)
     let confirmed = unconfirmed
 
-    const unconfirmedSequenceStart = headSequence - minimumBlockConfirmations
+    if (minimumBlockConfirmations > 0) {
+      const unconfirmedSequenceEnd = headSequence
 
-    for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
-      const noteHashes = this.sequenceToNoteHashes.get(i)
-      if (noteHashes) {
-        for (const hash of noteHashes) {
-          const note = await this.getDecryptedNote(hash)
-          Assert.isNotUndefined(note)
-          if (!note.spent) {
-            confirmed -= note.note.value()
-          }
+      const unconfirmedSequenceStart = Math.max(
+        unconfirmedSequenceEnd - minimumBlockConfirmations,
+        GENESIS_BLOCK_SEQUENCE,
+      )
+
+      for await (const note of this.accountsDb.loadNotesInSequenceRange(
+        this,
+        unconfirmedSequenceStart,
+        unconfirmedSequenceEnd,
+        tx,
+      )) {
+        if (!note.spent) {
+          confirmed -= note.note.value()
         }
       }
     }
 
-    for (const noteHash of this.nonChainNoteHashes) {
-      const note = await this.getDecryptedNote(noteHash)
-      Assert.isNotUndefined(note)
+    for await (const note of this.accountsDb.loadNotesNotOnChain(this, tx)) {
       if (!note.spent) {
         confirmed -= note.note.value()
       }
@@ -424,8 +397,10 @@ export class Account {
 }
 
 export function calculateAccountPrefix(id: string): Buffer {
+  const seed = 1
+  const hash = new MurmurHash3(id, seed).result()
+
   const prefix = Buffer.alloc(4)
-  const prefixHash = new MurmurHash3(id, 1).result()
-  prefix.writeUInt32BE(prefixHash)
+  prefix.writeUInt32BE(hash)
   return prefix
 }

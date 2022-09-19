@@ -33,6 +33,18 @@ export class U32Encoding implements IDatabaseEncoding<number> {
   }
 }
 
+export class NullEncoding implements IDatabaseEncoding<null> {
+  static EMPTY_BUFFER = Buffer.alloc(0)
+
+  serialize(): Buffer {
+    return NullEncoding.EMPTY_BUFFER
+  }
+
+  deserialize(): null {
+    return null
+  }
+}
+
 export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   serialize = (value: Buffer): Buffer => value
   deserialize = (buffer: Buffer): Buffer => buffer
@@ -46,8 +58,8 @@ export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix
   readonly prefixSize: number
 
   constructor(
-    keyEncoding: IDatabaseEncoding<TKey>,
     prefixEncoding: IDatabaseEncoding<TPrefix>,
+    keyEncoding: IDatabaseEncoding<TKey>,
     prefixSize: number,
   ) {
     this.keyEncoding = keyEncoding
@@ -59,7 +71,11 @@ export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix
     const prefixEncoded = this.prefixEncoding.serialize(value[0])
     const keyEncoded = this.keyEncoding.serialize(value[1])
 
-    this.assertPrefixSize(prefixEncoded)
+    if (prefixEncoded.byteLength !== this.prefixSize) {
+      throw new PrefixSizeError(
+        `key prefix expected to be ${this.prefixSize} byte(s) but was ${prefixEncoded.byteLength}`,
+      )
+    }
 
     return Buffer.concat([prefixEncoded, keyEncoded])
   }
@@ -72,20 +88,6 @@ export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix
     const keyDecoded = this.keyEncoding.deserialize(key)
 
     return [prefixDecoded, keyDecoded]
-  }
-
-  getKeyRange(prefix: TPrefix): DatabaseKeyRange {
-    const encoded = this.prefixEncoding.serialize(prefix)
-    this.assertPrefixSize(encoded)
-    return StorageUtils.getPrefixKeyRange(encoded)
-  }
-
-  private assertPrefixSize(prefix: Buffer): void {
-    if (prefix.byteLength !== this.prefixSize) {
-      throw new PrefixSizeError(
-        `key prefix expected to be byte size ${this.prefixSize} but was ${prefix.byteLength}`,
-      )
-    }
   }
 }
 
@@ -175,3 +177,4 @@ export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
 export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
 export const BUFFER_ENCODING = new BufferEncoding()
 export const U32_ENCODING = new U32Encoding()
+export const NULL_ENCODING = new NullEncoding()

@@ -9,6 +9,22 @@ function toHuman(buffer: Buffer): string {
     .trim()
 }
 
+function incrementLE(buffer: Buffer): void {
+  for (let i = 0; i < buffer.length; i++) {
+    if (buffer[i]++ !== 255) {
+      break
+    }
+  }
+}
+
+function incrementBE(buffer: Buffer): void {
+  for (let i = buffer.length - 1; i >= 0; i--) {
+    if (buffer[i]++ !== 255) {
+      break
+    }
+  }
+}
+
 function equalsNullable(a: Buffer | null | undefined, b: Buffer | null | undefined): boolean {
   return a == null || b == null ? a === b : a.equals(b)
 }
@@ -16,4 +32,6 @@ function equalsNullable(a: Buffer | null | undefined, b: Buffer | null | undefin
 export const BufferUtils = {
   toHuman,
   equalsNullable,
+  incrementLE,
+  incrementBE,
 }
