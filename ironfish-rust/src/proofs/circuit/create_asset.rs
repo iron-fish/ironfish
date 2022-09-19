@@ -25,7 +25,10 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
         // Hash the Asset Info pre-image
-        let combined_preimage = hash_asset_info_to_preimage(cs, self.asset_info)?;
+        let combined_preimage = hash_asset_info_to_preimage(
+            &mut cs.namespace(|| "asset info preimage"),
+            self.asset_info,
+        )?;
 
         // Computed identifier bits from the given asset info
         let asset_identifier = blake2s::blake2s(

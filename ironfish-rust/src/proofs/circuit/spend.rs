@@ -155,8 +155,13 @@ impl Circuit<bls12_381::Scalar> for Spend {
 
         // Compute note contents:
         // asset_generator, value (in big endian), g_d, pk_d
-        let (note_contents, value_num) =
-            build_note_contents(cs, self.asset_type, self.value_commitment, g_d, pk_d)?;
+        let (note_contents, value_num) = build_note_contents(
+            &mut cs.namespace(|| "note contents preimage"),
+            self.asset_type,
+            self.value_commitment,
+            g_d,
+            pk_d,
+        )?;
 
         // Compute the hash of the note contents
         let mut cm = pedersen_hash::pedersen_hash(

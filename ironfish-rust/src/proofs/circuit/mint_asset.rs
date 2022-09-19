@@ -51,7 +51,10 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
         // Asset Commitment Contents
-        let identifier_commitment_contents = hash_asset_info_to_preimage(cs, self.asset_info)?;
+        let identifier_commitment_contents = hash_asset_info_to_preimage(
+            &mut cs.namespace(|| "asset info preimage"),
+            self.asset_info,
+        )?;
 
         // Public address validation
         // Prover witnesses ak (ensures that it's on the curve)
@@ -137,6 +140,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             .as_ref()
             .and_then(|ai| Some(ai.asset_type()));
 
+        // TODO: This has some duplicate work. Maybe we can move this to an optional argument
         let public_address_bits = slice_into_boolean_vec_le(
             cs.namespace(|| "booleanize asset info public address"),
             self.asset_info
@@ -262,8 +266,13 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             rt.inputize(cs.namespace(|| "anchor"))?;
         }
 
-        let (note_contents, _) =
-            build_note_contents(cs, asset_type, self.value_commitment, g_d, pk_d)?;
+        let (note_contents, _) = build_note_contents(
+            &mut cs.namespace(|| "note contents preimage"),
+            asset_type,
+            self.value_commitment,
+            g_d,
+            pk_d,
+        )?;
 
         // Compute the hash of the note contents
         let mut cm = pedersen_hash::pedersen_hash(
