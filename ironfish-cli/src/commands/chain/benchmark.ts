@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BenchUtils, ErrorUtils, IronfishSdk } from '@ironfish/sdk'
+import { BenchUtils, IronfishSdk } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import path from 'path'
