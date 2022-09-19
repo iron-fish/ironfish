@@ -6,6 +6,7 @@ import { RpcBlockHeader, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { IronfishCliPKG } from '../../package'
 
 const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
 
@@ -74,23 +75,20 @@ export default class Forks extends IronfishCommand {
         count++
       }
 
-      void api.submitTelemetry({
-        points: [
-          {
-            measurement: 'forks_count',
-            timestamp: new Date(),
-            fields: [
-              {
-                name: 'forks',
-                type: 'integer',
-                value: count,
-              },
-            ],
-            tags: [{ name: 'version', value: '0.1.24' }],
-          },
-        ],
-        graffiti: 'forks_count_metric',
-      })
+      void api.submitTelemetry([
+        {
+          measurement: 'forks_count',
+          timestamp: new Date(),
+          fields: [
+            {
+              name: 'forks',
+              type: 'integer',
+              value: count,
+            },
+          ],
+          tags: [{ name: 'version', value: IronfishCliPKG.version }],
+        },
+      ])
     }, delay)
 
     function handleGossip(header: RpcBlockHeader) {

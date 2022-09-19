@@ -188,7 +188,7 @@ export class SubmitTelemetryTask extends WorkerTask {
     graffiti,
   }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
     const api = new WebApi()
-    await api.submitTelemetry({ points, graffiti: GraffitiUtils.toHuman(graffiti) })
+    await api.submitTelemetry(points, GraffitiUtils.toHuman(graffiti))
     return new SubmitTelemetryResponse(jobId)
   }
 }
