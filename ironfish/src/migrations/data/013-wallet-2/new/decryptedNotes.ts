@@ -10,7 +10,6 @@ export type DecryptedNotesStore = IDatabaseStore<{
   value: DecryptedNoteValue
 }>
 
-
 export interface DecryptedNoteValue {
   accountId: string
   note: Note
