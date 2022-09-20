@@ -24,7 +24,7 @@ export class GossipForkCounter {
   private active: Array<GossipFork> = []
 
   constructor(options?: { delayMs?: number }) {
-    this.delay = options?.delayMs ?? 60000
+    this.delay = options?.delayMs ?? 1000
   }
 
   start(): void {
