@@ -31,7 +31,7 @@ describe('IronfishTcpClient', () => {
 
     client.client = new net.Socket()
 
-    client.request(route)
+    client.request(route, 'test token')
     expect(client.client.write).toHaveBeenLastCalledWith(expectedMessage)
   })
 })

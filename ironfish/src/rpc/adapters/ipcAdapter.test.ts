@@ -78,7 +78,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar')
+    const response = client.request('foo/bar', 'test token')
     expect((await response.contentStream().next()).value).toBe('hello 1')
     expect((await response.contentStream().next()).value).toBe('hello 2')
 
@@ -96,7 +96,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const next = client.request('foo/bar').contentStream().next()
+    const next = client.request('foo/bar', 'test token').contentStream().next()
 
     client.close()
     waitResolve()
@@ -113,7 +113,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar')
+    const response = client.request('foo/bar', 'test token')
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
@@ -134,7 +134,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar', body)
+    const response = client.request('foo/bar', 'test token', body)
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({

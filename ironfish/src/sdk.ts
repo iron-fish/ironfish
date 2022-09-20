@@ -220,6 +220,7 @@ export class IronfishSdk {
             this.fileSystem,
             this.config.get('tlsKeyPath'),
             this.config.get('tlsCertPath'),
+            this.config.get('rpcAuthTokenPath'),
             this.logger,
             namespaces,
           ),
@@ -229,8 +230,10 @@ export class IronfishSdk {
           new RpcTcpAdapter(
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
+            this.config.get('rpcAuthTokenPath'),
             this.logger,
             namespaces,
+            this.fileSystem,
           ),
         )
       }
