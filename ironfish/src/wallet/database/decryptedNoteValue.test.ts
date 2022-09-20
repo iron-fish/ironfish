@@ -1,42 +1,65 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DecryptedNoteValue, DecryptedNoteValueEncoding, NOTE_SIZE } from './decryptedNoteValue'
+import { Assert } from '../../assert'
+import { Note, NOTE_LENGTH } from '../../primitives/note'
+import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
+import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 
 describe('DecryptedNoteValueEncoding', () => {
+  const nodeTest = createNodeTest()
+
+  function expectDecryptedNoteValueToMatch(a: DecryptedNoteValue, b: DecryptedNoteValue): void {
+    // Test transaction separately because it's not a primitive type
+    expect(a.note.equals(b.note)).toBe(true)
+    expect({ ...a, transaction: undefined }).toMatchObject({ ...b, transaction: undefined })
+  }
+
   describe('with a null note index and nullifier hash', () => {
-    it('serializes the object into a buffer and deserializes to the original object', () => {
+    // eslint-disable-next-line jest/expect-expect
+    it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
+
+      const account = await useAccountFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
+      Assert.isNotUndefined(note)
 
       const value: DecryptedNoteValue = {
         accountId: 'uuid',
         index: null,
         nullifier: null,
         spent: false,
-        serializedNote: Buffer.alloc(NOTE_SIZE, 1),
+        note,
         transactionHash: Buffer.alloc(32, 1),
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
-      expect(deserializedValue).toEqual(value)
+      expectDecryptedNoteValueToMatch(deserializedValue, value)
     })
   })
 
   describe('with all fields defined', () => {
-    it('serializes the object into a buffer and deserializes to the original object', () => {
+    // eslint-disable-next-line jest/expect-expect
+    it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
+
+      const account = await useAccountFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
+      Assert.isNotUndefined(note)
 
       const value: DecryptedNoteValue = {
         accountId: 'uuid',
         spent: true,
         index: 40,
         nullifier: Buffer.alloc(32, 1),
-        serializedNote: Buffer.alloc(NOTE_SIZE, 1),
+        note,
         transactionHash: Buffer.alloc(32, 1),
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
-      expect(deserializedValue).toEqual(value)
+      expectDecryptedNoteValueToMatch(deserializedValue, value)
     })
   })
 })

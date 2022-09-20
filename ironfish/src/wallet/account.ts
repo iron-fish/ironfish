@@ -112,7 +112,7 @@ export class Account {
       yield {
         hash,
         index: decryptedNote.index,
-        note: new Note(decryptedNote.serializedNote),
+        note: decryptedNote.note,
         transactionHash: decryptedNote.transactionHash,
         spent: decryptedNote.spent,
       }
@@ -145,7 +145,7 @@ export class Account {
       const existingNote = await this.getDecryptedNote(noteHash)
 
       if (!existingNote || existingNote.spent !== note.spent) {
-        const value = new Note(note.serializedNote).value()
+        const value = note.note.value()
         const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
 
         if (note.spent) {
@@ -239,7 +239,7 @@ export class Account {
             accountId: this.id,
             nullifier: decryptedNote.nullifier,
             index: decryptedNote.index,
-            serializedNote: decryptedNote.serializedNote,
+            note: new Note(decryptedNote.serializedNote),
             spent: false,
             transactionHash,
           },
@@ -284,7 +284,7 @@ export class Account {
     await this.accountsDb.database.withTransaction(tx, async (tx) => {
       const existingNote = await this.getDecryptedNote(noteHash)
       if (existingNote) {
-        const note = new Note(existingNote.serializedNote)
+        const note = existingNote.note
         const value = note.value()
         const currentUnconfirmedBalance = await this.accountsDb.getUnconfirmedBalance(this, tx)
 
@@ -394,7 +394,7 @@ export class Account {
           const note = await this.getDecryptedNote(hash)
           Assert.isNotUndefined(note)
           if (!note.spent) {
-            confirmed -= new Note(note.serializedNote).value()
+            confirmed -= note.note.value()
           }
         }
       }
@@ -404,7 +404,7 @@ export class Account {
       const note = await this.getDecryptedNote(noteHash)
       Assert.isNotUndefined(note)
       if (!note.spent) {
-        confirmed -= new Note(note.serializedNote).value()
+        confirmed -= note.note.value()
       }
     }
 

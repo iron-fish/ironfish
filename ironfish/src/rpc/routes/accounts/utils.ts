@@ -70,7 +70,7 @@ export async function getTransactionNotes(
     const decryptedNoteValue = await account.getDecryptedNote(note.merkleHash())
 
     if (decryptedNoteValue) {
-      decryptedNote = new Note(decryptedNoteValue.serializedNote)
+      decryptedNote = decryptedNoteValue.note
       owner = true
     } else {
       // Try decrypting the note using the outgoingViewKey

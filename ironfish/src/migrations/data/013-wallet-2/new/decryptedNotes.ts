@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
+import { Note, NOTE_LENGTH } from '../../../../primitives/note'
 import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 
 export const NOTE_SIZE = 43 + 8 + 32 + 32
@@ -11,18 +12,20 @@ export type DecryptedNotesStore = IDatabaseStore<{
   value: DecryptedNoteValue
 }>
 
+
 export interface DecryptedNoteValue {
   accountId: string
-  index: number | null
-  nullifier: Buffer | null
-  serializedNote: Buffer
+  note: Note
   spent: boolean
   transactionHash: Buffer
+  // These fields are populated once the note's transaction is on the main chain
+  index: number | null
+  nullifier: Buffer | null
 }
 
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
   serialize(value: DecryptedNoteValue): Buffer {
-    const { accountId, nullifier, index, serializedNote, spent, transactionHash } = value
+    const { accountId, nullifier, index, note, spent, transactionHash } = value
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
@@ -32,7 +35,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     bw.writeU8(flags)
 
     bw.writeVarString(accountId)
-    bw.writeBytes(serializedNote)
+    bw.writeBytes(note.serialize())
     bw.writeHash(transactionHash)
 
     if (index) {
@@ -54,7 +57,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     const spent = Boolean(flags & (1 << 2))
 
     const accountId = reader.readVarString()
-    const serializedNote = reader.readBytes(NOTE_SIZE)
+    const serializedNote = reader.readBytes(NOTE_LENGTH)
     const transactionHash = reader.readHash()
 
     let index = null
@@ -67,13 +70,15 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
       nullifier = reader.readHash()
     }
 
-    return { accountId, index, nullifier, serializedNote, spent, transactionHash }
+    const note = new Note(serializedNote)
+
+    return { accountId, index, nullifier, note, spent, transactionHash }
   }
 
   getSize(value: DecryptedNoteValue): number {
     let size = 1
     size += bufio.sizeVarString(value.accountId)
-    size += NOTE_SIZE
+    size += NOTE_LENGTH
 
     // transaction hash
     size += 32
