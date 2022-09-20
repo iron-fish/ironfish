@@ -178,11 +178,9 @@ export class AccountsDB {
     return meta
   }
 
-  async *loadAccounts(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ id: string; serializedAccount: AccountValue }, void, unknown> {
-    for await (const [id, serializedAccount] of this.accounts.getAllIter(tx)) {
-      yield { id, serializedAccount }
+  async *loadAccounts(tx?: IDatabaseTransaction): AsyncGenerator<AccountValue, void, unknown> {
+    for await (const account of this.accounts.getAllValuesIter(tx)) {
+      yield account
     }
   }
 
