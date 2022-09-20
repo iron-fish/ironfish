@@ -75,20 +75,22 @@ export default class Forks extends IronfishCommand {
         count++
       }
 
-      void api.submitTelemetry([
-        {
-          measurement: 'forks_count',
-          timestamp: new Date(),
-          fields: [
-            {
-              name: 'forks',
-              type: 'integer',
-              value: count,
-            },
-          ],
-          tags: [{ name: 'version', value: IronfishCliPKG.version }],
-        },
-      ])
+      void api.submitTelemetry({
+        points: [
+          {
+            measurement: 'forks_count',
+            timestamp: new Date(),
+            fields: [
+              {
+                name: 'forks',
+                type: 'integer',
+                value: count,
+              },
+            ],
+            tags: [{ name: 'version', value: IronfishCliPKG.version }],
+          },
+        ],
+      })
     }, delay)
 
     function handleGossip(header: RpcBlockHeader) {

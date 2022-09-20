@@ -210,8 +210,7 @@ export class WebApi {
     return response.data
   }
 
-  async submitTelemetry(points: Metric[], graffiti?: string): Promise<void> {
-    const payload = graffiti ? { points: points, graffiti: graffiti } : { points: points }
+  async submitTelemetry(payload: { points: Metric[]; graffiti?: string }): Promise<void> {
     await axios.post(`${this.host}/telemetry`, payload)
   }
 
