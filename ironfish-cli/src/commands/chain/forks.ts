@@ -1,13 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GraffitiUtils, PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
-import { RpcBlockHeader } from '@ironfish/sdk'
+import { PromiseUtils } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-
-const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
+import { GossipForkCounter } from '../../utils/forkCounter'
 
 export default class ForksCommand extends IronfishCommand {
   static description = 'Try to detect forks that are being mined'
@@ -21,10 +19,6 @@ export default class ForksCommand extends IronfishCommand {
     this.logger.pauseLogs()
 
     let connected = false
-    const forks = new Map<
-      string,
-      { header: RpcBlockHeader; time: number; mined: number; old?: boolean }
-    >()
 
     const screen = blessed.screen({ smartCSR: true })
     screen.focusNext()
@@ -51,59 +45,25 @@ export default class ForksCommand extends IronfishCommand {
       content: 'Press Q to quit',
     })
 
-    setInterval(() => {
-      const now = Date.now()
+    const counter = new GossipForkCounter()
+    counter.start()
 
+    setInterval(() => {
       status.clearBaseLine(0)
       list.clearBaseLine(0)
       list.setContent('')
 
-      const values = [...forks.values()].sort((a, b) => b.header.sequence - a.header.sequence)
-      let count = 0
-
-      let highest = 0
-      for (const { header } of values) {
-        highest = Math.max(highest, header.sequence)
+      for (const { hash, age, graffiti, mined, sequenceDelta } of counter.forks) {
+        list.pushLine(`${hash} | ${sequenceDelta} | ${age}s | ${mined} | ${graffiti}`)
       }
-
-      for (const { header, time, mined, old } of values) {
-        const age = now - time
-        if (age >= STALE_THRESHOLD) {
-          continue
-        }
-        if (old) {
-          continue
-        }
-
-        const renderedAge = (age / 1000).toFixed(0).padStart(3)
-        const renderedDiff = (highest - header.sequence).toString().padStart(6)
-        const renderedMined = mined.toString().padStart(3)
-        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
-
-        list.pushLine(
-          `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
-        )
-        count++
-      }
-
-      status.setContent(`Node: ${String(connected)}, Forks: ${count.toString().padEnd(2, ' ')}`)
+      status.setContent(
+        `Node: ${String(connected)}, Forks: ${counter.forksCount.toString().padEnd(2, ' ')}`,
+      )
 
       screen.append(footer)
 
       screen.render()
-    }, 1000)
-
-    function handleGossip(header: RpcBlockHeader) {
-      const prev = forks.get(header.previousBlockHash)
-      const mined = prev ? prev.mined + 1 : 0
-
-      if (prev) {
-        prev.old = true
-        forks.set(header.previousBlockHash, prev)
-      }
-
-      forks.set(header.hash, { header: header, time: Date.now(), mined: mined })
-    }
+    }, 60000)
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -117,7 +77,7 @@ export default class ForksCommand extends IronfishCommand {
       const response = this.sdk.client.onGossipStream()
 
       for await (const value of response.contentStream()) {
-        handleGossip(value.blockHeader)
+        counter.count(value.blockHeader)
       }
     }
   }
