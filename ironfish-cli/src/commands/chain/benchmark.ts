@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BenchUtils, IronfishSdk } from '@ironfish/sdk'
+import { BenchUtils, IronfishSdk, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import path from 'path'
@@ -40,8 +40,7 @@ export default class Benchmark extends IronfishCommand {
 
     CliUx.ux.action.start(`Opening node`)
     const node = await this.sdk.node()
-    await node.openDB()
-    await node.chain.open()
+    await NodeUtils.waitForOpen(node)
     CliUx.ux.action.stop('done.')
 
     if (!flags.tempdir) {
@@ -60,8 +59,7 @@ export default class Benchmark extends IronfishCommand {
       logger: this.logger,
     })
     const tempNode = await tmpSdk.node()
-    await tempNode.openDB()
-    await tempNode.chain.open()
+    await NodeUtils.waitForOpen(tempNode)
     tempNode.workerPool.start()
     CliUx.ux.action.stop('done.')
 
