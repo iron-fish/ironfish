@@ -44,9 +44,12 @@ export default class Benchmark extends IronfishCommand {
     await node.chain.open()
     CliUx.ux.action.stop('done.')
 
-    const tempDataDir = await fs.mkdtemp(
-      path.join(flags.tempdir ?? node.config.tempDir, 'benchmark-'),
-    )
+    if (!flags.tempdir) {
+      await fs.mkdir(node.config.tempDir, { recursive: true })
+      flags.tempdir = node.config.tempDir
+    }
+
+    const tempDataDir = await fs.mkdtemp(path.join(flags.tempdir, 'benchmark-'))
 
     CliUx.ux.action.start(`Opening temp node in ${tempDataDir}`)
     const tmpSdk = await IronfishSdk.init({
