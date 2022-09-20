@@ -5,8 +5,6 @@ import bufio from 'bufio'
 import { Note, NOTE_LENGTH } from '../../../../primitives/note'
 import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 
-export const NOTE_SIZE = 43 + 8 + 32 + 32
-
 export type DecryptedNotesStore = IDatabaseStore<{
   key: [Buffer, Buffer]
   value: DecryptedNoteValue
