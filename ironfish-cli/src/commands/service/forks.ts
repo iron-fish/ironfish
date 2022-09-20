@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
-import { RpcBlockHeader, WebApi } from '@ironfish/sdk'
+import { PromiseUtils } from '@ironfish/sdk'
+import { WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { countReset } from 'console'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { GossipForkCounter } from '../../forkCounter'
 import { IronfishCliPKG } from '../../package'
+import { GossipForkCounter } from '../../utils/forkCounter'
 
 export default class Forks extends IronfishCommand {
   static hidden = true

@@ -5,7 +5,13 @@ import { RpcBlockHeader, SetIntervalToken, TARGET_BLOCK_TIME_IN_SECONDS } from '
 
 const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
 
-export type GossipFork = { age: number; graffiti: string; mined: number; sequenceDelta: number }
+export type GossipFork = {
+  hash: string
+  age: number
+  graffiti: string
+  mined: number
+  sequenceDelta: number
+}
 
 export class GossipForkCounter {
   private heads = new Map<
@@ -18,7 +24,7 @@ export class GossipForkCounter {
   private active: Array<GossipFork> = []
 
   constructor(options?: { delayMs?: number }) {
-    this.delay = options?.delayMs ?? 1000
+    this.delay = options?.delayMs ?? 60000
   }
 
   start(): void {
@@ -56,6 +62,7 @@ export class GossipForkCounter {
       }
 
       active.push({
+        hash: header.hash,
         age,
         graffiti: header.graffiti,
         mined,
