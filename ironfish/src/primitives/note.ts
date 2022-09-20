@@ -65,4 +65,8 @@ export class Note {
     this.returnReference()
     return buf
   }
+
+  equals(other: Note): boolean {
+    return this.noteSerialized.equals(other.noteSerialized)
+  }
 }

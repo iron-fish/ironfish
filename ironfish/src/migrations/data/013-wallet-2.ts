@@ -312,7 +312,7 @@ export class Migration013 extends Migration {
       const decryptedNote = {
         accountId: ownerAccount.id,
         index: nullifierEntry.noteIndex,
-        serializedNote: ownerNote.serialize(),
+        note: ownerNote,
         spent: nullifierEntry.spent,
         transactionHash: transactionHash,
         nullifier: nullifierEntry.nullifierHash

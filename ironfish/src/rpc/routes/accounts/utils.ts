@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishNode } from '../../../node'
-import { Note, Transaction } from '../../../primitives'
+import { Transaction } from '../../../primitives'
 import { Account } from '../../../wallet'
 import { ValidationError } from '../../adapters'
 
@@ -70,7 +70,7 @@ export async function getTransactionNotes(
     const decryptedNoteValue = await account.getDecryptedNote(note.merkleHash())
 
     if (decryptedNoteValue) {
-      decryptedNote = new Note(decryptedNoteValue.serializedNote)
+      decryptedNote = decryptedNoteValue.note
       owner = true
     } else {
       // Try decrypting the note using the outgoingViewKey
