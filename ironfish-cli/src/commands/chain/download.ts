@@ -34,7 +34,7 @@ export default class Download extends IronfishCommand {
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: 'https://d1kj1bottktsu0.cloudfront.net/manifest.json',
+      default: 'https://ironfish-snapshots.s3-accelerate.amazonaws.com/manifest.json',
     }),
     path: Flags.string({
       char: 'p',
