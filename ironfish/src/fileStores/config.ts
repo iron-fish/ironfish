@@ -106,6 +106,7 @@ export type ConfigOptions = {
   rpcTcpSecure: boolean
   tlsKeyPath: string
   tlsCertPath: string
+  rpcAuthTokenPath: string
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
    * new connections will be rejected.
@@ -304,6 +305,7 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpSecure: false,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
+      rpcAuthTokenPath: files.resolve(files.join(dataDir, 'certs', 'rpc-auth-token.txt')),
       maxPeers: 50,
       minimumBlockConfirmations: 12,
       minPeers: 1,

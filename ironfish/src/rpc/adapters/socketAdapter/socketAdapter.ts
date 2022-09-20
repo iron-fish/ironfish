@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { v4 as uuid } from 'uuid'
+import { FileSystem } from '../../../fileSystems'
 import { createRootLogger, Logger } from '../../../logger'
 import { Meter } from '../../../metrics/meter'
 import { JSONUtils } from '../../../utils'
@@ -35,6 +36,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  rpcAuthTokenPath: string
+  fileSystem: FileSystem
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -56,13 +59,17 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   constructor(
     host: string,
     port: number,
+    rpcAuthTokenPath: string,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
+    fileSystem: FileSystem,
   ) {
     this.host = host
     this.port = port
+    this.rpcAuthTokenPath = rpcAuthTokenPath
     this.logger = logger.withTag('tcpadapter')
     this.namespaces = namespaces
+    this.fileSystem = fileSystem
   }
 
   protected abstract createServer(): net.Server | Promise<net.Server>
@@ -193,6 +200,22 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       const message = result.result.data
 
+      // Authentication
+      const requestAuthToken = message.auth
+      const rpcAuthTokenExists = await this.fileSystem.exists(this.rpcAuthTokenPath)
+
+      if (!rpcAuthTokenExists) {
+        this.logger.debug(`Missing RPC Auth token files at ${this.rpcAuthTokenPath}.`)
+        this.emitResponse(client, this.constructUnauthenticatedRequest())
+        return
+      }
+
+      const rpcAuthToken = await this.fileSystem.readFile(this.rpcAuthTokenPath)
+      if (requestAuthToken !== rpcAuthToken) {
+        this.emitResponse(client, this.constructUnauthenticatedRequest())
+        return
+      }
+
       const requestId = uuid()
       const request = new RpcRequest(
         message.data,
@@ -304,6 +327,21 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
   constructUnmountedAdapter(): ServerSocketRpc {
     const error = new Error(`Tried to connect to unmounted adapter`)
+
+    const data: SocketRpcError = {
+      code: ERROR_CODES.ERROR,
+      message: error.message,
+      stack: error.stack,
+    }
+
+    return {
+      type: 'error',
+      data: data,
+    }
+  }
+
+  constructUnauthenticatedRequest(): ServerSocketRpc {
+    const error = new Error(`Missing or bad authentication`)
 
     const data: SocketRpcError = {
       code: ERROR_CODES.ERROR,

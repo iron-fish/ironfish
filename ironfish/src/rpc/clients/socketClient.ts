@@ -37,7 +37,12 @@ export abstract class RpcSocketClient extends RpcClient {
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
   abstract close(): void
-  protected abstract send(messageId: number, route: string, data: unknown): void
+  protected abstract send(
+    messageId: number,
+    route: string,
+    authToken: string,
+    data: unknown,
+  ): void
 
   private timeoutMs: number | null = REQUEST_TIMEOUT_MS
   private messageIds = 0
@@ -69,6 +74,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
   request<TEnd = unknown, TStream = unknown>(
     route: string,
+    rpcAuthToken: string,
     data?: unknown,
     options: {
       timeoutMs?: number | null
@@ -125,7 +131,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     this.pending.set(messageId, pending)
 
-    this.send(messageId, route, data)
+    this.send(messageId, route, rpcAuthToken, data)
 
     return response
   }

@@ -32,7 +32,14 @@ describe('TcpAdapter', () => {
       },
     })
 
-    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
+    tcp = new RpcTcpAdapter(
+      'localhost',
+      0,
+      'certs/rpc-auth-token.txt',
+      undefined,
+      ALL_API_NAMESPACES,
+      sdk.fileSystem,
+    )
 
     const node = await sdk.node()
     await node.rpc.mount(tcp)
@@ -75,7 +82,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
-    const response = client.request('foo/bar')
+    const response = client.request('foo/bar', 'test token')
     expect((await response.contentStream().next()).value).toBe('hello 1')
     expect((await response.contentStream().next()).value).toBe('hello 2')
 
@@ -96,7 +103,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
-    const response = client.request('foo/bar')
+    const response = client.request('foo/bar', 'test token')
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
@@ -122,7 +129,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
-    const response = client.request('foo/bar', body)
+    const response = client.request('foo/bar', 'test token', body)
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
