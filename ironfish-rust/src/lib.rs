@@ -11,6 +11,8 @@ use bls12_381::Bls12;
 mod serializing;
 
 pub mod asset_note;
+pub mod create_asset_note;
+pub mod creating_asset;
 pub mod errors;
 pub mod keys;
 pub mod merkle_note;
@@ -49,8 +51,12 @@ pub(crate) mod test_util; // I'm not sure if this is the right way to publish th
 pub struct Sapling {
     spend_params: groth16::Parameters<Bls12>,
     receipt_params: groth16::Parameters<Bls12>,
+    create_asset_params: groth16::Parameters<Bls12>,
+    mint_asset_params: groth16::Parameters<Bls12>,
     spend_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
     receipt_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    create_asset_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    mint_asset_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
 }
 
 impl Sapling {
@@ -61,18 +67,28 @@ impl Sapling {
         // These params were borrowed from zcash
         let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
         let receipt_bytes = include_bytes!("sapling_params/sapling-output.params");
+        let create_asset_bytes = include_bytes!("sapling_params/sapling-create-asset.params");
+        let mint_asset_bytes = include_bytes!("sapling_params/sapling-mint-asset.params");
 
         let spend_params = Sapling::load_params(&spend_bytes[..]);
         let receipt_params = Sapling::load_params(&receipt_bytes[..]);
+        let create_asset_params = Sapling::load_params(&create_asset_bytes[..]);
+        let mint_asset_params = Sapling::load_params(&mint_asset_bytes[..]);
 
         let spend_vk = groth16::prepare_verifying_key(&spend_params.vk);
         let receipt_vk = groth16::prepare_verifying_key(&receipt_params.vk);
+        let create_asset_vk = groth16::prepare_verifying_key(&create_asset_params.vk);
+        let mint_asset_vk = groth16::prepare_verifying_key(&mint_asset_params.vk);
 
         Sapling {
             spend_verifying_key: spend_vk,
             receipt_verifying_key: receipt_vk,
+            create_asset_verifying_key: create_asset_vk,
+            mint_asset_verifying_key: mint_asset_vk,
             spend_params,
             receipt_params,
+            create_asset_params,
+            mint_asset_params,
         }
     }
 

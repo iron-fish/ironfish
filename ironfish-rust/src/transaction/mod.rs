@@ -5,6 +5,7 @@
 pub mod miners_fee;
 pub mod transfer;
 use crate::{
+    create_asset_note::CreateAssetNote, creating_asset::CreateAssetParams,
     primitives::asset_type::AssetType, receiving::OutputSignature, spending::SpendSignature,
 };
 
@@ -71,6 +72,9 @@ pub struct ProposedTransaction {
     /// `outputs` in the literature.
     receipts: Vec<ReceiptParams>,
 
+    // TODO: Look into actions like penumbra or some abstraction
+    create_assets: Vec<CreateAssetParams>,
+
     /// The balance of all the spends minus all the receipts. The difference
     /// is the fee paid to the miner for mining the transaction.
     transaction_fee: i64,
@@ -92,12 +96,14 @@ impl ProposedTransaction {
             binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
             receipts: vec![],
+            create_assets: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
         }
     }
 
     /// Spend the note owned by spender_key at the given witness location.
+    // TODO: Why doesnt this take a reference for SaplingKey but .receive does?
     pub fn spend(
         &mut self,
         spender_key: SaplingKey,
@@ -128,6 +134,7 @@ impl ProposedTransaction {
         spender_key: &SaplingKey,
         note: &Note,
     ) -> Result<(), SaplingProofError> {
+        // TODO: Naming consistency: should be params
         let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
@@ -135,6 +142,21 @@ impl ProposedTransaction {
 
         self.receipts.push(proof);
         self.transaction_fee -= note.value as i64;
+
+        Ok(())
+    }
+
+    // Create a proof of a new asset type in this transaction
+    pub fn create_asset(
+        &mut self,
+        spender_key: &SaplingKey,
+        create_asset_note: &CreateAssetNote,
+    ) -> Result<(), SaplingProofError> {
+        let params = CreateAssetParams::new(spender_key, create_asset_note)?;
+
+        // TODO: bvk/bsk??
+
+        self.create_assets.push(params);
 
         Ok(())
     }

@@ -126,7 +126,11 @@ mod test {
         pedersen_hash::{self},
     };
 
-    use crate::{primitives::asset_type::AssetInfo, SaplingKey};
+    use crate::{
+        create_asset_note::CreateAssetNote, note::Memo, primitives::asset_type::AssetInfo,
+        sapling_bls12, test_util::make_fake_witness, AssetType, Note, ProposedTransaction,
+        SaplingKey,
+    };
 
     use super::CreateAsset;
 
@@ -228,5 +232,49 @@ mod test {
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
 
         // TODO: Add a sanity check with a bad commitment
+    }
+
+    #[test]
+    fn test_proper_create_asset_circuit() {
+        let sapling = sapling_bls12::SAPLING.clone();
+
+        // Setup: generate parameters file. This is slow, consider using pre-built ones later
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(
+            CreateAsset {
+                asset_info: None,
+                commitment_randomness: None,
+            },
+            &mut OsRng,
+        )
+        .expect("Can generate random params");
+        let pvk = groth16::prepare_verifying_key(&params.vk);
+
+        // Test setup: create sapling keys
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.generate_public_address();
+
+        // Test setup: create an Asset Type
+        let name = "My custom asset 1";
+        let asset_info =
+            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+
+        // Create asset note
+        let note = CreateAssetNote::new(asset_info);
+
+        // Regular spend note for transaction fee
+        let in_note = Note::new(public_address, 1, Memo::default(), AssetType::default());
+        let witness = make_fake_witness(&in_note);
+
+        let mut transaction = ProposedTransaction::new(sapling);
+        transaction
+            .spend(sapling_key.clone(), &in_note, &witness)
+            .expect("Can add spend for tx fee");
+        transaction
+            .create_asset(&sapling_key, &note)
+            .expect("Can add create asset note");
+
+        // TODO:
+        // - transaction.post
+        // - transaction.verify
     }
 }
