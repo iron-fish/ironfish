@@ -187,11 +187,9 @@ export class AccountsDB {
   }
 
   async getHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<Buffer | null> {
-    return await this.database.withTransaction(tx, async (tx) => {
-      const headHash = await this.headHashes.get(account.id, tx)
-      Assert.isNotUndefined(headHash)
-      return headHash
-    })
+    const headHash = await this.headHashes.get(account.id, tx)
+    Assert.isNotUndefined(headHash)
+    return headHash
   }
 
   async saveHeadHash(
