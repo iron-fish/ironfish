@@ -63,7 +63,7 @@ export default class ForksCommand extends IronfishCommand {
       screen.append(footer)
 
       screen.render()
-    }, 60000)
+    }, 1000)
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
