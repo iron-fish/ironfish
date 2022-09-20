@@ -81,10 +81,10 @@ export class Account {
   }
 
   async load(): Promise<void> {
-    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
+    for await (const decryptedNote of this.accountsDb.loadDecryptedNotes(this)) {
       const transaction = await this.getTransaction(decryptedNote.transactionHash)
 
-      this.saveDecryptedNoteSequence(hash, transaction?.sequence ?? null)
+      this.saveDecryptedNoteSequence(decryptedNote.hash, transaction?.sequence ?? null)
     }
   }
 
@@ -108,14 +108,8 @@ export class Account {
     transactionHash: Buffer
     spent: boolean
   }> {
-    for await (const { hash, decryptedNote } of this.accountsDb.loadDecryptedNotes(this)) {
-      yield {
-        hash,
-        index: decryptedNote.index,
-        note: decryptedNote.note,
-        transactionHash: decryptedNote.transactionHash,
-        spent: decryptedNote.spent,
-      }
+    for await (const decryptedNote of this.accountsDb.loadDecryptedNotes(this)) {
+      yield decryptedNote
     }
   }
 

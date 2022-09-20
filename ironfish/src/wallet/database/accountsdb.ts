@@ -347,17 +347,14 @@ export class AccountsDB {
   async *loadDecryptedNotes(
     account: Account,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{
-    hash: Buffer
-    decryptedNote: DecryptedNoteValue
-  }> {
+  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     for await (const [[_, hash], decryptedNote] of this.decryptedNotes.getAllIter(
       tx,
       account.prefixRange,
     )) {
       yield {
+        ...decryptedNote,
         hash,
-        decryptedNote,
       }
     }
   }
