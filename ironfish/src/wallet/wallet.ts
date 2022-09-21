@@ -168,14 +168,13 @@ export class Accounts {
   }
 
   private async load(): Promise<void> {
-    for await (const { id, serializedAccount } of this.db.loadAccounts()) {
+    for await (const accountValue of this.db.loadAccounts()) {
       const account = new Account({
-        ...serializedAccount,
-        id,
+        ...accountValue,
         accountsDb: this.db,
       })
 
-      this.accounts.set(id, account)
+      this.accounts.set(account.id, account)
       await account.load()
     }
 
