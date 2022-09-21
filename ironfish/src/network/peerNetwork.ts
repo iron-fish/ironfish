@@ -110,7 +110,7 @@ export class PeerNetwork {
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
-  readonly onBlockGossipReceived = new Event<[Block]>()
+  readonly onBlockGossipReceived = new Event<[BlockHeader]>()
 
   private started = false
   private readonly minPeers: number
@@ -941,6 +941,8 @@ export class PeerNetwork {
     // block to the peer, but the value isn't important
     peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
 
+    this.onBlockGossipReceived.emit(header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
     if (prevHeader === null) {
@@ -1278,6 +1280,8 @@ export class PeerNetwork {
       peer.sequence = block.header.sequence
     }
 
+    this.onBlockGossipReceived.emit(block.header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
@@ -1313,7 +1317,6 @@ export class PeerNetwork {
     this.broadcastBlock(newBlockMessage)
 
     // log that we've validated the block enough to gossip it
-    this.onBlockGossipReceived.emit(block)
     this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block
