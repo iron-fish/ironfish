@@ -1,8 +1,9 @@
-use std::slice;
+use std::{io, slice};
 
 use bellman::groth16;
 use bls12_381::Bls12;
-use group::Curve;
+use group::{Curve, GroupEncoding};
+use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 use zcash_primitives::{
     constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
@@ -10,11 +11,9 @@ use zcash_primitives::{
 };
 
 use crate::{
-    errors,
-    proofs::circuit::create_asset::{self, CreateAsset},
-    proofs::notes::create_asset_note::CreateAssetNote,
-    sapling_bls12::SAPLING,
-    SaplingKey,
+    errors, proofs::circuit::create_asset::CreateAsset,
+    proofs::notes::create_asset_note::CreateAssetNote, sapling_bls12::SAPLING,
+    serializing::read_scalar, SaplingKey,
 };
 
 pub struct CreateAssetParams {
@@ -104,6 +103,51 @@ pub struct CreateAssetProof {
 }
 
 impl CreateAssetProof {
+    /// Load a CreateAssetProof from a Read implementation( e.g: socket, file)
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
+        let proof = groth16::Proof::read(&mut reader)?;
+
+        let create_commitment = read_scalar(&mut reader).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unable to convert note commitment",
+            )
+        })?;
+
+        let mut encrypted_note = [0; 12];
+        reader.read_exact(&mut encrypted_note)?;
+
+        let asset_generator = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = ExtendedPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Unable to convert asset generator",
+                )
+                .into());
+            }
+            point.unwrap()
+        };
+
+        Ok(CreateAssetProof {
+            proof,
+            create_commitment,
+            encrypted_note,
+            asset_generator,
+        })
+    }
+    
+    /// Stow the bytes of this CreateAssetProof in the given writer.
+    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+        self.proof.write(&mut writer)?;
+        writer.write_all(&self.create_commitment.to_bytes())?;
+        writer.write_all(&self.encrypted_note)?;
+        writer.write_all(&self.asset_generator.to_bytes())?;
+        Ok(())
+    }
+
     pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
         let generator_affine = self.asset_generator.to_affine();
 
