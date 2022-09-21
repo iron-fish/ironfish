@@ -5,10 +5,11 @@
 pub mod miners_fee;
 pub mod transfer;
 use crate::{
-    create_asset_note::CreateAssetNote,
-    creating_asset::CreateAssetParams,
     primitives::asset_type::AssetType,
-    proofs::notes::{mint_asset_note::MintAssetNote, minting_asset::MintAssetParams},
+    proofs::notes::{
+        create_asset_note::CreateAssetNote, creating_asset::CreateAssetParams,
+        mint_asset_note::MintAssetNote, minting_asset::MintAssetParams,
+    },
     receiving::OutputSignature,
     spending::SpendSignature,
 };
