@@ -4,6 +4,7 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import axios from 'axios'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import path from 'path'
@@ -39,6 +40,12 @@ export default class CreateSnapshot extends IronfishCommand {
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The local path where the snapshot will be saved',
+    }),
+    webhook: Flags.string({
+      char: 'w',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Webhook to notify on successful snapshot upload',
     }),
   }
 
@@ -128,6 +135,12 @@ export default class CreateSnapshot extends IronfishCommand {
 
       this.log('Snapshot upload complete. Uploaded the following manifest:')
       this.log(JSON.stringify(manifest, undefined, '  '))
+
+      if (flags.webhook) {
+        await axios.post(flags.webhook, {
+          content: `Successfully uploaded Iron Fish snapshot at block ${node.chain.head.sequence}. Use \`ironfish chain:download\` to download and import the snapshot.`,
+        })
+      }
     }
   }
 }
