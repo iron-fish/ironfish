@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RpcBlockHeader, SetIntervalToken, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
+import LRU from 'blru'
 
 const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
 export type GossipFork = {
@@ -12,10 +13,10 @@ export type GossipFork = {
 }
 
 export class GossipForkCounter {
-  private heads = new Map<
+  private heads = new LRU<
     string,
     { header: RpcBlockHeader; timestamp: number; ageSequence: number; old?: boolean }
-  >()
+  >(5000, null, Map)
 
   private tickInterval: SetIntervalToken | null = null
   private delay: number
