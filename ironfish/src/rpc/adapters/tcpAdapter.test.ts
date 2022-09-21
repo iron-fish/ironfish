@@ -60,7 +60,7 @@ describe('TcpAdapter', () => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
@@ -79,7 +79,7 @@ describe('TcpAdapter', () => {
       request.end()
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
     const response = client.request('foo/bar', 'test token')
@@ -100,7 +100,7 @@ describe('TcpAdapter', () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
     const response = client.request('foo/bar', 'test token')
@@ -126,7 +126,7 @@ describe('TcpAdapter', () => {
 
     tcp.router.register('foo/bar', schema, (res) => res.end())
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
     const response = client.request('foo/bar', 'test token', body)
