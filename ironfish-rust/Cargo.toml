@@ -14,7 +14,7 @@ default = []
 native = ["bellman/multicore", "zcash_proofs/multicore"]
 
 [dependencies]
-bellman = { version = "0.13.1", default-features = false, features = ["groth16"]}
+bellman = { version = "0.13.1", default-features = false, features = ["groth16"] }
 blake2b_simd = "1.0.0"
 blake2s_simd = "1.0.0"
 blake3 = "1.3.1"
@@ -29,6 +29,7 @@ libc = "0.2.126" # sub-dependency that needs a pinned version until a new releas
 rand = "0.8.5"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 tiny-bip39 = "0.8"
+xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 zcash_primitives = "0.7.0"
 zcash_proofs = "0.7.1"
 

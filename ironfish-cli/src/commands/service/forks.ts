@@ -46,7 +46,6 @@ export default class Forks extends IronfishCommand {
       process.env.IRONFISH_API_HOST ||
       'https://api.ironfish.network'
     ).trim()
-
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
 
     const api = new WebApi({ host: apiHost, token: apiToken })
