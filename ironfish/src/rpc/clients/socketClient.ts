@@ -5,6 +5,7 @@ import net from 'net'
 import { IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
+import { Logger } from '../../logger'
 import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
 import { isRpcResponseError, RpcResponse } from '../response'
@@ -34,6 +35,12 @@ export abstract class RpcSocketClient extends RpcClient {
   abstract client: IpcClient | net.Socket | null
   abstract isConnected: boolean
   abstract connection: Partial<RpcClientConnectionInfo>
+  rpcAuthToken: string
+
+  constructor(logger: Logger, rpcAuthToken: string) {
+    super(logger)
+    this.rpcAuthToken = rpcAuthToken
+  }
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
   abstract close(): void
@@ -74,7 +81,6 @@ export abstract class RpcSocketClient extends RpcClient {
 
   request<TEnd = unknown, TStream = unknown>(
     route: string,
-    rpcAuthToken: string,
     data?: unknown,
     options: {
       timeoutMs?: number | null
@@ -131,7 +137,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     this.pending.set(messageId, pending)
 
-    this.send(messageId, route, rpcAuthToken, data)
+    this.send(messageId, route, this.rpcAuthToken, data)
 
     return response
   }
