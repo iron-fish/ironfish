@@ -5,8 +5,12 @@
 pub mod miners_fee;
 pub mod transfer;
 use crate::{
-    create_asset_note::CreateAssetNote, creating_asset::CreateAssetParams,
-    primitives::asset_type::AssetType, receiving::OutputSignature, spending::SpendSignature,
+    create_asset_note::CreateAssetNote,
+    creating_asset::CreateAssetParams,
+    primitives::asset_type::AssetType,
+    proofs::notes::{mint_asset_note::MintAssetNote, minting_asset::MintAssetParams},
+    receiving::OutputSignature,
+    spending::SpendSignature,
 };
 
 use super::{
@@ -73,7 +77,8 @@ pub struct ProposedTransaction {
     receipts: Vec<ReceiptParams>,
 
     // TODO: Look into actions like penumbra or some abstraction
-    create_assets: Vec<CreateAssetParams>,
+    create_asset_params: Vec<CreateAssetParams>,
+    mint_asset_params: Vec<MintAssetParams>,
 
     /// The balance of all the spends minus all the receipts. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -96,7 +101,8 @@ impl ProposedTransaction {
             binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
             receipts: vec![],
-            create_assets: vec![],
+            create_asset_params: vec![],
+            mint_asset_params: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
         }
@@ -156,8 +162,19 @@ impl ProposedTransaction {
 
         // TODO: bvk/bsk??
 
-        self.create_assets.push(params);
+        self.create_asset_params.push(params);
 
+        Ok(())
+    }
+
+    pub fn mint_asset(
+        &mut self,
+        spender_key: &SaplingKey,
+        mint_asset_note: &MintAssetNote,
+        witness: &dyn WitnessTrait,
+    ) -> Result<(), SaplingProofError> {
+        let params = MintAssetParams::new(spender_key, mint_asset_note, witness)?;
+        self.mint_asset_params.push(params);
         Ok(())
     }
 
