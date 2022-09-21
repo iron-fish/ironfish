@@ -102,7 +102,7 @@ export default class Forks extends IronfishCommand {
         forks.set(header.previousBlockHash, prev)
       }
 
-      forks.set(header.hash, { header: header, time: Date.now(), mined: mined })
+      forks.set(header.hash, { header, time: Date.now(), mined })
     }
 
     // eslint-disable-next-line no-constant-condition
