@@ -338,12 +338,16 @@ mod test {
 
     use crate::{
         merkle_note::{position as witness_position, sapling_auth_path},
+        note::Memo,
         primitives::asset_type::AssetInfo,
-        proofs::circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
-        sapling_bls12,
-        test_util::make_fake_witness_from_commitment,
+        proofs::{
+            circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
+            notes::mint_asset_note::MintAssetNote,
+        },
+        sapling_bls12::{self},
+        test_util::{make_fake_witness, make_fake_witness_from_commitment},
         witness::WitnessTrait,
-        SaplingKey, SpendProof,
+        AssetType, Note, ProposedTransaction, SaplingKey, SpendProof,
     };
 
     use super::MintAsset;
@@ -797,5 +801,40 @@ mod test {
         spend_proof
             .verify_proof(&sapling)
             .expect("verifies spend proof");
+    }
+
+    #[test]
+    fn test_mint_asset_circuit_with_params() {
+        let sapling = sapling_bls12::SAPLING.clone();
+
+        // Test setup: create sapling keys
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.generate_public_address();
+
+        // Test setup: create an Asset Type
+        let name = "My custom asset 1";
+        let asset_info =
+            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+
+        // Mint asset note
+        let value = 2;
+        let note = MintAssetNote::new(asset_info, value);
+
+        // Regular spend note for transaction fee
+        let in_note = Note::new(public_address, 1, Memo::default(), AssetType::default());
+        let witness = make_fake_witness(&in_note);
+        let mint_asset_witness = make_fake_witness_from_commitment(note.commitment());
+
+        let mut transaction = ProposedTransaction::new(sapling);
+        transaction
+            .spend(sapling_key.clone(), &in_note, &witness)
+            .expect("Can add spend for tx fee");
+        transaction
+            .mint_asset(&sapling_key, &note, &mint_asset_witness)
+            .expect("Can add mint asset note");
+
+        // TODO:
+        // - transaction.post
+        // - transaction.verify
     }
 }
