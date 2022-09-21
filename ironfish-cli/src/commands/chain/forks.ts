@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils } from '@ironfish/sdk'
+import { GraffitiUtils, PromiseUtils } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -53,11 +53,21 @@ export default class ForksCommand extends IronfishCommand {
       list.clearBaseLine(0)
       list.setContent('')
 
-      for (const { hash, age, graffiti, mined, sequenceDelta } of counter.forks) {
-        list.pushLine(`${hash} | ${sequenceDelta} | ${age}s | ${mined} | ${graffiti}`)
+      const latest = counter.latest
+      const latestSequence = latest ? latest.header.sequence : 0
+
+      for (const { header, ageSequence, age } of counter.forks) {
+        const renderedAge = (age / 1000).toFixed(0).padStart(3)
+        const renderedDiff = (latestSequence - header.sequence).toString().padStart(6)
+        const renderedMined = ageSequence.toString().padStart(3)
+        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
+
+        list.pushLine(
+          `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
+        )
       }
       status.setContent(
-        `Node: ${String(connected)}, Forks: ${counter.forksCount.toString().padEnd(2, ' ')}`,
+        `Node: ${String(connected)}, Forks: ${counter.count.toString().padEnd(2, ' ')}`,
       )
 
       screen.append(footer)
@@ -77,7 +87,7 @@ export default class ForksCommand extends IronfishCommand {
       const response = this.sdk.client.onGossipStream()
 
       for await (const value of response.contentStream()) {
-        counter.count(value.blockHeader)
+        counter.add(value.blockHeader)
       }
     }
   }

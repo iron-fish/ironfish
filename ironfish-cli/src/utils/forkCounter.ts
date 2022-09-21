@@ -4,19 +4,17 @@
 import { RpcBlockHeader, SetIntervalToken, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
 
 const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
-
 export type GossipFork = {
-  hash: string
+  header: RpcBlockHeader
+  timestamp: number
+  ageSequence: number
   age: number
-  graffiti: string
-  mined: number
-  sequenceDelta: number
 }
 
 export class GossipForkCounter {
   private heads = new Map<
     string,
-    { header: RpcBlockHeader; time: number; mined: number; old?: boolean }
+    { header: RpcBlockHeader; timestamp: number; ageSequence: number; old?: boolean }
   >()
 
   private tickInterval: SetIntervalToken | null = null
@@ -45,13 +43,8 @@ export class GossipForkCounter {
       (a, b) => b.header.sequence - a.header.sequence,
     )
 
-    let highest = 0
-    for (const { header } of values) {
-      highest = Math.max(highest, header.sequence)
-    }
-
-    for (const { header, time, mined, old } of values) {
-      const age = now - time
+    for (const { header, timestamp, ageSequence, old } of values) {
+      const age = now - timestamp
 
       if (age >= STALE_THRESHOLD) {
         continue
@@ -62,18 +55,21 @@ export class GossipForkCounter {
       }
 
       active.push({
-        hash: header.hash,
+        header,
+        timestamp,
+        ageSequence,
         age,
-        graffiti: header.graffiti,
-        mined,
-        sequenceDelta: highest - header.sequence,
       })
     }
 
     this.active = active
   }
 
-  get forksCount(): number {
+  get latest(): GossipFork | null {
+    return this.active[0] ?? null
+  }
+
+  get count(): number {
     return this.active.length
   }
 
@@ -81,9 +77,9 @@ export class GossipForkCounter {
     return this.active
   }
 
-  count(header: RpcBlockHeader): void {
+  add(header: RpcBlockHeader): void {
     const prev = this.heads.get(header.previousBlockHash)
-    const mined = prev ? prev.mined + 1 : 0
+    const ageSequence = prev ? prev.ageSequence + 1 : 0
 
     if (prev) {
       prev.old = true
@@ -92,8 +88,8 @@ export class GossipForkCounter {
 
     this.heads.set(header.hash, {
       header: header,
-      time: Date.now(),
-      mined: mined,
+      timestamp: Date.now(),
+      ageSequence,
     })
   }
 }

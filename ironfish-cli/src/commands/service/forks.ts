@@ -66,7 +66,7 @@ export default class Forks extends IronfishCommand {
               {
                 name: 'forks',
                 type: 'integer',
-                value: counter.forksCount,
+                value: counter.count,
               },
             ],
             tags: [{ name: 'version', value: IronfishCliPKG.version }],
@@ -87,7 +87,7 @@ export default class Forks extends IronfishCommand {
       const response = this.sdk.client.onGossipStream()
 
       for await (const value of response.contentStream()) {
-        counter.count(value.blockHeader)
+        counter.add(value.blockHeader)
       }
     }
   }
