@@ -11,7 +11,7 @@ jest.mock('net')
 describe('IronfishTcpClient', () => {
   const testHost = 'testhost'
   const testPort = 1234
-  const client: RpcTcpClient = new RpcTcpClient(testHost, testPort)
+  const client: RpcTcpClient = new RpcTcpClient(testHost, testPort, 'test token')
 
   it('should send messages in the node-ipc encoding', async () => {
     const messageId = 1

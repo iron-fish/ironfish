@@ -23,8 +23,13 @@ export class RpcTcpClient extends RpcSocketClient {
   connection: RpcClientConnectionInfo
   private messageBuffer: MessageBuffer
 
-  constructor(host: string, port: number, logger: Logger = createRootLogger()) {
-    super(logger.withTag('tcpclient'))
+  constructor(
+    host: string,
+    port: number,
+    rpcAuthTokoen: string,
+    logger: Logger = createRootLogger(),
+  ) {
+    super(logger.withTag('tcpclient'), rpcAuthTokoen)
     this.host = host
     this.port = port
     this.connection = { mode: 'tcp', host: host, port: port }

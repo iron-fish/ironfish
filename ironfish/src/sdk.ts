@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { v4 as uuid } from 'uuid'
 import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
@@ -133,11 +134,35 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
+    const rpcAuthTokenPath = config.get('rpcAuthTokenPath')
+    const rpcAuthTokenExists = await fileSystem.exists(rpcAuthTokenPath)
+
+    if (!rpcAuthTokenExists) {
+      logger.debug(
+        `Missing RPC Auth token files at ${rpcAuthTokenPath}. Automatically generating auth token`,
+      )
+      const rpcAuthTokenDir = fileSystem.dirname(rpcAuthTokenPath)
+      await fileSystem.mkdir(rpcAuthTokenDir, { recursive: true })
+      await fileSystem.writeFile(rpcAuthTokenPath, uuid())
+    }
+
+    const rpcAuthToken = await fileSystem.readFile(rpcAuthTokenPath)
+
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
-        client = new RpcTlsClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+        client = new RpcTlsClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          rpcAuthToken,
+          logger,
+        )
       } else {
-        client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+        client = new RpcTcpClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          rpcAuthToken,
+          logger,
+        )
       }
     } else {
       client = new RpcIpcClient(
@@ -145,6 +170,7 @@ export class IronfishSdk {
           mode: 'ipc',
           socketPath: config.get('ipcPath'),
         },
+        rpcAuthToken,
         logger,
       )
     }
