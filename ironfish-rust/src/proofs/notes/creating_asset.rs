@@ -10,9 +10,9 @@ use zcash_primitives::{
 };
 
 use crate::{
-    create_asset_note::CreateAssetNote,
     errors,
     proofs::circuit::create_asset::{self, CreateAsset},
+    proofs::notes::create_asset_note::CreateAssetNote,
     sapling_bls12::SAPLING,
     SaplingKey,
 };
