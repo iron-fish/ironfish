@@ -101,13 +101,7 @@ export class Account {
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
 
-  async *getNotes(): AsyncGenerator<{
-    hash: Buffer
-    index: number | null
-    note: Note
-    transactionHash: Buffer
-    spent: boolean
-  }> {
+  async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     for await (const decryptedNote of this.accountsDb.loadDecryptedNotes(this)) {
       yield decryptedNote
     }
