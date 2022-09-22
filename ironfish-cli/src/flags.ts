@@ -24,6 +24,7 @@ export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
 export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
 export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
+export const RpcAuthFlagKey = 'rpc.auth'
 
 export const VerboseFlag = Flags.boolean({
   char: 'v',
@@ -82,6 +83,10 @@ export const RpcTcpTlsFlag = Flags.boolean({
   allowNo: true,
 })
 
+export const RpcAuthFlag = Flags.string({
+  description: 'The RPC auth token',
+})
+
 const localFlags: Record<string, CompletableOptionFlag> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
@@ -104,6 +109,7 @@ remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionF
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that uses an

@@ -7,6 +7,7 @@ import tls from 'tls'
 import { v4 as uuid } from 'uuid'
 import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
+import { IronfishNode } from '../../node'
 import { ApiNamespace } from '../routes'
 import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
 
@@ -14,7 +15,7 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
   readonly fileSystem: FileSystem
   readonly nodeKeyPath: string
   readonly nodeCertPath: string
-  readonly rpcAuthTokenPath: string
+  node: IronfishNode
 
   constructor(
     host: string,
@@ -22,15 +23,15 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     fileSystem: FileSystem,
     nodeKeyPath: string,
     nodeCertPath: string,
-    rpcAuthTokenPath: string,
+    node: IronfishNode,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
-    super(host, port, rpcAuthTokenPath, logger, namespaces, fileSystem)
+    super(host, port, logger, namespaces, node)
     this.fileSystem = fileSystem
     this.nodeKeyPath = nodeKeyPath
     this.nodeCertPath = nodeCertPath
-    this.rpcAuthTokenPath = rpcAuthTokenPath
+    this.node = node
   }
 
   protected async createServer(): Promise<net.Server> {
@@ -41,15 +42,14 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
   protected async getTlsOptions(): Promise<tls.TlsOptions> {
     const nodeKeyExists = await this.fileSystem.exists(this.nodeKeyPath)
     const nodeCertExists = await this.fileSystem.exists(this.nodeCertPath)
-    const rpcAuthTokenExists = await this.fileSystem.exists(this.rpcAuthTokenPath)
+    const rpcAuthToken = this.node.internal.get('rpcAuthToken')
 
-    if (!rpcAuthTokenExists) {
+    if (!rpcAuthToken || rpcAuthToken === '') {
       this.logger.debug(
-        `Missing RPC Auth token files at ${this.rpcAuthTokenPath}. Automatically generating auth token`,
+        `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
       )
-      const rpcAuthTokenDir = this.fileSystem.dirname(this.rpcAuthTokenPath)
-      await this.fileSystem.mkdir(rpcAuthTokenDir, { recursive: true })
-      await this.fileSystem.writeFile(this.rpcAuthTokenPath, uuid())
+      this.node.internal.set('rpcAuthToken', uuid())
+      await this.node.internal.save()
     }
 
     if (!nodeKeyExists || !nodeCertExists) {

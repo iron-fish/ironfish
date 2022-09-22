@@ -134,19 +134,17 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
-    const rpcAuthTokenPath = config.get('rpcAuthTokenPath')
-    const rpcAuthTokenExists = await fileSystem.exists(rpcAuthTokenPath)
+    let rpcAuthToken = internal.get('rpcAuthToken')
 
-    if (!rpcAuthTokenExists) {
+    if (!rpcAuthToken || rpcAuthToken === '') {
       logger.debug(
-        `Missing RPC Auth token files at ${rpcAuthTokenPath}. Automatically generating auth token`,
+        `Missing RPC Auth token in internal.json config. Automatically generating auth token`,
       )
-      const rpcAuthTokenDir = fileSystem.dirname(rpcAuthTokenPath)
-      await fileSystem.mkdir(rpcAuthTokenDir, { recursive: true })
-      await fileSystem.writeFile(rpcAuthTokenPath, uuid())
+      internal.set('rpcAuthToken', uuid())
+      await internal.save()
     }
 
-    const rpcAuthToken = await fileSystem.readFile(rpcAuthTokenPath)
+    rpcAuthToken = internal.get('rpcAuthToken')
 
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
@@ -246,7 +244,7 @@ export class IronfishSdk {
             this.fileSystem,
             this.config.get('tlsKeyPath'),
             this.config.get('tlsCertPath'),
-            this.config.get('rpcAuthTokenPath'),
+            node,
             this.logger,
             namespaces,
           ),
@@ -256,10 +254,9 @@ export class IronfishSdk {
           new RpcTcpAdapter(
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
-            this.config.get('rpcAuthTokenPath'),
             this.logger,
             namespaces,
-            this.fileSystem,
+            node,
           ),
         )
       }
