@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { uniqueId } from 'lodash'
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
 import { KeyStore } from './keyStore'
@@ -106,7 +107,7 @@ export type ConfigOptions = {
   rpcTcpSecure: boolean
   tlsKeyPath: string
   tlsCertPath: string
-  rpcAuthTokenPath: string
+  rpcAuthToken: string
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
    * new connections will be rejected.
@@ -305,7 +306,7 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpSecure: false,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
-      rpcAuthTokenPath: files.resolve(files.join(dataDir, 'certs', 'rpc-auth-token.txt')),
+      rpcAuthToken: '',
       maxPeers: 50,
       minimumBlockConfirmations: 12,
       minPeers: 1,

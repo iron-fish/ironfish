@@ -17,6 +17,8 @@ import {
   DatabaseFlag,
   DatabaseFlagKey,
   DataDirFlagKey,
+  RpcAuthFlag,
+  RpcAuthFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
   RpcTcpSecureFlag,
@@ -46,6 +48,7 @@ export type FLAGS =
   | typeof RpcTcpSecureFlagKey
   | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
+  | typeof RpcAuthFlagKey
 
 export abstract class IronfishCommand extends Command {
   // Yes, this is disabling the type system but any code
@@ -151,6 +154,11 @@ export abstract class IronfishCommand extends Command {
     const verboseFlag = getFlag(flags, VerboseFlagKey)
     if (typeof verboseFlag === 'boolean' && verboseFlag !== VerboseFlag.default) {
       configOverrides.logLevel = '*:verbose'
+    }
+
+    const rpcAuthFlag = getFlag(flags, RpcAuthFlagKey)
+    if (typeof rpcAuthFlag === 'string') {
+      configOverrides.rpcAuthToken = rpcAuthFlag
     }
 
     this.sdk = await IronfishSdk.init({
