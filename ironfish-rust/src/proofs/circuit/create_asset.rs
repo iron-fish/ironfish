@@ -128,8 +128,8 @@ mod test {
 
     use crate::{
         note::Memo, primitives::asset_type::AssetInfo,
-        sapling_bls12, test_util::make_fake_witness, AssetType, Note, ProposedTransaction,
-        SaplingKey, proofs::notes::create_asset_note::CreateAssetNote,
+        proofs::notes::create_asset_note::CreateAssetNote, sapling_bls12,
+        test_util::make_fake_witness, AssetType, Note, ProposedTransaction, SaplingKey,
     };
 
     use super::CreateAsset;

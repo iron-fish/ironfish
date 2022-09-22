@@ -138,7 +138,7 @@ impl CreateAssetProof {
             asset_generator,
         })
     }
-    
+
     /// Stow the bytes of this CreateAssetProof in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         self.proof.write(&mut writer)?;
