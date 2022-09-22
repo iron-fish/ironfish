@@ -568,11 +568,11 @@ export class Accounts {
       const header = await this.chain.getHeader(headHash)
       Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
 
-      const headSequence = header.sequence
-      const unconfirmedSequenceStart =
-        headSequence - this.config.get('minimumBlockConfirmations')
-
-      return account.getBalance(unconfirmedSequenceStart, headSequence, tx)
+      return account.getBalance(
+        header.sequence,
+        this.config.get('minimumBlockConfirmations'),
+        tx,
+      )
     })
   }
 

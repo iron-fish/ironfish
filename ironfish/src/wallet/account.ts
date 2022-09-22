@@ -368,12 +368,14 @@ export class Account {
   }
 
   async getBalance(
-    unconfirmedSequenceStart: number,
     headSequence: number,
+    minimumBlockConfirmations: number,
     tx?: IDatabaseTransaction,
   ): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
     const unconfirmed = await this.getUnconfirmedBalance(tx)
     let confirmed = unconfirmed
+
+    const unconfirmedSequenceStart = headSequence - minimumBlockConfirmations
 
     for (let i = unconfirmedSequenceStart; i < headSequence; i++) {
       const noteHashes = this.sequenceToNoteHashes.get(i)
