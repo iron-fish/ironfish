@@ -120,8 +120,11 @@ export class Account {
     }
   }
 
-  async getDecryptedNote(hash: Buffer): Promise<DecryptedNoteValue | undefined> {
-    return await this.accountsDb.loadDecryptedNote(this, hash)
+  async getDecryptedNote(
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<DecryptedNoteValue | undefined> {
+    return await this.accountsDb.loadDecryptedNote(this, hash, tx)
   }
 
   async updateDecryptedNote(
