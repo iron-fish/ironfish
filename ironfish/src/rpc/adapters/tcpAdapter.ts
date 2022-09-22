@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
+import { IronfishNode } from '../../node'
 import { ApiNamespace } from '../routes'
 import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
 
@@ -11,12 +11,11 @@ export class RpcTcpAdapter extends RpcSocketAdapter {
   constructor(
     host: string,
     port: number,
-    rpcAuthTokenPath: string,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
-    fileSystem: FileSystem,
+    node: IronfishNode,
   ) {
-    super(host, port, rpcAuthTokenPath, logger.withTag('tcpadapter'), namespaces, fileSystem)
+    super(host, port, logger.withTag('tcpadapter'), namespaces, node)
   }
 
   protected createServer(): net.Server {

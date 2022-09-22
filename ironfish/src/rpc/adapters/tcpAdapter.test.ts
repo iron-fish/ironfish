@@ -32,16 +32,10 @@ describe('TcpAdapter', () => {
       },
     })
 
-    tcp = new RpcTcpAdapter(
-      'localhost',
-      0,
-      'certs/rpc-auth-token.txt',
-      undefined,
-      ALL_API_NAMESPACES,
-      sdk.fileSystem,
-    )
-
     const node = await sdk.node()
+
+    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES, node)
+
     await node.rpc.mount(tcp)
   })
 

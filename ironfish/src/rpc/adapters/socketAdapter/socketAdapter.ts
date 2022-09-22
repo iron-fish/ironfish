@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { v4 as uuid } from 'uuid'
-import { FileSystem } from '../../../fileSystems'
 import { createRootLogger, Logger } from '../../../logger'
 import { Meter } from '../../../metrics/meter'
+import { IronfishNode } from '../../../node'
 import { JSONUtils } from '../../../utils'
 import { ErrorUtils } from '../../../utils/error'
 import { YupUtils } from '../../../utils/yup'
@@ -36,8 +36,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
-  rpcAuthTokenPath: string
-  fileSystem: FileSystem
+  node: IronfishNode
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -59,17 +58,15 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   constructor(
     host: string,
     port: number,
-    rpcAuthTokenPath: string,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
-    fileSystem: FileSystem,
+    node: IronfishNode,
   ) {
     this.host = host
     this.port = port
-    this.rpcAuthTokenPath = rpcAuthTokenPath
+    this.node = node
     this.logger = logger.withTag('tcpadapter')
     this.namespaces = namespaces
-    this.fileSystem = fileSystem
   }
 
   protected abstract createServer(): net.Server | Promise<net.Server>
@@ -202,15 +199,14 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       // Authentication
       const requestAuthToken = message.auth
-      const rpcAuthTokenExists = await this.fileSystem.exists(this.rpcAuthTokenPath)
+      const rpcAuthToken = this.node.internal.get('rpcAuthToken')
 
-      if (!rpcAuthTokenExists) {
-        this.logger.debug(`Missing RPC Auth token files at ${this.rpcAuthTokenPath}.`)
+      if (!rpcAuthToken || rpcAuthToken === '') {
+        this.logger.debug(`Missing RPC Auth token in internal.json config.`)
         this.emitResponse(client, this.constructUnauthenticatedRequest())
         return
       }
 
-      const rpcAuthToken = await this.fileSystem.readFile(this.rpcAuthTokenPath)
       if (requestAuthToken !== rpcAuthToken) {
         this.emitResponse(client, this.constructUnauthenticatedRequest())
         return
