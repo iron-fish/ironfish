@@ -352,7 +352,7 @@ export class Account {
       const unconfirmedSequenceEnd = headSequence
 
       const unconfirmedSequenceStart = Math.max(
-        unconfirmedSequenceEnd - minimumBlockConfirmations,
+        unconfirmedSequenceEnd - minimumBlockConfirmations + 1,
         GENESIS_BLOCK_SEQUENCE,
       )
 
