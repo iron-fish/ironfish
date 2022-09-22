@@ -503,6 +503,66 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJh4g3NUhHvBD15FTaoNjZTVkb5Cc99VqJWFzfxjkikyeLABmiSOMEEly8nHtdf3kpIjVaJ7Y/ZZ/02y9q5c8g7EQVtPASFiz9wwVYrskNwphRmwZqgavFy8pJwuCsoUTQJhzBNUxnyLm8jTeBD5TMqTb4Hk40ACK+Eo2I3FL9O4UxOCn7ECSbGuIN6EAW/5oIIYCsXG95Y/hpZj755VQR2+h+z4fwh03gF058hL9Xg0r6gxF23ubKurW0WKV6gL84ZgyrPO0EvaLcVz+608gdjTIUDCUjnVV1JMcEYNQArscegMHWdv/XxQ74z/MM4q1xtbdn1QmHP0cHcvsBpphRMsIRFUgN/faQ9YjLThFqQe//JNjrm2M4gZRU7P6FKyhUQqGY3YdygiUrptm574U/4dPeRmtCK00h700bgG/NT//v0FZ6PWTIuyv8RoE36ALKmf1QNP9qAs1UiMIzZLbLjAGQn5VlU+C0HsR3UZbcXPLXXmtykJenPewikfAHqCTRb2TUJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwwdvJVoUzySKpodp+kwV5kaStJZHVjHCh/t0Jtgg4tkd1XTZOqF5AktHAK1LR7xCfx5RxGc1n5DWUqKn7OfO4DA=="
         }
       ]
+    },
+    {
+      "header": {
+        "sequence": 4,
+        "previousBlockHash": "A5F6FE1AE3F20FA5F547763735D59195807E8C863B77DF251CF512D0389B58DB",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:c9cT5ge6y9XxDCyz0chgxHodkP1Z+3rz2yvnWY3h9Ek="
+          },
+          "size": 6
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12748075573094071260697199444610197482511904927824894683337718312",
+        "randomness": "0",
+        "timestamp": 1663833496185,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "A7FC0A44BF0E82480C7649FBDF5E84E6B488635B61F453B55171C9AA3CC26C40",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALcOvkXNkzpQepto93k8gOg26zJSsywULeF3/0bbE/ojyBH2gS7MUpoDcMtRz52fH6xnit1tYB+r5oVkxEPNCOibV0PBb0kzPFlt51nd24xqw79lPBMGkaBvQEFhESrkjAZWlFuIA+4RsAYTPdCDkY6LMOSgZzH94BpX5YjryeYpU0vVXX8YgOWj4HvXic54LItF0++bdbI3oOm4wXhZ8WtGlhlwEoSBhzecAPv2mqNCtcALxATaQVsvpPlHTmLLIJbrc1Y7LVoSZb3w+waqhwVt79vjNOJt4Rcf2sh7sFOwnYuUEWSr/6hiVnYU43GjBGYkYARj2xy6NZEDkjDVxG7z83Rm2LpxEDQTAOwNs3JCyuSdLKr2lasQYDgZkHNzqTzZmjwquKsm7gjFkS8UsldLLB0N7OUo9O4HmvQ422eX3T3RDHY9PUTrmyovmcqLzqkyF3wcySOM3Ob4jM4AhSAVLvGjTPSdNSwsAP4Yica7GjBZiBKbtjIYCzG18Ion3/yf30JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwGgX0tafAN57Bq9YtpC7zh2blvQNUl4pEFtHXIIvj+Q8Ftt7bdpFOv0kLNGDdFMkq3InWP0OB62Ovn3Qwcy1iDA=="
+        }
+      ]
+    },
+    {
+      "header": {
+        "sequence": 5,
+        "previousBlockHash": "A7FC0A44BF0E82480C7649FBDF5E84E6B488635B61F453B55171C9AA3CC26C40",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:Md20imPcXOAh3TFZ6OKyeU70/WeTdb/IqTbRG0iiPHM="
+          },
+          "size": 7
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12710836793427115092230281943405998905502494236709291365074188333",
+        "randomness": "0",
+        "timestamp": 1663833496354,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "CF3840890A2D58F2D2E3F886E982D888BC797537C99ED0A0F5DE5A091882C21F",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJH87IAYH+KRg2PPfk8yYdAZYHvveSV7Cee2rIZ4SyjQYBFI2rXIooUVnRIkl7CbD6Suoqq3+aPG2Y6DNdsa10RlFDIMW0ncScmhuJkG8GJnkBnkTi2EhbXAP3KqxtIfqhQRjhQ+2sKspXdSq+OR7R4o/ou9+S987xfJx3floumQP7cZWnc3gxsvZivJPCwtNoimDqu9LfohxTODfNsorxsWM+UVP1MsmRDcg9yeahbW+RJqlKIDFDxiO5kduv98aTWnFby9T0ocO5TntB3fvusApK6PipjxIqx9YNNt+y5se+bEDunrve/jDv3D9e6b1fAPsvjCBcLGuL99lYUYmz87TbbuA8uPUhbGZIpIpaciN4tXP73ObJ5kNdVtIfUSHog+R/Qfi1EZcSl8TSoJSGOteWL7axH9tvHP17E1HcV99Te+eWLvji/V4RhtvxoI/GPhDrIN2RYpiDQJUSDeJnE+oDDwzpMSkcJfKBE7L4RKxwToGxHY8NAeHZZ8SLKP0WTaP0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw8I22+AzIVM9Y+IUpmAtgzH+u6ujwghxMu6lZULM7SMDdUOuoo/Ao9GoDK/5EO0vmhT3v9KPEAnvqFwWbc0dGBQ=="
+        }
+      ]
     }
   ],
   "Accounts getEarliestHeadHash should return the earliest head hash": [
