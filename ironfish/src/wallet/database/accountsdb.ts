@@ -10,14 +10,18 @@ import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
+  BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  NULL_ENCODING,
   NullableBufferEncoding,
   PrefixEncoding,
   StringEncoding,
+  U32_ENCODING,
 } from '../../storage'
+import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account } from '../account'
@@ -63,6 +67,16 @@ export class AccountsDB {
   nullifierToNoteHash: IDatabaseStore<{
     key: [Account['prefix'], Nullifier]
     value: Buffer
+  }>
+
+  sequenceToNoteHash: IDatabaseStore<{
+    key: [Account['prefix'], [number, Buffer]]
+    value: null
+  }>
+
+  nonChainNoteHashes: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: null
   }>
 
   transactions: IDatabaseStore<{
@@ -121,6 +135,22 @@ export class AccountsDB {
       name: 'n',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
+    })
+
+    this.sequenceToNoteHash = this.database.addStore({
+      name: 's',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
+    })
+
+    this.nonChainNoteHashes = this.database.addStore({
+      name: 'S',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: NULL_ENCODING,
     })
 
     this.transactions = this.database.addStore({
@@ -231,6 +261,14 @@ export class AccountsDB {
     await this.transactions.clear(tx, account.prefixRange)
   }
 
+  async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.sequenceToNoteHash.clear(tx, account.prefixRange)
+  }
+
+  async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.nonChainNoteHashes.clear(tx, account.prefixRange)
+  }
+
   async *loadTransactions(
     account: Account,
     tx?: IDatabaseTransaction,
@@ -249,6 +287,33 @@ export class AccountsDB {
     tx?: IDatabaseTransaction,
   ): Promise<TransactionValue | undefined> {
     return this.transactions.get([account.prefix, transactionHash], tx)
+  }
+
+  async setNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    sequence: number | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (sequence) {
+      await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
+      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+    } else {
+      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+    }
+  }
+
+  async deleteNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    sequence: number | null,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nonChainNoteHashes.del([account.prefix, noteHash])
+
+    if (sequence !== null) {
+      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+    }
   }
 
   async loadNoteHash(
@@ -328,6 +393,68 @@ export class AccountsDB {
     tx?: IDatabaseTransaction,
   ): Promise<DecryptedNoteValue | undefined> {
     return await this.decryptedNotes.get([account.prefix, noteHash], tx)
+  }
+
+  async *loadNoteHashesNotOnChain(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    for await (const [, noteHash] of this.nonChainNoteHashes.getAllKeysIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield noteHash
+    }
+  }
+
+  async *loadNotesNotOnChain(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<DecryptedNoteValue> {
+    for await (const noteHash of this.loadNoteHashesNotOnChain(account, tx)) {
+      const note = await this.loadDecryptedNote(account, noteHash, tx)
+
+      if (note) {
+        yield note
+      }
+    }
+  }
+
+  async *loadNoteHashesInSequenceRange(
+    account: Account,
+    start: number,
+    end: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      U32_ENCODING,
+      account.prefix.byteLength,
+    )
+
+    const range = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([account.prefix, start]),
+      encoding.serialize([account.prefix, end]),
+    )
+
+    for await (const [, [, noteHash]] of this.sequenceToNoteHash.getAllKeysIter(tx, range)) {
+      yield noteHash
+    }
+  }
+
+  async *loadNotesInSequenceRange(
+    account: Account,
+    start: number,
+    end: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+    for await (const noteHash of this.loadNoteHashesInSequenceRange(account, start, end, tx)) {
+      const note = await this.loadDecryptedNote(account, noteHash, tx)
+
+      if (note) {
+        yield { ...note, hash: noteHash }
+      }
+    }
   }
 
   async deleteDecryptedNote(

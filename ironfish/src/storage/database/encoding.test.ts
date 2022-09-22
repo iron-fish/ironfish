@@ -30,8 +30,8 @@ describe('Encoding', () => {
     it('should prefix keys', async () => {
       await db.open()
 
-      const keyRangeA = StorageUtils.getPrefixKeyRange(Buffer.from('a'), 1)
-      const keyRangeB = StorageUtils.getPrefixKeyRange(Buffer.from('b'), 1)
+      const keyRangeA = StorageUtils.getPrefixKeyRange(Buffer.from('a'))
+      const keyRangeB = StorageUtils.getPrefixKeyRange(Buffer.from('b'))
 
       // Write operations
       await prefixStore.put(['a', 'a'], 'a')

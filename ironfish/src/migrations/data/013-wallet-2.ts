@@ -348,6 +348,16 @@ export class Migration013 extends Migration {
 
         // Delete note from old store so that it will not be reprocessed if we resume the migration
         await stores.old.noteToNullifier.del(noteHashHex, tx)
+
+        if (transaction.sequence) {
+          await stores.new.sequenceToNoteHash.put(
+            [accountPrefix, [transaction.sequence, noteHash]],
+            null,
+            tx,
+          )
+        } else {
+          await stores.new.nonChainNoteHashes.put([accountPrefix, noteHash], null, tx)
+        }
       })
 
       countNote++
