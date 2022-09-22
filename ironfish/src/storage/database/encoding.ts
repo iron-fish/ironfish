@@ -6,8 +6,7 @@ import bufio from 'bufio'
 import hexArray from 'hex-array'
 import { IJSON, IJsonSerializable, Serde } from '../../serde'
 import { BigIntUtils } from '../../utils'
-import { DatabaseKeyRange, IDatabaseEncoding } from './types'
-import { StorageUtils } from './utils'
+import { IDatabaseEncoding } from './types'
 
 export class JsonEncoding<T extends IJsonSerializable> implements IDatabaseEncoding<T> {
   serialize = (value: T): Buffer => Buffer.from(IJSON.stringify(value), 'utf8')

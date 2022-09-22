@@ -6,16 +6,20 @@ import {
   BigIntLEEncoding,
   BufferEncoding,
   IDatabase,
+  NULL_ENCODING,
   NullableBufferEncoding,
   PrefixEncoding,
   StringEncoding,
+  U32_ENCODING,
 } from '../../../../storage'
 import { AccountsStore, AccountValue, AccountValueEncoding } from './accounts'
 import { BalancesStore } from './balances'
 import { DecryptedNotesStore, DecryptedNoteValueEncoding } from './decryptedNotes'
 import { HeadHashesStore } from './headHashes'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
+import { NonChainNoteHashesStore } from './nonChainNoteHashes'
 import { NullifierToNoteHashStore } from './nullifierToNoteHash'
+import { SequenceToNoteHashStore } from './sequenceToNoteHash'
 import { TransactionsStore, TransactionValueEncoding } from './transactions'
 
 export type NewStores = {
@@ -26,6 +30,8 @@ export type NewStores = {
   headHashes: HeadHashesStore
   decryptedNotes: DecryptedNotesStore
   balances: BalancesStore
+  nonChainNoteHashes: NonChainNoteHashesStore
+  sequenceToNoteHash: SequenceToNoteHashStore
 }
 
 export function loadNewStores(db: IDatabase): NewStores {
@@ -71,6 +77,22 @@ export function loadNewStores(db: IDatabase): NewStores {
     valueEncoding: new TransactionValueEncoding(),
   })
 
+  const sequenceToNoteHash: SequenceToNoteHashStore = db.addStore({
+    name: 's',
+    keyEncoding: new PrefixEncoding(
+      new BufferEncoding(),
+      new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+      4,
+    ),
+    valueEncoding: NULL_ENCODING,
+  })
+
+  const nonChainNoteHashes: NonChainNoteHashesStore = db.addStore({
+    name: 'S',
+    keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+    valueEncoding: NULL_ENCODING,
+  })
+
   return {
     meta,
     decryptedNotes,
@@ -79,5 +101,7 @@ export function loadNewStores(db: IDatabase): NewStores {
     nullifierToNoteHash,
     accounts,
     transactions,
+    sequenceToNoteHash,
+    nonChainNoteHashes,
   }
 }
