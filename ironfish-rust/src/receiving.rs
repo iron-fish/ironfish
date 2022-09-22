@@ -101,6 +101,7 @@ impl OutputSignature for ReceiptParams {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
+    // TODO: This is functionally identical to `write` fns, should we just combine the concept?
     fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
