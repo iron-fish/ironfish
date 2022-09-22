@@ -168,7 +168,6 @@ export class IronfishSdk {
           mode: 'ipc',
           socketPath: config.get('ipcPath'),
         },
-        rpcAuthToken,
         logger,
       )
     }
