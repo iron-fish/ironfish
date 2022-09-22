@@ -34,7 +34,7 @@ describe('TcpAdapter', () => {
 
     const node = await sdk.node()
 
-    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES, node)
+    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
     await node.rpc.mount(tcp)
   })
@@ -130,6 +130,33 @@ describe('TcpAdapter', () => {
       status: 400,
       code: ERROR_CODES.VALIDATION,
       codeMessage: expect.stringContaining('this must be defined'),
+    })
+  })
+
+  it('should authenticate', async () => {
+    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES, true)
+    await tcp?.start()
+    Assert.isNotUndefined(tcp)
+    Assert.isNotNull(tcp?.router)
+    Assert.isNotNull(tcp?.addressPort)
+
+    // Requires this
+    const schema = yup.string().defined()
+    // But send this instead
+    const body = undefined
+
+    tcp.router.register('foo/bar', schema, (res) => res.end())
+
+    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
+    await client.connect()
+
+    const response = client.request('foo/bar', body)
+
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 400,
+      code: ERROR_CODES.ERROR,
+      codeMessage: expect.stringContaining('Missing or bad authentication'),
     })
   })
 })
