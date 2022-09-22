@@ -15,6 +15,8 @@ import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { ValidationError } from '../rpc/adapters/errors'
+import { RpcRequest } from '../rpc/request'
+import { GetAccountNotesRequest, GetAccountNotesResponse } from '../rpc/routes'
 import { IDatabaseTransaction } from '../storage'
 import { PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -670,18 +672,10 @@ export class Accounts {
     this.scan = null
   }
 
-  getNotes(account: Account): {
-    notes: {
-      spender: boolean
-      amount: number
-      memo: string
-      noteTxHash: string
-    }[]
-  } {
-    this.assertHasAccount(account)
-
-    const notes = []
-
+  getNotes(
+    account: Account,
+    request: RpcRequest<GetAccountNotesRequest, GetAccountNotesResponse>,
+  ): void {
     for (const transactionMapValue of this.transactionMap.values()) {
       const transaction = transactionMapValue.transaction
 
@@ -697,17 +691,18 @@ export class Accounts {
         }
 
         if (decryptedNote && decryptedNote.value() !== BigInt(0)) {
-          notes.push({
-            spender,
-            amount: Number(decryptedNote.value()),
-            memo: decryptedNote.memo().replace(/\x00/g, ''),
-            noteTxHash: transaction.unsignedHash().toString('hex'),
+          request.stream({
+            account: account.displayName,
+            note: {
+              spender,
+              amount: Number(decryptedNote.value()),
+              memo: decryptedNote.memo().replace(/\x00/g, ''),
+              noteTxHash: transaction.unsignedHash().toString('hex'),
+            },
           })
         }
       }
     }
-
-    return { notes }
   }
 
   private async getUnspentNotes(account: Account): Promise<

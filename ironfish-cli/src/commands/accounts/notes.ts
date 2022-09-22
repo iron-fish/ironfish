@@ -3,8 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { oreToIron } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+
+type Note = {
+  spender: boolean
+  amount: number
+  memo: string
+  noteTxHash: string
+}
 
 export class NotesCommand extends IronfishCommand {
   static description = `Display the account notes`
@@ -28,29 +36,46 @@ export class NotesCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.getAccountNotes({ account })
+    const response = client.getAccountNotesStream({ account })
 
-    const { account: accountResponse, notes } = response.content
+    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
+    const text = blessed.text()
+    screen.append(text)
 
-    this.log(`\n ${accountResponse} - Account notes\n`)
+    const notes: Note[] = []
 
-    CliUx.ux.table(notes, {
-      isSpender: {
-        header: 'Spender',
-        get: (row) => (row.spender ? `✔` : `x`),
-      },
-      amount: {
-        header: 'Amount ($IRON)',
-        get: (row) => oreToIron(row.amount),
-      },
-      memo: {
-        header: 'Memo',
-      },
-      noteTxHash: {
-        header: 'From Transaction',
-      },
-    })
-
-    this.log(`\n`)
+    for await (const { account, note } of response.contentStream()) {
+      notes.push(note)
+      const header = `\n ${account} - Account note\n`
+      text.setContent(header + renderTable(notes))
+      screen.render()
+    }
   }
+}
+
+function renderTable(notes: Note[]): string {
+  const columns: CliUx.Table.table.Columns<Note> = {
+    isSpender: {
+      header: 'Spender',
+      get: (row) => (row.spender ? `✔` : `x`),
+    },
+    amount: {
+      header: 'Amount ($IRON)',
+      get: (row) => oreToIron(row.amount),
+    },
+    memo: {
+      header: 'Memo',
+    },
+    noteTxHash: {
+      header: 'From Transaction',
+    },
+  }
+
+  let result = ''
+
+  CliUx.ux.table(notes, columns, {
+    printLine: (line) => (result += `${String(line)}\n`),
+  })
+
+  return result
 }

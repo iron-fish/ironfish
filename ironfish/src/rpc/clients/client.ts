@@ -206,13 +206,16 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountNotes(
-    params: GetAccountNotesRequest = {},
-  ): Promise<RpcResponseEnded<GetAccountNotesResponse>> {
-    return await this.request<GetAccountNotesResponse>(
+  getAccountNotesStream(
+    params: GetAccountNotesRequest,
+  ): RpcResponse<void, GetAccountNotesResponse> {
+    return this.request<void, GetAccountNotesResponse>(
       `${ApiNamespace.account}/getAccountNotes`,
-      params,
-    ).waitForEnd()
+      {
+        ...params,
+        stream: true,
+      },
+    )
   }
 
   async getAccountTransaction(

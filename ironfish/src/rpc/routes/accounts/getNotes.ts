@@ -5,38 +5,35 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetAccountNotesRequest = { account?: string }
+export type GetAccountNotesRequest = { account?: string; stream?: boolean }
 
 export type GetAccountNotesResponse = {
   account: string
-  notes: {
+  note: {
     spender: boolean
     amount: number
     memo: string
     noteTxHash: string
-  }[]
+  }
 }
 
 export const GetAccountNotesRequestSchema: yup.ObjectSchema<GetAccountNotesRequest> = yup
   .object({
     account: yup.string().strip(true),
+    stream: yup.boolean().optional(),
   })
   .defined()
 
 export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResponse> = yup
   .object({
     account: yup.string().defined(),
-    notes: yup
-      .array(
-        yup
-          .object({
-            spender: yup.boolean().defined(),
-            amount: yup.number().defined(),
-            memo: yup.string().trim().defined(),
-            noteTxHash: yup.string().defined(),
-          })
-          .defined(),
-      )
+    note: yup
+      .object({
+        spender: yup.boolean().defined(),
+        amount: yup.number().defined(),
+        memo: yup.string().trim().defined(),
+        noteTxHash: yup.string().defined(),
+      })
       .defined(),
   })
   .defined()
@@ -46,7 +43,6 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
   GetAccountNotesRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    const { notes } = node.accounts.getNotes(account)
-    request.end({ account: account.displayName, notes })
+    node.accounts.getNotes(account, request)
   },
 )
