@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
-import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
+import {
+  Config,
+  ConfigOptions,
+  DEFAULT_DATA_DIR,
+  InternalOptions,
+  InternalStore,
+} from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -68,6 +74,7 @@ export class IronfishSdk {
     pkg,
     configName,
     configOverrides,
+    internalConfigOverrides,
     fileSystem,
     dataDir,
     logger = createRootLogger(),
@@ -77,6 +84,7 @@ export class IronfishSdk {
     pkg?: Package
     configName?: string
     configOverrides?: Partial<ConfigOptions>
+    internalConfigOverrides?: Partial<InternalOptions>
     fileSystem?: FileSystem
     dataDir?: string
     logger?: Logger
@@ -105,6 +113,10 @@ export class IronfishSdk {
 
     if (configOverrides) {
       Object.assign(config.overrides, configOverrides)
+    }
+
+    if (internalConfigOverrides) {
+      Object.assign(internal.overrides, internalConfigOverrides)
     }
 
     // Update the logger settings
@@ -255,7 +267,6 @@ export class IronfishSdk {
             this.config.get('rpcTcpPort'),
             this.logger,
             namespaces,
-            node,
           ),
         )
       }

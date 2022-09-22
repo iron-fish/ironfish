@@ -6,6 +6,7 @@ import {
   createRootLogger,
   DatabaseVersionError,
   ErrorUtils,
+  InternalOptions,
   IronfishSdk,
   Logger,
   RpcConnectionError,
@@ -112,6 +113,7 @@ export abstract class IronfishCommand extends Command {
     const configFlag = getFlag(flags, ConfigFlagKey)
 
     const configOverrides: Partial<ConfigOptions> = {}
+    const internalConfigOverrides: Partial<InternalOptions> = {}
 
     const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
     if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
@@ -158,7 +160,7 @@ export abstract class IronfishCommand extends Command {
 
     const rpcAuthFlag = getFlag(flags, RpcAuthFlagKey)
     if (typeof rpcAuthFlag === 'string') {
-      configOverrides.rpcAuthToken = rpcAuthFlag
+      internalConfigOverrides.rpcAuthToken = rpcAuthFlag
     }
 
     this.sdk = await IronfishSdk.init({

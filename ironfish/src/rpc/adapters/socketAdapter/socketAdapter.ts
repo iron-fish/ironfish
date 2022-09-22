@@ -36,7 +36,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
-  node: IronfishNode
+  enableAuthentication = true
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -60,13 +60,13 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     port: number,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
-    node: IronfishNode,
+    enableAuthentication: boolean,
   ) {
     this.host = host
     this.port = port
-    this.node = node
     this.logger = logger.withTag('tcpadapter')
     this.namespaces = namespaces
+    this.enableAuthentication = enableAuthentication
   }
 
   protected abstract createServer(): net.Server | Promise<net.Server>
@@ -197,19 +197,19 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       const message = result.result.data
 
-      // Authentication
-      const requestAuthToken = message.auth
-      const rpcAuthToken = this.node.internal.get('rpcAuthToken')
-
-      if (!rpcAuthToken || rpcAuthToken === '') {
-        this.logger.debug(`Missing RPC Auth token in internal.json config.`)
-        this.emitResponse(client, this.constructUnauthenticatedRequest())
+      if (this.router == null || this.router.server == null) {
+        this.emitResponse(client, this.constructUnmountedAdapter())
         return
       }
 
-      if (requestAuthToken !== rpcAuthToken) {
-        this.emitResponse(client, this.constructUnauthenticatedRequest())
-        return
+      // Authentication
+      if (this.enableAuthentication) {
+        const isAuthenticated = this.router.server.authenticate(message.auth)
+
+        if (!isAuthenticated) {
+          this.emitResponse(client, this.constructUnauthenticatedRequest())
+          return
+        }
       }
 
       const requestId = uuid()
@@ -224,11 +224,6 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
         },
       )
       client.requests.set(requestId, request)
-
-      if (this.router == null) {
-        this.emitResponse(client, this.constructUnmountedAdapter())
-        return
-      }
 
       try {
         await this.router.route(message.type, request)
