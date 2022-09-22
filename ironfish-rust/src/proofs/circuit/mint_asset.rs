@@ -135,10 +135,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Compute pk_d = g_d^ivk
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
-        let asset_type = self
-            .asset_info
-            .as_ref()
-            .and_then(|ai| Some(ai.asset_type()));
+        let asset_type = self.asset_info.as_ref().map(|ai| ai.asset_type());
 
         // TODO: This has some duplicate work. Maybe we can move this to an optional argument
         let public_address_bits = slice_into_boolean_vec_le(

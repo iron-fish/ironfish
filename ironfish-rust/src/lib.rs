@@ -10,7 +10,6 @@ use bls12_381::Bls12;
 
 mod serializing;
 
-pub mod asset_note;
 pub mod errors;
 pub mod keys;
 pub mod merkle_note;

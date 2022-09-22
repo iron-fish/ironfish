@@ -2,7 +2,6 @@ use std::{io, slice};
 
 use bellman::groth16;
 use bls12_381::Bls12;
-use ff::PrimeField;
 use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
@@ -95,7 +94,7 @@ impl CreateAssetParams {
 
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
-        writer.write_all(&self.create_commitment.to_repr().as_ref())?;
+        writer.write_all(&self.create_commitment.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.asset_generator.to_bytes())?;
         Ok(())
