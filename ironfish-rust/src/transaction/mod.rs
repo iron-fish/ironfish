@@ -7,8 +7,10 @@ pub mod transfer;
 use crate::{
     primitives::asset_type::AssetType,
     proofs::notes::{
-        create_asset_note::CreateAssetNote, creating_asset::CreateAssetParams,
-        mint_asset_note::MintAssetNote, minting_asset::MintAssetParams,
+        create_asset_note::CreateAssetNote,
+        creating_asset::{CreateAssetParams, CreateAssetProof},
+        mint_asset_note::MintAssetNote,
+        minting_asset::{MintAssetParams, MintAssetProof},
     },
     receiving::OutputSignature,
     spending::SpendSignature,
@@ -267,12 +269,22 @@ impl ProposedTransaction {
         for receipt in &self.receipts {
             receipt_proofs.push(receipt.post()?);
         }
+        let mut create_asset_proofs = Vec::with_capacity(self.create_asset_params.len());
+        for create_asset_params in &self.create_asset_params {
+            create_asset_proofs.push(create_asset_params.post()?);
+        }
+        let mut mint_asset_proofs = Vec::with_capacity(self.mint_asset_params.len());
+        for mint_asset_params in &self.mint_asset_params {
+            mint_asset_proofs.push(mint_asset_params.post()?);
+        }
         Ok(Transaction {
             sapling: self.sapling.clone(),
             expiration_sequence: self.expiration_sequence,
             transaction_fee: self.transaction_fee,
             spends: spend_proofs,
             receipts: receipt_proofs,
+            create_asset_proofs,
+            mint_asset_proofs,
             binding_signature,
         })
     }
@@ -399,6 +411,12 @@ pub struct Transaction {
     /// List of receipts, or output notes that have been created.
     receipts: Vec<ReceiptProof>,
 
+    /// List of proofs associated with create asset notes
+    create_asset_proofs: Vec<CreateAssetProof>,
+
+    /// List of proofs associated with mint asset notes
+    mint_asset_proofs: Vec<MintAssetProof>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and receipts when the transaction was created.
     binding_signature: Signature,
@@ -419,15 +437,25 @@ impl Transaction {
     ) -> Result<Self, TransactionError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_receipts = reader.read_u64::<LittleEndian>()?;
+        let num_create_asset_proofs = reader.read_u64::<LittleEndian>()?;
+        let num_mint_asset_proofs = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
         let mut spends = Vec::with_capacity(num_spends as usize);
-        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_spends {
             spends.push(SpendProof::read(&mut reader)?);
         }
+        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_receipts {
             receipts.push(ReceiptProof::read(&mut reader)?);
+        }
+        let mut create_asset_proofs = Vec::with_capacity(num_create_asset_proofs as usize);
+        for _ in 0..num_create_asset_proofs {
+            create_asset_proofs.push(CreateAssetProof::read(&mut reader)?);
+        }
+        let mut mint_asset_proofs = Vec::with_capacity(num_mint_asset_proofs as usize);
+        for _ in 0..num_mint_asset_proofs {
+            mint_asset_proofs.push(MintAssetProof::read(&mut reader)?);
         }
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -436,6 +464,8 @@ impl Transaction {
             transaction_fee,
             spends,
             receipts,
+            create_asset_proofs,
+            mint_asset_proofs,
             binding_signature,
             expiration_sequence,
         })
@@ -446,6 +476,8 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.create_asset_proofs.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.mint_asset_proofs.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.transaction_fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
         for spend in self.spends.iter() {
@@ -453,6 +485,12 @@ impl Transaction {
         }
         for receipt in self.receipts.iter() {
             receipt.write(&mut writer)?;
+        }
+        for create_asset_proof in self.create_asset_proofs.iter() {
+            create_asset_proof.write(&mut writer)?;
+        }
+        for mint_asset_proof in self.mint_asset_proofs.iter() {
+            mint_asset_proof.write(&mut writer)?;
         }
         self.binding_signature.write(&mut writer)?;
 

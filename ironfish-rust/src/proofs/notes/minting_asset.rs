@@ -1,3 +1,5 @@
+use std::{io, slice};
+
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, WriteBytesExt};
@@ -12,6 +14,7 @@ use crate::{
     proofs::circuit::mint_asset::MintAsset,
     proofs::notes::mint_asset_note::MintAssetNote,
     sapling_bls12::{self, SAPLING},
+    serializing::read_scalar,
     witness::WitnessTrait,
     SaplingKey,
 };
@@ -153,6 +156,51 @@ pub struct MintAssetProof {
 }
 
 impl MintAssetProof {
+    /// Load a MintAssetProof from a Read implementation( e.g: socket, file)
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
+        let proof = groth16::Proof::read(&mut reader)?;
+
+        let mint_commitment = read_scalar(&mut reader).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unable to convert note commitment",
+            )
+        })?;
+
+        let mut encrypted_note = [0; 12];
+        reader.read_exact(&mut encrypted_note)?;
+
+        let asset_generator = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
+            let point = ExtendedPoint::from_bytes(&bytes);
+            if point.is_none().into() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Unable to convert asset generator",
+                )
+                .into());
+            }
+            point.unwrap()
+        };
+
+        Ok(MintAssetProof {
+            proof,
+            mint_commitment,
+            encrypted_note,
+            asset_generator,
+        })
+    }
+
+    /// Stow the bytes of this CreateAssetProof in the given writer.
+    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+        self.proof.write(&mut writer)?;
+        writer.write_all(&self.mint_commitment.to_bytes())?;
+        writer.write_all(&self.encrypted_note)?;
+        writer.write_all(&self.asset_generator.to_bytes())?;
+        Ok(())
+    }
+
     pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
         let generator_affine = self.asset_generator.to_affine();
 
