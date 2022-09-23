@@ -40,11 +40,17 @@ export default class Download extends IronfishCommand {
       char: 'p',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'Path to snapshot file',
+      description: 'Path to a downloaded snapshot file to import',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'Confirm without asking',
+      description: 'Confirm download without asking',
+    }),
+    cleanup: Flags.boolean({
+      default: true,
+      description: 'Remove downloaded snapshot file after import',
+      allowNo: true,
+      hidden: true,
     }),
   }
 
@@ -230,6 +236,12 @@ export default class Download extends IronfishCommand {
     CliUx.ux.action.start(`Unzipping ${snapshotPath} to ${chainDatabasePath}`)
     await this.unzip(snapshotPath, chainDatabasePath)
     CliUx.ux.action.stop('done')
+
+    if (flags.cleanup) {
+      CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
+      await fsAsync.rm(snapshotPath)
+      CliUx.ux.action.stop('done')
+    }
   }
 
   async unzip(source: string, dest: string): Promise<void> {
