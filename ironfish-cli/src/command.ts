@@ -18,7 +18,6 @@ import {
   DatabaseFlag,
   DatabaseFlagKey,
   DataDirFlagKey,
-  RpcAuthFlag,
   RpcAuthFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,

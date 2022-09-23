@@ -23,6 +23,7 @@ describe('IronfishTcpClient', () => {
         data: {
           mid: messageId,
           type: route,
+          auth: 'test token',
         },
       }) + MESSAGE_DELIMITER
 
@@ -31,7 +32,7 @@ describe('IronfishTcpClient', () => {
 
     client.client = new net.Socket()
 
-    client.request(route, 'test token')
+    client.request(route)
     expect(client.client.write).toHaveBeenLastCalledWith(expectedMessage)
   })
 })

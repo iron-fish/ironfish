@@ -159,5 +159,5 @@ describe('TcpAdapter', () => {
       code: ERROR_CODES.UNAUTHENTICATION,
       codeMessage: expect.stringContaining('Missing or bad authentication'),
     })
-  }, 50000000)
+  })
 })

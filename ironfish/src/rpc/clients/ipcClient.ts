@@ -23,11 +23,12 @@ export class RpcIpcClient extends RpcSocketClient {
   onError = new Event<[error: unknown]>()
 
   constructor(
+    rpcAuthToken: string,
     connection: Partial<RpcClientConnectionInfo> = {},
     logger: Logger = createRootLogger(),
     retryConnect = false,
   ) {
-    super(logger.withTag('ipcclient'), '')
+    super(logger.withTag('ipcclient'), rpcAuthToken)
     this.connection = connection
     this.retryConnect = retryConnect
   }

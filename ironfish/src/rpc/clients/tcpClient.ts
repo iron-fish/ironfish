@@ -76,7 +76,7 @@ export class RpcTcpClient extends RpcSocketClient {
     }
   }
 
-  protected send(messageId: number, route: string, authToken: string, data: unknown): void {
+  protected send(messageId: number, route: string, data: unknown, authToken: string): void {
     Assert.isNotNull(this.client)
     const message = {
       type: 'message',

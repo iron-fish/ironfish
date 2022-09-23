@@ -26,6 +26,9 @@ describe('IpcAdapter', () => {
         enableRpc: false,
         enableRpcIpc: false,
       },
+      internalConfigOverrides: {
+        rpcAuthToken: 'test token',
+      },
     })
 
     ipc = new RpcIpcAdapter(ALL_API_NAMESPACES, {
@@ -78,7 +81,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token')
+    const response = client.request('foo/bar')
     expect((await response.contentStream().next()).value).toBe('hello 1')
     expect((await response.contentStream().next()).value).toBe('hello 2')
 
@@ -96,7 +99,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const next = client.request('foo/bar', 'test token').contentStream().next()
+    const next = client.request('foo/bar').contentStream().next()
 
     client.close()
     waitResolve()
@@ -113,7 +116,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token')
+    const response = client.request('foo/bar')
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
@@ -134,7 +137,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token', body)
+    const response = client.request('foo/bar', body)
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
