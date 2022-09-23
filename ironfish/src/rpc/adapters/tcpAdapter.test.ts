@@ -6,6 +6,7 @@
 import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
+import { IronfishNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
@@ -17,6 +18,7 @@ describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter | undefined
   let sdk: IronfishSdk
   let client: RpcTcpClient | undefined
+  let node: IronfishNode
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
@@ -32,7 +34,7 @@ describe('TcpAdapter', () => {
       },
     })
 
-    const node = await sdk.node()
+    node = await sdk.node()
 
     tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
@@ -76,7 +78,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token')
+    const response = client.request('foo/bar')
     expect((await response.contentStream().next()).value).toBe('hello 1')
     expect((await response.contentStream().next()).value).toBe('hello 2')
 
@@ -97,7 +99,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token')
+    const response = client.request('foo/bar')
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
@@ -123,7 +125,7 @@ describe('TcpAdapter', () => {
     client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
-    const response = client.request('foo/bar', 'test token', body)
+    const response = client.request('foo/bar', body)
 
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
@@ -133,30 +135,32 @@ describe('TcpAdapter', () => {
     })
   })
 
-  it('should authenticate', async () => {
-    tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES, true)
-    await tcp?.start()
+  it.only('should authenticate', async () => {
     Assert.isNotUndefined(tcp)
-    Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
+    tcp.enableAuthentication = true
+    await tcp.start()
 
-    // Requires this
-    const schema = yup.string().defined()
-    // But send this instead
-    const body = undefined
-
-    tcp.router.register('foo/bar', schema, (res) => res.end())
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
+    
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
 
     client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
     await client.connect()
 
-    const response = client.request('foo/bar', body)
-
+    const response = client.request('foo/bar', 'hello world')
+    
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    
     await expect(response.waitForEnd()).rejects.toMatchObject({
-      status: 400,
-      code: ERROR_CODES.ERROR,
+      status: 401,
+      code: ERROR_CODES.UNAUTHENTICATION,
       codeMessage: expect.stringContaining('Missing or bad authentication'),
     })
-  })
+  }, 5000000000000)
 })
+
+
+

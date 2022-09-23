@@ -5,7 +5,6 @@ import net from 'net'
 import { v4 as uuid } from 'uuid'
 import { createRootLogger, Logger } from '../../../logger'
 import { Meter } from '../../../metrics/meter'
-import { IronfishNode } from '../../../node'
 import { JSONUtils } from '../../../utils'
 import { ErrorUtils } from '../../../utils/error'
 import { YupUtils } from '../../../utils/yup'
@@ -207,7 +206,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
         const isAuthenticated = this.router.server.authenticate(message.auth)
 
         if (!isAuthenticated) {
-          this.emitResponse(client, this.constructUnauthenticatedRequest())
+          this.emitResponse(client, this.constructUnauthenticatedRequest(parsed))
           return
         }
       }
@@ -331,13 +330,23 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  constructUnauthenticatedRequest(): ServerSocketRpc {
+  constructUnauthenticatedRequest(request: unknown): ServerSocketRpc {
     const error = new Error(`Missing or bad authentication`)
 
     const data: SocketRpcError = {
-      code: ERROR_CODES.ERROR,
+      code: ERROR_CODES.UNAUTHENTICATION,
       message: error.message,
       stack: error.stack,
+    }
+
+    if (
+      typeof request === 'object' &&
+      request !== null &&
+      'id' in request &&
+      typeof (request as { id: unknown })['id'] === 'number'
+    ) {
+      const id = (request as { id: unknown })['id'] as number
+      return this.constructMessage(id, 401, data)
     }
 
     return {
