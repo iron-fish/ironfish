@@ -58,6 +58,8 @@ impl Note {
         bls12_381::Scalar::one()
     }
 
+    // TODO: Look into how many times this is called in the object's lifecycle
+    // and see if caching the preimage, hash, etc makes sense.
     /// Computes the note commitment, returning the full point.
     fn cm_full_point(&self) -> jubjub::SubgroupPoint {
         // Calculate the note contents, as bytes

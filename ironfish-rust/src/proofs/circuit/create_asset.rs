@@ -241,8 +241,6 @@ mod test {
 
     #[test]
     fn test_proper_create_asset_circuit() {
-        let tx_fee = 1;
-
         let sapling = sapling_bls12::SAPLING.clone();
 
         // Test setup: create sapling keys
@@ -256,6 +254,8 @@ mod test {
 
         // Create asset note
         let create_note = CreateAssetNote::new(asset_info);
+
+        let tx_fee = 1;
 
         // Regular spend note for transaction fee
         let in_note = Note::new(
