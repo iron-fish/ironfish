@@ -63,7 +63,7 @@ impl CreateAssetParams {
         // Create proof
         let circuit = CreateAsset {
             asset_info: Some(asset_info),
-            commitment_randomness: Some(create_asset_note.randomness),
+            create_commitment_randomness: Some(create_asset_note.randomness),
         };
         let proof = groth16::create_random_proof(circuit, &SAPLING.create_asset_params, &mut OsRng)
             .expect("Create valid proof");

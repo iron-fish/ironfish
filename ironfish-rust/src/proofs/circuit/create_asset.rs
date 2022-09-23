@@ -16,7 +16,7 @@ use crate::{
 pub struct CreateAsset {
     pub asset_info: Option<AssetInfo>,
 
-    pub commitment_randomness: Option<jubjub::Fr>,
+    pub create_commitment_randomness: Option<jubjub::Fr>,
 }
 
 impl Circuit<bls12_381::Scalar> for CreateAsset {
@@ -25,7 +25,7 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
         // Hash the Asset Info pre-image
-        let combined_preimage = hash_asset_info_to_preimage(
+        let identifier_preimage = hash_asset_info_to_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             self.asset_info,
         )?;
@@ -33,20 +33,22 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         // Computed identifier bits from the given asset info
         let asset_identifier = blake2s::blake2s(
             cs.namespace(|| "blake2s(asset info)"),
-            &combined_preimage,
+            &identifier_preimage,
             ASSET_IDENTIFIER_PERSONALIZATION, // TODO: Another candidate for hard-coding the bits
         )?;
 
         // Ensure the pre-image of the generator is 32 bytes
         assert_eq!(asset_identifier.len(), 256);
 
-        let computed_asset_generator_bits = blake2s::blake2s(
+        // The asset generator computed in the circuit
+        let hashed_asset_generator_bits = blake2s::blake2s(
             cs.namespace(|| "blake2s(asset identifier)"),
             &asset_identifier,
             VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
         )?;
 
         // Witnessing this edwards point proves it's a valid point on the curve
+        // using the generator point passed in as a circuit parameter
         let provided_asset_generator = ecc::EdwardsPoint::witness(
             cs.namespace(|| "witness asset generator"),
             self.asset_info
@@ -73,38 +75,41 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         for i in 0..256 {
             boolean::Boolean::enforce_equal(
                 cs.namespace(|| format!("integrity of asset generator bit {}", i)),
-                &computed_asset_generator_bits[i],
+                &hashed_asset_generator_bits[i],
                 &provided_asset_generator_bits[i],
             )?;
         }
 
         // TODO: Create an Asset Note concept instead of using Asset Info
         // TODO: does this need a different personalization
-        let mut cm = pedersen_hash::pedersen_hash(
+        let mut commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
-            &combined_preimage,
+            &identifier_preimage,
         )?;
 
         {
             // Booleanize the randomness
-            let rcm = boolean::field_into_boolean_vec_le(
+            let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "rcm"),
-                self.commitment_randomness,
+                self.create_commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
-            let rcm = ecc::fixed_base_multiplication(
+            let commitment_randomness = ecc::fixed_base_multiplication(
                 cs.namespace(|| "computation of commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &rcm,
+                &randomness_bits,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+            commitment = commitment.add(
+                cs.namespace(|| "randomization of note commitment"),
+                &commitment_randomness,
+            )?;
         }
 
-        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+        commitment.get_u().inputize(cs.namespace(|| "commitment"))?;
 
         // Note to selves: Create Asset circuit is going to be basically identical to Output circuit
         // with proving you own the public key in Asset Info
@@ -140,7 +145,7 @@ mod test {
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
             CreateAsset {
                 asset_info: None,
-                commitment_randomness: None,
+                create_commitment_randomness: None,
             },
             &mut OsRng,
         )
@@ -158,48 +163,48 @@ mod test {
 
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
 
-        let commitment_randomness = {
+        let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
             jubjub::Fr::from_bytes_wide(&buffer)
         };
 
-        let mut commitment_plaintext: Vec<u8> = vec![];
-        commitment_plaintext.extend(GH_FIRST_BLOCK);
-        commitment_plaintext.extend(asset_info.name());
-        commitment_plaintext.extend(asset_info.public_address_bytes());
-        commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+        let mut create_commitment_plaintext: Vec<u8> = vec![];
+        create_commitment_plaintext.extend(GH_FIRST_BLOCK);
+        create_commitment_plaintext.extend(asset_info.name());
+        create_commitment_plaintext.extend(asset_info.public_address_bytes());
+        create_commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
 
         // TODO: Make a helper function
-        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+        let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
-            commitment_plaintext
+            create_commitment_plaintext
                 .into_iter()
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
 
-        let commitment_full_point =
-            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+        let create_commitment_full_point = create_commitment_hash
+            + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
 
-        let commitment = commitment_full_point.to_affine().get_u();
+        let create_commitment = create_commitment_full_point.to_affine().get_u();
 
-        let inputs = [
+        let public_inputs = [
             generator_affine.get_u(),
             generator_affine.get_v(),
-            commitment,
+            create_commitment,
         ];
 
         // Create proof
         let circuit = CreateAsset {
             asset_info: Some(asset_info),
-            commitment_randomness: Some(commitment_randomness),
+            create_commitment_randomness: Some(create_commitment_randomness),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
 
         // Verify proof
-        groth16::verify_proof(&pvk, &proof, &inputs).expect("Can verify proof");
+        groth16::verify_proof(&pvk, &proof, &public_inputs).expect("Can verify proof");
 
         // Sanity check that this fails with different asset name
         let bad_name = "My custom asset 2";
@@ -210,7 +215,7 @@ mod test {
         let bad_inputs = [
             bad_generator_affine.get_u(),
             bad_generator_affine.get_v(),
-            commitment,
+            create_commitment,
         ];
 
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
@@ -226,7 +231,7 @@ mod test {
         let bad_inputs = [
             bad_generator_affine.get_u(),
             bad_generator_affine.get_v(),
-            commitment,
+            create_commitment,
         ];
 
         assert!(groth16::verify_proof(&pvk, &proof, &bad_inputs).is_err());
@@ -250,7 +255,7 @@ mod test {
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         // Create asset note
-        let note = CreateAssetNote::new(asset_info);
+        let create_note = CreateAssetNote::new(asset_info);
 
         // Regular spend note for transaction fee
         let in_note = Note::new(
@@ -259,14 +264,14 @@ mod test {
             Memo::default(),
             AssetType::default(),
         );
-        let witness = make_fake_witness(&in_note);
+        let note_witness = make_fake_witness(&in_note);
 
         let mut transaction = ProposedTransaction::new(sapling);
         transaction
-            .spend(sapling_key.clone(), &in_note, &witness)
+            .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
         transaction
-            .create_asset(&sapling_key, &note)
+            .create_asset(&sapling_key, &create_note)
             .expect("Can add create asset note");
 
         let public_transaction = transaction

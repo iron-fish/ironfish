@@ -593,7 +593,7 @@ mod test {
         let create_asset_params = groth16::generate_random_parameters::<Bls12, _, _>(
             CreateAsset {
                 asset_info: None,
-                commitment_randomness: None,
+                create_commitment_randomness: None,
             },
             &mut OsRng,
         )
@@ -669,7 +669,7 @@ mod test {
         // Create proof
         let circuit = CreateAsset {
             asset_info: Some(asset_info.clone()),
-            commitment_randomness: Some(commitment_randomness),
+            create_commitment_randomness: Some(commitment_randomness),
         };
         let proof = groth16::create_random_proof(circuit, &create_asset_params, &mut OsRng)
             .expect("Create valid proof");
