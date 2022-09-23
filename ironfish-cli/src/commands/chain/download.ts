@@ -215,28 +215,21 @@ export default class Download extends IronfishCommand {
       }
     }
 
-    try {
-      const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
+    const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
-      // chainDatabasePath must be empty before unzipping snapshot
-      CliUx.ux.action.start(
-        `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
-      )
-      await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
-      CliUx.ux.action.stop('done')
+    // chainDatabasePath must be empty before unzipping snapshot
+    CliUx.ux.action.start(
+      `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
+    )
+    await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
+    CliUx.ux.action.stop('done')
 
-      // ensure that chainDatabasePath exists
-      await fsAsync.mkdir(chainDatabasePath, { recursive: true })
+    // ensure that chainDatabasePath exists
+    await fsAsync.mkdir(chainDatabasePath, { recursive: true })
 
-      CliUx.ux.action.start(`Unzipping ${snapshotPath} to ${chainDatabasePath}`)
-      await this.unzip(snapshotPath, chainDatabasePath)
-      CliUx.ux.action.stop('done')
-    } catch (e) {
-      this.logger.error(
-        `Failed to import snapshot. Run \`ironfish chain:download --path ${snapshotPath}\` to retry import without download`,
-      )
-      throw e
-    }
+    CliUx.ux.action.start(`Unzipping ${snapshotPath} to ${chainDatabasePath}`)
+    await this.unzip(snapshotPath, chainDatabasePath)
+    CliUx.ux.action.stop('done')
   }
 
   async unzip(source: string, dest: string): Promise<void> {
