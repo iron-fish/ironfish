@@ -3,10 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RpcRequestError } from '../rpc/clients/errors'
-import { IpcResponse } from '../rpc/adapters/ipcAdapter'
-import { YupUtils } from './'
-import { SocketRpcErrorSchema } from '../rpc/adapters/socketAdapter/protocol'
-import { ERROR_CODES } from '../rpc/adapters/errors'
 /**
  * This is used to unwrap a message from an error
  *
@@ -48,19 +44,6 @@ function isNoEntityError(error: unknown): error is Error & { code: 'NOENT' } {
   return isNodeError(error) && error.code === 'ENOENT'
 }
 
-async function isRequestAuthenticationError(response: IpcResponse): Promise<boolean> {
-  const { result: errorBody, error: errorError } = await YupUtils.tryValidate(
-    SocketRpcErrorSchema,
-    response.data,
-  )
-
-  if (!errorBody) {
-    return false
-  }
-
-  return errorBody.code == ERROR_CODES.UNAUTHENTICATION
-}
-
 function isNodeError(error: unknown): error is Error & { code: string } {
   return error instanceof Error && 'code' in error && typeof error['code'] === 'string'
 }
@@ -70,5 +53,4 @@ export const ErrorUtils = {
   isConnectRefusedError,
   isNoEntityError,
   isNodeError,
-  isRequestAuthenticationError,
 }

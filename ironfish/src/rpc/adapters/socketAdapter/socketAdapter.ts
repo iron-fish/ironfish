@@ -19,6 +19,7 @@ import {
   MESSAGE_DELIMITER,
   ServerSocketRpc,
   SocketRpcError,
+  SocketRpcRequest,
 } from './protocol'
 
 type SocketClient = {
@@ -206,7 +207,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
         const isAuthenticated = this.router.server.authenticate(message.auth)
 
         if (!isAuthenticated) {
-          this.emitResponse(client, this.constructUnauthenticatedRequest(parsed))
+          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
           return
         }
       }
@@ -330,7 +331,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  constructUnauthenticatedRequest(request: unknown): ServerSocketRpc {
+  constructUnauthenticatedRequest(request: SocketRpcRequest): ServerSocketRpc {
     const error = new Error(`Missing or bad authentication`)
 
     const data: SocketRpcError = {
@@ -339,19 +340,6 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       stack: error.stack,
     }
 
-    if (
-      typeof request === 'object' &&
-      request !== null &&
-      'id' in request &&
-      typeof (request as { id: unknown })['id'] === 'number'
-    ) {
-      const id = (request as { id: unknown })['id'] as number
-      return this.constructMessage(id, 401, data)
-    }
-
-    return {
-      type: 'error',
-      data: data,
-    }
+    return this.constructMessage(request.mid, 401, data)
   }
 }

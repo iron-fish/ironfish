@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RpcResponse } from '../response'
-import { SocketRpcError } from '../adapters/socketAdapter/protocol'
 
 /*
  The errors in this file are to be used by RPC client implementations
