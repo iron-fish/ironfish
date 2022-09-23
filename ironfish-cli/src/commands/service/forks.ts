@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
-import { RpcBlockHeader, WebApi } from '@ironfish/sdk'
+import { PromiseUtils } from '@ironfish/sdk'
+import { WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
-
-const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
+import { GossipForkCounter } from '../../utils/gossipForkCounter'
 
 export default class Forks extends IronfishCommand {
   static hidden = true
@@ -34,47 +33,30 @@ export default class Forks extends IronfishCommand {
     delay: Flags.integer({
       char: 'd',
       required: false,
-      default: 1000,
-      description: 'Delay (in ms) to wait before recalculating fork count',
+      default: 60000,
+      description: 'Delay (in ms) to wait before uploading fork count',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Forks)
 
-    const delay = flags.delay
     const apiHost = (
       flags.endpoint ||
       process.env.IRONFISH_API_HOST ||
       'https://api.ironfish.network'
     ).trim()
+
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
 
     const api = new WebApi({ host: apiHost, token: apiToken })
 
     let connected = false
-    const forks = new Map<
-      string,
-      { header: RpcBlockHeader; time: number; mined: number; old?: boolean }
-    >()
+
+    const counter = new GossipForkCounter({ delayMs: flags.delay })
+    counter.start()
 
     setInterval(() => {
-      const now = Date.now()
-
-      const values = [...forks.values()].sort((a, b) => b.header.sequence - a.header.sequence)
-      let count = 0
-
-      for (const { time, old } of values) {
-        const age = now - time
-        if (age >= STALE_THRESHOLD) {
-          continue
-        }
-        if (old) {
-          continue
-        }
-        count++
-      }
-
       void api.submitTelemetry({
         points: [
           {
@@ -84,26 +66,14 @@ export default class Forks extends IronfishCommand {
               {
                 name: 'forks',
                 type: 'integer',
-                value: count,
+                value: counter.count,
               },
             ],
             tags: [{ name: 'version', value: IronfishCliPKG.version }],
           },
         ],
       })
-    }, delay)
-
-    function handleGossip(header: RpcBlockHeader) {
-      const prev = forks.get(header.previousBlockHash)
-      const mined = prev ? prev.mined + 1 : 0
-
-      if (prev) {
-        prev.old = true
-        forks.set(header.previousBlockHash, prev)
-      }
-
-      forks.set(header.hash, { header, time: Date.now(), mined })
-    }
+    }, flags.delay)
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -117,7 +87,7 @@ export default class Forks extends IronfishCommand {
       const response = this.sdk.client.onGossipStream()
 
       for await (const value of response.contentStream()) {
-        handleGossip(value.blockHeader)
+        counter.add(value.blockHeader)
       }
     }
   }
