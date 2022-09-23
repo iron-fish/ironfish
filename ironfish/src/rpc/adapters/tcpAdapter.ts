@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { ApiNamespace } from '../routes'
 import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
 
