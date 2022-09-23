@@ -173,16 +173,14 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      if (this.exists(transaction.hash())) {
-        continue
-      }
-
       if (transaction.isMinersFee()) {
         continue
       }
 
-      this.addTransaction(transaction)
-      addedTransactions++
+      const added = this.addTransaction(transaction)
+      if (added) {
+        addedTransactions++
+      }
     }
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
@@ -190,12 +188,15 @@ export class MemPool {
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
-  private addTransaction(transaction: Transaction): void {
+  private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
-    if (!this.transactions.has(hash)) {
-      this.transactions.set(hash, transaction)
-      this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
+
+    if (this.transactions.has(hash)) {
+      return false
     }
+
+    this.transactions.set(hash, transaction)
+    this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
@@ -206,13 +207,18 @@ export class MemPool {
 
     this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
+    return true
   }
 
   private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
-    if (this.transactions.delete(hash)) {
-      this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
+    const deleted = this.transactions.delete(hash)
+
+    if (!deleted) {
+      return false
     }
+
+    this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
 
     for (const spend of transaction.spends()) {
       if (this.nullifiers.delete(spend.nullifier)) {
@@ -220,10 +226,8 @@ export class MemPool {
       }
     }
 
-    const entry = this.queue.removeOne((t) => t.hash.equals(hash))
-    if (!entry) {
-      return false
-    }
+    this.queue.removeOne((t) => t.hash.equals(hash))
+
     this.metrics.memPoolSize.value = this.size()
     return true
   }
