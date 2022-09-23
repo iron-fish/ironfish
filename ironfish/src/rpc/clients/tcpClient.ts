@@ -49,6 +49,7 @@ export class RpcTcpClient extends RpcSocketClient {
       const onError = (error: unknown) => {
         client.off('connect', onConnect)
         client.off('error', onError)
+
         if (ErrorUtils.isConnectRefusedError(error)) {
           reject(new RpcConnectionRefusedError())
         } else if (ErrorUtils.isNoEntityError(error)) {
