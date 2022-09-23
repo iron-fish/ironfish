@@ -135,10 +135,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Compute pk_d = g_d^ivk
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
-        let asset_type = self
-            .asset_info
-            .as_ref()
-            .and_then(|ai| Some(ai.asset_type()));
+        let asset_type = self.asset_info.as_ref().map(|ai| ai.asset_type());
 
         // TODO: This has some duplicate work. Maybe we can move this to an optional argument
         let public_address_bits = slice_into_boolean_vec_le(
@@ -805,6 +802,8 @@ mod test {
 
     #[test]
     fn test_mint_asset_circuit_with_params() {
+        let tx_fee = 1;
+
         let sapling = sapling_bls12::SAPLING.clone();
 
         // Test setup: create sapling keys
@@ -821,7 +820,12 @@ mod test {
         let note = MintAssetNote::new(asset_info, value);
 
         // Regular spend note for transaction fee
-        let in_note = Note::new(public_address, 1, Memo::default(), AssetType::default());
+        let in_note = Note::new(
+            public_address,
+            tx_fee,
+            Memo::default(),
+            AssetType::default(),
+        );
         let witness = make_fake_witness(&in_note);
         let mint_asset_witness = make_fake_witness_from_commitment(note.commitment());
 
@@ -833,8 +837,16 @@ mod test {
             .mint_asset(&sapling_key, &note, &mint_asset_witness)
             .expect("Can add mint asset note");
 
-        // TODO:
-        // - transaction.post
-        // - transaction.verify
+        let public_transaction = transaction
+            .post(&sapling_key, None, tx_fee)
+            .expect("should be able to post transaction");
+
+        public_transaction
+            .verify()
+            .expect("should be able to verify transaction");
+
+        // TODO: .transaction_fee() is a different time from the 3rd argument of .post
+        // These need to be the same, whichever makes sense
+        assert_eq!(public_transaction.transaction_fee(), tx_fee as i64);
     }
 }

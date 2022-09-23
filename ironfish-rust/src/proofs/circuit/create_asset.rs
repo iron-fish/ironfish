@@ -236,18 +236,9 @@ mod test {
 
     #[test]
     fn test_proper_create_asset_circuit() {
-        let sapling = sapling_bls12::SAPLING.clone();
+        let tx_fee = 1;
 
-        // Setup: generate parameters file. This is slow, consider using pre-built ones later
-        let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            CreateAsset {
-                asset_info: None,
-                commitment_randomness: None,
-            },
-            &mut OsRng,
-        )
-        .expect("Can generate random params");
-        let pvk = groth16::prepare_verifying_key(&params.vk);
+        let sapling = sapling_bls12::SAPLING.clone();
 
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
@@ -262,7 +253,12 @@ mod test {
         let note = CreateAssetNote::new(asset_info);
 
         // Regular spend note for transaction fee
-        let in_note = Note::new(public_address, 1, Memo::default(), AssetType::default());
+        let in_note = Note::new(
+            public_address,
+            tx_fee,
+            Memo::default(),
+            AssetType::default(),
+        );
         let witness = make_fake_witness(&in_note);
 
         let mut transaction = ProposedTransaction::new(sapling);
@@ -273,8 +269,16 @@ mod test {
             .create_asset(&sapling_key, &note)
             .expect("Can add create asset note");
 
-        // TODO:
-        // - transaction.post
-        // - transaction.verify
+        let public_transaction = transaction
+            .post(&sapling_key, None, tx_fee)
+            .expect("should be able to post transaction");
+
+        public_transaction
+            .verify()
+            .expect("should be able to verify transaction");
+
+        // TODO: .transaction_fee() is a different time from the 3rd argument of .post
+        // These need to be the same, whichever makes sense
+        assert_eq!(public_transaction.transaction_fee(), tx_fee as i64);
     }
 }

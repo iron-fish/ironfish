@@ -1,4 +1,4 @@
-use std::{io, slice};
+use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
@@ -144,6 +144,14 @@ impl MintAssetParams {
 
         Ok(mint_asset_proof)
     }
+
+    pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
+        self.proof.write(&mut writer)?;
+        writer.write_all(&self.mint_commitment.to_bytes())?;
+        writer.write_all(&self.encrypted_note[..])?;
+        writer.write_all(&self.asset_generator.to_bytes())?;
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -193,12 +201,8 @@ impl MintAssetProof {
     }
 
     /// Stow the bytes of this CreateAssetProof in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
-        self.proof.write(&mut writer)?;
-        writer.write_all(&self.mint_commitment.to_bytes())?;
-        writer.write_all(&self.encrypted_note)?;
-        writer.write_all(&self.asset_generator.to_bytes())?;
-        Ok(())
+    pub fn write<W: io::Write>(&self, writer: W) -> io::Result<()> {
+        self.serialize_signature_fields(writer)
     }
 
     pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
@@ -213,6 +217,14 @@ impl MintAssetProof {
         // Verify proof
         groth16::verify_proof(&SAPLING.mint_asset_verifying_key, &self.proof, &inputs)
             .expect("Can verify proof");
+        Ok(())
+    }
+
+    pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
+        self.proof.write(&mut writer)?;
+        writer.write_all(&self.mint_commitment.to_bytes())?;
+        writer.write_all(&self.encrypted_note)?;
+        writer.write_all(&self.asset_generator.to_bytes())?;
         Ok(())
     }
 }

@@ -155,7 +155,7 @@ impl MerkleNote {
 
     pub fn write<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
         writer.write_all(&self.value_commitment.to_bytes())?;
-        writer.write_all(self.note_commitment.to_repr().as_ref())?;
+        writer.write_all(&self.note_commitment.to_bytes())?;
         writer.write_all(&self.ephemeral_public_key.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.note_encryption_keys[..])?;

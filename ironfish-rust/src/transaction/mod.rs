@@ -261,22 +261,27 @@ impl ProposedTransaction {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
+
         let mut spend_proofs = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             spend_proofs.push(spend.post(&data_to_sign)?);
         }
+
         let mut receipt_proofs = Vec::with_capacity(self.receipts.len());
         for receipt in &self.receipts {
             receipt_proofs.push(receipt.post()?);
         }
+
         let mut create_asset_proofs = Vec::with_capacity(self.create_asset_params.len());
         for create_asset_params in &self.create_asset_params {
             create_asset_proofs.push(create_asset_params.post()?);
         }
+
         let mut mint_asset_proofs = Vec::with_capacity(self.mint_asset_params.len());
         for mint_asset_params in &self.mint_asset_params {
             mint_asset_proofs.push(mint_asset_params.post()?);
         }
+
         Ok(Transaction {
             sapling: self.sapling.clone(),
             expiration_sequence: self.expiration_sequence,
@@ -312,6 +317,14 @@ impl ProposedTransaction {
         }
         for receipt in self.receipts.iter() {
             receipt.serialize_signature_fields(&mut hasher).unwrap();
+        }
+        for create_asset in self.create_asset_params.iter() {
+            create_asset
+                .serialize_signature_fields(&mut hasher)
+                .unwrap();
+        }
+        for mint_asset in self.mint_asset_params.iter() {
+            mint_asset.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -591,11 +604,23 @@ impl Transaction {
         hasher
             .write_i64::<LittleEndian>(self.transaction_fee)
             .unwrap();
+
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
         }
+
         for receipt in self.receipts.iter() {
             receipt.serialize_signature_fields(&mut hasher).unwrap();
+        }
+
+        for create_asset in self.create_asset_proofs.iter() {
+            create_asset
+                .serialize_signature_fields(&mut hasher)
+                .unwrap();
+        }
+
+        for mint_asset in self.mint_asset_proofs.iter() {
+            mint_asset.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];

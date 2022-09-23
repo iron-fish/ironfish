@@ -6,7 +6,7 @@
 
 use rand::{thread_rng, Rng};
 
-use crate::{primitives::asset_type::AssetInfo, AssetType};
+use crate::primitives::asset_type::AssetInfo;
 
 /// A create asset note represents an asset in the owner's "account"
 /// Expected API:
