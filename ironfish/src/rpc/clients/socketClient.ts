@@ -47,8 +47,8 @@ export abstract class RpcSocketClient extends RpcClient {
   protected abstract send(
     messageId: number,
     route: string,
-    authToken: string,
     data: unknown,
+    authToken: string,
   ): void
 
   private timeoutMs: number | null = REQUEST_TIMEOUT_MS
@@ -137,7 +137,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     this.pending.set(messageId, pending)
 
-    this.send(messageId, route, this.rpcAuthToken, data)
+    this.send(messageId, route, data, this.rpcAuthToken)
 
     return response
   }

@@ -176,6 +176,7 @@ export class IronfishSdk {
       }
     } else {
       client = new RpcIpcClient(
+        rpcAuthToken,
         {
           mode: 'ipc',
           socketPath: config.get('ipcPath'),
