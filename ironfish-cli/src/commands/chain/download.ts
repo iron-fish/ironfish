@@ -50,6 +50,7 @@ export default class Download extends IronfishCommand {
       default: true,
       description: 'Remove downloaded snapshot file after import',
       allowNo: true,
+      hidden: true,
     }),
   }
 
