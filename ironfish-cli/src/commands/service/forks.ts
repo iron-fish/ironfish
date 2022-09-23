@@ -7,7 +7,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
-import { GossipForkCounter } from '../../utils/forkCounter'
+import { GossipForkCounter } from '../../utils/gossipForkCounter'
 
 export default class Forks extends IronfishCommand {
   static hidden = true

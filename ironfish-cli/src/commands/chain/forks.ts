@@ -5,7 +5,7 @@ import { GraffitiUtils, PromiseUtils } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { GossipForkCounter } from '../../utils/forkCounter'
+import { GossipForkCounter } from '../../utils/gossipForkCounter'
 
 export default class ForksCommand extends IronfishCommand {
   static description = 'Try to detect forks that are being mined'
