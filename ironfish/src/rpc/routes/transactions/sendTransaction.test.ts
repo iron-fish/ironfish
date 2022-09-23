@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NotEnoughFundsError } from '../../../account/errors'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {

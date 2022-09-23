@@ -20,12 +20,12 @@ describe('Accounts', () => {
     await expect(node.chain).toAddBlock(block2)
 
     // From block1
-    const note1Encrypted = Array.from(block1.allNotes())[0]
+    const note1Encrypted = Array.from(block1.notes())[0]
     const note1 = note1Encrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note1)
 
     // From block2
-    const note2Encrypted = Array.from(block2.allNotes())[0]
+    const note2Encrypted = Array.from(block2.notes())[0]
     const note2 = note2Encrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note2)
 
@@ -98,7 +98,7 @@ describe('Accounts', () => {
 
     const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
     const tx = block.transactions[0]
-    const noteEncrypted = Array.from(block.allNotes())[0]
+    const noteEncrypted = Array.from(block.notes())[0]
     const note = noteEncrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note)
 
