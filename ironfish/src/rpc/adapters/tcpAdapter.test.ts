@@ -135,14 +135,14 @@ describe('TcpAdapter', () => {
     })
   })
 
-  it.only('should authenticate', async () => {
+  it('should authenticate', async () => {
     Assert.isNotUndefined(tcp)
     tcp.enableAuthentication = true
     await tcp.start()
 
     Assert.isNotNull(tcp.router)
     Assert.isNotNull(tcp.addressPort)
-    
+
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
@@ -151,16 +151,13 @@ describe('TcpAdapter', () => {
     await client.connect()
 
     const response = client.request('foo/bar', 'hello world')
-    
+
     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
-    
+
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,
       code: ERROR_CODES.UNAUTHENTICATION,
       codeMessage: expect.stringContaining('Missing or bad authentication'),
     })
-  }, 5000000000000)
+  }, 50000000)
 })
-
-
-
