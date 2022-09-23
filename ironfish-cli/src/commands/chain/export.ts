@@ -18,7 +18,7 @@ export default class Export extends IronfishCommand {
       char: 'p',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'a path to export the chain to',
+      description: 'The path to export the chain to',
     }),
   }
 
@@ -28,13 +28,13 @@ export default class Export extends IronfishCommand {
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
-      description: 'the sequence to start at (inclusive, genesis block is 1)',
+      description: 'The sequence to start at (inclusive, genesis block is 1)',
     },
     {
       name: 'stop',
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
       required: false,
-      description: 'the sequence to end at (inclusive)',
+      description: 'The sequence to end at (inclusive)',
     },
   ]
 

@@ -14,11 +14,11 @@ export class TransactionsCommand extends IronfishCommand {
     ...CliUx.ux.table.flags(),
     account: Flags.string({
       char: 'a',
-      description: 'account transactions',
+      description: 'Account to get transactions for',
     }),
     hash: Flags.string({
       char: 't',
-      description: 'details of transaction hash',
+      description: 'Transaction hash to get details for',
     }),
   }
 

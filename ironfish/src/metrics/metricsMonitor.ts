@@ -28,6 +28,8 @@ export class MetricsMonitor {
   readonly p2p_OutboundTraffic_WebRTC: Meter
   readonly p2p_InboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_OutboundTrafficByMessage: Map<NetworkMessageType, Meter> = new Map()
+  readonly p2p_RpcSuccessRateByMessage: Map<NetworkMessageType, Meter> = new Map()
+  readonly p2p_RpcResponseTimeMsByMessage: Map<NetworkMessageType, Meter> = new Map()
   readonly p2p_PeersCount: Gauge
 
   // Elements of this map are managed by Peer and PeerNetwork
@@ -63,6 +65,10 @@ export class MetricsMonitor {
     for (const value of NumberEnumUtils.getNumValues(NetworkMessageType)) {
       this.p2p_InboundTrafficByMessage.set(value, this.addMeter())
       this.p2p_OutboundTrafficByMessage.set(value, this.addMeter())
+      // Should only need to add meters for RPC messages, but makes the code a bit
+      // cleaner in the current type system to do it this way
+      this.p2p_RpcSuccessRateByMessage.set(value, this.addMeter())
+      this.p2p_RpcResponseTimeMsByMessage.set(value, this.addMeter())
     }
 
     this.p2p_PeersCount = new Gauge()

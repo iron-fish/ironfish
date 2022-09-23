@@ -81,6 +81,13 @@ export class RollingAverage {
   }
 
   /**
+   * Returns the number of samples in the RollingAverage.
+   */
+  sampleCount(): number {
+    return this._sampleCount
+  }
+
+  /**
    * Returns true if enough samples have been taken to completely fill the sliding window
    * @return true if sample-set saturated
    */

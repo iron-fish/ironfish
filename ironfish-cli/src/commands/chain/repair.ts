@@ -29,12 +29,12 @@ export default class RepairChain extends IronfishCommand {
     confirm: Flags.boolean({
       char: 'c',
       default: false,
-      description: 'force confirmation to repair',
+      description: 'Force confirmation to repair',
     }),
     force: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'force merkle tree reconstruction',
+      description: 'Force merkle tree reconstruction',
     }),
   }
 

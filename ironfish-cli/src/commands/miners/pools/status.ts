@@ -22,16 +22,16 @@ export class PoolStatus extends IronfishCommand {
   static flags = {
     address: Flags.string({
       char: 'a',
-      description: 'a public address for which to retrieve pool share data',
+      description: 'The public address for which to retrieve pool share data',
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host and port of the mining pool to connect to',
+      description: 'The host and port of the mining pool to connect to',
     }),
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the status of the mining pool',
+      description: 'Follow the status of the mining pool',
     }),
   }
 

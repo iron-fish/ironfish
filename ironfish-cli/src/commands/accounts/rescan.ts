@@ -17,13 +17,13 @@ export class RescanCommand extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: true,
-      description: 'follow the rescan live, or attach to an already running rescan',
+      description: 'Follow the rescan live, or attach to an already running rescan',
       allowNo: true,
     }),
     reset: Flags.boolean({
       default: false,
       description:
-        'clear the in-memory and disk caches before rescanning. note that this removes all pending transactions',
+        'Clear the in-memory and disk caches before rescanning. Note that this removes all pending transactions',
     }),
     local: Flags.boolean({
       default: false,

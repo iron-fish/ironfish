@@ -5,14 +5,14 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
 export default class ShowBlock extends IronfishCommand {
-  static description = 'Show the block header of a requested hash'
+  static description = 'Show the block header of a requested hash or sequence'
 
   static args = [
     {
       name: 'search',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'the hash or sequence of the block to look at',
+      description: 'The hash or sequence of the block to look at',
     },
   ]
 

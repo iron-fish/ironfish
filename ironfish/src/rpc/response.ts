@@ -43,20 +43,31 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
     return this as RpcResponseEnded<TEnd>
   }
 
+  /*
+   * Returns a generator of stream results. If a disconnect error occurs during
+   * the streaming request it just causes the generator to end, the error is
+   * not propagated
+   */
   async *contentStream(ignoreClose = true): AsyncGenerator<TStream, void> {
+    this.promise.catch(() => {
+      // In the streaming case the error is piped through the stream instead
+      // and we handle it there (below). The same error is piped through this promise
+      // but since we are already handling it in the stream we can ignore this one
+    })
+
     if (this.timeout) {
       clearTimeout(this.timeout)
     }
 
-    for await (const value of this.stream) {
-      yield value
-    }
-
-    await this.promise.catch((e) => {
+    try {
+      for await (const value of this.stream) {
+        yield value
+      }
+    } catch (e) {
       if (e instanceof RpcConnectionLostError && ignoreClose) {
         return
       }
       throw e
-    })
+    }
   }
 }

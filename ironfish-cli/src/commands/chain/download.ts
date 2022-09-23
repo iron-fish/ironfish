@@ -34,17 +34,23 @@ export default class Download extends IronfishCommand {
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: 'https://d1kj1bottktsu0.cloudfront.net/manifest.json',
+      default: 'https://ironfish-snapshots.s3-accelerate.amazonaws.com/manifest.json',
     }),
     path: Flags.string({
       char: 'p',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'Path to snapshot file',
+      description: 'Path to a downloaded snapshot file to import',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm download without asking',
+    }),
+    cleanup: Flags.boolean({
+      default: true,
+      description: 'Remove downloaded snapshot file after import',
+      allowNo: true,
+      hidden: true,
     }),
   }
 
@@ -215,23 +221,27 @@ export default class Download extends IronfishCommand {
       }
     }
 
-    // use a standard name, 'snapshot', for the unzipped database
-    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
-    await this.sdk.fileSystem.mkdir(snapshotDatabasePath, { recursive: true })
-
-    CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
-    await this.unzip(snapshotPath, snapshotDatabasePath)
-    CliUx.ux.action.stop('done')
-
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
+    // chainDatabasePath must be empty before unzipping snapshot
     CliUx.ux.action.start(
-      `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+      `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
     )
-    // chainDatabasePath must be empty before renaming snapshot
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
-    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('done')
+
+    // ensure that chainDatabasePath exists
+    await fsAsync.mkdir(chainDatabasePath, { recursive: true })
+
+    CliUx.ux.action.start(`Unzipping ${snapshotPath} to ${chainDatabasePath}`)
+    await this.unzip(snapshotPath, chainDatabasePath)
+    CliUx.ux.action.stop('done')
+
+    if (flags.cleanup) {
+      CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
+      await fsAsync.rm(snapshotPath)
+      CliUx.ux.action.stop('done')
+    }
   }
 
   async unzip(source: string, dest: string): Promise<void> {

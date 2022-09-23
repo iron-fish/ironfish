@@ -14,7 +14,7 @@ export class CreateCommand extends IronfishCommand {
       name: 'name',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'name of the account',
+      description: 'Name of the account',
     },
   ]
 

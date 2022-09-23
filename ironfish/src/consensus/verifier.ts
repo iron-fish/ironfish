@@ -6,7 +6,7 @@ import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -187,34 +187,30 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
+    let verificationResult
     try {
-      // Transaction is lazily deserialized, so we use takeReference()
-      // to force deserialization errors here
-      transaction.takeReference()
-      transaction.returnReference()
-    } catch (e) {
-      return { valid: false, reason: VerificationResultReason.DESERIALIZATION }
+      verificationResult = await this.workerPool.verify(transaction)
+    } catch {
+      verificationResult = { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
 
-    // Next, check the spends are valid and not already in the chain
+    if (!verificationResult.valid) {
+      return verificationResult
+    }
+
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
       const nullifierSize = await this.chain.nullifiers.size(tx)
-      const notesSize = await this.chain.notes.size(tx)
 
       for (const spend of transaction.spends()) {
-        const result = await this.verifySpend(spend, notesSize, nullifierSize, tx)
-
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
-        // TODO: We're allowing invalid spends currently because we're often creating
-        // spends with tree size + root at the head of the chain, rather than a reasonable confirmation
-        // range back. These blocks (and spends) can eventually become valid if the chain forks to them.
-        if (
-          result &&
-          result !== VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE &&
-          result !== VerificationResultReason.INVALID_SPEND
-        ) {
-          return result
+        // TODO: We're not calling verifySpend here because we're often creating spends with tree size
+        // + root at the head of the chain, rather than a reasonable confirmation range back. These blocks
+        // (and spends) can eventually become valid if the chain forks to them.
+        // Calculating the notes rootHash is also expensive at the time of writing, so performance test
+        // before verifying the rootHash on spends.
+        if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
+          return VerificationResultReason.DOUBLE_SPEND
         }
       }
     })
@@ -223,11 +219,7 @@ export class Verifier {
       return { valid: false, reason }
     }
 
-    try {
-      return await this.workerPool.verify(transaction)
-    } catch {
-      return { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
-    }
+    return { valid: true }
   }
 
   async verifyTransactionSpends(
@@ -357,6 +349,36 @@ export class Verifier {
   }
 
   /**
+   * Verify the block before connecting it to the main chain
+   */
+  async verifyBlockConnect(
+    block: Block,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    if (
+      this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
+    ) {
+      // Loop over all spends in the block and check that the nullifier has not previously been spent
+      const seen = new BufferSet()
+      const size = await this.chain.nullifiers.size(tx)
+
+      for (const spend of block.spends()) {
+        if (seen.has(spend.nullifier)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
+
+        seen.add(spend.nullifier)
+      }
+    }
+
+    return { valid: true }
+  }
+
+  /**
    * Verify that the given spend was not in the nullifiers tree when it was the given size,
    * and that the root of the notes tree is the one that is actually associated with the
    * spend's spend root.
@@ -475,5 +497,4 @@ export enum VerificationResultReason {
 export interface VerificationResult {
   valid: boolean
   reason?: VerificationResultReason
-  hash?: BlockHash
 }

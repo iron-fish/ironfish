@@ -627,6 +627,7 @@ dependencies = [
  "rand 0.8.5",
  "rust-crypto-wasm",
  "tiny-bip39",
+ "xxhash-rust",
  "zcash_primitives",
  "zcash_proofs",
 ]
@@ -1470,6 +1471,12 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074914ea4eec286eb8d1fd745768504f420a1f7b7919185682a4a267bed7d2e7"
 
 [[package]]
 name = "zcash_encoding"

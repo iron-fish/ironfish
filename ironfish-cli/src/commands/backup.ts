@@ -22,22 +22,22 @@ export default class Backup extends IronfishCommand {
     lock: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'wait for the database to stop being used',
+      description: 'Wait for the database to stop being used',
     }),
     chain: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'export the chain DB',
+      description: 'Export the chain DB',
     }),
     accounts: Flags.boolean({
       default: false,
       allowNo: true,
-      description: 'export the accounts',
+      description: 'Export the accounts',
     }),
     mined: Flags.boolean({
       default: false,
       allowNo: true,
-      description: 'export the mined block index',
+      description: 'Export the mined block index',
     }),
     accessKeyId: Flags.string({
       char: 'a',
@@ -57,7 +57,7 @@ export default class Backup extends IronfishCommand {
     {
       name: 'bucket',
       required: true,
-      description: 'the S3 bucket to upload to',
+      description: 'The S3 bucket to upload to',
     },
   ]
 

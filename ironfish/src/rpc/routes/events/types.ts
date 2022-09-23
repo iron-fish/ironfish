@@ -2,32 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Block } from '../../../primitives'
-import { BufferUtils } from '../../../utils'
+import { BlockHeader } from '../../../primitives'
 
-export type RpcBlock = {
+export type RpcBlockHeader = {
   hash: string
   sequence: number
   previousBlockHash: string
   timestamp: number
-  transactions: Array<unknown>
   difficulty: string
   graffiti: string
 }
 
-export function serializeRpcBlock(block: Block): RpcBlock {
+export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
   return {
-    hash: block.header.hash.toString('hex'),
-    sequence: Number(block.header.sequence),
-    previousBlockHash: block.header.previousBlockHash.toString('hex'),
-    timestamp: block.header.timestamp.valueOf(),
-    transactions: [],
-    difficulty: block.header.target.toDifficulty().toString(),
-    graffiti: BufferUtils.toHuman(block.header.graffiti),
+    hash: header.hash.toString('hex'),
+    sequence: Number(header.sequence),
+    previousBlockHash: header.previousBlockHash.toString('hex'),
+    timestamp: header.timestamp.valueOf(),
+    difficulty: header.target.toDifficulty().toString(),
+    graffiti: header.graffiti.toString('hex'),
   }
 }
 
-export const RpcBlockSchema: yup.ObjectSchema<RpcBlock> = yup
+export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
   .object({
     hash: yup.string().defined(),
     sequence: yup.number().defined(),

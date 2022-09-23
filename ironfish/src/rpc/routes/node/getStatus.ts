@@ -42,6 +42,7 @@ export type GetNodeStatusResponse = {
   blockchain: {
     synced: boolean
     head: string
+    headTimestamp: number
     newBlockSpeed: number
   }
   blockSyncer: {
@@ -129,6 +130,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
       .object({
         synced: yup.boolean().defined(),
         head: yup.string().defined(),
+        headTimestamp: yup.number().defined(),
         newBlockSpeed: yup.number().defined(),
       })
       .defined(),
@@ -234,6 +236,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       head: `${node.chain.head.hash.toString('hex') || ''} (${
         node.chain.head.sequence.toString() || ''
       })`,
+      headTimestamp: node.chain.head.timestamp.getTime(),
       newBlockSpeed: node.metrics.chain_newBlock.avg,
     },
     node: {

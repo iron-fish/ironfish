@@ -1,29 +1,42 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-/* eslint-disable jest/no-try-expect */
-/* eslint-disable jest/no-conditional-expect */
 import os from 'os'
 import * as yup from 'yup'
+import { Assert } from '../../assert'
 import { IronfishSdk } from '../../sdk'
-import { RpcRequestError, RpcSocketClient } from '../clients'
-import { ALL_API_NAMESPACES } from '../routes'
+import { PromiseUtils } from '../../utils/promise'
+import { RpcRequestError } from '../clients'
+import { RpcIpcClient } from '../clients/ipcClient'
+import { ALL_API_NAMESPACES } from '../routes/router'
 import { ERROR_CODES, ValidationError } from './errors'
 import { RpcIpcAdapter } from './ipcAdapter'
 
 describe('IpcAdapter', () => {
   let ipc: RpcIpcAdapter
   let sdk: IronfishSdk
-  let client: RpcSocketClient
+  let client: RpcIpcClient
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
 
-    sdk = await IronfishSdk.init({ dataDir })
+    sdk = await IronfishSdk.init({
+      dataDir,
+      configOverrides: {
+        enableRpc: false,
+        enableRpcIpc: false,
+      },
+    })
+
+    ipc = new RpcIpcAdapter(ALL_API_NAMESPACES, {
+      mode: 'ipc',
+      socketPath: sdk.config.get('ipcPath'),
+    })
 
     const node = await sdk.node()
-    ipc = node.rpc.adapters[0] as RpcIpcAdapter
+    await node.rpc.mount(ipc)
 
+    Assert.isInstanceOf(sdk.client, RpcIpcClient)
     client = sdk.client
   })
 
@@ -51,7 +64,7 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = await client.request<string, void>('foo/bar', 'hello world').waitForEnd()
+    const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
   })
 
@@ -65,12 +78,31 @@ describe('IpcAdapter', () => {
     await ipc.start()
     await client.connect()
 
-    const response = client.request<void, string>('foo/bar')
+    const response = client.request('foo/bar')
     expect((await response.contentStream().next()).value).toBe('hello 1')
     expect((await response.contentStream().next()).value).toBe('hello 2')
 
     await response.waitForEnd()
     expect(response.content).toBe(undefined)
+  })
+
+  it('should not crash on disconnect while streaming', async () => {
+    const [waitPromise, waitResolve] = PromiseUtils.split<void>()
+
+    ipc.router?.register('foo/bar', yup.object({}), async () => {
+      await waitPromise
+    })
+
+    await ipc.start()
+    await client.connect()
+
+    const next = client.request('foo/bar').contentStream().next()
+
+    client.close()
+    waitResolve()
+
+    expect.assertions(0)
+    await next
   })
 
   it('should handle errors', async () => {
@@ -83,17 +115,12 @@ describe('IpcAdapter', () => {
 
     const response = client.request('foo/bar')
 
-    try {
-      expect.assertions(3)
-      await response.waitForEnd()
-    } catch (error: unknown) {
-      if (!(error instanceof RpcRequestError)) {
-        throw error
-      }
-      expect(error.status).toBe(402)
-      expect(error.code).toBe('hello-error')
-      expect(error.codeMessage).toBe('hello error')
-    }
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 402,
+      code: 'hello-error',
+      codeMessage: 'hello error',
+    })
   })
 
   it('should handle request errors', async () => {
@@ -109,22 +136,11 @@ describe('IpcAdapter', () => {
 
     const response = client.request('foo/bar', body)
 
-    try {
-      expect.assertions(3)
-      await response.waitForEnd()
-    } catch (error: unknown) {
-      if (!(error instanceof RpcRequestError)) {
-        throw error
-      }
-      expect(error.status).toBe(400)
-      expect(error.code).toBe(ERROR_CODES.VALIDATION)
-      expect(error.codeMessage).toContain('must be defined')
-    }
-  })
-
-  it('handles all RPC namespaces', () => {
-    const allowedNamespaces = ALL_API_NAMESPACES
-    const loadedNamespaces = [...(ipc.router?.routes.keys() || [])]
-    expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 400,
+      code: ERROR_CODES.VALIDATION,
+      codeMessage: expect.stringContaining('this must be defined'),
+    })
   })
 })

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RollingFilter } from '@ironfish/bfilter'
+import { RollingFilter } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
@@ -21,7 +21,7 @@ import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../p
 import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
-import { ArrayUtils } from '../utils'
+import { ArrayUtils, BenchUtils, HRTime } from '../utils'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -86,6 +86,8 @@ type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
   peer: Peer
+  messageType: number
+  startTime: HRTime
 }
 
 export type TransactionOrHash =
@@ -108,7 +110,7 @@ export class PeerNetwork {
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
-  readonly onBlockGossipReceived = new Event<[Block]>()
+  readonly onBlockGossipReceived = new Event<[BlockHeader]>()
 
   private started = false
   private readonly minPeers: number
@@ -558,6 +560,11 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          const endTime = BenchUtils.end(request.startTime)
+          this.metrics.p2p_RpcResponseTimeMsByMessage.get(request.messageType)?.add(endTime)
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(1)
+
           resolve(message)
         },
         reject: (reason?: unknown): void => {
@@ -565,9 +572,14 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(0)
+
           reject(reason)
         },
         peer: peer,
+        messageType: message.type,
+        startTime: BenchUtils.start(),
       }
 
       peer.pendingRPC++
@@ -929,6 +941,8 @@ export class PeerNetwork {
     // block to the peer, but the value isn't important
     peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
 
+    this.onBlockGossipReceived.emit(header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
     if (prevHeader === null) {
@@ -1266,6 +1280,8 @@ export class PeerNetwork {
       peer.sequence = block.header.sequence
     }
 
+    this.onBlockGossipReceived.emit(block.header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
@@ -1301,7 +1317,6 @@ export class PeerNetwork {
     this.broadcastBlock(newBlockMessage)
 
     // log that we've validated the block enough to gossip it
-    this.onBlockGossipReceived.emit(block)
     this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block

@@ -4,6 +4,7 @@
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
@@ -49,16 +50,16 @@ export default class Start extends IronfishCommand {
     [RpcTcpSecureFlagKey]: RpcTcpSecureFlag,
     bootstrap: Flags.string({
       char: 'b',
-      description: 'comma-separated addresses of bootstrap nodes to connect to',
+      description: 'Comma-separated addresses of bootstrap nodes to connect to',
       multiple: true,
     }),
     port: Flags.integer({
       char: 'p',
-      description: 'port to run the local ws server on',
+      description: 'Port to run the local ws server on',
     }),
     workers: Flags.integer({
       description:
-        'number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
+        'Number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
     }),
     graffiti: Flags.string({
       char: 'g',
@@ -67,33 +68,33 @@ export default class Start extends IronfishCommand {
     }),
     name: Flags.string({
       char: 'n',
-      description: 'name for the node',
+      description: 'Name for the node',
       hidden: true,
     }),
     listen: Flags.boolean({
       allowNo: true,
       default: undefined,
-      description: 'disable the web socket listen server',
+      description: 'Disable the web socket listen server',
       hidden: true,
     }),
     forceMining: Flags.boolean({
       default: undefined,
-      description: 'force mining even if we are not synced',
+      description: 'Force mining even if we are not synced',
       hidden: true,
     }),
     logPeerMessages: Flags.boolean({
       default: undefined,
-      description: 'track all messages sent and received by peers',
+      description: 'Track all messages sent and received by peers',
       hidden: true,
     }),
     generateNewIdentity: Flags.boolean({
       default: false,
-      description: 'generate new identity for each new start',
+      description: 'Generate new identity for each new start',
       hidden: true,
     }),
     upgrade: Flags.boolean({
       allowNo: true,
-      description: 'run migrations when an upgrade is required',
+      description: 'Run migrations when an upgrade is required',
     }),
   }
 
@@ -190,6 +191,9 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    if (inspector.url()) {
+      this.log(`Inspector     ${String(inspector.url())}`)
+    }
     this.log(` `)
 
     await NodeUtils.waitForOpen(node, () => this.closing)
