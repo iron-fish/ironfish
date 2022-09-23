@@ -59,11 +59,11 @@ export default class ForksCommand extends IronfishCommand {
       for (const { header, ageSequence, age } of counter.forks) {
         const renderedAge = (age / 1000).toFixed(0).padStart(3)
         const renderedDiff = (latestSequence - header.sequence).toString().padStart(6)
-        const renderedMined = ageSequence.toString().padStart(3)
+        const renderedAgeSequence = ageSequence.toString().padStart(3)
         const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
 
         list.pushLine(
-          `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedMined} | ${renderedGraffiti}`,
+          `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedAgeSequence} | ${renderedGraffiti}`,
         )
       }
       status.setContent(
