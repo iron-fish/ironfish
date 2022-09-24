@@ -181,9 +181,10 @@ export class AccountsDB {
     })
   }
 
-  async removeAccount(id: string, tx?: IDatabaseTransaction): Promise<void> {
+  async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.database.withTransaction(tx, async (tx) => {
-      await this.accounts.del(id, tx)
+      await this.accounts.del(account.id, tx)
+      await this.balances.del(account.id, tx)
     })
   }
 

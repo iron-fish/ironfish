@@ -928,11 +928,11 @@ export class Accounts {
     })
 
     await this.db.database.transaction(async (tx) => {
-      this.accounts.set(account.id, account)
       await this.db.setAccount(account, tx)
       await this.updateHeadHash(account, null, tx)
     })
 
+    this.accounts.set(account.id, account)
     this.onAccountImported.emit(account)
 
     return account
@@ -958,11 +958,11 @@ export class Accounts {
         this.defaultAccount = null
       }
 
-      await this.db.removeAccount(account.id, tx)
+      await this.db.removeAccount(account, tx)
       await this.db.removeHeadHash(account, tx)
-      this.accounts.delete(account.id)
     })
 
+    this.accounts.delete(account.id)
     this.onAccountRemoved.emit(account)
   }
 
