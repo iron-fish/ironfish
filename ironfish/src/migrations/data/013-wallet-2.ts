@@ -220,6 +220,7 @@ export class Migration013 extends Migration {
       await accountsDb.withTransaction(tx, async (tx) => {
         await stores.new.accounts.put(migrated.id, migrated, tx)
         await stores.old.accounts.del(accountName, tx)
+        await stores.new.balances.put(migrated.id, BigInt(0), tx)
       })
 
       count++
