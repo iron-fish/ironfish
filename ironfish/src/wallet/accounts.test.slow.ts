@@ -43,17 +43,17 @@ describe('Accounts', () => {
     await node.accounts.updateHead()
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     await node.accounts.updateHead()
 
     // Balance after adding the genesis block should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -65,9 +65,9 @@ describe('Accounts', () => {
     await node.accounts.updateHead()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
   })
 
@@ -80,16 +80,16 @@ describe('Accounts', () => {
     const account = await node.accounts.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -100,9 +100,9 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // Spend the balance
@@ -133,9 +133,9 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 2 should be 1999999998
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
   })
 
@@ -148,16 +148,16 @@ describe('Accounts', () => {
     const account = await node.accounts.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -168,9 +168,9 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // Spend the balance
@@ -204,9 +204,9 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 2 should be 1999999998
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
   })
 
@@ -219,16 +219,16 @@ describe('Accounts', () => {
     const account = await node.accounts.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -239,9 +239,9 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     const transaction = await node.accounts.pay(
@@ -284,9 +284,9 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 2 should be 1999999998
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(1999999994),
-      unconfirmed: BigInt(1999999994),
+      pending: BigInt(1999999994),
     })
   })
 
@@ -325,16 +325,16 @@ describe('Accounts', () => {
     node.accounts['isStarted'] = true
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -345,9 +345,9 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // Spend the balance, setting expiry soon
@@ -365,17 +365,17 @@ describe('Accounts', () => {
       1,
     )
 
-    // Transaction should be unconfirmed
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    // Transaction should be pending
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
 
     // Expiring transactions should not yet remove the transaction
     await node.accounts.expireTransactions()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
 
     // Create a block with a miner's fee
@@ -391,9 +391,9 @@ describe('Accounts', () => {
     // Expiring transactions should now remove the transaction
     await node.accounts.updateHead()
     await node.accounts.expireTransactions()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
   })
 
@@ -412,16 +412,16 @@ describe('Accounts', () => {
     await node.accounts.createAccount('test2')
 
     // Initial balance should be 0
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Create a block with a miner's fee
@@ -431,9 +431,9 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.accounts.updateHead()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // Spend the balance, setting expiry soon
@@ -452,16 +452,16 @@ describe('Accounts', () => {
     )
 
     // Transaction should be unconfirmed
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
 
     // Expiring transactions should not yet remove the transaction
     await node.accounts.expireTransactions()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
 
     await node.accounts.close()
@@ -480,9 +480,9 @@ describe('Accounts', () => {
     // Expiring transactions should now remove the transaction
     await node.accounts.updateHead()
     await node.accounts.expireTransactions()
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.accounts.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
   }, 600000)
 
@@ -501,9 +501,9 @@ describe('Accounts', () => {
 
     // Initial balance should be 2000000000
     await nodeA.accounts.updateHead()
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     const block2 = await useBlockFixture(nodeA.chain, async () => {
@@ -581,17 +581,17 @@ describe('Accounts', () => {
     // Update account head and check all balances
     await nodeA.accounts.updateHead()
     await nodeB.accounts.updateHead()
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
-    await expect(nodeB.accounts.getBalance(accountB)).resolves.toEqual({
+    await expect(nodeB.accounts.getBalance(accountB)).resolves.toMatchObject({
       confirmed: BigInt(4000000000),
-      unconfirmed: BigInt(4000000000),
+      pending: BigInt(4000000000),
     })
 
     // Copy block B1 to nodeA
@@ -601,13 +601,13 @@ describe('Accounts', () => {
     // Copy block B2 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.accounts.updateHead()
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(4000000000),
-      unconfirmed: BigInt(4000000000),
+      pending: BigInt(4000000000),
     })
   })
 
@@ -679,17 +679,17 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await nodeB.accounts.updateHead()
 
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(2),
-      unconfirmed: BigInt(2),
+      pending: BigInt(2),
     })
-    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toEqual({
+    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // Copy block B2 and B3 to nodeA
@@ -699,13 +699,13 @@ describe('Accounts', () => {
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should not have confirmed coins any more because the transaction is pending
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(2),
+      pending: BigInt(2),
     })
   })
 
@@ -790,17 +790,17 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await nodeB.accounts.updateHead()
 
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(2),
-      unconfirmed: BigInt(2),
+      pending: BigInt(2),
     })
-    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toEqual({
+    await expect(nodeB.accounts.getBalance(accountANodeB)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999998),
+      pending: BigInt(1999999998),
     })
 
     // Copy block B2 and B3 to nodeA
@@ -810,13 +810,13 @@ describe('Accounts', () => {
 
     // A should have its original coins
     // B should not have the coins any more
-    await expect(nodeA.accounts.getBalance(accountA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(3999999998),
+      pending: BigInt(3999999998),
     })
-    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toEqual({
+    await expect(nodeA.accounts.getBalance(accountBNodeA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(2),
+      pending: BigInt(2),
     })
   })
 })

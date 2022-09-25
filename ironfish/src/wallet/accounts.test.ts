@@ -46,7 +46,7 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     // This transaction will be invalid after the reorg
@@ -56,7 +56,7 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(1999999999),
+      pending: BigInt(1999999999),
     })
 
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -79,7 +79,7 @@ describe('Accounts', () => {
     await nodeA.accounts.updateHead()
     await expect(nodeA.accounts.getBalance(accountA)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(3999999999),
+      pending: BigInt(3999999999),
     })
 
     // Check that it was last broadcast at its added height
@@ -232,13 +232,13 @@ describe('Accounts', () => {
       expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
       expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
 
-      expect(await nodeA.accounts.getBalance(accountA)).toEqual({
+      expect(await nodeA.accounts.getBalance(accountA)).toMatchObject({
         confirmed: BigInt(6000000000),
-        unconfirmed: BigInt(10000000000),
+        pending: BigInt(10000000000),
       })
-      expect(await nodeB.accounts.getBalance(accountB)).toEqual({
+      expect(await nodeB.accounts.getBalance(accountB)).toMatchObject({
         confirmed: BigInt(0),
-        unconfirmed: BigInt(0),
+        pending: BigInt(0),
       })
     })
   })

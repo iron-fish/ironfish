@@ -110,7 +110,7 @@ describe('Accounts', () => {
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(2000000000),
+      pending: BigInt(2000000000),
     })
 
     await account.deleteTransaction(tx)
@@ -123,7 +123,7 @@ describe('Accounts', () => {
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
   })
 })
