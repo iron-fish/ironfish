@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import tls from 'tls'
 import { Assert } from '../../assert'
 import { Config } from '../../fileStores/config'
 import { Logger } from '../../logger'
@@ -35,6 +36,7 @@ const FIVE_MINUTES_MS = 5 * 60 * 1000
 
 export class StratumServer {
   readonly server: net.Server
+  readonly tlsServer: tls.Server | null = null
   readonly pool: MiningPool
   readonly config: Config
   readonly logger: Logger
@@ -42,6 +44,9 @@ export class StratumServer {
 
   readonly port: number
   readonly host: string
+  readonly tlsPort: number | null = null
+  readonly tlsHost: string | null = null
+  readonly enableTlsPool: boolean | undefined = false
 
   clients: Map<number, StratumServerClient>
   nextMinerId: number
@@ -59,17 +64,30 @@ export class StratumServer {
     logger: Logger
     port?: number
     host?: string
+    tlsPort?: number
+    tlsHost?: string
+    tlsOptions?: tls.TlsOptions
     banning?: boolean
+    enableTlsPool?: boolean
   }) {
     this.pool = options.pool
     this.config = options.config
     this.logger = options.logger
+    this.enableTlsPool = options.enableTlsPool
 
     this.version = VERSION_PROTOCOL_STRATUM
     this.versionMin = VERSION_PROTOCOL_STRATUM_MIN
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')
+
+    if (options.enableTlsPool && options.tlsOptions) {
+      this.tlsHost = options.tlsHost ?? this.config.get('poolTlsHost')
+      this.tlsPort = options.tlsPort ?? this.config.get('poolTlsPort')
+      this.tlsServer = tls.createServer(options.tlsOptions, (socket) =>
+        this.onConnection(socket),
+      )
+    }
 
     this.clients = new Map()
     this.nextMinerId = 1
@@ -88,11 +106,17 @@ export class StratumServer {
   start(): void {
     this.peers.start()
     this.server.listen(this.port, this.host)
+    if (this.tlsServer) {
+      Assert.isNotNull(this.tlsPort)
+      Assert.isNotNull(this.tlsHost)
+      this.tlsServer.listen(this.tlsPort, this.tlsHost)
+    }
   }
 
   stop(): void {
     this.peers.stop()
     this.server.close()
+    this.tlsServer?.close()
   }
 
   newWork(miningRequestId: number, block: SerializedBlockTemplate): void {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
+import tls from 'tls'
 import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
@@ -66,7 +67,11 @@ export class MiningPool {
     webhooks?: WebhookNotifier[]
     host?: string
     port?: number
+    tlsHost?: string
+    tlsPort?: number
+    tlsOptions?: tls.TlsOptions
     banning?: boolean
+    enableTls?: boolean
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -77,7 +82,11 @@ export class MiningPool {
       logger: this.logger,
       host: options.host,
       port: options.port,
+      tlsHost: options.tlsHost,
+      tlsPort: options.tlsPort,
+      tlsOptions: options.tlsOptions,
       banning: options.banning,
+      enableTlsPool: options.enableTls,
     })
     this.config = options.config
     this.shares = options.shares
@@ -114,8 +123,12 @@ export class MiningPool {
     enablePayouts?: boolean
     host?: string
     port?: number
+    tlsHost?: string
+    tlsPort?: number
+    tlsOptions?: tls.TlsOptions
     balancePercentPayoutFlag?: number
     banning?: boolean
+    enableTls?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -133,8 +146,12 @@ export class MiningPool {
       webhooks: options.webhooks,
       host: options.host,
       port: options.port,
+      tlsHost: options.tlsHost,
+      tlsPort: options.tlsPort,
+      tlsOptions: options.tlsOptions,
       shares,
       banning: options.banning,
+      enableTls: options.enableTls,
     })
   }
 
@@ -152,6 +169,15 @@ export class MiningPool {
         this.stratum.port
       }`,
     )
+    if (this.stratum.enableTlsPool) {
+      Assert.isNotNull(this.stratum.tlsHost)
+      Assert.isNotNull(this.stratum.tlsPort)
+      this.logger.info(
+        `Starting tls stratum server v${String(this.stratum.version)} on ${
+          this.stratum.tlsHost
+        }:${this.stratum.tlsPort}`,
+      )
+    }
     this.stratum.start()
 
     this.logger.info('Connecting to node...')

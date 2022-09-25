@@ -4,11 +4,14 @@
 import {
   DEFAULT_POOL_HOST,
   DEFAULT_POOL_PORT,
+  DEFAULT_POOL_TLS_HOST,
+  DEFAULT_POOL_TLS_PORT,
   Discord,
   Lark,
   MiningPool,
   parseUrl,
   StringUtils,
+  TlsUtils,
   WebhookNotifier,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -34,6 +37,11 @@ export class StartPool extends IronfishCommand {
         DEFAULT_POOL_PORT,
       )}`,
     }),
+    tlsHost: Flags.string({
+      description: `A host:port listen for stratum connections over tls: ${DEFAULT_POOL_TLS_HOST}:${String(
+        DEFAULT_POOL_TLS_PORT,
+      )}`,
+    }),
     payouts: Flags.boolean({
       default: true,
       allowNo: true,
@@ -44,6 +52,10 @@ export class StartPool extends IronfishCommand {
     }),
     banning: Flags.boolean({
       description: 'Whether the pool should ban peers for errors or bad behavior',
+      allowNo: true,
+    }),
+    enableTls: Flags.boolean({
+      description: 'Whether the pool should listen for connections over tls',
       allowNo: true,
     }),
   }
@@ -112,6 +124,30 @@ export class StartPool extends IronfishCommand {
       }
     }
 
+    let tlsHost = undefined
+    let tlsPort = undefined
+
+    if (flags.tlsHost) {
+      const parsed = parseUrl(flags.tlsHost)
+
+      if (parsed.hostname) {
+        const resolved = await dns.promises.lookup(parsed.hostname)
+        tlsHost = resolved.address
+      }
+
+      if (parsed.port) {
+        tlsPort = parsed.port
+      }
+    }
+
+    let tlsOptions = undefined
+    if (flags.enableTls) {
+      const fileSystem = this.sdk.fileSystem
+      const nodeKeyPath = this.sdk.config.get('tlsKeyPath')
+      const nodeCertPath = this.sdk.config.get('tlsCertPath')
+      tlsOptions = await TlsUtils.getTlsOptions(fileSystem, nodeKeyPath, nodeCertPath)
+    }
+
     this.pool = await MiningPool.init({
       config: this.sdk.config,
       logger: this.logger,
@@ -120,8 +156,12 @@ export class StartPool extends IronfishCommand {
       webhooks: webhooks,
       host: host,
       port: port,
+      tlsHost: tlsHost,
+      tlsPort: tlsPort,
+      tlsOptions: tlsOptions,
       balancePercentPayoutFlag: flags.balancePercentPayout,
       banning: flags.banning,
+      enableTls: flags.enableTls,
     })
 
     await this.pool.start()
