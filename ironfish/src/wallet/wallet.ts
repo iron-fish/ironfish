@@ -548,7 +548,21 @@ export class Accounts {
     this.scan = null
   }
 
-  async getBalance(account: Account): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
+  async getBalance(
+    account: Account,
+    options?: { minimumBlockConfirmations?: number },
+  ): Promise<{
+    unconfirmedCount: number
+    pendingCount: number
+    pending: bigint
+    unconfirmed: bigint
+    confirmed: bigint
+  }> {
+    const minimumBlockConfirmations = Math.max(
+      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
+      0,
+    )
+
     return await this.db.database.transaction(async (tx) => {
       this.assertHasAccount(account)
 
@@ -557,17 +571,16 @@ export class Accounts {
         return {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
+          pending: BigInt(0),
+          unconfirmedCount: 0,
+          pendingCount: 0,
         }
       }
 
       const header = await this.chain.getHeader(headHash)
       Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
 
-      return account.getBalance(
-        header.sequence,
-        this.config.get('minimumBlockConfirmations'),
-        tx,
-      )
+      return account.getBalance(header.sequence, minimumBlockConfirmations, tx)
     })
   }
 
