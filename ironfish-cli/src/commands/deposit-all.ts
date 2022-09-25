@@ -139,7 +139,7 @@ export default class DepositAll extends IronfishCommand {
 
     let balanceResp = await this.client.getAccountBalance({ account: accountName })
     let confirmedBalance = Number(balanceResp.content.confirmed)
-    let unconfirmedBalance = Number(balanceResp.content.unconfirmed)
+    let pendingBalance = Number(balanceResp.content.pending)
 
     // Console log will create display issues with Blessed
     this.logger.pauseLogs()
@@ -186,7 +186,7 @@ export default class DepositAll extends IronfishCommand {
           oreToIron(Number(confirmedBalance)),
           false,
         )}, Unconfirmed - ${displayIronAmountWithCurrency(
-          oreToIron(Number(unconfirmedBalance)),
+          oreToIron(Number(pendingBalance)),
           false,
         )}`,
       )
@@ -199,10 +199,10 @@ export default class DepositAll extends IronfishCommand {
     while (true) {
       balanceResp = await this.client.getAccountBalance({ account: accountName })
       confirmedBalance = Number(balanceResp.content.confirmed)
-      unconfirmedBalance = Number(balanceResp.content.unconfirmed)
+      pendingBalance = Number(balanceResp.content.pending)
 
       // terminate condition
-      if (terminate && unconfirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
+      if (terminate && pendingBalance < ironToOre(IRON_TO_SEND) + fee) {
         screen.destroy()
         process.exit(0)
       }

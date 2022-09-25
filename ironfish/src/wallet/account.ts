@@ -340,14 +340,37 @@ export class Account {
     })
   }
 
+  /**
+   * Gets the balance for an account
+   * confirmed: all notes on the chain
+   * unconfirmed: confirmed balance minus notes in unconfirmed range
+   * pending: all notes on the chain, and notes not on the chain yet
+   */
   async getBalance(
     headSequence: number,
     minimumBlockConfirmations: number,
     tx?: IDatabaseTransaction,
-  ): Promise<{ unconfirmed: BigInt; confirmed: BigInt }> {
-    const unconfirmed = await this.getUnconfirmedBalance(tx)
-    let confirmed = unconfirmed
+  ): Promise<{
+    unconfirmed: bigint
+    unconfirmedCount: number
+    confirmed: bigint
+    pending: bigint
+    pendingCount: number
+  }> {
+    let pendingCount = 0
+    let unconfirmedCount = 0
 
+    const pending = await this.getUnconfirmedBalance(tx)
+
+    let unconfirmed = pending
+    for await (const note of this.accountsDb.loadNotesNotOnChain(this, tx)) {
+      if (!note.spent) {
+        pendingCount++
+        unconfirmed -= note.note.value()
+      }
+    }
+
+    let confirmed = unconfirmed
     if (minimumBlockConfirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
@@ -363,20 +386,18 @@ export class Account {
         tx,
       )) {
         if (!note.spent) {
+          unconfirmedCount++
           confirmed -= note.note.value()
         }
       }
     }
 
-    for await (const note of this.accountsDb.loadNotesNotOnChain(this, tx)) {
-      if (!note.spent) {
-        confirmed -= note.note.value()
-      }
-    }
-
     return {
       unconfirmed,
+      unconfirmedCount,
       confirmed,
+      pending,
+      pendingCount,
     }
   }
 
