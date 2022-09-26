@@ -57,6 +57,7 @@ pub struct SpendParams {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Randomized to help maintain zero knowledge.
+    // TODO: Receiving stores this as an ExtendedPoint - normalize these 2
     pub(crate) value_commitment: ValueCommitment,
 
     /// The public key after randomization has been applied. This is used

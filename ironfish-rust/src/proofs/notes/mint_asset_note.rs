@@ -1,11 +1,13 @@
 use std::slice;
 
 use bls12_381::Scalar;
-use group::Curve;
+use byteorder::{LittleEndian, WriteBytesExt};
+use group::{Curve, GroupEncoding};
+use jubjub::ExtendedPoint;
 use rand::{thread_rng, Rng};
 use zcash_primitives::{
-    constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
-    pedersen_hash,
+    constants::{self, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
+    pedersen_hash::{pedersen_hash, Personalization},
 };
 
 use crate::primitives::asset_type::AssetInfo;
@@ -39,19 +41,41 @@ impl MintAssetNote {
     }
 
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
-        let mut commitment_plaintext: Vec<u8> = vec![];
-        commitment_plaintext.extend(GH_FIRST_BLOCK);
-        commitment_plaintext.extend(self.asset_info.name());
-        commitment_plaintext.extend(self.asset_info.public_address_bytes());
-        commitment_plaintext.extend(slice::from_ref(self.asset_info.nonce()));
+        // Calculate the note contents, as bytes
+        let mut note_contents = vec![];
 
-        let commitment_hash = pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            commitment_plaintext
+        // Write the asset generator, cofactor not cleared
+        note_contents.extend(self.asset_info.asset_type().asset_generator().to_bytes());
+
+        // Writing the value in little endian
+        (&mut note_contents)
+            .write_u64::<LittleEndian>(self.value)
+            .unwrap();
+
+        // Write g_d
+        note_contents.extend_from_slice(
+            &self
+                .asset_info
+                .public_address()
+                .diversifier_point
+                .to_bytes(),
+        );
+
+        // Write pk_d
+        note_contents
+            .extend_from_slice(&self.asset_info.public_address().transmission_key.to_bytes());
+
+        assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
+
+        // Compute the Pedersen hash of the note contents
+        let hash_of_contents = pedersen_hash(
+            Personalization::NoteCommitment,
+            note_contents
                 .into_iter()
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         );
 
-        commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+        // Compute final commitment
+        (constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness) + hash_of_contents
     }
 }

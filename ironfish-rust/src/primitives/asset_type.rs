@@ -15,6 +15,7 @@ lazy_static! {
     pub static ref DEFAULT_ASSET: AssetType = AssetType::new(b"", [0; 43].as_ref()).unwrap();
 }
 
+// TODO: add a ::new helper method
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 // TODO: This is just a placeholder helper struct, feels pretty awkward to use

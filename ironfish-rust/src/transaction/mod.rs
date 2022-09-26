@@ -173,10 +173,12 @@ impl ProposedTransaction {
     pub fn mint_asset(
         &mut self,
         spender_key: &SaplingKey,
+        create_asset_note: &CreateAssetNote,
         mint_asset_note: &MintAssetNote,
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
-        let params = MintAssetParams::new(spender_key, mint_asset_note, witness)?;
+        let params =
+            MintAssetParams::new(spender_key, create_asset_note, mint_asset_note, witness)?;
         self.mint_asset_params.push(params);
         Ok(())
     }
