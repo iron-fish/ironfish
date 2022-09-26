@@ -61,7 +61,6 @@ export default class Download extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
 
     let snapshotPath
-    await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
@@ -107,6 +106,7 @@ export default class Download extends IronfishCommand {
 
       this.log(`Downloading snapshot from ${snapshotUrl}`)
 
+      await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
       snapshotPath = path.join(this.sdk.config.tempDir, manifest.file_name)
 
       const bar = CliUx.ux.progress({
@@ -233,9 +233,7 @@ export default class Download extends IronfishCommand {
     // ensure that chainDatabasePath exists
     await fsAsync.mkdir(chainDatabasePath, { recursive: true })
 
-    CliUx.ux.action.start(`Unzipping ${snapshotPath} to ${chainDatabasePath}`)
     await this.unzip(snapshotPath, chainDatabasePath)
-    CliUx.ux.action.stop('done')
 
     if (flags.cleanup) {
       CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
@@ -245,10 +243,43 @@ export default class Download extends IronfishCommand {
   }
 
   async unzip(source: string, dest: string): Promise<void> {
+    let totalEntries = 0
+    let extracted = 0
+
+    const progressBar = CliUx.ux.progress({
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      format:
+        'Unzipping snapshot: [{bar}] {percentage}% | {value} / {total} entries | {speed}/s | ETA: {estimate}',
+    }) as ProgressBar
+
+    const speed = new Meter()
+
+    progressBar.start(totalEntries, 0, {
+      speed: '0',
+      estimate: TimeUtils.renderEstimate(0, 0, 0),
+    })
+    speed.start()
+
+    tar.list({
+      file: source,
+      onentry: (_) => progressBar.setTotal(++totalEntries),
+    })
+
     await tar.extract({
       file: source,
       C: dest,
       strip: 1,
+      onentry: (_) => {
+        speed.add(1)
+        progressBar.update(++extracted, {
+          speed: speed.rate1s.toFixed(2),
+          estimate: TimeUtils.renderEstimate(extracted, totalEntries, speed.rate1m),
+        })
+      },
     })
+
+    progressBar.stop()
+    speed.stop()
   }
 }
