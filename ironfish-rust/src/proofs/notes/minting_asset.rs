@@ -95,7 +95,7 @@ impl MintAssetParams {
         let params = MintAssetParams {
             proof: mint_proof,
             // TODO: I think this comes from the create note?
-            mint_commitment_randomness: mint_asset_note.randomness,
+            mint_commitment_randomness,
             create_asset_commitment,
             mint_asset_commitment,
             encrypted_note: [0u8; 12],
@@ -108,7 +108,6 @@ impl MintAssetParams {
     }
 
     pub fn post(&self) -> Result<MintAssetProof, errors::SaplingProofError> {
-        println!("mint asset params post start");
         let mint_asset_proof = MintAssetProof {
             proof: self.proof.clone(),
             create_asset_commitment: self.create_asset_commitment,
@@ -119,7 +118,6 @@ impl MintAssetParams {
             root_hash: self.root_hash,
         };
 
-        println!("calling mint proof.verify_proof");
         mint_asset_proof.verify_proof()?;
 
         Ok(mint_asset_proof)
@@ -127,12 +125,11 @@ impl MintAssetParams {
 
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
-        writer.write_all(&self.mint_commitment_randomness.to_bytes())?;
         writer.write_all(&self.create_asset_commitment.to_bytes())?;
         writer.write_all(&self.mint_asset_commitment.to_bytes())?;
-        writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.asset_type.get_identifier())?;
+        writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.root_hash.to_bytes())?;
         Ok(())
     }
@@ -237,7 +234,6 @@ impl MintAssetProof {
         // TODO: Extend SaplingProofError with From<bellman::VerificationError>
         // so we can use ? operator
         if verify_result.is_err() {
-            println!("verify result failed: {:?}", verify_result.err());
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 

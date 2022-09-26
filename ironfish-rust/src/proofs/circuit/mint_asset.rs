@@ -34,7 +34,7 @@ pub struct MintAsset {
     pub anchor: Option<bls12_381::Scalar>,
 
     pub create_commitment_randomness: Option<jubjub::Fr>,
-    
+
     pub mint_commitment_randomness: Option<jubjub::Fr>,
 
     // TODO: Should we pass this in anymore, or just rely on asset type? Feels like this could lead to accidental bugs.
@@ -852,7 +852,7 @@ mod test {
 
         // Mint asset note
         let value = 2;
-        let mut mint_note = MintAssetNote::new(asset_info, value);
+        let mint_note = MintAssetNote::new(asset_info, value);
 
         let tx_fee = 1;
 
