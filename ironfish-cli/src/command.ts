@@ -112,7 +112,7 @@ export abstract class IronfishCommand extends Command {
     const configFlag = getFlag(flags, ConfigFlagKey)
 
     const configOverrides: Partial<ConfigOptions> = {}
-    const internalConfigOverrides: Partial<InternalOptions> = {}
+    const internalOverrides: Partial<InternalOptions> = {}
 
     const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
     if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
@@ -159,12 +159,13 @@ export abstract class IronfishCommand extends Command {
 
     const rpcAuthFlag = getFlag(flags, RpcAuthFlagKey)
     if (typeof rpcAuthFlag === 'string') {
-      internalConfigOverrides.rpcAuthToken = rpcAuthFlag
+      internalOverrides.rpcAuthToken = rpcAuthFlag
     }
 
     this.sdk = await IronfishSdk.init({
       pkg: IronfishCliPKG,
       configOverrides: configOverrides,
+      internalOverrides: internalOverrides,
       configName: typeof configFlag === 'string' ? configFlag : undefined,
       dataDir: typeof dataDirFlag === 'string' ? dataDirFlag : undefined,
       logger: this.logger,

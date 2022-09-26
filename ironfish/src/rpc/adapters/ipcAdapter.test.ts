@@ -26,9 +26,6 @@ describe('IpcAdapter', () => {
         enableRpc: false,
         enableRpcIpc: false,
       },
-      internalConfigOverrides: {
-        rpcAuthToken: 'test token',
-      },
     })
 
     ipc = new RpcIpcAdapter(ALL_API_NAMESPACES, {

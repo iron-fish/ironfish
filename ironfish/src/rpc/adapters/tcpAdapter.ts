@@ -12,9 +12,8 @@ export class RpcTcpAdapter extends RpcSocketAdapter {
     port: number,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
-    enableAuthentication = false,
   ) {
-    super(host, port, logger.withTag('tcpadapter'), namespaces, enableAuthentication)
+    super(host, port, logger.withTag('tcpadapter'), namespaces)
   }
 
   protected createServer(): net.Server {

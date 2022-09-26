@@ -27,11 +27,12 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
-    super(host, port, logger, namespaces, true)
+    super(host, port, logger, namespaces)
     this.fileSystem = fileSystem
     this.nodeKeyPath = nodeKeyPath
     this.nodeCertPath = nodeCertPath
     this.node = node
+    this.enableAuthentication = true
   }
 
   protected async createServer(): Promise<net.Server> {

@@ -74,7 +74,7 @@ export class IronfishSdk {
     pkg,
     configName,
     configOverrides,
-    internalConfigOverrides,
+    internalOverrides,
     fileSystem,
     dataDir,
     logger = createRootLogger(),
@@ -84,7 +84,7 @@ export class IronfishSdk {
     pkg?: Package
     configName?: string
     configOverrides?: Partial<ConfigOptions>
-    internalConfigOverrides?: Partial<InternalOptions>
+    internalOverrides?: Partial<InternalOptions>
     fileSystem?: FileSystem
     dataDir?: string
     logger?: Logger
@@ -115,8 +115,8 @@ export class IronfishSdk {
       Object.assign(config.overrides, configOverrides)
     }
 
-    if (internalConfigOverrides) {
-      Object.assign(internal.overrides, internalConfigOverrides)
+    if (internalOverrides) {
+      Object.assign(internal.overrides, internalOverrides)
     }
 
     // Update the logger settings
@@ -163,20 +163,14 @@ export class IronfishSdk {
         client = new RpcTlsClient(
           config.get('rpcTcpHost'),
           config.get('rpcTcpPort'),
-          rpcAuthToken,
           logger,
+          rpcAuthToken,
         )
       } else {
-        client = new RpcTcpClient(
-          config.get('rpcTcpHost'),
-          config.get('rpcTcpPort'),
-          rpcAuthToken,
-          logger,
-        )
+        client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
     } else {
       client = new RpcIpcClient(
-        rpcAuthToken,
         {
           mode: 'ipc',
           socketPath: config.get('ipcPath'),
