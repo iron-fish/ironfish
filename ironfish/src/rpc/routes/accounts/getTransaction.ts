@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount } from './utils'
+import { getAccount, getTransactionNotes, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
 
@@ -18,9 +18,10 @@ export type GetAccountTransactionResponse = {
     spends: number
   } | null
   transactionNotes: {
-    spender: boolean
+    owner: boolean
     amount: number
     memo: string
+    spent: boolean | undefined
   }[]
 }
 
@@ -50,9 +51,10 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
         .array(
           yup
             .object({
-              spender: yup.boolean().defined(),
+              owner: yup.boolean().defined(),
               amount: yup.number().defined(),
               memo: yup.string().trim().defined(),
+              spent: yup.boolean(),
             })
             .defined(),
         )
@@ -65,10 +67,32 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
   GetAccountTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { transactionInfo, transactionNotes } = await node.accounts.getTransaction(
-      account,
-      request.data.hash,
-    )
+    const unsignedTransactionHash = Buffer.from(request.data.hash, 'hex')
+
+    let transactionInfo = null
+    const transactionNotes = []
+
+    for await (const { transaction, blockHash, sequence } of account.getTransactions()) {
+      if (unsignedTransactionHash.equals(transaction.unsignedHash())) {
+        transactionInfo = {
+          status: await getTransactionStatus(
+            node,
+            blockHash,
+            sequence,
+            transaction.expirationSequence(),
+          ),
+          isMinersFee: transaction.isMinersFee(),
+          fee: Number(transaction.fee()),
+          notes: transaction.notesLength(),
+          spends: transaction.spendsLength(),
+        }
+
+        const notes = await getTransactionNotes(account, transaction)
+        transactionNotes.push(...notes)
+        break
+      }
+    }
+
     request.end({
       account: account.displayName,
       transactionHash: request.data.hash,

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GraffitiUtils, PromiseUtils } from '@ironfish/sdk'
+import { BufferUtils, PromiseUtils } from '@ironfish/sdk'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -60,7 +60,7 @@ export default class ForksCommand extends IronfishCommand {
         const renderedAge = (age / 1000).toFixed(0).padStart(3)
         const renderedDiff = (latestSequence - header.sequence).toString().padStart(6)
         const renderedAgeSequence = ageSequence.toString().padStart(3)
-        const renderedGraffiti = GraffitiUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
+        const renderedGraffiti = BufferUtils.toHuman(Buffer.from(header.graffiti, 'hex'))
 
         list.pushLine(
           `${header.hash} | ${renderedDiff} | ${renderedAge}s | ${renderedAgeSequence} | ${renderedGraffiti}`,

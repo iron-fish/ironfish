@@ -6,8 +6,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
-import { Account, ScanState } from '../../../account'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account, ScanState } from '../../../wallet'
 import { RescanAccountResponse } from './rescanAccount'
 
 describe('account/rescanAccount', () => {

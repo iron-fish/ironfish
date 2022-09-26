@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import './matchers'
-import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
@@ -10,6 +9,7 @@ import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { Accounts } from '../wallet'
 import { WorkerPool } from '../workerPool'
 import { TestStrategy } from './strategy'
 import { getUniqueTestDataDir } from './utils'

@@ -35,9 +35,9 @@ export class NotesCommand extends IronfishCommand {
     this.log(`\n ${accountResponse} - Account notes\n`)
 
     CliUx.ux.table(notes, {
-      isSpender: {
-        header: 'Spender',
-        get: (row) => (row.spender ? `✔` : `x`),
+      isOwner: {
+        header: 'Owner',
+        get: (row) => (row.owner ? `✔` : `x`),
       },
       amount: {
         header: 'Amount ($IRON)',
@@ -46,8 +46,18 @@ export class NotesCommand extends IronfishCommand {
       memo: {
         header: 'Memo',
       },
-      noteTxHash: {
+      transactionHash: {
         header: 'From Transaction',
+      },
+      isSpent: {
+        header: 'Spent',
+        get: (row) => {
+          if (row.spent === undefined) {
+            return '-'
+          } else {
+            return row.spent ? `✔` : `x`
+          }
+        },
       },
     })
 

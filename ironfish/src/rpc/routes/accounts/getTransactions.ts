@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount } from './utils'
+import { getAccount, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionsRequest = { account?: string }
 
@@ -56,7 +56,42 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const transactions = await node.accounts.getTransactions(account)
-    request.end({ account: account.displayName, transactions })
+    const responseTransactions = []
+
+    for await (const { transaction, blockHash, sequence } of account.getTransactions()) {
+      let transactionCreator = false
+
+      for (const spend of transaction.spends()) {
+        const noteHash = await account.getNoteHash(spend.nullifier)
+
+        if (noteHash) {
+          transactionCreator = true
+          break
+        }
+      }
+
+      const status = await getTransactionStatus(
+        node,
+        blockHash,
+        sequence,
+        transaction.expirationSequence(),
+      )
+
+      responseTransactions.push({
+        creator: transactionCreator,
+        status,
+        hash: transaction.unsignedHash().toString('hex'),
+        isMinersFee: transaction.isMinersFee(),
+        fee: Number(transaction.fee()),
+        notes: transaction.notesLength(),
+        spends: transaction.spendsLength(),
+        expiration: transaction.expirationSequence(),
+      })
+    }
+
+    request.end({
+      account: account.displayName,
+      transactions: responseTransactions,
+    })
   },
 )

@@ -4,6 +4,7 @@
 
 export { Block, BlockSerde } from './block'
 export { BlockHeader } from './blockheader'
+export { Note } from './note'
 export { Spend } from './spend'
 export { Target } from './target'
 export { Transaction } from './transaction'

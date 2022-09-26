@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NotEnoughFundsError } from '../../../account/errors'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
@@ -101,6 +101,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(0),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
@@ -116,6 +119,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(0),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
@@ -139,6 +145,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
@@ -161,6 +170,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
@@ -178,6 +190,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
@@ -194,6 +209,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValue({
       unconfirmed: BigInt(100000),
       confirmed: BigInt(100000),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     const paySpy = jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)

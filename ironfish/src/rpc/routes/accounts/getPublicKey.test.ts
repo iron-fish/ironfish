@@ -7,8 +7,8 @@
 
 import * as native from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
-import { Account } from '../../../account'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account } from '../../../wallet'
 
 jest.mock('@ironfish/rust-nodejs', () => {
   const moduleMock = jest.requireActual<typeof native>('@ironfish/rust-nodejs')

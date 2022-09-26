@@ -4,6 +4,7 @@
 
 /* eslint-disable no-console */
 import { LogLevel } from 'consola'
+import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { IronfishNode } from '../node'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -140,24 +141,25 @@ export class Migrator {
       const db = await migration.prepare(this.node)
 
       const childLogger = logger.withTag(migration.name)
-      let tx: IDatabaseTransaction | null = null
+      let tx: IDatabaseTransaction | undefined = undefined
 
       try {
         await db.open()
-        tx = db.transaction()
+
+        if (dryRun) {
+          tx = db.transaction()
+        }
 
         await migration.forward(this.node, db, tx, childLogger, dryRun)
         await db.putVersion(migration.id, tx)
 
         if (dryRun) {
+          Assert.isNotUndefined(tx)
           await tx.abort()
           break
-        } else {
-          await tx.commit()
         }
       } catch (e) {
         this.logger.error(`Error applying ${migration.name}`)
-        this.logger.error(`${ErrorUtils.renderError(e, true)}`)
         throw e
       } finally {
         await db.close()

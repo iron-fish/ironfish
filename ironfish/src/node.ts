@@ -4,7 +4,6 @@
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
-import { Accounts, AccountsDB } from './account'
 import { Blockchain } from './blockchain'
 import {
   Config,
@@ -28,6 +27,7 @@ import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
+import { Accounts, AccountsDB } from './wallet'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {

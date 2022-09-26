@@ -83,7 +83,7 @@ export class NoteEncrypted {
     }
   }
 
-  merkleHash(): Buffer {
+  merkleHash(): NoteEncryptedHash {
     return this._noteCommitment
   }
 
