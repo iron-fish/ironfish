@@ -730,7 +730,7 @@ mod test {
             commitment_randomness: Some(create_commitment_randomness),
             auth_path: sapling_auth_path(&create_witness),
             anchor: Some(create_witness.root_hash),
-            value_commitment: Some(value_commitment.clone()),
+            value_commitment: Some(value_commitment),
         };
         let mint_proof = groth16::create_random_proof(mint_circuit, &mint_asset_params, &mut OsRng)
             .expect("Create valid mint asset proof");
@@ -744,7 +744,7 @@ mod test {
         let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
 
         let spend_circuit = Spend {
-            value_commitment: Some(value_commitment.clone()),
+            value_commitment: Some(value_commitment),
             asset_type: Some(asset_info.asset_type()),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(public_address.sapling_payment_address()),
@@ -829,7 +829,7 @@ mod test {
             AssetType::default(),
         );
         let note_witness = make_fake_witness(&in_note);
-        let mint_asset_witness = make_fake_witness_from_commitment(mint_note.commitment());
+        let mint_asset_witness = make_fake_witness_from_commitment(mint_note.commitment_point());
 
         let mut transaction = ProposedTransaction::new(sapling);
         transaction

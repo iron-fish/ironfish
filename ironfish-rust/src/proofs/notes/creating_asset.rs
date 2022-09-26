@@ -42,8 +42,7 @@ impl CreateAssetParams {
             create_commitment_randomness: Some(create_asset_note.randomness),
         };
         let create_proof =
-            groth16::create_random_proof(create_circuit, &SAPLING.create_asset_params, &mut OsRng)
-                .expect("Create valid proof");
+            groth16::create_random_proof(create_circuit, &SAPLING.create_asset_params, &mut OsRng)?;
 
         // TODO: Add encryption_key, see MerkleNote::new() for details
 
@@ -149,13 +148,15 @@ impl CreateAssetProof {
         ];
 
         // Verify proof
-        let verify_reuslt = groth16::verify_proof(
+        let verify_result = groth16::verify_proof(
             &SAPLING.create_asset_verifying_key,
             &self.proof,
             &public_inputs,
         );
 
-        if verify_reuslt.is_err() {
+        // TODO: Extend SaplingProofError with From<bellman::VerificationError>
+        // so we can use ? operator
+        if verify_result.is_err() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 

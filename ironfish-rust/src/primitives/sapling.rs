@@ -13,7 +13,7 @@ use zcash_primitives::{
 
 use super::asset_type::AssetType;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct ValueCommitment {
     pub generator: jubjub::SubgroupPoint,
     pub value: u64,

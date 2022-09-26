@@ -46,8 +46,32 @@ impl MintAssetParams {
         let asset_info = mint_asset_note.asset_info;
         let commitment_randomness = mint_asset_note.randomness;
         let value = mint_asset_note.value;
-        let commitment = mint_asset_note.commitment();
+
+        let mint_asset_commitment = mint_asset_note.commitment_point();
         let public_address = asset_info.public_address();
+        let proof_generation_key = minting_key.sapling_proof_generation_key();
+
+        let mut buffer = [0u8; 64];
+        thread_rng().fill(&mut buffer[..]);
+        let randomness = jubjub::Fr::from_bytes_wide(&buffer);
+        let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
+
+        // Mint proof
+        let mint_circuit = MintAsset {
+            asset_info: Some(asset_info),
+            proof_generation_key: Some(proof_generation_key),
+            commitment_randomness: Some(commitment_randomness),
+            auth_path: sapling_auth_path(witness),
+            anchor: Some(witness.root_hash()),
+            value_commitment: Some(value_commitment),
+        };
+        let mint_proof = groth16::create_random_proof(
+            mint_circuit,
+            &sapling_bls12::SAPLING.mint_asset_params,
+            &mut OsRng,
+        )?;
+
+        // TODO: Refactor and move to post
 
         // Calculate the note contents, as bytes
         let mut note_contents = vec![];
@@ -81,50 +105,28 @@ impl MintAssetParams {
         let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-        let randomness = jubjub::Fr::from_bytes_wide(&buffer);
-        let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
-
         let p = ExtendedPoint::from(value_commitment.commitment()).to_affine();
         let mut inputs = vec![Scalar::zero(); 7];
         inputs[0] = identifier_inputs[0];
         inputs[1] = identifier_inputs[1];
-        inputs[2] = commitment;
+        inputs[2] = mint_asset_commitment;
         inputs[3] = witness.root_hash();
         inputs[4] = p.get_u();
         inputs[5] = p.get_v();
         inputs[6] = note_commitment;
 
-        let proof_generation_key = minting_key.sapling_proof_generation_key();
-        // Mint proof
-        let circuit = MintAsset {
-            asset_info: Some(asset_info),
-            proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(commitment_randomness),
-            auth_path: sapling_auth_path(witness),
-            anchor: Some(witness.root_hash()),
-            value_commitment: Some(value_commitment),
-        };
-        let proof = groth16::create_random_proof(
-            circuit,
-            &sapling_bls12::SAPLING.mint_asset_params,
-            &mut OsRng,
-        )
-        .expect("Create valid proof");
-
         // Verify proof
         groth16::verify_proof(
             &sapling_bls12::SAPLING.mint_asset_verifying_key,
-            &proof,
+            &mint_proof,
             &inputs[..],
         )
         .expect("Can verify proof");
 
         let params = MintAssetParams {
-            proof,
+            proof: mint_proof,
             commitment_randomness: mint_asset_note.randomness,
-            mint_commitment: commitment,
+            mint_commitment: mint_asset_commitment,
             encrypted_note: [0u8; 12],
             asset_generator: asset_info.asset_type().asset_generator(),
         };
