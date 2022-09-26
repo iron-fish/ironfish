@@ -9,8 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
-  GetAccountNotesRequest,
-  GetAccountNotesResponse,
+  GetAccountNotesStreamRequest,
+  GetAccountNotesStreamResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetAccountTransactionRequest,
@@ -207,14 +207,11 @@ export abstract class RpcClient {
   }
 
   getAccountNotesStream(
-    params: GetAccountNotesRequest,
-  ): RpcResponse<void, GetAccountNotesResponse> {
-    return this.request<void, GetAccountNotesResponse>(
-      `${ApiNamespace.account}/getAccountNotes`,
-      {
-        ...params,
-        stream: true,
-      },
+    params: GetAccountNotesStreamRequest,
+  ): RpcResponse<void, GetAccountNotesStreamResponse> {
+    return this.request<void, GetAccountNotesStreamResponse>(
+      `${ApiNamespace.account}/getAccountNotesStream`,
+      params,
     )
   }
 
