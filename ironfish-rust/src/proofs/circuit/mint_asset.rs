@@ -33,7 +33,9 @@ pub struct MintAsset {
     /// spent is zero-value, this can be anything.
     pub anchor: Option<bls12_381::Scalar>,
 
-    pub commitment_randomness: Option<jubjub::Fr>,
+    pub create_commitment_randomness: Option<jubjub::Fr>,
+    
+    pub mint_commitment_randomness: Option<jubjub::Fr>,
 
     // TODO: Should we pass this in anymore, or just rely on asset type? Feels like this could lead to accidental bugs.
     /// Pedersen commitment to the value being spent
@@ -169,7 +171,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             // Booleanize the randomness
             let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "identifier commitment randomness"),
-                self.commitment_randomness,
+                self.create_commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
@@ -282,7 +284,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             // Booleanize the randomness
             let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "note contents randomness"),
-                self.commitment_randomness,
+                self.mint_commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
@@ -357,7 +359,8 @@ mod test {
             MintAsset {
                 asset_info: None,
                 proof_generation_key: None,
-                commitment_randomness: None,
+                create_commitment_randomness: None,
+                mint_commitment_randomness: None,
                 auth_path: vec![None; TREE_DEPTH],
                 anchor: None,
                 value_commitment: None,
@@ -378,6 +381,12 @@ mod test {
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         let create_commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+        let mint_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
@@ -432,7 +441,7 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * mint_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
 
         let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
@@ -457,7 +466,8 @@ mod test {
         let circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(create_commitment_randomness),
+            create_commitment_randomness: Some(create_commitment_randomness),
+            mint_commitment_randomness: Some(mint_commitment_randomness),
             auth_path: sapling_auth_path(&create_asset_witness),
             anchor: Some(create_asset_witness.root_hash),
             value_commitment: Some(value_commitment),
@@ -494,6 +504,12 @@ mod test {
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         let create_commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+        let mint_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
@@ -552,7 +568,7 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * mint_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
 
         let mut buffer = [0u8; 64];
@@ -576,7 +592,8 @@ mod test {
         let circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(create_commitment_randomness),
+            create_commitment_randomness: Some(create_commitment_randomness),
+            mint_commitment_randomness: Some(mint_commitment_randomness),
             auth_path: sapling_auth_path(&create_witness),
             anchor: Some(create_witness.root_hash),
             value_commitment: Some(value_commitment),
@@ -610,7 +627,8 @@ mod test {
             MintAsset {
                 asset_info: None,
                 proof_generation_key: None,
-                commitment_randomness: None,
+                create_commitment_randomness: None,
+                mint_commitment_randomness: None,
                 auth_path: vec![None; TREE_DEPTH],
                 anchor: None,
                 value_commitment: None,
@@ -633,6 +651,12 @@ mod test {
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
 
         let create_commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+        let mint_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
@@ -715,7 +739,7 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * mint_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
         let note_witness = make_fake_witness_from_commitment(note_commitment);
 
@@ -733,7 +757,8 @@ mod test {
         let mint_circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key.clone()),
-            commitment_randomness: Some(create_commitment_randomness),
+            create_commitment_randomness: Some(create_commitment_randomness),
+            mint_commitment_randomness: Some(mint_commitment_randomness),
             auth_path: sapling_auth_path(&create_witness),
             anchor: Some(create_witness.root_hash),
             value_commitment: Some(value_commitment),
@@ -827,7 +852,7 @@ mod test {
 
         // Mint asset note
         let value = 2;
-        let mint_note = MintAssetNote::new(asset_info, value);
+        let mut mint_note = MintAssetNote::new(asset_info, value);
 
         let tx_fee = 1;
 

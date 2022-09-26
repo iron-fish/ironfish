@@ -61,7 +61,8 @@ impl MintAssetParams {
         create_asset_note_witness: &dyn WitnessTrait,
     ) -> Result<MintAssetParams, errors::SaplingProofError> {
         let asset_info = mint_asset_note.asset_info;
-        let commitment_randomness = mint_asset_note.randomness;
+        let create_commitment_randomness = create_asset_note.randomness;
+        let mint_commitment_randomness = mint_asset_note.randomness;
         let value = mint_asset_note.value;
 
         let create_asset_commitment = create_asset_note.commitment_point();
@@ -79,7 +80,8 @@ impl MintAssetParams {
         let mint_circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(commitment_randomness),
+            create_commitment_randomness: Some(create_commitment_randomness),
+            mint_commitment_randomness: Some(mint_commitment_randomness),
             auth_path: sapling_auth_path(create_asset_note_witness),
             anchor: Some(create_asset_note_witness.root_hash()),
             value_commitment: Some(value_commitment),
@@ -246,9 +248,9 @@ impl MintAssetProof {
         self.proof.write(&mut writer)?;
         writer.write_all(&self.create_asset_commitment.to_bytes())?;
         writer.write_all(&self.mint_asset_commitment.to_bytes())?;
-        writer.write_all(&self.encrypted_note)?;
         writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.asset_type.get_identifier())?;
+        writer.write_all(&self.encrypted_note)?;
         writer.write_all(&self.root_hash.to_bytes())?;
         Ok(())
     }
