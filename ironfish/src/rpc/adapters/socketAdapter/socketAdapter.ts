@@ -60,13 +60,11 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     port: number,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
-    enableAuthentication: boolean,
   ) {
     this.host = host
     this.port = port
     this.logger = logger.withTag('tcpadapter')
     this.namespaces = namespaces
-    this.enableAuthentication = enableAuthentication
   }
 
   protected abstract createServer(): net.Server | Promise<net.Server>
@@ -335,7 +333,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     const error = new Error(`Missing or bad authentication`)
 
     const data: SocketRpcError = {
-      code: ERROR_CODES.UNAUTHENTICATION,
+      code: ERROR_CODES.UNAUTHENTICATED,
       message: error.message,
       stack: error.stack,
     }

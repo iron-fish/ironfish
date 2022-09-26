@@ -6,6 +6,7 @@
 import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
+import { createRootLogger, Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
@@ -19,9 +20,11 @@ describe('TcpAdapter', () => {
   let sdk: IronfishSdk
   let client: RpcTcpClient | undefined
   let node: IronfishNode
+  let logger: Logger
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
+    logger = createRootLogger().withTag('tcpadapter')
 
     sdk = await IronfishSdk.init({
       dataDir,
@@ -31,6 +34,9 @@ describe('TcpAdapter', () => {
         enableRpcTcp: false,
         enableRpcTls: false,
         rpcTcpPort: 0,
+      },
+      internalOverrides: {
+        rpcAuthToken: 'test token',
       },
     })
 
@@ -56,7 +62,7 @@ describe('TcpAdapter', () => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
+    client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
@@ -75,7 +81,7 @@ describe('TcpAdapter', () => {
       request.end()
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
+    client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -96,7 +102,7 @@ describe('TcpAdapter', () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
+    client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -122,7 +128,7 @@ describe('TcpAdapter', () => {
 
     tcp.router.register('foo/bar', schema, (res) => res.end())
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
+    client = new RpcTcpClient('localhost', tcp.addressPort)
     await client.connect()
 
     const response = client.request('foo/bar', body)
@@ -135,29 +141,50 @@ describe('TcpAdapter', () => {
     })
   })
 
-  it('should authenticate', async () => {
-    Assert.isNotUndefined(tcp)
-    tcp.enableAuthentication = true
-    await tcp.start()
+  describe('Authentication', () => {
+    it('should reject when authentication failed', async () => {
+      Assert.isNotUndefined(tcp)
+      tcp.enableAuthentication = true
+      await tcp.start()
 
-    Assert.isNotNull(tcp.router)
-    Assert.isNotNull(tcp.addressPort)
+      Assert.isNotNull(tcp.router)
+      Assert.isNotNull(tcp.addressPort)
 
-    tcp.router.register('foo/bar', yup.string(), (request) => {
-      request.end(request.data)
+      tcp.router.register('foo/bar', yup.string(), (request) => {
+        request.end(request.data)
+      })
+
+      client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'wrong token')
+      await client.connect()
+
+      const response = client.request('foo/bar', 'hello world')
+
+      await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+
+      await expect(response.waitForEnd()).rejects.toMatchObject({
+        status: 401,
+        code: ERROR_CODES.UNAUTHENTICATED,
+        codeMessage: expect.stringContaining('Missing or bad authentication'),
+      })
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, 'test token')
-    await client.connect()
+    it('should succeed when authentication pass', async () => {
+      Assert.isNotUndefined(tcp)
+      tcp.enableAuthentication = true
+      await tcp.start()
 
-    const response = client.request('foo/bar', 'hello world')
+      Assert.isNotNull(tcp.router)
+      Assert.isNotNull(tcp.addressPort)
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+      tcp.router.register('foo/bar', yup.string(), (request) => {
+        request.end(request.data)
+      })
 
-    await expect(response.waitForEnd()).rejects.toMatchObject({
-      status: 401,
-      code: ERROR_CODES.UNAUTHENTICATION,
-      codeMessage: expect.stringContaining('Missing or bad authentication'),
+      client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'test token')
+      await client.connect()
+
+      const response = await client.request('foo/bar', 'hello world').waitForEnd()
+      expect(response.content).toBe('hello world')
     })
   })
 })
