@@ -159,7 +159,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         multipack::pack_into_inputs(cs.namespace(|| "pack hash"), &asset_identifier)?;
 
-        let mut cm = pedersen_hash::pedersen_hash(
+        let mut create_asset_commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
             &identifier_commitment_contents,
@@ -167,26 +167,27 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         {
             // Booleanize the randomness
-            let rcm = boolean::field_into_boolean_vec_le(
+            let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "identifier commitment randomness"),
                 self.commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
-            let rcm = ecc::fixed_base_multiplication(
+            let commitment_randomness = ecc::fixed_base_multiplication(
                 cs.namespace(|| "computation of identifier commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &rcm,
+                &randomness_bits,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(
+            create_asset_commitment = create_asset_commitment.add(
                 cs.namespace(|| "randomization of identifier note commitment"),
-                &rcm,
+                &commitment_randomness,
             )?;
         }
 
-        cm.get_u()
+        create_asset_commitment
+            .get_u()
             .inputize(cs.namespace(|| "identifier commitment"))?;
 
         // This will store (least significant bit first)
@@ -195,7 +196,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         let mut position_bits = vec![];
         // This is an injective encoding, as cur is a
         // point in the prime order subgroup.
-        let mut cur = cm.get_u().clone();
+        let mut cur = create_asset_commitment.get_u().clone();
 
         // Ascend the merkle tree authentication path
         for (i, e) in self.auth_path.into_iter().enumerate() {
@@ -271,7 +272,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Compute the hash of the note contents
-        let mut cm = pedersen_hash::pedersen_hash(
+        let mut note_commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
             &note_contents,
@@ -279,27 +280,32 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         {
             // Booleanize the randomness
-            let rcm = boolean::field_into_boolean_vec_le(
+            let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "note contents randomness"),
                 self.commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
-            let rcm = ecc::fixed_base_multiplication(
+            let commitment_randomness = ecc::fixed_base_multiplication(
                 cs.namespace(|| "computation of commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &rcm,
+                &randomness_bits,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+            note_commitment = note_commitment.add(
+                cs.namespace(|| "randomization of note commitment"),
+                &commitment_randomness,
+            )?;
         }
 
         // Only the u-coordinate of the output is revealed,
         // since we know it is prime order, and we know that
         // the u-coordinate is an injective encoding for
         // elements in the prime-order subgroup.
-        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+        note_commitment
+            .get_u()
+            .inputize(cs.namespace(|| "commitment"))?;
 
         Ok(())
     }
