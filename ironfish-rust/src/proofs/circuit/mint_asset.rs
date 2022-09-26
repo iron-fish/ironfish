@@ -340,7 +340,7 @@ mod test {
         primitives::asset_type::AssetInfo,
         proofs::{
             circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
-            notes::mint_asset_note::MintAssetNote,
+            notes::{create_asset_note::CreateAssetNote, mint_asset_note::MintAssetNote},
         },
         sapling_bls12::{self},
         test_util::{make_fake_witness, make_fake_witness_from_commitment},
@@ -821,6 +821,10 @@ mod test {
         let asset_info =
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
+        // Create asset note
+        let create_note = CreateAssetNote::new(asset_info.clone());
+        let create_witness = make_fake_witness_from_commitment(create_note.commitment_point());
+
         // Mint asset note
         let value = 2;
         let mint_note = MintAssetNote::new(asset_info, value);
@@ -835,14 +839,13 @@ mod test {
             AssetType::default(),
         );
         let note_witness = make_fake_witness(&in_note);
-        let mint_asset_witness = make_fake_witness_from_commitment(mint_note.commitment_point());
 
         let mut transaction = ProposedTransaction::new(sapling);
         transaction
             .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
         transaction
-            .mint_asset(&sapling_key, &mint_note, &mint_asset_witness)
+            .mint_asset(&sapling_key, &create_note, &mint_note, &create_witness)
             .expect("Can add mint asset note");
 
         let public_transaction = transaction

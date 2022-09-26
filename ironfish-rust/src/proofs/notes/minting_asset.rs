@@ -11,43 +11,62 @@ use zcash_primitives::{constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR, pedersen
 use crate::{
     errors,
     merkle_note::sapling_auth_path,
+    primitives::{
+        asset_type::AssetIdentifier, constants::ASSET_IDENTIFIER_LENGTH, sapling::ValueCommitment,
+    },
     proofs::circuit::mint_asset::MintAsset,
     proofs::notes::mint_asset_note::MintAssetNote,
     sapling_bls12::{self, SAPLING},
     serializing::read_scalar,
     witness::WitnessTrait,
-    SaplingKey,
+    AssetType, SaplingKey,
 };
+
+use super::create_asset_note::CreateAssetNote;
 
 pub struct MintAssetParams {
     /// Proof that the mint asset circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
     /// Randomness used to mint the identifier commitment
-    pub(crate) commitment_randomness: jubjub::Fr,
+    pub(crate) mint_commitment_randomness: jubjub::Fr,
 
     // Fields that would exist on "MerkleNote" if we were keeping that pattern:
 
     // The hash of the note, committing to it's internal state
-    pub(crate) mint_commitment: bls12_381::Scalar,
+    pub(crate) create_asset_commitment: bls12_381::Scalar,
+
+    pub(crate) mint_asset_commitment: bls12_381::Scalar,
 
     // TODO: Size etc
     pub(crate) encrypted_note: [u8; 12],
 
-    pub(crate) asset_generator: jubjub::ExtendedPoint,
+    pub(crate) value_commitment: jubjub::ExtendedPoint,
+
+    pub(crate) asset_type: AssetType,
+
+    pub(crate) root_hash: bls12_381::Scalar,
 }
 
 impl MintAssetParams {
+    // TODO: Just notes for refactoring, delete this comment when done
+    // spending:
+    // new: Just enough to create the circuit and call create_random_proof
+    // post: Creates the SpendProof object and calls SpendProof.verify_proof
+    // SpendProof.verify_proof does all the public inputs etc, everything needed to verify
     pub(crate) fn new(
         minting_key: &SaplingKey,
+        create_asset_note: &CreateAssetNote,
         mint_asset_note: &MintAssetNote,
-        witness: &dyn WitnessTrait,
+        create_asset_note_witness: &dyn WitnessTrait,
     ) -> Result<MintAssetParams, errors::SaplingProofError> {
         let asset_info = mint_asset_note.asset_info;
         let commitment_randomness = mint_asset_note.randomness;
         let value = mint_asset_note.value;
 
+        let create_asset_commitment = create_asset_note.commitment_point();
         let mint_asset_commitment = mint_asset_note.commitment_point();
+
         let public_address = asset_info.public_address();
         let proof_generation_key = minting_key.sapling_proof_generation_key();
 
@@ -61,8 +80,8 @@ impl MintAssetParams {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
             commitment_randomness: Some(commitment_randomness),
-            auth_path: sapling_auth_path(witness),
-            anchor: Some(witness.root_hash()),
+            auth_path: sapling_auth_path(create_asset_note_witness),
+            anchor: Some(create_asset_note_witness.root_hash()),
             value_commitment: Some(value_commitment),
         };
         let mint_proof = groth16::create_random_proof(
@@ -71,77 +90,34 @@ impl MintAssetParams {
             &mut OsRng,
         )?;
 
-        // TODO: Refactor and move to post
-
-        // Calculate the note contents, as bytes
-        let mut note_contents = vec![];
-
-        // Write the asset generator, cofactor not cleared
-        note_contents.extend(asset_info.asset_type().asset_generator().to_bytes());
-
-        // Writing the value in little endian
-        (&mut note_contents)
-            .write_u64::<LittleEndian>(value)
-            .unwrap();
-
-        // Write g_d
-        note_contents.extend_from_slice(&public_address.diversifier_point.to_bytes());
-
-        // Write pk_d
-        note_contents.extend_from_slice(&public_address.transmission_key.to_bytes());
-
-        assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
-
-        let note_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            note_contents
-                .into_iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        ));
-        let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
-        let note_commitment = note_full_point.to_affine().get_u();
-
-        let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
-        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
-
-        let p = ExtendedPoint::from(value_commitment.commitment()).to_affine();
-        let mut inputs = vec![Scalar::zero(); 7];
-        inputs[0] = identifier_inputs[0];
-        inputs[1] = identifier_inputs[1];
-        inputs[2] = mint_asset_commitment;
-        inputs[3] = witness.root_hash();
-        inputs[4] = p.get_u();
-        inputs[5] = p.get_v();
-        inputs[6] = note_commitment;
-
-        // Verify proof
-        groth16::verify_proof(
-            &sapling_bls12::SAPLING.mint_asset_verifying_key,
-            &mint_proof,
-            &inputs[..],
-        )
-        .expect("Can verify proof");
-
         let params = MintAssetParams {
             proof: mint_proof,
-            commitment_randomness: mint_asset_note.randomness,
-            mint_commitment: mint_asset_commitment,
+            // TODO: I think this comes from the create note?
+            mint_commitment_randomness: mint_asset_note.randomness,
+            create_asset_commitment,
+            mint_asset_commitment,
             encrypted_note: [0u8; 12],
-            asset_generator: asset_info.asset_type().asset_generator(),
+            value_commitment: value_commitment.commitment().into(),
+            asset_type: asset_info.asset_type(),
+            root_hash: create_asset_note_witness.root_hash(),
         };
 
         Ok(params)
     }
 
     pub fn post(&self) -> Result<MintAssetProof, errors::SaplingProofError> {
+        println!("mint asset params post start");
         let mint_asset_proof = MintAssetProof {
             proof: self.proof.clone(),
-            mint_commitment: self.mint_commitment,
+            create_asset_commitment: self.create_asset_commitment,
+            mint_asset_commitment: self.mint_asset_commitment,
             encrypted_note: [0u8; 12],
-            asset_generator: self.asset_generator,
+            value_commitment: self.value_commitment,
+            asset_type: self.asset_type,
+            root_hash: self.root_hash,
         };
 
+        println!("calling mint proof.verify_proof");
         mint_asset_proof.verify_proof()?;
 
         Ok(mint_asset_proof)
@@ -149,9 +125,13 @@ impl MintAssetParams {
 
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
-        writer.write_all(&self.mint_commitment.to_bytes())?;
+        writer.write_all(&self.mint_commitment_randomness.to_bytes())?;
+        writer.write_all(&self.create_asset_commitment.to_bytes())?;
+        writer.write_all(&self.mint_asset_commitment.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
-        writer.write_all(&self.asset_generator.to_bytes())?;
+        writer.write_all(&self.value_commitment.to_bytes())?;
+        writer.write_all(self.asset_type.get_identifier())?;
+        writer.write_all(&self.root_hash.to_bytes())?;
         Ok(())
     }
 }
@@ -159,10 +139,13 @@ impl MintAssetParams {
 #[derive(Clone)]
 pub struct MintAssetProof {
     pub(crate) proof: groth16::Proof<Bls12>,
-    pub(crate) mint_commitment: bls12_381::Scalar,
+    pub(crate) create_asset_commitment: bls12_381::Scalar,
+    pub(crate) mint_asset_commitment: bls12_381::Scalar,
     // TODO: Size made up, copy from MintAssetParams when changed
     pub(crate) encrypted_note: [u8; 12],
-    pub(crate) asset_generator: jubjub::ExtendedPoint,
+    pub(crate) value_commitment: jubjub::ExtendedPoint,
+    pub(crate) asset_type: AssetType,
+    pub(crate) root_hash: bls12_381::Scalar,
 }
 
 impl MintAssetProof {
@@ -170,35 +153,53 @@ impl MintAssetProof {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
         let proof = groth16::Proof::read(&mut reader)?;
 
-        let mint_commitment = read_scalar(&mut reader).map_err(|_| {
+        let create_asset_commitment = read_scalar(&mut reader).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "Unable to convert note commitment",
+                "Unable to convert create asset note commitment",
             )
         })?;
 
-        let mut encrypted_note = [0; 12];
-        reader.read_exact(&mut encrypted_note)?;
+        let mint_asset_commitment = read_scalar(&mut reader).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unable to convert mint asset note commitment",
+            )
+        })?;
 
-        let asset_generator = {
+        let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
             let point = ExtendedPoint::from_bytes(&bytes);
             if point.is_none().into() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Unable to convert asset generator",
-                )
-                .into());
+                return Err(errors::SaplingProofError::IOError);
             }
             point.unwrap()
         };
 
+        let asset_type = {
+            let mut bytes: AssetIdentifier = [0u8; ASSET_IDENTIFIER_LENGTH];
+            reader.read_exact(&mut bytes)?;
+
+            match AssetType::from_identifier(&bytes) {
+                Ok(asset_type) => asset_type,
+                Err(_) => return Err(errors::SaplingProofError::IOError),
+            }
+        };
+
+        let mut encrypted_note = [0; 12];
+        reader.read_exact(&mut encrypted_note)?;
+
+        let root_hash = read_scalar(&mut reader)?;
+
         Ok(MintAssetProof {
             proof,
-            mint_commitment,
+            create_asset_commitment,
+            mint_asset_commitment,
             encrypted_note,
-            asset_generator,
+            value_commitment,
+            asset_type,
+            root_hash,
         })
     }
 
@@ -208,25 +209,47 @@ impl MintAssetProof {
     }
 
     pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
-        let generator_affine = self.asset_generator.to_affine();
+        let mut public_inputs = vec![Scalar::zero(); 7];
 
-        let inputs = [
-            generator_affine.get_u(),
-            generator_affine.get_v(),
-            self.mint_commitment,
-        ];
+        let identifier_bits = multipack::bytes_to_bits_le(self.asset_type.get_identifier());
+        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+        public_inputs[0] = identifier_inputs[0];
+        public_inputs[1] = identifier_inputs[1];
+
+        public_inputs[2] = self.create_asset_commitment;
+        public_inputs[3] = self.root_hash;
+
+        let value_commitment_point = self.value_commitment.to_affine();
+        public_inputs[4] = value_commitment_point.get_u();
+        public_inputs[5] = value_commitment_point.get_v();
+
+        public_inputs[6] = self.mint_asset_commitment;
 
         // Verify proof
-        groth16::verify_proof(&SAPLING.mint_asset_verifying_key, &self.proof, &inputs)
-            .expect("Can verify proof");
+        let verify_result = groth16::verify_proof(
+            &sapling_bls12::SAPLING.mint_asset_verifying_key,
+            &self.proof,
+            &public_inputs[..],
+        );
+
+        // TODO: Extend SaplingProofError with From<bellman::VerificationError>
+        // so we can use ? operator
+        if verify_result.is_err() {
+            println!("verify result failed: {:?}", verify_result.err());
+            return Err(errors::SaplingProofError::VerificationFailed);
+        }
+
         Ok(())
     }
 
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
-        writer.write_all(&self.mint_commitment.to_bytes())?;
+        writer.write_all(&self.create_asset_commitment.to_bytes())?;
+        writer.write_all(&self.mint_asset_commitment.to_bytes())?;
         writer.write_all(&self.encrypted_note)?;
-        writer.write_all(&self.asset_generator.to_bytes())?;
+        writer.write_all(&self.value_commitment.to_bytes())?;
+        writer.write_all(self.asset_type.get_identifier())?;
+        writer.write_all(&self.root_hash.to_bytes())?;
         Ok(())
     }
 }
