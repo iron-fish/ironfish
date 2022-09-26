@@ -21,11 +21,6 @@ use crate::{
     },
 };
 
-/// Info Needed:
-/// - Amount
-/// - Identifier
-/// - Public Address
-
 pub struct MintAsset {
     pub asset_info: Option<AssetInfo>,
 
@@ -164,7 +159,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         multipack::pack_into_inputs(cs.namespace(|| "pack hash"), &asset_identifier)?;
 
-        let mut cm = pedersen_hash::pedersen_hash(
+        let mut create_asset_commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
             &identifier_commitment_contents,
@@ -172,26 +167,27 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         {
             // Booleanize the randomness
-            let rcm = boolean::field_into_boolean_vec_le(
+            let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "identifier commitment randomness"),
                 self.commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
-            let rcm = ecc::fixed_base_multiplication(
+            let commitment_randomness = ecc::fixed_base_multiplication(
                 cs.namespace(|| "computation of identifier commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &rcm,
+                &randomness_bits,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(
+            create_asset_commitment = create_asset_commitment.add(
                 cs.namespace(|| "randomization of identifier note commitment"),
-                &rcm,
+                &commitment_randomness,
             )?;
         }
 
-        cm.get_u()
+        create_asset_commitment
+            .get_u()
             .inputize(cs.namespace(|| "identifier commitment"))?;
 
         // This will store (least significant bit first)
@@ -200,7 +196,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         let mut position_bits = vec![];
         // This is an injective encoding, as cur is a
         // point in the prime order subgroup.
-        let mut cur = cm.get_u().clone();
+        let mut cur = create_asset_commitment.get_u().clone();
 
         // Ascend the merkle tree authentication path
         for (i, e) in self.auth_path.into_iter().enumerate() {
@@ -276,7 +272,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Compute the hash of the note contents
-        let mut cm = pedersen_hash::pedersen_hash(
+        let mut note_commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
             &note_contents,
@@ -284,27 +280,32 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         {
             // Booleanize the randomness
-            let rcm = boolean::field_into_boolean_vec_le(
+            let randomness_bits = boolean::field_into_boolean_vec_le(
                 cs.namespace(|| "note contents randomness"),
                 self.commitment_randomness,
             )?;
 
             // Compute the note commitment randomness in the exponent
-            let rcm = ecc::fixed_base_multiplication(
+            let commitment_randomness = ecc::fixed_base_multiplication(
                 cs.namespace(|| "computation of commitment randomness"),
                 &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &rcm,
+                &randomness_bits,
             )?;
 
             // Randomize our note commitment
-            cm = cm.add(cs.namespace(|| "randomization of note commitment"), &rcm)?;
+            note_commitment = note_commitment.add(
+                cs.namespace(|| "randomization of note commitment"),
+                &commitment_randomness,
+            )?;
         }
 
         // Only the u-coordinate of the output is revealed,
         // since we know it is prime order, and we know that
         // the u-coordinate is an injective encoding for
         // elements in the prime-order subgroup.
-        cm.get_u().inputize(cs.namespace(|| "commitment"))?;
+        note_commitment
+            .get_u()
+            .inputize(cs.namespace(|| "commitment"))?;
 
         Ok(())
     }
@@ -351,6 +352,21 @@ mod test {
 
     #[test]
     fn test_mint_asset_circuit() {
+        // Setup: generate parameters file. This is slow, consider using pre-built ones later
+        let params = groth16::generate_random_parameters::<Bls12, _, _>(
+            MintAsset {
+                asset_info: None,
+                proof_generation_key: None,
+                commitment_randomness: None,
+                auth_path: vec![None; TREE_DEPTH],
+                anchor: None,
+                value_commitment: None,
+            },
+            &mut OsRng,
+        )
+        .expect("Can generate random params");
+        let pvk = groth16::prepare_verifying_key(&params.vk);
+
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.generate_public_address();
@@ -361,20 +377,35 @@ mod test {
         let asset_info =
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
-        let commitment_randomness = {
+        let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
             jubjub::Fr::from_bytes_wide(&buffer)
         };
 
-        let mut commitment_plaintext: Vec<u8> = vec![];
-        commitment_plaintext.extend(GH_FIRST_BLOCK);
-        commitment_plaintext.extend(asset_info.name());
-        commitment_plaintext.extend(asset_info.public_address_bytes());
-        commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+        let mut create_commitment_plaintext: Vec<u8> = vec![];
+        create_commitment_plaintext.extend(GH_FIRST_BLOCK);
+        create_commitment_plaintext.extend(asset_info.name());
+        create_commitment_plaintext.extend(asset_info.public_address_bytes());
+        create_commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+
+        // TODO: Make a helper function
+        let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+            pedersen_hash::Personalization::NoteCommitment,
+            create_commitment_plaintext
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        ));
+
+        let create_commitment_full_point = create_commitment_hash
+            + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+
+        let create_asset_commitment = create_commitment_full_point.to_affine().get_u();
+        let create_asset_witness = make_fake_witness_from_commitment(create_asset_commitment);
 
         let value = 1;
+
         // Calculate the note contents, as bytes
         let mut note_contents = vec![];
 
@@ -394,20 +425,6 @@ mod test {
 
         assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
 
-        // TODO: Make a helper function
-        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            commitment_plaintext
-                .into_iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        ));
-
-        let commitment_full_point =
-            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
-
-        let commitment = commitment_full_point.to_affine().get_u();
-        let witness = make_fake_witness_from_commitment(commitment);
-
         let note_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
             note_contents
@@ -415,23 +432,8 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
-
-        // Setup: generate parameters file. This is slow, consider using pre-built ones later
-        let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            MintAsset {
-                asset_info: None,
-                proof_generation_key: None,
-                commitment_randomness: None,
-                auth_path: vec![None; TREE_DEPTH],
-                anchor: None,
-                value_commitment: None,
-            },
-            &mut OsRng,
-        )
-        .expect("Can generate random params");
-        let pvk = groth16::prepare_verifying_key(&params.vk);
 
         let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
@@ -441,23 +443,23 @@ mod test {
         let randomness = jubjub::Fr::from_bytes_wide(&buffer);
         let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
 
-        let p = ExtendedPoint::from(value_commitment.commitment()).to_affine();
+        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
         let mut inputs = vec![Scalar::zero(); 7];
         inputs[0] = identifier_inputs[0];
         inputs[1] = identifier_inputs[1];
-        inputs[2] = commitment;
-        inputs[3] = witness.root_hash;
-        inputs[4] = p.get_u();
-        inputs[5] = p.get_v();
+        inputs[2] = create_asset_commitment;
+        inputs[3] = create_asset_witness.root_hash;
+        inputs[4] = value_commitment_point.get_u();
+        inputs[5] = value_commitment_point.get_v();
         inputs[6] = note_commitment;
 
         // Create proof
         let circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(commitment_randomness),
-            auth_path: sapling_auth_path(&witness),
-            anchor: Some(witness.root_hash),
+            commitment_randomness: Some(create_commitment_randomness),
+            auth_path: sapling_auth_path(&create_asset_witness),
+            anchor: Some(create_asset_witness.root_hash),
             value_commitment: Some(value_commitment),
         };
         let proof =
@@ -491,20 +493,39 @@ mod test {
         let asset_info =
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
-        let commitment_randomness = {
+        let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
             jubjub::Fr::from_bytes_wide(&buffer)
         };
 
-        let mut commitment_plaintext: Vec<u8> = vec![];
-        commitment_plaintext.extend(GH_FIRST_BLOCK);
-        commitment_plaintext.extend(asset_info.name());
-        commitment_plaintext.extend(asset_info.public_address_bytes());
-        commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+        let mut create_commitment_plaintext: Vec<u8> = vec![];
+        create_commitment_plaintext.extend(GH_FIRST_BLOCK);
+        create_commitment_plaintext.extend(asset_info.name());
+        create_commitment_plaintext.extend(asset_info.public_address_bytes());
+        create_commitment_plaintext.extend(slice::from_ref(asset_info.nonce()));
+
+        // TODO: Make a helper function
+        let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+            pedersen_hash::Personalization::NoteCommitment,
+            create_commitment_plaintext
+                .clone()
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        ));
+
+        let create_commitment_full_point = create_commitment_hash
+            + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+
+        let create_commitment = create_commitment_full_point.to_affine().get_u();
+        let create_witness = make_fake_witness_from_commitment(create_commitment);
+
+        let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
+        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
 
         let value = 1;
+
         // Calculate the note contents, as bytes
         let mut note_contents = vec![];
 
@@ -524,24 +545,6 @@ mod test {
 
         assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
 
-        // TODO: Make a helper function
-        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            commitment_plaintext
-                .clone()
-                .into_iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        ));
-
-        let commitment_full_point =
-            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
-
-        let commitment = commitment_full_point.to_affine().get_u();
-        let witness = make_fake_witness_from_commitment(commitment);
-
-        let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
-        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
-
         let note_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
             note_contents
@@ -549,7 +552,7 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
 
         let mut buffer = [0u8; 64];
@@ -557,14 +560,14 @@ mod test {
         let randomness = jubjub::Fr::from_bytes_wide(&buffer);
         let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
 
-        let p = ExtendedPoint::from(value_commitment.commitment()).to_affine();
+        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
         let mut inputs = vec![Scalar::zero(); 7];
         inputs[0] = identifier_inputs[0];
         inputs[1] = identifier_inputs[1];
-        inputs[2] = commitment;
-        inputs[3] = witness.root_hash;
-        inputs[4] = p.get_u();
-        inputs[5] = p.get_v();
+        inputs[2] = create_commitment;
+        inputs[3] = create_witness.root_hash;
+        inputs[4] = value_commitment_point.get_u();
+        inputs[5] = value_commitment_point.get_v();
         inputs[6] = note_commitment;
 
         // Create proof
@@ -573,9 +576,9 @@ mod test {
         let circuit = MintAsset {
             asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key),
-            commitment_randomness: Some(commitment_randomness),
-            auth_path: sapling_auth_path(&witness),
-            anchor: Some(witness.root_hash),
+            commitment_randomness: Some(create_commitment_randomness),
+            auth_path: sapling_auth_path(&create_witness),
+            anchor: Some(create_witness.root_hash),
             value_commitment: Some(value_commitment),
         };
 
@@ -589,93 +592,18 @@ mod test {
 
     #[test]
     fn test_create_mint_asset_and_spend_circuit() {
+        let sapling = sapling_bls12::SAPLING.clone();
+
         // Setup: generate parameters file. This is slow, consider using pre-built ones later
         let create_asset_params = groth16::generate_random_parameters::<Bls12, _, _>(
             CreateAsset {
                 asset_info: None,
-                commitment_randomness: None,
+                create_commitment_randomness: None,
             },
             &mut OsRng,
         )
         .expect("Can generate random params");
         let create_asset_pvk = groth16::prepare_verifying_key(&create_asset_params.vk);
-
-        // Test setup: create sapling keys
-        let sapling_key = SaplingKey::generate_key();
-        let public_address = sapling_key.generate_public_address();
-        let proof_generation_key = sapling_key.sapling_proof_generation_key();
-
-        // Test setup: create an Asset Type
-        let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
-
-        let generator_affine = asset_info.asset_type().asset_generator().to_affine();
-
-        let commitment_randomness = {
-            let mut buffer = [0u8; 64];
-            OsRng.fill(&mut buffer[..]);
-
-            jubjub::Fr::from_bytes_wide(&buffer)
-        };
-
-        let mut identifier_plaintext: Vec<u8> = vec![];
-        identifier_plaintext.extend(GH_FIRST_BLOCK);
-        identifier_plaintext.extend(asset_info.name());
-        identifier_plaintext.extend(asset_info.public_address_bytes());
-        identifier_plaintext.extend(slice::from_ref(asset_info.nonce()));
-
-        let value = 1;
-        // Calculate the note contents, as bytes
-        let mut note_contents = vec![];
-
-        // Write the asset generator, cofactor not cleared
-        note_contents.extend(asset_info.asset_type().asset_generator().to_bytes());
-
-        // Writing the value in little endian
-        (&mut note_contents)
-            .write_u64::<LittleEndian>(value)
-            .unwrap();
-
-        // Write g_d
-        note_contents.extend_from_slice(&public_address.diversifier_point.to_bytes());
-
-        // Write pk_d
-        note_contents.extend_from_slice(&public_address.transmission_key.to_bytes());
-
-        assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
-
-        // TODO: Make a helper function
-        let commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            identifier_plaintext
-                .clone()
-                .into_iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        ));
-
-        let commitment_full_point =
-            commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
-
-        let commitment = commitment_full_point.to_affine().get_u();
-        let witness = make_fake_witness_from_commitment(commitment);
-
-        let inputs = [
-            generator_affine.get_u(),
-            generator_affine.get_v(),
-            commitment,
-        ];
-
-        // Create proof
-        let circuit = CreateAsset {
-            asset_info: Some(asset_info.clone()),
-            commitment_randomness: Some(commitment_randomness),
-        };
-        let proof = groth16::create_random_proof(circuit, &create_asset_params, &mut OsRng)
-            .expect("Create valid proof");
-
-        // Verify proof
-        groth16::verify_proof(&create_asset_pvk, &proof, &inputs).expect("Can verify proof");
 
         // Setup: generate parameters file. This is slow, consider using pre-built ones later
         let mint_asset_params = groth16::generate_random_parameters::<Bls12, _, _>(
@@ -692,13 +620,93 @@ mod test {
         .expect("Can generate random params");
         let mint_asset_pvk = groth16::prepare_verifying_key(&mint_asset_params.vk);
 
+        // Test setup: create sapling keys
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.generate_public_address();
+        let proof_generation_key = sapling_key.sapling_proof_generation_key();
+
+        // Test setup: create an Asset Type
+        let name = "My custom asset 1";
+        let asset_info =
+            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+
+        let generator_affine = asset_info.asset_type().asset_generator().to_affine();
+
+        let create_commitment_randomness = {
+            let mut buffer = [0u8; 64];
+            OsRng.fill(&mut buffer[..]);
+
+            jubjub::Fr::from_bytes_wide(&buffer)
+        };
+
+        let mut identifier_plaintext: Vec<u8> = vec![];
+        identifier_plaintext.extend(GH_FIRST_BLOCK);
+        identifier_plaintext.extend(asset_info.name());
+        identifier_plaintext.extend(asset_info.public_address_bytes());
+        identifier_plaintext.extend(slice::from_ref(asset_info.nonce()));
+
+        // TODO: Make a helper function
+        let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
+            pedersen_hash::Personalization::NoteCommitment,
+            identifier_plaintext
+                .clone()
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        ));
+
+        let create_commitment_full_point = create_commitment_hash
+            + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
+
+        let create_commitment = create_commitment_full_point.to_affine().get_u();
+        let create_witness = make_fake_witness_from_commitment(create_commitment);
+
+        let create_public_inputs = [
+            generator_affine.get_u(),
+            generator_affine.get_v(),
+            create_commitment,
+        ];
+
+        // Create proof
+        let create_circuit = CreateAsset {
+            asset_info: Some(asset_info),
+            create_commitment_randomness: Some(create_commitment_randomness),
+        };
+        let create_proof =
+            groth16::create_random_proof(create_circuit, &create_asset_params, &mut OsRng)
+                .expect("Create valid create asset proof");
+
+        // Verify proof
+        groth16::verify_proof(&create_asset_pvk, &create_proof, &create_public_inputs)
+            .expect("Can verify create asset proof");
+
         let identifier_bits = multipack::bytes_to_bits_le(asset_info.asset_type().get_identifier());
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+
+        let value = 1;
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
         let randomness = jubjub::Fr::from_bytes_wide(&buffer);
         let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
+
+        // Calculate the note contents, as bytes
+        let mut note_contents = vec![];
+
+        // Write the asset generator, cofactor not cleared
+        note_contents.extend(asset_info.asset_type().asset_generator().to_bytes());
+
+        // Writing the value in little endian
+        (&mut note_contents)
+            .write_u64::<LittleEndian>(value)
+            .unwrap();
+
+        // Write g_d
+        note_contents.extend_from_slice(&public_address.diversifier_point.to_bytes());
+
+        // Write pk_d
+        note_contents.extend_from_slice(&public_address.transmission_key.to_bytes());
+
+        assert_eq!(note_contents.len(), 32 + 32 + 32 + 8);
 
         let note_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
@@ -707,51 +715,51 @@ mod test {
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
         let note_full_point =
-            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * commitment_randomness);
+            note_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
         let note_commitment = note_full_point.to_affine().get_u();
         let note_witness = make_fake_witness_from_commitment(note_commitment);
 
-        let p = ExtendedPoint::from(value_commitment.commitment()).to_affine();
-        let mut inputs = vec![Scalar::zero(); 7];
-        inputs[0] = identifier_inputs[0];
-        inputs[1] = identifier_inputs[1];
-        inputs[2] = commitment;
-        inputs[3] = witness.root_hash;
-        inputs[4] = p.get_u();
-        inputs[5] = p.get_v();
-        inputs[6] = note_commitment;
+        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
+        let mut mint_public_inputs = vec![Scalar::zero(); 7];
+        mint_public_inputs[0] = identifier_inputs[0];
+        mint_public_inputs[1] = identifier_inputs[1];
+        mint_public_inputs[2] = create_commitment;
+        mint_public_inputs[3] = create_witness.root_hash;
+        mint_public_inputs[4] = value_commitment_point.get_u();
+        mint_public_inputs[5] = value_commitment_point.get_v();
+        mint_public_inputs[6] = note_commitment;
 
-        // Create proof
-        let circuit = MintAsset {
-            asset_info: Some(asset_info.clone()),
+        // Mint proof
+        let mint_circuit = MintAsset {
+            asset_info: Some(asset_info),
             proof_generation_key: Some(proof_generation_key.clone()),
-            commitment_randomness: Some(commitment_randomness),
-            auth_path: sapling_auth_path(&witness),
-            anchor: Some(witness.root_hash),
-            value_commitment: Some(value_commitment.clone()),
+            commitment_randomness: Some(create_commitment_randomness),
+            auth_path: sapling_auth_path(&create_witness),
+            anchor: Some(create_witness.root_hash),
+            value_commitment: Some(value_commitment),
         };
-        let proof = groth16::create_random_proof(circuit, &mint_asset_params, &mut OsRng)
-            .expect("Create valid proof");
+        let mint_proof = groth16::create_random_proof(mint_circuit, &mint_asset_params, &mut OsRng)
+            .expect("Create valid mint asset proof");
 
         // Verify proof
-        groth16::verify_proof(&mint_asset_pvk, &proof, &inputs).expect("Can verify proof");
+        groth16::verify_proof(&mint_asset_pvk, &mint_proof, &mint_public_inputs)
+            .expect("Can verify mint asset proof");
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
         let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
 
         let spend_circuit = Spend {
-            value_commitment: Some(value_commitment.clone()),
+            value_commitment: Some(value_commitment),
             asset_type: Some(asset_info.asset_type()),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(public_address.sapling_payment_address()),
             auth_path: sapling_auth_path(&note_witness),
-            commitment_randomness: Some(commitment_randomness),
+            commitment_randomness: Some(create_commitment_randomness),
             anchor: Some(note_witness.root_hash()),
             ar: Some(public_key_randomness),
         };
-        let sapling = sapling_bls12::SAPLING.clone();
-        let proof =
+        let spend_proof =
             groth16::create_random_proof(spend_circuit, &sapling.spend_params, &mut OsRng).unwrap();
 
         let private_key = redjubjub::PrivateKey(sapling_key.spend_authorizing_key);
@@ -787,12 +795,12 @@ mod test {
         .unwrap();
 
         let spend_proof = SpendProof {
-            proof: proof.clone(),
+            proof: spend_proof,
             value_commitment: value_commitment.commitment().into(),
             randomized_public_key,
             root_hash: note_witness.root_hash,
             tree_size: note_witness.tree_size as u32,
-            nullifier: nullifier,
+            nullifier,
             authorizing_signature,
         };
         spend_proof
@@ -802,8 +810,6 @@ mod test {
 
     #[test]
     fn test_mint_asset_circuit_with_params() {
-        let tx_fee = 1;
-
         let sapling = sapling_bls12::SAPLING.clone();
 
         // Test setup: create sapling keys
@@ -817,7 +823,9 @@ mod test {
 
         // Mint asset note
         let value = 2;
-        let note = MintAssetNote::new(asset_info, value);
+        let mint_note = MintAssetNote::new(asset_info, value);
+
+        let tx_fee = 1;
 
         // Regular spend note for transaction fee
         let in_note = Note::new(
@@ -826,15 +834,15 @@ mod test {
             Memo::default(),
             AssetType::default(),
         );
-        let witness = make_fake_witness(&in_note);
-        let mint_asset_witness = make_fake_witness_from_commitment(note.commitment());
+        let note_witness = make_fake_witness(&in_note);
+        let mint_asset_witness = make_fake_witness_from_commitment(mint_note.commitment_point());
 
         let mut transaction = ProposedTransaction::new(sapling);
         transaction
-            .spend(sapling_key.clone(), &in_note, &witness)
+            .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
         transaction
-            .mint_asset(&sapling_key, &note, &mint_asset_witness)
+            .mint_asset(&sapling_key, &mint_note, &mint_asset_witness)
             .expect("Can add mint asset note");
 
         let public_transaction = transaction

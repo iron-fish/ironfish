@@ -240,6 +240,7 @@ impl<'a> Note {
     /// Get the commitment hash for this note. This encapsulates all the values
     /// in the note, including the randomness and converts them to a byte
     /// format. This hash is what gets used for the leaf nodes in a Merkle Tree.
+    // TODO: This isnt used, use it or lose it
     pub fn commitment(&self) -> [u8; 32] {
         scalar_to_bytes(&self.commitment_point())
     }
@@ -290,6 +291,7 @@ impl<'a> Note {
     /// This is somewhat suboptimal with extra calculations and bytes being
     /// passed around. I'm not worried about it yet, since only notes actively
     /// being spent have to create these.
+    // TODO: we can get rid of this pattern now, since we hoisted and altered "SaplingNote"
     fn sapling_note(&self) -> SaplingNote {
         SaplingNote {
             asset_type: self.asset_type,
