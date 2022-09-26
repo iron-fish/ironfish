@@ -28,39 +28,46 @@ export class NotesCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.getAccountNotes({ account })
+    const response = client.getAccountNotesStream({ account })
+    let first_response = true
 
-    const { account: accountResponse, notes } = response.content
-
-    this.log(`\n ${accountResponse} - Account notes\n`)
-
-    CliUx.ux.table(notes, {
-      isOwner: {
-        header: 'Owner',
-        get: (row) => (row.owner ? `✔` : `x`),
-      },
-      amount: {
-        header: 'Amount ($IRON)',
-        get: (row) => oreToIron(row.amount),
-      },
-      memo: {
-        header: 'Memo',
-      },
-      transactionHash: {
-        header: 'From Transaction',
-      },
-      isSpent: {
-        header: 'Spent',
-        get: (row) => {
-          if (row.spent === undefined) {
-            return '-'
-          } else {
-            return row.spent ? `✔` : `x`
-          }
+    for await (const { account: accountResponse, notes } of response.contentStream()) {
+      const no_header = first_response ? false : true
+      if (first_response) {
+        this.log(`\n ${accountResponse} - Account notes\n`)
+        first_response = false
+      }
+      CliUx.ux.table(
+        notes,
+        {
+          isOwner: {
+            header: 'Owner',
+            get: (row) => (row.owner ? `✔` : `x`),
+          },
+          amount: {
+            header: 'Amount ($IRON)',
+            get: (row) => oreToIron(row.amount),
+          },
+          memo: {
+            header: 'Memo',
+          },
+          transactionHash: {
+            header: 'From Transaction',
+          },
+          isSpent: {
+            header: 'Spent',
+            get: (row) => {
+              if (row.spent === undefined) {
+                return '-'
+              } else {
+                return row.spent ? `✔` : `x`
+              }
+            },
+          },
         },
-      },
-    })
-
+        { 'no-header': no_header },
+      )
+    }
     this.log(`\n`)
   }
 }

@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount, getTransactionNotes } from './utils'
 
-export type GetAccountNotesRequest = { account?: string }
+export type GetAccountNotesRequest = { account?: string; stream?: boolean }
 
 export type GetAccountNotesResponse = {
   account: string
@@ -21,6 +21,7 @@ export type GetAccountNotesResponse = {
 export const GetAccountNotesRequestSchema: yup.ObjectSchema<GetAccountNotesRequest> = yup
   .object({
     account: yup.string().strip(true),
+    stream: yup.boolean().optional(),
   })
   .defined()
 
@@ -50,10 +51,15 @@ router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
     const account = getAccount(node, request.data.account)
 
     const responseNotes = []
+    const stream = request.data?.stream
 
     for await (const { transaction } of account.getTransactions()) {
       const notes = await getTransactionNotes(account, transaction)
-      responseNotes.push(...notes)
+      if (stream) {
+        request.stream({ account: account.displayName, notes: [...notes] })
+      } else {
+        responseNotes.push(...notes)
+      }
     }
 
     request.end({ account: account.displayName, notes: responseNotes })
