@@ -79,7 +79,7 @@ export class RpcServer {
 
   /** Authenticate the RPC request */
   authenticate(requestAuthToken: string | undefined): boolean {
-    if (requestAuthToken) {
+    if (!requestAuthToken) {
       this.logger.debug(`Missing Auth token in RPC request.`)
       return false
     }

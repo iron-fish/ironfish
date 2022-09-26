@@ -35,11 +35,13 @@ export abstract class RpcSocketClient extends RpcClient {
   abstract client: IpcClient | net.Socket | null
   abstract isConnected: boolean
   abstract connection: Partial<RpcClientConnectionInfo>
-  rpcAuthToken: string
+  authToken: string | null = null
 
-  constructor(logger: Logger, rpcAuthToken: string) {
+  constructor(logger: Logger, authToken?: string) {
     super(logger)
-    this.rpcAuthToken = rpcAuthToken
+    if (authToken) {
+      this.authToken = authToken
+    }
   }
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
@@ -48,7 +50,7 @@ export abstract class RpcSocketClient extends RpcClient {
     messageId: number,
     route: string,
     data: unknown,
-    authToken: string,
+    authToken: string | null,
   ): void
 
   private timeoutMs: number | null = REQUEST_TIMEOUT_MS
@@ -137,7 +139,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     this.pending.set(messageId, pending)
 
-    this.send(messageId, route, data, this.rpcAuthToken)
+    this.send(messageId, route, data, this.authToken)
 
     return response
   }
