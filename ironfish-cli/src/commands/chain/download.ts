@@ -42,6 +42,12 @@ export default class Download extends IronfishCommand {
       required: false,
       description: 'Path to a downloaded snapshot file to import',
     }),
+    outputPath: Flags.string({
+      char: 'o',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Output path to download the snapshot file to',
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm download without asking',
@@ -104,10 +110,10 @@ export default class Download extends IronfishCommand {
         snapshotUrl = url.toString()
       }
 
-      this.log(`Downloading snapshot from ${snapshotUrl}`)
-
       await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
-      snapshotPath = path.join(this.sdk.config.tempDir, manifest.file_name)
+      snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
+
+      this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
