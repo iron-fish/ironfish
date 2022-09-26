@@ -195,6 +195,19 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       const message = result.result.data
 
+      const requestId = uuid()
+      const request = new RpcRequest(
+        message.data,
+        message.type,
+        (status: number, data?: unknown) => {
+          this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
+        },
+        (data: unknown) => {
+          this.emitStream(client, this.constructStream(message.mid, data))
+        },
+      )
+      client.requests.set(requestId, request)
+
       if (this.router == null || this.router.server == null) {
         this.emitResponse(client, this.constructUnmountedAdapter())
         return
@@ -209,19 +222,6 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
           return
         }
       }
-
-      const requestId = uuid()
-      const request = new RpcRequest(
-        message.data,
-        message.type,
-        (status: number, data?: unknown) => {
-          this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
-        },
-        (data: unknown) => {
-          this.emitStream(client, this.constructStream(message.mid, data))
-        },
-      )
-      client.requests.set(requestId, request)
 
       try {
         await this.router.route(message.type, request)
