@@ -207,7 +207,7 @@ export abstract class RpcClient {
   }
 
   getAccountNotesStream(
-    params: GetAccountNotesStreamRequest,
+    params: GetAccountNotesStreamRequest = {},
   ): RpcResponse<void, GetAccountNotesStreamResponse> {
     return this.request<void, GetAccountNotesStreamResponse>(
       `${ApiNamespace.account}/getAccountNotesStream`,
