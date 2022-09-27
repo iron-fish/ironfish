@@ -6,8 +6,8 @@ import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class TransactionsCommand extends IronfishCommand {
-  static description = `Display the account transactions`
+export class TransactionCommand extends IronfishCommand {
+  static description = `Display an account transaction`
 
   static flags = {
     ...RemoteFlags,
@@ -29,7 +29,7 @@ export class TransactionsCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(TransactionsCommand)
+    const { args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
     const account = args.account as string | undefined
 
