@@ -13,9 +13,9 @@ import {
   GetAccountNotesResponse,
   GetAccountsRequest,
   GetAccountsResponse,
+  GetAccountTransactionsRequest,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
-  GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
   GetBalanceRequest,
   GetBalanceResponse,
@@ -224,13 +224,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountTransactions(
+  getAccountTransactions(
     params: GetAccountTransactionsRequest,
-  ): Promise<RpcResponseEnded<GetAccountTransactionsResponse>> {
-    return await this.request<GetAccountTransactionsResponse>(
+  ): RpcResponse<void, GetAccountTransactionsResponse> {
+    return this.request<void, GetAccountTransactionsResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getPeers(

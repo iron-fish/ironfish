@@ -3,22 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
+import { serializeRpcAccountTransaction } from './types'
 import { getAccount, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionsRequest = { account?: string }
 
 export type GetAccountTransactionsResponse = {
   account: string
-  transactions: {
+  transaction: {
     creator: boolean
     status: string
     hash: string
     isMinersFee: boolean
-    fee: number
-    notes: number
-    spends: number
-    expiration: number
-  }[]
+    fee: string
+    notesCount: number
+    spendsCount: number
+    expirationSequence: number
+  }
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -32,21 +33,17 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
   yup
     .object({
       account: yup.string().defined(),
-      transactions: yup
-        .array(
-          yup
-            .object({
-              creator: yup.boolean().defined(),
-              status: yup.string().defined(),
-              hash: yup.string().defined(),
-              isMinersFee: yup.boolean().defined(),
-              fee: yup.number().defined(),
-              notes: yup.number().defined(),
-              spends: yup.number().defined(),
-              expiration: yup.number().defined(),
-            })
-            .defined(),
-        )
+      transaction: yup
+        .object({
+          creator: yup.boolean().defined(),
+          status: yup.string().defined(),
+          hash: yup.string().defined(),
+          isMinersFee: yup.boolean().defined(),
+          fee: yup.string().defined(),
+          notesCount: yup.number().defined(),
+          spendsCount: yup.number().defined(),
+          expirationSequence: yup.number().defined(),
+        })
         .defined(),
     })
     .defined()
@@ -56,42 +53,39 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const responseTransactions = []
 
-    for await (const { transaction, blockHash, sequence } of account.getTransactions()) {
-      let transactionCreator = false
+    for await (const transaction of account.getTransactions()) {
+      const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-      for (const spend of transaction.spends()) {
+      let creator = false
+      for (const spend of transaction.transaction.spends()) {
         const noteHash = await account.getNoteHash(spend.nullifier)
 
         if (noteHash) {
-          transactionCreator = true
+          creator = true
           break
         }
       }
 
       const status = await getTransactionStatus(
         node,
-        blockHash,
-        sequence,
-        transaction.expirationSequence(),
+        transaction.blockHash,
+        transaction.sequence,
+        transaction.transaction.expirationSequence(),
       )
 
-      responseTransactions.push({
-        creator: transactionCreator,
+      const serialized = {
+        ...serializedTransaction,
+        creator,
         status,
-        hash: transaction.unsignedHash().toString('hex'),
-        isMinersFee: transaction.isMinersFee(),
-        fee: Number(transaction.fee()),
-        notes: transaction.notesLength(),
-        spends: transaction.spendsLength(),
-        expiration: transaction.expirationSequence(),
+      }
+
+      request.stream({
+        account: account.name,
+        transaction: serialized,
       })
     }
 
-    request.end({
-      account: account.displayName,
-      transactions: responseTransactions,
-    })
+    request.end()
   },
 )

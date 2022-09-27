@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CurrencyUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -47,50 +48,56 @@ export class TransactionsCommand extends IronfishCommand {
     },
   ): Promise<void> {
     const client = await this.sdk.connectRpc()
+    const response = client.getAccountTransactions({ account })
 
-    const response = await client.getAccountTransactions({ account })
+    let showHeader = true
+    for await (const { account, transaction } of response.contentStream()) {
+      if (showHeader) {
+        this.log(`\n${account} - Account transactions\n`)
+      }
 
-    const { account: accountResponse, transactions } = response.content
+      CliUx.ux.table(
+        [transaction],
+        {
+          status: {
+            header: 'Status',
+          },
+          creator: {
+            header: 'Creator',
+            get: (transaction) => (transaction.creator ? `✔` : `x`),
+          },
+          hash: {
+            header: 'Hash',
+          },
+          isMinersFee: {
+            header: 'Miner Fee',
+            get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
+          },
+          fee: {
+            header: 'Fee ($ORE)',
+            get: (transaction) => CurrencyUtils.renderOre(transaction.fee, true),
+            minWidth: 20,
+          },
+          notesCount: {
+            header: 'Notes',
+            minWidth: 5,
+          },
+          spendsCount: {
+            header: 'Spends',
+            minWidth: 5,
+          },
+          expirationSequence: {
+            header: 'Expiration Sequence',
+          },
+        },
+        {
+          printLine: this.log.bind(this),
+          ...flags,
+          'no-header': !showHeader,
+        },
+      )
 
-    this.log(`\n ${String(accountResponse)} - Account transactions\n`)
-
-    CliUx.ux.table(
-      transactions,
-      {
-        status: {
-          header: 'Status',
-        },
-        creator: {
-          header: 'Creator',
-          get: (row) => (row.creator ? `✔` : `x`),
-        },
-        hash: {
-          header: 'Hash',
-        },
-        isMinersFee: {
-          header: 'Miner Fee',
-          get: (row) => (row.isMinersFee ? `✔` : `x`),
-        },
-        fee: {
-          header: 'Fee ($ORE)',
-          get: (row) => row.fee,
-        },
-        notes: {
-          header: 'Notes',
-        },
-        spends: {
-          header: 'Spends',
-        },
-        expiration: {
-          header: 'Expiration',
-        },
-      },
-      {
-        printLine: this.log.bind(this),
-        ...flags,
-      },
-    )
-
-    this.log(`\n`)
+      showHeader = false
+    }
   }
 }
