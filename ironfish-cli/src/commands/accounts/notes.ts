@@ -31,14 +31,14 @@ export class NotesCommand extends IronfishCommand {
     const response = client.getAccountNotesStream({ account })
     let firstResponse = true
 
-    for await (const { account: accountResponse, notes } of response.contentStream()) {
+    for await (const { account: accountResponse, note } of response.contentStream()) {
       const noHeader = firstResponse ? false : true
       if (firstResponse) {
         this.log(`\n ${accountResponse} - Account notes\n`)
         firstResponse = false
       }
       CliUx.ux.table(
-        notes,
+        [note],
         {
           isOwner: {
             header: 'Owner',
