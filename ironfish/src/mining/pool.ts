@@ -337,7 +337,11 @@ export class MiningPool {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
-    const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
+    const currentBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
+    Assert.isNotNull(currentBlock)
+    const latestBlock = Object.assign({}, currentBlock)
+    latestBlock.header = Object.assign({}, currentBlock.header)
+
     Assert.isNotNull(latestBlock)
 
     const newTime = new Date()
